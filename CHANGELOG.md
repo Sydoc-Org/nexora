@@ -30,6 +30,10 @@ Work toward the next release.
   correct %" (a field the machine never attempted still deviates when a
   validator fills it in), and the headline rate understates the extractor —
   EM reads 51% correct overall but 94.6% on the instances it actually attempts.
+  The breakdown labels put the useful dimension first and call it plainly
+  "Field": it was named "Field key (nexora)" while a near-useless wide variant
+  held the name "Field", so the obvious pick charted 631 series of which 230 sit
+  permanently at 100%.
 
 ### Changed
 

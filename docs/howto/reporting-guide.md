@@ -48,13 +48,16 @@ guide as an app page.
   current month on every run and in every scheduled mail. Schedule times are
   UTC.
 - To see **which document fields extraction gets right**, pick the "Field
-  extraction quality (EM)" measure "Extraction correct %" and break down by
-  **Field key (nexora)** — *not* by "Field". Octo reports about 630 raw field
-  names for EM, most of them internal bookkeeping it always fills in
-  perfectly, so a breakdown by "Field" buries the real invoice fields under
-  hundreds of rows reading 100%. "Field key (nexora)" gives you the ~20 fields
-  nexora actually knows about plus a single empty bucket for all the rest.
-  Sort by the measure ascending and the worst field is the top row.
+  extraction quality (EM)" measure **"Extraction correct %"** and break down by
+  **Field**. Sort by the measure ascending and the worst field is the top row.
+- Two traps on that source. Use **"Extraction correct %"**, not "Extracted %":
+  the latter only asks whether the machine put *anything* in the box, and
+  everything Octo fills in automatically comes back fully extracted. And stay
+  on **Field** rather than "Field (incl. unmapped)" or "Field (Octo raw
+  name)": those two list all ~630 names Octo emits, 230 of which are internal
+  bookkeeping pinned at the maximum, so a chart of them is just flat lines
+  along the top and tells you nothing. "Field" is the ~20 fields nexora knows
+  about, plus one empty bucket for the rest.
 - A field with a **high "Avg. 2nd-candidate confidence %"** sitting close to its
   best-candidate confidence means the extractor was torn between two readings —
   usually a better thing to fix than a field that is simply never found.

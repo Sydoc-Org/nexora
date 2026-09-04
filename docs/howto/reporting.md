@@ -1022,10 +1022,18 @@ reading 100%. Two ways to cut through that, both data-driven where the hand-buil
 `v_*FieldStatistic` views in the statistics DB hardcode ~20 field names in a
 `WHERE` clause:
 
-- **Break down by `FieldKey`** (labelled "Field key (nexora)"). It is `NULL` for
-  an unmapped field, so the ~20 mapped fields each get a row and everything else
-  collapses into one empty bucket. Needs no filter, so the Simple wizard can
-  express it — this is the recommended route and what the user guide teaches.
+- **Break down by `FieldKey`** — labelled simply **"Field"** since migration
+  `0099`, and first in the catalog. It is `NULL` for an unmapped field, so the
+  ~20 mapped fields each get a row and everything else collapses into one empty
+  bucket. Needs no filter, so the Simple wizard can express it — this is the
+  recommended route and what the user guide teaches. `FieldLabel` ("Field
+  (incl. unmapped)") and `Field` ("Field (Octo raw name)") are the wide
+  variants; `0099` renamed them because `FieldLabel` was called "Field" and
+  falls back to the raw Octo name for the ~611 unmapped fields, so the obvious
+  pick produced 631 series. Against a 12-series chart cap and the **230 fields
+  Octo pins at exactly 100%** (bookkeeping it fills from the batch every time),
+  that rendered twelve flat lines at the top — the cap filled with ties before
+  any real field appeared.
 - **Filter `MappedInNexoraPct` to `100`** in the Advanced builder, which drops
   the unmapped rows entirely rather than bucketing them.
 
