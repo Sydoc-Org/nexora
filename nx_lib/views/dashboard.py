@@ -859,7 +859,17 @@ def dashboard_avg_processing_time():
     target_processes = normalize_process_selection(process_name, allowed_processes)[1]
 
     if not target_processes:
-        return jsonify({"avg_minutes": None, "avg_display": "—"})
+        # Same shape as the populated response: the KPI strip reads prev/series
+        # unconditionally, so a user with no process grants must not hand the
+        # frontend a dict missing half its keys.
+        return jsonify(
+            {
+                "avg_minutes": None,
+                "avg_display": "—",
+                "prev_avg_minutes": None,
+                "series": [],
+            }
+        )
 
     try:
         series_sec = _avg_processing_by_day(target_processes, 7)
