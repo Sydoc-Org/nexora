@@ -20,7 +20,10 @@
 - Never un-hide an element that carries `[display:none]!` by setting `style.display` — `tests/unit/test_display_none_important.py` enforces `classList.add/remove('[display:none]!')`.
 - Templates are cached for the process lifetime: `bin/nx.ps1 -r` after every template edit before any browser check.
 - **No migrations.** `dbo.BacklogHistory` lives on the Statistics DB, which nexora does not track under `sql/` (vendor/runtime surface) and which the standalone collector creates itself. Nothing in `sql/_migrations/` changes.
-- Never `--no-verify`. If the SQL pre-commit hooks block on unrelated INT drift, use `SQL_SYNC_SKIP=1 git commit …`.
+- Never `--no-verify`. If the SQL pre-commit hooks block on unrelated INT drift, use `SQL_SYNC_SKIP=1 git commit …`. **Expect this on every commit in this plan** — INT currently carries drift from a peer worktree (`sql/NexoraDB/Views/dbo.vEmFieldExtractionQuality.sql` untracked on INT, plus regenerated `sql/GeneraliDB/**` files). Those regenerated files are left unstaged in the working tree: they are not yours, never stage them, and never `git add -u`.
+- **Every commit needs a body — gitlint rejects a bare `-m` one-liner with `B6 Body message is missing`.** The per-task commit blocks below show only the subject line for brevity. Keep that subject verbatim, then add a blank line and two to four wrapped lines (≤100 chars) saying *why*. Use `git commit -F -` with a here-doc. Measured on Task 1, 2026-09-04.
+- **The test snippets below re-import for readability; the real files already import what they need.** `tests/unit/test_dashboard_stats.py` already has `date`, `timedelta` and `import nx_lib.views.dashboard as dv` at module level. Drop the per-test `from datetime import …` / `from nx_lib.views import dashboard as dv` lines when pasting — ruff flags the shadowing re-imports.
+- **`_row()` in `tests/unit/test_dashboard_stats.py` is `_row(client_code, name="p", table=None, exp=None, imp=None)`.** Pass the table in the *third* slot, not the second: `_row("default", "t1", "dbo.t1", "ExportDate", "ImportDate")`. Getting this wrong leaves `table=None` and `_ms02_source()` silently builds `(None, '"None"', '"None"')` — invisible while the row readers are monkeypatched, wrong the moment they are not.
 - Remote-session policy: commit, never push, never open a PR.
 
 ---
