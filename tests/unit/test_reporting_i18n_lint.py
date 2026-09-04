@@ -58,28 +58,10 @@ ALLOWED = {
     # 'literal': 'why it is fine' — keys must be the POST-STRIP form (the
     # walkers strip HTML tags and whitespace before the lookup).
     #
-    # --- Task 1 finding (beautify phase 2b), NOT fixed here on purpose ---
-    # static/js/reporting_schema.js uses `I18N.key || '<English default>'`
-    # as a defensive fallback for the case window.NX_I18N_REPORTING_SCHEMA
-    # itself is missing (script loaded without its shim, or a test harness
-    # that stubs `window` without it) — every key IS otherwise populated by
-    # templates/js/_reporting_schema_js.html via {{ _(...)|tojson }}, so the
-    # literal is unreachable on any real page today. It is a real,
-    # pre-existing hardcoded-English literal per the letter of this lint's
-    # rule, and per Task 1's brief it is reported here rather than patched
-    # silently (patching reporting_schema.js's behaviour is outside a
-    # guard-widening task). See task-1-report.md for the full finding.
-    # Follow-up: fix reporting_schema.js (drop the fallback literal, or move
-    # it through gettext too) and remove these entries.
-    # tracked: issue #246
-    "Primary key": "Task 1 finding, tracked follow-up — see issue #246",
-    "References {t}": "Task 1 finding, tracked follow-up — see issue #246",
-    "Nothing matches that.": "Task 1 finding, tracked follow-up — see issue #246",
-    "These are the tables this source reads.": "Task 1 finding, tracked follow-up — see issue #246",
-    "No foreign keys defined — showing the biggest tables.": "Task 1 finding, tracked follow-up — see issue #246",
-    "Showing the {n} most connected tables.": "Task 1 finding, tracked follow-up — see issue #246",
-    "Could not read this database.": "Task 1 finding, tracked follow-up — see issue #246",
-    "{n} more not shown": "Task 1 finding, tracked follow-up — see issue #246",
+    # Empty on purpose. The eight reporting_schema.js entries that lived
+    # here were the `I18N.key || '<English default>'` fallbacks; they are
+    # gone (#246), and test_reporting_schema_i18n_keys_match_the_shim below
+    # now enforces the coupling that made them unnecessary.
 }
 
 
@@ -227,3 +209,35 @@ def test_js_offender_detection_ignores_translated_and_short_literals(tmp_path):
     )
 
     assert _js_offenders([good_file]) == []
+
+
+def test_reporting_schema_i18n_keys_match_the_shim():
+    """Every I18N key the script reads must be supplied by its shim (#246).
+
+    The script used to carry `I18N.key || '<English default>'` for the case
+    the shim was missing. Those literals were unreachable -- the shim and the
+    script are loaded back to back by the same partial -- but they were real
+    hardcoded English, so they were removed.
+
+    With the fallbacks gone, an unsupplied key renders blank instead of a
+    stale English word: quieter, but silent. Nothing previously enforced that
+    the two files agreed, so adding a key to one and forgetting the other
+    would ship an empty label that no test would notice. This is that check.
+    """
+    import re
+
+    root = Path(__file__).resolve().parents[2]
+    js = (root / "static" / "js" / "reporting_schema.js").read_text(encoding="utf-8")
+    shim = (root / "templates" / "js" / "_reporting_schema_js.html").read_text(encoding="utf-8")
+
+    used = set(re.findall(r"I18N\.([A-Za-z_]+)", js))
+    supplied = set(re.findall(r"^\s*([A-Za-z_]+):\s*\{\{", shim, re.M))
+
+    assert used, "no I18N keys found -- has the script moved?"
+    assert supplied, "no keys found in the shim -- has it moved?"
+
+    missing = used - supplied
+    assert not missing, f"read by reporting_schema.js but absent from its shim: {sorted(missing)}"
+
+    unused = supplied - used
+    assert not unused, f"supplied by the shim but never read: {sorted(unused)}"

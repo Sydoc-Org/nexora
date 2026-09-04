@@ -28,6 +28,24 @@ Work toward the next release.
   `CONTRIBUTING.md` gains "Working in parallel" (the migration-number claim
   rule and the generated-file conflict hotspots) and "Releases".
 
+### Fixed
+
+- **The last eight hardcoded-English strings are out of
+  `static/js/reporting_schema.js`** (#246). Each was the fallback half of
+  `I18N.key || '<English default>'`, kept for the case the shim was missing.
+  They were unreachable -- `templates/js/_reporting_schema_js.html` defines
+  the shim and loads the script back to back, and supplies every key the
+  script reads -- but they were real hardcoded English by the letter of the
+  i18n lint, and were allowlisted rather than fixed when that lint was
+  widened. The literals are now `''`: the `||` guard stays, so a missing
+  shim degrades to a blank label rather than the text "undefined", and the
+  eight `ALLOWED` entries are gone.
+
+  A new test asserts the script and its shim supply exactly the same key
+  set. Without the fallbacks an unsupplied key renders blank -- quieter than
+  a stale English word, but silent -- and nothing previously checked that
+  the two files agreed.
+
 ## [3.2.4] - 2026-09-03
 
 ### Added
