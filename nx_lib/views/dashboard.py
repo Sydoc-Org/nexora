@@ -35,6 +35,20 @@ from ..workitem_sources import (
 )
 from .workitems import sensitive_blocked_tokens, strip_sensitive_fields
 
+# The 14 / 30 / 90-day windows the range control offers. Anything else
+# normalizes to 14 -- the value reaches SQL by string interpolation (a
+# server-side int, never user text), so the allowlist IS the sanitizer.
+RANGE_CHOICES = (14, 30, 90)
+
+
+def normalize_range(value):
+    """One of RANGE_CHOICES, or 14. Accepts str or int; never raises."""
+    try:
+        days = int(value)
+    except (TypeError, ValueError):
+        return RANGE_CHOICES[0]
+    return days if days in RANGE_CHOICES else RANGE_CHOICES[0]
+
 
 def make_cache_key(*args, **kwargs):
     return f"{request.path}_{session.get('userid')}_{session.get('process_name_dashboard', 'all')}"
@@ -377,6 +391,65 @@ def _avg_processing_by_day(target_processes, days, *, strict=False):
             per_day.setdefault(row[0], []).append(float(row[1]))
 
     return {d: sum(v) / len(v) for d, v in per_day.items()}
+
+
+_BACKLOG_HISTORY_SQL = """
+SELECT SnapshotAt, SourceCode, ClientName, ProcessName, BacklogCount
+FROM dbo.BacklogHistory
+WHERE SnapshotAt >= CAST(DATEADD(day, ?, CAST(GETDATE() AS DATE)) AS DATETIME2(0))
+ORDER BY SnapshotAt
+"""
+
+
+def _backlog_history(target_processes, days):
+    """{date: {"<client>.<process>": count}} from dbo.BacklogHistory (Statistics
+    DB), one point per day per process: the LAST snapshot of that day, summed
+    across SourceCodes (a pair can be served by both the Octo and MS02
+    runtimes). Rows outside ``target_processes`` are dropped here in Python --
+    14 days x a handful of processes is a few hundred rows, and a Python
+    membership test beats interpolating a pair list into the WHERE clause.
+
+    Matching is CASE-INSENSITIVE and that is load-bearing, not defensive:
+    BacklogHistory.ClientName comes from Octo's t_Processes.ClientName and is
+    display-cased ('Privera', 'ElektroMaterial', 'Compass'), while
+    target_processes comes from dbo.ProcessSources.ProcessName and is
+    lower-cased ('privera.03_Invoice_New'). Verified on INT 2026-09-04. An
+    exact match silently drops every non-MS02 process and leaves a chart that
+    looks plausible but is missing most of the backlog.
+
+    The collector (ops/backlog_history/backlog_history.py, every 30 min) owns
+    the table; nexora only reads it. A dead Statistics DB yields {} through
+    _default_stat_rows' swallow-and-log contract, which the callers render as
+    an empty chart."""
+    days = max(1, int(days))
+    # Keep the canonical (ProcessSources) spelling as the output key, looked up
+    # by its folded form, so the API returns names the rest of the app knows.
+    wanted = {p.casefold(): p for p in target_processes}
+
+    # (date, client.process) -> {source_code: (snapshot_at, count)} -- keep the
+    # latest snapshot per source before summing, so an early-morning row from
+    # one source never outranks an evening row from another.
+    latest = {}
+    for snapshot_at, source_code, client, process, count in _default_stat_rows(
+        _BACKLOG_HISTORY_SQL, (-(days - 1),)
+    ):
+        name = wanted.get(f"{client}.{process}".casefold())
+        if name is None:
+            continue
+        at = (
+            snapshot_at
+            if isinstance(snapshot_at, datetime)
+            else datetime.fromisoformat(str(snapshot_at))
+        )
+        slot = latest.setdefault((at.date(), name), {})
+        prev = slot.get(source_code)
+        if prev is None or at >= prev[0]:
+            slot[source_code] = (at, count or 0)
+
+    out = {}
+    for (day, name), by_source in latest.items():
+        out.setdefault(day, {})[name] = sum(c for _at, c in by_source.values())
+    return {d: out[d] for d in sorted(out)}
 
 
 def compute_avg_processing_time(target_processes, *, strict=False):

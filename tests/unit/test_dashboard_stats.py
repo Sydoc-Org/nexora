@@ -8,7 +8,7 @@ Postgres identifiers) and `_statconfig_sources` (the mapping_config-backed
 successor to the legacy per-call Statconfig cursor read, #98)."""
 
 import types
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from unittest.mock import MagicMock
 
 import pytest
@@ -615,3 +615,51 @@ def test_compute_avg_processing_time_still_returns_todays_scalar(app, monkeypatc
     monkeypatch.setattr(dv, "_avg_processing_by_day", lambda tp, days, strict=False: {})
     with app.test_request_context():
         assert dv.compute_avg_processing_time(["c.p"]) is None
+
+
+def test_backlog_history_takes_the_last_snapshot_per_day_and_sums_sources(app, monkeypatch):
+    """Two snapshots the same day -> the later one wins; two SourceCodes for
+    the same (client, process) -> summed. Pairs outside target_processes are
+    dropped in Python, never through an interpolated IN list."""
+    today = date.today()
+
+    def at(day, hour):
+        return datetime.combine(day, datetime.min.time()).replace(hour=hour)
+
+    yesterday = today - timedelta(days=1)
+    rows = [
+        # (SnapshotAt, SourceCode, ClientName, ProcessName, BacklogCount)
+        # NOTE the display-cased "Privera": BacklogHistory carries Octo's
+        # t_Processes.ClientName, target_processes carries ProcessSources'
+        # lower-cased name. Verified on INT 2026-09-04.
+        (at(today, 8), "octo", "Privera", "02_Posteingang", 500),
+        (at(today, 20), "octo", "Privera", "02_Posteingang", 612),
+        (at(today, 20), "ms02", "Privera", "02_Posteingang", 8),
+        (at(today, 20), "octo", "Privera", "99_NotGranted", 999),
+        (at(yesterday, 20), "octo", "Privera", "02_Posteingang", 564),
+    ]
+    monkeypatch.setattr(dv, "_default_stat_rows", lambda sql, params=None: rows)
+
+    with app.test_request_context():
+        out = dv._backlog_history(["privera.02_Posteingang"], 14)
+
+    # keyed by the canonical (lower-cased) ProcessSources spelling, not Octo's
+    assert out[today] == {"privera.02_Posteingang": 620}  # 612 + 8, the 08:00 row discarded
+    assert out[yesterday] == {"privera.02_Posteingang": 564}
+    assert all("99_NotGranted" not in k for day in out.values() for k in day)
+
+
+def test_backlog_history_is_empty_when_the_statistics_db_is_dead(app, monkeypatch):
+    """_default_stat_rows already swallows and logs; an empty trend must render
+    as an empty chart, never as a 500."""
+    monkeypatch.setattr(dv, "_default_stat_rows", lambda sql, params=None: [])
+    with app.test_request_context():
+        assert dv._backlog_history(["sydoc.02_Posteingang"], 14) == {}
+
+
+def test_normalize_range_falls_back_to_fourteen(app):
+    assert dv.normalize_range("30") == 30
+    assert dv.normalize_range(90) == 90
+    assert dv.normalize_range("7") == 14
+    assert dv.normalize_range(None) == 14
+    assert dv.normalize_range("'; DROP TABLE x --") == 14
