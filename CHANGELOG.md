@@ -30,6 +30,17 @@ Work toward the next release.
 
 ### Fixed
 
+- **The 2FA screen works in dark mode** (#243). It never set Tailwind's
+  `darkMode: 'class'`, so every `dark:` utility followed the OS
+  `prefers-color-scheme` instead of the page's own `.dark` class -- the
+  shared footer's `dark:brightness-0 dark:invert` fired on a light page
+  whenever the OS was dark, rendering a white logo on a white background.
+  Its surfaces were also hardcoded (`bg-white`, `text-gray-800`), so the
+  page stayed white even once the pre-paint had set `.dark`; they now read
+  the `--nx-*` tokens, which flip with the theme and need no new CSS.
+  `init_2FA`, `forgot_password` and `reset_password` have the same problem
+  and are tracked in #266.
+
 - **The 2FA screen follows your accent colour** (#243). The shield gradient,
   the submit button, the focus rings and the page backdrop all read
   `--nx-accent*`, but `verify_2fa.html` never set `data-accent`, so they sat
