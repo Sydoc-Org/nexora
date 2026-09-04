@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-04 21:29+0200\n"
+"POT-Creation-Date: 2026-09-04 23:06+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -995,46 +995,46 @@ msgstr ""
 msgid "Could not load values"
 msgstr ""
 
-#: nx_lib/views/tenant.py:277
+#: nx_lib/views/tenant.py:289
 #, python-format
 msgid "Missing value for %(field)s."
 msgstr ""
 
-#: nx_lib/views/tenant.py:284
+#: nx_lib/views/tenant.py:296
 #, python-format
 msgid "%(field)s must be a valid date (YYYY-MM-DD)."
 msgstr ""
 
-#: nx_lib/views/tenant.py:291
+#: nx_lib/views/tenant.py:303
 #, python-format
 msgid "%(field)s must be numeric."
 msgstr ""
 
 #: nx_lib/views/admin/clients.py:154 nx_lib/views/admin/organizations.py:127
 #: nx_lib/views/admin/processes.py:418 nx_lib/views/admin/processes.py:571
-#: nx_lib/views/admin/users.py:142 nx_lib/views/tenant.py:511
-#: nx_lib/views/tenant.py:575 nx_lib/views/tenant.py:620
-#: nx_lib/views/tenant.py:655 nx_lib/views/tenant.py:694
+#: nx_lib/views/admin/users.py:142 nx_lib/views/tenant.py:523
+#: nx_lib/views/tenant.py:587 nx_lib/views/tenant.py:632
+#: nx_lib/views/tenant.py:667 nx_lib/views/tenant.py:706
 msgid "An unexpected error occurred."
 msgstr ""
 
-#: nx_lib/views/tenant.py:557 nx_lib/views/tenant.py:599
+#: nx_lib/views/tenant.py:569 nx_lib/views/tenant.py:611
 msgid "This entity has no writable fields."
 msgstr ""
 
-#: nx_lib/views/tenant.py:572
+#: nx_lib/views/tenant.py:584
 msgid "Record created successfully."
 msgstr ""
 
-#: nx_lib/views/tenant.py:616 nx_lib/views/tenant.py:651
+#: nx_lib/views/tenant.py:628 nx_lib/views/tenant.py:663
 msgid "Record not found."
 msgstr ""
 
-#: nx_lib/views/tenant.py:617
+#: nx_lib/views/tenant.py:629
 msgid "Record updated successfully."
 msgstr ""
 
-#: nx_lib/views/tenant.py:652
+#: nx_lib/views/tenant.py:664
 msgid "Record deleted successfully."
 msgstr ""
 
@@ -1614,87 +1614,87 @@ msgstr ""
 msgid "startDate and endDate are required"
 msgstr ""
 
-#: templates/_header.html:190
+#: templates/_header.html:194
 msgid "Open navigation"
 msgstr ""
 
-#: templates/_header.html:207 templates/js/_header_js.html:17
+#: templates/_header.html:211 templates/js/_header_js.html:17
 #: templates/js/_header_js.html:18 templates/js/_header_js.html:19
 #: templates/js/_header_js.html:20 templates/js/_header_js.html:21
 msgid "Admin"
 msgstr ""
 
-#: templates/_header.html:214 templates/_header.html:268
+#: templates/_header.html:218 templates/_header.html:272
 msgid "Overview"
 msgstr ""
 
-#: templates/_header.html:219 templates/admin/access_control.html:19
+#: templates/_header.html:223 templates/admin/access_control.html:19
 #: templates/admin/admin_overview.html:75 templates/js/_header_js.html:18
 msgid "Access Control"
 msgstr ""
 
-#: templates/_header.html:224 templates/admin/admin_overview.html:85
+#: templates/_header.html:228 templates/admin/admin_overview.html:85
 #: templates/admin/permission_matrix.html:21
 msgid "Permission Matrix"
 msgstr ""
 
-#: templates/_header.html:229
+#: templates/_header.html:233
 msgid "Sessions"
 msgstr ""
 
-#: templates/_header.html:234
+#: templates/_header.html:238
 msgid "Logs"
 msgstr ""
 
-#: templates/_header.html:240 templates/admin/logs.html:66
+#: templates/_header.html:244 templates/admin/logs.html:66
 #: templates/admin/logs.html:99 templates/admin/tenants_manage.html:78
 #: templates/admin/user_detail.html:228 templates/api_docs.html:189
-#: templates/appearance.html:360 templates/generali_importstatus.html:50
+#: templates/appearance.html:369 templates/generali_importstatus.html:50
 #: templates/generali_importstatus.html:106
 #: templates/generali_reporting.html:116 templates/workitems_overview.html:136
 #: templates/workitems_overview.html:411
 msgid "Status"
 msgstr ""
 
-#: templates/_header.html:247
+#: templates/_header.html:251
 msgid "Maintenance"
 msgstr ""
 
-#: templates/_header.html:261 templates/admin/tenants.html:149
+#: templates/_header.html:265 templates/admin/tenants.html:149
 msgid "Tenants"
 msgstr ""
 
-#: templates/_header.html:274 templates/js/admin/_permission_matrix_js.html:56
+#: templates/_header.html:278 templates/js/admin/_permission_matrix_js.html:56
 msgid "Manage"
 msgstr ""
 
-#: templates/_header.html:280 templates/admin/admin_overview.html:95
+#: templates/_header.html:284 templates/admin/admin_overview.html:95
 #: templates/admin/organizations.html:19 templates/admin/tenants_manage.html:38
 #: templates/js/_header_js.html:19
 msgid "Organizations"
 msgstr ""
 
-#: templates/_header.html:286 templates/admin/clients.html:19
+#: templates/_header.html:290 templates/admin/clients.html:19
 msgid "Data Connections"
 msgstr ""
 
-#: templates/_header.html:293 templates/admin/processes.html:19
+#: templates/_header.html:297 templates/admin/processes.html:19
 msgid "Process Configurations"
 msgstr ""
 
-#: templates/_header.html:307
+#: templates/_header.html:311
 msgid "Development"
 msgstr ""
 
-#: templates/_header.html:314 templates/api_docs.html:76
+#: templates/_header.html:318 templates/api_docs.html:76
 msgid "API Documentation"
 msgstr ""
 
-#: templates/_header.html:321 templates/dashboard.html:33
+#: templates/_header.html:325 templates/dashboard.html:33
 msgid "Global Dashboard"
 msgstr ""
 
-#: templates/_header.html:322 templates/generali-dashboard.html:69
+#: templates/_header.html:326 templates/generali-dashboard.html:69
 #: templates/generali_additionalservices.html:52
 #: templates/generali_baseservices.html:52 templates/generali_documents.html:45
 #: templates/generali_projectmanagement.html:52 templates/js/_header_js.html:42
@@ -1702,113 +1702,113 @@ msgstr ""
 msgid "Reporting"
 msgstr ""
 
-#: templates/_header.html:323 templates/workitems_overview.html:62
+#: templates/_header.html:327 templates/workitems_overview.html:62
 msgid "Global Workitems"
 msgstr ""
 
-#: templates/_header.html:411 templates/_header.html:413
-#: templates/appearance.html:293 templates/appearance.html:298
+#: templates/_header.html:436 templates/_header.html:438
+#: templates/appearance.html:302 templates/appearance.html:307
 #: templates/js/_header_js.html:13
 msgid "Keep sidebar open"
 msgstr ""
 
-#: templates/_header.html:417 templates/js/_header_js.html:56
+#: templates/_header.html:442 templates/js/_header_js.html:56
 msgid "Toggle dark mode"
 msgstr ""
 
-#: templates/_header.html:419
+#: templates/_header.html:444
 msgid "Dark Mode"
 msgstr ""
 
-#: templates/_header.html:427 templates/profile.html:44
+#: templates/_header.html:452 templates/profile.html:44
 #: templates/profile.html:123
 msgid "Profile Picture"
 msgstr ""
 
-#: templates/_header.html:437
+#: templates/_header.html:462
 msgid "Your profile"
 msgstr ""
 
-#: templates/_header.html:441 templates/appearance.html:34
+#: templates/_header.html:466 templates/appearance.html:34
 #: templates/js/_header_js.html:57 templates/profile.html:75
 #: templates/profile.html:317
 msgid "Appearance"
 msgstr ""
 
-#: templates/_header.html:445 templates/js/_header_js.html:58
+#: templates/_header.html:470 templates/js/_header_js.html:58
 #: templates/whats_new.html:79
 msgid "What's New"
 msgstr ""
 
-#: templates/_header.html:450 templates/feedback.html:34
+#: templates/_header.html:475 templates/feedback.html:34
 #: templates/js/_header_js.html:59
 msgid "Feedback"
 msgstr ""
 
-#: templates/_header.html:457 templates/_header.html:527
-#: templates/_header.html:530
+#: templates/_header.html:482 templates/_header.html:552
+#: templates/_header.html:555
 msgid "Keyboard shortcuts"
 msgstr ""
 
-#: templates/_header.html:461 templates/_small_footer.html:28
+#: templates/_header.html:486 templates/_small_footer.html:28
 #: templates/reporting.html:86
 msgid "Help"
 msgstr ""
 
-#: templates/_header.html:467 templates/_header.html:509
+#: templates/_header.html:492 templates/_header.html:534
 msgid "Switch user"
 msgstr ""
 
-#: templates/_header.html:473 templates/js/_header_js.html:60
+#: templates/_header.html:498 templates/js/_header_js.html:60
 #: templates/profile.html:82
 msgid "Sign out"
 msgstr ""
 
-#: templates/_header.html:490
+#: templates/_header.html:515
 msgid "Command palette"
 msgstr ""
 
-#: templates/_header.html:494
+#: templates/_header.html:519
 msgid "Type a command or search..."
 msgstr ""
 
-#: templates/_header.html:499
+#: templates/_header.html:524
 msgid "navigate"
 msgstr ""
 
-#: templates/_header.html:500
+#: templates/_header.html:525
 msgid "open"
 msgstr ""
 
-#: templates/_header.html:501
+#: templates/_header.html:526
 msgid "close"
 msgstr ""
 
-#: templates/_header.html:513
+#: templates/_header.html:538
 msgid "Switch to user..."
 msgstr ""
 
-#: templates/_header.html:534 templates/admin/access_control.html:167
+#: templates/_header.html:559 templates/admin/access_control.html:167
 msgid "Global"
 msgstr ""
 
-#: templates/_header.html:536
+#: templates/_header.html:561
 msgid "Open command palette"
 msgstr ""
 
-#: templates/_header.html:540
+#: templates/_header.html:565
 msgid "Show this shortcuts overlay"
 msgstr ""
 
-#: templates/_header.html:544
+#: templates/_header.html:569
 msgid "Close the open dialog or panel"
 msgstr ""
 
-#: templates/_header.html:549
+#: templates/_header.html:574
 msgid "Document viewer"
 msgstr ""
 
-#: templates/_header.html:551
+#: templates/_header.html:576
 msgid "Previous / next document page"
 msgstr ""
 
@@ -2057,7 +2057,7 @@ msgid "New dashboard"
 msgstr ""
 
 #: templates/_reporting_simple.html:23 templates/_reporting_simple.html:64
-#: templates/appearance.html:334
+#: templates/appearance.html:343
 msgid "New report"
 msgstr ""
 
@@ -2870,271 +2870,286 @@ msgstr ""
 msgid "System"
 msgstr ""
 
-#: templates/appearance.html:75 templates/appearance.html:78
+#: templates/appearance.html:75 templates/appearance.html:86
 msgid "Accent color"
+msgstr ""
+
+#: templates/appearance.html:76
+msgid "Your organization's branding sets the accent color."
 msgstr ""
 
 #: templates/appearance.html:76
 msgid "Pick a preset or choose any color you like."
 msgstr ""
 
-#: templates/appearance.html:80
-msgid "Classic"
+#: templates/appearance.html:83
+#, python-format
+msgid ""
+"Set by the %(org)s branding. An administrator changes it under "
+"Organizations."
 msgstr ""
 
-#: templates/appearance.html:82
-msgid "Violet"
-msgstr ""
-
-#: templates/appearance.html:84
-msgid "Emerald"
-msgstr ""
-
-#: templates/appearance.html:86
-msgid "Amber"
+#: templates/appearance.html:83
+msgid "organization"
 msgstr ""
 
 #: templates/appearance.html:88
-msgid "Rose"
+msgid "Classic"
 msgstr ""
 
 #: templates/appearance.html:90
+msgid "Violet"
+msgstr ""
+
+#: templates/appearance.html:92
+msgid "Emerald"
+msgstr ""
+
+#: templates/appearance.html:94
+msgid "Amber"
+msgstr ""
+
+#: templates/appearance.html:96
+msgid "Rose"
+msgstr ""
+
+#: templates/appearance.html:98
 msgid "Sky"
 msgstr ""
 
-#: templates/appearance.html:91 templates/appearance.html:93
+#: templates/appearance.html:99 templates/appearance.html:101
 msgid "Custom color"
 msgstr ""
 
-#: templates/appearance.html:101 templates/appearance.html:104
+#: templates/appearance.html:110 templates/appearance.html:113
 msgid "Background"
 msgstr ""
 
-#: templates/appearance.html:102
+#: templates/appearance.html:111
 msgid "A subtle backdrop behind every page."
 msgstr ""
 
-#: templates/appearance.html:106
+#: templates/appearance.html:115
 msgid "Plain"
 msgstr ""
 
-#: templates/appearance.html:109
+#: templates/appearance.html:118
 msgid "Aurora"
 msgstr ""
 
-#: templates/appearance.html:112 templates/reporting.html:424
+#: templates/appearance.html:121 templates/reporting.html:424
 msgid "Grid"
 msgstr ""
 
-#: templates/appearance.html:115
+#: templates/appearance.html:124
 msgid "Fireflies"
 msgstr ""
 
-#: templates/appearance.html:126
+#: templates/appearance.html:135
 msgid "Layout & type"
 msgstr ""
 
-#: templates/appearance.html:127
+#: templates/appearance.html:136
 msgid "Size, spacing and shape of the interface."
 msgstr ""
 
-#: templates/appearance.html:134 templates/appearance.html:137
+#: templates/appearance.html:143 templates/appearance.html:146
 msgid "Font size"
 msgstr ""
 
-#: templates/appearance.html:135
+#: templates/appearance.html:144
 msgid "Scales the whole interface."
 msgstr ""
 
-#: templates/appearance.html:139
+#: templates/appearance.html:148
 msgid "Small"
 msgstr ""
 
-#: templates/appearance.html:142 templates/appearance.html:175
-#: templates/appearance.html:271
+#: templates/appearance.html:151 templates/appearance.html:184
+#: templates/appearance.html:280
 msgid "Default"
 msgstr ""
 
-#: templates/appearance.html:145
+#: templates/appearance.html:154
 msgid "Large"
 msgstr ""
 
-#: templates/appearance.html:152 templates/appearance.html:155
+#: templates/appearance.html:161 templates/appearance.html:164
 msgid "Density"
 msgstr ""
 
-#: templates/appearance.html:153
+#: templates/appearance.html:162
 msgid "Compact fits more rows on screen."
 msgstr ""
 
-#: templates/appearance.html:157
+#: templates/appearance.html:166
 msgid "Comfortable"
 msgstr ""
 
-#: templates/appearance.html:160
+#: templates/appearance.html:169
 msgid "Compact"
 msgstr ""
 
-#: templates/appearance.html:167 templates/appearance.html:170
+#: templates/appearance.html:176 templates/appearance.html:179
 msgid "Corner style"
 msgstr ""
 
-#: templates/appearance.html:168
+#: templates/appearance.html:177
 msgid "How rounded cards, buttons and inputs are."
 msgstr ""
 
-#: templates/appearance.html:172
+#: templates/appearance.html:181
 msgid "Sharp"
 msgstr ""
 
-#: templates/appearance.html:178
+#: templates/appearance.html:187
 msgid "Round"
 msgstr ""
 
-#: templates/appearance.html:185 templates/appearance.html:190
+#: templates/appearance.html:194 templates/appearance.html:199
 msgid "High contrast"
 msgstr ""
 
-#: templates/appearance.html:186
+#: templates/appearance.html:195
 msgid "Stronger borders and darker secondary text."
 msgstr ""
 
-#: templates/appearance.html:197 templates/appearance.html:202
+#: templates/appearance.html:206 templates/appearance.html:211
 msgid "Table stripes"
 msgstr ""
 
-#: templates/appearance.html:198
+#: templates/appearance.html:207
 msgid "Shade every other row in tables."
 msgstr ""
 
-#: templates/appearance.html:213
+#: templates/appearance.html:222
 msgid "Motion"
 msgstr ""
 
-#: templates/appearance.html:214
+#: templates/appearance.html:223
 msgid "Watch the preview replay to compare styles."
 msgstr ""
 
-#: templates/appearance.html:221 templates/appearance.html:224
+#: templates/appearance.html:230 templates/appearance.html:233
 msgid "Animations"
 msgstr ""
 
-#: templates/appearance.html:222
+#: templates/appearance.html:231
 msgid "Reduced turns off decorative motion everywhere."
 msgstr ""
 
-#: templates/appearance.html:226
+#: templates/appearance.html:235
 msgid "Full"
 msgstr ""
 
-#: templates/appearance.html:229
+#: templates/appearance.html:238
 msgid "Reduced"
 msgstr ""
 
-#: templates/appearance.html:236 templates/appearance.html:239
+#: templates/appearance.html:245 templates/appearance.html:248
 msgid "Page entrance"
 msgstr ""
 
-#: templates/appearance.html:237
+#: templates/appearance.html:246
 msgid "How cards appear when a page loads."
 msgstr ""
 
-#: templates/appearance.html:241
+#: templates/appearance.html:250
 msgid "Rise"
 msgstr ""
 
-#: templates/appearance.html:244
+#: templates/appearance.html:253
 msgid "Slide"
 msgstr ""
 
-#: templates/appearance.html:247
+#: templates/appearance.html:256
 msgid "Pop"
 msgstr ""
 
-#: templates/appearance.html:250
+#: templates/appearance.html:259
 msgid "Fade"
 msgstr ""
 
-#: templates/appearance.html:253
+#: templates/appearance.html:262
 msgid "Blur"
 msgstr ""
 
-#: templates/appearance.html:256
+#: templates/appearance.html:265
 msgid "Off"
 msgstr ""
 
-#: templates/appearance.html:263 templates/appearance.html:266
+#: templates/appearance.html:272 templates/appearance.html:275
 msgid "Speed"
 msgstr ""
 
-#: templates/appearance.html:264
+#: templates/appearance.html:273
 msgid "How fast entrances and transitions play."
 msgstr ""
 
-#: templates/appearance.html:268
+#: templates/appearance.html:277
 msgid "Relaxed"
 msgstr ""
 
-#: templates/appearance.html:274
+#: templates/appearance.html:283
 msgid "Snappy"
 msgstr ""
 
-#: templates/appearance.html:285
+#: templates/appearance.html:294
 msgid "Navigation"
 msgstr ""
 
-#: templates/appearance.html:286
+#: templates/appearance.html:295
 msgid "How the sidebar behaves."
 msgstr ""
 
-#: templates/appearance.html:294
+#: templates/appearance.html:303
 msgid "Pin the navigation rail so it stays expanded."
 msgstr ""
 
-#: templates/appearance.html:308
+#: templates/appearance.html:317
 msgid "Reset to defaults"
 msgstr ""
 
-#: templates/appearance.html:317
+#: templates/appearance.html:326
 msgid "Live preview"
 msgstr ""
 
-#: templates/appearance.html:320
+#: templates/appearance.html:329
 msgid "Replay"
 msgstr ""
 
-#: templates/appearance.html:329 templates/generali_documents.html:41
+#: templates/appearance.html:338 templates/generali_documents.html:41
 #: templates/generali_reporting.html:56 templates/js/_header_js.html:30
 #: templates/js/_header_js.html:36
 msgid "Dashboard"
 msgstr ""
 
-#: templates/appearance.html:330
+#: templates/appearance.html:339
 msgid "Today at a glance"
 msgstr ""
 
-#: templates/appearance.html:341
+#: templates/appearance.html:350
 msgid "Processed today"
 msgstr ""
 
-#: templates/appearance.html:348
+#: templates/appearance.html:357
 msgid "Backlog"
 msgstr ""
 
-#: templates/appearance.html:359 templates/workitems_overview.html:100
+#: templates/appearance.html:368 templates/workitems_overview.html:100
 #: templates/workitems_overview.html:403
 msgid "Workitem"
 msgstr ""
 
-#: templates/appearance.html:361 templates/generali_importstatus.html:103
+#: templates/appearance.html:370 templates/generali_importstatus.html:103
 msgid "Updated"
 msgstr ""
 
-#: templates/appearance.html:375
+#: templates/appearance.html:384
 msgid "Search workitems..."
 msgstr ""
 
-#: templates/appearance.html:376
+#: templates/appearance.html:385
 msgid "Filter"
 msgstr ""
 

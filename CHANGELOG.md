@@ -294,6 +294,13 @@ Work toward the next release.
 
 ### Fixed
 
+- **Organization brand accents now actually show.** The header let any stored
+  accent preference beat the organization's `BrandAccentHex`, and the default
+  amber ends up stored for practically everyone (the effective prefs are
+  mirrored and re-read), so Privera's teal never appeared. A brand accent now
+  wins for every user of that organization; personal picks keep working where
+  there is no branding, and the Appearance page shows the brand swatch with a
+  note instead of the picker.
 - **Tenant groups no longer all light up on the Dashboard.** A mounted custom
   page reuses a global endpoint (every tenant mounts `dashboard`), so a staffer
   who sees several tenant groups by grant saw every group expand and highlight

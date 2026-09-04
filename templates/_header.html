@@ -42,8 +42,12 @@
             } catch (e) {}
             var eff = {
                 theme:      stored.theme      || (ls('nexora-theme') === 'dark' ? 'dark' : 'light'),
-                accent:     stored.accent     || (brand.accent_hex ? 'custom' : 'amber'),
-                accentHex:  stored.accentHex  || brand.accent_hex || '#4f46e5',
+                /* An organization's brand accent beats any personal pick: the
+                   default 'amber' ends up stored for practically everyone (the
+                   effective prefs are mirrored and re-read), so "stored wins"
+                   meant the brand never showed. Appearance hides the picker. */
+                accent:     brand.accent_hex ? 'custom' : (stored.accent || 'amber'),
+                accentHex:  brand.accent_hex || stored.accentHex || '#4f46e5',
                 motion:     stored.motion     || 'full',
                 entrance:   stored.entrance   || 'rise',
                 animspeed:  stored.animspeed  || 'normal',
