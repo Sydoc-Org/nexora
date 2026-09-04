@@ -273,6 +273,12 @@ Work toward the next release.
 
 ### Fixed
 
+- **Tenant groups no longer all light up on the Dashboard.** A mounted custom
+  page reuses a global endpoint (every tenant mounts `dashboard`), so a staffer
+  who sees several tenant groups by grant saw every group expand and highlight
+  its Dashboard entry. A group's mounted pages now count as active only for the
+  user's own tenant (`tenant_scoped`); staff get the global link highlighted and
+  the groups collapsed, tenant users still get exactly their group.
 - **Checkboxes and radio buttons that did not size themselves rendered as a
   2px speck.** The shared chrome in `nexora-ui.css` draws its own box with
   `appearance: none`, which also drops the widget's *intrinsic* size -- so
