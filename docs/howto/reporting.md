@@ -985,6 +985,57 @@ catalog, and a `Permission` — then grant that permission. A `Kind=sql` row add
 SQL-sandbox source over an existing target. Use the code path below only when a
 source needs bespoke query logic the `table` provider can't express.
 
+### Field extraction quality (`em_field_quality`)
+
+The Octo runtime writes per-field extraction telemetry into the statistics DB —
+one `<Client>_Collect_Field_Attributes` table per client, one row per (workitem,
+document field), carrying what the machine extracted, what the validator ended
+up with, and the extractor's confidence in its best and second-best candidate.
+It had accumulated for years unread (#254).
+
+Migration `0097` registers the **EM** table as a curated `table` source over
+`NexoraDB.dbo.vEmFieldExtractionQuality`, gated by
+`reporting.source.field_quality`. EM is the pilot; Compass, PriveraPost,
+PriveraInvoice, PriveraInvoice2025, Bucherer and Geberit have identically shaped
+tables and follow the same recipe.
+
+Three things about that view are load-bearing:
+
+- **Rates are `0`/`100` floats, not `0`/`1` ints.** `semantic.py` emits a bare
+  `AVG(col)`, and T-SQL integer-divides `AVG` over an `int` column — every rate
+  would come back `0` or `1`. As `0`/`100` floats, `AVG()` *is* the percentage.
+- **It reaches across databases via `$(StatisticsDb)`.** The statistics DB is
+  named differently per environment (`SYDOC_Statistik` / `sydoc_stat` /
+  `sydoc_stat_INT`), so the name cannot be hardcoded;
+  `scripts/db-migrate.py` supplies `NexoraDb` / `StatisticsDb` / `GeneraliDb` /
+  `OctoDb` as sqlcmd `-v` variables that any migration may reference as
+  `$(Name)`. Living in NexoraDB is what lets the view join `FieldAliases` and
+  `FieldLabels` to translate Octo's raw field names into nexora's vocabulary.
+- **`EM_Invoice` is collapsed to one row per workitem before the join.** A few
+  workitems have duplicate invoice rows (3 of 6786 on INT); joining raw would
+  double them and quietly inflate every average.
+
+Octo emits ~630 distinct "fields" for EM, most of them internal bookkeeping
+(`DocFilename`, `Val_State`, `ImportDatetime`) that it always fills in perfectly,
+so a breakdown by `Field` buries the real invoice fields under hundreds of rows
+reading 100%. Two ways to cut through that, both data-driven where the hand-built
+`v_*FieldStatistic` views in the statistics DB hardcode ~20 field names in a
+`WHERE` clause:
+
+- **Break down by `FieldKey`** (labelled "Field key (nexora)"). It is `NULL` for
+  an unmapped field, so the ~20 mapped fields each get a row and everything else
+  collapses into one empty bucket. Needs no filter, so the Simple wizard can
+  express it — this is the recommended route and what the user guide teaches.
+- **Filter `MappedInNexoraPct` to `100`** in the Advanced builder, which drops
+  the unmapped rows entirely rather than bucketing them.
+
+**Widen the mapped set by adding `dbo.FieldAliases` rows, not by editing the
+view.**
+
+Raw field *values* (`VALUE_BEFORE_VALIDATION` / `VALUE_AFTER_VALIDATION`) and the
+validating user are deliberately not exposed: this source answers "which fields
+extract well", not "what did this invoice say" or "who fixed it".
+
 ## Source visualizer (`reporting.sources.schema`)
 
 Clicking a Sources rail card opens a slide-over showing the **database behind

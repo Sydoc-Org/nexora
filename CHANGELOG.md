@@ -8,7 +8,33 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
+### Added
+
+- **Extraction quality is now reportable (#254).** The Octo runtime has been
+  writing per-field extraction telemetry into the statistics DB for years —
+  one row per document field, with what the machine read, what the validator
+  ended up with, and the extractor's confidence — and nothing looked at it.
+  A new Reporting source, **Field extraction quality (EM)**, puts it on the
+  page: break down by Field and rank by "Extraction correct %", "User
+  corrected %" or "Avg. confidence %" to see which fields extraction handles
+  well and which cost validators the most time. Nine measures, gated by
+  `reporting.source.field_quality`. ElektroMaterial is the pilot; the six other
+  clients have identically shaped tables and follow the same recipe.
+  Raw field values and the validating user are deliberately not exposed — the
+  source answers "which fields extract well", not "what did this invoice say"
+  or "who fixed it". Octo's ~630 raw field names are translated through the
+  existing `FieldAliases` / `FieldLabels` registries, and "Mapped in nexora %"
+  filters a report down to the fields nexora actually knows about — widened by
+  adding alias rows, not by editing SQL.
+
 ### Changed
+
+- **Migrations can reach another database on the same server.**
+  `scripts/db-migrate.py` now passes the configured database names to sqlcmd as
+  `-v` variables, so a migration writes `[$(StatisticsDb)]` instead of a
+  hardcoded name that would be wrong on PROD. `$(NexoraDb)`, `$(StatisticsDb)`,
+  `$(GeneraliDb)` and `$(OctoDb)` are available; an unset one is not passed, so
+  sqlcmd fails loudly rather than substituting an empty name.
 
 - **Repository moved to the `Sydoc-Org` GitHub organization** (from the
   personal `Sydoc-Code` account, 2026-09-03). GitHub redirects the old URL,

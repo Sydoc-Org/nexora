@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-03 09:44+0200\n"
+"POT-Creation-Date: 2026-09-04 21:08+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -2029,6 +2029,35 @@ msgstr ""
 
 #: templates/_reporting_help.html:18
 msgid ""
+"To see which document fields extraction gets right, pick the “Field "
+"extraction quality (EM)” measure “Extraction correct %” and break down by"
+" “Field key (nexora)” — not by “Field”. Octo reports ~630 raw field "
+"names, mostly internal bookkeeping it always fills in perfectly; “Field "
+"key (nexora)” gives you the ~20 fields nexora knows about plus one empty "
+"bucket for the rest. Sort ascending and the worst field is the top row."
+msgstr ""
+"Um zu sehen, welche Dokumentfelder die Extraktion richtig erkennt, wählen"
+" Sie die Kennzahl „Extraction correct %“ aus „Field extraction quality "
+"(EM)“ und gruppieren Sie nach „Field key (nexora)“ — nicht nach „Field“. "
+"Octo meldet rund 630 rohe Feldnamen, größtenteils interne "
+"Verwaltungsfelder, die es immer perfekt füllt; „Field key (nexora)“ "
+"liefert die ~20 Felder, die nexora kennt, plus einen leeren Eimer für den"
+" Rest. Aufsteigend sortiert steht das schlechteste Feld in der ersten "
+"Zeile."
+
+#: templates/_reporting_help.html:19
+msgid ""
+"A field whose “Avg. 2nd-candidate confidence %” sits close to its best-"
+"candidate confidence means the extractor was torn between two readings — "
+"usually more worth fixing than a field that is simply never found."
+msgstr ""
+"Ein Feld, dessen „Avg. 2nd-candidate confidence %“ nahe bei der Konfidenz"
+" des besten Kandidaten liegt, bedeutet, dass die Extraktion zwischen zwei"
+" Lesarten schwankte — das lohnt sich meist eher zu beheben als ein Feld, "
+"das schlicht nie gefunden wird."
+
+#: templates/_reporting_help.html:20
+msgid ""
 "The chips above a result are editable: the Processes chip and any “is one"
 " of” filter open a checkbox picker — ticking everything removes the "
 "restriction."
@@ -2037,7 +2066,7 @@ msgstr ""
 "jeder „ist eines von“-Filter öffnen eine Checkbox-Auswahl — alles anhaken"
 " hebt die Einschränkung auf."
 
-#: templates/_reporting_help.html:19
+#: templates/_reporting_help.html:21
 msgid ""
 "Imports, exports and backlog in one chart: pick “Documents imported”, "
 "“Documents exported” and “Backlog” together, then break down “Over time "
@@ -2048,7 +2077,7 @@ msgstr ""
 "(Datum)“ aufschlüsseln — eine Linie pro Kennzahl auf gemeinsamer "
 "Zeitachse."
 
-#: templates/_reporting_help.html:20
+#: templates/_reporting_help.html:22
 msgid ""
 "Time charts stop at today: the period that contains today is faded/dashed"
 " because it is still filling up, months that haven’t happened aren’t "
@@ -2061,7 +2090,7 @@ msgstr ""
 "ohne Messung ist eine Lücke, keine Null. Das Backlog-Total ist die "
 "neueste Momentaufnahme."
 
-#: templates/_reporting_help.html:21
+#: templates/_reporting_help.html:23
 msgid ""
 "The palette button in the chart toolbar recolours each series and the "
 "title, and puts a series on its own right-hand axis — Backlog starts "
@@ -2074,11 +2103,11 @@ msgstr ""
 "Zehntausenden lesbar bleiben. Die Auswahl wird mit dem Bericht "
 "gespeichert."
 
-#: templates/_reporting_help.html:23
+#: templates/_reporting_help.html:25
 msgid "Checking a number"
 msgstr "Eine Zahl prüfen"
 
-#: templates/_reporting_help.html:25
+#: templates/_reporting_help.html:27
 msgid ""
 "Click a chart bar or a table row to open the documents behind that "
 "number; the “Query” card beside the chart shows exactly how it was "
@@ -2088,7 +2117,7 @@ msgstr ""
 "hinter dieser Zahl zu öffnen; die „Abfrage“-Karte neben dem Diagramm "
 "zeigt genau, wie sie berechnet wurde."
 
-#: templates/_reporting_help.html:26
+#: templates/_reporting_help.html:28
 msgid ""
 "Each measure gets its own total card, named after it — “Total · Documents"
 " imported”, “Total · Documents exported”. There is no combined number: "
@@ -2100,7 +2129,7 @@ msgstr ""
 " Zahl gibt es nicht: dasselbe Dokument kann in beiden gezählt werden, "
 "eine Addition würde also nichts Reales zählen."
 
-#: templates/_reporting_help.html:27
+#: templates/_reporting_help.html:29
 msgid ""
 "The ↑/↓ comparison chips compare a window shifted back by your range’s "
 "length in days — not the previous calendar period. Hover a chip for the "
@@ -2110,7 +2139,7 @@ msgstr ""
 "Zeitraums zurückverschobenen Fenster — nicht mit der vorherigen "
 "Kalenderperiode. Beim Überfahren zeigt der Chip die exakten Daten."
 
-#: templates/_reporting_help.html:28
+#: templates/_reporting_help.html:30
 msgid ""
 "Two people can see different totals on the same report: it always runs "
 "with the viewer’s own data access."
@@ -2118,7 +2147,7 @@ msgstr ""
 "Zwei Personen können im selben Bericht unterschiedliche Summen sehen: Er "
 "läuft immer mit dem Datenzugriff der betrachtenden Person."
 
-#: templates/_reporting_help.html:29
+#: templates/_reporting_help.html:31
 msgid ""
 "Charts cap at 50 axis values and 12 series — past the cap you get a "
 "partial chart or none at all; the table and exports always carry the full"
@@ -2128,11 +2157,11 @@ msgstr ""
 "es ein unvollständiges oder gar kein Diagramm; Tabelle und Exporte "
 "enthalten immer alle Daten."
 
-#: templates/_reporting_help.html:31
+#: templates/_reporting_help.html:33
 msgid "Saving and sharing"
 msgstr "Speichern und Teilen"
 
-#: templates/_reporting_help.html:33
+#: templates/_reporting_help.html:35
 msgid ""
 "Save writes back to the report you have open — the pencil next to the "
 "title renames it in place. A result that is not a saved report yet (a "
@@ -2145,7 +2174,7 @@ msgstr ""
 "Eddard), fragt nach einem Namen und landet unter „Meine Berichte“. Damit "
 "das Original unverändert bleibt, verwenden Sie ⋯ → „Als Kopie speichern“."
 
-#: templates/_reporting_help.html:34
+#: templates/_reporting_help.html:36
 msgid ""
 "A report of yours that you have shared — with everyone or with named "
 "colleagues — is tagged “· shared” on its card. Named shares stay under My"
@@ -2156,7 +2185,7 @@ msgstr ""
 "„· geteilt“ gekennzeichnet. Namentliche Freigaben bleiben unter „Meine "
 "Berichte“; nur „mit allen geteilt“ verschiebt ihn in die Bibliothek."
 
-#: templates/_reporting_help.html:35
+#: templates/_reporting_help.html:37
 msgid ""
 "A scheduled email runs with the report owner’s data access — recipients "
 "see the owner’s numbers, not their own."
@@ -2165,7 +2194,7 @@ msgstr ""
 "bzw. des Berichtsbesitzers — Empfänger sehen deren Zahlen, nicht ihre "
 "eigenen."
 
-#: templates/_reporting_help.html:36
+#: templates/_reporting_help.html:38
 msgid ""
 "Delete a report you own: open its card’s “…” menu under My reports, or "
 "open the report and use ⋯ → Delete report. Shared copies and schedules go"
@@ -2175,7 +2204,7 @@ msgstr ""
 " „Meine Berichte“, oder öffnen Sie den Bericht und nutzen Sie ⋯ → Bericht"
 " löschen. Geteilte Kopien und Zeitpläne werden mit entfernt."
 
-#: templates/_reporting_help.html:37
+#: templates/_reporting_help.html:39
 msgid ""
 "On a dashboard, the “Whole report” tile shows a saved report exactly as "
 "the Simple tab does — totals, chart with its colours, axes and forecast, "
@@ -2188,7 +2217,7 @@ msgstr ""
 "Die anderen Kacheln zeigen je einen Ausschnitt; Farben oder Diagrammtyp "
 "ändern Sie im Bericht selbst."
 
-#: templates/_reporting_help.html:38
+#: templates/_reporting_help.html:40
 msgid ""
 "“Add a card” asks everything in one dialog: which saved report, how to "
 "draw it, its title, and how big — a width in grid columns and a height in"
@@ -2199,7 +2228,7 @@ msgstr ""
 "in Rasterspalten und eine Höhe in Zeilen. Die Karte erscheint sofort mit "
 "ihren Daten."
 
-#: templates/_reporting_help.html:39
+#: templates/_reporting_help.html:41
 msgid ""
 "In edit mode a tile can be dragged anywhere to rearrange it, and resized "
 "by its bottom-right corner grip: width snaps to the 12 grid columns, "
@@ -2210,7 +2239,7 @@ msgstr ""
 "Rasterspalten ein, die Höhe auf ganze Zeilen. „Fertig“ speichert das "
 "Layout."
 
-#: templates/_reporting_help.html:40
+#: templates/_reporting_help.html:42
 msgid ""
 "A dashboard’s library card previews its real layout — one small tile per "
 "card — plus a card count, so you can tell dashboards apart before opening"
@@ -2220,11 +2249,11 @@ msgstr ""
 "Layouts — eine kleine Kachel pro Karte — plus die Kartenanzahl, damit "
 "sich Dashboards vor dem Öffnen unterscheiden lassen."
 
-#: templates/_reporting_help.html:43
+#: templates/_reporting_help.html:45
 msgid "Asking Eddard"
 msgstr "Eddard fragen"
 
-#: templates/_reporting_help.html:45
+#: templates/_reporting_help.html:47
 msgid ""
 "Eddard is the reporting assistant behind the chat panel — the little "
 "black hole in the top bar."
@@ -2232,7 +2261,7 @@ msgstr ""
 "Eddard ist der Reporting-Assistent hinter dem Chat-Fenster — das kleine "
 "schwarze Loch in der oberen Leiste."
 
-#: templates/_reporting_help.html:46
+#: templates/_reporting_help.html:48
 msgid ""
 "Name the measure, the time range and the processes: “invoices by process,"
 " last 3 months” beats “show me invoices”."
@@ -2240,7 +2269,7 @@ msgstr ""
 "Nennen Sie Kennzahl, Zeitraum und Prozesse: „Rechnungen nach Prozess, "
 "letzte 3 Monate“ schlägt „zeig mir Rechnungen“."
 
-#: templates/_reporting_help.html:47
+#: templates/_reporting_help.html:49
 msgid ""
 "Check what Eddard built with “Open in builder” — the filters and process "
 "scope it chose are visible there before you trust the number."
@@ -2249,7 +2278,7 @@ msgstr ""
 " Filter und der Prozessumfang sind dort sichtbar, bevor Sie der Zahl "
 "vertrauen."
 
-#: templates/_reporting_help.html:48
+#: templates/_reporting_help.html:50
 msgid ""
 "Follow-ups work: the chat remembers the conversation, so “now only this "
 "quarter” refines the last answer."
@@ -2257,7 +2286,7 @@ msgstr ""
 "Rückfragen funktionieren: Der Chat merkt sich das Gespräch, „jetzt nur "
 "dieses Quartal“ verfeinert also die letzte Antwort."
 
-#: templates/_reporting_help.html:49
+#: templates/_reporting_help.html:51
 msgid ""
 "When Eddard used tools, unfold “How the agent worked” to see the steps; "
 "if a “Continue” button appears, click it before rephrasing your question."
@@ -2266,7 +2295,7 @@ msgstr ""
 "auf, um die Schritte zu sehen; erscheint ein „Weiter“-Knopf, klicken Sie "
 "ihn, bevor Sie die Frage umformulieren."
 
-#: templates/_reporting_help.html:50
+#: templates/_reporting_help.html:52
 msgid ""
 "The answer-depth control sits at the bottom-left of the composer: Quick "
 "for a fast number, Balanced for everyday questions, Deep when the "
@@ -2276,11 +2305,11 @@ msgstr ""
 "Eingabebereich: Schnell für eine rasche Zahl, Ausgewogen für alltägliche "
 "Fragen, Gründlich, wenn die Frage schwierig ist und Sie warten können."
 
-#: templates/_reporting_help.html:58
+#: templates/_reporting_help.html:60
 msgid "Full guide"
 msgstr "Vollständige Anleitung"
 
-#: templates/_reporting_help.html:59 templates/admin/logs.html:141
+#: templates/_reporting_help.html:61 templates/admin/logs.html:141
 #: templates/js/_reporting_drill_js.html:16
 #: templates/prepared_documents.html:253 templates/prepared_documents.html:265
 #: templates/reporting.html:148 templates/reporting.html:180
@@ -9775,4 +9804,25 @@ msgstr "Bis"
 
 #~ msgid "View in workitems"
 #~ msgstr "In Workitems öffnen"
+
+#~ msgid ""
+#~ "To see which document fields extraction"
+#~ " gets right, pick the “Field "
+#~ "extraction quality (EM)” source, break "
+#~ "down by Field and add “Extraction "
+#~ "correct %”. Sort ascending and the "
+#~ "worst fields come to the top. "
+#~ "Filter “Mapped in nexora %” to 100"
+#~ " to hide Octo’s internal bookkeeping "
+#~ "fields."
+#~ msgstr ""
+#~ "Um zu sehen, welche Dokumentfelder die"
+#~ " Extraktion richtig erkennt, wählen Sie "
+#~ "die Quelle „Field extraction quality "
+#~ "(EM)“, gruppieren Sie nach Field und "
+#~ "fügen Sie „Extraction correct %“ hinzu."
+#~ " Aufsteigend sortiert stehen die "
+#~ "schlechtesten Felder zuoberst. Filtern Sie "
+#~ "„Mapped in nexora %“ auf 100, um"
+#~ " Octos interne Verwaltungsfelder auszublenden."
 

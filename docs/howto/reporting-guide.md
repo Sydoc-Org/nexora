@@ -47,6 +47,17 @@ guide as an app page.
 - Relative presets stay relative: a report saved with "This month" shows the
   current month on every run and in every scheduled mail. Schedule times are
   UTC.
+- To see **which document fields extraction gets right**, pick the "Field
+  extraction quality (EM)" measure "Extraction correct %" and break down by
+  **Field key (nexora)** — *not* by "Field". Octo reports about 630 raw field
+  names for EM, most of them internal bookkeeping it always fills in
+  perfectly, so a breakdown by "Field" buries the real invoice fields under
+  hundreds of rows reading 100%. "Field key (nexora)" gives you the ~20 fields
+  nexora actually knows about plus a single empty bucket for all the rest.
+  Sort by the measure ascending and the worst field is the top row.
+- A field with a **high "Avg. 2nd-candidate confidence %"** sitting close to its
+  best-candidate confidence means the extractor was torn between two readings —
+  usually a better thing to fix than a field that is simply never found.
 - The palette button in the chart toolbar recolours each series and the
   title, and puts a series on its own right-hand axis — Backlog starts there
   by default so a few hundred stays readable next to tens of thousands. Picks

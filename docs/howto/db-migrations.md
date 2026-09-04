@@ -296,6 +296,31 @@ IF NOT EXISTS (SELECT 1 FROM dbo.Permissions WHERE Code = 'generali.pdqm.export'
 GO
 ```
 
+**Reaching another database on the same server.** Database *names* differ per
+environment (`SYDOC_Statistik` on INT, `sydoc_stat` on PROD), so never hardcode
+one. `db-migrate.py` passes the configured names to sqlcmd as `-v` variables;
+reference them as `$(Name)`:
+
+| variable | comes from |
+|---|---|
+| `$(NexoraDb)` | `DB_NEXORA` |
+| `$(StatisticsDb)` | `DB_STATISTICS` |
+| `$(GeneraliDb)` | `DB_GENERALI` |
+| `$(OctoDb)` | `DB_OCTO_RUNTIME` |
+
+```sql
+-- sql/_migrations/NexoraDB/00NN_view_over_statistics.sql
+GO
+CREATE OR ALTER VIEW dbo.vFieldQuality AS
+SELECT f.FIELD, f.CONF_BEST_CANDIDATE
+FROM [$(StatisticsDb)].dbo.Em_Collect_Field_Attributes f;
+GO
+```
+
+A variable whose env var is unset is not passed at all, so sqlcmd fails loudly
+on `$(Name)` rather than silently substituting an empty database name. Worked
+example: `0097_em_field_extraction_quality.sql`.
+
 ## Troubleshooting
 
 | Symptom | Cause / fix |
