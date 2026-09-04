@@ -273,6 +273,19 @@ Work toward the next release.
 
 ### Fixed
 
+- **Checkboxes and radio buttons that did not size themselves rendered as a
+  2px speck.** The shared chrome in `nexora-ui.css` draws its own box with
+  `appearance: none`, which also drops the widget's *intrinsic* size -- so
+  every checkbox and radio without an explicit `h-4 w-4` (or equivalent)
+  collapsed to little more than its own border: 15 of them, across
+  reporting's forecast and share controls, the admin clients / tenants /
+  maintenance modals and `user_detail`'s permission-override radios. The base
+  rule now sets a 16px `min-width`/`min-height` floor, so callers that size
+  themselves still win (the scope picker keeps its 18px boxes, Tailwind's
+  `h-4`/`w-4` stay honoured) while unsized ones stop vanishing. The share
+  modal's local 15px workaround in `reporting-console.css` is gone with it;
+  `.ml-toggle`'s deliberately collapsed switch input opts out.
+
 - **The Generali dashboard's daily average no longer rewards missing data.**
   `api_generali_stats` built the trend x-axis -- and the average's
   denominator -- from the rows the trend query returned, so days with no
