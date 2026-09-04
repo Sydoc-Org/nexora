@@ -46,6 +46,24 @@
   --nx-warning: #d97706;
   --nx-danger:  #dc2626;
 
+  /* Categorical chart series — deliberately independent of --nx-accent so a
+     multi-series chart stays readable under all seven accent picks. */
+  --nx-series-1: #d97706;
+  --nx-series-2: #7c3aed;
+  --nx-series-3: #0891b2;
+  --nx-series-4: #db2777;
+  --nx-series-5: #059669;
+
+  /* Slim-console control height + type ramp (dashboard console) */
+  --ctl-h:      29px;
+  --ctl-h-lg:   33px;
+  --fs-eyebrow: 10px;
+  --fs-micro:   11px;
+  --fs-meta:    11.5px;
+  --fs-control: 12.5px;
+  --fs-title:   15px;
+  --fs-kpi:     32px;
+
   /* — Label backgrounds (soft pastel + readable fg) — */
   --nx-l-indigo:    #eef2ff;  --nx-l-indigo-fg: #4338ca;
   --nx-l-green:     #d1fae5;  --nx-l-green-fg:  #065f46;
@@ -105,6 +123,13 @@ html.dark {
   --nx-success: #34d399;
   --nx-warning: #fbbf24;
   --nx-danger:  #f87171;
+
+  /* Dark twins of the categorical chart series (kit tokens/themes.css). */
+  --nx-series-1: #fbbf24;
+  --nx-series-2: #a78bfa;
+  --nx-series-3: #22d3ee;
+  --nx-series-4: #f472b6;
+  --nx-series-5: #34d399;
 
   --nx-l-indigo: #312e81; --nx-l-indigo-fg: #c7d2fe;
   --nx-l-green:  #064e3b; --nx-l-green-fg:  #6ee7b7;
@@ -667,6 +692,7 @@ html.nx-compact .nx-card--pad { padding: 14px 16px; }
 html.nx-compact .nx-filter { padding: 10px 14px; margin-bottom: 14px; }
 html.nx-compact .nx-page-head { margin-bottom: 16px; }
 html.nx-compact body.nx-app .nx-main { padding: 18px 28px; }
+html.nx-compact { --ctl-h: 27px; --ctl-h-lg: 30px; }
 html.nx-compact .admin-table thead th { padding: 6px 12px; }
 html.nx-compact .admin-table tbody td { padding: 7px 12px; }
 html.nx-compact .admin-card { padding: 12px; }

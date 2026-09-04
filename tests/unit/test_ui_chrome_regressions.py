@@ -329,3 +329,21 @@ def test_prepaint_still_paints_the_root_element():
         "the pre-paint script no longer paints documentElement; pages will "
         "flash the UA-default white before the stylesheet applies"
     )
+
+
+def test_series_tokens_exist_in_both_themes():
+    """A categorical chart palette must be defined independently of the accent
+    (which the user can switch to any of seven hues) and must have dark twins."""
+    css = (CSS / "nexora-ui.css").read_text(encoding="utf-8")
+    # Split on the dark ROOT block, not the bare string: "html.dark" also
+    # appears in the file's table-of-contents comment on line 11 and in the
+    # per-accent html.dark[data-accent="..."] blocks far below.
+    light, dark = css.split("\nhtml.dark {", 1)
+    for i in range(1, 6):
+        assert f"--nx-series-{i}:" in light, f"--nx-series-{i} missing from the light palette"
+        assert f"--nx-series-{i}:" in dark, f"--nx-series-{i} missing from the dark palette"
+
+
+def test_slim_control_height_token_exists():
+    css = (CSS / "nexora-ui.css").read_text(encoding="utf-8")
+    assert "--ctl-h:" in css
