@@ -3,6 +3,7 @@
 from werkzeug.routing import Map, Rule
 
 from nx_lib.views.admin.tenant_manage import (
+    _layout_json,
     mountable_endpoints,
     validate_page_payload,
     validate_tenant_payload,
@@ -75,3 +76,14 @@ def test_mountable_endpoints_are_argless_get_pages_only():
         ]
     )
     assert mountable_endpoints(m) == ["dashboard", "reporting"]
+
+
+def test_layout_json_scopes_dashboard_and_workitems_to_the_tenant():
+    import json
+
+    dash = json.loads(_layout_json({"endpoint": "dashboard", "label": "Dashboard"}, "acme"))
+    assert dash["query"] == {"tenant": "acme"} and dash["active"] == "tenant_acme_dashboard"
+    work = json.loads(_layout_json({"endpoint": "workitems_overview", "label": "W"}, "acme"))
+    assert work["query"] == {"tenant": "acme"} and work["active"] == "tenant_acme_workitems"
+    other = json.loads(_layout_json({"endpoint": "reporting", "label": "R", "active": "x"}, "acme"))
+    assert "query" not in other and other["active"] == "x"

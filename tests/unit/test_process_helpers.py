@@ -290,3 +290,41 @@ def test_get_activity_instances_to_ignore_returns_empty_dict_on_db_error(app):
         mock_engine.raw_connection.side_effect = RuntimeError("DB down")
         result = get_activity_instances_to_ignore()
     assert result == {}
+
+
+# ---------- granted_processes (tenant scope, 0097/0098) ----------
+
+_SCOPE_GRANTS = [
+    "workitems.view",
+    "workitems.filter.process.privera.02_Posteingang",
+    "workitems.filter.process.sydoc.05_PDBS",
+]
+
+
+def test_granted_processes_without_scope_is_the_grant_set(ph_fake_session):
+    ph_fake_session["permissions"] = list(_SCOPE_GRANTS)
+    assert ph_mod.granted_processes("workitems.filter.process.") == {
+        "privera.02_Posteingang",
+        "sydoc.05_PDBS",
+    }
+
+
+def test_granted_processes_narrows_to_the_scoped_tenant(ph_fake_session, monkeypatch):
+    monkeypatch.setattr(
+        ph_mod, "tenant_processes", lambda code: {"sydoc.05_PDBS"} if code == "ms02" else set()
+    )
+    ph_fake_session["permissions"] = list(_SCOPE_GRANTS)
+    ph_fake_session["tenant_scope"] = "ms02"
+    assert ph_mod.granted_processes("workitems.filter.process.") == {"sydoc.05_PDBS"}
+    # the pair helpers ride the same narrowing
+    assert ph_mod.prepare_process_selection_lists("workitems.filter.process.", "all") == [
+        ("sydoc", "05_PDBS")
+    ]
+    assert ph_mod._selected_pairs("workitems.filter.process.", "privera.02_Posteingang") == []
+
+
+def test_granted_processes_fails_closed_when_the_scope_cannot_resolve(ph_fake_session, monkeypatch):
+    monkeypatch.setattr(ph_mod, "tenant_processes", lambda code: None)
+    ph_fake_session["permissions"] = list(_SCOPE_GRANTS)
+    ph_fake_session["tenant_scope"] = "ms02"
+    assert ph_mod.granted_processes("workitems.filter.process.") == set()

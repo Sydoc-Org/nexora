@@ -466,3 +466,24 @@ def test_organization_tenant_fails_closed_to_not_scoped(app, monkeypatch):
     monkeypatch.setattr(tr, "engine_nexora_db", _dead_engine())
     with app.app_context():
         assert tr.organization_tenant("PDBS") is None
+
+
+# ------------------------------------------------------------ 0097 helpers --
+
+
+def test_processes_of_tenant_follows_the_organization_map():
+    from nx_lib.tenant.registry import processes_of_tenant
+
+    sources = [
+        types.SimpleNamespace(process="privera.02_Posteingang", organization="PRVR"),
+        types.SimpleNamespace(process="compass.01_Invoice_SAP", organization="CMPS"),
+        types.SimpleNamespace(process="sydoc.05_PDBS", organization="PDBS"),
+        types.SimpleNamespace(process="orphan.01", organization=None),
+    ]
+    org_map = {"PRVR": "sydoc", "CMPS": "sydoc", "PDBS": "ms02"}
+    assert processes_of_tenant(sources, org_map, "sydoc") == {
+        "privera.02_Posteingang",
+        "compass.01_Invoice_SAP",
+    }
+    assert processes_of_tenant(sources, org_map, "ms02") == {"sydoc.05_PDBS"}
+    assert processes_of_tenant(sources, org_map, "generali") == set()

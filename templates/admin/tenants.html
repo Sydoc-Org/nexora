@@ -149,7 +149,7 @@
             title=_('Tenants'),
             subtitle=_('Each tenant with its organizations, and per organization its users, access profiles, data connection and process configurations'),
             back_url=url_for('admin_dashboard'),
-            icon='fa-cubes'
+            icon='fa-city'
         ) }}
 
         {% if not tenant_registry_available %}
@@ -167,7 +167,7 @@
             <section class="nx-card tenant-card" id="tenant-{{ t.code }}" data-search="{{ (t.code ~ ' ' ~ t.display_name) | lower }}" data-testid="admin-tenants-card-{{ t.code }}">
                 <header class="tenant-card__head">
                     <h2 class="nx-section tenant-card__title">
-                        <i class="fas fa-cubes"></i> {{ t.display_name }}
+                        <i class="fas fa-city"></i> {{ t.display_name }}
                         <span class="nx-mono tenant-dim">{{ t.code }}</span>
                     </h2>
                     <div class="tenant-card__badges">
@@ -200,7 +200,7 @@
 
             {% if tenant_registry_available and not tree.tenants %}
             <div class="nx-card admin-empty" data-testid="admin-tenants-empty">
-                <i class="fas fa-cubes"></i> &nbsp; {{ _('No tenants yet. A tenant groups organizations; today tenants are created by migration.') }}
+                <i class="fas fa-city"></i> &nbsp; {{ _('No tenants yet. A tenant groups organizations; today tenants are created by migration.') }}
             </div>
             {% endif %}
         </div>

@@ -663,3 +663,37 @@ def test_normalize_range_falls_back_to_fourteen(app):
     assert dv.normalize_range("7") == 14
     assert dv.normalize_range(None) == 14
     assert dv.normalize_range("'; DROP TABLE x --") == 14
+
+
+# ------------------------------------------------- _allowed_processes (0097) --
+
+_GRANTS = [
+    "dashboard.view",
+    "dashboard.filter.process.privera.02_Posteingang",
+    "dashboard.filter.process.sydoc.05_PDBS",
+]
+
+
+def test_allowed_processes_without_scope_is_the_grant_list(app):
+    with app.test_request_context("/"):
+        session["permissions"] = list(_GRANTS)
+        assert dv._allowed_processes() == ["privera.02_Posteingang", "sydoc.05_PDBS"]
+
+
+def test_allowed_processes_narrows_to_the_scoped_tenant(app, monkeypatch):
+    monkeypatch.setattr(
+        "nx_lib.process_helpers.tenant_processes",
+        lambda code: {"sydoc.05_PDBS"} if code == "ms02" else set(),
+    )
+    with app.test_request_context("/"):
+        session["permissions"] = list(_GRANTS)
+        session["tenant_scope"] = "ms02"
+        assert dv._allowed_processes() == ["sydoc.05_PDBS"]
+
+
+def test_allowed_processes_fails_closed_when_the_scope_cannot_resolve(app, monkeypatch):
+    monkeypatch.setattr("nx_lib.process_helpers.tenant_processes", lambda code: None)
+    with app.test_request_context("/"):
+        session["permissions"] = list(_GRANTS)
+        session["tenant_scope"] = "ms02"
+        assert dv._allowed_processes() == []

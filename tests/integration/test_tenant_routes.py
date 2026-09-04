@@ -939,3 +939,35 @@ def test_visible_tenant_nav_includes_the_membership_tenant_without_a_grant(app, 
         nav = tv.visible_tenant_nav()
 
     assert [n["code"] for n in nav] == [TENANT_CODE]
+
+
+# ---------------------------------------------------- LayoutJSON query (0097) --
+
+
+def test_visible_tenant_nav_custom_page_query_becomes_url_args(app, monkeypatch):
+    acme = _tenant()
+    monkeypatch.setattr(tv, "registry", lambda: _fake_registry({TENANT_CODE: acme}))
+    monkeypatch.setattr(
+        tv,
+        "pages_for",
+        lambda code: [
+            _page(
+                key="dashboard",
+                page_type="custom",
+                entity=None,
+                layout={
+                    "endpoint": "dashboard",
+                    "query": {"tenant": TENANT_CODE, "bad": 1},
+                    "active": f"tenant_{TENANT_CODE}_dashboard",
+                },
+            )
+        ],
+    )
+    monkeypatch.setattr(tv, "has_permission", lambda code: True)
+
+    with app.test_request_context("/"):
+        (entry,) = tv.visible_tenant_nav()[0]["pages"]
+        expected_url = url_for("dashboard", tenant=TENANT_CODE)
+
+    assert entry["url"] == expected_url  # the non-string value is dropped
+    assert entry["active"] == f"tenant_{TENANT_CODE}_dashboard"

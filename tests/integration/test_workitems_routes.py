@@ -37,6 +37,8 @@ import io
 import pytest
 import requests
 
+import nx_lib.views.tenant as tv
+
 
 @pytest.fixture(autouse=True)
 def _clear_docfield_ids_cache(app):
@@ -3394,3 +3396,49 @@ def test_filter_views_folder_validation(user_client, workitems_all_perms):
 
     assert post({"name": "x", "folder": "f" * 101, "filters": []}).status_code == 400
     assert post({"name": "x", "folder": 5, "filters": []}).status_code == 400
+
+
+# -------------------------------------------- tenant-scoped workitems (0098) --
+
+
+def _acme_tenant(code):
+    import types
+
+    return types.SimpleNamespace(code=code, display_name="Acme", active=True)
+
+
+def test_workitems_unknown_tenant_param_404(user_client, workitems_all_perms, monkeypatch):
+    monkeypatch.setattr(tv, "tenant", lambda code: None)
+    assert user_client.get("/workitems?tenant=nope").status_code == 404
+
+
+def test_workitems_tenant_param_without_access_403(user_client, workitems_all_perms, monkeypatch):
+    monkeypatch.setattr(tv, "tenant", _acme_tenant)
+    monkeypatch.setattr(tv, "can_view_tenant", lambda code: False)
+    assert user_client.get("/workitems?tenant=acme").status_code == 403
+
+
+def test_workitems_tenant_scope_sticks_until_the_global_entry_clears_it(
+    user_client, workitems_all_perms, monkeypatch
+):
+    monkeypatch.setattr(tv, "tenant", _acme_tenant)
+    monkeypatch.setattr(tv, "can_view_tenant", lambda code: True)
+    monkeypatch.setattr(tv, "organization_tenant", lambda org: None)  # staff, no own tenant
+    monkeypatch.setattr("nx_lib.process_helpers.tenant_processes", lambda code: set())
+
+    resp = user_client.get("/workitems?tenant=acme")
+    assert resp.status_code == 200
+    assert b"Acme Workitems" in resp.data
+    with user_client.session_transaction() as sess:
+        assert sess.get("tenant_scope") == "acme"
+
+    # the page rewrites its own URL with the filter state -- the scope must survive that
+    resp = user_client.get("/workitems?prcfW=all&page=1")
+    assert resp.status_code == 200
+    assert b"Acme Workitems" in resp.data
+
+    resp = user_client.get("/workitems?tenant=")
+    assert resp.status_code == 200
+    assert b"Global Workitems" in resp.data
+    with user_client.session_transaction() as sess:
+        assert sess.get("tenant_scope") is None

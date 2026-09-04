@@ -17,7 +17,8 @@
 </head>
 
 <body class="nx-app">
-  {% set active_page = 'dashboard' %} {% include '_header.html' %}
+  {# 0097: a tenant-scoped dashboard marks the tenant's own mounted page active, never the global entry. #}
+  {% set active_page = ('tenant_' ~ dashboard_tenant.code ~ '_dashboard') if dashboard_tenant else 'dashboard' %} {% include '_header.html' %}
 
   <main class="nx-main">
     <div class="nx-page-head nx-rise">
@@ -25,8 +26,13 @@
         <div class="nx-page-head__title">
           <span class="nx-page-icon"><i class="fas fa-gauge-high"></i></span>
           <div>
-            <h1 class="nx-title">{{ _("Dashboard") }}</h1>
-            <p class="nx-subtitle">{{ _("Here's a real-time overview of your document processing activity.") }}</p>
+            {% if dashboard_tenant %}
+            <h1 class="nx-title" data-testid="dashboard-title">{{ _("%(tenant)s Dashboard", tenant=dashboard_tenant.display_name) }}</h1>
+            <p class="nx-subtitle">{{ _("Real-time overview of this tenant's document processing only.") }}</p>
+            {% else %}
+            <h1 class="nx-title" data-testid="dashboard-title">{{ _("Global Dashboard") }}</h1>
+            <p class="nx-subtitle">{{ _("Every process you may see, across all tenants.") }}</p>
+            {% endif %}
             {% if login_at %}
             <p class="nx-subtitle [font-size:12px]! [opacity:0.75]!" data-testid="dashboard-signin-note">{{ _("Signed in as %(name)s", name="<strong>"|safe ~ fullname|e ~ "</strong>"|safe)|safe }}{% if prev_login_at %} — {{ _("Last sign-in: %(when)s", when=prev_login_at|datetimeformat('dd.MM.yyyy HH:mm')) }}{% endif %}</p>
             {% endif %}

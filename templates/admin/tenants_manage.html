@@ -20,7 +20,7 @@
             subtitle=_('Create tenants, decide which organizations belong to them and mount their pages'),
             back_url=url_for('admin_tenants_view'),
             actions=([{'label': _('Add tenant'), 'icon': 'fa-plus', 'onclick': 'openAddTenantModal()', 'variant': 'primary', 'testid': 'add-tenant'}] if can_edit else None),
-            icon='fa-cubes'
+            icon='fa-city'
         ) }}
 
         <p class="nx-c-meta" style="font-size:0.85rem;margin:-8px 0 16px" data-testid="admin-tenants-manage-help">
@@ -58,7 +58,7 @@
                         {% endif %}
                     </tr>
                     {% else %}
-                    {{ a.empty_state('fa-cubes', _('No tenants yet.'), colspan=7) }}
+                    {{ a.empty_state('fa-city', _('No tenants yet.'), colspan=7) }}
                     {% endfor %}
                 </tbody>
             </table>

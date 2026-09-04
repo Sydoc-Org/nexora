@@ -10,6 +10,25 @@ Work toward the next release.
 
 ### Added
 
+- **The tenant Dashboard and Workitems pages are the tenant's** (migrations
+  `0097`, `0098`). The Dashboard and Workitems entries inside a tenant's
+  sidebar group now open `/dashboard?tenant=<code>` and
+  `/workitems?tenant=<code>`: the pages narrow your process grants to the
+  processes whose organization belongs to that tenant, title themselves
+  "<Tenant> Dashboard" / "<Tenant> Workitems", and light up only that
+  tenant's entry. A user inside a tenant lands there by default. The scope
+  sticks for the session until the global entry clears it, so a page that
+  rewrites its own URL (Workitems does) keeps the tenant. Staff who
+  see several groups get the unscoped views under their real names,
+  **Global Dashboard** and **Global Workitems** — every process you may
+  see, across tenants — from the global entries, which are relabelled
+  accordingly. One helper (`process_helpers.granted_processes`) now feeds
+  every process allow-list on both pages, replacing thirteen copies of the
+  grant-parsing block. A custom page's `LayoutJSON` may carry a `query`
+  object of string pairs that becomes the link's query string; mounting
+  `dashboard` or `workitems_overview` from the tenant management page adds
+  it automatically. Prepared Documents is MS02's own register with no
+  process filter and stays as it is.
 - **Answer-depth picker in the Eddard chat composer.** Click into the
   input and a Quick / Balanced / Deep control slides in above it, mapping
   to effort `low` / `medium` / `high` on the `/api/reporting/ai/agent`

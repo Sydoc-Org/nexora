@@ -6,7 +6,7 @@ descriptor->SQL builders (``nx_lib/tenant/queries.py``, Task 3) -- no
 per-tenant view code, no Blueprints (house rule: routes register via
 ``add_url_rule`` so every ``url_for(...)`` in templates keeps working
 unchanged). Access is dynamic -- the tenant code lives in the URL -- so it is
-checked *inside* each view (``_can_view``), never via ``@require_permission``,
+checked *inside* each view (``can_view_tenant``), never via ``@require_permission``,
 which only ever takes a static string literal. Viewing is *membership or
 grant*: a user whose organization belongs to the tenant
 (``Organizations.TenantCode``) sees it by right; anyone else needs
@@ -84,12 +84,49 @@ def _dialect_for_role(client, role):
     return client.dialect
 
 
-def _can_view(tenant_code):
+def can_view_tenant(tenant_code):
     """Membership or grant (0096): the session user's organization belongs to
-    the tenant, or the session holds ``tenant.<code>.view``."""
+    the tenant, or the session holds ``tenant.<code>.view``. Also used by the
+    dashboard's ``?tenant=`` scope (0097)."""
     return organization_tenant(session.get("organizationcode")) == tenant_code or has_permission(
         f"tenant.{tenant_code}.view"
     )
+
+
+def apply_tenant_scope():
+    """Which tenant is the current page about? Remembered in
+    ``session['tenant_scope']`` so the page's API calls narrow the same way
+    (``nx_lib/process_helpers.py::granted_processes``).
+
+    ``?tenant=<code>`` picks one -- a mounted tenant page links that way;
+    ``?tenant=`` (present, empty) is the global view -- the global sidebar
+    entries link that way; **no parameter keeps the current scope** (the
+    workitems page rewrites its own URL with the filter state, and a
+    dashboard chip may link into the list -- neither must drop the tenant).
+    Without a scope a user inside a tenant defaults to their own, anyone
+    else gets the global view. An explicit unknown tenant -> 404, one the
+    session may not view -> 403; a remembered scope that no longer resolves
+    is dropped silently. Returns the Tenant or None. Call it *before* a
+    view's catch-all ``try`` so the 404/403 are not swallowed."""
+    raw = request.args.get("tenant")
+    explicit = raw is not None
+    if explicit:
+        code = raw.strip() or None
+    else:
+        code = session.get("tenant_scope") or organization_tenant(session.get("organizationcode"))
+    if not code:
+        session.pop("tenant_scope", None)
+        return None
+    t = tenant(code)
+    if t is None or not can_view_tenant(code):
+        if explicit:
+            if t is None:
+                abort(404)
+            raise PermissionDenied()
+        session.pop("tenant_scope", None)
+        return None
+    session["tenant_scope"] = code
+    return t
 
 
 def _resolve_client_engine(entity):
@@ -269,6 +306,16 @@ def _validate_values(entity, fields, data):
     return values, errors
 
 
+def _layout_query(layout):
+    """Optional ``query`` object of a custom page's LayoutJSON -- string keys
+    and values only -- passed to ``url_for`` as query args (0097: the mounted
+    Dashboard links ``/dashboard?tenant=<code>``). Anything else is ignored."""
+    q = layout.get("query")
+    if not isinstance(q, dict):
+        return {}
+    return {k: v for k, v in q.items() if isinstance(k, str) and isinstance(v, str)}
+
+
 def _tenant_nav_page(code, p, locale):
     """One nav entry dict for TenantPage ``p``, or ``None`` to omit it from
     the sidebar entirely.
@@ -300,18 +347,18 @@ def _tenant_nav_page(code, p, locale):
     tracked gap, not a crash.
     """
     if p.page_type == "custom":
-        endpoint = (p.layout or {}).get("endpoint")
+        layout = p.layout or {}
+        endpoint = layout.get("endpoint")
         if not endpoint:
             return None
         try:
-            url = url_for(endpoint)
+            url = url_for(endpoint, **_layout_query(layout))
         except BuildError:
             current_app.logger.warning(
                 f"visible_tenant_nav: tenant {code!r} page {p.key!r} custom endpoint "
                 f"{endpoint!r} does not resolve -- omitting nav entry"
             )
             return None
-        layout = p.layout or {}
         return {
             "key": p.key,
             "page_type": p.page_type,
@@ -343,7 +390,7 @@ def _tenant_nav_page(code, p, locale):
 
 def visible_tenant_nav() -> list[dict]:
     """[{"code", "label", "pages": [...]}] for every tenant the current
-    session can view (``_can_view``: membership or grant) -- [] when the registry itself
+    session can view (``can_view_tenant``: membership or grant) -- [] when the registry itself
     is unavailable (never a partial/unsafe result, same fail-closed contract
     as the registry module itself). Consumed by Task 6's sidebar nav context
     processor; each page entry carries an already-resolved ``url`` (never
@@ -357,7 +404,7 @@ def visible_tenant_nav() -> list[dict]:
     nav = []
     for code in sorted(reg.tenants):
         t = reg.tenants[code]
-        if not _can_view(code):
+        if not can_view_tenant(code):
             continue
         pages = [
             entry
@@ -372,7 +419,7 @@ def visible_tenant_nav() -> list[dict]:
 
 
 def tenant_page(tenant_code, page_key):
-    if not _can_view(tenant_code):
+    if not can_view_tenant(tenant_code):
         raise PermissionDenied()
 
     reg = registry()
@@ -439,7 +486,7 @@ def tenant_page(tenant_code, page_key):
 
 
 def api_tenant_list(tenant_code, page_key):
-    if not _can_view(tenant_code):
+    if not can_view_tenant(tenant_code):
         raise PermissionDenied()
 
     unavailable, t, _page, entity, fields = _resolve_page_entity(tenant_code, page_key)
@@ -626,7 +673,7 @@ def api_tenant_delete(tenant_code, page_key, record_id):
 
 
 def api_tenant_export(tenant_code, page_key):
-    if not _can_view(tenant_code):
+    if not can_view_tenant(tenant_code):
         raise PermissionDenied()
 
     unavailable, t, page, entity, fields = _resolve_page_entity(tenant_code, page_key)
