@@ -7,6 +7,7 @@ from flask_babel import gettext as _
 
 from ...db import engine_nexora_db
 from ...security import (
+    assignable_profile_ids,
     has_permission,
     load_permissions_for_user,
     page_visibility,
@@ -70,11 +71,8 @@ def admin_access_control():
                 dict(zip([column[0] for column in cursor.description], row, strict=False))
                 for row in cursor.fetchall()
             ]
-            assignable_profiles = [
-                ap
-                for ap in all_ap
-                if has_permission(f'admin.assign.user.accessprofile.{str(ap["profile"]).lower()}')
-            ]
+            assignable = assignable_profile_ids()
+            assignable_profiles = [ap for ap in all_ap if ap["accessid"] in assignable]
 
         return render_template(
             "admin/access_control.html",

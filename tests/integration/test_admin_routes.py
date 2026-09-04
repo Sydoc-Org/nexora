@@ -1642,17 +1642,30 @@ def test_admin_add_user_missing_fields_returns_400(admin_client, admin_all_perms
     assert resp.status_code == 400
 
 
-def test_admin_add_user_duplicate_returns_409_or_500(admin_client, admin_all_perms, monkeypatch):
+def test_add_user_refuses_a_higher_ranked_profile(user_client, admin_all_perms):
+    # TestUser has Rank 10; TestAdmin is Rank 100 -> not assignable even with every code.
+    resp = user_client.post(
+        "/admin/users/add",
+        json={
+            "username": f"r{uuid.uuid4().hex[:6]}",
+            "password": "Test1234!",
+            "fullname": "Rank Test",
+            "email": f"r{uuid.uuid4().hex[:6]}@test.local",
+            "organization": "Test Organization",
+            "accessprofile": "TestAdmin",
+        },
+    )
+    assert resp.status_code == 403
+
+
+def test_admin_add_user_duplicate_returns_409_or_500(admin_client, admin_all_perms):
     """Re-add user@test.local → IntegrityError 409.
 
-    admin_all_perms only patches nx_lib.security.has_permission (reached by the
-    @require_permission decorator's dynamic lookup); it does NOT reach the
-    inline admin.assign.user.accessprofile.* gate added to admin_add_user,
-    which resolves nx_lib.views.admin.users.has_permission (bound at import
-    time). Patch that binding too so this test keeps exercising the
-    duplicate-409 path instead of newly dying on the 403 gate.
+    admin@test.local is TestAdmin (Rank 100), real-assigning TestUser (Rank
+    10) — the rank-ceiling check in assignable_profile_ids() passes for real,
+    no mocking needed; admin_all_perms only covers the
+    @require_permission("admin.create.user") decorator gate.
     """
-    monkeypatch.setattr("nx_lib.views.admin.users.has_permission", lambda code: True)
     resp = admin_client.post(
         "/admin/users/add",
         json={
@@ -1667,23 +1680,19 @@ def test_admin_add_user_duplicate_returns_409_or_500(admin_client, admin_all_per
     assert resp.status_code in (200, 409, 500)
 
 
-def test_admin_add_user_without_assign_permission_returns_403(admin_client, monkeypatch, db_conn):
+def test_admin_add_user_returns_403_when_profile_not_assignable(admin_client, monkeypatch, db_conn):
     """admin.create.user alone must not be enough to assign an access profile.
 
     The @require_permission("admin.create.user") decorator resolves the REAL
     nx_lib.security.has_permission at call time — TestAdmin (admin@test.local)
     is seeded with every permission, so that check still passes. Only the
-    inline admin.assign.user.accessprofile.<profile> gate is denied here, by
-    patching the nx_lib.views.admin.users module-level binding (the one the
-    inline call inside admin_add_user actually resolves — patching
-    nx_lib.security.has_permission would NOT reach it).
+    rank-ceiling assignable_profile_ids() gate denies here, by patching the
+    nx_lib.views.admin.users module-level binding (the one admin_add_user
+    actually calls) to return an empty set — no profile is assignable.
     """
     from sqlalchemy import text
 
-    monkeypatch.setattr(
-        "nx_lib.views.admin.users.has_permission",
-        lambda code: not code.startswith("admin.assign.user.accessprofile."),
-    )
+    monkeypatch.setattr("nx_lib.views.admin.users.assignable_profile_ids", lambda: set())
     username = "task5-deny@test.local"
     resp = admin_client.post(
         "/admin/users/add",
@@ -1704,18 +1713,16 @@ def test_admin_add_user_without_assign_permission_returns_403(admin_client, monk
     assert count == 0
 
 
-def test_admin_add_user_with_assign_permission_returns_200(admin_client, monkeypatch, db_conn):
-    """Holding the assign-permission (in addition to admin.create.user) allows creation.
+def test_admin_add_user_with_assign_permission_returns_200(admin_client, db_conn):
+    """admin@test.local (TestAdmin, Rank 100) may really assign TestUser (Rank 10).
 
-    Deliberately does NOT use admin_all_perms — that fixture patches
-    nx_lib.security.has_permission, which the inline gate in admin_add_user
-    (bound as nx_lib.views.admin.users.has_permission at import time) cannot see.
+    Deliberately does NOT use admin_all_perms or mock assignable_profile_ids —
+    this exercises the real rank-ceiling query end to end.
     """
     from sqlalchemy import text
 
     from nx_lib.db import engine_nexora_db
 
-    monkeypatch.setattr("nx_lib.views.admin.users.has_permission", lambda code: True)
     username = f"task5-allow-{uuid.uuid4().hex[:8]}@test.local"
     user_id = None
     try:
@@ -1787,8 +1794,6 @@ def test_admin_add_user_invite_generates_password_and_mails_link(
 
     from nx_lib.db import engine_nexora_db
     from nx_lib.views.auth import _load_reset_token
-
-    monkeypatch.setattr("nx_lib.views.admin.users.has_permission", lambda code: True)
 
     sent = {}
 
@@ -1864,12 +1869,12 @@ def test_admin_edit_user_nonexistent(admin_client, admin_all_perms):
 # profile is outside that set (e.g. a lesser admin viewing a user who holds a
 # super-admin-only profile), no <option> is `selected`, the browser defaults
 # to submitting the first option, and saving any unrelated field silently
-# reassigns the profile. These tests patch nx_lib.views.admin.users.has_permission
-# (the module-level binding the inline gate in admin_edit_user actually
-# resolves — see test_admin_add_user_without_assign_permission_returns_403's
-# docstring above) to simulate an admin who cannot assign 'TestUser' or
-# 'TestNoPerm', while editing user@test.local whose current profile IS
-# 'TestUser'.
+# reassigns the profile. These tests patch
+# nx_lib.views.admin.users.assignable_profile_ids (the module-level binding
+# admin_edit_user actually calls — see
+# test_admin_add_user_returns_403_when_profile_not_assignable's docstring
+# above) to simulate an admin who can assign nothing, while editing
+# user@test.local whose current profile IS 'TestUser'.
 
 
 def test_admin_edit_user_unchanged_unassignable_profile_roundtrips(
@@ -1880,14 +1885,7 @@ def test_admin_edit_user_unchanged_unassignable_profile_roundtrips(
     value even when it isn't in this admin's assignable set."""
     from sqlalchemy import text
 
-    monkeypatch.setattr(
-        "nx_lib.views.admin.users.has_permission",
-        lambda code: code
-        not in (
-            "admin.assign.user.accessprofile.testuser",
-            "admin.assign.user.accessprofile.testnoperm",
-        ),
-    )
+    monkeypatch.setattr("nx_lib.views.admin.users.assignable_profile_ids", lambda: set())
     uid = db_conn.execute(
         text("SELECT userID FROM Users WHERE username = 'user@test.local'")
     ).scalar()
@@ -1923,14 +1921,7 @@ def test_admin_edit_user_changed_to_unassignable_profile_returns_403(
     this admin's assignable set."""
     from sqlalchemy import text
 
-    monkeypatch.setattr(
-        "nx_lib.views.admin.users.has_permission",
-        lambda code: code
-        not in (
-            "admin.assign.user.accessprofile.testuser",
-            "admin.assign.user.accessprofile.testnoperm",
-        ),
-    )
+    monkeypatch.setattr("nx_lib.views.admin.users.assignable_profile_ids", lambda: set())
     uid = db_conn.execute(
         text("SELECT userID FROM Users WHERE username = 'user@test.local'")
     ).scalar()
@@ -1981,14 +1972,7 @@ def test_admin_edit_user_missing_accessprofile_key_saves_other_fields(
     successfully -- 200, not 403 -- and must leave the profile untouched."""
     from sqlalchemy import text
 
-    monkeypatch.setattr(
-        "nx_lib.views.admin.users.has_permission",
-        lambda code: code
-        not in (
-            "admin.assign.user.accessprofile.testuser",
-            "admin.assign.user.accessprofile.testnoperm",
-        ),
-    )
+    monkeypatch.setattr("nx_lib.views.admin.users.assignable_profile_ids", lambda: set())
     uid = db_conn.execute(
         text("SELECT userID FROM Users WHERE username = 'user@test.local'")
     ).scalar()
@@ -2028,14 +2012,7 @@ def test_admin_user_detail_current_unassignable_option_not_disabled(
 
     from sqlalchemy import text
 
-    monkeypatch.setattr(
-        "nx_lib.views.admin.users.has_permission",
-        lambda code: code
-        not in (
-            "admin.assign.user.accessprofile.testuser",
-            "admin.assign.user.accessprofile.testnoperm",
-        ),
-    )
+    monkeypatch.setattr("nx_lib.views.admin.users.assignable_profile_ids", lambda: set())
     uid = db_conn.execute(
         text("SELECT userID FROM Users WHERE username = 'user@test.local'")
     ).scalar()

@@ -11,7 +11,13 @@ from flask_babel import gettext as _
 from werkzeug.exceptions import HTTPException
 
 from ...db import engine_nexora_db
-from ...security import _revoke_session_by_id, has_permission, page_visibility, require_permission
+from ...security import (
+    _revoke_session_by_id,
+    assignable_profile_ids,
+    has_permission,
+    page_visibility,
+    require_permission,
+)
 
 
 @require_permission("admin.view.active.sessions")
@@ -47,14 +53,6 @@ def admin_add_user():
     if not all([username, password, fullname, email, organization, accessprofile]):
         return jsonify({"success": False, "message": _("All fields are required.")}), 400
 
-    if not has_permission(f"admin.assign.user.accessprofile.{str(accessprofile).lower()}"):
-        current_app.logger.error(
-            "assign-permission denied: profile=%r username=%r",
-            str(accessprofile)[:100],
-            str(username)[:100],
-        )
-        return jsonify({"success": False, "message": _("Permission Denied for this action.")}), 403
-
     hashed_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
     conn = None
@@ -67,6 +65,17 @@ def admin_add_user():
         if accessprofile_row is None:
             return jsonify({"success": False, "message": _("Unknown access profile.")}), 400
         accessid = accessprofile_row[0]
+
+        if accessid not in assignable_profile_ids():
+            current_app.logger.error(
+                "assign-permission denied: profile=%r username=%r",
+                str(accessprofile)[:100],
+                str(username)[:100],
+            )
+            return jsonify(
+                {"success": False, "message": _("Permission Denied for this action.")}
+            ), 403
+
         cursor.execute(
             "select organizationcode from organizations where organization = ?", organization
         )
@@ -166,21 +175,20 @@ def admin_edit_user(user_id):
         if accessprofile is None:
             accessprofile = current_profile
 
-        if accessprofile != current_profile and not has_permission(
-            f"admin.assign.user.accessprofile.{str(accessprofile).lower()}"
-        ):
-            current_app.logger.error(
-                f"User does not have Permission: admin.assign.user.accessprofile.{str(accessprofile).lower()} for {user_id}"
-            )
-            return jsonify(
-                {"success": False, "message": _("Permission Denied for this action.")}
-            ), 403
-
         cursor.execute("select accessid from accessprofile where name = ?", accessprofile)
         accessprofile_row = cursor.fetchone()
         if accessprofile_row is None:
             return jsonify({"success": False, "message": _("Unknown access profile.")}), 400
         accessid = accessprofile_row[0]
+
+        if accessprofile != current_profile and accessid not in assignable_profile_ids():
+            current_app.logger.error(
+                f"User does not have Rank to assign accessprofile {accessprofile!r} for {user_id}"
+            )
+            return jsonify(
+                {"success": False, "message": _("Permission Denied for this action.")}
+            ), 403
+
         cursor.execute(
             "select organizationcode from organizations where organization = ?", organization
         )
@@ -258,11 +266,8 @@ def admin_user_detail(user_id):
             dict(zip([c[0] for c in cursor.description], r, strict=False))
             for r in cursor.fetchall()
         ]
-        assignable_profiles = [
-            ap
-            for ap in all_ap
-            if has_permission(f'admin.assign.user.accessprofile.{str(ap["profile"]).lower()}')
-        ]
+        assignable = assignable_profile_ids()
+        assignable_profiles = [ap for ap in all_ap if ap["accessid"] in assignable]
 
         cursor.execute("""
             SELECT PermissionID, Code, Description FROM Permission

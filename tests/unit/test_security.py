@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import date
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sqlalchemy import text
 from werkzeug.exceptions import HTTPException
@@ -44,14 +44,14 @@ def test_has_permission_returns_false_when_no_permissions_in_session():
 
 
 def test_has_permission_matches_when_session_code_has_mixed_case():
-    # Live INT data pre-fix: Permission.Code stored as
-    # "admin.assign.user.accessprofile.pdbsUser" (mixed case), while the app
-    # checks the all-lowercase code — must match despite the case mismatch.
+    # Live INT data can carry mixed-case Permission.Code rows (e.g. hand-
+    # inserted ones), while the app always checks the all-lowercase code —
+    # must match despite the case mismatch.
     with patch(
         "nx_lib.security.session",
-        {"permissions": ["admin.assign.user.accessprofile.pdbsUser"]},
+        {"permissions": ["admin.demoMixedCase"]},
     ):
-        assert has_permission("admin.assign.user.accessprofile.pdbsuser") is True
+        assert has_permission("admin.demomixedcase") is True
 
 
 def test_has_permission_matches_when_checked_code_has_mixed_case():
@@ -59,17 +59,17 @@ def test_has_permission_matches_when_checked_code_has_mixed_case():
     # different casing.
     with patch(
         "nx_lib.security.session",
-        {"permissions": ["admin.assign.user.accessprofile.pdbsuser"]},
+        {"permissions": ["admin.demomixedcase"]},
     ):
-        assert has_permission("admin.assign.user.accessprofile.PDBSUSER") is True
+        assert has_permission("admin.DEMOMIXEDCASE") is True
 
 
 def test_has_permission_returns_false_for_genuinely_absent_code():
     with patch(
         "nx_lib.security.session",
-        {"permissions": ["admin.assign.user.accessprofile.pdbsUser"]},
+        {"permissions": ["admin.demoMixedCase"]},
     ):
-        assert has_permission("admin.assign.user.accessprofile.someOtherRole") is False
+        assert has_permission("admin.someOtherRole") is False
 
 
 # ---------------------------------------------------------------------------
@@ -111,6 +111,33 @@ def test_load_permissions_for_user_returns_empty_for_noperm(db_conn):
 def test_load_permissions_for_user_unknown_id_returns_empty():
     perms = load_permissions_for_user(-999)
     assert perms == []
+
+
+# ---------------------------------------------------------------------------
+# assignable_profile_ids — Rank ceiling replaces the admin.assign.* codes
+# (spec #238 D5)
+# ---------------------------------------------------------------------------
+
+
+def test_assignable_profile_ids_queries_rank_ceiling(monkeypatch):
+    from nx_lib import security
+
+    cur = MagicMock()
+    cur.fetchall.return_value = [(3,), (4,)]
+    conn = MagicMock()
+    conn.cursor.return_value = cur
+    monkeypatch.setattr(security.engine_nexora_db, "raw_connection", lambda: conn)
+    with patch("nx_lib.security.session", {"userid": 1019}):
+        assert security.assignable_profile_ids() == {3, 4}
+    sql = cur.execute.call_args[0][0]
+    assert "Rank <=" in sql and cur.execute.call_args[0][1] == (1019,)
+
+
+def test_assignable_profile_ids_empty_without_login():
+    from nx_lib import security
+
+    with patch("nx_lib.security.session", {}):
+        assert security.assignable_profile_ids() == set()
 
 
 # ---------------------------------------------------------------------------

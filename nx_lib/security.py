@@ -31,6 +31,30 @@ def load_permissions_for_user(user_id):
     return perms
 
 
+def assignable_profile_ids() -> set[int]:
+    """AccessIDs the current user may assign: every profile whose Rank is at or
+    below the rank of the user's own profile (spec #238 D5). No login or no
+    profile -> nothing. Replaces the admin.assign.user.accessprofile.* codes."""
+    uid = session.get("userid")
+    if not uid:
+        return set()
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT ap.AccessID FROM dbo.AccessProfile ap
+            WHERE ap.Rank <= (SELECT ISNULL(MAX(me.Rank), -1)
+                              FROM dbo.Users u JOIN dbo.AccessProfile me ON me.AccessID = u.accessid
+                              WHERE u.userID = ?)
+            """,
+            (uid,),
+        )
+        return {row[0] for row in cur.fetchall()}
+    finally:
+        conn.close()
+
+
 def has_permission(code: str) -> bool:
     perms = set(session.get("permissions", []))
     return code.lower() in {p.lower() for p in perms}
