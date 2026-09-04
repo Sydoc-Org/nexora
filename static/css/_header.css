@@ -97,6 +97,20 @@ html.sidebar-pinned #nexora-sidebar .sidebar-label {
     pointer-events: auto;
 }
 
+/* ---------- Flat tenant workspace (a user inside exactly one tenant) ---------- */
+.sidebar-section-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 8px 4px;
+    color: #9aa1a9;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+.sidebar-section-label .sidebar-nav-icon { opacity: 0.6; }
+
 /* ---------- Logo area ---------- */
 .sidebar-logo-area {
     display: flex;

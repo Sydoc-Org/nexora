@@ -28,7 +28,9 @@ Work toward the next release.
   object of string pairs that becomes the link's query string; mounting
   `dashboard` or `workitems_overview` from the tenant management page adds
   it automatically. Prepared Documents is MS02's own register with no
-  process filter and stays as it is.
+  process filter and stays as it is. A user inside exactly one tenant sees
+  its pages flat under a plain label instead of a one-item collapsible
+  group; staff and multi-tenant users keep the groups.
 - **Answer-depth picker in the Eddard chat composer.** Click into the
   input and a Quick / Balanced / Deep control slides in above it, mapping
   to effort `low` / `medium` / `high` on the `/api/reporting/ai/agent`
