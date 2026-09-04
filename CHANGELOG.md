@@ -25,7 +25,11 @@ Work toward the next release.
   or "who fixed it". Octo's ~630 raw field names are translated through the
   existing `FieldAliases` / `FieldLabels` registries, and "Mapped in nexora %"
   filters a report down to the fields nexora actually knows about — widened by
-  adding alias rows, not by editing SQL.
+  adding alias rows, not by editing SQL. The measure descriptions spell out two
+  traps the raw numbers hide: "Deviation %" is not the complement of "Extraction
+  correct %" (a field the machine never attempted still deviates when a
+  validator fills it in), and the headline rate understates the extractor —
+  EM reads 51% correct overall but 94.6% on the instances it actually attempts.
 
 ### Changed
 

@@ -1036,6 +1036,32 @@ Raw field *values* (`VALUE_BEFORE_VALIDATION` / `VALUE_AFTER_VALIDATION`) and th
 validating user are deliberately not exposed: this source answers "which fields
 extract well", not "what did this invoice say" or "who fixed it".
 
+**What the measures actually mean.** Three traps, all confirmed against INT data
+(migration `0098` puts the same warnings in the measure descriptions):
+
+- **`Deviation %` is not `100 − Extraction correct %`.** 1,317 of EM's 17,107
+  rows (7.7%) deviate while nothing was extracted at all — the machine found no
+  candidate and the validator typed a value in. Across EM the two read 51.0% and
+  10.6%, summing to 61.6%, not 100%. Subtracting one from the other is wrong.
+- **`Extraction correct %` trusts Octo's `RESULT` flag**, not a literal text
+  comparison. The two disagree on 1.7% of rows (150 flagged `Different` while
+  identical, 139 flagged `Equal` while different — most likely formatting
+  normalisation inside Octo). This is deliberate: it is what
+  `v_EMFieldStatistic` has always reported.
+- **The headline rate understates the extractor.** EM reads 51.0% correct, but
+  only 53.9% of instances are attempted at all; on the ones it *does* attempt
+  the machine is right **94.6%** of the time. `Extraction correct %` ÷
+  `Extracted %` is the number to quote when asking "how good is extraction",
+  and the gap between them is the "never even tried" backlog.
+
+**Verified against the hand-built view.** Restricted to the same population
+(`v_EMFieldStatistic` inner-joins `EM_Invoice`; this view left-joins it, so it
+keeps the ~4% of telemetry whose workitem has no invoice row), the two agree
+**exactly on all 21 fields** for both the correctness rate and the confidence.
+That equivalence is the real regression test for the view's arithmetic — it
+needs a live DB, so it is not in `tests/unit/`; re-run it by hand if the view
+changes.
+
 ## Source visualizer (`reporting.sources.schema`)
 
 Clicking a Sources rail card opens a slide-over showing the **database behind
