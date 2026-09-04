@@ -60,7 +60,11 @@
 
 ## Owner actions
 
-- After the PROD deploy, confirm `dbo.BacklogHistory` on the PROD Statistics DB actually holds ≥14 days of rows (`SELECT MIN(SnapshotAt), COUNT(*) FROM dbo.BacklogHistory`). The collector runs on Task Scheduler outside the repo; if it has been down, the backlog trend renders a short line rather than an error, but the "14-day trend" label will overpromise.
+- **⚠ The collector is not running on INT.** Measured 2026-09-04: `dbo.BacklogHistory` on the INT Statistics DB holds **6 rows, all from a single timestamp on 2026-08-04** — one smoke-test run (`--dry-run`/`--once` by hand) and nothing since. `ops/backlog_history/backlog_history.py` was never put on INT's Task Scheduler. **The backlog trend therefore has nothing to render against on INT**, and a developer verifying Task 4 cannot tell a broken query from an empty table. Pick one before Phase 3 (Task 4 Step 3a below covers the seeding option):
+  1. **Schedule the collector on INT** (`docs`/README in `ops/backlog_history/`, every 30 min) and wait a day — the honest fix, and PROD presumably needs the same check.
+  2. **Seed synthetic snapshots on INT** for dev verification only — Task 4 Step 3a.
+- Before the PROD deploy, run the same check against PROD (`SELECT COUNT(*), MIN(SnapshotAt), MAX(SnapshotAt) FROM dbo.BacklogHistory`). If PROD's collector has also been down, the new section ships as an empty chart labelled "14-day trend" — decide whether to hold the section behind the data or ship it and let it fill in.
+- **The Recent Validations panel that D6 deletes is currently the only populated panel on the page** (three live `03_Invoice_New` workitems with extracted fields, screenshot `var/screenshots/dashboard_baseline_before_redesign.png`). Its removal is a deliberate design decision, not a dead-code cleanup — confirm you still want it gone before Task 12 runs.
 - `scripts/env-sync.py` as usual before deploying (no new keys expected).
 
 ---
@@ -380,21 +384,29 @@ def test_backlog_history_takes_the_last_snapshot_per_day_and_sums_sources(app, m
     from nx_lib.views import dashboard as dv
 
     today = date.today()
+    def at(day, hour):
+        return datetime.combine(day, datetime.min.time()).replace(hour=hour)
+
+    yesterday = today - timedelta(days=1)
     rows = [
         # (SnapshotAt, SourceCode, ClientName, ProcessName, BacklogCount)
-        (datetime.combine(today, datetime.min.time()).replace(hour=8), "octo", "sydoc", "02_Posteingang", 500),
-        (datetime.combine(today, datetime.min.time()).replace(hour=20), "octo", "sydoc", "02_Posteingang", 612),
-        (datetime.combine(today, datetime.min.time()).replace(hour=20), "ms02", "sydoc", "02_Posteingang", 8),
-        (datetime.combine(today, datetime.min.time()).replace(hour=20), "octo", "sydoc", "99_NotGranted", 999),
-        (datetime.combine(today - timedelta(days=1), datetime.min.time()).replace(hour=20), "octo", "sydoc", "02_Posteingang", 564),
+        # NOTE the display-cased "Privera": BacklogHistory carries Octo's
+        # t_Processes.ClientName, target_processes carries ProcessSources'
+        # lower-cased name. Verified on INT 2026-09-04.
+        (at(today, 8), "octo", "Privera", "02_Posteingang", 500),
+        (at(today, 20), "octo", "Privera", "02_Posteingang", 612),
+        (at(today, 20), "ms02", "Privera", "02_Posteingang", 8),
+        (at(today, 20), "octo", "Privera", "99_NotGranted", 999),
+        (at(yesterday, 20), "octo", "Privera", "02_Posteingang", 564),
     ]
     monkeypatch.setattr(dv, "_default_stat_rows", lambda sql, params=None: rows)
 
     with app.test_request_context():
-        out = dv._backlog_history(["sydoc.02_Posteingang"], 14)
+        out = dv._backlog_history(["privera.02_Posteingang"], 14)
 
-    assert out[today] == {"sydoc.02_Posteingang": 620}                  # 612 + 8, the 08:00 row discarded
-    assert out[today - timedelta(days=1)] == {"sydoc.02_Posteingang": 564}
+    # keyed by the canonical (lower-cased) ProcessSources spelling, not Octo's
+    assert out[today] == {"privera.02_Posteingang": 620}    # 612 + 8, the 08:00 row discarded
+    assert out[yesterday] == {"privera.02_Posteingang": 564}
     assert all("99_NotGranted" not in k for day in out.values() for k in day)
 
 
@@ -460,12 +472,22 @@ def _backlog_history(target_processes, days):
     14 days x a handful of processes is a few hundred rows, and a Python
     membership test beats interpolating a pair list into the WHERE clause.
 
+    Matching is CASE-INSENSITIVE and that is load-bearing, not defensive:
+    BacklogHistory.ClientName comes from Octo's t_Processes.ClientName and is
+    display-cased ('Privera', 'ElektroMaterial', 'Compass'), while
+    target_processes comes from dbo.ProcessSources.ProcessName and is
+    lower-cased ('privera.03_Invoice_New'). Verified on INT 2026-09-04. An
+    exact match silently drops every non-MS02 process and leaves a chart that
+    looks plausible but is missing most of the backlog.
+
     The collector (ops/backlog_history/backlog_history.py, every 30 min) owns
     the table; nexora only reads it. A dead Statistics DB yields {} through
     _default_stat_rows' swallow-and-log contract, which the callers render as
     an empty chart."""
     days = max(1, int(days))
-    wanted = set(target_processes)
+    # Keep the canonical (ProcessSources) spelling as the output key, looked up
+    # by its folded form, so the API returns names the rest of the app knows.
+    wanted = {p.casefold(): p for p in target_processes}
 
     # (date, client.process) -> {source_code: (snapshot_at, count)} -- keep the
     # latest snapshot per source before summing, so an early-morning row from
@@ -474,8 +496,8 @@ def _backlog_history(target_processes, days):
     for snapshot_at, source_code, client, process, count in _default_stat_rows(
         _BACKLOG_HISTORY_SQL, (-(days - 1),)
     ):
-        name = f"{client}.{process}"
-        if name not in wanted:
+        name = wanted.get(f"{client}.{process}".casefold())
+        if name is None:
             continue
         at = snapshot_at if isinstance(snapshot_at, datetime) else datetime.fromisoformat(str(snapshot_at))
         slot = latest.setdefault((at.date(), name), {})
@@ -649,6 +671,38 @@ def dashboard_backlog_trend():
         view_func=dashboard_backlog_trend,
     )
 ```
+
+- [ ] **Step 3a: Seed INT so the chart has something to draw** (only if the owner picked option 2 — see Owner actions; skip if the collector was scheduled instead). Fourteen days of plausible snapshots for the six INT processes, idempotent, dev-only — **never run this against PROD**:
+
+```bash
+ENVIRONMENT=INT .venv/Scripts/python.exe -c "
+import random
+from datetime import datetime, timedelta
+from sqlalchemy import text
+from nx_lib.db import engine_statistics_db as e
+
+# (ClientName, ProcessName, SourceCode) exactly as Octo spells them -- the
+# display-cased client is the point; see _backlog_history's docstring.
+PROCS = [('Privera', '02_Posteingang', 'default', 450), ('Privera', '03_Invoice_New', 'default', 82),
+         ('Privera', '02_InitialScan', 'default', 1), ('Compass', '01_Invoice_SAP', 'default', 17),
+         ('ElektroMaterial', '02_Invoice', 'default', 18), ('sydoc', '05_PDBS', 'ms02', 478)]
+c = e.connect()
+c.execute(text(\"DELETE FROM dbo.BacklogHistory WHERE SnapshotAt >= DATEADD(day, -14, CAST(GETDATE() AS DATE))\"))
+rows = []
+for client, proc, src, base in PROCS:
+    n = base
+    for i in range(13, -1, -1):
+        n = max(0, int(n * random.uniform(0.92, 1.09)))
+        rows.append({'a': datetime.now().replace(hour=20, minute=0, second=0, microsecond=0) - timedelta(days=i),
+                     's': src, 'c': client, 'p': proc, 'n': n})
+c.execute(text('INSERT INTO dbo.BacklogHistory (SnapshotAt, SourceCode, ClientName, ProcessName, BacklogCount)'
+               ' VALUES (:a, :s, :c, :p, :n)'), rows)
+c.commit()
+print('seeded', len(rows), 'rows')
+"
+```
+
+Expected: `seeded 84 rows`. Then `curl -s "http://127.0.0.1:8000/api/dashboard/backlog_trend?range=14"` (with a logged-in session cookie) must return 14 labels and 4 named series plus `Other` — if `series` is empty or only holds `sydoc.05_PDBS`, the casefold match in `_backlog_history` regressed.
 
 - [ ] **Step 4: Add the endpoint to the inventory test** — in `tests/unit/test_create_app.py`, add `"dashboard_backlog_trend",` to the list that already contains `"api_recent_activity"` (Grep that literal), keeping the list's existing ordering convention.
 
@@ -1785,6 +1839,8 @@ git commit -m "docs(dashboard): changelog, What's New card and handoff status fo
 - **The `#chart-meta` peak values** come from the data the JS already holds — do not add an endpoint for them.
 - **`processed_over_time` and the "Processed today" KPI count differently** and always have: the KPI (via `compute_today_stats`) counts export-today only among rows whose *import* date is also today, while the chart counts export dates independently. Task 1's `_kpi_daily_counts` deliberately copies the KPI's predicate so the sparkline agrees with the number above it — the main chart's line may sit higher. That is pre-existing behaviour, not a bug introduced here; do not "fix" one to match the other without an owner decision.
 - **`normalize_range` is the only sanitizer** for the value that reaches SQL through f-string interpolation. Never widen it to pass arbitrary integers through.
+- **The client-name casing between `BacklogHistory` and `ProcessSources` does not match** (`Privera` vs `privera`) — `_backlog_history` casefolds for exactly this reason. Measured on INT 2026-09-04. An exact-match "cleanup" would silently drop five of the six INT processes and leave a chart that still draws.
+- **INT's backlog history is one month stale** (6 rows, 2026-08-04) — the collector was never scheduled there. See Owner actions; Task 4 Step 3a seeds it for dev verification.
 - **`_backlog_history` filters in Python on purpose.** Do not "optimize" it into an interpolated `IN (…)` pair list — that is exactly the shape `_pair_predicate`'s docstring in `nx_lib/workitem_sources.py` warns about (two independent IN-lists authorize the full cross product instead of only the granted pairs).
 - **A dead Statistics DB must render an empty chart, never a 500.** `_default_stat_rows` already swallows and logs; the endpoints return their `empty` payload. Do not add a `strict=True` here.
 - **`html.nx-compact`** (density = compact) shrinks `--ctl-h`; check the filter row at compact density before calling the layout done.
