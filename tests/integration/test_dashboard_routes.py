@@ -89,9 +89,12 @@ def test_kpi_stats_authed_returns_zeros(user_client):
     body = resp.get_json()
     assert body == {
         "processed_today": 0,
-        "processed_week": 0,
-        "current_backlog": 0,
         "imported_today": 0,
+        "current_backlog": 0,
+        "prev_imported": 0,
+        "prev_processed": 0,
+        "prev_backlog": 0,
+        "series": {"imported": [], "processed": [], "backlog": []},
     }
 
 
@@ -549,3 +552,53 @@ def test_backlog_trend_empty_when_nothing_is_granted(noperm_client):
     assert resp.status_code in (200, 403)
     if resp.status_code == 200:
         assert resp.get_json() == {"labels": [], "series": [], "total": 0, "prev_total": 0}
+
+
+def test_kpi_stats_carries_previous_day_and_seven_point_series(user_client, monkeypatch):
+    from datetime import date, timedelta
+
+    today = date.today()
+    monkeypatch.setattr(dv, "_allowed_processes", lambda: ["c.p1"])
+    monkeypatch.setattr(dv, "compute_today_stats", lambda tp: (595, 60))
+    monkeypatch.setattr(dv, "total_backlog_count", lambda pairs: 1247)
+    monkeypatch.setattr(
+        dv,
+        "_kpi_daily_counts",
+        lambda tp, days: {
+            today - timedelta(days=i): {"imported": 500 + i, "processed": 90 - i}
+            for i in range(days - 1, -1, -1)
+        },
+    )
+    monkeypatch.setattr(
+        dv,
+        "_backlog_history",
+        lambda tp, days: {today - timedelta(days=1): {"c.p1": 1199}, today: {"c.p1": 1247}},
+    )
+
+    body = user_client.get("/api/dashboard/kpi_stats").get_json()
+
+    assert body["imported_today"] == 595 and body["current_backlog"] == 1247
+    assert body["prev_imported"] == 501 and body["prev_processed"] == 89
+    assert body["prev_backlog"] == 1199
+    assert len(body["series"]["imported"]) == 7
+    assert body["series"]["backlog"][-1] == 1247
+
+
+def test_avg_processing_time_carries_previous_day_and_series(user_client, monkeypatch):
+    from datetime import date, timedelta
+
+    today = date.today()
+    monkeypatch.setattr(dv, "_allowed_processes", lambda: ["c.p1"])
+    monkeypatch.setattr(
+        dv,
+        "_avg_processing_by_day",
+        lambda tp, days, strict=False: {today: 3600.0, today - timedelta(days=1): 7200.0},
+    )
+
+    body = user_client.get("/api/dashboard/avg_processing_time").get_json()
+
+    assert body["avg_display"] == "1.0h"
+    assert body["prev_avg_minutes"] == 120.0
+    assert len(body["series"]) == 7
+    assert body["series"][-1] == 60.0
+    assert body["series"][0] is None  # no data that day -> a gap, not a zero

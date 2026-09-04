@@ -304,6 +304,10 @@ def test_kpi_stats_serves_ms02_and_backlog_when_statistics_db_dead(app, monkeypa
     monkeypatch.setattr(dv, "engine_statistics_db", _dead_engine())
     monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql: [(5, 2)])
     monkeypatch.setattr(dv, "total_backlog_count", lambda pairs: 3)
+    # The sparkline helpers run their own per-day queries; this test is about
+    # the big numbers degrading, and its 2-tuple fakes do not fit those rows.
+    monkeypatch.setattr(dv, "_kpi_daily_counts", lambda tp, days: {})
+    monkeypatch.setattr(dv, "_backlog_history", lambda tp, days: {})
 
     with app.test_request_context("/api/dashboard/kpi_stats"):
         session["username"] = "u"
@@ -314,7 +318,15 @@ def test_kpi_stats_serves_ms02_and_backlog_when_statistics_db_dead(app, monkeypa
 
     resp, status = rv if isinstance(rv, tuple) else (rv, rv.status_code)
     assert status == 200
-    assert resp.get_json() == {"processed_today": 5, "imported_today": 2, "current_backlog": 3}
+    assert resp.get_json() == {
+        "processed_today": 5,
+        "imported_today": 2,
+        "current_backlog": 3,
+        "prev_imported": 0,
+        "prev_processed": 0,
+        "prev_backlog": 0,
+        "series": {"imported": [], "processed": [], "backlog": []},
+    }
 
 
 def test_kpi_stats_route_still_200s_on_genuinely_quiet_day(app, monkeypatch):
@@ -326,6 +338,10 @@ def test_kpi_stats_route_still_200s_on_genuinely_quiet_day(app, monkeypatch):
     _stub_sources(monkeypatch, [_CONFIGS[0]])
     monkeypatch.setattr(dv, "engine_statistics_db", _engine_returning([(None, None)]))
     monkeypatch.setattr(dv, "total_backlog_count", lambda pairs: 0)
+    # As above: the per-day sparkline queries have their own row shape and
+    # their own tests; this one guards the today numbers' graceful degrade.
+    monkeypatch.setattr(dv, "_kpi_daily_counts", lambda tp, days: {})
+    monkeypatch.setattr(dv, "_backlog_history", lambda tp, days: {})
 
     with app.test_request_context("/api/dashboard/kpi_stats"):
         session["username"] = "u"
@@ -336,7 +352,15 @@ def test_kpi_stats_route_still_200s_on_genuinely_quiet_day(app, monkeypatch):
 
     resp, status = rv if isinstance(rv, tuple) else (rv, rv.status_code)
     assert status == 200
-    assert resp.get_json() == {"processed_today": 0, "imported_today": 0, "current_backlog": 0}
+    assert resp.get_json() == {
+        "processed_today": 0,
+        "imported_today": 0,
+        "current_backlog": 0,
+        "prev_imported": 0,
+        "prev_processed": 0,
+        "prev_backlog": 0,
+        "series": {"imported": [], "processed": [], "backlog": []},
+    }
 
 
 # ---- Phase-review fix: dashboard_kpi_stats had the SAME cross-product bug

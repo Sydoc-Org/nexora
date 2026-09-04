@@ -715,7 +715,15 @@ def dashboard_kpi_stats():
 
     if not target_processes:
         return jsonify(
-            {"processed_today": 0, "processed_week": 0, "current_backlog": 0, "imported_today": 0}
+            {
+                "processed_today": 0,
+                "imported_today": 0,
+                "current_backlog": 0,
+                "prev_imported": 0,
+                "prev_processed": 0,
+                "prev_backlog": 0,
+                "series": {"imported": [], "processed": [], "backlog": []},
+            }
         )
 
     try:
@@ -732,11 +740,32 @@ def dashboard_kpi_stats():
             )
             current_backlog += total_backlog_count(pairs)
 
+        # 7 points including today, oldest first -- the sparkline window.
+        counts = _kpi_daily_counts(target_processes, 7)
+        cdays = sorted(counts)
+        backlog_hist = _backlog_history(target_processes, 7)
+        bdays = sorted(backlog_hist)
+        # Live number for today, snapshots for the past: the collector's most
+        # recent row is up to 30 min old, so today's own point uses the value
+        # actually shown above it.
+        backlog_series = [sum(backlog_hist[d].values()) for d in bdays]
+        if backlog_series:
+            backlog_series[-1] = current_backlog
+        prev_backlog = backlog_series[-2] if len(backlog_series) > 1 else 0
+
         return jsonify(
             {
                 "processed_today": processed_today,
                 "imported_today": imported_today,
                 "current_backlog": current_backlog,
+                "prev_imported": counts[cdays[-2]]["imported"] if len(cdays) > 1 else 0,
+                "prev_processed": counts[cdays[-2]]["processed"] if len(cdays) > 1 else 0,
+                "prev_backlog": prev_backlog,
+                "series": {
+                    "imported": [counts[d]["imported"] for d in cdays],
+                    "processed": [counts[d]["processed"] for d in cdays],
+                    "backlog": backlog_series,
+                },
             }
         )
 
@@ -833,12 +862,26 @@ def dashboard_avg_processing_time():
         return jsonify({"avg_minutes": None, "avg_display": "—"})
 
     try:
-        avg_sec = compute_avg_processing_time(target_processes)
-        if avg_sec is None:
-            return jsonify({"avg_minutes": None, "avg_display": "—"})
+        series_sec = _avg_processing_by_day(target_processes, 7)
+        today = datetime.now().date()
+        window = [today - timedelta(days=i) for i in range(6, -1, -1)]
+        avg_sec = series_sec.get(today)
+        prev_sec = series_sec.get(today - timedelta(days=1))
 
-        avg_minutes, display = format_avg_processing_display(avg_sec)
-        return jsonify({"avg_minutes": avg_minutes, "avg_display": display})
+        avg_minutes, avg_display = (
+            format_avg_processing_display(avg_sec) if avg_sec is not None else (None, "—")
+        )
+        return jsonify(
+            {
+                "avg_minutes": avg_minutes,
+                "avg_display": avg_display,
+                "prev_avg_minutes": round(prev_sec / 60, 1) if prev_sec is not None else None,
+                # minutes, None where no documents finished that day
+                "series": [
+                    round(series_sec[d] / 60, 1) if d in series_sec else None for d in window
+                ],
+            }
+        )
 
     except Exception as e:
         current_app.logger.error(f"Failed to fetch avg_processing_time: {e}")
