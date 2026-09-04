@@ -60,9 +60,11 @@
 
 ## Owner actions
 
-- **⚠ The collector is not running on INT.** Measured 2026-09-04: `dbo.BacklogHistory` on the INT Statistics DB holds **6 rows, all from a single timestamp on 2026-08-04** — one smoke-test run (`--dry-run`/`--once` by hand) and nothing since. `ops/backlog_history/backlog_history.py` was never put on INT's Task Scheduler. **The backlog trend therefore has nothing to render against on INT**, and a developer verifying Task 4 cannot tell a broken query from an empty table. Pick one before Phase 3 (Task 4 Step 3a below covers the seeding option):
-  1. **Schedule the collector on INT** (`docs`/README in `ops/backlog_history/`, every 30 min) and wait a day — the honest fix, and PROD presumably needs the same check.
-  2. **Seed synthetic snapshots on INT** for dev verification only — Task 4 Step 3a.
+- **⚠ The collector is not running on INT** (unblocked for dev, still open for real). Measured 2026-09-04: `dbo.BacklogHistory` on the INT Statistics DB held **6 rows, all from a single timestamp on 2026-08-04** — one manual smoke run, nothing since; `ops/backlog_history/backlog_history.py` was never put on INT's Task Scheduler. **Dev is now unblocked**: 14 days × 6 processes of synthetic snapshots were seeded on 2026-09-04 via `/nx-seed-intdb` (`scripts/seed-int-db.py`), random-walked backwards from the last real values, so Task 4 can be verified. Two caveats a developer will notice and must not chase as bugs:
+  - The seeded magnitudes extrapolate from a **month-old** real snapshot, so they are the right shape but not today's truth.
+  - Seeded totals (~1046) will not match the dashboard's live **Current backlog** KPI (58 for `ben.streich` at time of writing) — the KPI is live from Octo and scoped to the session's grants, the trend is unscoped historical snapshots. Expected, and the same divergence D8 already documents.
+
+  Still owed: **schedule the collector on INT** (every 30 min, per the README in `ops/backlog_history/`) so this stops needing synthetic data.
 - Before the PROD deploy, run the same check against PROD (`SELECT COUNT(*), MIN(SnapshotAt), MAX(SnapshotAt) FROM dbo.BacklogHistory`). If PROD's collector has also been down, the new section ships as an empty chart labelled "14-day trend" — decide whether to hold the section behind the data or ship it and let it fill in.
 - **The Recent Validations panel that D6 deletes is currently the only populated panel on the page** (three live `03_Invoice_New` workitems with extracted fields, screenshot `var/screenshots/dashboard_baseline_before_redesign.png`). Its removal is a deliberate design decision, not a dead-code cleanup — confirm you still want it gone before Task 12 runs.
 - `scripts/env-sync.py` as usual before deploying (no new keys expected).
@@ -672,37 +674,23 @@ def dashboard_backlog_trend():
     )
 ```
 
-- [ ] **Step 3a: Seed INT so the chart has something to draw** (only if the owner picked option 2 — see Owner actions; skip if the collector was scheduled instead). Fourteen days of plausible snapshots for the six INT processes, idempotent, dev-only — **never run this against PROD**:
+- [ ] **Step 3a: Make sure INT has backlog history to draw.** Already done on 2026-09-04 — 14 days × 6 processes were seeded, so this step is a re-check, not fresh work. If the window has since gone stale (or you need 30/90 days for the wider ranges), re-seed with the `/nx-seed-intdb` command:
+
+```bash
+ENVIRONMENT=INT .venv/Scripts/python.exe scripts/seed-int-db.py --days 14          # dry run
+ENVIRONMENT=INT .venv/Scripts/python.exe scripts/seed-int-db.py --days 14 --seed 42 --yes
+```
+
+It refuses to run outside `ENVIRONMENT=INT` and against any server whose name contains `prd`/`prod`, and it is idempotent (deletes its own window first). Verify:
 
 ```bash
 ENVIRONMENT=INT .venv/Scripts/python.exe -c "
-import random
-from datetime import datetime, timedelta
-from sqlalchemy import text
 from nx_lib.db import engine_statistics_db as e
-
-# (ClientName, ProcessName, SourceCode) exactly as Octo spells them -- the
-# display-cased client is the point; see _backlog_history's docstring.
-PROCS = [('Privera', '02_Posteingang', 'default', 450), ('Privera', '03_Invoice_New', 'default', 82),
-         ('Privera', '02_InitialScan', 'default', 1), ('Compass', '01_Invoice_SAP', 'default', 17),
-         ('ElektroMaterial', '02_Invoice', 'default', 18), ('sydoc', '05_PDBS', 'ms02', 478)]
-c = e.connect()
-c.execute(text(\"DELETE FROM dbo.BacklogHistory WHERE SnapshotAt >= DATEADD(day, -14, CAST(GETDATE() AS DATE))\"))
-rows = []
-for client, proc, src, base in PROCS:
-    n = base
-    for i in range(13, -1, -1):
-        n = max(0, int(n * random.uniform(0.92, 1.09)))
-        rows.append({'a': datetime.now().replace(hour=20, minute=0, second=0, microsecond=0) - timedelta(days=i),
-                     's': src, 'c': client, 'p': proc, 'n': n})
-c.execute(text('INSERT INTO dbo.BacklogHistory (SnapshotAt, SourceCode, ClientName, ProcessName, BacklogCount)'
-               ' VALUES (:a, :s, :c, :p, :n)'), rows)
-c.commit()
-print('seeded', len(rows), 'rows')
-"
+from sqlalchemy import text
+print(tuple(e.connect().execute(text('SELECT COUNT(*), MIN(SnapshotAt), MAX(SnapshotAt) FROM dbo.BacklogHistory')).one()))"
 ```
 
-Expected: `seeded 84 rows`. Then `curl -s "http://127.0.0.1:8000/api/dashboard/backlog_trend?range=14"` (with a logged-in session cookie) must return 14 labels and 4 named series plus `Other` — if `series` is empty or only holds `sydoc.05_PDBS`, the casefold match in `_backlog_history` regressed.
+Then, once the endpoint exists, `curl -s "http://127.0.0.1:8000/api/dashboard/backlog_trend?range=14"` (with a logged-in session cookie) must return 14 labels and **6** series (5 named + `Other`, since INT has 6 processes). **If `series` holds only `sydoc.05_PDBS`, the casefold match in `_backlog_history` regressed** — that is the exact failure mode, measured on INT: an exact match returns 1 series of 6 and still draws a plausible chart.
 
 - [ ] **Step 4: Add the endpoint to the inventory test** — in `tests/unit/test_create_app.py`, add `"dashboard_backlog_trend",` to the list that already contains `"api_recent_activity"` (Grep that literal), keeping the list's existing ordering convention.
 
@@ -1840,7 +1828,8 @@ git commit -m "docs(dashboard): changelog, What's New card and handoff status fo
 - **`processed_over_time` and the "Processed today" KPI count differently** and always have: the KPI (via `compute_today_stats`) counts export-today only among rows whose *import* date is also today, while the chart counts export dates independently. Task 1's `_kpi_daily_counts` deliberately copies the KPI's predicate so the sparkline agrees with the number above it — the main chart's line may sit higher. That is pre-existing behaviour, not a bug introduced here; do not "fix" one to match the other without an owner decision.
 - **`normalize_range` is the only sanitizer** for the value that reaches SQL through f-string interpolation. Never widen it to pass arbitrary integers through.
 - **The client-name casing between `BacklogHistory` and `ProcessSources` does not match** (`Privera` vs `privera`) — `_backlog_history` casefolds for exactly this reason. Measured on INT 2026-09-04. An exact-match "cleanup" would silently drop five of the six INT processes and leave a chart that still draws.
-- **INT's backlog history is one month stale** (6 rows, 2026-08-04) — the collector was never scheduled there. See Owner actions; Task 4 Step 3a seeds it for dev verification.
+- **INT's backlog history is synthetic**, seeded 2026-09-04 via `/nx-seed-intdb` because the collector was never scheduled there. Re-seed with `scripts/seed-int-db.py --days 30 --yes` before verifying the 30/90-day ranges — a 14-day seed makes the wider windows look (correctly) half-empty.
+- **`BacklogHistory.SnapshotAt` comes back as `str`, not `datetime`** — the legacy `DRIVER={SQL Server}` pyodbc driver again (measured: `'2026-08-22 20:00:00'`). `_backlog_history`'s `datetime.fromisoformat` normalization is load-bearing; without it the day-bucketing raises `AttributeError: 'str' object has no attribute 'date'`.
 - **`_backlog_history` filters in Python on purpose.** Do not "optimize" it into an interpolated `IN (…)` pair list — that is exactly the shape `_pair_predicate`'s docstring in `nx_lib/workitem_sources.py` warns about (two independent IN-lists authorize the full cross product instead of only the granted pairs).
 - **A dead Statistics DB must render an empty chart, never a 500.** `_default_stat_rows` already swallows and logs; the endpoints return their `empty` payload. Do not add a `strict=True` here.
 - **`html.nx-compact`** (density = compact) shrinks `--ctl-h`; check the filter row at compact density before calling the layout done.
