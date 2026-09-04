@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-03 15:45+0200\n"
+"POT-Creation-Date: 2026-09-04 20:10+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -653,7 +653,7 @@ msgstr "Ein unerwarteter Fehler ist aufgetreten"
 msgid "Not authorized"
 msgstr "Nicht autorisiert"
 
-#: nx_lib/views/admin/logs.py:153 nx_lib/views/admin/organizations.py:237
+#: nx_lib/views/admin/logs.py:153 nx_lib/views/admin/organizations.py:213
 #: nx_lib/views/admin/permissions.py:612 nx_lib/views/admin/system.py:148
 #: nx_lib/views/admin/system.py:189 nx_lib/views/admin/system.py:232
 #: nx_lib/views/admin/system.py:252 nx_lib/views/admin/users.py:402
@@ -1133,46 +1133,46 @@ msgstr "Diese Anfrage ist ungültig."
 msgid "Could not load values"
 msgstr "Werte konnten nicht geladen werden"
 
-#: nx_lib/views/tenant.py:240
+#: nx_lib/views/tenant.py:252
 #, python-format
 msgid "Missing value for %(field)s."
 msgstr "Fehlender Wert für %(field)s."
 
-#: nx_lib/views/tenant.py:247
+#: nx_lib/views/tenant.py:259
 #, python-format
 msgid "%(field)s must be a valid date (YYYY-MM-DD)."
 msgstr "%(field)s muss ein gültiges Datum sein (JJJJ-MM-TT)."
 
-#: nx_lib/views/tenant.py:254
+#: nx_lib/views/tenant.py:266
 #, python-format
 msgid "%(field)s must be numeric."
 msgstr "%(field)s muss numerisch sein."
 
-#: nx_lib/views/admin/clients.py:154 nx_lib/views/admin/organizations.py:150
+#: nx_lib/views/admin/clients.py:154 nx_lib/views/admin/organizations.py:127
 #: nx_lib/views/admin/processes.py:418 nx_lib/views/admin/processes.py:571
-#: nx_lib/views/admin/users.py:142 nx_lib/views/tenant.py:464
-#: nx_lib/views/tenant.py:528 nx_lib/views/tenant.py:573
-#: nx_lib/views/tenant.py:608 nx_lib/views/tenant.py:647
+#: nx_lib/views/admin/users.py:142 nx_lib/views/tenant.py:476
+#: nx_lib/views/tenant.py:540 nx_lib/views/tenant.py:585
+#: nx_lib/views/tenant.py:620 nx_lib/views/tenant.py:659
 msgid "An unexpected error occurred."
 msgstr "Ein unerwarteter Fehler ist aufgetreten."
 
-#: nx_lib/views/tenant.py:510 nx_lib/views/tenant.py:552
+#: nx_lib/views/tenant.py:522 nx_lib/views/tenant.py:564
 msgid "This entity has no writable fields."
 msgstr "Diese Entität hat keine beschreibbaren Felder."
 
-#: nx_lib/views/tenant.py:525
+#: nx_lib/views/tenant.py:537
 msgid "Record created successfully."
 msgstr "Datensatz erfolgreich erstellt."
 
-#: nx_lib/views/tenant.py:569 nx_lib/views/tenant.py:604
+#: nx_lib/views/tenant.py:581 nx_lib/views/tenant.py:616
 msgid "Record not found."
 msgstr "Datensatz nicht gefunden."
 
-#: nx_lib/views/tenant.py:570
+#: nx_lib/views/tenant.py:582
 msgid "Record updated successfully."
 msgstr "Datensatz erfolgreich aktualisiert."
 
-#: nx_lib/views/tenant.py:605
+#: nx_lib/views/tenant.py:617
 msgid "Record deleted successfully."
 msgstr "Datensatz erfolgreich gelöscht."
 
@@ -1377,16 +1377,16 @@ msgid "Client updated successfully."
 msgstr "Client erfolgreich aktualisiert."
 
 #: nx_lib/views/admin/clients.py:200 nx_lib/views/admin/clients.py:245
-#: nx_lib/views/admin/organizations.py:178
-#: nx_lib/views/admin/organizations.py:210
-#: nx_lib/views/admin/organizations.py:390 nx_lib/views/admin/processes.py:454
+#: nx_lib/views/admin/organizations.py:154
+#: nx_lib/views/admin/organizations.py:186
+#: nx_lib/views/admin/organizations.py:366 nx_lib/views/admin/processes.py:454
 #: nx_lib/views/admin/processes.py:517 nx_lib/views/admin/processes.py:613
-#: nx_lib/views/admin/processes.py:642 nx_lib/views/admin/tenant_manage.py:274
-#: nx_lib/views/admin/tenant_manage.py:318
-#: nx_lib/views/admin/tenant_manage.py:356
-#: nx_lib/views/admin/tenant_manage.py:403
-#: nx_lib/views/admin/tenant_manage.py:433
-#: nx_lib/views/admin/tenant_manage.py:458 nx_lib/views/admin/users.py:227
+#: nx_lib/views/admin/processes.py:642 nx_lib/views/admin/tenant_manage.py:250
+#: nx_lib/views/admin/tenant_manage.py:285
+#: nx_lib/views/admin/tenant_manage.py:323
+#: nx_lib/views/admin/tenant_manage.py:370
+#: nx_lib/views/admin/tenant_manage.py:400
+#: nx_lib/views/admin/tenant_manage.py:425 nx_lib/views/admin/users.py:227
 #: nx_lib/views/admin/users.py:476
 msgid "An error occurred."
 msgstr "Ein Fehler ist aufgetreten."
@@ -1401,49 +1401,49 @@ msgstr ""
 msgid "Client deleted successfully."
 msgstr "Client erfolgreich gelöscht."
 
-#: nx_lib/views/admin/organizations.py:126 nx_lib/views/admin/users.py:71
+#: nx_lib/views/admin/organizations.py:104 nx_lib/views/admin/users.py:71
 msgid "All fields are required."
 msgstr "Alle Felder sind erforderlich."
 
-#: nx_lib/views/admin/organizations.py:145
+#: nx_lib/views/admin/organizations.py:122
 msgid "Organization created successfully."
 msgstr "Organisation erfolgreich erstellt."
 
-#: nx_lib/views/admin/organizations.py:147
+#: nx_lib/views/admin/organizations.py:124
 msgid "Organization already exists."
 msgstr "Organisation existiert bereits."
 
-#: nx_lib/views/admin/organizations.py:175
+#: nx_lib/views/admin/organizations.py:151
 msgid "Organization updated successfully."
 msgstr "Organisation erfolgreich aktualisiert."
 
-#: nx_lib/views/admin/organizations.py:197
-#: nx_lib/views/admin/organizations.py:316
-#: nx_lib/views/admin/organizations.py:368
-#: nx_lib/views/admin/organizations.py:375
+#: nx_lib/views/admin/organizations.py:173
+#: nx_lib/views/admin/organizations.py:292
+#: nx_lib/views/admin/organizations.py:344
+#: nx_lib/views/admin/organizations.py:351
 msgid "Organization not found."
 msgstr "Organisation nicht gefunden."
 
-#: nx_lib/views/admin/organizations.py:207
+#: nx_lib/views/admin/organizations.py:183
 msgid "Organization deleted successfully."
 msgstr "Organisation erfolgreich gelöscht."
 
-#: nx_lib/views/admin/organizations.py:325
+#: nx_lib/views/admin/organizations.py:301
 msgid "Accent colour must be a hex value like #336699."
 msgstr "Die Akzentfarbe muss ein Hex-Wert wie #336699 sein."
 
-#: nx_lib/views/admin/organizations.py:339
-#: nx_lib/views/admin/organizations.py:355
+#: nx_lib/views/admin/organizations.py:315
+#: nx_lib/views/admin/organizations.py:331
 msgid "Logo must be an SVG, PNG or JPEG image."
 msgstr "Das Logo muss eine SVG-, PNG- oder JPEG-Grafik sein."
 
-#: nx_lib/views/admin/organizations.py:349
-#: templates/js/admin/_organizations_js.html:279
+#: nx_lib/views/admin/organizations.py:325
+#: templates/js/admin/_organizations_js.html:276
 msgid "Logo is too large (max 512 KB)."
 msgstr "Das Logo ist zu gross (max. 512 KB)."
 
-#: nx_lib/views/admin/organizations.py:403
-#: templates/js/admin/_organizations_js.html:316
+#: nx_lib/views/admin/organizations.py:379
+#: templates/js/admin/_organizations_js.html:313
 msgid "Branding saved."
 msgstr "Branding gespeichert."
 
@@ -1647,106 +1647,98 @@ msgstr ""
 msgid "Display name is required (max. 100 characters)."
 msgstr "Anzeigename ist erforderlich (max. 100 Zeichen)."
 
-#: nx_lib/views/admin/tenant_manage.py:76
-msgid "A data connection is required."
-msgstr "Eine Datenverbindung ist erforderlich."
-
-#: nx_lib/views/admin/tenant_manage.py:81
+#: nx_lib/views/admin/tenant_manage.py:79
 msgid "Organizations must be a list of organization codes."
 msgstr "Organisationen müssen eine Liste von Organisationscodes sein."
 
-#: nx_lib/views/admin/tenant_manage.py:91
+#: nx_lib/views/admin/tenant_manage.py:89
 msgid "Page key must be 1-100 lowercase letters, digits, '.', '_' or '-'."
 msgstr ""
 "Der Seitenschlüssel muss aus 1-100 Kleinbuchstaben, Ziffern, '.', '_' "
 "oder '-' bestehen."
 
-#: nx_lib/views/admin/tenant_manage.py:94
-#: nx_lib/views/admin/tenant_manage.py:377
+#: nx_lib/views/admin/tenant_manage.py:92
+#: nx_lib/views/admin/tenant_manage.py:344
 msgid "Endpoint is not a mountable page."
 msgstr "Der Endpunkt ist keine einhängbare Seite."
 
-#: nx_lib/views/admin/tenant_manage.py:97
+#: nx_lib/views/admin/tenant_manage.py:95
 msgid "Label is required (max. 100 characters)."
 msgstr "Bezeichnung ist erforderlich (max. 100 Zeichen)."
 
-#: nx_lib/views/admin/tenant_manage.py:100
+#: nx_lib/views/admin/tenant_manage.py:98
 msgid "Icon must be a Font Awesome class like fa-chart-line."
 msgstr "Das Icon muss eine Font-Awesome-Klasse wie fa-chart-line sein."
 
-#: nx_lib/views/admin/tenant_manage.py:103
+#: nx_lib/views/admin/tenant_manage.py:101
 msgid "Active marker may only contain letters, digits, '_' or '-'."
 msgstr "Die Aktiv-Markierung darf nur Buchstaben, Ziffern, '_' oder '-' enthalten."
 
-#: nx_lib/views/admin/tenant_manage.py:107
+#: nx_lib/views/admin/tenant_manage.py:105
 msgid "Sort order must be a number."
 msgstr "Die Sortierung muss eine Zahl sein."
 
-#: nx_lib/views/admin/tenant_manage.py:240
-#: nx_lib/views/admin/tenant_manage.py:295
-msgid "Unknown data connection."
-msgstr "Unbekannte Datenverbindung."
-
-#: nx_lib/views/admin/tenant_manage.py:243
+#: nx_lib/views/admin/tenant_manage.py:226
 msgid "Tenant already exists."
 msgstr "Tenant existiert bereits."
 
-#: nx_lib/views/admin/tenant_manage.py:258
-#: nx_lib/views/admin/tenant_manage.py:312
+#: nx_lib/views/admin/tenant_manage.py:229
+#: nx_lib/views/admin/tenant_manage.py:272
 #, python-format
 msgid "%(n)d organization code(s) do not exist."
 msgstr "%(n)d Organisationscode(s) existieren nicht."
 
-#: nx_lib/views/admin/tenant_manage.py:266
+#: nx_lib/views/admin/tenant_manage.py:242
 #, python-format
 msgid ""
-"Tenant created. Grant tenant.%(code)s.view under Access Control to make "
-"its pages visible."
+"Tenant created. Users of its organizations see it right away; grant "
+"tenant.%(code)s.view under Access Control to let other staff in."
 msgstr ""
-"Tenant angelegt. tenant.%(code)s.view unter Zugriffskontrolle vergeben, "
-"damit seine Seiten sichtbar werden."
+"Tenant angelegt. Benutzer seiner Organisationen sehen ihn sofort; "
+"tenant.%(code)s.view unter Zugriffskontrolle vergeben, um weitere "
+"Mitarbeitende hineinzulassen."
 
-#: nx_lib/views/admin/tenant_manage.py:308
+#: nx_lib/views/admin/tenant_manage.py:278
+#: nx_lib/views/admin/tenant_manage.py:319
 #: nx_lib/views/admin/tenant_manage.py:352
-#: nx_lib/views/admin/tenant_manage.py:385
 msgid "Tenant not found."
 msgstr "Tenant nicht gefunden."
 
-#: nx_lib/views/admin/tenant_manage.py:315
+#: nx_lib/views/admin/tenant_manage.py:282
 msgid "Tenant updated."
 msgstr "Tenant aktualisiert."
 
-#: nx_lib/views/admin/tenant_manage.py:341
+#: nx_lib/views/admin/tenant_manage.py:308
 #, python-format
 msgid "%(n)d organization(s) still belong to this tenant. Move them first."
 msgstr "%(n)d Organisation(en) gehören noch zu diesem Tenant. Zuerst verschieben."
 
-#: nx_lib/views/admin/tenant_manage.py:353
+#: nx_lib/views/admin/tenant_manage.py:320
 msgid "Tenant deleted."
 msgstr "Tenant gelöscht."
 
-#: nx_lib/views/admin/tenant_manage.py:398
+#: nx_lib/views/admin/tenant_manage.py:365
 msgid "Page added."
 msgstr "Seite hinzugefügt."
 
-#: nx_lib/views/admin/tenant_manage.py:401
+#: nx_lib/views/admin/tenant_manage.py:368
 msgid "A page with this key already exists."
 msgstr "Eine Seite mit diesem Schlüssel existiert bereits."
 
-#: nx_lib/views/admin/tenant_manage.py:416
+#: nx_lib/views/admin/tenant_manage.py:383
 msgid "Status must be 'active' or 'draft'."
 msgstr "Status muss 'active' oder 'draft' sein."
 
-#: nx_lib/views/admin/tenant_manage.py:429
-#: nx_lib/views/admin/tenant_manage.py:454
+#: nx_lib/views/admin/tenant_manage.py:396
+#: nx_lib/views/admin/tenant_manage.py:421
 msgid "Page not found."
 msgstr "Seite nicht gefunden."
 
-#: nx_lib/views/admin/tenant_manage.py:430
+#: nx_lib/views/admin/tenant_manage.py:397
 msgid "Page updated."
 msgstr "Seite aktualisiert."
 
-#: nx_lib/views/admin/tenant_manage.py:455
+#: nx_lib/views/admin/tenant_manage.py:422
 msgid "Page removed."
 msgstr "Seite entfernt."
 
@@ -1845,7 +1837,7 @@ msgid "Logs"
 msgstr "Protokolle"
 
 #: templates/_header.html:240 templates/admin/logs.html:66
-#: templates/admin/logs.html:99 templates/admin/tenants_manage.html:80
+#: templates/admin/logs.html:99 templates/admin/tenants_manage.html:78
 #: templates/admin/user_detail.html:228 templates/api_docs.html:189
 #: templates/appearance.html:360 templates/generali_importstatus.html:50
 #: templates/generali_importstatus.html:106
@@ -1858,7 +1850,7 @@ msgstr "Status"
 msgid "Maintenance"
 msgstr "Wartung"
 
-#: templates/_header.html:261 templates/admin/tenants.html:150
+#: templates/_header.html:261 templates/admin/tenants.html:149
 msgid "Tenants"
 msgstr "Tenants"
 
@@ -1867,7 +1859,7 @@ msgid "Manage"
 msgstr "Verwalten"
 
 #: templates/_header.html:280 templates/admin/admin_overview.html:95
-#: templates/admin/organizations.html:19 templates/admin/tenants_manage.html:39
+#: templates/admin/organizations.html:19 templates/admin/tenants_manage.html:38
 #: templates/js/_header_js.html:19
 msgid "Organizations"
 msgstr "Organisationen"
@@ -2956,7 +2948,7 @@ msgstr "Antwortfelder"
 msgid "Field"
 msgstr "Feld"
 
-#: templates/admin/tenants_manage.html:76 templates/api_docs.html:230
+#: templates/admin/tenants_manage.html:74 templates/api_docs.html:230
 #: templates/api_docs.html:262 templates/api_docs.html:271
 #: templates/api_docs.html:303 templates/api_docs.html:446
 #: templates/generali_documents.html:228
@@ -3804,7 +3796,7 @@ msgstr "Kommunikation"
 msgid "Select all"
 msgstr "Alle auswählen"
 
-#: templates/admin/organizations.html:84 templates/generali-dashboard.html:158
+#: templates/admin/organizations.html:80 templates/generali-dashboard.html:158
 msgid "Clear"
 msgstr "Zurücksetzen"
 
@@ -3988,10 +3980,10 @@ msgstr "Erfasst am"
 
 #: templates/admin/access_control.html:97
 #: templates/admin/access_control.html:129 templates/admin/clients.html:57
-#: templates/admin/maintenance.html:39 templates/admin/organizations.html:35
+#: templates/admin/maintenance.html:39 templates/admin/organizations.html:34
 #: templates/admin/processes.html:78 templates/admin/sessions.html:33
-#: templates/admin/tenants_manage.html:42
-#: templates/admin/tenants_manage.html:81
+#: templates/admin/tenants_manage.html:41
+#: templates/admin/tenants_manage.html:79
 #: templates/generali_additionalservices.html:167
 #: templates/generali_baseservices.html:141 templates/generali_pdqm.html:165
 #: templates/generali_projectmanagement.html:129
@@ -4069,13 +4061,13 @@ msgstr "Aufwand (Stunden)"
 #: templates/admin/clients.html:176 templates/admin/maintenance.html:113
 #: templates/admin/maintenance.html:129
 #: templates/admin/modals/_organizations_modals.html:13
-#: templates/admin/modals/_organizations_modals.html:60
+#: templates/admin/modals/_organizations_modals.html:51
 #: templates/admin/modals/_user_modals.html:13
 #: templates/admin/modals/_user_modals.html:80
-#: templates/admin/organizations.html:102 templates/admin/processes.html:123
+#: templates/admin/organizations.html:98 templates/admin/processes.html:123
 #: templates/admin/processes.html:207 templates/admin/processes.html:243
-#: templates/admin/tenants_manage.html:135
-#: templates/admin/tenants_manage.html:184 templates/admin/user_detail.html:78
+#: templates/admin/tenants_manage.html:133
+#: templates/admin/tenants_manage.html:174 templates/admin/user_detail.html:78
 #: templates/admin/user_detail.html:282
 #: templates/generali_additionalservices.html:261
 #: templates/generali_additionalservices.html:320
@@ -4125,9 +4117,9 @@ msgid "This action cannot be undone."
 msgstr "Diese Aktion kann nicht rückgängig gemacht werden."
 
 #: templates/admin/access_control.html:249 templates/admin/clients.html:81
-#: templates/admin/maintenance.html:130 templates/admin/organizations.html:57
+#: templates/admin/maintenance.html:130 templates/admin/organizations.html:53
 #: templates/admin/processes.html:66 templates/admin/processes.html:89
-#: templates/admin/tenants_manage.html:58 templates/admin/user_detail.html:285
+#: templates/admin/tenants_manage.html:56 templates/admin/user_detail.html:285
 #: templates/generali_additionalservices.html:349
 #: templates/generali_baseservices.html:298 templates/generali_pdqm.html:373
 #: templates/generali_projectmanagement.html:284
@@ -4272,10 +4264,10 @@ msgstr "CSV-Importe in die Dokumentdatenbank"
 #: templates/js/_generali_import_status_js.html:15
 #: templates/js/admin/_clients_js.html:109
 #: templates/js/admin/_clients_js.html:163
-#: templates/js/admin/_organizations_js.html:104
-#: templates/js/admin/_organizations_js.html:158
+#: templates/js/admin/_organizations_js.html:101
+#: templates/js/admin/_organizations_js.html:155
 #: templates/js/admin/_processes_js.html:152
-#: templates/js/admin/_tenants_manage_js.html:78
+#: templates/js/admin/_tenants_manage_js.html:76
 #: templates/js/admin/_user_management_js.html:120
 #: templates/js/admin/_user_management_js.html:170
 msgid "Success"
@@ -4820,13 +4812,13 @@ msgstr "Eingegangen"
 msgid "Any"
 msgstr "Beliebig"
 
-#: templates/admin/clients.html:65 templates/admin/tenants_manage.html:53
+#: templates/admin/clients.html:65 templates/admin/tenants_manage.html:51
 #: templates/js/admin/_access_control_js.html:721
 #: templates/prepared_documents.html:94 templates/prepared_documents.html:109
 msgid "Yes"
 msgstr "Ja"
 
-#: templates/admin/clients.html:65 templates/admin/tenants_manage.html:53
+#: templates/admin/clients.html:65 templates/admin/tenants_manage.html:51
 #: templates/prepared_documents.html:95 templates/prepared_documents.html:110
 msgid "No"
 msgstr "Nein"
@@ -4839,9 +4831,8 @@ msgstr "Vorbereitet"
 msgid "Group by"
 msgstr "Gruppieren nach"
 
-#: templates/admin/access_control.html:346
-#: templates/admin/modals/_organizations_modals.html:50
-#: templates/admin/user_detail.html:156 templates/prepared_documents.html:123
+#: templates/admin/access_control.html:346 templates/admin/user_detail.html:156
+#: templates/prepared_documents.html:123
 msgid "None"
 msgstr "Keine"
 
@@ -4867,7 +4858,7 @@ msgstr "Anwenden"
 msgid "Octo status"
 msgstr "Octo-Status"
 
-#: templates/admin/organizations.html:93 templates/prepared_documents.html:204
+#: templates/admin/organizations.html:89 templates/prepared_documents.html:204
 msgid "Preview"
 msgstr "Vorschau"
 
@@ -5224,7 +5215,7 @@ msgstr "Ausführen"
 msgid "Save as"
 msgstr "Speichern unter"
 
-#: templates/admin/tenants_manage.html:78 templates/reporting.html:417
+#: templates/admin/tenants_manage.html:76 templates/reporting.html:417
 msgid "Target"
 msgstr "Ziel"
 
@@ -5279,7 +5270,7 @@ msgstr "Filter"
 msgid "Add filter"
 msgstr "Filter hinzufügen"
 
-#: templates/admin/tenants_manage.html:79 templates/reporting.html:474
+#: templates/admin/tenants_manage.html:77 templates/reporting.html:474
 msgid "Sort"
 msgstr "Sortierung"
 
@@ -5339,7 +5330,7 @@ msgstr "Personen nach Name oder E-Mail suchen…"
 msgid "Can edit"
 msgstr "Kann bearbeiten"
 
-#: templates/admin/tenants_manage.html:118 templates/reporting.html:518
+#: templates/admin/tenants_manage.html:116 templates/reporting.html:518
 #: templates/tenant/page.html:43
 msgid "Add"
 msgstr "Hinzufügen"
@@ -5551,8 +5542,8 @@ msgstr "Registrierte Metriken"
 msgid "Code"
 msgstr "Code"
 
-#: templates/admin/tenants_manage.html:77
-#: templates/admin/tenants_manage.html:113 templates/reporting_metrics.html:41
+#: templates/admin/tenants_manage.html:75
+#: templates/admin/tenants_manage.html:111 templates/reporting_metrics.html:41
 #: templates/reporting_metrics.html:54 templates/reporting_sources.html:41
 #: templates/reporting_sources.html:52 templates/reporting_sources.html:66
 msgid "Label"
@@ -5987,7 +5978,7 @@ msgstr "Zugriffskontrolle - nexora"
 msgid "Users, permissions and access profiles"
 msgstr "Benutzer, Berechtigungen und Zugriffsprofile"
 
-#: templates/admin/access_control.html:29 templates/admin/tenants.html:129
+#: templates/admin/access_control.html:29 templates/admin/tenants.html:128
 msgid "Users"
 msgstr "Benutzer"
 
@@ -6069,8 +6060,8 @@ msgid "Add Profile"
 msgstr "Profil hinzufügen"
 
 #: templates/admin/access_control.html:158 templates/admin/clients.html:80
-#: templates/admin/organizations.html:53 templates/admin/processes.html:64
-#: templates/admin/processes.html:88 templates/admin/tenants_manage.html:56
+#: templates/admin/organizations.html:49 templates/admin/processes.html:64
+#: templates/admin/processes.html:88 templates/admin/tenants_manage.html:54
 #: templates/js/_reporting_dashboard_js.html:7
 #: templates/js/_reporting_metrics_js.html:48
 #: templates/js/_reporting_sources_js.html:36
@@ -6325,26 +6316,26 @@ msgid "Display name"
 msgstr "Anzeigename"
 
 #: templates/admin/clients.html:53 templates/admin/clients.html:123
-#: templates/admin/tenants.html:65
+#: templates/admin/tenants.html:67
 msgid "Dialect"
 msgstr "Dialekt"
 
-#: templates/admin/clients.html:54 templates/admin/tenants.html:66
+#: templates/admin/clients.html:54 templates/admin/tenants.html:68
 msgid "Runtime engine"
 msgstr "Runtime-Engine"
 
 #: templates/admin/clients.html:55 templates/admin/clients.html:172
 #: templates/admin/maintenance.html:38 templates/admin/maintenance.html:95
-#: templates/admin/tenants.html:175 templates/admin/tenants_manage.html:41
-#: templates/admin/tenants_manage.html:166
+#: templates/admin/tenants.html:174 templates/admin/tenants_manage.html:40
+#: templates/admin/tenants_manage.html:157
 msgid "Active"
 msgstr "Aktiv"
 
-#: templates/admin/clients.html:56 templates/admin/tenants.html:67
+#: templates/admin/clients.html:56 templates/admin/tenants.html:69
 msgid "Runtime state"
 msgstr "Laufzeitstatus"
 
-#: templates/admin/clients.html:71 templates/admin/tenants.html:70
+#: templates/admin/clients.html:71 templates/admin/tenants.html:72
 msgid "Loaded"
 msgstr "Geladen"
 
@@ -6362,7 +6353,7 @@ msgstr ""
 " beim Start nicht geladen werden. Es wird nichts dorthin geleitet, bis "
 "das behoben und der App-Pool neu gestartet ist."
 
-#: templates/admin/clients.html:74 templates/admin/tenants.html:72
+#: templates/admin/clients.html:74 templates/admin/tenants.html:74
 msgid "Configured, not loaded"
 msgstr "Konfiguriert, nicht geladen"
 
@@ -6373,7 +6364,7 @@ msgstr "Client löschen"
 #: templates/admin/clients.html:102
 #: templates/admin/modals/_organizations_modals.html:16
 #: templates/admin/modals/_user_modals.html:16
-#: templates/admin/processes.html:124 templates/admin/tenants_manage.html:136
+#: templates/admin/processes.html:124 templates/admin/tenants_manage.html:134
 msgid "Confirm"
 msgstr "Bestätigen"
 
@@ -6385,7 +6376,7 @@ msgstr "Neuen Client hinzufügen"
 msgid "Client Code"
 msgstr "Client-Code"
 
-#: templates/admin/clients.html:119 templates/admin/tenants_manage.html:154
+#: templates/admin/clients.html:119 templates/admin/tenants_manage.html:152
 msgid "Display Name"
 msgstr "Anzeigename"
 
@@ -6592,8 +6583,8 @@ msgid "Organizations - nexora"
 msgstr "Organisationen - nexora"
 
 #: templates/admin/organizations.html:20
-msgid "Organizations, their codes, tenant and data connection"
-msgstr "Organisationen, ihre Codes, Tenant und Datenverbindung"
+msgid "Organizations, their codes and tenant"
+msgstr "Organisationen, ihre Codes und Tenant"
 
 #: templates/admin/organizations.html:22 templates/js/_header_js.html:27
 msgid "Add organization"
@@ -6608,18 +6599,11 @@ msgstr "Organisationen suchen..."
 msgid "Tenant"
 msgstr "Tenant"
 
-#: templates/admin/modals/_organizations_modals.html:48
-#: templates/admin/organizations.html:34 templates/admin/tenants.html:137
-#: templates/admin/tenants_manage.html:38
-#: templates/admin/tenants_manage.html:160
-msgid "Data connection"
-msgstr "Datenverbindung"
-
-#: templates/admin/organizations.html:55 templates/admin/organizations.html:69
+#: templates/admin/organizations.html:51 templates/admin/organizations.html:65
 msgid "Branding"
 msgstr "Branding"
 
-#: templates/admin/organizations.html:70
+#: templates/admin/organizations.html:66
 msgid ""
 "Applies to this customer organization and everyone in it. Leave a field "
 "empty to fall back to nexora branding."
@@ -6627,27 +6611,27 @@ msgstr ""
 "Gilt für diese Kundenorganisation und alle ihre Mitglieder. Lassen Sie "
 "ein Feld leer, um auf das nexora-Branding zurückzufallen."
 
-#: templates/admin/organizations.html:76
+#: templates/admin/organizations.html:72
 msgid "Brand name"
 msgstr "Markenname"
 
-#: templates/admin/organizations.html:80
+#: templates/admin/organizations.html:76
 msgid "Accent colour"
 msgstr "Akzentfarbe"
 
-#: templates/admin/organizations.html:88
+#: templates/admin/organizations.html:84
 msgid "Logo"
 msgstr "Logo"
 
-#: templates/admin/organizations.html:90
+#: templates/admin/organizations.html:86
 msgid "SVG, PNG or JPEG, up to 512 KB."
 msgstr "SVG, PNG oder JPEG, bis zu 512 KB."
 
-#: templates/admin/organizations.html:96
+#: templates/admin/organizations.html:92
 msgid "Logo preview"
 msgstr "Logo-Vorschau"
 
-#: templates/admin/organizations.html:103
+#: templates/admin/organizations.html:99
 msgid "Save branding"
 msgstr "Branding speichern"
 
@@ -7093,47 +7077,51 @@ msgstr "Verwendete globale Profile:"
 msgid "Requires admin.view.clients"
 msgstr "Erfordert admin.view.clients"
 
-#: templates/admin/tenants.html:77
+#: templates/admin/tenants.html:60
 #, python-format
 msgid "Client %(code)s is missing"
 msgstr "Client %(code)s fehlt"
 
-#: templates/admin/tenants.html:79
-msgid "No data connection"
-msgstr "Keine Datenverbindung"
-
-#: templates/admin/tenants.html:92
+#: templates/admin/tenants.html:90
 #, python-format
 msgid "%(num)d field"
 msgid_plural "%(num)d fields"
 msgstr[0] "%(num)d Feld"
 msgstr[1] "%(num)d Felder"
 
-#: templates/admin/tenants.html:103
+#: templates/admin/tenants.html:101
 msgid "Requires admin.view.processes"
 msgstr "Erfordert admin.view.processes"
 
-#: templates/admin/tenants.html:105
+#: templates/admin/tenants.html:103
 msgid "Mapping configuration unavailable"
 msgstr "Mapping-Konfiguration nicht verfügbar"
 
-#: templates/admin/tenants.html:108
+#: templates/admin/tenants.html:106
 msgid "No process configuration assigned"
 msgstr "Keine Prozesskonfiguration zugewiesen"
 
-#: templates/admin/tenants.html:109
+#: templates/admin/tenants.html:107
 msgid "Open Process Configurations"
 msgstr "Prozesskonfigurationen öffnen"
 
-#: templates/admin/tenants.html:133
+#: templates/admin/tenants.html:132
 msgid "Access profiles"
 msgstr "Zugriffsprofile"
 
-#: templates/admin/tenants.html:141
+#: templates/admin/tenants.html:136
+msgid "Data connection"
+msgstr "Datenverbindung"
+
+#: templates/admin/tenants.html:137
+msgid "No data connection"
+msgstr "Keine Datenverbindung"
+
+#: templates/admin/tenants.html:140
 msgid "Process configurations"
 msgstr "Prozesskonfigurationen"
 
-#: templates/admin/tenants.html:151
+#: templates/admin/tenants.html:150
 msgid ""
 "Each tenant with its organizations, and per organization its users, "
 "access profiles, data connection and process configurations"
@@ -7141,11 +7129,11 @@ msgstr ""
 "Jeder Tenant mit seinen Organisationen und pro Organisation deren "
 "Benutzer, Zugriffsprofile, Datenverbindung und Prozesskonfigurationen"
 
-#: templates/admin/tenants.html:158
+#: templates/admin/tenants.html:157
 msgid "Tenant registry unavailable"
 msgstr "Tenant-Registry nicht verfügbar"
 
-#: templates/admin/tenants.html:159
+#: templates/admin/tenants.html:158
 msgid ""
 "dbo.Tenants could not be read, so no tenant is shown below -- only the "
 "organizations and connections that exist regardless. Check app.log."
@@ -7154,26 +7142,26 @@ msgstr ""
 "angezeigt -- nur die Organisationen und Verbindungen, die unabhängig "
 "davon existieren. Siehe app.log."
 
-#: templates/admin/tenants.html:163
+#: templates/admin/tenants.html:162
 msgid "Search tenant, organization, user, profile, connection or process..."
 msgstr "Tenant, Organisation, Benutzer, Profil, Verbindung oder Prozess suchen..."
 
-#: templates/admin/tenants.html:175
+#: templates/admin/tenants.html:174
 msgid "Inactive"
 msgstr "Inaktiv"
 
-#: templates/admin/tenants.html:176
+#: templates/admin/tenants.html:175
 #, python-format
 msgid "%(num)d organization"
 msgid_plural "%(num)d organizations"
 msgstr[0] "%(num)d Organisation"
 msgstr[1] "%(num)d Organisationen"
 
-#: templates/admin/tenants.html:177
+#: templates/admin/tenants.html:176
 msgid "Permission that grants access to this tenant's pages"
 msgstr "Berechtigung, die Zugriff auf die Seiten dieses Tenants gewährt"
 
-#: templates/admin/tenants.html:184
+#: templates/admin/tenants.html:183
 msgid ""
 "No organization belongs to this tenant yet -- assign one on the "
 "Organizations page."
@@ -7181,16 +7169,16 @@ msgstr ""
 "Noch keine Organisation gehört zu diesem Tenant -- auf der Seite "
 "Organisationen zuweisen."
 
-#: templates/admin/tenants.html:188 templates/admin/tenants_manage.html:40
-#: templates/admin/tenants_manage.html:57
+#: templates/admin/tenants.html:187 templates/admin/tenants_manage.html:39
+#: templates/admin/tenants_manage.html:55
 msgid "Pages"
 msgstr "Seiten"
 
-#: templates/admin/tenants.html:196
+#: templates/admin/tenants.html:195
 msgid "No pages"
 msgstr "Keine Seiten"
 
-#: templates/admin/tenants.html:204
+#: templates/admin/tenants.html:203
 msgid ""
 "No tenants yet. A tenant groups organizations; today tenants are created "
 "by migration."
@@ -7198,27 +7186,27 @@ msgstr ""
 "Noch keine Tenants. Ein Tenant gruppiert Organisationen; heute werden "
 "Tenants per Migration angelegt."
 
-#: templates/admin/tenants.html:210
+#: templates/admin/tenants.html:209
 msgid "Organizations not in a tenant"
 msgstr "Organisationen ohne Tenant"
 
-#: templates/admin/tenants.html:219
+#: templates/admin/tenants.html:218
 msgid "Shared across organizations"
 msgstr "Organisationsübergreifend"
 
-#: templates/admin/tenants.html:223
+#: templates/admin/tenants.html:222
 msgid "Data connections no organization rides"
 msgstr "Datenverbindungen, die keine Organisation nutzt"
 
-#: templates/admin/tenants.html:228
+#: templates/admin/tenants.html:227
 msgid "Process configurations not assigned to an organization"
 msgstr "Keiner Organisation zugewiesene Prozesskonfigurationen"
 
-#: templates/admin/tenants.html:237
+#: templates/admin/tenants.html:236
 msgid "Global access profiles"
 msgstr "Globale Zugriffsprofile"
 
-#: templates/admin/tenants.html:238
+#: templates/admin/tenants.html:237
 msgid "Not bound to an organization -- assignable to any user."
 msgstr "Nicht an eine Organisation gebunden -- jedem Benutzer zuweisbar."
 
@@ -7256,84 +7244,84 @@ msgstr ""
 msgid "Search tenants..."
 msgstr "Tenants durchsuchen..."
 
-#: templates/admin/tenants_manage.html:63
+#: templates/admin/tenants_manage.html:61
 msgid "No tenants yet."
 msgstr "Noch keine Tenants."
 
-#: templates/admin/tenants_manage.html:72
+#: templates/admin/tenants_manage.html:70
 msgid "Pages of"
 msgstr "Seiten von"
 
-#: templates/admin/tenants_manage.html:75
+#: templates/admin/tenants_manage.html:73
 msgid "Key"
 msgstr "Schlüssel"
 
-#: templates/admin/tenants_manage.html:88
+#: templates/admin/tenants_manage.html:86
 msgid "entity"
 msgstr "Entität"
 
-#: templates/admin/tenants_manage.html:93
+#: templates/admin/tenants_manage.html:91
 msgid "Set draft"
 msgstr "Auf Entwurf setzen"
 
-#: templates/admin/tenants_manage.html:93
+#: templates/admin/tenants_manage.html:91
 msgid "Activate"
 msgstr "Aktivieren"
 
-#: templates/admin/tenants_manage.html:94
+#: templates/admin/tenants_manage.html:92
 #: templates/js/_reporting_dashboard_js.html:35
 #: templates/js/_reporting_js.html:1705 templates/js/_reporting_js.html:1846
 msgid "Remove"
 msgstr "Entfernen"
 
-#: templates/admin/tenants_manage.html:99
+#: templates/admin/tenants_manage.html:97
 msgid "No pages yet."
 msgstr "Noch keine Seiten."
 
-#: templates/admin/tenants_manage.html:106
+#: templates/admin/tenants_manage.html:104
 msgid "Mount an existing page"
 msgstr "Bestehende Seite einhängen"
 
-#: templates/admin/tenants_manage.html:108
+#: templates/admin/tenants_manage.html:106
 msgid "key, e.g. dashboard"
 msgstr "Schlüssel, z. B. dashboard"
 
-#: templates/admin/tenants_manage.html:110
+#: templates/admin/tenants_manage.html:108
 msgid "Page..."
 msgstr "Seite..."
 
-#: templates/admin/tenants_manage.html:115
+#: templates/admin/tenants_manage.html:113
 msgid "active_page (optional)"
 msgstr "active_page (optional)"
 
-#: templates/admin/tenants_manage.html:132
+#: templates/admin/tenants_manage.html:130
 msgid "Please confirm"
 msgstr "Bitte bestätigen"
 
-#: templates/admin/tenants_manage.html:143
-#: templates/js/admin/_tenants_manage_js.html:47
+#: templates/admin/tenants_manage.html:141
+#: templates/js/admin/_tenants_manage_js.html:46
 msgid "Add a new Tenant"
 msgstr "Neuen Tenant hinzufügen"
 
-#: templates/admin/tenants_manage.html:150
+#: templates/admin/tenants_manage.html:148
 msgid "Tenant Code"
 msgstr "Tenant-Code"
 
-#: templates/admin/tenants_manage.html:170
+#: templates/admin/tenants_manage.html:160
 msgid "Organizations in this tenant"
 msgstr "Organisationen in diesem Tenant"
 
-#: templates/admin/tenants_manage.html:176
+#: templates/admin/tenants_manage.html:166
 msgid "currently in"
 msgstr "derzeit in"
 
-#: templates/admin/tenants_manage.html:180
+#: templates/admin/tenants_manage.html:170
 msgid "Ticking an organization that belongs to another tenant moves it here."
 msgstr ""
 "Wird eine Organisation angehakt, die zu einem anderen Tenant gehört, wird"
 " sie hierher verschoben."
 
-#: templates/admin/tenants_manage.html:185
+#: templates/admin/tenants_manage.html:175
 msgid "Save Tenant"
 msgstr "Tenant speichern"
 
@@ -7422,7 +7410,7 @@ msgid "Delete Organization"
 msgstr "Organisation löschen"
 
 #: templates/admin/modals/_organizations_modals.html:26
-#: templates/js/admin/_organizations_js.html:55
+#: templates/js/admin/_organizations_js.html:53
 msgid "Add a new Organization"
 msgstr "Neue Organisation hinzufügen"
 
@@ -7434,7 +7422,7 @@ msgstr "Organisationsname"
 msgid "Not in a tenant"
 msgstr "Nicht in einem Tenant"
 
-#: templates/admin/modals/_organizations_modals.html:62
+#: templates/admin/modals/_organizations_modals.html:53
 msgid "Save Organization"
 msgstr "Organisation speichern"
 
@@ -8963,11 +8951,11 @@ msgstr "{start}-{end} von {total}"
 
 #: templates/js/_tenant_page_js.html:33 templates/js/admin/_clients_js.html:116
 #: templates/js/admin/_clients_js.html:170
-#: templates/js/admin/_organizations_js.html:111
-#: templates/js/admin/_organizations_js.html:165
-#: templates/js/admin/_organizations_js.html:322
+#: templates/js/admin/_organizations_js.html:108
+#: templates/js/admin/_organizations_js.html:162
+#: templates/js/admin/_organizations_js.html:319
 #: templates/js/admin/_processes_js.html:162
-#: templates/js/admin/_tenants_manage_js.html:83
+#: templates/js/admin/_tenants_manage_js.html:81
 #: templates/js/admin/_user_management_js.html:127
 #: templates/js/admin/_user_management_js.html:177
 msgid "An unexpected network error occurred."
@@ -9233,11 +9221,11 @@ msgstr "Sie haben keine Berechtigung, Benutzer zu erstellen."
 #: templates/js/admin/_access_control_js.html:579
 #: templates/js/admin/_clients_js.html:112
 #: templates/js/admin/_clients_js.html:166
-#: templates/js/admin/_organizations_js.html:107
-#: templates/js/admin/_organizations_js.html:161
-#: templates/js/admin/_organizations_js.html:318
+#: templates/js/admin/_organizations_js.html:104
+#: templates/js/admin/_organizations_js.html:158
+#: templates/js/admin/_organizations_js.html:315
 #: templates/js/admin/_processes_js.html:158
-#: templates/js/admin/_tenants_manage_js.html:79
+#: templates/js/admin/_tenants_manage_js.html:77
 #: templates/js/admin/_user_management_js.html:123
 #: templates/js/admin/_user_management_js.html:173
 msgid "Error:"
@@ -9305,11 +9293,11 @@ msgid "Edit Client"
 msgstr "Client bearbeiten"
 
 #: templates/js/admin/_clients_js.html:102
-#: templates/js/admin/_organizations_js.html:97
-#: templates/js/admin/_organizations_js.html:302
+#: templates/js/admin/_organizations_js.html:94
+#: templates/js/admin/_organizations_js.html:299
 #: templates/js/admin/_processes_js.html:145
-#: templates/js/admin/_tenants_manage_js.html:103
-#: templates/js/admin/_tenants_manage_js.html:127
+#: templates/js/admin/_tenants_manage_js.html:100
+#: templates/js/admin/_tenants_manage_js.html:124
 #: templates/js/admin/_user_management_js.html:113
 msgid "You do not have permission to perform this action."
 msgstr "Sie haben keine Berechtigung, diese Aktion durchzuführen."
@@ -9408,15 +9396,15 @@ msgstr "Banner erstellt."
 msgid "Banner deleted."
 msgstr "Banner gelöscht."
 
-#: templates/js/admin/_organizations_js.html:62
+#: templates/js/admin/_organizations_js.html:60
 msgid "Edit Organization"
 msgstr "Organisation bearbeiten"
 
-#: templates/js/admin/_organizations_js.html:152
+#: templates/js/admin/_organizations_js.html:149
 msgid "You do not have permission to delete this Organization."
 msgstr "Sie haben keine Berechtigung, diese Organisation zu löschen."
 
-#: templates/js/admin/_organizations_js.html:168
+#: templates/js/admin/_organizations_js.html:165
 msgid ""
 "Are you sure you want to delete this Organization? This action cannot be "
 "undone."
@@ -9518,11 +9506,11 @@ msgstr "Aktive Sitzung beenden für"
 msgid "Could not revoke session."
 msgstr "Sitzung konnte nicht beendet werden."
 
-#: templates/js/admin/_tenants_manage_js.html:57
+#: templates/js/admin/_tenants_manage_js.html:56
 msgid "Edit Tenant"
 msgstr "Tenant bearbeiten"
 
-#: templates/js/admin/_tenants_manage_js.html:144
+#: templates/js/admin/_tenants_manage_js.html:141
 msgid ""
 "Delete this tenant and its page descriptors? Organizations must be moved "
 "out first."
@@ -9530,7 +9518,7 @@ msgstr ""
 "Diesen Tenant und seine Seitenbeschreibungen löschen? Organisationen "
 "müssen zuerst verschoben werden."
 
-#: templates/js/admin/_tenants_manage_js.html:159
+#: templates/js/admin/_tenants_manage_js.html:156
 msgid "Remove this page from the tenant?"
 msgstr "Diese Seite aus dem Tenant entfernen?"
 
@@ -10315,4 +10303,13 @@ msgstr "Bis"
 
 #~ msgid "Edit Customer"
 #~ msgstr "Kunde bearbeiten"
+
+#~ msgid "A data connection is required."
+#~ msgstr "Eine Datenverbindung ist erforderlich."
+
+#~ msgid "Unknown data connection."
+#~ msgstr "Unbekannte Datenverbindung."
+
+#~ msgid "Organizations, their codes, tenant and data connection"
+#~ msgstr "Organisationen, ihre Codes, Tenant und Datenverbindung"
 
