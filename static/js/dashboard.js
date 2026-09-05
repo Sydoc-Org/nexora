@@ -43,6 +43,12 @@
                 if (sc && sc.grid) sc.grid.color = grid;
                 if (sc) sc.ticks = Object.assign({}, sc.ticks, { color: text });
             });
+            // Scale colours are read live from options, but a dataset's
+            // borderColor was resolved once at construction -- the backlog
+            // lines would keep their light-mode hues after a theme flip.
+            if (ch === backlogChart) {
+                ch.data.datasets.forEach((ds, i) => { ds.borderColor = seriesColor(i); });
+            }
             ch.update('none');
         });
     }
@@ -395,6 +401,111 @@
         }
     }
 
+    /* ---------- per-process backlog trend ---------- */
+    function renderBacklogLegend(series) {
+        const box = document.getElementById('backlog-legend');
+        if (!box) return;
+        // Series names come from the database (process names) -- escape them.
+        box.innerHTML = series.map((s, i) => {
+            const dash = SERIES_DASH[i % SERIES_DASH.length] || [];
+            const mod = dash.length === 0 ? ''
+                : (dash.length === 2 && dash[0] <= 2 ? ' nx-legend__swatch--dotted'
+                    : ' nx-legend__swatch--dashed');
+            return `<span class="nx-legend__item">`
+                + `<span class="nx-legend__swatch${mod}" style="color: ${window.NX.esc(seriesColor(i))}"></span>`
+                + `${window.NX.esc(s.name)}`
+                + `<span class="nx-legend__count">${window.NX.esc(Number(s.current || 0).toLocaleString())}</span>`
+                + `</span>`;
+        }).join('');
+    }
+
+    async function updateBacklog() {
+        try {
+            const response = await fetch(`${P}api/dashboard/backlog_trend?range=${range}`, {
+                headers: { 'Content-Type': 'application/json' }
+            });
+            if (!response.ok) {
+                console.error('backlog_trend HTTP', response.status);
+                return;
+            }
+            const data = await response.json();
+            const series = data.series || [];
+
+            const totalEl = document.getElementById('backlog-total');
+            if (totalEl) totalEl.textContent = Number(data.total || 0).toLocaleString();
+            const deltaEl = document.getElementById('backlog-delta');
+            if (deltaEl) {
+                const diff = Number(data.total || 0) - Number(data.prev_total || 0);
+                deltaEl.textContent = fmt(S.sinceYesterday, {
+                    delta: `${diff >= 0 ? '+' : ''}${diff.toLocaleString()}`
+                });
+            }
+            const eyebrowEl = document.getElementById('backlog-eyebrow');
+            if (eyebrowEl) eyebrowEl.textContent = fmt(S.trendDays, { days: range });
+
+            renderBacklogLegend(series);
+
+            const canvas = document.getElementById('backlogTrendChart');
+            if (!canvas) return;
+            const datasets = series.map((s, i) => ({
+                label: s.name,
+                data: s.values || [],
+                borderColor: seriesColor(i),
+                borderDash: SERIES_DASH[i % SERIES_DASH.length],
+                borderWidth: 2,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+                tension: 0.3,
+                fill: false
+            }));
+            const labels = (data.labels || []).map((d) => window.NX.formatDate(d) || d);
+
+            if (backlogChart) {
+                backlogChart.data.labels = labels;
+                backlogChart.data.datasets = datasets;
+                backlogChart.update();
+                return;
+            }
+
+            backlogChart = new Chart(canvas.getContext('2d'), {
+                type: 'line',
+                data: { labels: labels, datasets: datasets },
+                plugins: [noDataPlugin],
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    scales: {
+                        y: { beginAtZero: true, grid: { borderDash: [5, 5], color: nxAxis().grid } },
+                        x: { grid: { display: false } }
+                    },
+                    plugins: {
+                        // The page renders its own #backlog-legend so the
+                        // swatches can match the dash patterns exactly.
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: token('--nx-card', '#1e293b'),
+                            titleColor: token('--nx-text-meta', '#64748b'),
+                            bodyColor: token('--nx-text', '#e2e8f0'),
+                            borderColor: token('--nx-border', '#334155'),
+                            borderWidth: 1,
+                            cornerRadius: 10,
+                            padding: 10,
+                            boxPadding: 6,
+                            usePointStyle: true,
+                            titleFont: { size: 11, weight: '600' },
+                            titleMarginBottom: 6,
+                            bodyFont: { size: 13, weight: '600' },
+                            caretSize: 6
+                        }
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Failed to update backlog trend:', error);
+        }
+    }
+
     /* ---------- the two chart tabs: client-side only, no refetch ---------- */
     function setView(next) {
         view = next === 'hour' ? 'hour' : 'time';
@@ -438,7 +549,7 @@
         }
         updateKpis();
         updateOverTime();
-        // Part 3 of Task 11 adds updateBacklog() to this refresh.
+        updateBacklog();
     }
 
     async function setProcessFilter(value) {
@@ -451,6 +562,7 @@
             updateKpis();
             updateOverTime();
             updateHourly();
+            updateBacklog();
         } catch (error) {
             console.error('Failed to set process filter:', error);
         }
@@ -458,6 +570,29 @@
     // The page-level NexoraProcessPicker binding in templates/dashboard.html
     // calls this by name -- the one global this module exposes.
     window.setProcessFilter = setProcessFilter;
+
+    /* ---------- live refresh: one interval for all four panels ---------- */
+    function refreshAll() {
+        updateKpis();
+        updateOverTime();
+        updateHourly();
+        updateBacklog();
+        const stamp = document.getElementById('dash-live-time');
+        if (stamp) stamp.textContent = new Date().toLocaleTimeString();
+        countdown = window.NX_DASH.refreshMs / 1000;
+        const counter = document.getElementById('dash-countdown');
+        if (counter) counter.textContent = countdown;
+    }
+
+    function tick() {
+        countdown -= 1;
+        if (countdown <= 0) {
+            refreshAll();
+            return;
+        }
+        const counter = document.getElementById('dash-countdown');
+        if (counter) counter.textContent = countdown;
+    }
 
     document.addEventListener('DOMContentLoaded', () => {
         // No inline onclick anywhere -- CSP is PROD-only, so an inline handler
@@ -477,9 +612,13 @@
             });
         }
 
-        updateKpis();
-        updateOverTime();
-        updateHourly();
+        const refreshBtn = document.getElementById('dash-refresh');
+        if (refreshBtn) refreshBtn.addEventListener('click', () => refreshAll());
+
         setView(view);
+        // refreshAll() is the first paint too -- it runs all four updaters and
+        // stamps the live indicator, so there is no separate initial fetch.
+        refreshAll();
+        setInterval(tick, 1000);
     });
 })();
