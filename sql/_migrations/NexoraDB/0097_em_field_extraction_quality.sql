@@ -108,17 +108,46 @@ FROM (VALUES
 WHERE NOT EXISTS (SELECT 1 FROM dbo.Permission p WHERE p.Code = v.Code);
 GO
 
-INSERT INTO dbo.AccessProfilePermission (AccessID, PermissionID, Effect)
-SELECT ap.AccessID, np.PermissionID, 'A'
-FROM dbo.AccessProfilePermission ap
-JOIN dbo.Permission admin_p ON admin_p.PermissionID = ap.PermissionID
-                            AND admin_p.Code = 'admin.view' AND ap.Effect = 'A'
-CROSS JOIN dbo.Permission np
-WHERE np.Code = 'reporting.source.field_quality'
-  AND NOT EXISTS (
-        SELECT 1 FROM dbo.AccessProfilePermission x
-        WHERE x.AccessID = ap.AccessID AND x.PermissionID = np.PermissionID
-  );
+-- dbo.AccessProfilePermission.Effect is being retired on a parallel branch
+-- (profiles become grant-only; deny moves to the user-override layer). That
+-- change is numbered BELOW this migration, so on any fresh database it runs
+-- first and this one would meet a table with no Effect column.
+--
+-- Naming the column directly would then fail at COMPILE time -- SQL Server
+-- binds every column in a batch before executing any of it, so the whole batch
+-- errors out even though the IF would have skipped that statement. Deferring
+-- the two variants into sp_executesql is what makes the choice actually work:
+-- only the string that matches the live schema is ever parsed.
+--
+-- Without Effect there is nothing to filter on: every row in the table is a
+-- grant, which is the point of retiring the column.
+IF COL_LENGTH('dbo.AccessProfilePermission', 'Effect') IS NOT NULL
+    EXEC sp_executesql N'
+        INSERT INTO dbo.AccessProfilePermission (AccessID, PermissionID, Effect)
+        SELECT ap.AccessID, np.PermissionID, ''A''
+        FROM dbo.AccessProfilePermission ap
+        JOIN dbo.Permission admin_p ON admin_p.PermissionID = ap.PermissionID
+                                    AND admin_p.Code = ''admin.view''
+                                    AND ap.Effect = ''A''
+        CROSS JOIN dbo.Permission np
+        WHERE np.Code = ''reporting.source.field_quality''
+          AND NOT EXISTS (
+                SELECT 1 FROM dbo.AccessProfilePermission x
+                WHERE x.AccessID = ap.AccessID AND x.PermissionID = np.PermissionID
+          );';
+ELSE
+    EXEC sp_executesql N'
+        INSERT INTO dbo.AccessProfilePermission (AccessID, PermissionID)
+        SELECT ap.AccessID, np.PermissionID
+        FROM dbo.AccessProfilePermission ap
+        JOIN dbo.Permission admin_p ON admin_p.PermissionID = ap.PermissionID
+                                    AND admin_p.Code = ''admin.view''
+        CROSS JOIN dbo.Permission np
+        WHERE np.Code = ''reporting.source.field_quality''
+          AND NOT EXISTS (
+                SELECT 1 FROM dbo.AccessProfilePermission x
+                WHERE x.AccessID = ap.AccessID AND x.PermissionID = np.PermissionID
+          );';
 GO
 
 -- 3) The source. Engine 'statistics' is deliberately NOT used: the view is a

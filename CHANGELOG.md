@@ -44,6 +44,19 @@ Work toward the next release.
   held the name "Field", so the obvious pick charted 631 series of which 230 sit
   permanently at 100%.
 
+### Fixed
+
+- **A migration that would have failed on a fresh database.** The permission
+  grant in `0097` referenced `dbo.AccessProfilePermission.Effect`, a column
+  retired by `0086` — a *lower* number, so on any rebuild or PROD deploy the drop
+  runs first and the grant dies with it. It passed on INT only because the column
+  still existed the hour it was applied. Both variants now sit in `sp_executesql`
+  behind a `COL_LENGTH` check: an `IF` alone is not enough, because SQL Server
+  binds every column in a batch before executing any of it, so even the untaken
+  branch takes the whole batch down. `docs/howto/db-migrations.md` writes the
+  trap up, including why this is the one case where editing an applied migration
+  is correct — nothing added later can rescue a file that fails inside itself.
+
 ### Changed
 
 - **The Simple wizard's measure list is grouped by source.** With more than one

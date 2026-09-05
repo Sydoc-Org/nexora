@@ -169,3 +169,18 @@ def test_onboarded_filter_keeps_the_catalog_and_view_in_step(onboarded_sql, cata
     # 0101 re-asserts 0100's ColumnsJSON. If the two ever diverge, a report
     # resolves a column the view no longer projects.
     assert [c["field"] for c in _catalog(onboarded_sql)] == [c["field"] for c in catalog]
+
+
+def test_permission_grant_survives_a_dropped_effect_column(create_sql):
+    # 0086_permission_cleanup_and_rank.sql retires
+    # dbo.AccessProfilePermission.Effect and is numbered BELOW this migration, so
+    # on a fresh database it runs first. Naming the column directly fails at
+    # COMPILE time -- SQL Server binds every column in a batch before executing
+    # any of it, so even an untaken IF branch takes the whole batch down. Each
+    # variant therefore has to sit inside sp_executesql.
+    grant = create_sql[create_sql.index("IF COL_LENGTH") : create_sql.index("-- 3)")]
+    assert "COL_LENGTH('dbo.AccessProfilePermission', 'Effect')" in grant
+    assert grant.count("sp_executesql") == 2, "both branches must be dynamic SQL"
+    # The Effect-free branch must not mention the column at all.
+    effect_free = grant.split("ELSE", 1)[1]
+    assert "Effect" not in effect_free, "the fallback branch still references Effect"
