@@ -38,7 +38,9 @@ its sidebar group and its generated pages by right (`nx_lib/views/tenant.py::_ca
 else — sydoc staff working Generali, say — needs `tenant.<code>.view`. Editing generated records is
 always the explicit `tenant.<code>.edit` grant. A tenant-scoped user (`tenant_scoped`, set in
 `nx_lib/hooks.py`) sees only their tenant group in place of the global Dashboard / Reporting /
-Workitems links; sydoc staff (SYDC, no tenant) keep the global navigation.
+Workitems links. Since `0104` sydoc AG (SYDC) is a member of the `sydoc` tenant and ISS (SSIX) of
+`generali`; sydoc staff keep every tenant group and the Global entries through their
+`tenant.<code>.view` grants and page permissions, so only `demo` (DMEO) sits outside a tenant.
 
 **Mounted pages and the tenant dashboard.** A `custom` row in `dbo.TenantPages` carries a
 `LayoutJSON` with `endpoint` (an argument-less GET route), `label`, `icon`, an optional `active`

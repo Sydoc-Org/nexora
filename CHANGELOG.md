@@ -86,6 +86,13 @@ Work toward the next release.
 
 ### Changed
 
+- **ISS and sydoc AG sit inside their tenants** (migration `0104`). ISS
+  (`SSIX`) joins `generali`, the portal it works in; sydoc AG (`SYDC`) joins
+  `sydoc`. Membership alone opens a tenant since `0096`, so ISS's existing
+  `tenant.generali.view` grants stay as harmless leftovers. Members land on
+  their tenant's Dashboard and Workitems by default; sydoc staff keep every
+  tenant group and the Global entries through their grants. Only `demo`
+  (`DMEO`) stays outside a tenant.
 - **A tenant is a portal, not a data connection** (migration `0096`). Three
   tenants in, every `ClientCode` pointer — on `Tenants`, on `Organizations`,
   on `ProcessSources` — agreed in every row, and "tenant" meant a partner
@@ -125,12 +132,12 @@ Work toward the next release.
   relation that counts. `tenant.sydoc.view` goes to the profiles bound to
   the member organizations and to `globalAdmin`. Left alone on purpose:
   `compassUser` stays global (a `demo` user holds it), and sydoc AG, ISS
-  and demo stay outside any tenant.
+  and demo stay outside any tenant (`0104` later seats the first two).
 - **Tenant-scoped navigation** (#257, migration `0093`). A user whose
   organization belongs to a tenant sees that tenant's group instead of the
   global Dashboard / Reporting / Workitems links — the same pages reached
   through the tenant's mounted pages, not twice. Users of organizations
-  outside any tenant (sydoc staff) keep the global navigation. Mobscn's
+  outside any tenant keep the global navigation. Mobscn's
   group is now Dashboard, Workitems and Prepared Documents with proper
   labels and icons; the generated "PDBS Dossiers" list page is set to
   `draft` (kept, not served). `nx_lib/tenant/registry.py::organization_tenant`
@@ -294,13 +301,6 @@ Work toward the next release.
 
 ### Fixed
 
-- **Organization brand accents now actually show.** The header let any stored
-  accent preference beat the organization's `BrandAccentHex`, and the default
-  amber ends up stored for practically everyone (the effective prefs are
-  mirrored and re-read), so Privera's teal never appeared. A brand accent now
-  wins for every user of that organization; personal picks keep working where
-  there is no branding, and the Appearance page shows the brand swatch with a
-  note instead of the picker.
 - **Process grants are read in both code shapes.** Migration `0087` (#238)
   replaces the three per-page process families with one
   `process.<client>.<name>.view` code per process. The dashboard, the
@@ -308,6 +308,13 @@ Work toward the next release.
   `*.filter.process.*` / `reporting.scope.process.*` codes, so a database on
   either side of the migration shows the right processes. One parser,
   `process_helpers.process_grants`, feeds all of them.
+- **Organization brand accents now actually show.** The header let any stored
+  accent preference beat the organization's `BrandAccentHex`, and the default
+  amber ends up stored for practically everyone (the effective prefs are
+  mirrored and re-read), so Privera's teal never appeared. A brand accent now
+  wins for every user of that organization; personal picks keep working where
+  there is no branding, and the Appearance page shows the brand swatch with a
+  note instead of the picker.
 - **Tenant groups no longer all light up on the Dashboard.** A mounted custom
   page reuses a global endpoint (every tenant mounts `dashboard`), so a staffer
   who sees several tenant groups by grant saw every group expand and highlight
