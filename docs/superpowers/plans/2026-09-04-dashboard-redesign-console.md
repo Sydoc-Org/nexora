@@ -67,6 +67,26 @@
 | D11 | `.nx-scope` (the shared scope picker) is **not** modified. The dashboard's slim sizing is scoped as `.nx-dash-filter .nx-scope-btn`. | The component is used by workitems and reporting too; a global height change would ripple into pages this plan does not test. |
 | D12 | The `dashboard_tenant` two-title block and the `?tenant=` scoping stay exactly as they are. | Landed three commits ago on this branch (#255 / migration `0097`). The redesign drops the marketing subtitle only. |
 
+## ⚠ Blocker for browser verification (Task 14) — opened 2026-09-05
+
+**INT's permission catalogue is now ahead of this branch's code, so every dashboard endpoint returns empty data for every user on INT.** Measured 2026-09-05:
+
+```
+dbo.Permission  LIKE 'dashboard.filter.process.%'  ->  0 rows
+dbo.Permission  LIKE 'process.%'                   ->  6 rows
+dbo.SchemaMigrations: 0086_permission_cleanup_and_rank.sql, 0087_process_scope.sql  APPLIED
+```
+
+Another session is executing `docs/superpowers/plans/2026-09-01-permission-structure-rename-grid.md`. Its migrations have landed on INT, but its **code** change is still uncommitted in the main checkout (`nx_lib/process_helpers.py`, +28/−7, adapting `granted_processes()` to the `process.<client>.<name>.view` family). This branch holds the committed version, which parses the now-deleted `dashboard.filter.process.` prefix and therefore resolves zero processes.
+
+**Do NOT patch `granted_processes()` here.** It is that plan's Task 6, actively in progress; duplicating it guarantees a merge conflict. Instead:
+
+1. Wait for that session to commit its `process_helpers.py` change.
+2. Merge `refactor/255-admin-nav-tenancy-labels` again (the third catch-up merge).
+3. Re-verify `GET /api/dashboard/kpi_stats` returns non-zero, then run Task 14.
+
+Tasks 11b, 11c, 12, 13 and 15 are **not** blocked — they are JS, deletions, i18n and docs. Only the browser verification in Task 14 needs real data. A chart rendering "No data to display" under this condition is correct behaviour, not a defect.
+
 ## Owner actions
 
 - **⚠ The collector is not running on INT** (unblocked for dev, still open for real). Measured 2026-09-04: `dbo.BacklogHistory` on the INT Statistics DB held **6 rows, all from a single timestamp on 2026-08-04** — one manual smoke run, nothing since; `ops/backlog_history/backlog_history.py` was never put on INT's Task Scheduler. **Dev is now unblocked**: 14 days × 6 processes of synthetic snapshots were seeded on 2026-09-04 via `/nx-seed-intdb` (`scripts/seed-int-db.py`), random-walked backwards from the last real values, so Task 4 can be verified. Two caveats a developer will notice and must not chase as bugs:
