@@ -28,7 +28,9 @@ Work toward the next release.
   object of string pairs that becomes the link's query string; mounting
   `dashboard` or `workitems_overview` from the tenant management page adds
   it automatically. Prepared Documents is MS02's own register with no
-  process filter and stays as it is.
+  process filter and stays as it is. A user inside exactly one tenant sees
+  its pages flat under a plain label instead of a one-item collapsible
+  group; staff and multi-tenant users keep the groups.
 - **Answer-depth picker in the Eddard chat composer.** Click into the
   input and a Quick / Balanced / Deep control slides in above it, mapping
   to effort `low` / `medium` / `high` on the `/api/reporting/ai/agent`
@@ -292,6 +294,13 @@ Work toward the next release.
 
 ### Fixed
 
+- **Organization brand accents now actually show.** The header let any stored
+  accent preference beat the organization's `BrandAccentHex`, and the default
+  amber ends up stored for practically everyone (the effective prefs are
+  mirrored and re-read), so Privera's teal never appeared. A brand accent now
+  wins for every user of that organization; personal picks keep working where
+  there is no branding, and the Appearance page shows the brand swatch with a
+  note instead of the picker.
 - **Tenant groups no longer all light up on the Dashboard.** A mounted custom
   page reuses a global endpoint (every tenant mounts `dashboard`), so a staffer
   who sees several tenant groups by grant saw every group expand and highlight

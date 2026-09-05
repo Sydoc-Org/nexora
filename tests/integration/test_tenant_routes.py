@@ -20,6 +20,7 @@ filter/sort column allow-list), not the registry's DB-loading code
 (``tests/unit/test_tenant_queries.py``).
 """
 
+import sys
 import types
 
 from flask import url_for
@@ -971,3 +972,28 @@ def test_visible_tenant_nav_custom_page_query_becomes_url_args(app, monkeypatch)
 
     assert entry["url"] == expected_url  # the non-string value is dropped
     assert entry["active"] == f"tenant_{TENANT_CODE}_dashboard"
+
+
+def test_header_renders_a_single_tenant_flat_for_its_members(user_client, monkeypatch):
+    """A member of exactly one tenant gets its pages at top level under a
+    plain label -- no collapsible group, no global entries."""
+    acme = _tenant()
+    monkeypatch.setattr(tv, "registry", lambda: _fake_registry({TENANT_CODE: acme}))
+    monkeypatch.setattr(tv, "pages_for", lambda code: [_page(key="dossiers")])
+    monkeypatch.setattr(tv, "has_permission", lambda code: False)  # membership, not a grant
+    monkeypatch.setattr(tv, "tenant", lambda code: acme)
+    monkeypatch.setattr(tv, "organization_tenant", lambda org: TENANT_CODE)
+    # nx_lib.tenant re-exports a *function* named registry, which shadows the
+    # submodule on attribute lookup -- patch the module object from sys.modules.
+    monkeypatch.setattr(
+        sys.modules["nx_lib.tenant.registry"], "organization_tenant", lambda org: TENANT_CODE
+    )
+    monkeypatch.setattr("nx_lib.process_helpers.tenant_processes", lambda code: set())
+
+    resp = user_client.get("/dashboard")
+
+    assert resp.status_code == 200
+    assert b"tenantNavGroup-" not in resp.data
+    assert f'data-testid="header-nav-tenant-{TENANT_CODE}-label"'.encode() in resp.data
+    assert f'data-testid="header-nav-tenant-{TENANT_CODE}-dossiers"'.encode() in resp.data
+    assert b'data-testid="header-nav-item-' not in resp.data

@@ -68,6 +68,54 @@ def check_environment():
 # --------------------------------------------------------------------------- #
 
 
+def _live_backlog_by_pair():
+    """{"<client>.<process>".casefold(): count} from the live Octo runtime, via
+    the same total_backlog_count() the dashboard KPI uses.
+
+    Empty dict if the runtime is unreachable — the caller then falls back to the
+    stored snapshot, because a seeding tool must never be the thing that fails
+    a dev box. Needs an app context: total_backlog_count reads current_app.
+    """
+    try:
+        from nx_lib import create_app
+        from nx_lib.workitem_sources import total_backlog_count
+    except Exception as e:
+        print(f"  (live backlog unavailable: {e})")
+        return {}
+
+    out = {}
+    try:
+        app = create_app()
+        with app.app_context():
+            for client, process in _known_pairs():
+                try:
+                    out[f"{client}.{process}".casefold()] = total_backlog_count([(client, process)])
+                except Exception:
+                    continue
+    except Exception as e:
+        print(f"  (live backlog unavailable: {e})")
+        return {}
+    return out
+
+
+def _known_pairs():
+    """(ClientName, ProcessName) pairs from dbo.ProcessSources — the registry the
+    dashboard resolves against. Returns [] if NexoraDB is unreachable."""
+    try:
+        from sqlalchemy import text
+
+        from nx_lib.db import engine_nexora_db
+
+        with engine_nexora_db.connect() as c:
+            return [
+                tuple(str(r[0]).split(".", 1))
+                for r in c.execute(text("SELECT DISTINCT ProcessName FROM dbo.ProcessSources"))
+                if r[0] and "." in str(r[0])
+            ]
+    except Exception:
+        return []
+
+
 def seed_backlog_history(days, apply_it):
     """dbo.BacklogHistory: one 20:00 snapshot per day per (client, process).
 
@@ -89,9 +137,12 @@ def seed_backlog_history(days, apply_it):
 
     conn = engine_statistics_db.connect()
     try:
-        # Start from whatever the last real snapshot said, so the synthetic
-        # history lands in the right order of magnitude per process. Falls back
-        # to the live process list if the table is completely empty.
+        # The (client, process, source) rows to seed come from the last stored
+        # snapshot, but their MAGNITUDE comes from the live runtime below --
+        # the stored counts can be months old, and seeding from them puts the
+        # synthetic history on a different scale from today's real backlog.
+        # That shows up as a cliff in the dashboard sparkline, whose last point
+        # is deliberately the live number (plan D8).
         seeds = [
             (r[0], r[1], r[2], r[3])
             for r in conn.execute(
@@ -115,10 +166,21 @@ def seed_backlog_history(days, apply_it):
                 "is a real shape to extrapolate from"
             )
 
+        live = _live_backlog_by_pair()
+        print(f"  live runtime backlog resolved for {len(live)} pair(s)")
         midnight = datetime.now().replace(hour=20, minute=0, second=0, microsecond=0)
         rows = []
+        summary = []
         for client, process, source, base in seeds:
-            count = max(1, int(base or 1))
+            # Live count wins when the runtime knows this pair; the stored
+            # snapshot is only the fallback. Casefolded because BacklogHistory
+            # carries Octo's display casing and ProcessSources does not.
+            today_count = live.get(f"{client}.{process}".casefold())
+            origin = "live" if today_count is not None else "stored"
+            if today_count is None:
+                today_count = base
+            count = max(1, int(today_count or 1))
+            summary.append((client, process, source, count, origin, base))
             # Walk backwards from today so today's point equals the real value.
             walk = [count]
             for _ in range(days - 1):
@@ -136,8 +198,9 @@ def seed_backlog_history(days, apply_it):
                 )
 
         print(f"  {len(seeds)} (client, process) pairs x {days} days = {len(rows)} rows")
-        for client, process, source, base in seeds:
-            print(f"    {client}.{process}  [{source}]  today={base}")
+        for client, process, source, count, origin, base in summary:
+            drift = "" if origin == "stored" or base == count else f"  (stored said {base})"
+            print(f"    {client}.{process}  [{source}]  today={count} ({origin}){drift}")
 
         if not apply_it:
             return len(rows)

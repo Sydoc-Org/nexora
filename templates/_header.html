@@ -42,8 +42,12 @@
             } catch (e) {}
             var eff = {
                 theme:      stored.theme      || (ls('nexora-theme') === 'dark' ? 'dark' : 'light'),
-                accent:     stored.accent     || (brand.accent_hex ? 'custom' : 'amber'),
-                accentHex:  stored.accentHex  || brand.accent_hex || '#4f46e5',
+                /* An organization's brand accent beats any personal pick: the
+                   default 'amber' ends up stored for practically everyone (the
+                   effective prefs are mirrored and re-read), so "stored wins"
+                   meant the brand never showed. Appearance hides the picker. */
+                accent:     brand.accent_hex ? 'custom' : (stored.accent || 'amber'),
+                accentHex:  brand.accent_hex || stored.accentHex || '#4f46e5',
                 motion:     stored.motion     || 'full',
                 entrance:   stored.entrance   || 'rise',
                 animspeed:  stored.animspeed  || 'normal',
@@ -364,6 +368,40 @@
                can never BuildError here and 500 every page for every
                logged-in user; an unresolvable custom page is simply absent
                from t.pages already. #}
+            {# One link for a tenant page, as a group subitem (sub=true) or a flat
+               top-level entry. Active rule: a page whose LayoutJSON 'active'
+               marker is tenant-specific (the scoped Dashboard/Workitems render
+               active_page = tenant_<code>_<page>, 0097/0098) matches exactly, for
+               anyone; a plain endpoint match only counts inside the user's OWN
+               tenant, since every tenant mounts the same 'dashboard'. Generated
+               list/crud pages carry the tenant code in active_page already. #}
+            {% macro tenant_page_link(t, p, sub, active_page, tenant_scoped) -%}
+            {%- if p.page_type == 'custom' -%}
+            {%- set on = (active_page == p.active and p.active != p.endpoint) or (tenant_scoped == t.code and active_page in (p.endpoint, p.active)) -%}
+            {%- set icon = p.icon -%}
+            {%- else -%}
+            {%- set on = active_page == ('tenant_' ~ t.code ~ '_' ~ p.key) -%}
+            {%- set icon = 'fa-table-list' -%}
+            {%- endif %}
+                    <a href="{{ p.url }}"
+                        class="sidebar-nav-item {{ 'sidebar-nav-subitem' if sub else '' }} {{ 'sidebar-nav-item--active' if on else '' }}" data-testid="header-nav-tenant-{{ t.code }}-{{ p.key }}">
+                        <i class="fas {{ icon }} sidebar-nav-icon {{ 'sidebar-subitem-icon' if sub else '' }}"></i>
+                        <span class="sidebar-label">{{ p.label }}</span>
+                    </a>
+            {%- endmacro %}
+
+            {% if tenant_scoped and tenant_nav|length == 1 and tenant_nav[0].code == tenant_scoped %}
+            {# A user inside exactly one tenant needs no collapsible group for it:
+               the tenant's pages ARE their workspace. Render them flat under a
+               plain label. Staff, and members who also hold grants on other
+               tenants, keep the collapsible groups below. #}
+            {% set t = tenant_nav[0] %}
+            <div class="sidebar-section-label" data-testid="header-nav-tenant-{{ t.code }}-label">
+                <i class="fas fa-building sidebar-nav-icon"></i>
+                <span class="sidebar-label">{{ t.label }}</span>
+            </div>
+            {% for p in t.pages %}{{ tenant_page_link(t, p, false, active_page, tenant_scoped) }}{% endfor %}
+            {% else %}
             {% for t in tenant_nav %}
             {# A mounted custom page reuses a global endpoint (every tenant mounts
                'dashboard'), so an endpoint match only counts inside the user's
@@ -384,24 +422,11 @@
                     <i class="fas fa-chevron-right sidebar-label sidebar-generali-chevron"></i>
                 </button>
                 <div class="sidebar-nav-subitems">
-                    {% for p in t.pages %}
-                    {% if p.page_type == 'custom' %}
-                    <a href="{{ p.url }}"
-                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if (active_page == p.active and p.active != p.endpoint) or (tenant_scoped == t.code and active_page in (p.endpoint, p.active)) else '' }}" data-testid="header-nav-tenant-{{ t.code }}-{{ p.key }}">
-                        <i class="fas {{ p.icon }} sidebar-nav-icon sidebar-subitem-icon"></i>
-                        <span class="sidebar-label">{{ p.label }}</span>
-                    </a>
-                    {% else %}
-                    <a href="{{ p.url }}"
-                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == ('tenant_' ~ t.code ~ '_' ~ p.key) else '' }}" data-testid="header-nav-tenant-{{ t.code }}-{{ p.key }}">
-                        <i class="fas fa-table-list sidebar-nav-icon sidebar-subitem-icon"></i>
-                        <span class="sidebar-label">{{ p.label }}</span>
-                    </a>
-                    {% endif %}
-                    {% endfor %}
+                    {% for p in t.pages %}{{ tenant_page_link(t, p, true, active_page, tenant_scoped) }}{% endfor %}
                 </div>
             </div>
             {% endfor %}
+            {% endif %}
         </nav>
 
         <!-- Bottom actions -->
