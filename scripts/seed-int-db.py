@@ -182,9 +182,18 @@ def seed_backlog_history(days, apply_it):
             count = max(1, int(today_count or 1))
             summary.append((client, process, source, count, origin, base))
             # Walk backwards from today so today's point equals the real value.
+            # ponytail: mean-reverting, not a pure geometric walk. Compounding
+            # uniform(0.90, 1.11) over a 90-day window drifts to 0 or to many
+            # times the base, which is exactly as useless for verification as
+            # an empty table -- you cannot tell a broken query from absurd
+            # data either. The pull-back keeps the series in a plausible band
+            # while still wandering. Raise pull for a flatter line.
+            pull = 0.15
+            base_count = count
             walk = [count]
             for _ in range(days - 1):
-                count = max(0, int(count * random.uniform(0.90, 1.11)))
+                drifted = count * random.uniform(0.90, 1.11)
+                count = max(0, int(round(drifted * (1 - pull) + base_count * pull)))
                 walk.append(count)
             for offset, value in enumerate(walk):
                 rows.append(
