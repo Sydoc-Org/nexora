@@ -301,6 +301,13 @@ Work toward the next release.
   wins for every user of that organization; personal picks keep working where
   there is no branding, and the Appearance page shows the brand swatch with a
   note instead of the picker.
+- **Process grants are read in both code shapes.** Migration `0087` (#238)
+  replaces the three per-page process families with one
+  `process.<client>.<name>.view` code per process. The dashboard, the
+  workitems pages and reporting now accept that shape alongside the legacy
+  `*.filter.process.*` / `reporting.scope.process.*` codes, so a database on
+  either side of the migration shows the right processes. One parser,
+  `process_helpers.process_grants`, feeds all of them.
 - **Tenant groups no longer all light up on the Dashboard.** A mounted custom
   page reuses a global endpoint (every tenant mounts `dashboard`), so a staffer
   who sees several tenant groups by grant saw every group expand and highlight

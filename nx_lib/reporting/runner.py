@@ -27,13 +27,10 @@ _SCOPE_PREFIX = "reporting.scope.process."
 
 
 def _allowed_processes_from_perms(perms):
-    return sorted(
-        {
-            ".".join(p[len(_SCOPE_PREFIX) :].rsplit(".", 1))
-            for p in perms
-            if p.startswith(_SCOPE_PREFIX)
-        }
-    )
+    """The owner's processes in either code shape (see process_helpers)."""
+    from ..process_helpers import process_grants  # local: keeps this module import-light
+
+    return sorted(process_grants(perms, _SCOPE_PREFIX))
 
 
 def _normalize_columns(definition, resolved_metrics=None, source_metrics=None):

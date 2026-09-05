@@ -55,6 +55,7 @@ from ..db import (
 )
 from ..extensions import cache, limiter
 from ..i18n import get_locale
+from ..process_helpers import process_grants
 from ..reporting import db_schema
 from ..reporting.ai import (
     _AGENT_EXPLAIN_SUFFIX,
@@ -760,18 +761,11 @@ def _run_sql(target, sql, *, userid, username):
 
 
 def _allowed_processes():
-    """Processes the caller may include, from reporting.scope.process.* perms.
-
-    Code shape: reporting.scope.process.<client>.<process> -> '<client>.<process>'.
-    """
-    perms = session.get("permissions", [])
-    return sorted(
-        {
-            ".".join(p[len(_SCOPE_PREFIX) :].rsplit(".", 1))
-            for p in perms
-            if p.startswith(_SCOPE_PREFIX)
-        }
-    )
+    """Processes the caller may include: ``process.<client>.<process>.view``
+    grants (0087) or the legacy ``reporting.scope.process.*`` family. Reporting
+    is not a tenant-scoped page, so this deliberately skips the tenant scope
+    ``granted_processes`` applies for the dashboard and workitems."""
+    return sorted(process_grants(session.get("permissions", []), _SCOPE_PREFIX))
 
 
 def _load_process_configs(target_processes):

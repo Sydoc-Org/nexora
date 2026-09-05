@@ -48,8 +48,9 @@ since migrations `0097`/`0098` they link `/dashboard?tenant=<code>` and `/workit
 `nx_lib/views/tenant.py::apply_tenant_scope` resolves the tenant (404 unknown, 403 not viewable),
 stores it in `session['tenant_scope']`, and every process allow-list on both pages — the dashboard
 KPIs, the workitems list, field config, suggestions, import — comes through
-`nx_lib/process_helpers.py::granted_processes`, which intersects the user's `*.filter.process.*`
-grants with the processes whose organization belongs to that tenant
+`nx_lib/process_helpers.py::granted_processes`, which intersects the user's process grants
+(`process.<client>.<name>.view` since migration `0087`, or the legacy `*.filter.process.*` codes)
+with the processes whose organization belongs to that tenant
 (`nx_lib/tenant/registry.py::tenant_processes`; an unresolvable scope narrows to nothing). A user
 inside a tenant lands on their tenant's pages by default; staff without a pick get the **Global
 Dashboard** / **Global Workitems** (every process they may see, across tenants). The scope is
