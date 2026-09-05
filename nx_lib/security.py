@@ -5,6 +5,7 @@ The ``PermissionDenied`` exception and ``@require_permission`` /
 them without dragging in the rest of the app.
 """
 
+import re
 from contextlib import suppress
 from datetime import date
 from functools import wraps
@@ -29,6 +30,13 @@ def load_permissions_for_user(user_id):
     cur.close()
     conn.close()
     return perms
+
+
+def assign_profile_code(profile_name) -> str:
+    """The admin.assign.user.accessprofile.<slug> code for a profile: the name
+    lowercased with everything but letters and digits dropped, so both
+    'nexoraUser' and 'Sydoc User' style names slug cleanly ('sydocuser')."""
+    return "admin.assign.user.accessprofile." + re.sub(r"[^a-z0-9]", "", str(profile_name).lower())
 
 
 def has_permission(code: str) -> bool:

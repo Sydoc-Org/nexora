@@ -31,7 +31,7 @@ def _data(mod):
             "SSIX": ("ISS", None),  # no TenantCode row -> legacy map says generali
             "SYDC": ("sydoc AG", "sydoc"),
         },
-        profiles={10: ("priveraUser", "PRVR"), 12: ("issUser", None), 2: ("globalAdmin", None)},
+        profiles={10: ("priveraUser", "PRVR"), 12: ("ISS User", None), 2: ("globalAdmin", None)},
         codes=codes,
         profile_grants={
             10: {"dashboard.view", "process.privera.02_InitialScan.view"},
@@ -86,7 +86,7 @@ def test_profile_org_mismatch_and_customer_admin():
     mod = _load()
     out = mod.audit(_data(mod))
     assert any(
-        "priv.iss" in line and "issUser" in line
+        "priv.iss" in line and "ISS User" in line
         for line in out["Profile does not match organization"]
     )
     admin = "\n".join(out["Customers holding admin codes"])

@@ -106,6 +106,14 @@ Work toward the next release.
 
 ### Changed
 
+- **Access profiles are named `<Organization> <Role>`** (migration `0105`): `Enterprise Admin`,
+  `Global Admin`, `Sydoc User`/`Sydoc Supervisor` (formerly `nexoraUser`/`nexoraSupervisor`),
+  `ISS User`/`ISS Supervisor`, `PDBS User`, `Privera User`, `Compass User`, `ElektroMaterial User`,
+  `Generali User`. The same migration creates `Generali User` (GNRL, every Generali portal code)
+  and moves Generali users off the ISS profiles, folds the duplicate Basel-Stadt org `BSPD` into
+  `PDBS`, moves sydoc staff off customer profiles onto the Sydoc ones (which gain the PDBS
+  process and prepared-audit so nothing is lost), and renames the two assign codes whose slug
+  changed. `nx_lib/security.py::assign_profile_code` builds that slug (spaces dropped).
 - `api/dashboard/kpi_stats` also returns the previous day's value and a
   seven-point daily series per KPI; `api/dashboard/avg_processing_time` the
   same in minutes. `api/dashboard/processed_over_time` accepts `range`.

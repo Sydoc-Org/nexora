@@ -7,7 +7,7 @@ Run the read-only permission audit and explain what it found. Environment: `$1`,
 
 1. **Run** from the repo root with the project venv: `.venv\Scripts\python scripts/perm-audit.py --env <ENV>`. It only SELECTs and calls `dbo.spGetUserPermissions`; it never writes. Save a copy to `var/reports/perm-audit-<ENV>-<date>.md` (gitignored).
 2. **Explain** each section in plain words and say whether it looks intentional:
-   - **Cross-organization grants** — a customer user effectively sees another customer's processes or another tenant's pages. Staff (org `SYDC`, profiles `enterpriseAdmin`/`globalAdmin`) are exempt. This is the finding the audit exists for.
+   - **Cross-organization grants** — a customer user effectively sees another customer's processes or another tenant's pages. Staff (org `SYDC`, profiles `Enterprise Admin`/`Global Admin`) are exempt. This is the finding the audit exists for.
    - **Profile does not match organization** — the profile was built for another org (a Privera user on `issUser`). Usually the same root cause as a cross-org line.
    - **Customers holding admin codes** — any `admin.*` on a non-staff user.
    - **Override noise** — per-user overrides that change nothing. Cleanup candidates, not risks.

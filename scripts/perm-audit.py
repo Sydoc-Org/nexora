@@ -22,7 +22,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 # Vendor staff may legitimately hold every customer-scoped code.
 STAFF_ORGS = {"SYDC"}
-STAFF_PROFILES = {"enterpriseAdmin", "globalAdmin"}
+STAFF_PROFILES = {"enterpriseAdmin", "globalAdmin", "Enterprise Admin", "Global Admin"}
 
 # ponytail: mirrors migrations 0089-0104; delete once PROD carries Organizations.TenantCode.
 _LEGACY_TENANT_OF_ORG = {
@@ -127,7 +127,7 @@ def audit(s: Snapshot) -> dict:
         if pname:
             expected = porg
             if not expected:
-                label = re.sub(r"(user|supervisor|admin)$", "", pname.lower())
+                label = re.sub(r"\s*(user|supervisor|admin)$", "", pname.lower()).strip()
                 expected = org_by_label.get(label)
             if expected and expected != org:
                 out["Profile does not match organization"].append(

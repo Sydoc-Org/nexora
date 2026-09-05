@@ -87,8 +87,8 @@ configurations (migration `0096` dropped the `Organizations.ClientCode` copy, to
 `Tenants.ClientCode` and the pre-0090 `Tenants.OrganizationCode` pointer — all three agreed with the
 process sources in every row and only waited to drift). A profile bound to an organization is
 assignable only to that organization's users (`nx_lib/views/admin/users.py::_profile_org_mismatch`);
-a profile with `OrganizationCode = NULL` is global (`globalAdmin`, `enterpriseAdmin`,
-`nexoraSupervisor`). `/admin/tenants` renders exactly this tree and flags what is still unassigned.
+a profile with `OrganizationCode = NULL` is global (`Global Admin`, `Enterprise Admin`,
+`Sydoc Supervisor`). Profile names follow `<Organization> <Role>` since migration `0105`. `/admin/tenants` renders exactly this tree and flags what is still unassigned.
 
 **Data-only connections.** A `dbo.Clients` row without an Octo domain is a *data-only* connection
 (Generali: `generali` → `engine_generali_db`, migration `0091`): it loads into `CLIENTS` with
@@ -105,7 +105,7 @@ DB at all, and it does so through the admin UI, not a migration.
 ## `/admin/clients` — runtime sources
 
 Permissions: `admin.view.clients` (read), `admin.edit.clients` (add/edit/delete). Both are granted to
-`enterpriseAdmin` and `globalAdmin` by migration `0080`.
+`Enterprise Admin` and `Global Admin` by migration `0080`.
 
 The table lists five columns per `dbo.Clients` row — `ClientCode`, `DisplayName`, `Dialect`
 (`tsql` | `postgres`), `RuntimeEngineKey` and `IsActive`. The add/edit modal covers all ten writable
@@ -156,7 +156,7 @@ decision; this only makes the degradation visible.
 ## `/admin/processes` — process sources and field mappings
 
 Permissions: `admin.view.processes` (read), `admin.edit.processes` (add/edit/delete). Both granted to
-`enterpriseAdmin` and `globalAdmin` by migration `0080`.
+`Enterprise Admin` and `Global Admin` by migration `0080`.
 
 Reads and writes `dbo.ProcessSources` and `dbo.ProcessFieldMappings` (migration `0074`) entirely
 through the cached registry in `nx_lib/mapping_config.py` — never raw SQL for reads. The page groups
@@ -230,7 +230,7 @@ The practical meaning of the permission is **"can point any granted process at a
 runtime database"** — which is inherent to an editable config surface, not a defect to be patched.
 
 Grant it accordingly. Migration `0080` hands it to every access profile that already holds
-`admin.view.organizations` (`enterpriseAdmin`, `globalAdmin`); treat adding anyone else to that set
+`admin.view.organizations` (`Enterprise Admin`, `Global Admin`); treat adding anyone else to that set
 as the cross-tenant data-access decision it is.
 
 ### Scope limits — deliberately not editable here
@@ -386,7 +386,7 @@ The stored filename is derived from the organization code, never from the upload
 ### Editing a brand
 
 The branding panel on `/admin/organizations` sits behind **`admin.edit.organization.branding`**
-(seeded by migration `0080`, granted to `enterpriseAdmin` and `globalAdmin`). A viewer holding only
+(seeded by migration `0080`, granted to `Enterprise Admin` and `Global Admin`). A viewer holding only
 `admin.view.organizations` never sees the panel or its per-row button. `POST
 /admin/organizations/<organizationcode>/branding` accepts JSON (name + accent only) or
 `multipart/form-data` (plus `logo`); a save without an upload leaves the stored logo untouched.

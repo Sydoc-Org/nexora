@@ -11,7 +11,13 @@ from flask_babel import gettext as _
 from werkzeug.exceptions import HTTPException
 
 from ...db import engine_nexora_db
-from ...security import _revoke_session_by_id, has_permission, page_visibility, require_permission
+from ...security import (
+    _revoke_session_by_id,
+    assign_profile_code,
+    has_permission,
+    page_visibility,
+    require_permission,
+)
 
 
 @require_permission("admin.view.active.sessions")
@@ -70,7 +76,7 @@ def admin_add_user():
     if not all([username, password, fullname, email, organization, accessprofile]):
         return jsonify({"success": False, "message": _("All fields are required.")}), 400
 
-    if not has_permission(f"admin.assign.user.accessprofile.{str(accessprofile).lower()}"):
+    if not has_permission(assign_profile_code(accessprofile)):
         current_app.logger.error(
             "assign-permission denied: profile=%r username=%r",
             str(accessprofile)[:100],
@@ -187,10 +193,10 @@ def admin_edit_user(user_id):
             accessprofile = current_profile
 
         if accessprofile != current_profile and not has_permission(
-            f"admin.assign.user.accessprofile.{str(accessprofile).lower()}"
+            assign_profile_code(accessprofile)
         ):
             current_app.logger.error(
-                f"User does not have Permission: admin.assign.user.accessprofile.{str(accessprofile).lower()} for {user_id}"
+                f"User does not have Permission: {assign_profile_code(accessprofile)} for {user_id}"
             )
             return jsonify(
                 {"success": False, "message": _("Permission Denied for this action.")}
@@ -277,9 +283,7 @@ def admin_user_detail(user_id):
             for r in cursor.fetchall()
         ]
         assignable_profiles = [
-            ap
-            for ap in all_ap
-            if has_permission(f'admin.assign.user.accessprofile.{str(ap["profile"]).lower()}')
+            ap for ap in all_ap if has_permission(assign_profile_code(ap["profile"]))
         ]
 
         cursor.execute("""
