@@ -59,9 +59,12 @@ Work toward the next release.
   `doc_count` are repointed automatically, moving the date column, filter and
   sort onto the shared `activity_date` axis along with the measure — the numbers
   are unchanged. Only unambiguous definitions are rewritten; anything else keeps
-  `doc_count` and is left for its owner. "Field instances" and "Workitems
-  (distinct)" also come off the field-quality source: they measure how much data
-  is in scope, not how well extraction works.
+  `doc_count` and is left for its owner. "Pages processed" goes the same way —
+  `pages_imported` / `pages_exported` give the same numbers with a stated date —
+  which leaves every Document Processing measure date-anchored, so they now all
+  combine with one another instead of one odd chip greying out the rest. "Field
+  instances" and "Workitems (distinct)" also come off the field-quality source:
+  they measure how much data is in scope, not how well extraction works.
 
 - **Migrations can reach another database on the same server.**
   `scripts/db-migrate.py` now passes the configured database names to sqlcmd as

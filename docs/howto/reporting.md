@@ -1242,7 +1242,13 @@ NULL-falls-back-to-English convention `dbo.FieldLabels` uses in
 locale's label, while the AI catalogs deliberately keep the English `Label` for
 prompt-grounding stability. Migration `0017` seeds a worked example, `doc_count`
 (a `count` over the docprocessing source); migration `0039` adds **`page_count`**
-("Pages processed", `SUM` over `pagecount`, `SortOrder` 30). For `sum`/`avg`
+("Pages processed", `SUM` over `pagecount`, `SortOrder` 30). Both are
+**disabled** now — `doc_count` by `0102`/`0103`, `page_count` by `0104` — so the
+Document Processing category answers one question consistently: was this counted
+on the day it was *imported* or the day it was *exported*. All five remaining
+measures are date-anchored, which also means `anchorMismatch` can no longer grey
+out a chip *within* that source; `pages_imported` / `pages_exported` give the
+same page numbers with a stated date. For `sum`/`avg`
 metrics the docprocessing query builder projects the base field as
 `TRY_CAST(<col> AS float)` per UNION-ALL subquery — the stat columns are
 varchar, so non-numeric cells become NULL and drop out of the aggregate instead
