@@ -113,7 +113,7 @@ Because they are gitignored, `deploy.yml` never copies them — **adding a key t
 
 ## Working with Claude Code
 
-Token-efficiency and AI-workflow conventions — subagent/GitNexus exploration, targeted tests, plan-mode for multi-file changes, the verification loop, the session-start budget — live in `docs/howto/claude-workflow.md`. When adding a page/route/permission use the `nexora-feature` skill; `/nx-i18n` and `/nx-migrate` scaffold the translation and migration chores.
+Token-efficiency and AI-workflow conventions — subagent/GitNexus exploration, targeted tests, plan-mode for multi-file changes, the verification loop, the session-start budget — live in `docs/howto/claude-workflow.md`. When adding a page/route/permission use the `nexora-feature` skill; `/nx-i18n` and `/nx-migrate` scaffold the translation and migration chores; `/nx-perm-audit [PROD|INT]` runs the read-only permission-grant anomaly audit (`scripts/perm-audit.py`).
 
 **Session handoff loop:** when a batch of work is done (committed, tests green, nothing queued) or the conversation nears auto-compact, run `/handoff-session-state` **unprompted** — it writes a zero-context handoff, commits it, drops the gitignored `var/handoff-pending` flag, and prompts `/clear`. A SessionStart hook then routes the next session through `/reset-session`.
 

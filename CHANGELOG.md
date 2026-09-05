@@ -24,6 +24,12 @@ Work toward the next release.
   `{labels, series:[{name, values, current}], total, prev_total}` — per-process
   backlog history, scoped by the active process filter, capped at four named
   series plus "Other".
+- **`scripts/perm-audit.py` + `/nx-perm-audit [PROD|INT]`**: read-only anomaly audit of
+  the live permission grants: a customer seeing another org's processes or another
+  tenant's pages, profile/org mismatches, customers holding `admin.*`, no-op user
+  overrides, dead codes and empty profiles. Reads effective permissions through
+  `spGetUserPermissions`, so it works on both the legacy catalogue (PROD) and the
+  per-process shape from #238 (INT).
 - **The tenant Dashboard and Workitems pages are the tenant's** (migrations
   `0097`, `0098`). The Dashboard and Workitems entries inside a tenant's
   sidebar group now open `/dashboard?tenant=<code>` and
