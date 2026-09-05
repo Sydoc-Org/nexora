@@ -1556,23 +1556,6 @@ def fetch_merged_page(filt, offset, limit):
     return page, total, degraded
 
 
-def recent_activity_rows(pairs, activity_ignore_map, top=3):
-    """Top-N most recently modified workitems across all sources, merged.
-    Each row: {id, modifiedat, process, client}.
-
-    ``pairs``: granted [(client, process), ...] -- see WorkitemFilter.
-    client_process_pairs for why this must never be split into independent
-    client/process lists."""
-    out = []
-    for src in active_sources():
-        try:
-            out.extend(src.recent_rows(pairs, activity_ignore_map, top))
-        except Exception as e:
-            current_app.logger.error(f"recent_activity_rows {src.code}: {e}")
-    out.sort(key=lambda r: r["modifiedat"], reverse=True)
-    return out[:top]
-
-
 def total_backlog_count(pairs):
     """Sum the C+A backlog count across all active sources (resilient).
 

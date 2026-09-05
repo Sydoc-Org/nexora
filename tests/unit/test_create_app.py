@@ -163,7 +163,6 @@ EXPECTED_NON_GENERALI_ENDPOINTS = {
     "dashboard_backlog_trend",
     "dashboard",
     "dashboard_set_filter",
-    "api_recent_activity",
     # views/admin/ (package)
     "admin_dashboard",
     "admin_organizations_view",

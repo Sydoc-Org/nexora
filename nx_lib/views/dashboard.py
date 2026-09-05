@@ -1,4 +1,4 @@
-"""Dashboard page, KPI/time-series endpoints and the recent-activity feed.
+"""Dashboard page and its KPI / time-series endpoints.
 
 The customizable-widget engine (per-user layouts, widget_data/widget_compare,
 field metadata) was removed in 2.5.65: it never had a frontend and its
@@ -22,20 +22,10 @@ from .. import mapping_config
 from ..config import DB_STATISTICS
 from ..db import engine_ms02_stats_pg, engine_statistics_db
 from ..extensions import cache
-from ..octo import get_extensions_urls_fields, get_workitemdata_param
-from ..process_helpers import (
-    get_activity_instances_to_ignore,
-    granted_processes,
-    normalize_process_selection,
-)
+from ..process_helpers import granted_processes, normalize_process_selection
 from ..security import page_visibility, require_permission
-from ..workitem_sources import (
-    get_domain_for_workitem,
-    recent_activity_rows,
-    total_backlog_count,
-)
+from ..workitem_sources import total_backlog_count
 from .tenant import apply_tenant_scope
-from .workitems import sensitive_blocked_tokens, strip_sensitive_fields
 
 # The 14 / 30 / 90-day windows the range control offers. Anything else
 # normalizes to 14 -- the value reaches SQL by string interpolation (a
@@ -1039,66 +1029,6 @@ def dashboard_set_filter():
     )
 
 
-# ----------------------------- recent activity ----------------------------- #
-
-
-@require_permission("dashboard.view")
-@cache.cached(
-    timeout=120,
-    key_prefix=lambda: f"recent_activity_{session.get('userid')}_{session.get('process_name_dashboard','all')}_{session.get('tenant_scope','')}",  # type: ignore[arg-type]
-)
-def api_recent_activity():
-    try:
-        process_name = session.get("process_name_dashboard", "all")
-        allowed_processes = _allowed_processes()
-        target_processes = normalize_process_selection(process_name, allowed_processes)[1]
-
-        if not target_processes:
-            return jsonify([])
-
-        # (client, process) pairs, NOT two independent client/process
-        # IN-lists -- see _pair_predicate's docstring in workitem_sources.py.
-        pairs = sorted({(p.split(".")[0], p.split(".")[-1]) for p in target_processes if "." in p})
-        activity_ignore_map = get_activity_instances_to_ignore()
-        raw_rows = recent_activity_rows(pairs, activity_ignore_map, top=3)
-
-        # Same sensitive-doc-field gate enforced at every other surface that
-        # shows doc-fields (workitems.filter.documentfields.sensitive) --
-        # this feed was reading raw Octo fields straight through.
-        blocked_tokens = sensitive_blocked_tokens()
-
-        activity = []
-        for row in raw_rows:
-            domain = get_domain_for_workitem(row["id"], client_hint=row.get("client"))
-            returndata = get_workitemdata_param(row["id"], domain)
-            if not returndata:
-                current_app.logger.warning(
-                    f"Activity feed: skipping workitem {row['id']} (Octo lookup failed)"
-                )
-                continue
-            workitemdata, doc_id = returndata
-            _ext, _urls, fields, _fs, _ts = get_extensions_urls_fields(workitemdata, doc_id, domain)
-            fields = {k: v for k, v in fields.items() if v}
-            fields = strip_sensitive_fields(fields, blocked_tokens)
-            activity.append(
-                {
-                    "id": row["id"],
-                    "time": row["modifiedat"].strftime("%H:%M"),
-                    "process": row["process"],
-                    "client": row.get("client"),
-                    "fields": fields,
-                }
-            )
-
-        return jsonify(activity)
-    except Exception as e:
-        # exc_info: the bare message alone ("'NoneType' object has no attribute
-        # 'get'") named neither the file nor the workitem, which is what made
-        # the Octo null-body crash so slow to place.
-        current_app.logger.error(f"Activity feed error: {e}", exc_info=True)
-        return jsonify([])
-
-
 def register_routes(app):
     # legacy KPI endpoints
     app.add_url_rule(
@@ -1132,11 +1062,4 @@ def register_routes(app):
         endpoint="dashboard_set_filter",
         view_func=dashboard_set_filter,
         methods=["POST"],
-    )
-
-    # recent activity
-    app.add_url_rule(
-        "/api/dashboard/recent_activity",
-        endpoint="api_recent_activity",
-        view_func=api_recent_activity,
     )
