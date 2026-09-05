@@ -26,6 +26,20 @@ RELEASES = [
         "date": "2026-08-27",
         "entries": [
             {
+                "title": _("A denser Dashboard"),
+                "body": _(
+                    "The Dashboard reads like a console now. Each KPI shows how "
+                    "it moved since yesterday plus a seven-day sparkline, the "
+                    "throughput chart fills the width and holds the hourly view "
+                    "as a tab, and a new Backlog section traces the last 14, 30 "
+                    "or 90 days per process. The Recent Validations column is "
+                    "gone — the workitems page is where workitems live."
+                ),
+                "perm": "dashboard.view",
+                "endpoint": "dashboard",
+                "icon": "gauge-high",
+            },
+            {
                 "title": _("Reporting has a new home screen"),
                 "body": _(
                     "The reporting page is now a workbench: a Library of every "

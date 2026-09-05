@@ -206,3 +206,33 @@ reuses them.
 - `translations/{de,fr,it}` — new strings ("Prozess", "Zeitverlauf", "Heute nach Stunde",
   "Rückstand", "Verlauf 14 Tage", "Aktualisieren", "vs. gestern")
 - `tests/e2e` — the removed `#activity-feed` and hourly card selectors will need updating
+
+---
+
+## Implementation status (2026-09-05)
+
+Implemented per `docs/superpowers/plans/2026-09-04-dashboard-redesign-console.md`.
+Deliberate divergences from the text above:
+
+- **Colour.** The prototype's amber `#d97706` is `var(--nx-accent)` in the app, not a
+  fixed hue — the app ships indigo by default and amber is one of seven user-selectable
+  accents. Only the chart series keep fixed colours, as `--nx-series-1..5`.
+- **Copy.** English is the source locale, so every string entered the code in English
+  and the German wording above lives in `translations/de/LC_MESSAGES/messages.po`.
+- **Range persistence** rides the session (like the process filter), not `ui_prefs.py`.
+- **Page title** stays tenant-aware (`<Tenant> Dashboard` / `Global Dashboard`, #255 /
+  migration `0097`); only the marketing subtitle was dropped.
+- **e2e** work was additive — the pre-existing dashboard e2e never referenced the
+  activity feed or the hourly card.
+
+Further deviations discovered during execution:
+
+- **Format strings use brace placeholders** (`{days}`), not `%(days)s`. Jinja's `_()`
+  always applies `rv % variables`, so a bare `%(days)s` in a translated string raised
+  `KeyError` and 500'd the page.
+- **The sign-in note keeps its `{% if login_at %}` guard**, so it stays a
+  once-per-login greeting (#146) rather than permanent chrome.
+- **Sparkline colour is per-KPI** (accent, success, accent, success), following this
+  README's own list, rather than being derived from whether lower is better.
+- **Both charts label their x axis with raw ISO dates** and cap the tick count.
+- **The KPI strip omits the sparkline entirely** for an all-zero series.
