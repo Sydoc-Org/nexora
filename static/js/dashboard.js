@@ -92,6 +92,10 @@
         svg.innerHTML = '';
         const pts = (values || []).filter((v) => v !== null && v !== undefined);
         if (pts.length < 2) return;
+        // An all-zero series has nothing to show: drawn, it is a flat line
+        // pinned to the baseline, which reads as a stray horizontal rule
+        // rather than as data. Leave the cell empty instead.
+        if (!pts.some((v) => v > 0)) return;
         const min = Math.min(...pts), max = Math.max(...pts);
         const span = max - min || 1;
         const step = 120 / (pts.length - 1);
@@ -136,8 +140,13 @@
                 : `${diff >= 0 ? '+' : ''}${prev ? Math.round((diff / prev) * 100) : 0}%`;
             deltaEl.innerHTML = `${window.NX.esc(shown)} <span>${window.NX.esc(S.vsYesterday)}</span>`;
         }
+        // Sparkline colour is per-KPI (design 1a alternates accent/success down
+        // the strip), NOT semantic. Deriving it from lowerIsBetter drew a
+        // *rising* backlog in success-green -- reading as good news beside a
+        // delta correctly coloured bad.
         drawSparkline(cell.querySelector('.nx-kpi__spark'), series,
-            opts.lowerIsBetter ? token('--nx-success', '#059669') : token('--nx-accent', '#d97706'));
+            opts.spark === 'success' ? token('--nx-success', '#059669')
+                : token('--nx-accent', '#d97706'));
     }
 
     /* ---------- the four KPI cells ---------- */
@@ -156,12 +165,13 @@
             const series = stats.series || {};
 
             renderKpi('imported', stats.imported_today, stats.prev_imported,
-                series.imported, { countFrom: last.imported });
+                series.imported, { countFrom: last.imported, spark: 'accent' });
             renderKpi('processed', stats.processed_today, stats.prev_processed,
-                series.processed, { countFrom: last.processed });
+                series.processed, { countFrom: last.processed, spark: 'success' });
             renderKpi('backlog', stats.current_backlog, stats.prev_backlog, series.backlog, {
                 countFrom: last.backlog,
                 lowerIsBetter: true,
+                spark: 'accent',
                 formatDelta: (d) => (d >= 0 ? '+' : '') + d.toLocaleString()
             });
             last.imported = stats.imported_today || 0;
@@ -171,6 +181,7 @@
             renderKpi('avgtime', apt.avg_minutes, apt.prev_avg_minutes, apt.series, {
                 display: apt.avg_display || '—',
                 lowerIsBetter: true,
+                spark: 'success',
                 formatDelta: (d) => `${d >= 0 ? '+' : ''}${(d / 60).toFixed(1)}h`
             });
         } catch (error) {
@@ -260,7 +271,12 @@
                     interaction: { mode: 'index', intersect: false },
                     scales: {
                         y: { beginAtZero: true, grid: { borderDash: [5, 5], color: nxAxis().grid } },
-                        x: { grid: { display: false } }
+                        // Cap the labels: a 90-day window otherwise renders 90
+                        // rotated dates into an unreadable smear.
+                        x: {
+                            grid: { display: false },
+                            ticks: { maxTicksLimit: 14, autoSkip: true, maxRotation: 0 }
+                        }
                     },
                     plugins: {
                         legend: { display: false },
@@ -374,7 +390,12 @@
                     interaction: { mode: 'index', intersect: false },
                     scales: {
                         y: { beginAtZero: true, grid: { borderDash: [5, 5], color: nxAxis().grid } },
-                        x: { grid: { display: false } }
+                        // Cap the labels: a 90-day window otherwise renders 90
+                        // rotated dates into an unreadable smear.
+                        x: {
+                            grid: { display: false },
+                            ticks: { maxTicksLimit: 14, autoSkip: true, maxRotation: 0 }
+                        }
                     },
                     plugins: {
                         legend: { display: false },
@@ -458,7 +479,10 @@
                 tension: 0.3,
                 fill: false
             }));
-            const labels = (data.labels || []).map((d) => window.NX.formatDate(d) || d);
+            // Raw ISO dates, matching the over-time chart directly above. Running
+            // these through NX.formatDate gave the two charts on one page two
+            // different date formats (2026-08-23 above, 23/08/2026 below).
+            const labels = data.labels || [];
 
             if (backlogChart) {
                 backlogChart.data.labels = labels;
@@ -477,7 +501,12 @@
                     interaction: { mode: 'index', intersect: false },
                     scales: {
                         y: { beginAtZero: true, grid: { borderDash: [5, 5], color: nxAxis().grid } },
-                        x: { grid: { display: false } }
+                        // Cap the labels: a 90-day window otherwise renders 90
+                        // rotated dates into an unreadable smear.
+                        x: {
+                            grid: { display: false },
+                            ticks: { maxTicksLimit: 14, autoSkip: true, maxRotation: 0 }
+                        }
                     },
                     plugins: {
                         // The page renders its own #backlog-legend so the
