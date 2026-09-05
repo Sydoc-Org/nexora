@@ -62,7 +62,7 @@ _SWITCHABLE_ENVS = {"INT", "STAGING"}
 def _restart_allowed():
     """May this caller restart / env-switch the dev server?
 
-    The ``admin.restart`` permission lives in NexoraDB, and STAGING resolves
+    The ``admin.server.restart`` permission lives in NexoraDB, and STAGING resolves
     NexoraDB to the prod server (DB_SERVER_PRD) where the row from migration
     0059 doesn't exist — so on STAGING the control vanished and the env switch
     was one-way (#198). Loopback callers are therefore allowed regardless of the
@@ -71,7 +71,7 @@ def _restart_allowed():
     """
     if IS_PROD:
         return False
-    return has_permission("admin.restart") or request.remote_addr in ("127.0.0.1", "::1")
+    return has_permission("admin.server.restart") or request.remote_addr in ("127.0.0.1", "::1")
 
 
 def api_admin_restart():

@@ -406,7 +406,7 @@ def test_page_visibility_reflects_selected_perms(fake_session):
     fake_session["permissions"] = [
         "admin.view",
         "dashboard.view",
-        "generali.pdqm.view",
+        "tenant.generali.pdqm.view",
         "admin.maintenance.bypass",
     ]
     pv = page_visibility()

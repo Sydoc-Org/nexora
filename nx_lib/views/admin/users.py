@@ -20,7 +20,7 @@ from ...security import (
 )
 
 
-@require_permission("admin.view.active.sessions")
+@require_permission("admin.sessions.view")
 def admin_sessions_view():
     return render_template(
         "admin/sessions.html",
@@ -30,7 +30,7 @@ def admin_sessions_view():
     )
 
 
-@require_permission("admin.create.user")
+@require_permission("admin.users.add")
 def admin_add_user():
     from ..auth import _build_reset_email_message, send_reset_email
 
@@ -136,7 +136,7 @@ def admin_add_user():
             conn.close()
 
 
-@require_permission("admin.edit.user")
+@require_permission("admin.users.edit")
 def admin_edit_user(user_id):
     data = request.get_json()
     username = data.get("username")
@@ -223,7 +223,7 @@ def admin_edit_user(user_id):
             conn.close()
 
 
-@require_permission("admin.view.accessprofiles.useroverrides")
+@require_permission("admin.profiles.view")
 def admin_user_detail(user_id):
     if "username" not in session:
         return redirect(url_for("login"))
@@ -294,9 +294,9 @@ def admin_user_detail(user_id):
             organizations=organizations,
             assignable_profiles=assignable_profiles,
             all_permissions=all_permissions,
-            can_edit_user=has_permission("admin.edit.user"),
-            can_delete_user=has_permission("admin.delete.user"),
-            can_edit_overrides=has_permission("admin.edit.user.override"),
+            can_edit_user=has_permission("admin.users.edit"),
+            can_delete_user=has_permission("admin.users.delete"),
+            can_edit_overrides=has_permission("admin.users.overrides.edit"),
             logged_in_user=session.get("username"),
             userid=session.get("userid"),
             page_visibility=page_visibility(),
@@ -313,7 +313,7 @@ def admin_user_detail(user_id):
             conn.close()
 
 
-@require_permission("admin.view.accessprofiles.useroverrides")
+@require_permission("admin.profiles.view")
 def api_admin_user_activity(user_id):
     """Recent log entries for one user. Last 7 days, paginated, 25 per page."""
     page = request.args.get("page", 1, type=int)
@@ -402,7 +402,7 @@ def api_admin_user_activity(user_id):
                 conn.close()
 
 
-@require_permission("admin.delete.user")
+@require_permission("admin.users.delete")
 def admin_delete_user(user_id):
     current_user = session.get("userid")
     if str(user_id) == current_user:
@@ -470,7 +470,7 @@ def admin_delete_user(user_id):
                 conn.close()
 
 
-@require_permission("admin.edit.user.override")
+@require_permission("admin.users.overrides.edit")
 def admin_revoke_session(session_id):
     try:
         _revoke_session_by_id(session_id)
@@ -480,7 +480,7 @@ def admin_revoke_session(session_id):
         return jsonify({"success": False, "message": str(e)}), 500
 
 
-@require_permission("admin.edit.user.override")
+@require_permission("admin.users.overrides.edit")
 def admin_revoke_all_sessions(user_id):
     sids = []
     conn = None
@@ -515,7 +515,7 @@ def admin_revoke_all_sessions(user_id):
     return jsonify({"success": True, "revoked": revoked})
 
 
-@require_permission("admin.view.users")
+@require_permission("admin.users.view")
 def api_admin_users_list():
     if "username" not in session:
         return jsonify({"error": "Not authorized"}), 401
@@ -546,7 +546,7 @@ def api_admin_users_list():
             conn.close()
 
 
-@require_permission("admin.view.active.sessions")
+@require_permission("admin.sessions.view")
 def admin_recent_logs():
     conn = None
     try:
@@ -589,7 +589,7 @@ def admin_recent_logs():
             conn.close()
 
 
-@require_permission("admin.view.active.sessions")
+@require_permission("admin.sessions.view")
 def admin_active_sessions():
     """Read currently-active sessions from ActiveSessions, joined to Users.
     Filtered to LastSeenAt (bumped on every request by _enforce_active_session)

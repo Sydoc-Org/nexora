@@ -38,14 +38,14 @@ def test_reporting_page_renders_chat_panel_when_ai_enabled(admin_client):
 
 def test_reporting_page_caption_slots_need_only_explain_data(admin_client):
     """Regression for the Phase 4 review finding: the caption <div>s must be
-    gated on reporting.ai.explain_data alone (D-CAPTION), not on the
+    gated on reporting.ai.explain.use alone (D-CAPTION), not on the
     ai_explain_enabled AND-combo (which also requires reporting.sql.run --
     that extra requirement is for Surface C's live-SQL tool binding, an
     unrelated concern). A caller with explain_data but NOT sql.run must still
     see both #rpCaption (Advanced) and #rsCaption (Simple)."""
 
     def _perm(code):
-        return code in ("reporting.view", "reporting.ai.explain_data")
+        return code in ("reporting.view", "reporting.ai.explain.use")
 
     with (
         patch("nx_lib.security.has_permission", side_effect=_perm),
@@ -652,7 +652,7 @@ def test_runner_dry_run_processes_due_table_report(admin_client):
             "code": "sched_users",
             "kind": "curated",
             "label": "Sched Users",
-            "permission": "reporting.source.docprocessing",
+            "permission": "reporting.source.docprocessing.use",
             "provider": "table",
             "engine": "nexora",
             "baseObject": "dbo.Users",
@@ -726,7 +726,7 @@ def test_zero_dim_latest_metric_run_constrains_to_latest_bucket(admin_client):
             "code": "latest_test_src",
             "kind": "curated",
             "label": "Latest Test Src",
-            "permission": "reporting.source.docprocessing",
+            "permission": "reporting.source.docprocessing.use",
             "provider": "table",
             "engine": "nexora",
             "baseObject": "dbo.Users",
@@ -807,7 +807,7 @@ def test_runner_alert_skips_mail_and_advances(admin_client):
             "code": "alert_users",
             "kind": "curated",
             "label": "Alert Users",
-            "permission": "reporting.source.docprocessing",
+            "permission": "reporting.source.docprocessing.use",
             "provider": "table",
             "engine": "nexora",
             "baseObject": "dbo.Users",
@@ -989,7 +989,7 @@ def test_table_source_end_to_end(admin_client):
             "code": "e2e_users",
             "kind": "curated",
             "label": "E2E Users",
-            "permission": "reporting.source.docprocessing",
+            "permission": "reporting.source.docprocessing.use",
             "provider": "table",
             "engine": "nexora",
             "baseObject": "dbo.Users",
@@ -1597,7 +1597,7 @@ def test_runner_forecast_export_rows_failure_still_sends_mail(admin_client):
             "code": "sched_fc_users",
             "kind": "curated",
             "label": "Sched Forecast Users",
-            "permission": "reporting.source.docprocessing",
+            "permission": "reporting.source.docprocessing.use",
             "provider": "table",
             "engine": "nexora",
             "baseObject": "dbo.Users",
@@ -1679,7 +1679,7 @@ def test_runner_forecast_export_rows_failure_still_sends_mail(admin_client):
 def _create_field_values_source(admin_client):
     """A 'backlog_history'-shaped table source (#178), created dynamically
     since the TEST NexoraDB fixture doesn't seed the real migration-0053 row.
-    Reuses the already-granted reporting.source.docprocessing permission,
+    Reuses the already-granted reporting.source.docprocessing.use permission,
     same idiom as test_zero_dim_latest_metric_run_constrains_to_latest_bucket."""
     src = admin_client.post(
         "/api/reporting/admin/sources",
@@ -1687,7 +1687,7 @@ def _create_field_values_source(admin_client):
             "code": "field_values_test_src",
             "kind": "curated",
             "label": "Field Values Test Src",
-            "permission": "reporting.source.docprocessing",
+            "permission": "reporting.source.docprocessing.use",
             "provider": "table",
             "engine": "nexora",
             "baseObject": "dbo.Users",

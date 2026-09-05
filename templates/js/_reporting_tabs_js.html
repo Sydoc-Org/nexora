@@ -114,7 +114,7 @@
     var h = health && health[s.id];
     var dot = h ? '<span class="rc-src-dot' + (h.ok ? ' rc-src-dot--ok src-pulse' : ' rc-src-dot--warn') + '"></span>' : '';
     var name = (h && h.db) || s.label;
-    // With reporting.sources.schema the card opens the source visualizer
+    // With reporting.sources.schema.view the card opens the source visualizer
     // (static/js/reporting_schema.js); without it there is no panel on the
     // page, so it stays a plain div.
     var live = !!window.ReportingSchema;

@@ -220,7 +220,7 @@ def api_v1_undelivered():
 # --------------------------- /api/v1/workitems ----------------------------- #
 
 # The query endpoint's exposed enums (issue #197). Deleted is internal-only
-# (workitems.filter.status.deleted) and deliberately not exposed to keys.
+# (workitems.filter.deleted.view) and deliberately not exposed to keys.
 WORKITEM_API_STATUSES = ("Ready", "In Progress", "Done")
 # Mirrors the overview's perPage whitelist -- validated as strings like ?days=.
 WORKITEM_API_PER_PAGE = ("40", "100", "200", "500", "1000")

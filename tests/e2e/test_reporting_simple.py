@@ -369,7 +369,7 @@ def test_wizard_category_breakdown_to_result_cards(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'wiz_users', kind: 'curated', label: 'Wizard Users',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [{field: 'username', label: 'Username', type: 'string',
                        filterable: true, sortable: true}],
@@ -429,7 +429,7 @@ def test_timing_badge_shows_rows_and_elapsed_ms(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'timing_users', kind: 'curated', label: 'Timing Users',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [{field: 'username', label: 'Username', type: 'string',
                        filterable: true, sortable: true}],
@@ -481,7 +481,7 @@ def test_kpi_band_shows_total_buckets_avg(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'kpi_users', kind: 'curated', label: 'KPI Users',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [{field: 'username', label: 'Username', type: 'string',
                        filterable: true, sortable: true}],
@@ -1063,7 +1063,7 @@ def _create_caption_source_and_metric(page, nexora_server):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'caption_users', kind: 'curated', label: 'Caption Users',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [{field: 'username', label: 'Username', type: 'string',
                        filterable: true, sortable: true}],
@@ -1152,7 +1152,7 @@ def test_saved_token_report_shows_resolved_range(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'tok_reports', kind: 'curated', label: 'Token Test Reports',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Reports',
             columns: [
               {field: 'Name', label: 'Name', type: 'string',
@@ -1350,7 +1350,7 @@ def test_wizard_result_shows_chips(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'wiz_chips', kind: 'curated', label: 'Wizard Chips',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [{field: 'username', label: 'Username', type: 'string',
                        filterable: true, sortable: true}],
@@ -1405,7 +1405,7 @@ def test_adjust_wizard_button_round_trip(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'wiz_adjust', kind: 'curated', label: 'Wizard Adjust',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [{field: 'username', label: 'Username', type: 'string',
                        filterable: true, sortable: true}],
@@ -1471,7 +1471,7 @@ def test_total_only_result_explains_missing_chart(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'wiz_total_note', kind: 'curated', label: 'Wizard Total Note',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [{field: 'username', label: 'Username', type: 'string',
                        filterable: true, sortable: true}],
@@ -1522,7 +1522,7 @@ def test_chart_type_switcher(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'wiz_chart_switch', kind: 'curated', label: 'Wizard Chart Switch',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [{field: 'username', label: 'Username', type: 'string',
                        filterable: true, sortable: true}],
@@ -1574,7 +1574,7 @@ def test_saved_report_adjust_in_wizard(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'wiz_saved_adj', kind: 'curated', label: 'Wizard Saved Adjust',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [{field: 'username', label: 'Username', type: 'string',
                        filterable: true, sortable: true}],
@@ -1651,7 +1651,7 @@ def test_show_query_reveals_sql(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'wiz_showsql', kind: 'curated', label: 'Show SQL Test',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [{field: 'username', label: 'Username', type: 'string',
                        filterable: true, sortable: true}],
@@ -1707,7 +1707,7 @@ def test_result_back_returns_to_wizard(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'wiz_back_test', kind: 'curated', label: 'Wizard Back Test',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [{field: 'username', label: 'Username', type: 'string',
                        filterable: true, sortable: true}],
@@ -1850,7 +1850,7 @@ def test_wizard_two_breakdowns(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'wiz_two_bds', kind: 'curated', label: 'Wizard Two Breakdowns',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [
               {field: 'username', label: 'Username', type: 'string',
@@ -1906,7 +1906,7 @@ def test_two_breakdown_chart_has_series(page, nexora_server):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'chart_two_bd', kind: 'curated', label: 'Chart Two Breakdown',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [
               {field: 'username', label: 'Username', type: 'string',
@@ -1974,7 +1974,7 @@ def test_chart_png_download(page, nexora_server):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'chart_png_dl', kind: 'curated', label: 'Chart PNG Download',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [
               {field: 'locale', label: 'Locale', type: 'string',
@@ -2052,7 +2052,7 @@ def test_simple_truncation_note(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'trunc_users', kind: 'curated', label: 'Truncation Users',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [{field: 'username', label: 'Username', type: 'string',
                        filterable: true, sortable: true}],
@@ -2102,7 +2102,7 @@ def test_advanced_truncation_note_renders(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'trunc_adv', kind: 'curated', label: 'Truncation Advanced',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [{field: 'username', label: 'Username', type: 'string',
                        filterable: true, sortable: true}],
@@ -2395,7 +2395,7 @@ def test_wizard_back_steps_back_not_exit(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'back_users', kind: 'curated', label: 'Back Users',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [{field: 'username', label: 'Username', type: 'string',
                        filterable: true, sortable: true}],
@@ -2456,7 +2456,7 @@ def test_run_shows_loading_then_result(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'wiz_runload', kind: 'curated', label: 'Run Load Test',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [{field: 'username', label: 'Username', type: 'string',
                        filterable: true, sortable: true}],
@@ -2526,7 +2526,7 @@ def test_simple_export_csv(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'csv_dl_users', kind: 'curated', label: 'CSV dl Users',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [{field: 'username', label: 'Username', type: 'string',
                        filterable: true, sortable: true}],
@@ -2662,7 +2662,7 @@ def test_drill_row_opens_panel(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'wiz_drill', kind: 'curated', label: 'Wizard Drill',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [{field: 'username', label: 'Username', type: 'string',
                        filterable: true, sortable: true}],
@@ -2732,7 +2732,7 @@ def test_drill_row_null_value_uses_null_label(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'wiz_drill_null', kind: 'curated', label: 'Wizard Drill Null',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [{field: 'username', label: 'Username', type: 'string',
                        filterable: true, sortable: true}],
@@ -2804,7 +2804,7 @@ def test_drill_row_opens_panel_with_context_chips(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'wiz_drill_chips', kind: 'curated', label: 'Wizard Drill Chips',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [{field: 'username', label: 'Username', type: 'string',
                        filterable: true, sortable: true}],
@@ -2875,7 +2875,7 @@ def test_advanced_grid_drill_click_through(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'adv_drill_users', kind: 'curated', label: 'Advanced Drill Users',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [{field: 'username', label: 'Username', type: 'string',
                        filterable: true, sortable: true}],
@@ -2942,7 +2942,7 @@ def test_drill_row_opens_workitem_panel(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'wi_panel_drill', kind: 'curated', label: 'WI Panel Drill',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [{field: 'username', label: 'Username', type: 'string',
                        filterable: true, sortable: true}],

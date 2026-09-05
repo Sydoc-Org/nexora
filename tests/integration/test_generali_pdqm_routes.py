@@ -4,8 +4,8 @@ Regression for: api_generali_pdqm_list, api_generali_pdqm_organizations and
 generali_pdqm_monthreport (nx_lib/views/generali.py) never applied the
 `UserID = session["userid"]` restriction that every sibling generali module
 (Attendance, BaseServices, ProjectManagement) applies for callers who lack
-`generali.pdqm.edit.organizational` / `generali.pdqm.edit.transorganizational`.
-A generali.pdqm.view-only caller could see every org's PDQM entries. PDQM's
+`tenant.generali.pdqm.edit.org` / `tenant.generali.pdqm.edit.all`.
+A tenant.generali.pdqm.view-only caller could see every org's PDQM entries. PDQM's
 own edit/delete endpoints already call `_check_generali_record_org` for this
 exact purpose (proving the intent), the three read endpoints were missed.
 
@@ -230,7 +230,7 @@ def pdqm_uids(user_client):
 def test_pdqm_list_view_only_scoped_to_own_records(user_client, pdqm_uids, monkeypatch):
     self_uid, other_uid = pdqm_uids
     _wire_fake_db(monkeypatch, self_uid, other_uid)
-    _grant_perms(monkeypatch, ["generali.pdqm.view"])
+    _grant_perms(monkeypatch, ["tenant.generali.pdqm.view"])
 
     resp = user_client.get("/api/generali/pdqm")
     assert resp.status_code == 200
@@ -244,12 +244,12 @@ def test_pdqm_list_view_only_scoped_to_own_records(user_client, pdqm_uids, monke
 
 
 def test_pdqm_list_org_edit_perm_sees_all(user_client, pdqm_uids, monkeypatch):
-    """Regression: a caller WITH generali.pdqm.edit.organizational must still
+    """Regression: a caller WITH tenant.generali.pdqm.edit.org must still
     see every org's rows -- the restrict must not fire for callers entitled
     to edit."""
     self_uid, other_uid = pdqm_uids
     _wire_fake_db(monkeypatch, self_uid, other_uid)
-    _grant_perms(monkeypatch, ["generali.pdqm.view", "generali.pdqm.edit.organizational"])
+    _grant_perms(monkeypatch, ["tenant.generali.pdqm.view", "tenant.generali.pdqm.edit.org"])
 
     resp = user_client.get("/api/generali/pdqm")
     assert resp.status_code == 200
@@ -265,7 +265,7 @@ def test_pdqm_list_org_edit_perm_sees_all(user_client, pdqm_uids, monkeypatch):
 def test_pdqm_organizations_view_only_scoped_to_own_org(user_client, pdqm_uids, monkeypatch):
     self_uid, other_uid = pdqm_uids
     _wire_fake_db(monkeypatch, self_uid, other_uid)
-    _grant_perms(monkeypatch, ["generali.pdqm.view"])
+    _grant_perms(monkeypatch, ["tenant.generali.pdqm.view"])
 
     resp = user_client.get("/api/generali/pdqm/organizations")
     assert resp.status_code == 200
@@ -278,7 +278,7 @@ def test_pdqm_organizations_view_only_scoped_to_own_org(user_client, pdqm_uids, 
 def test_pdqm_organizations_transorg_perm_sees_all(user_client, pdqm_uids, monkeypatch):
     self_uid, other_uid = pdqm_uids
     _wire_fake_db(monkeypatch, self_uid, other_uid)
-    _grant_perms(monkeypatch, ["generali.pdqm.view", "generali.pdqm.edit.transorganizational"])
+    _grant_perms(monkeypatch, ["tenant.generali.pdqm.view", "tenant.generali.pdqm.edit.all"])
 
     resp = user_client.get("/api/generali/pdqm/organizations")
     assert resp.status_code == 200
@@ -293,7 +293,7 @@ def test_pdqm_organizations_transorg_perm_sees_all(user_client, pdqm_uids, monke
 def test_pdqm_monthreport_view_only_scoped_to_own_records(user_client, pdqm_uids, monkeypatch):
     self_uid, other_uid = pdqm_uids
     _wire_fake_db(monkeypatch, self_uid, other_uid)
-    _grant_perms(monkeypatch, ["generali.pdqm.view"])
+    _grant_perms(monkeypatch, ["tenant.generali.pdqm.view"])
 
     resp = user_client.get("/generali/pdqm/monthreport?year=2026&month=7")
     assert resp.status_code == 200
@@ -306,7 +306,7 @@ def test_pdqm_monthreport_view_only_scoped_to_own_records(user_client, pdqm_uids
 def test_pdqm_monthreport_transorg_perm_sees_all(user_client, pdqm_uids, monkeypatch):
     self_uid, other_uid = pdqm_uids
     _wire_fake_db(monkeypatch, self_uid, other_uid)
-    _grant_perms(monkeypatch, ["generali.pdqm.view", "generali.pdqm.edit.transorganizational"])
+    _grant_perms(monkeypatch, ["tenant.generali.pdqm.view", "tenant.generali.pdqm.edit.all"])
 
     resp = user_client.get("/generali/pdqm/monthreport?year=2026&month=7")
     assert resp.status_code == 200

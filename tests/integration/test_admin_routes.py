@@ -3,7 +3,7 @@
 Test users have these admin permissions seeded:
 - admin@test.local: admin.view + admin.users.manage + dashboard.view
 
-Most admin sub-routes require finer-grained perms (admin.view.organizations,
+Most admin sub-routes require finer-grained perms (admin.organizations.view,
 admin.maintenance.edit, etc.) that no seed user has. To exercise the 200
 path of the route body without expanding sql/test/seed.sql, the
 `admin_all_perms` fixture monkeypatches nx_lib.security.has_permission to
@@ -80,7 +80,7 @@ def test_admin_dashboard_with_perm_renders(admin_client):
 
 @pytest.fixture()
 def no_restart_perm(monkeypatch):
-    """Drop admin.restart the way STAGING does (#198): it resolves NexoraDB to
+    """Drop admin.server.restart the way STAGING does (#198): it resolves NexoraDB to
     the prod server, where migration 0059 never ran. Patches the binding inside
     views.admin.system only, so the admin.view gate in security.require_permission —
     which looks up its own module global — still lets the page render."""
@@ -511,10 +511,10 @@ def test_admin_clients_form_covers_every_writable_column(
 def test_admin_clients_view_only_gets_no_edit_affordances(
     admin_client, admin_all_perms, fake_clients_db, monkeypatch
 ):
-    """admin.view.clients without admin.edit.clients: the page renders, but no
+    """admin.clients.view without admin.clients.edit: the page renders, but no
     Add/Edit/Delete button -- clicking one only ever produced a 403 toast."""
     monkeypatch.setattr(
-        "nx_lib.views.admin.clients.has_permission", lambda code: code != "admin.edit.clients"
+        "nx_lib.views.admin.clients.has_permission", lambda code: code != "admin.clients.edit"
     )
     resp = admin_client.get("/admin/clients")
     assert resp.status_code == 200
@@ -1674,7 +1674,7 @@ def test_admin_add_user_duplicate_returns_409_or_500(admin_client, admin_all_per
     admin@test.local is TestAdmin (Rank 100), real-assigning TestUser (Rank
     10) — the rank-ceiling check in assignable_profile_ids() passes for real,
     no mocking needed; admin_all_perms only covers the
-    @require_permission("admin.create.user") decorator gate.
+    @require_permission("admin.users.add") decorator gate.
     """
     resp = admin_client.post(
         "/admin/users/add",
@@ -1691,9 +1691,9 @@ def test_admin_add_user_duplicate_returns_409_or_500(admin_client, admin_all_per
 
 
 def test_admin_add_user_returns_403_when_profile_not_assignable(admin_client, monkeypatch, db_conn):
-    """admin.create.user alone must not be enough to assign an access profile.
+    """admin.users.add alone must not be enough to assign an access profile.
 
-    The @require_permission("admin.create.user") decorator resolves the REAL
+    The @require_permission("admin.users.add") decorator resolves the REAL
     nx_lib.security.has_permission at call time — TestAdmin (admin@test.local)
     is seeded with every permission, so that check still passes. Only the
     rank-ceiling assignable_profile_ids() gate denies here, by patching the
@@ -2852,9 +2852,9 @@ def test_branding_save_without_permission_is_403(noperm_client):
 
 
 def test_branding_save_gate_is_the_branding_permission(admin_client, monkeypatch):
-    """admin.view.organizations alone must not be enough to save branding."""
+    """admin.organizations.view alone must not be enough to save branding."""
     monkeypatch.setattr(
-        "nx_lib.security.has_permission", lambda code: code == "admin.view.organizations"
+        "nx_lib.security.has_permission", lambda code: code == "admin.organizations.view"
     )
     resp = admin_client.post(_BRANDING_URL, json={"brand_name": "Provera"})
     assert resp.status_code == 403
@@ -2991,14 +2991,14 @@ def test_organizations_page_shows_branding_panel_with_perm(
 
 
 def test_organizations_page_hides_branding_panel_without_perm(admin_client, monkeypatch):
-    """A viewer who only holds admin.view.organizations must not see the
+    """A viewer who only holds admin.organizations.view must not see the
     controls at all -- a 403 toast after the click is the bug, not the gate."""
     monkeypatch.setattr(
-        "nx_lib.security.has_permission", lambda code: code == "admin.view.organizations"
+        "nx_lib.security.has_permission", lambda code: code == "admin.organizations.view"
     )
     monkeypatch.setattr(
         "nx_lib.views.admin.organizations.has_permission",
-        lambda code: code == "admin.view.organizations",
+        lambda code: code == "admin.organizations.view",
     )
     resp = admin_client.get("/admin/organizations")
     assert resp.status_code == 200

@@ -264,7 +264,7 @@
             <input type="hidden" id="permMetaId">
             <div>
                 <label class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Permission Code") }} <span class="nx-c-danger">*</span></label>
-                <input type="text" id="permMetaCode" placeholder="e.g. admin.view.reports" class="nx-input font-mono" data-testid="admin-ac-perm-code">
+                <input type="text" id="permMetaCode" placeholder="e.g. admin.reports.view" class="nx-input font-mono" data-testid="admin-ac-perm-code">
             </div>
             <div>
                 <label class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Description") }} <span class="nx-c-danger">*</span></label>
@@ -339,7 +339,7 @@
                     {% set ns = namespace(prev_group='', prev_sub='') %}
                     {% for perm in all_permissions %}
                     {% set parts = perm.Code.split('.') %}
-                    {% set group = parts[0] %}
+                    {% set group = parts[0] ~ ('.' ~ parts[1] if parts[0] in ('tenant', 'process') else '') %}
                     {% set action = parts[1] if parts|length > 1 else '' %}
                     {% set sub = group ~ '.' ~ action %}
                     {% if group != ns.prev_group %}

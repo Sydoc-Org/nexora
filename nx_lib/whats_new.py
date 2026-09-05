@@ -96,7 +96,7 @@ RELEASES: list[dict] = [
                     "columns and types, and a diagram of how they connect. "
                     "Structure only — no data is shown."
                 ),
-                "perm": "reporting.sources.schema",
+                "perm": "reporting.sources.schema.view",
                 "endpoint": "reporting",
                 "icon": "diagram-project",
             },
@@ -184,7 +184,7 @@ RELEASES: list[dict] = [
                     "axis. The separate Backlog History source is retired — the "
                     "new Backlog measure replaces it."
                 ),
-                "perm": "reporting.source.docprocessing",
+                "perm": "reporting.source.docprocessing.use",
                 "endpoint": "reporting",
                 "icon": "chart-line",
             },
@@ -243,7 +243,7 @@ RELEASES: list[dict] = [
                     "The Apply button is gone from the Generali filter bars — "
                     "changing any filter or date reloads the list right away."
                 ),
-                "perm": "generali.baseservices.view",
+                "perm": "tenant.generali.baseservices.view",
                 "endpoint": "generali_base_services",
                 "icon": "bolt",
             },
@@ -254,7 +254,7 @@ RELEASES: list[dict] = [
                     "type a few letters, pick the name, and the list filters "
                     "instantly."
                 ),
-                "perm": "generali.baseservices.view",
+                "perm": "tenant.generali.baseservices.view",
                 "endpoint": "generali_base_services",
                 "icon": "magnifying-glass",
             },
@@ -296,7 +296,7 @@ RELEASES: list[dict] = [
                 ),
                 # 0069 retired the standalone backlog source; the Backlog
                 # measure now lives on the docprocessing source.
-                "perm": "reporting.source.docprocessing",
+                "perm": "reporting.source.docprocessing.use",
                 "endpoint": "reporting",
                 "icon": "layer-group",
             },
@@ -330,7 +330,7 @@ RELEASES: list[dict] = [
                     "Each search row now has an operator (contains, =, ≠, starts "
                     "with, ends with) and rows combine with AND/OR."
                 ),
-                "perm": "workitems.filter.documentfields",
+                "perm": "workitems.filter.docfields.view",
                 "endpoint": "workitems_overview",
                 "icon": "magnifying-glass",
             },
@@ -350,7 +350,7 @@ RELEASES: list[dict] = [
                     "A new Stage filter (Import, Extraction, Validation, Delivery) "
                     "narrows the list to workitems currently in that step."
                 ),
-                "perm": "workitems.filter.stage",
+                "perm": "workitems.filter.stage.view",
                 "endpoint": "workitems_overview",
                 "icon": "list-check",
             },
@@ -361,7 +361,7 @@ RELEASES: list[dict] = [
                     "were deleted, previously hidden entirely, can now be shown "
                     "on demand, badged red."
                 ),
-                "perm": "workitems.filter.status.deleted",
+                "perm": "workitems.filter.deleted.view",
                 "endpoint": "workitems_overview",
                 "icon": "trash-can",
             },

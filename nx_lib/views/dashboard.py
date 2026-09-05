@@ -768,7 +768,7 @@ def api_recent_activity():
         raw_rows = recent_activity_rows(pairs, activity_ignore_map, top=3)
 
         # Same sensitive-doc-field gate enforced at every other surface that
-        # shows doc-fields (workitems.filter.documentfields.sensitive) --
+        # shows doc-fields (workitems.filter.docfields.sensitive.view) --
         # this feed was reading raw Octo fields straight through.
         blocked_tokens = sensitive_blocked_tokens()
 

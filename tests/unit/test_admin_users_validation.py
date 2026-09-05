@@ -34,7 +34,7 @@ def test_admin_add_user_rejects_unknown_accessprofile(app):
         from flask import session
 
         session["username"] = "admin@test.local"
-        session["permissions"] = ["admin.create.user"]
+        session["permissions"] = ["admin.users.add"]
 
         fake_cursor = _mock_cursor_returning()  # first fetchone() -> None
         fake_conn = MagicMock()
@@ -69,7 +69,7 @@ def test_admin_add_user_rejects_unknown_organization(app):
         from flask import session
 
         session["username"] = "admin@test.local"
-        session["permissions"] = ["admin.create.user"]
+        session["permissions"] = ["admin.users.add"]
 
         fake_cursor = _mock_cursor_returning((1,))  # accessprofile found, org not
         fake_conn = MagicMock()
@@ -108,7 +108,7 @@ def test_admin_edit_user_rejects_unknown_accessprofile(app):
         from flask import session
 
         session["username"] = "admin@test.local"
-        session["permissions"] = ["admin.edit.user"]
+        session["permissions"] = ["admin.users.edit"]
 
         # First fetchone(): current accessprofile lookup by user id -> some row.
         # Second fetchone(): the new accessprofile lookup -> None (unknown).

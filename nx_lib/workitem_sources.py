@@ -26,7 +26,7 @@ _STATUS_IN_PROGRESS = 1
 
 # Soft-deleted workitems. Hidden from every list unless the caller explicitly
 # filtered FOR them, which the view only allows for holders of
-# workitems.filter.status.deleted (internal-only permission, issue #125).
+# workitems.filter.deleted.view (internal-only permission, issue #125).
 _STATUS_DELETED = 2
 
 

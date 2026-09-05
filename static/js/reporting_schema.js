@@ -2,7 +2,7 @@
    database behind it: a filterable table list (columns, types, keys, row
    counts) and an ER diagram (tables as boxes, foreign keys as arrows, pan +
    zoom). Data comes from GET /api/reporting/sources/<id>/schema
-   (nx_lib/reporting/db_schema.py), gated on reporting.sources.schema -- when
+   (nx_lib/reporting/db_schema.py), gated on reporting.sources.schema.view -- when
    the grant is missing the panel markup isn't rendered and this file isn't
    loaded, so the rail cards stay inert.
 

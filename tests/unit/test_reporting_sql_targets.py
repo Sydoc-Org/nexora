@@ -1,7 +1,7 @@
 """Unit tests for the SQL-sandbox per-target authorization (Octopus 2nd target).
 
 `_authorize_sql_target` is the gate that makes the Octopus runtime DB require its
-own `reporting.sql.target.octopus` grant on top of the base `reporting.sql.run`
+own `reporting.sql.target.octopus.use` grant on top of the base `reporting.sql.run`
 that all live-SQL routes already enforce. `has_permission` reads the session, so
 it is monkeypatched here — no TEST access profile holds SQL-run-without-octopus.
 """
@@ -42,4 +42,4 @@ def test_unknown_target_is_noop(monkeypatch):
 
 def test_octopus_is_a_registered_target():
     assert "octopus" in reporting._SQL_TARGETS
-    assert reporting._SQL_TARGET_PERMISSION["octopus"] == "reporting.sql.target.octopus"
+    assert reporting._SQL_TARGET_PERMISSION["octopus"] == "reporting.sql.target.octopus.use"

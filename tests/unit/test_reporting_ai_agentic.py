@@ -372,7 +372,7 @@ def test_agent_system_prompt_forbids_grouping_by_the_counted_field():
 def test_agent_system_prompt_forbids_resubmitting_identical_failed_sql():
     # Lives in the explain_data suffix (not the base _AGENT_SYSTEM) — run_sql
     # itself is only ever mentioned there, since the base prompt must stay
-    # silent about a tool that isn't bound without reporting.ai.explain_data.
+    # silent about a tool that isn't bound without reporting.ai.explain.use.
     from nx_lib.reporting.ai import _AGENT_EXPLAIN_SUFFIX
 
     assert (
@@ -383,7 +383,7 @@ def test_agent_system_prompt_forbids_resubmitting_identical_failed_sql():
 
 def test_agent_explain_suffix_teaches_run_definition():
     # Lives in the explain_data suffix (not the base _AGENT_SYSTEM) for the same
-    # reason as run_sql — the tool is only bound with reporting.ai.explain_data.
+    # reason as run_sql — the tool is only bound with reporting.ai.explain.use.
     from nx_lib.reporting.ai import _AGENT_EXPLAIN_SUFFIX
 
     assert "run_definition" in _AGENT_EXPLAIN_SUFFIX

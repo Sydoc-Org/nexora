@@ -202,6 +202,34 @@ def emit_sql() -> str:
 DECLARE @map TABLE (OldCode SYSNAME PRIMARY KEY, NewCode SYSNAME, NewDescription NVARCHAR(200));
 INSERT INTO @map VALUES
 {rows};
+-- A concurrent worktree can land a same-named permission before this rename
+-- applies (e.g. #255's tenant-platform work seeding 'tenant.generali.view'
+-- ahead of #238 -- spec decision D3: this migration owns the code, the
+-- tenant platform finds it in place). Merge such a duplicate's grants onto
+-- the row this migration is about to rename into that code, then retire the
+-- duplicate, so the rename below never collides on the UNIQUE(Code).
+DECLARE @dups TABLE (DupPermID INT PRIMARY KEY, CanonicalPermID INT);
+INSERT INTO @dups (DupPermID, CanonicalPermID)
+SELECT p.PermissionID, o.PermissionID
+FROM @map m
+JOIN dbo.Permission p ON p.Code = m.NewCode
+JOIN dbo.Permission o ON o.Code = m.OldCode
+WHERE m.OldCode <> m.NewCode AND o.PermissionID <> p.PermissionID;
+INSERT INTO dbo.AccessProfilePermission (AccessID, PermissionID)
+SELECT ap.AccessID, d.CanonicalPermID
+FROM dbo.AccessProfilePermission ap
+JOIN @dups d ON d.DupPermID = ap.PermissionID
+WHERE NOT EXISTS (SELECT 1 FROM dbo.AccessProfilePermission x
+                  WHERE x.AccessID = ap.AccessID AND x.PermissionID = d.CanonicalPermID);
+INSERT INTO dbo.UserPermissionOverride (UserID, PermissionID, Effect)
+SELECT o2.UserID, d.CanonicalPermID, o2.Effect
+FROM dbo.UserPermissionOverride o2
+JOIN @dups d ON d.DupPermID = o2.PermissionID
+WHERE NOT EXISTS (SELECT 1 FROM dbo.UserPermissionOverride x
+                  WHERE x.UserID = o2.UserID AND x.PermissionID = d.CanonicalPermID);
+DELETE ap FROM dbo.AccessProfilePermission ap JOIN @dups d ON d.DupPermID = ap.PermissionID;
+DELETE o2 FROM dbo.UserPermissionOverride o2 JOIN @dups d ON d.DupPermID = o2.PermissionID;
+DELETE p FROM dbo.Permission p JOIN @dups d ON d.DupPermID = p.PermissionID;
 IF EXISTS (SELECT 1 FROM @map m JOIN dbo.Permission p ON p.Code = m.NewCode
            JOIN dbo.Permission o ON o.Code = m.OldCode WHERE m.OldCode <> m.NewCode AND o.PermissionID <> p.PermissionID)
     THROW 50088, 'permission rename target already exists with a different PermissionID', 1;

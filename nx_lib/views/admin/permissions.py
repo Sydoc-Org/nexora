@@ -15,7 +15,7 @@ from ...security import (
 )
 
 
-@require_permission("admin.view.accessprofiles.useroverrides")
+@require_permission("admin.profiles.view")
 def admin_access_control():
     conn = None
     cursor = None
@@ -56,7 +56,7 @@ def admin_access_control():
 
         organizations = []
         assignable_profiles = []
-        if has_permission("admin.view.users"):
+        if has_permission("admin.users.view"):
             cursor.execute(
                 "SELECT organizationcode, organization FROM Organizations ORDER BY organization"
             )
@@ -80,11 +80,11 @@ def admin_access_control():
             all_permissions=all_permissions,
             organizations=organizations,
             assignable_profiles=assignable_profiles,
-            can_edit_accessprofile=has_permission("admin.edit.accessprofile"),
-            can_view_users=has_permission("admin.view.users"),
-            can_create_user=has_permission("admin.create.user"),
-            can_edit_user=has_permission("admin.edit.user"),
-            can_delete_user=has_permission("admin.delete.user"),
+            can_edit_accessprofile=has_permission("admin.profiles.edit"),
+            can_view_users=has_permission("admin.users.view"),
+            can_create_user=has_permission("admin.users.add"),
+            can_edit_user=has_permission("admin.users.edit"),
+            can_delete_user=has_permission("admin.users.delete"),
             logged_in_user=session.get("username"),
             userid=session.get("userid"),
             page_visibility=page_visibility(),
@@ -99,7 +99,7 @@ def admin_access_control():
             conn.close()
 
 
-@require_permission("admin.view.accessprofiles.useroverrides")
+@require_permission("admin.profiles.view")
 def admin_permission_matrix():
     """Read-only user x permission matrix (#172) -- filterable either
     direction. Editing stays on access_control / user_detail; this page only
@@ -156,7 +156,7 @@ def admin_permission_matrix():
             conn.close()
 
 
-@require_permission("admin.view.accessprofiles.useroverrides")
+@require_permission("admin.profiles.view")
 def api_admin_permission_holders(permission_id):
     """Mirror of api_admin_user_effective_permissions with the axes flipped:
     one permission, resolved across every user."""
@@ -239,7 +239,7 @@ def api_admin_permission_holders(permission_id):
                 conn.close()
 
 
-@require_permission("admin.view.accessprofiles.useroverrides")
+@require_permission("admin.profiles.view")
 def get_users_admin_access_control():
     if "username" not in session:
         return jsonify({"error": _("Not authorized")}), 401
@@ -293,7 +293,7 @@ def get_users_admin_access_control():
             conn.close()
 
 
-@require_permission("admin.view.accessprofiles.useroverrides")
+@require_permission("admin.profiles.view")
 def get_profile_details(access_id):
     conn = None
     cursor = None
@@ -322,7 +322,7 @@ def get_profile_details(access_id):
             conn.close()
 
 
-@require_permission("admin.edit.accessprofile")
+@require_permission("admin.profiles.edit")
 def save_access_profile():
     data = request.get_json()
     access_id = data.get("accessId")
@@ -393,7 +393,7 @@ def save_access_profile():
             conn.close()
 
 
-@require_permission("admin.view.accessprofiles.useroverrides")
+@require_permission("admin.profiles.view")
 def get_user_overrides(user_id):
     conn = None
     cursor = None
@@ -432,7 +432,7 @@ def get_user_overrides(user_id):
             conn.close()
 
 
-@require_permission("admin.view.accessprofiles.useroverrides")
+@require_permission("admin.profiles.view")
 def api_admin_user_effective_permissions(user_id):
     """Compute the merged permission set: profile-grant unless an override
     flips it. Source on each entry tells the UI whether it came from the
@@ -535,7 +535,7 @@ def api_admin_user_effective_permissions(user_id):
                 conn.close()
 
 
-@require_permission("admin.edit.user.override")
+@require_permission("admin.users.overrides.edit")
 def save_user_overrides():
     data = request.get_json()
     user_id = data.get("userId")
@@ -572,7 +572,7 @@ def save_user_overrides():
             conn.close()
 
 
-@require_permission("admin.view.accessprofiles.useroverrides")
+@require_permission("admin.profiles.view")
 def api_admin_permissions_list():
     if "username" not in session:
         return jsonify({"error": _("Not authorized")}), 401
@@ -614,7 +614,7 @@ def api_admin_permissions_list():
             conn.close()
 
 
-@require_permission("admin.view.accessprofiles.useroverrides")
+@require_permission("admin.profiles.view")
 def api_admin_permission_users(perm_id):
     if "username" not in session:
         return jsonify({"error": _("Not authorized")}), 401
@@ -659,7 +659,7 @@ def api_admin_permission_users(perm_id):
             conn.close()
 
 
-@require_permission("admin.view.accessprofiles.useroverrides")
+@require_permission("admin.profiles.view")
 def api_admin_user_all_permissions(user_id):
     if "username" not in session:
         return jsonify({"error": _("Not authorized")}), 401
@@ -698,7 +698,7 @@ def api_admin_user_all_permissions(user_id):
             conn.close()
 
 
-@require_permission("admin.edit.accessprofile")
+@require_permission("admin.profiles.edit")
 def api_admin_permission_add():
     if "username" not in session:
         return jsonify({"error": _("Not authorized")}), 401
@@ -737,7 +737,7 @@ def api_admin_permission_add():
             conn.close()
 
 
-@require_permission("admin.edit.accessprofile")
+@require_permission("admin.profiles.edit")
 def api_admin_permission_edit(perm_id):
     if "username" not in session:
         return jsonify({"error": _("Not authorized")}), 401
@@ -769,7 +769,7 @@ def api_admin_permission_edit(perm_id):
             conn.close()
 
 
-@require_permission("admin.edit.accessprofile")
+@require_permission("admin.profiles.edit")
 def api_admin_permission_delete(perm_id):
     if "username" not in session:
         return jsonify({"error": _("Not authorized")}), 401

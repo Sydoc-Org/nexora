@@ -41,7 +41,7 @@ def _process_source_dict(source, fields):
     }
 
 
-@require_permission("admin.view.processes")
+@require_permission("admin.processes.view")
 def admin_processes_view():
     """Read-only view of dbo.ProcessSources / ProcessFieldMappings (migration
     0074), grouped by ClientCode -- a *runtime source* (default/ms02, see
@@ -52,7 +52,7 @@ def admin_processes_view():
     registry() returning None means the config failed to load (a load error
     is never cached) -- render an explicit "unavailable" state rather than an
     empty-looking success. The edit affordances render only for
-    admin.edit.processes; the free-form SQL fragment columns (JoinCondition,
+    admin.processes.edit; the free-form SQL fragment columns (JoinCondition,
     TimeFilter, SuggestionTimeFilter, ExtraCondition) stay read-only for
     everybody -- they are editable only by a migration."""
     reg = mapping_config.registry()
@@ -79,7 +79,7 @@ def admin_processes_view():
     return render_template(
         "admin/processes.html",
         mapping_config_available=reg is not None,
-        can_edit=has_permission("admin.edit.processes"),
+        can_edit=has_permission("admin.processes.edit"),
         clients_data=clients_data,
         client_codes=_client_codes(),
         logged_in_user=session.get("username"),
@@ -88,7 +88,7 @@ def admin_processes_view():
     )
 
 
-@require_permission("admin.view.processes")
+@require_permission("admin.processes.view")
 def api_admin_processes_list():
     """JSON mirror of admin_processes_view() for a single client (or every
     client when ``?client=`` is omitted) -- read through nx_lib/mapping_config.py,
@@ -293,7 +293,7 @@ def _client_codes():
             conn.close()
 
 
-@require_permission("admin.edit.processes")
+@require_permission("admin.processes.edit")
 def api_admin_process_source_add():
     """Add a dbo.ProcessSources row (migration 0074) AND provision its
     ``process.<client>.<name>.view`` permission in the same transaction --
@@ -390,7 +390,7 @@ def api_admin_process_source_add():
             conn.close()
 
 
-@require_permission("admin.edit.processes")
+@require_permission("admin.processes.edit")
 def api_admin_process_source_edit(clientcode, processname):
     """Edit the identifier columns of a dbo.ProcessSources row. Identity
     (ClientCode, ProcessName) comes from the URL and is never rewritten -- a
@@ -426,7 +426,7 @@ def api_admin_process_source_edit(clientcode, processname):
             conn.close()
 
 
-@require_permission("admin.edit.processes")
+@require_permission("admin.processes.edit")
 def api_admin_process_source_delete(clientcode, processname):
     """Delete a dbo.ProcessSources row. Refused with 409 while field mappings
     still reference it -- FK_ProcessFieldMappings_ProcessSources would raise
@@ -489,7 +489,7 @@ def api_admin_process_source_delete(clientcode, processname):
             conn.close()
 
 
-@require_permission("admin.edit.processes")
+@require_permission("admin.processes.edit")
 def api_admin_field_mapping_add():
     """Add a dbo.ProcessFieldMappings row -- one doc-field of one process."""
     data = request.get_json() or {}
@@ -543,7 +543,7 @@ def api_admin_field_mapping_add():
             conn.close()
 
 
-@require_permission("admin.edit.processes")
+@require_permission("admin.processes.edit")
 def api_admin_field_mapping_edit(clientcode, processname, fieldkey):
     """Edit a field mapping's column. Identity comes from the URL -- renaming a
     FieldKey is a delete plus an add, not an update."""
@@ -585,7 +585,7 @@ def api_admin_field_mapping_edit(clientcode, processname, fieldkey):
             conn.close()
 
 
-@require_permission("admin.edit.processes")
+@require_permission("admin.processes.edit")
 def api_admin_field_mapping_delete(clientcode, processname, fieldkey):
     conn = None
     cursor = None

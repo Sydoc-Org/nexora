@@ -247,7 +247,7 @@ def test_recent_activity_skips_row_when_workitemdata_lookup_fails(user_client, m
 
 
 def test_recent_activity_strips_sensitive_fields_without_perm(user_client, monkeypatch):
-    """Caller WITHOUT workitems.filter.documentfields.sensitive: a sensitive-
+    """Caller WITHOUT workitems.filter.docfields.sensitive.view: a sensitive-
     configured field must be absent from the row's fields, not leaked."""
     monkeypatch.setattr(
         nx_lib.hooks,

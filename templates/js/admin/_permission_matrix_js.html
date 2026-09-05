@@ -77,7 +77,8 @@
                 }
                 const families = {};
                 data.granted.forEach(p => {
-                    const family = p.Code.split('.')[0];
+                    const parts = p.Code.split('.');
+                    const family = (parts[0] === 'tenant' || parts[0] === 'process') ? parts.slice(0,2).join('.') : parts[0];
                     (families[family] = families[family] || []).push(p);
                 });
                 const sections = Object.keys(families).sort().map(family => `

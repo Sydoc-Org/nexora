@@ -37,7 +37,7 @@ FAKE_CATALOG = [
 
 OWNER_PERMS = {
     "reporting.view",
-    "reporting.source.docprocessing",
+    "reporting.source.docprocessing.use",
     "process.acme.inv.view",
 }
 
@@ -72,7 +72,7 @@ def _patch_view_internals(monkeypatch, captured):
             "id": "docprocessing",
             "kind": "curated",
             "provider": "docprocessing",
-            "permission": "reporting.source.docprocessing",
+            "permission": "reporting.source.docprocessing.use",
         },
     )
     monkeypatch.setattr(
@@ -155,7 +155,7 @@ def test_scheduled_table_source_metric_definition_resolves(monkeypatch):
             "id": "workitems",
             "kind": "curated",
             "provider": "table",
-            "permission": "reporting.source.workitems",
+            "permission": "reporting.source.workitems.use",
             "baseObject": "dbo.Workitems",
             "engine": "octo",
             "columns": [{"field": "status", "label": "Status", "type": "string"}],
@@ -181,7 +181,7 @@ def test_scheduled_table_source_metric_definition_resolves(monkeypatch):
         metrics=[{"metric": "wi_count"}],
     )
     cols, rows = runner_mod.execute_definition(
-        definition, {"reporting.view", "reporting.source.workitems"}, 1, "tester", "en"
+        definition, {"reporting.view", "reporting.source.workitems.use"}, 1, "tester", "en"
     )
 
     assert "COUNT(*) AS [wi_count]" in captured["sql"]
@@ -200,7 +200,7 @@ def test_scheduled_table_source_definition_with_grain_validates(monkeypatch):
             "id": "workitems",
             "kind": "curated",
             "provider": "table",
-            "permission": "reporting.source.workitems",
+            "permission": "reporting.source.workitems.use",
             "baseObject": "dbo.Workitems",
             "engine": "octo",
             "columns": [
@@ -229,7 +229,7 @@ def test_scheduled_table_source_definition_with_grain_validates(monkeypatch):
         metrics=[{"metric": "wi_count"}],
     )
     cols, rows = runner_mod.execute_definition(
-        definition, {"reporting.view", "reporting.source.workitems"}, 1, "tester", "en"
+        definition, {"reporting.view", "reporting.source.workitems.use"}, 1, "tester", "en"
     )
 
     assert rows == [("2026-01-01", 3)]

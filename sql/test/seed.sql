@@ -35,72 +35,72 @@ GO
 INSERT INTO dbo.Permission (Code, Description) VALUES
     ('admin.view', 'View admin dashboard'),
     ('admin.users.manage', 'Manage user accounts'),
-    ('admin.view.users', 'View users'),
-    ('admin.create.user', 'Create user'),
-    ('admin.edit.user', 'Edit user'),
-    ('admin.delete.user', 'Delete user'),
-    ('admin.edit.user.override', 'Edit user permission overrides'),
-    ('admin.view.organizations', 'View organizations'),
-    ('admin.add.organization', 'Add organization'),
-    ('admin.edit.organization', 'Edit organization'),
-    ('admin.delete.organization', 'Delete organization'),
-    ('admin.view.accessprofiles.useroverrides', 'View access profiles and user overrides'),
-    ('admin.edit.accessprofile', 'Edit access profile'),
-    ('admin.view.active.sessions', 'View active sessions'),
-    ('admin.view.system.logs', 'View system logs'),
+    ('admin.users.view', 'View users'),
+    ('admin.users.add', 'Create user'),
+    ('admin.users.edit', 'Edit user'),
+    ('admin.users.delete', 'Delete user'),
+    ('admin.users.overrides.edit', 'Edit user permission overrides'),
+    ('admin.organizations.view', 'View organizations'),
+    ('admin.organizations.add', 'Add organization'),
+    ('admin.organizations.edit', 'Edit organization'),
+    ('admin.organizations.delete', 'Delete organization'),
+    ('admin.profiles.view', 'View access profiles and user overrides'),
+    ('admin.profiles.edit', 'Edit access profile'),
+    ('admin.sessions.view', 'View active sessions'),
+    ('admin.logs.view', 'View system logs'),
     ('admin.maintenance.view', 'View maintenance banners'),
     ('admin.maintenance.edit', 'Edit maintenance banners'),
     ('admin.maintenance.bypass', 'Bypass maintenance lockout'),
     ('dashboard.view', 'View dashboard'),
     ('workitems.view', 'View workitems'),
     ('workitems.details.view', 'View workitem detail'),
-    ('workitems.details.view.fields', 'View workitem fields'),
-    ('workitems.details.view.images', 'View workitem images'),
-    ('workitems.details.view.audit', 'View workitem audit history'),
-    ('workitems.details.view.confidence', 'Workitems: view extraction confidence scores in the document viewer'),
-    ('workitems.details.view.source_location', 'Workitems: view where extracted values were found on the page (source-highlight boxes; needs workitems.details.view.images)'),
-    ('workitems.filter.workitemid', 'Filter workitems by id'),
-    ('workitems.filter.status', 'Filter workitems by status'),
-    ('workitems.filter.status.deleted', 'Workitems: show soft-deleted workitems in the status filter'),  -- migration 0044
-    ('workitems.filter.stage', 'Workitems: filter by latest derived stage'),  -- migration 0048
-    ('workitems.filter.datetime', 'Filter workitems by datetime'),
-    ('workitems.filter.documentfields', 'Filter workitems by document fields'),
-    ('workitems.filter.documentfields.sensitive', 'Workitems: see doc fields flagged sensitive'),  -- migration 0035
-    ('workitems.import.workitem', 'Import workitems'),
-    ('workitems.import.preparedaudit', 'Workitems: import an MS02 prepared-documents Excel (PID/Prepared) and display the matched workitems'' audit'),
+    ('workitems.details.fields.view', 'View workitem fields'),
+    ('workitems.details.images.view', 'View workitem images'),
+    ('workitems.details.audit.view', 'View workitem audit history'),
+    ('workitems.details.confidence.view', 'Workitems: view extraction confidence scores in the document viewer'),
+    ('workitems.details.sources.view', 'Workitems: view where extracted values were found on the page (source-highlight boxes; needs workitems.details.images.view)'),
+    ('workitems.filter.id.view', 'Filter workitems by id'),
+    ('workitems.filter.status.view', 'Filter workitems by status'),
+    ('workitems.filter.deleted.view', 'Workitems: show soft-deleted workitems in the status filter'),  -- migration 0044
+    ('workitems.filter.stage.view', 'Workitems: filter by latest derived stage'),  -- migration 0048
+    ('workitems.filter.date.view', 'Filter workitems by datetime'),
+    ('workitems.filter.docfields.view', 'Filter workitems by document fields'),
+    ('workitems.filter.docfields.sensitive.view', 'Workitems: see doc fields flagged sensitive'),  -- migration 0035
+    ('workitems.import.run', 'Import workitems'),
+    ('workitems.prepared.view', 'Workitems: import an MS02 prepared-documents Excel (PID/Prepared) and display the matched workitems'' audit'),
     ('invoices.view', 'View invoices'),
     ('invoices.download', 'Download invoices'),
     ('invoices.filter.date', 'Filter invoices by date'),
     ('invoices.filter.status', 'Filter invoices by status'),
     ('invoices.filter.invoiceid', 'Filter invoices by id'),
     ('jd.view', 'View JD Vance page'),
-    ('generali.baseservices.view', 'View Generali base services'),
+    ('tenant.generali.baseservices.view', 'View Generali base services'),
     ('api.docs.view', 'View the in-app API documentation page'),  -- migration 0051
     ('admin.status.view', 'View the admin system-status page'),  -- migration 0055
-    ('admin.restart', 'Restart the dev server from the admin overview (dev-only)'),  -- migration 0059
+    ('admin.server.restart', 'Restart the dev server from the admin overview (dev-only)'),  -- migration 0059
     ('reporting.view', 'Access the Reporting page'),
     ('reporting.source.backlog_history', 'Reporting: use the Backlog History source'),  -- migration 0053
-    ('reporting.source.docprocessing', 'Reporting: use the Document Processing source'),
+    ('reporting.source.docprocessing.use', 'Reporting: use the Document Processing source'),
     ('reporting.export', 'Reporting: export reports to Excel'),
     ('reporting.sql.run', 'Reporting: run live read-only SQL (sandboxed)'),
-    ('reporting.sql.target.octopus', 'Reporting: target the Octopus runtime DB in the live-SQL sandbox'),
-    ('reporting.admin.sources', 'Reporting: manage the data-source registry'),
-    ('reporting.sources.schema', 'Reporting: browse a source database''s tables, columns and relationships'),  -- migration 0079
-    ('admin.view.clients', 'Admin: view the runtime-source (dbo.Clients) registry page'),  -- migration 0080
-    ('admin.edit.clients', 'Admin: create, edit and delete runtime-source registry rows'),  -- migration 0080
-    ('admin.view.processes', 'Admin: view the process-source and field-mapping page'),  -- migration 0080
-    ('admin.edit.processes', 'Admin: create and edit process sources and field mappings'),  -- migration 0080
-    ('admin.edit.organization.branding', 'Admin: edit an organization''s name, logo and accent'),  -- migration 0080
-    ('reporting.semantic.admin', 'Reporting: manage the canonical metrics registry'),
-    ('reporting.source.generali.pdqm', 'Reporting: use the Generali PDQM Report source'),
-    ('reporting.source.workitems', 'Reporting: use the Workitems (Octopus) source'),
+    ('reporting.sql.target.octopus.use', 'Reporting: target the Octopus runtime DB in the live-SQL sandbox'),
+    ('reporting.sources.manage', 'Reporting: manage the data-source registry'),
+    ('reporting.sources.schema.view', 'Reporting: browse a source database''s tables, columns and relationships'),  -- migration 0079
+    ('admin.clients.view', 'Admin: view the runtime-source (dbo.Clients) registry page'),  -- migration 0080
+    ('admin.clients.edit', 'Admin: create, edit and delete runtime-source registry rows'),  -- migration 0080
+    ('admin.processes.view', 'Admin: view the process-source and field-mapping page'),  -- migration 0080
+    ('admin.processes.edit', 'Admin: create and edit process sources and field mappings'),  -- migration 0080
+    ('admin.organizations.branding.edit', 'Admin: edit an organization''s name, logo and accent'),  -- migration 0080
+    ('reporting.metrics.manage', 'Reporting: manage the canonical metrics registry'),
+    ('reporting.source.generali_pdqm.use', 'Reporting: use the Generali PDQM Report source'),
+    ('reporting.source.workitems.use', 'Reporting: use the Workitems (Octopus) source'),
     ('reporting.schedule', 'Reporting: schedule a report to run and be emailed'),
     ('reporting.ai.use', 'Reporting: use the AI assistant (NL questions)'),
-    ('reporting.ai.sql', 'Reporting: AI may emit live SQL (advanced)'),
+    ('reporting.ai.sql.use', 'Reporting: AI may emit live SQL (advanced)'),
     ('reporting.ai.explain', 'Reporting: see AI explanation on results'),
     -- Mirrors sql/_migrations/NexoraDB/0015_seed_reporting_ai_explain_data.sql
     -- (the data-egress grant for the agentic tool loop / Task 13 captions).
-    ('reporting.ai.explain_data', 'Reporting: let the AI assistant run read-only queries and explain the actual result numbers (data egress to the model; needs reporting.sql.run)');
+    ('reporting.ai.explain.use', 'Reporting: let the AI assistant run read-only queries and explain the actual result numbers (data egress to the model; needs reporting.sql.run)');
 GO
 
 -- Access profiles
@@ -152,7 +152,7 @@ VALUES
      (SELECT AccessID FROM dbo.AccessProfile WHERE Name = 'TestNoPerm'),
      'TEST', 1, 1, 'MFRGGZDFMZTWQ2LK', 'en'),
 
-    -- TestAdmin profile (every permission) minus reporting.ai.explain_data via
+    -- TestAdmin profile (every permission) minus reporting.ai.explain.use via
     -- the per-user override below -- lets Task 13's e2e "unaffected without
     -- the perm" spot-check exercise a fully-working reporting page/Advanced
     -- tab that simply never shows the caption slot. Same password hash as
@@ -166,13 +166,13 @@ VALUES
      'TEST', 1, 1, 'GEZDGNBVGY3TQOJQ', 'en');
 GO
 
--- Deny reporting.ai.explain_data for noai@test.local only (a per-user
+-- Deny reporting.ai.explain.use for noai@test.local only (a per-user
 -- override beats the TestAdmin access-profile grant -- see
 -- dbo.fnUserHasPermission). Every other TestAdmin permission stays intact.
 INSERT INTO dbo.UserPermissionOverride (UserID, PermissionID, Effect)
 SELECT u.userID, p.PermissionID, 'D'
 FROM dbo.Users u, dbo.Permission p
-WHERE u.username = 'noai@test.local' AND p.Code = 'reporting.ai.explain_data';
+WHERE u.username = 'noai@test.local' AND p.Code = 'reporting.ai.explain.use';
 GO
 
 -- Curated 'table' reporting sources (mirrors 0011_seed_generali_workitems_sources.sql)
@@ -183,7 +183,7 @@ INSERT INTO dbo.ReportingSources
     (Code, Kind, Label, Permission, Engine, Provider, BaseObject, ColumnsJSON, Enabled, SortOrder)
 VALUES (
     'generali_pdqm', 'curated', 'Generali — PDQM Report',
-    'reporting.source.generali.pdqm', 'generali', 'table', 'dbo.PDQMReport',
+    'reporting.source.generali_pdqm.use', 'generali', 'table', 'dbo.PDQMReport',
     N'[{"field":"ForDate","label":"Date","type":"date","filterable":true,"sortable":true},
        {"field":"ParentCategory","label":"Parent category","type":"string","filterable":true,"sortable":true},
        {"field":"Quantity","label":"Quantity","type":"number","filterable":true,"sortable":true}]',
@@ -195,7 +195,7 @@ INSERT INTO dbo.ReportingSources
     (Code, Kind, Label, Permission, Engine, Provider, BaseObject, ColumnsJSON, Enabled, SortOrder)
 VALUES (
     'workitems', 'curated', 'Workitems (Octopus)',
-    'reporting.source.workitems', 'octopus', 'table', 'dbo.t_Documents',
+    'reporting.source.workitems.use', 'octopus', 'table', 'dbo.t_Documents',
     N'[{"field":"WorkItemIdentifier","label":"Workitem ID","type":"string","filterable":true,"sortable":true},
        {"field":"DocumentName","label":"Document name","type":"string","filterable":true,"sortable":true},
        {"field":"DocumentRevision","label":"Revision","type":"number","filterable":true,"sortable":true}]',

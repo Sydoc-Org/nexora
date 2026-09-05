@@ -2,7 +2,7 @@
 
 Requires ENVIRONMENT=TEST with reporting.* permissions seeded (sql/test/seed.sql
 grants every permission to TestAdmin, which includes reporting.view and
-reporting.source.docprocessing). The page chrome and source select are asserted;
+reporting.source.docprocessing.use). The page chrome and source select are asserted;
 data rows are not checked because the statistics DB is absent in TEST.
 """
 
@@ -323,7 +323,7 @@ def _stub_advanced_run_and_caption(page, caption="Client A drives most of the to
 
 @pytest.mark.flaky_e2e
 def test_advanced_chart_mount_fires_caption_for_explain_data_holder(nexora_server, page):
-    """admin@test.local holds reporting.ai.explain_data (sql/test/seed.sql
+    """admin@test.local holds reporting.ai.explain.use (sql/test/seed.sql
     grants every permission to TestAdmin) -- switching to the Chart view
     mounts the chart and fires an auto caption that renders with its AI chip."""
     _login(page, nexora_server)
@@ -342,7 +342,7 @@ def test_advanced_chart_mount_fires_caption_for_explain_data_holder(nexora_serve
 @pytest.mark.flaky_e2e
 def test_advanced_caption_absent_without_explain_data_permission(nexora_server, page):
     """noai@test.local has every TestAdmin permission EXCEPT
-    reporting.ai.explain_data (per-user deny override, sql/test/seed.sql) --
+    reporting.ai.explain.use (per-user deny override, sql/test/seed.sql) --
     the caption slot must not exist in the DOM at all, and the rest of the
     Advanced pane (run, chart) must work exactly as it does for an
     explain_data holder (Task 13's 'unaffected without the perm' spot-check)."""

@@ -165,7 +165,7 @@ def test_status_in_progress_filter_covers_all_non_terminal_codes(app):
 def test_deleted_workitems_hidden_unless_explicitly_filtered_for(app):
     """Status 2 (deleted) is hard-excluded from every default list. Asking for it
     by status code -- which the view only maps for holders of
-    workitems.filter.status.deleted -- must DROP that exclusion, otherwise the
+    workitems.filter.deleted.view -- must DROP that exclusion, otherwise the
     two clauses contradict and the filter returns nothing."""
     for src in (SqlServerSource(), PostgresSource(CLIENTS_code="ms02")):
         name = type(src).__name__

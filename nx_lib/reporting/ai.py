@@ -548,7 +548,7 @@ def ask(
 # Surface D — auto AI captions over a result grid (Task 12). Unlike ask() /
 # ask_definition() (schema-only egress), `rows` here are the actual values a
 # Simple/Advanced result is displaying, so callers must gate this behind
-# reporting.ai.explain_data (the same data-egress grant used for run_sql /
+# reporting.ai.explain.use (the same data-egress grant used for run_sql /
 # compute_stats in the agentic loop).
 # ---------------------------------------------------------------------------
 
@@ -662,7 +662,7 @@ def caption(
 # cap. Provider tool-calling parsing lives in `_make_agent_step`; both layers are
 # unit-tested offline via injected seams (`agent_step` / `transport`). Egress
 # stays schema-only: result rows fetched by run_sql are NOT sent back to the
-# model here — narration over rows is Phase 3e (gated reporting.ai.explain_data).
+# model here — narration over rows is Phase 3e (gated reporting.ai.explain.use).
 # ---------------------------------------------------------------------------
 
 # 10 turns: with the data tools bound a full run is commonly build_definition
@@ -797,7 +797,7 @@ _AGENT_SYSTEM = (
     " presentation-only follow-up is wrong."
 )
 
-# Appended to the system prompt only when the caller holds reporting.ai.explain_data
+# Appended to the system prompt only when the caller holds reporting.ai.explain.use
 # (Phase 3e). It unlocks the data-returning tools: run_sql feeds real result rows
 # back to the model, run_definition executes a build_definition-shaped definition
 # for real, and compute_stats gives exact aggregates over them, so the model may

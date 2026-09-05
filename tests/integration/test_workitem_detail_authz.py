@@ -28,9 +28,9 @@ def _grant(monkeypatch, perms):
 
 VIEW_PERMS = [
     "workitems.details.view",
-    "workitems.details.view.images",
-    "workitems.details.view.audit",
-    "workitems.details.view.fields",
+    "workitems.details.images.view",
+    "workitems.details.audit.view",
+    "workitems.details.fields.view",
 ]
 
 

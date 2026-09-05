@@ -312,7 +312,7 @@ def api_ai_ask():
     if not question:
         return jsonify({"error": _("A question is required")}), 400
     # Phase 1 produces Surface B (runnable T-SQL); that requires reporting.ai.sql.
-    if not has_permission("reporting.ai.sql"):
+    if not has_permission("reporting.ai.sql.use"):
         return jsonify({"error": _("Not authorized to receive AI-drafted SQL")}), 403
 
     cfg = _ai_config()
@@ -609,10 +609,10 @@ def api_ai_agent():
     """Surface C — the Tier-2 agentic loop (Phase 3d).
 
     A self-repairing drafter: the model uses data-free tools (build_definition,
-    and validate_sql when the caller holds reporting.ai.sql) to produce a
+    and validate_sql when the caller holds reporting.ai.sql.use) to produce a
     validated artifact, grounded in the source catalog / SQL schema passed in the
     prompt. Egress stays schema-only — run_sql / compute_stats (whose results
-    would flow back to the model) are Phase 3e, behind reporting.ai.explain_data.
+    would flow back to the model) are Phase 3e, behind reporting.ai.explain.use.
     """
     body = request.get_json(silent=True)
     if not isinstance(body, dict):
@@ -692,8 +692,8 @@ def api_ai_agent():
     # Tool binding follows the caller's permissions. build_definition is always
     # data-free. validate_sql (also data-free — a gate check) needs reporting.ai.sql.
     # run_sql / compute_stats feed real result rows/stats back to the model, so they
-    # are bound ONLY with reporting.ai.explain_data (Phase 3e data-egress grant) AND
-    # reporting.sql.run (the live-SQL gate). Without explain_data the loop stays
+    # are bound ONLY with reporting.ai.explain.use (Phase 3e data-egress grant) AND
+    # reporting.sql.run (the live-SQL gate). Without explain.use the loop stays
     # schema-only: no result rows ever reach the model.
     # The client sends the active builder source only as prompt grounding. It is a
     # UI default, not the question's subject: a curated table-provider source (e.g.
@@ -711,8 +711,8 @@ def api_ai_agent():
         and (active_source.get("provider") or "docprocessing") != "docprocessing"
     )
 
-    has_sql = has_permission("reporting.ai.sql")
-    explain = has_permission("reporting.ai.explain_data") and has_permission("reporting.sql.run")
+    has_sql = has_permission("reporting.ai.sql.use")
+    explain = has_permission("reporting.ai.explain.use") and has_permission("reporting.sql.run")
     tool_names = {"build_definition"}
     if has_sql:
         tool_names.add("validate_sql")
@@ -746,7 +746,7 @@ def api_ai_agent():
 
             Mirrors api_sql_run's exact composition/order: ack check first, then
             per-target authorization (_authorize_sql_target). D-RUNSQL: binding
-            run_sql on reporting.ai.explain_data + reporting.sql.run is not itself
+            run_sql on reporting.ai.explain.use + reporting.sql.run is not itself
             proof the caller may use THIS target, nor that they've acked the
             sandbox terms — those are checked here, same as the HTTP route.
             Both failures raise (audited with a distinct status first);
@@ -990,14 +990,14 @@ def _caption_columns(raw):
     return out
 
 
-@require_permission("reporting.ai.explain_data")
+@require_permission("reporting.ai.explain.use")
 @limiter.limit("10 per minute")
 def api_ai_caption():
     """Surface D — a 1-2 sentence auto-caption over a result grid (Task 12).
 
     Unlike ask/build/agent, this surface's egress is NOT schema-only: `rows`
     are the actual values a Simple/Advanced result is displaying, so it is
-    gated by reporting.ai.explain_data (the data-egress grant) rather than the
+    gated by reporting.ai.explain.use (the data-egress grant) rather than the
     weaker reporting.ai.use. It still counts toward the shared daily AI cap and
     is rate limited like the other AI endpoints. Rows never reach the model
     raw: caption() reduces the WHOLE grid to a fact sheet

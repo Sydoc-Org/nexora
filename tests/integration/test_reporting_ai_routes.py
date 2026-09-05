@@ -201,9 +201,9 @@ def test_ai_build_requires_use_permission(user_client):
 
 
 def test_ai_build_does_not_require_sql_permission(user_client):
-    # Surface A: reporting.ai.use is enough; reporting.ai.sql is NOT consulted.
+    # Surface A: reporting.ai.use is enough; reporting.ai.sql.use is NOT consulted.
     def _has(code):
-        return code != "reporting.ai.sql"
+        return code != "reporting.ai.sql.use"
 
     with (
         patch("nx_lib.security.has_permission", side_effect=_has),
@@ -347,9 +347,9 @@ def _agent_patches(perm=True, sql_perm=True, explain_perm=False, run_perm=True):
     can't be star-unpacked inside a parenthesized `with`)."""
 
     def _has(code):
-        if code == "reporting.ai.sql":
+        if code == "reporting.ai.sql.use":
             return sql_perm
-        if code == "reporting.ai.explain_data":
+        if code == "reporting.ai.explain.use":
             return explain_perm
         if code == "reporting.sql.run":
             return run_perm
@@ -687,11 +687,11 @@ def test_ai_agent_binds_sql_tool_only_with_sql_perm(user_client):
         resp = user_client.post("/api/reporting/ai/agent", json={"question": "x"})
     assert resp.status_code == 200
     assert "build_definition" in captured["tools"]
-    assert "validate_sql" not in captured["tools"]  # gated on reporting.ai.sql
+    assert "validate_sql" not in captured["tools"]  # gated on reporting.ai.sql.use
 
 
 def test_ai_agent_binds_data_tools_with_explain_data_permission(user_client):
-    """Phase 3e: reporting.ai.explain_data (+ reporting.sql.run) binds run_sql +
+    """Phase 3e: reporting.ai.explain.use (+ reporting.sql.run) binds run_sql +
     compute_stats and injects the runner so result rows flow back to the model."""
     captured = {}
 
@@ -730,7 +730,7 @@ def test_ai_agent_binds_data_tools_with_explain_data_permission(user_client):
 
 
 def test_ai_agent_no_data_tools_without_explain_data(user_client):
-    """Default posture: without reporting.ai.explain_data the loop stays schema-only —
+    """Default posture: without reporting.ai.explain.use the loop stays schema-only —
     run_sql / compute_stats are never bound and the runner is not injected."""
     captured = {}
 
@@ -904,7 +904,7 @@ _TABLE_SOURCE = {
     "id": "gen_pdqm",
     "kind": "curated",
     "provider": "table",
-    "permission": "reporting.source.generali.pdqm",
+    "permission": "reporting.source.generali_pdqm.use",
     "label": "Generali — PDQM",
     "engine": "generali",
     "baseObject": "GeneraliDB.dbo.PdqmReport",
@@ -956,7 +956,7 @@ def test_validate_definition_accepts_metrics_and_grain_draft():
         "id": "docprocessing",
         "kind": "curated",
         "label": "Document Processing",
-        "permission": "reporting.source.docprocessing",
+        "permission": "reporting.source.docprocessing.use",
         "engine": "statistics",
         "provider": "docprocessing",
     }
@@ -1046,7 +1046,7 @@ def test_validate_definition_zero_columns_with_metric_accepted():
         "id": "docprocessing",
         "kind": "curated",
         "label": "Document Processing",
-        "permission": "reporting.source.docprocessing",
+        "permission": "reporting.source.docprocessing.use",
         "engine": "statistics",
         "provider": "docprocessing",
     }
@@ -1345,7 +1345,7 @@ def test_ai_agent_tool_trace_error_is_humanized(user_client):
 
 
 def test_ai_agent_run_sql_blocks_without_target_permission(user_client):
-    """A user who holds the general reporting.ai.explain_data + reporting.sql.run
+    """A user who holds the general reporting.ai.explain.use + reporting.sql.run
     grants (enough to get the run_sql tool bound) but NOT the Octopus target's own
     permission must get a graceful tool-result error — no SQL executes, and the
     refusal is audited with a distinct status. No raised exception reaches Flask."""
@@ -1354,7 +1354,7 @@ def test_ai_agent_run_sql_blocks_without_target_permission(user_client):
     def _has(code):
         # explain_data, sql.run, ai.use, ai.sql, etc all granted; only the
         # Octopus target's own permission is withheld.
-        return code != "reporting.sql.target.octopus"
+        return code != "reporting.sql.target.octopus.use"
 
     turns = iter(
         [

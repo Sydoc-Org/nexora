@@ -319,7 +319,7 @@ async function savePermissions() {
 function setupViewGating(tbody, isOverrideMode) {
     function groupOf(code) {
         const p = code.split('.');
-        return p[0] === 'generali' ? p.slice(0,2).join('.') : p[0];
+        return (p[0] === 'tenant' || p[0] === 'process') ? p.slice(0,2).join('.') : p[0];
     }
     function applyGating() {
         const viewState = {};
@@ -614,7 +614,7 @@ function renderPermissionsTable(perms) {
     perms.forEach(p => {
         permissionsMap[p.PermissionID] = p;
         const parts = p.Code.split('.');
-        const group = parts[0];
+        const group = (parts[0] === 'tenant' || parts[0] === 'process') ? parts.slice(0,2).join('.') : parts[0];
         const action = parts.length > 1 ? parts[1] : '';
         const sub = group + '.' + action;
 

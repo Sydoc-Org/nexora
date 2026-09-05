@@ -3,7 +3,7 @@
 Routes:
   GET  /reporting                     builder page
   GET  /reporting/guide               in-app user guide (docs/howto/reporting-guide.md rendered)
-  GET  /reporting/sources             source-registry admin page (reporting.admin.sources)
+  GET  /reporting/sources             source-registry admin page (reporting.sources.manage)
   GET  /api/reporting/sources         sources + field catalog the caller may use
   GET/POST/PUT/DELETE /api/reporting/admin/sources[/<id>]  registry CRUD (admin)
   POST /api/reporting/run             run a curated report definition -> rows

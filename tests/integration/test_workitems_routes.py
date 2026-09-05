@@ -177,7 +177,7 @@ def test_api_config_fields_perm_state_in_cache_key(user_client, monkeypatch):
 
     # Without the sensitive perm the response is filtered + cached under _s0.
     monkeypatch.setattr(
-        wv, "has_permission", lambda code: code != "workitems.filter.documentfields.sensitive"
+        wv, "has_permission", lambda code: code != "workitems.filter.docfields.sensitive.view"
     )
     monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: {"validationuser"})
     r0 = user_client.get("/api/config/fields")
@@ -393,7 +393,7 @@ def test_get_workitems_data_skips_sensitive_docfield_search(
     gated in commit ae83bcb via `if docfield in blocked_docfields: continue`).
     A sensitive docfield/docvalue pair must contribute NO SQL constraint --
     neither block may even build/execute its StatisticsDB constraint query --
-    when the caller lacks workitems.filter.documentfields.sensitive, and the
+    when the caller lacks workitems.filter.docfields.sensitive.view, and the
     resulting WorkitemFilter must carry no docfield constraint at all."""
     import nx_lib.hooks as hooks
     import nx_lib.views.workitems as wv
@@ -409,7 +409,7 @@ def test_get_workitems_data_skips_sensitive_docfield_search(
         "load_permissions_for_user",
         lambda uid: [
             "workitems.view",
-            "workitems.filter.documentfields",
+            "workitems.filter.docfields.view",
             "process.sydoc.test_proc.view",
         ],
     )
@@ -423,7 +423,7 @@ def test_get_workitems_data_skips_sensitive_docfield_search(
     monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["validationuser"])
     monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: {"validationuser"})
     monkeypatch.setattr(
-        wv, "has_permission", lambda code: code != "workitems.filter.documentfields.sensitive"
+        wv, "has_permission", lambda code: code != "workitems.filter.docfields.sensitive.view"
     )
 
     # Mapped on BOTH legs -- proves the skip is caused by the sensitive-field
@@ -479,7 +479,7 @@ def test_docfield_search_absent_ms02_engine_fails_closed(
         "load_permissions_for_user",
         lambda uid: [
             "workitems.view",
-            "workitems.filter.documentfields",
+            "workitems.filter.docfields.view",
             "process.sydoc.test_proc.view",
         ],
     )
@@ -525,7 +525,7 @@ def test_docfield_search_ms02_resolver_error_fails_closed(
         "load_permissions_for_user",
         lambda uid: [
             "workitems.view",
-            "workitems.filter.documentfields",
+            "workitems.filter.docfields.view",
             "process.sydoc.test_proc.view",
         ],
     )
@@ -592,7 +592,7 @@ def test_get_workitems_data_queries_nonsensitive_docfield_search(
         "load_permissions_for_user",
         lambda uid: [
             "workitems.view",
-            "workitems.filter.documentfields",
+            "workitems.filter.docfields.view",
             "process.sydoc.test_proc.view",
         ],
     )
@@ -653,7 +653,7 @@ def test_get_workitems_data_unmapped_docfield_zeroes_both_sources(
         "load_permissions_for_user",
         lambda uid: [
             "workitems.view",
-            "workitems.filter.documentfields",
+            "workitems.filter.docfields.view",
             "process.sydoc.test_proc.view",
         ],
     )
@@ -705,7 +705,7 @@ def test_get_workitems_data_docfield_cache_hits_resolution_once(
         "load_permissions_for_user",
         lambda uid: [
             "workitems.view",
-            "workitems.filter.documentfields",
+            "workitems.filter.docfields.view",
             "process.sydoc.test_proc.view",
         ],
     )
@@ -757,7 +757,7 @@ def test_get_workitems_data_docfield_cache_never_caches_error_path(
         "load_permissions_for_user",
         lambda uid: [
             "workitems.view",
-            "workitems.filter.documentfields",
+            "workitems.filter.docfields.view",
             "process.sydoc.test_proc.view",
         ],
     )
@@ -824,7 +824,7 @@ def test_get_workitems_data_ms02_docfield_resolves_nonempty_set(
         "load_permissions_for_user",
         lambda uid: [
             "workitems.view",
-            "workitems.filter.documentfields",
+            "workitems.filter.docfields.view",
             "process.sydoc.test_proc.view",
         ],
     )
@@ -885,7 +885,7 @@ def test_get_workitems_data_ms02_docfield_cache_hits_resolution_once(
         "load_permissions_for_user",
         lambda uid: [
             "workitems.view",
-            "workitems.filter.documentfields",
+            "workitems.filter.docfields.view",
             "process.sydoc.test_proc.view",
         ],
     )
@@ -953,7 +953,7 @@ def test_get_workitems_data_fieldless_pair_searches_all_columns(
         "load_permissions_for_user",
         lambda uid: [
             "workitems.view",
-            "workitems.filter.documentfields",
+            "workitems.filter.docfields.view",
             "process.sydoc.test_proc.view",
         ],
     )
@@ -1016,7 +1016,7 @@ def test_get_workitems_data_fieldless_pair_excludes_sensitive_columns(
         "load_permissions_for_user",
         lambda uid: [
             "workitems.view",
-            "workitems.filter.documentfields",
+            "workitems.filter.docfields.view",
             "process.sydoc.test_proc.view",
         ],
     )
@@ -1030,7 +1030,7 @@ def test_get_workitems_data_fieldless_pair_excludes_sensitive_columns(
     monkeypatch.setattr(
         wv,
         "has_permission",
-        lambda code: code != "workitems.filter.documentfields.sensitive",
+        lambda code: code != "workitems.filter.docfields.sensitive.view",
     )
     monkeypatch.setattr(wv, "resolve_ms02_docfield_ids", lambda *a, **k: None)
     monkeypatch.setattr(wv, "fetch_merged_page", lambda filt, offset, per_page: ([], 0, []))
@@ -1067,7 +1067,7 @@ def _op_test_scaffold(monkeypatch, sql_log):
         "load_permissions_for_user",
         lambda uid: [
             "workitems.view",
-            "workitems.filter.documentfields",
+            "workitems.filter.docfields.view",
             "process.sydoc.test_proc.view",
         ],
     )
@@ -1278,7 +1278,7 @@ def test_api_docfield_values_no_field_widens_and_excludes_sensitive(
         "load_permissions_for_user",
         lambda uid: [
             "workitems.view",
-            "workitems.filter.documentfields",
+            "workitems.filter.docfields.view",
             "process.sydoc.test_proc.view",
         ],
     )
@@ -1292,7 +1292,7 @@ def test_api_docfield_values_no_field_widens_and_excludes_sensitive(
     monkeypatch.setattr(
         wv,
         "has_permission",
-        lambda code: code != "workitems.filter.documentfields.sensitive",
+        lambda code: code != "workitems.filter.docfields.sensitive.view",
     )
 
     captured_field_keys = {}
@@ -2144,7 +2144,7 @@ def test_api_docfield_values_blocks_sensitive_without_perm(
     monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: {"validationuser"})
     # Everything allowed EXCEPT the sensitive perm.
     monkeypatch.setattr(
-        wv, "has_permission", lambda code: code != "workitems.filter.documentfields.sensitive"
+        wv, "has_permission", lambda code: code != "workitems.filter.docfields.sensitive.view"
     )
     resp = user_client.get("/api/docfield_values?field=validationuser&process=all")
     assert resp.status_code == 200
@@ -2169,7 +2169,7 @@ def test_api_docfield_values_allows_sensitive_with_perm(
 def test_api_docfield_values_process_not_allowed_returns_empty(
     user_client, workitems_all_perms, monkeypatch
 ):
-    """A caller holding the blanket workitems.filter.documentfields perm but
+    """A caller holding the blanket workitems.filter.docfields.view perm but
     NOT process.<client>.<name>.view for the specific process requested must
     not get value suggestions leaked from that process -- fail closed to []
     (never a leak, never an error that confirms/denies existence)."""
@@ -2180,7 +2180,7 @@ def test_api_docfield_values_process_not_allowed_returns_empty(
 
     with user_client.session_transaction() as sess:
         sess["permissions"] = [
-            "workitems.filter.documentfields",
+            "workitems.filter.docfields.view",
             "process.sydoc.allowedprocess.view",
         ]
 
@@ -2205,7 +2205,7 @@ def test_api_docfield_values_all_scopes_to_allowed_processes(
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
 
     with user_client.session_transaction() as sess:
-        sess["permissions"] = ["workitems.filter.documentfields"]  # no process grants
+        sess["permissions"] = ["workitems.filter.docfields.view"]  # no process grants
 
     resp = user_client.get(
         "/api/docfield_values",
@@ -2271,7 +2271,7 @@ def test_prepared_docs_link_visible_for_target_process(
         "load_permissions_for_user",
         lambda uid: [
             "workitems.view",
-            "workitems.import.preparedaudit",
+            "workitems.prepared.view",
             "process.sydoc.05_PDBS.view",
         ],
     )
@@ -2303,7 +2303,7 @@ def test_prepared_docs_link_rendered_but_hidden_off_target(
         "load_permissions_for_user",
         lambda uid: [
             "workitems.view",
-            "workitems.import.preparedaudit",
+            "workitems.prepared.view",
             "process.sydoc.05_PDBS.view",
         ],
     )

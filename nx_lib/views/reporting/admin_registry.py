@@ -2,8 +2,8 @@
 Task 3).
 
 ``/reporting/sources`` + ``/api/reporting/admin/sources[/<id>]``
-(``reporting.admin.sources``) and ``/reporting/metrics`` +
-``/api/reporting/admin/metrics[/<id>]`` (``reporting.semantic.admin``), plus
+(``reporting.sources.manage``) and ``/reporting/metrics`` +
+``/api/reporting/admin/metrics[/<id>]`` (``reporting.metrics.manage``), plus
 the two registry-cache invalidators (also called from
 ``ops/run_scheduled_reports.py`` after an admin edit). Split out of
 ``nx_lib/views/reporting/__init__.py`` — see that module's docstring for the
@@ -34,7 +34,7 @@ def invalidate_reporting_metrics() -> None:
     cache.delete(_METRICS_CACHE_KEY)
 
 
-# ---- Source-registry admin (reporting.admin.sources) ----------------------
+# ---- Source-registry admin (reporting.sources.manage) ----------------------
 
 _SOURCE_CODE_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
 
@@ -84,7 +84,7 @@ def _source_insert_params(p):
     )
 
 
-# ---- Metrics-registry admin (reporting.semantic.admin) --------------------
+# ---- Metrics-registry admin (reporting.metrics.manage) --------------------
 
 _METRIC_CODE_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
@@ -123,7 +123,7 @@ def _metric_insert_params(p):
     )
 
 
-@require_permission("reporting.admin.sources")
+@require_permission("reporting.sources.manage")
 def reporting_sources_admin():
     return render_template(
         "reporting_sources.html",
@@ -133,7 +133,7 @@ def reporting_sources_admin():
     )
 
 
-@require_permission("reporting.admin.sources")
+@require_permission("reporting.sources.manage")
 def api_admin_sources_list():
     conn = engine_nexora_db.raw_connection()
     try:
@@ -168,7 +168,7 @@ def api_admin_sources_list():
     return jsonify({"defaults": code_sources(), "rows": rows})
 
 
-@require_permission("reporting.admin.sources")
+@require_permission("reporting.sources.manage")
 @limiter.limit("60 per minute")
 def api_admin_sources_create():
     p = request.get_json(silent=True) or {}
@@ -198,7 +198,7 @@ def api_admin_sources_create():
         conn.close()
 
 
-@require_permission("reporting.admin.sources")
+@require_permission("reporting.sources.manage")
 @limiter.limit("60 per minute")
 def api_admin_sources_update(source_id):
     p = request.get_json(silent=True) or {}
@@ -228,7 +228,7 @@ def api_admin_sources_update(source_id):
         conn.close()
 
 
-@require_permission("reporting.admin.sources")
+@require_permission("reporting.sources.manage")
 def api_admin_sources_delete(source_id):
     conn = engine_nexora_db.raw_connection()
     try:
@@ -247,7 +247,7 @@ def api_admin_sources_delete(source_id):
         conn.close()
 
 
-@require_permission("reporting.semantic.admin")
+@require_permission("reporting.metrics.manage")
 def reporting_metrics_admin():
     return render_template(
         "reporting_metrics.html",
@@ -257,7 +257,7 @@ def reporting_metrics_admin():
     )
 
 
-@require_permission("reporting.semantic.admin")
+@require_permission("reporting.metrics.manage")
 def api_admin_metrics_list():
     conn = engine_nexora_db.raw_connection()
     try:
@@ -294,7 +294,7 @@ def api_admin_metrics_list():
     return jsonify({"rows": rows, "sources": sources})
 
 
-@require_permission("reporting.semantic.admin")
+@require_permission("reporting.metrics.manage")
 @limiter.limit("60 per minute")
 def api_admin_metrics_create():
     p = request.get_json(silent=True) or {}
@@ -324,7 +324,7 @@ def api_admin_metrics_create():
         conn.close()
 
 
-@require_permission("reporting.semantic.admin")
+@require_permission("reporting.metrics.manage")
 @limiter.limit("60 per minute")
 def api_admin_metrics_update(metric_id):
     p = request.get_json(silent=True) or {}
@@ -354,7 +354,7 @@ def api_admin_metrics_update(metric_id):
         conn.close()
 
 
-@require_permission("reporting.semantic.admin")
+@require_permission("reporting.metrics.manage")
 def api_admin_metrics_delete(metric_id):
     conn = engine_nexora_db.raw_connection()
     try:

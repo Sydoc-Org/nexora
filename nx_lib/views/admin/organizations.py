@@ -21,7 +21,7 @@ from ...files import is_file_allowed
 from ...security import has_permission, page_visibility, require_permission
 
 
-@require_permission("admin.view.organizations")
+@require_permission("admin.organizations.view")
 def admin_organizations_view():
     conn = None
     cursor = None
@@ -48,7 +48,7 @@ def admin_organizations_view():
         return render_template(
             "admin/organizations.html",
             organizations=organizations,
-            can_edit_branding=has_permission("admin.edit.organization.branding"),
+            can_edit_branding=has_permission("admin.organizations.branding.edit"),
             logged_in_user=session.get("username"),
             userid=session.get("userid"),
             page_visibility=page_visibility(),
@@ -63,7 +63,7 @@ def admin_organizations_view():
             conn.close()
 
 
-@require_permission("admin.add.organization")
+@require_permission("admin.organizations.add")
 def admin_add_organization():
     import re as _re
 
@@ -99,7 +99,7 @@ def admin_add_organization():
             conn.close()
 
 
-@require_permission("admin.edit.organization")
+@require_permission("admin.organizations.edit")
 def admin_edit_organization(organizationcode):
     data = request.get_json()
     organization = data.get("organizationname")
@@ -126,7 +126,7 @@ def admin_edit_organization(organizationcode):
             conn.close()
 
 
-@require_permission("admin.delete.organization")
+@require_permission("admin.organizations.delete")
 def admin_delete_organization(organizationcode):
     conn = None
     cursor = None
@@ -158,7 +158,7 @@ def admin_delete_organization(organizationcode):
             conn.close()
 
 
-@require_permission("admin.view.organizations")
+@require_permission("admin.organizations.view")
 def api_admin_organizations_list():
     if "username" not in session:
         return jsonify({"error": "Not authorized"}), 401
@@ -239,7 +239,7 @@ def _org_exists(cursor, organizationcode):
     return cursor.fetchone() is not None
 
 
-@require_permission("admin.edit.organization.branding")
+@require_permission("admin.organizations.branding.edit")
 def api_admin_organization_branding_save(organizationcode):
     """Save an organization's brand name, accent hex and logo (#98 phase 4).
 

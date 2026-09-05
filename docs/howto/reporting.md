@@ -45,7 +45,7 @@ content area. `templates/js/_reporting_tabs_js.html` is the nav controller
   `SELECT DB_NAME()` per distinct engine, shared across sources; the URL
   carries no database attribute because the engines are built from
   `odbc_connect` strings). The admin-only registry link is the gear next to
-  the SOURCES label. With `reporting.sources.schema` each card becomes a
+  the SOURCES label. With `reporting.sources.schema.view` each card becomes a
   button opening the **source visualizer** (below). The **Advanced** nav entry is currently parked
   (`hidden` in `reporting.html`) — the pane stays reachable via
   `?tab=advanced`, Open-in-Advanced and `ReportingTabs.show('advanced')`.
@@ -126,7 +126,7 @@ content area. `templates/js/_reporting_tabs_js.html` is the nav controller
   see **Comparison & delta chips** below for the exact semantics (why it's
   not always "last calendar month", and when the average chip is suppressed).
   An **AI caption** (a 1–2 sentence auto-narration, gated by
-  `reporting.ai.explain_data`) can also appear under the chart — see
+  `reporting.ai.explain.use`) can also appear under the chart — see
   **AI assistant → Auto captions**.
 - **Timing badge** in the masthead — "N rows · M ms", the row count from the
   run response and the elapsed time measured client-side around the fetch;
@@ -819,18 +819,18 @@ Both serialization paths neutralize spreadsheet formula injection (leading
 | Code | Grants |
 |------|--------|
 | `reporting.view` | Page access — nav entry visible, `/reporting` route allowed. |
-| `reporting.source.docprocessing` | Use the Document Processing curated source. |
+| `reporting.source.docprocessing.use` | Use the Document Processing curated source. |
 | `reporting.export` | Export reports to Excel (`.xlsx`). |
 | `reporting.scope.process.<client>.<process>` | Include a specific client/process in a report's row scope. |
 | `reporting.sql.run` | Run live read-only SQL in the sandbox against **Statistics** (see below). Grantable; admins seeded. |
-| `reporting.sql.target.octopus` | Additionally target the **Octopus** runtime DB in the SQL sandbox. Independent of `reporting.sql.run`; grantable; admins seeded. |
-| `reporting.admin.sources` | Manage the data-source registry at `/reporting/sources` (see below). Admins seeded. |
-| `reporting.sources.schema` | Open the **source visualizer** on a Sources rail card — the tables, columns and foreign keys of the database behind a source (see below). Still requires that source's own permission. Migration `0079`; admins seeded. |
-| `reporting.semantic.admin` | Manage the canonical-metrics registry at `/reporting/metrics` (see below). Admins seeded. |
+| `reporting.sql.target.octopus.use` | Additionally target the **Octopus** runtime DB in the SQL sandbox. Independent of `reporting.sql.run`; grantable; admins seeded. |
+| `reporting.sources.manage` | Manage the data-source registry at `/reporting/sources` (see below). Admins seeded. |
+| `reporting.sources.schema.view` | Open the **source visualizer** on a Sources rail card — the tables, columns and foreign keys of the database behind a source (see below). Still requires that source's own permission. Migration `0079`; admins seeded. |
+| `reporting.metrics.manage` | Manage the canonical-metrics registry at `/reporting/metrics` (see below). Admins seeded. |
 | `reporting.schedule` | Schedule a saved report to run and be emailed (see below). Admins seeded. |
 | `reporting.ai.use` | Use the AI assistant (Eddard) — see the chat toggle, ask natural-language questions (see below). Admins seeded. |
-| `reporting.ai.sql` | Receive AI-drafted read-only T-SQL into the SQL editor. Grant alongside `reporting.sql.run`. Admins seeded. |
-| `reporting.ai.explain_data` | Let a result's rows reach the model: gates **auto captions** alone, and — combined with `reporting.sql.run` — the chat agent's `run_sql`/`compute_stats` tools (live-query narration). Grantable; admins seeded (see below). |
+| `reporting.ai.sql.use` | Receive AI-drafted read-only T-SQL into the SQL editor. Grant alongside `reporting.sql.run`. Admins seeded. |
+| `reporting.ai.explain.use` | Let a result's rows reach the model: gates **auto captions** alone, and — combined with `reporting.sql.run` — the chat agent's `run_sql`/`compute_stats` tools (live-query narration). Grantable; admins seeded (see below). |
 
 **Scope permissions mirror the dashboard.** Migration
 `0005_seed_reporting_permissions.sql` auto-creates a
@@ -839,7 +839,7 @@ Both serialization paths neutralize spreadsheet formula injection (leading
 profiles. A user who can see a process on the dashboard can therefore include it
 in a report without any manual grant work.
 
-The base permissions (`reporting.view`, `reporting.source.docprocessing`,
+The base permissions (`reporting.view`, `reporting.source.docprocessing.use`,
 `reporting.export`) are seeded to every access profile that already grants
 `admin.view`. Adjust via the normal Permissions admin UI as needed.
 
@@ -940,7 +940,7 @@ label in the results table and in the Excel export; it is never used in SQL.
 The source list is **code defaults overlaid with a DB registry**. Built-in
 sources live in `nx_lib/reporting/sources.py`; rows in `dbo.ReportingSources`
 (migration `0010`) augment or override them at request time via
-`merge_sources(code_sources(), db_rows)`. Admins (`reporting.admin.sources`)
+`merge_sources(code_sources(), db_rows)`. Admins (`reporting.sources.manage`)
 manage the registry at **`/reporting/sources`**: relabel, enable/disable,
 reorder (`SortOrder`), change the required permission, or register a brand-new
 source — no code change for the common cases.
@@ -973,7 +973,7 @@ with a `backlog_total` metric, migrations `0053`–`0056`/`0065`/`0066`/`0068`),
 was **retired by migration `0069`**: the date-anchored **Backlog** measure on
 the docprocessing source (see **`DateAnchor`** below) supersedes it, and the
 collector + table it read stay in place. Each source is gated by its own
-permission (`reporting.source.generali.pdqm`, `reporting.source.workitems`).
+permission (`reporting.source.generali_pdqm.use`, `reporting.source.workitems.use`).
 Unlike the docprocessing source, the `table` provider does **not** apply
 `reporting.scope.process.*` row scoping — the source permission is the whole
 gate, so grant it deliberately. Tune the exposed columns/object at
@@ -985,7 +985,7 @@ catalog, and a `Permission` — then grant that permission. A `Kind=sql` row add
 SQL-sandbox source over an existing target. Use the code path below only when a
 source needs bespoke query logic the `table` provider can't express.
 
-## Source visualizer (`reporting.sources.schema`)
+## Source visualizer (`reporting.sources.schema.view`)
 
 Clicking a Sources rail card opens a slide-over showing the **database behind
 that source** — a filterable table list and an ER diagram. Structure only: no
@@ -1028,7 +1028,7 @@ registry names plus the 5 field-statistic views over them, and RuntimeDatabase's
 31 into `t_Documents` + its two FK neighbours.
 
 **Two gates, not one.** The route carries `@require_permission(
-"reporting.sources.schema")` *and* re-checks that `source_id` is in the
+"reporting.sources.schema.view")` *and* re-checks that `source_id` is in the
 caller's `accessible()` set (403 otherwise). The grant therefore widens what
 you see *of* a database you already read — it never adds a database.
 
@@ -1060,7 +1060,7 @@ A **metric** is a named, blessed server-side aggregation (an `Aggregation` over 
 `BaseField`) bound to a registered source, so the builder and the AI assistant
 produce the **same numbers** for the same business question. Metrics live in
 `dbo.ReportingMetrics` (migration `0017`) and are curated at **`/reporting/metrics`**
-by admins holding `reporting.semantic.admin`.
+by admins holding `reporting.metrics.manage`.
 
 Each metric has a `Code` (`^[A-Za-z_][A-Za-z0-9_]*$`, referenced from a
 definition's `metrics` list), a `SourceId` (which source it aggregates), a
@@ -1380,16 +1380,16 @@ phase-to-label mapping. Each reply renders as:
   alongside the equivalent Simple-side bug, #178 Task 15), **Insert into SQL
   editor** / **Show query**
   (only if the reply carries `sql`, which in turn only happens when the caller
-  holds `reporting.ai.sql` — see **Access** below).
+  holds `reporting.ai.sql.use` — see **Access** below).
 - Three canned **follow-up** suggestion chips ("Only this quarter", "Break down
   by process", "Show it as a chart") that, when clicked, send that exact text as
   the next turn.
 
 **Access:** `reporting.ai.use` to see the toggle/panel at all. Whether a turn
-*can* return SQL depends on `reporting.ai.sql` (gates the agent's `validate_sql`
+*can* return SQL depends on `reporting.ai.sql.use` (gates the agent's `validate_sql`
 tool — without it, no SQL is ever drafted, so the SQL-related chips never
 appear). Whether a turn can narrate **real numbers** from a live query depends
-on `reporting.ai.explain_data` **and** `reporting.sql.run` together — see
+on `reporting.ai.explain.use` **and** `reporting.sql.run` together — see
 **Agent endpoint contract** below.
 
 ### Auto captions
@@ -1426,10 +1426,10 @@ an ascending time series, so the model judged 313 weeks from the NULL-date
 bucket plus 2020 — "a clear outlier of 74,182 pages", "at most 3,712 in the
 latest weeks" (2026-08-25 audit). Unlike the chat panel's schema-only default, this endpoint's whole
 purpose is to send the rows already on screen to the model, so it is gated by
-`reporting.ai.explain_data` **alone** — deliberately **not** also requiring
+`reporting.ai.explain.use` **alone** — deliberately **not** also requiring
 `reporting.sql.run` (there's no live query involved; the rows already left the
 database through the ordinary, already-scoped `/api/reporting/run` call, this
-just narrates them). This makes `reporting.ai.explain_data` control two
+just narrates them). This makes `reporting.ai.explain.use` control two
 distinct things with two distinct blast radii: captions (any accessible
 result's rows, no live SQL) and the chat agent's `run_sql`/`compute_stats`
 tools (arbitrary read-only queries the model itself writes, which additionally
@@ -1494,9 +1494,9 @@ stubbed tests that answer `application/json` keep working unchanged.
 **Tool binding follows permissions:** `build_definition` is always bound
 (data-free — the same whitelist validator `/api/reporting/run` uses).
 `validate_sql` (data-free — a gate check only) is bound only with
-`reporting.ai.sql`. `run_sql` / `run_definition` / `compute_stats`
+`reporting.ai.sql.use`. `run_sql` / `run_definition` / `compute_stats`
 (`nx_lib/reporting/stats.py`) — which feed real result rows back to the model —
-are bound **only** when the caller holds **both** `reporting.ai.explain_data`
+are bound **only** when the caller holds **both** `reporting.ai.explain.use`
 **and** `reporting.sql.run`; otherwise the loop stays fully schema-only
 (question + source catalog + SQL schema in, ok/error-only tool results out,
 never a result row). `run_definition` takes the same v1-definition shape as
@@ -1528,7 +1528,7 @@ trace — sees the actual fix instead of a raw driver message. The system prompt
 also forbids resubmitting SQL that just failed unchanged, pushing the model to
 actually address the error on the next tool call.
 
-> **Data egress (opt-in).** When the caller holds `reporting.ai.explain_data`
+> **Data egress (opt-in).** When the caller holds `reporting.ai.explain.use`
 > **and** `reporting.sql.run`, the loop binds `run_sql`/`compute_stats` so the
 > model runs validated read-only SELECTs and **narrates the actual numbers** —
 > a deliberate **data-egress** path (result rows reach the model). Seeded to
@@ -1542,7 +1542,7 @@ actually address the error on the next tool call.
 `POST /api/reporting/ai/build` (single-draft "build a report", `reporting.ai.use`,
 optionally with `priorQuestion`/`priorDefinition` refine context, audited
 `Surface='definition'`) and `POST /api/reporting/ai/ask` (single-draft "write
-SQL", requires `reporting.ai.sql` in addition to `reporting.ai.use`,
+SQL", requires `reporting.ai.sql.use` in addition to `reporting.ai.use`,
 `{"question"}` → `{"sql", "explanation", "valid", "target", "model"}`, audited
 `Surface='sql'`) still exist as routes — unchanged, still permission-gated,
 still audited — but no template or JS file calls either of them any more; the
@@ -1623,7 +1623,7 @@ persisting it would mean an `aieffort` key in `UI_PREF_CHOICES`
   login, row cap, timeout, audit trail); **Open report** only stages a
   definition for a normal, whitelisted `/api/reporting/run` call. The one path
   where the model itself triggers a read against real data is the opt-in
-  `run_sql`/`compute_stats` tool binding (`reporting.ai.explain_data` +
+  `run_sql`/`compute_stats` tool binding (`reporting.ai.explain.use` +
   `reporting.sql.run`), which still goes through the same sqlglot gate and RO
   login as everything else.
 - **Audit:** every AI interaction (question, model, provider, gate verdict,
@@ -1662,12 +1662,12 @@ The **SQL** tab in the report builder is a power-user escape hatch for when the
 curated builder does not cover your query. It runs a single read-only `SELECT`
 against a chosen target database. The **Target** dropdown lists every target the
 caller may reach: **Statistics** always (with `reporting.sql.run`), and
-**Octopus** when the caller also holds `reporting.sql.target.octopus`.
+**Octopus** when the caller also holds `reporting.sql.target.octopus.use`.
 
 ### Access
 
 Gated by the `reporting.sql.run` permission for the Statistics target; the
-Octopus target additionally requires `reporting.sql.target.octopus` (enforced
+Octopus target additionally requires `reporting.sql.target.octopus.use` (enforced
 server-side on both run and export). Admins have both seeded; grant them
 per-user via the normal Permissions admin UI on request.
 
@@ -1746,9 +1746,9 @@ live schema grounding and scheduled-report delivery.
 - `sql/_migrations/NexoraDB/0007_seed_reporting_sql_permission.sql` —
   `reporting.sql.run` permission + admin seed.
 - `sql/_migrations/NexoraDB/0008_seed_reporting_sql_octopus_permission.sql` —
-  `reporting.sql.target.octopus` permission + admin seed.
+  `reporting.sql.target.octopus.use` permission + admin seed.
 - `sql/_migrations/NexoraDB/0013_create_reporting_ai_audit.sql` —
-  `dbo.ReportingAiAudit` DDL + `reporting.ai.use` / `reporting.ai.sql` seed.
+  `dbo.ReportingAiAudit` DDL + `reporting.ai.use` / `reporting.ai.sql.use` seed.
 - `docs/design/reporting-ai-assistant.md` — AI assistant design spec.
 - `docs/superpowers/specs/2026-06-02-reporting-foundation-design.md` — full
   design spec (decisions, architecture, endpoint list, security model).

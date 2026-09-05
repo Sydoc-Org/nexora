@@ -146,7 +146,7 @@
   // ----- Auto AI caption (Task 13) -------------------------------------------
   // Fires after every successful run render when the caption slot exists in
   // the DOM -- it only exists when the page was rendered for a
-  // reporting.ai.explain_data holder (Jinja `ai_caption_enabled` gate in
+  // reporting.ai.explain.use holder (Jinja `ai_caption_enabled` gate in
   // _reporting_simple.html), so a caller with no permission is a silent
   // no-op. Shimmers while the request is in flight, then shows the caption
   // with its AI chip -- or hides silently on ANY error (network failure,
@@ -286,7 +286,7 @@
     // (still-loading, possibly failed or empty) result — hidden here just
     // like every other result element above, cleared again by fireCaption()
     // once (and if) the new run actually succeeds. Guarded: the box only
-    // exists in the DOM for a reporting.ai.explain_data holder.
+    // exists in the DOM for a reporting.ai.explain.use holder.
     var rsCaptionBox = RS.el('rsCaption');
     if (rsCaptionBox) { rsCaptionBox.hidden = true; rsCaptionBox.textContent = ''; }
     var anomCard = RS.el('rsAnomCard');

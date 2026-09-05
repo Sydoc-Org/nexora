@@ -551,7 +551,7 @@ different pages. Ask an administrator to grant what you need:
 | Ask Eddard | AI assistant access |
 | Set up email delivery | Scheduling permission |
 | Write your own SQL | SQL sandbox access (below) |
-| Click a source card to see its tables | Browse source structure (`reporting.sources.schema`) |
+| Click a source card to see its tables | Browse source structure (`reporting.sources.schema.view`) |
 
 ---
 
@@ -567,7 +567,7 @@ table-shaped source.
 **Measures** (`/reporting/metrics`) — the list the wizard's first step offers.
 Adding a row here widens the guided builder for everyone, without a release.
 
-**Source structure** — `reporting.sources.schema` turns the Sources rail cards
+**Source structure** — `reporting.sources.schema.view` turns the Sources rail cards
 into buttons that open the tables, columns and foreign keys of the database
 behind a source. It reads structure only (no rows), on the same connection the
 source already uses, and still requires the source's own permission — so it

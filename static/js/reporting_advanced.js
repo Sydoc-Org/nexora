@@ -385,7 +385,7 @@
 
   // ----- Auto AI caption (Task 13) -------------------------------------------
   // Fires on chart mount (below) when the caption slot exists in the DOM --
-  // it only exists when the page was rendered for a reporting.ai.explain_data
+  // it only exists when the page was rendered for a reporting.ai.explain.use
   // holder (Jinja `ai_caption_enabled` gate in reporting.html), so a caller
   // with no permission is a silent no-op. Shimmers while the request is in
   // flight, then shows the caption with its AI chip -- or hides silently on
@@ -438,7 +438,7 @@
     // A prior run's caption only ever fires on chart mount, but it must not
     // linger once a NEW run lands — whether that run's grid has data, is
     // empty, or the user never revisits the Chart view. Guarded: the box
-    // only exists in the DOM for a reporting.ai.explain_data holder.
+    // only exists in the DOM for a reporting.ai.explain.use holder.
     var rpCaptionBox = document.getElementById('rpCaption');
     if (rpCaptionBox) { rpCaptionBox.hidden = true; rpCaptionBox.textContent = ''; }
     setView('grid');
@@ -947,7 +947,7 @@
     // (still-loading, possibly failed or empty) result -- hidden here just
     // like Simple's runCurrent() does at run-start, cleared again by
     // fireCaption() once (and if) the new run's chart gets mounted. Guarded:
-    // the box only exists in the DOM for a reporting.ai.explain_data holder.
+    // the box only exists in the DOM for a reporting.ai.explain.use holder.
     var rpCaptionLoadBox = document.getElementById('rpCaption');
     if (rpCaptionLoadBox) { rpCaptionLoadBox.hidden = true; rpCaptionLoadBox.textContent = ''; }
     var box = document.createElement('div');

@@ -2,7 +2,7 @@
 
 > **Status:** Phase 1, Phase 2 and Phase 3 implemented — the agentic loop +
 > deterministic stats engine + drafter route (3a–3d), and **Phase 3e** data
-> egress (the `reporting.ai.explain_data` permission binds `run_sql` +
+> egress (the `reporting.ai.explain.use` permission binds `run_sql` +
 > `compute_stats` into the loop so the model narrates real numbers; off by
 > default → schema-only). Glossary RAG (the other 3e item) remains planned
 > (needs a curation owner). **2026-07-27 (Phase 5, "chat glow-up"):** the
@@ -10,7 +10,7 @@
 > Simple tab's own one-shot ask + Refine bar are **retired** — a single
 > multi-turn **AI chat panel** (§2b) now fronts Surface C's agent endpoint on
 > both tabs, threading up to 8 turns / 4000 chars of conversation history.
-> The same release also shipped `reporting.ai.explain_data`-gated **auto
+> The same release also shipped `reporting.ai.explain.use`-gated **auto
 > captions** (a 1–2 sentence narration under any result, `Surface='caption'`
 > in the audit table) as the actually-shipped Phase-3e narration surface for
 > a *single already-fetched result* (distinct from the agent's live `run_sql`
@@ -397,7 +397,7 @@ Be explicit about this — it's the crux of approval.
 | The user's natural-language question | Yes | Always |
 | Schema **metadata** (table/column names, types, descriptions, glossary) | Yes | Always (PII columns flagged/omitted) |
 | **Sample values** for disambiguation | Optional | **Off by default**; PII-filtered if on |
-| **Result rows** ("explain these numbers", chart suggestion) | Optional | **Off by default**; gated by `reporting.ai.explain_data` |
+| **Result rows** ("explain these numbers", chart suggestion) | Optional | **Off by default**; gated by `reporting.ai.explain.use` |
 
 Default posture: **schema-only, no data egress.** Sending rows back to the model
 is a separate, explicitly-granted capability.
@@ -432,7 +432,7 @@ env/*.env(.example)               AI_PROVIDER, ANTHROPIC_API_KEY |
 > shipped is (a) the agent's `run_sql`/`compute_stats` tool binding *inside*
 > `POST /api/reporting/ai/agent` (§2b) for live queries, and (b)
 > `POST /api/reporting/ai/caption` (Phase 5) for narrating an *already-fetched*
-> result's rows, both gated by `reporting.ai.explain_data`. And
+> result's rows, both gated by `reporting.ai.explain.use`. And
 > `templates/js/_reporting_ai_js.html` is no longer an "Ask AI panel" with its
 > own sub-modes — it's the chat module (`window.ReportingChat`) behind the
 > single AI chat toggle (§2b).
@@ -452,8 +452,8 @@ family:
 | Perm | Allows |
 |---|---|
 | `reporting.ai.use` | Ask the assistant; receive **Surface A** definitions + explanations (no SQL) |
-| `reporting.ai.sql` | Receive/run **Surface B** SQL — **implies** `reporting.sql.run` |
-| `reporting.ai.explain_data` | Allow result **rows** to be sent to the model (data egress). Gates two distinct things: **auto captions** on any result (alone — no live query, the rows already left the DB through the ordinary run) and, **combined with `reporting.sql.run`**, the chat agent's `run_sql`/`run_definition`/`compute_stats` tools (the model's own live read-only queries and definition runs). |
+| `reporting.ai.sql.use` | Receive/run **Surface B** SQL — **implies** `reporting.sql.run` |
+| `reporting.ai.explain.use` | Allow result **rows** to be sent to the model (data egress). Gates two distinct things: **auto captions** on any result (alone — no live query, the rows already left the DB through the ordinary run) and, **combined with `reporting.sql.run`**, the chat agent's `run_sql`/`run_definition`/`compute_stats` tools (the model's own live read-only queries and definition runs). |
 
 New audit table `dbo.ReportingAiAudit` (or an `origin` + `prompt` column added to
 `ReportingSqlAudit`): `{user, prompt, surface, generated_sql_or_definition,
@@ -474,12 +474,12 @@ the route 503s). Only `ok`/`error` count toward the daily cap, so `blocked` and
   + `TOP(cap)` wrap. The model cannot do anything a human with `reporting.sql.run`
   can't already do.
 - **Row-scoping caveat:** Surface B (SQL) bypasses `reporting.scope.process.*`,
-  exactly like the existing SQL sandbox. So `reporting.ai.sql` must be granted as
+  exactly like the existing SQL sandbox. So `reporting.ai.sql.use` must be granted as
   deliberately as SQL access. Surface A keeps scoping. Document this prominently.
 - **Prompt injection:** free-text DB values (e.g. a comment column) returned to
   the model could contain "ignore your instructions" payloads. Harmless for
   execution (RO + gate), but treat model output as **proposals only** — never let
-  model text trigger side effects beyond a gated run. Keep `explain_data` opt-in.
+  model text trigger side effects beyond a gated run. Keep `reporting.ai.explain.use` opt-in.
 - **PII minimisation:** mark PII columns in the catalog; omit them from schema
   sent to the model and from any sampling, unless explicitly needed and granted.
 - **Cost / abuse controls:** per-user token budget and a hard agent-iteration
@@ -581,11 +581,11 @@ should be computed deterministically:
 | **2 — Builder + charts** | NL → report-definition (auto-fills wells; whitelist-safe; no SQL perm) + "suggest a chart" | `/run`, Chart.js | ~days | ✅ done (2026-06-03) |
 | **3a–3c — Agentic spine** | Tier-2 tool-loop (`ask_agentic`) with self-repair + turn cap; provider tool-calling (Azure + Anthropic); tool layer (`ai_tools.py`); deterministic stats engine (`stats.py`, stdlib) | gate, run, validator, audit | ~days | ✅ done (2026-06-03) |
 | **3d — Drafter route + Agent UI** | `POST /api/reporting/ai/agent` (Surface C): self-repairing drafter; binds data-free tools by default (`build_definition`, `validate_sql`); returns a validated artifact + tool trace; audits `Surface='agent'`. Original **Agent sub-mode** UI: visible tool-step trace + follow-up conversation, one of three sub-modes on an "Ask AI" tab — **retired by Phase 5** below, which replaces the whole three-sub-mode tab with one chat panel over this same endpoint | the spine | ~days | ✅ done (2026-06-04); UI superseded 2026-07-27 |
-| **3e — Data egress** | `run_sql` / `compute_stats` bound into the live loop behind **`reporting.ai.explain_data`** (migration `0015`; admins seeded; only effective with `reporting.sql.run`) so the model narrates real result numbers; off by default → schema-only. (Glossary RAG deferred — needs a curation owner) | new perm + migration | ~days | ✅ data egress done (2026-06-04); RAG planned |
-| **4 — Semantic layer (Slice 1 — metrics)** | Canonical **metrics** (named server-side aggregations) in `dbo.ReportingMetrics`; definition `metrics` list → GROUP BY by `columns`; aggregate branch in both query builders; `/reporting/metrics` admin (`reporting.semantic.admin`, migration `0017`); builder Metrics well; metric catalog injected into the AI schema | `query.py`, `table_query.py`, `schema.py`, `ai_schema.py` | strategic, larger | ✅ Slice 1 done (2026-06-08); dimensions + locked `FilterJson` planned |
-| **5 — Chat glow-up** | Retire the three-sub-mode "Ask AI" tab + Simple's one-shot ask/Refine bar in favor of one multi-turn **AI chat panel** (§2b) on both tabs, fronting Surface C via a new `history` param (8 turns / 4000 chars, text-only); **`POST /api/reporting/ai/caption`** — a `reporting.ai.explain_data`-gated 1–2 sentence auto-narration under any result (`Surface='caption'`); plus non-AI chart/table formatting polish, dark-mode repair, and a non-AI **comparison**/delta-chip feature on `/api/reporting/run` (Simple tab) | the spine, `/run` | ~days | ✅ done (2026-07-27) |
+| **3e — Data egress** | `run_sql` / `compute_stats` bound into the live loop behind **`reporting.ai.explain.use`** (migration `0015`; admins seeded; only effective with `reporting.sql.run`) so the model narrates real result numbers; off by default → schema-only. (Glossary RAG deferred — needs a curation owner) | new perm + migration | ~days | ✅ data egress done (2026-06-04); RAG planned |
+| **4 — Semantic layer (Slice 1 — metrics)** | Canonical **metrics** (named server-side aggregations) in `dbo.ReportingMetrics`; definition `metrics` list → GROUP BY by `columns`; aggregate branch in both query builders; `/reporting/metrics` admin (`reporting.metrics.manage`, migration `0017`); builder Metrics well; metric catalog injected into the AI schema | `query.py`, `table_query.py`, `schema.py`, `ai_schema.py` | strategic, larger | ✅ Slice 1 done (2026-06-08); dimensions + locked `FilterJson` planned |
+| **5 — Chat glow-up** | Retire the three-sub-mode "Ask AI" tab + Simple's one-shot ask/Refine bar in favor of one multi-turn **AI chat panel** (§2b) on both tabs, fronting Surface C via a new `history` param (8 turns / 4000 chars, text-only); **`POST /api/reporting/ai/caption`** — a `reporting.ai.explain.use`-gated 1–2 sentence auto-narration under any result (`Surface='caption'`); plus non-AI chart/table formatting polish, dark-mode repair, and a non-AI **comparison**/delta-chip feature on `/api/reporting/run` (Simple tab) | the spine, `/run` | ~days | ✅ done (2026-07-27) |
 
-**Phase-1 acceptance:** a user with `reporting.ai.sql` types a question, gets
+**Phase-1 acceptance:** a user with `reporting.ai.sql.use` types a question, gets
 valid T-SQL in the editor that passes `validate_select`, can run it via the
 existing gated path, and the interaction is in `ReportingAiAudit`. No new
 execution path; no data egress beyond the question + schema metadata.
@@ -604,7 +604,7 @@ path (row-scoping and whitelist intact), and the interaction is in
 1. **Provider:** Azure OpenAI (tenant-resident, compliance default) vs Claude API
    (quality, zero-retention terms)? This gates the env/secrets shape.
 2. **Data egress:** is sending **result rows** to the model ever acceptable
-   (for "explain these numbers")? If no, drop `reporting.ai.explain_data` and
+   (for "explain these numbers")? If no, drop `reporting.ai.explain.use` and
    keep everything schema-only.
 3. **Audience:** primarily SQL-capable users (lead with Surface B) or
    everyone (lead with Surface A / builder auto-fill)?

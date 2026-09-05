@@ -68,7 +68,7 @@ _SQL_TARGETS = set(_SQL_TARGET_ENGINES)
 # own grant so SQL access and runtime-DB access can be separated.
 _SQL_TARGET_PERMISSION = {
     "statistics": "reporting.sql.run",
-    "octopus": "reporting.sql.target.octopus",
+    "octopus": "reporting.sql.target.octopus.use",
 }
 
 

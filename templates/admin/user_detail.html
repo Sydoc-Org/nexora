@@ -162,7 +162,7 @@
                             {% set ns = namespace(prev_group='', prev_sub='') %}
                             {% for perm in all_permissions %}
                             {% set parts = perm.Code.split('.') %}
-                            {% set group = parts[0] %}
+                            {% set group = parts[0] ~ ('.' ~ parts[1] if parts[0] in ('tenant', 'process') else '') %}
                             {% set action = parts[1] if parts|length > 1 else '' %}
                             {% set sub = group ~ '.' ~ action %}
                             {% if group != ns.prev_group %}

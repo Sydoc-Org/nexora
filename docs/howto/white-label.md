@@ -29,7 +29,7 @@ DB at all, and it does so through the admin UI, not a migration.
 
 ## `/admin/clients` — runtime sources
 
-Permissions: `admin.view.clients` (read), `admin.edit.clients` (add/edit/delete). Both are granted to
+Permissions: `admin.clients.view` (read), `admin.clients.edit` (add/edit/delete). Both are granted to
 `enterpriseAdmin` and `globalAdmin` by migration `0080`.
 
 The table lists five columns per `dbo.Clients` row — `ClientCode`, `DisplayName`, `Dialect`
@@ -80,7 +80,7 @@ decision; this only makes the degradation visible.
 
 ## `/admin/processes` — process sources and field mappings
 
-Permissions: `admin.view.processes` (read), `admin.edit.processes` (add/edit/delete). Both granted to
+Permissions: `admin.processes.view` (read), `admin.processes.edit` (add/edit/delete). Both granted to
 `enterpriseAdmin` and `globalAdmin` by migration `0080`.
 
 Reads and writes `dbo.ProcessSources` and `dbo.ProcessFieldMappings` (migration `0074`) entirely
@@ -144,10 +144,10 @@ idempotent, mirroring migration `0059`'s shape).
 Deleting a process source is refused with **409** while it still has field mappings — remove those
 first.
 
-### `admin.edit.processes` is a high-trust permission
+### `admin.processes.edit` is a high-trust permission
 
 Read the identifier validation above as *injection* hardening, not as a security boundary between
-customers. It is not one. `admin.edit.processes` lets a holder rewrite `TableName` on an **existing**
+customers. It is not one. `admin.processes.edit` lets a holder rewrite `TableName` on an **existing**
 process source, and `_IDENT` accepts any qualified identifier in either dialect. A holder can
 therefore repoint an already-granted `workitems.filter.process.privera.02_Posteingang` at a different
 customer's statistik table: no new grant is needed, no permission changes, and nothing is audited.
@@ -155,7 +155,7 @@ The practical meaning of the permission is **"can point any granted process at a
 runtime database"** — which is inherent to an editable config surface, not a defect to be patched.
 
 Grant it accordingly. Migration `0080` hands it to every access profile that already holds
-`admin.view.organizations` (`enterpriseAdmin`, `globalAdmin`); treat adding anyone else to that set
+`admin.organizations.view` (`enterpriseAdmin`, `globalAdmin`); treat adding anyone else to that set
 as the cross-tenant data-access decision it is.
 
 ### Scope limits — deliberately not editable here
@@ -310,9 +310,9 @@ The stored filename is derived from the organization code, never from the upload
 
 ### Editing a brand
 
-The branding panel on `/admin/organizations` sits behind **`admin.edit.organization.branding`**
+The branding panel on `/admin/organizations` sits behind **`admin.organizations.branding.edit`**
 (seeded by migration `0080`, granted to `enterpriseAdmin` and `globalAdmin`). A viewer holding only
-`admin.view.organizations` never sees the panel or its per-row button. `POST
+`admin.organizations.view` never sees the panel or its per-row button. `POST
 /admin/organizations/<organizationcode>/branding` accepts JSON (name + accent only) or
 `multipart/form-data` (plus `logo`); a save without an upload leaves the stored logo untouched.
 Every successful save calls `invalidate_branding()`.
