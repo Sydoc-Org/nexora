@@ -1,0 +1,27 @@
+/* Typography — Schibsted Grotesk is the console/UI face (introduced with the
+   Reporting console), Inter is the fallback and the legacy page face.
+   Numbers always run in the mono stack with tabular figures. */
+:root {
+  --nx-font: 'Schibsted Grotesk', 'Inter', system-ui, -apple-system, sans-serif;
+  --nx-font-legacy: 'Inter', system-ui, -apple-system, sans-serif;
+  --nx-mono: ui-monospace, "SF Mono", "Roboto Mono", Consolas, monospace;
+
+  /* Scale actually used by the slim pages */
+  --fs-eyebrow: 10px;    /* uppercase group labels, .09em tracking, 700 */
+  --fs-micro:   11px;    /* legends, counts, meta next to a title */
+  --fs-meta:    11.5px;  /* header meta, sync line */
+  --fs-control: 12.5px;  /* buttons, inputs, selects, scope picker */
+  --fs-body:    13px;    /* table cells, form text */
+  --fs-title-s: 14px;
+  --fs-title:   15px;    /* section titles in the slim layout */
+  --fs-h1:      22px;    /* page title (24px on legacy pages) */
+  --fs-kpi:     32px;    /* KPI value, mono, -1.4px tracking */
+
+  --lh-tight: 1.2;
+  --lh-body:  1.45;
+
+  --tracking-eyebrow: 0.09em;
+  --tracking-h1: -0.5px;
+  --tracking-title: -0.02em;
+  --tracking-kpi: -1.4px;
+}

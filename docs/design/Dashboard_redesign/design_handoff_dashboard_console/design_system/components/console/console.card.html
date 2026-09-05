@@ -1,0 +1,48 @@
+<!-- @dsCard group="Components" viewport="700x230" name="Console — filter row, tabs, legend" subtitle="Borderless filter line, underline view tabs" -->
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+<script src="../../_ds_bundle.js" onerror="this.dataset.missing=1"></script>
+<script src="../../ds-fallback.js"></script>
+<style>
+  body { margin: 0; padding: 16px 18px; background: var(--nx-card); }
+  .row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+  .stack { display: flex; flex-direction: column; gap: 12px; }
+  .cap { font-size: 9.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--nx-text-meta); }
+</style>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+
+let FilterRow, SegmentedControl, UnderlineTabs, ChartHeader, SeriesLegend, ScopePicker;
+const groups = [{ name: 'Generali', items: [{ id: '02', name: '02_Posteingang', count: 612 }, { id: '03', name: '03_Invoice_New', count: 341 }] }];
+function Card() {
+  const [range, setRange] = React.useState('14 T');
+  const [view, setView] = React.useState('Zeitverlauf');
+  const [picked, setPicked] = React.useState(['02']);
+  return (
+    <div>
+      <FilterRow label="Prozess" style={{ marginTop: 0 }}
+        right={<SegmentedControl options={['14 T','30 T','90 T']} value={range} onChange={setRange} />}>
+        <ScopePicker groups={groups} selected={picked} onChange={setPicked} width={230} />
+      </FilterRow>
+      <ChartHeader style={{ marginTop: 18 }} title="Verarbeitete Dokumente im Zeitverlauf" meta="14 Tage · Spitze 2,650"
+        right={<UnderlineTabs tabs={['Zeitverlauf','Heute nach Stunde']} value={view} onChange={setView} />} />
+      <div style={{ marginTop: 18 }}>
+        <SeriesLegend items={[
+          { name: '02_Posteingang', color: 'var(--nx-series-1)', dash: 'solid', count: 612 },
+          { name: '03_Invoice_New', color: 'var(--nx-series-2)', dash: 'dashed', count: 341 },
+          { name: '01_Scan_Eingang', color: 'var(--nx-series-3)', dash: 'dotted', count: 188 },
+          { name: '04_Archiv', color: 'var(--nx-series-4)', dash: 'solid', count: 106 }
+        ]} />
+      </div>
+    </div>
+  );
+}
+
+nexoraDS('../../').then(function (NS) {
+  ({ FilterRow, SegmentedControl, UnderlineTabs, ChartHeader, SeriesLegend, ScopePicker } = NS);
+  ReactDOM.createRoot(document.getElementById('root')).render(<Card />);
+});
+</script>

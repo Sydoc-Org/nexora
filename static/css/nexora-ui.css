@@ -46,6 +46,24 @@
   --nx-warning: #d97706;
   --nx-danger:  #dc2626;
 
+  /* Categorical chart series — deliberately independent of --nx-accent so a
+     multi-series chart stays readable under all seven accent picks. */
+  --nx-series-1: #d97706;
+  --nx-series-2: #7c3aed;
+  --nx-series-3: #0891b2;
+  --nx-series-4: #db2777;
+  --nx-series-5: #059669;
+
+  /* Slim-console control height + type ramp (dashboard console) */
+  --ctl-h:      29px;
+  --ctl-h-lg:   33px;
+  --fs-eyebrow: 10px;
+  --fs-micro:   11px;
+  --fs-meta:    11.5px;
+  --fs-control: 12.5px;
+  --fs-title:   15px;
+  --fs-kpi:     32px;
+
   /* — Label backgrounds (soft pastel + readable fg) — */
   --nx-l-indigo:    #eef2ff;  --nx-l-indigo-fg: #4338ca;
   --nx-l-green:     #d1fae5;  --nx-l-green-fg:  #065f46;
@@ -105,6 +123,13 @@ html.dark {
   --nx-success: #34d399;
   --nx-warning: #fbbf24;
   --nx-danger:  #f87171;
+
+  /* Dark twins of the categorical chart series (kit tokens/themes.css). */
+  --nx-series-1: #fbbf24;
+  --nx-series-2: #a78bfa;
+  --nx-series-3: #22d3ee;
+  --nx-series-4: #f472b6;
+  --nx-series-5: #34d399;
 
   --nx-l-indigo: #312e81; --nx-l-indigo-fg: #c7d2fe;
   --nx-l-green:  #064e3b; --nx-l-green-fg:  #6ee7b7;
@@ -446,6 +471,115 @@ a.nx-card:hover, .nx-card--link:hover {
 .nx-flash.hidden   { display: none; }
 
 /* ============================================================
+   Console kit — slim, borderless layout primitives shared by the
+   Dashboard console and (next) the other migrated pages.
+   Every colour rides the --nx-* tokens, so the user's accent pick,
+   dark mode and tenant branding apply for free. Prototype hexes are
+   NOT reproduced here: the design's amber IS --nx-accent.
+   ============================================================ */
+
+/* Uppercase group label, 10px/700 */
+.nx-eyebrow {
+  font-size: var(--fs-eyebrow); font-weight: 700; text-transform: uppercase;
+  letter-spacing: .09em; color: var(--nx-text-meta);
+}
+
+/* Hairline that separates two borderless sections */
+.nx-section-rule { border-top: 1px solid var(--nx-border); }
+
+/* Live/"fresh data" dot */
+.nx-live-dot {
+  width: 7px; height: 7px; border-radius: var(--nx-radius-pill);
+  background: var(--nx-success); flex-shrink: 0;
+}
+
+/* ---------- KPI strip: no cards, hairlines only ---------- */
+.nx-kpi-strip {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-bottom: 1px solid var(--nx-border);
+}
+.nx-kpi {
+  padding: 18px 30px 16px;
+  border-left: 1px solid var(--nx-divider);
+  min-width: 0;
+}
+.nx-kpi:first-child { border-left: none; }
+.nx-kpi__label {
+  font-size: var(--fs-eyebrow); font-weight: 700; text-transform: uppercase;
+  letter-spacing: .09em; color: var(--nx-text-meta); margin: 0;
+}
+.nx-kpi__body {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 16px; margin-top: 10px;
+}
+.nx-kpi__value {
+  font-family: var(--nx-mono); font-variant-numeric: tabular-nums;
+  font-size: var(--fs-kpi); font-weight: 600; letter-spacing: -1.4px;
+  line-height: 1; color: var(--nx-text); margin: 0;
+}
+.nx-kpi__delta {
+  font-size: var(--fs-micro); font-weight: 600; margin: 6px 0 0;
+  color: var(--nx-text-meta);
+}
+.nx-kpi__delta--good { color: var(--nx-success); }
+.nx-kpi__delta--bad  { color: var(--nx-accent-hover); }
+.nx-kpi__delta span { font-weight: 400; color: var(--nx-text-meta); }
+.nx-kpi__spark { width: 120px; height: 36px; opacity: .9; flex-shrink: 0; }
+.nx-kpi__spark path { stroke-linejoin: round; }
+
+@media (max-width: 1024px) {
+  .nx-kpi-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .nx-kpi { padding: 14px 18px 12px; }
+  .nx-kpi:nth-child(odd)  { border-left: none; }
+  .nx-kpi:nth-child(n+3)  { border-top: 1px solid var(--nx-divider); }
+}
+
+/* ---------- Segmented control ---------- */
+.nx-segmented {
+  display: inline-flex; height: var(--ctl-h); overflow: hidden;
+  border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 8px);
+  background: var(--nx-card);
+}
+.nx-segmented__btn {
+  border: none; border-left: 1px solid var(--nx-border); background: transparent;
+  padding: 0 10px; font-family: inherit; font-size: var(--fs-meta); font-weight: 600;
+  color: var(--nx-text-meta); cursor: pointer;
+}
+.nx-segmented__btn:first-child { border-left: none; }
+.nx-segmented__btn:hover { color: var(--nx-text); }
+.nx-segmented__btn.is-active { background: var(--nx-accent-tint); color: var(--nx-accent-hover); }
+.nx-segmented__btn:focus-visible {
+  outline: none; box-shadow: inset 0 0 0 2px var(--nx-accent);
+}
+
+/* ---------- Slim underline tabs (modifier on .nx-tabs/.nx-tab) ---------- */
+.nx-tabs--slim { gap: 16px; margin: 0; border-bottom: none; }
+.nx-tabs--slim .nx-tab { font-size: 12px; font-weight: 600; padding: 0 0 5px; margin-bottom: 0; }
+
+/* ---------- Chart header ---------- */
+.nx-chart-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.nx-chart-head__title {
+  font-size: var(--fs-title); font-weight: 700; letter-spacing: -0.02em;
+  color: var(--nx-text); margin: 0;
+}
+.nx-chart-head__meta {
+  font-size: var(--fs-micro); color: var(--nx-text-meta);
+  font-variant-numeric: tabular-nums;
+}
+.nx-chart-head__spacer { margin-left: auto; }
+
+/* ---------- Series legend ---------- */
+.nx-legend { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.nx-legend__item {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: var(--fs-micro); color: var(--nx-text-sec);
+}
+.nx-legend__swatch { width: 16px; height: 0; border-top: 2.5px solid currentColor; }
+.nx-legend__swatch--dashed { border-top-style: dashed; }
+.nx-legend__swatch--dotted { border-top-style: dotted; }
+.nx-legend__count { color: var(--nx-text-meta); font-variant-numeric: tabular-nums; }
+
+/* ============================================================
    4. SIGNATURE — brand-gradient text + on-load motion
    ============================================================ */
 .nx-grad-text {
@@ -667,6 +801,7 @@ html.nx-compact .nx-card--pad { padding: 14px 16px; }
 html.nx-compact .nx-filter { padding: 10px 14px; margin-bottom: 14px; }
 html.nx-compact .nx-page-head { margin-bottom: 16px; }
 html.nx-compact body.nx-app .nx-main { padding: 18px 28px; }
+html.nx-compact { --ctl-h: 27px; --ctl-h-lg: 30px; }
 html.nx-compact .admin-table thead th { padding: 6px 12px; }
 html.nx-compact .admin-table tbody td { padding: 7px 12px; }
 html.nx-compact .admin-card { padding: 12px; }

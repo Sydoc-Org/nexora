@@ -8,7 +8,7 @@ Postgres identifiers) and `_statconfig_sources` (the mapping_config-backed
 successor to the legacy per-call Statconfig cursor read, #98)."""
 
 import types
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from unittest.mock import MagicMock
 
 import pytest
@@ -304,6 +304,10 @@ def test_kpi_stats_serves_ms02_and_backlog_when_statistics_db_dead(app, monkeypa
     monkeypatch.setattr(dv, "engine_statistics_db", _dead_engine())
     monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql: [(5, 2)])
     monkeypatch.setattr(dv, "total_backlog_count", lambda pairs: 3)
+    # The sparkline helpers run their own per-day queries; this test is about
+    # the big numbers degrading, and its 2-tuple fakes do not fit those rows.
+    monkeypatch.setattr(dv, "_kpi_daily_counts", lambda tp, days: {})
+    monkeypatch.setattr(dv, "_backlog_history", lambda tp, days: {})
 
     with app.test_request_context("/api/dashboard/kpi_stats"):
         session["username"] = "u"
@@ -314,7 +318,15 @@ def test_kpi_stats_serves_ms02_and_backlog_when_statistics_db_dead(app, monkeypa
 
     resp, status = rv if isinstance(rv, tuple) else (rv, rv.status_code)
     assert status == 200
-    assert resp.get_json() == {"processed_today": 5, "imported_today": 2, "current_backlog": 3}
+    assert resp.get_json() == {
+        "processed_today": 5,
+        "imported_today": 2,
+        "current_backlog": 3,
+        "prev_imported": 0,
+        "prev_processed": 0,
+        "prev_backlog": 0,
+        "series": {"imported": [], "processed": [], "backlog": []},
+    }
 
 
 def test_kpi_stats_route_still_200s_on_genuinely_quiet_day(app, monkeypatch):
@@ -326,6 +338,10 @@ def test_kpi_stats_route_still_200s_on_genuinely_quiet_day(app, monkeypatch):
     _stub_sources(monkeypatch, [_CONFIGS[0]])
     monkeypatch.setattr(dv, "engine_statistics_db", _engine_returning([(None, None)]))
     monkeypatch.setattr(dv, "total_backlog_count", lambda pairs: 0)
+    # As above: the per-day sparkline queries have their own row shape and
+    # their own tests; this one guards the today numbers' graceful degrade.
+    monkeypatch.setattr(dv, "_kpi_daily_counts", lambda tp, days: {})
+    monkeypatch.setattr(dv, "_backlog_history", lambda tp, days: {})
 
     with app.test_request_context("/api/dashboard/kpi_stats"):
         session["username"] = "u"
@@ -336,7 +352,15 @@ def test_kpi_stats_route_still_200s_on_genuinely_quiet_day(app, monkeypatch):
 
     resp, status = rv if isinstance(rv, tuple) else (rv, rv.status_code)
     assert status == 200
-    assert resp.get_json() == {"processed_today": 0, "imported_today": 0, "current_backlog": 0}
+    assert resp.get_json() == {
+        "processed_today": 0,
+        "imported_today": 0,
+        "current_backlog": 0,
+        "prev_imported": 0,
+        "prev_processed": 0,
+        "prev_backlog": 0,
+        "series": {"imported": [], "processed": [], "backlog": []},
+    }
 
 
 # ---- Phase-review fix: dashboard_kpi_stats had the SAME cross-product bug
@@ -401,7 +425,7 @@ def test_hourly_stats_serves_ms02_when_statistics_db_dead(app, monkeypatch):
 def test_avg_processing_time_serves_ms02_when_statistics_db_dead(app, monkeypatch):
     _stub_sources(monkeypatch, _CONFIGS)
     monkeypatch.setattr(dv, "engine_statistics_db", _dead_engine())
-    monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql: [(120.0,)])
+    monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql: [(date.today(), 120.0)])
 
     with app.test_request_context("/api/dashboard/avg_processing_time"):
         session["username"] = "u"
@@ -530,6 +554,139 @@ def test_compute_today_stats_non_strict_default_still_degrades(app, monkeypatch)
     monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql: [(5, 2)])
     with app.app_context():
         assert dv.compute_today_stats(["sydoc.Alpha", "sydoc.05_PDBS"]) == (2, 5)
+
+
+def test_kpi_daily_counts_sums_both_legs_and_zero_fills(app, monkeypatch):
+    """Same predicates as compute_today_stats, one row per day. The default leg
+    groups by import date (imported = every row, processed = those exported the
+    same day); the MS02 leg counts each column independently."""
+    today = date.today()
+    monkeypatch.setattr(
+        dv,
+        "_statconfig_sources",
+        lambda tp: [
+            _row("default", "t1", "dbo.t1", "ExportDate", "ImportDate"),
+            _row("ms02", "p", 'public."D"', "DatumInTempExport", "ImportDate"),
+        ],
+    )
+    monkeypatch.setattr(
+        dv,
+        "_default_stat_rows",
+        lambda sql: [(today, 10, 4), (today - timedelta(days=1), 6, 6)],
+    )
+    monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql: [(today, 3)])
+
+    with app.test_request_context():
+        out = dv._kpi_daily_counts(["c.p"], 3)
+
+    assert len(out) == 3  # zero-filled window
+    assert out[today] == {"imported": 13, "processed": 7}  # 10+3 imported, 4+3 processed
+    assert out[today - timedelta(days=1)] == {"imported": 6, "processed": 6}
+    assert out[today - timedelta(days=2)] == {"imported": 0, "processed": 0}
+
+
+def test_kpi_daily_counts_normalizes_str_typed_dates(app, monkeypatch):
+    """The legacy `DRIVER={SQL Server}` pyodbc driver returns DATE columns as
+    str on PROD -- same trap dashboard_processed_over_time already guards."""
+    today = date.today()
+    monkeypatch.setattr(
+        dv,
+        "_statconfig_sources",
+        lambda tp: [_row("default", "t1", "dbo.t1", "ExportDate", "ImportDate")],
+    )
+    monkeypatch.setattr(dv, "_default_stat_rows", lambda sql: [(today.isoformat(), 5, 2)])
+    monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql: [])
+
+    with app.test_request_context():
+        out = dv._kpi_daily_counts(["c.p"], 2)
+
+    assert out[today] == {"imported": 5, "processed": 2}
+
+
+def test_avg_processing_by_day_groups_and_means_the_legs(app, monkeypatch):
+    today = date.today()
+    monkeypatch.setattr(
+        dv,
+        "_statconfig_sources",
+        lambda tp: [
+            _row("default", "t1", "dbo.t1", "ExportDate", "ImportDate"),
+            _row("ms02", "p", 'public."D"', "DatumInTempExport", "ImportDate"),
+        ],
+    )
+    monkeypatch.setattr(
+        dv,
+        "_default_stat_rows",
+        lambda sql, *a, **k: [(today, 100.0), (today - timedelta(days=1), 200.0)],
+    )
+    monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql, *a, **k: [(today, 300.0)])
+
+    with app.test_request_context():
+        out = dv._avg_processing_by_day(["c.p"], 3)
+
+    assert out[today] == 200.0  # mean-of-means: (100 + 300) / 2
+    assert out[today - timedelta(days=1)] == 200.0  # single leg contributes alone
+    assert (today - timedelta(days=2)) not in out  # gaps stay gaps, not zeros
+
+
+def test_compute_avg_processing_time_still_returns_todays_scalar(app, monkeypatch):
+    """The external API's contract (float seconds or None) is unchanged."""
+    monkeypatch.setattr(
+        dv, "_avg_processing_by_day", lambda tp, days, strict=False: {date.today(): 42.0}
+    )
+    with app.test_request_context():
+        assert dv.compute_avg_processing_time(["c.p"]) == 42.0
+
+    monkeypatch.setattr(dv, "_avg_processing_by_day", lambda tp, days, strict=False: {})
+    with app.test_request_context():
+        assert dv.compute_avg_processing_time(["c.p"]) is None
+
+
+def test_backlog_history_takes_the_last_snapshot_per_day_and_sums_sources(app, monkeypatch):
+    """Two snapshots the same day -> the later one wins; two SourceCodes for
+    the same (client, process) -> summed. Pairs outside target_processes are
+    dropped in Python, never through an interpolated IN list."""
+    today = date.today()
+
+    def at(day, hour):
+        return datetime.combine(day, datetime.min.time()).replace(hour=hour)
+
+    yesterday = today - timedelta(days=1)
+    rows = [
+        # (SnapshotAt, SourceCode, ClientName, ProcessName, BacklogCount)
+        # NOTE the display-cased "Privera": BacklogHistory carries Octo's
+        # t_Processes.ClientName, target_processes carries ProcessSources'
+        # lower-cased name. Verified on INT 2026-09-04.
+        (at(today, 8), "octo", "Privera", "02_Posteingang", 500),
+        (at(today, 20), "octo", "Privera", "02_Posteingang", 612),
+        (at(today, 20), "ms02", "Privera", "02_Posteingang", 8),
+        (at(today, 20), "octo", "Privera", "99_NotGranted", 999),
+        (at(yesterday, 20), "octo", "Privera", "02_Posteingang", 564),
+    ]
+    monkeypatch.setattr(dv, "_default_stat_rows", lambda sql, params=None: rows)
+
+    with app.test_request_context():
+        out = dv._backlog_history(["privera.02_Posteingang"], 14)
+
+    # keyed by the canonical (lower-cased) ProcessSources spelling, not Octo's
+    assert out[today] == {"privera.02_Posteingang": 620}  # 612 + 8, the 08:00 row discarded
+    assert out[yesterday] == {"privera.02_Posteingang": 564}
+    assert all("99_NotGranted" not in k for day in out.values() for k in day)
+
+
+def test_backlog_history_is_empty_when_the_statistics_db_is_dead(app, monkeypatch):
+    """_default_stat_rows already swallows and logs; an empty trend must render
+    as an empty chart, never as a 500."""
+    monkeypatch.setattr(dv, "_default_stat_rows", lambda sql, params=None: [])
+    with app.test_request_context():
+        assert dv._backlog_history(["sydoc.02_Posteingang"], 14) == {}
+
+
+def test_normalize_range_falls_back_to_fourteen(app):
+    assert dv.normalize_range("30") == 30
+    assert dv.normalize_range(90) == 90
+    assert dv.normalize_range("7") == 14
+    assert dv.normalize_range(None) == 14
+    assert dv.normalize_range("'; DROP TABLE x --") == 14
 
 
 # ------------------------------------------------- _allowed_processes (0097) --

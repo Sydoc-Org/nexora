@@ -10,6 +10,20 @@ Work toward the next release.
 
 ### Added
 
+- **The Dashboard is a console.** The page loses every card frame: the four
+  KPIs are one borderless strip separated by hairlines, each with its
+  day-over-day change and a seven-day sparkline; the throughput chart spans
+  the full content width with underline tabs (**Over time** / **Today by
+  hour** — the separate hourly card is gone); and a new **Backlog** section
+  draws a 14/30/90-day trend line per process from the half-hourly
+  `dbo.BacklogHistory` snapshots. A 14 d / 30 d / 90 d range control drives
+  both charts and sticks for the session. The header carries a live indicator
+  with the last refresh time, a countdown to the next one, and a Refresh
+  button that forces one now.
+- `GET api/dashboard/backlog_trend?range=14|30|90` returns
+  `{labels, series:[{name, values, current}], total, prev_total}` — per-process
+  backlog history, scoped by the active process filter, capped at four named
+  series plus "Other".
 - **`scripts/perm-audit.py` + `/nx-perm-audit [PROD|INT]`**: read-only anomaly audit of
   the live permission grants: a customer seeing another org's processes or another
   tenant's pages, profile/org mismatches, customers holding `admin.*`, no-op user
@@ -92,6 +106,9 @@ Work toward the next release.
 
 ### Changed
 
+- `api/dashboard/kpi_stats` also returns the previous day's value and a
+  seven-point daily series per KPI; `api/dashboard/avg_processing_time` the
+  same in minutes. `api/dashboard/processed_over_time` accepts `range`.
 - **ISS and sydoc AG sit inside their tenants** (migration `0104`). ISS
   (`SSIX`) joins `generali`, the portal it works in; sydoc AG (`SYDC`) joins
   `sydoc`. Membership alone opens a tenant since `0096`, so ISS's existing
@@ -292,6 +309,9 @@ Work toward the next release.
 
 ### Removed
 
+- **Recent Validations** and `GET api/dashboard/recent_activity`. The feed
+  showed three workitems' extracted fields on a page nobody used it from; the
+  workitems page is the place to look at workitems.
 - **The dormant `tools/autopilot` orchestrator and its `nx.ps1` CLI
   plumbing.** Unused since 2026-06-15 (owner-approved deletion, recoverable
   from git history); `bin/nx.ps1` loses `--invoke-workflow`, `--kill-workflow`,

@@ -1,4 +1,4 @@
-"""Dashboard page, KPI/time-series endpoints and the recent-activity feed.
+"""Dashboard page and its KPI / time-series endpoints.
 
 The customizable-widget engine (per-user layouts, widget_data/widget_compare,
 field metadata) was removed in 2.5.65: it never had a frontend and its
@@ -22,20 +22,24 @@ from .. import mapping_config
 from ..config import DB_STATISTICS
 from ..db import engine_ms02_stats_pg, engine_statistics_db
 from ..extensions import cache
-from ..octo import get_extensions_urls_fields, get_workitemdata_param
-from ..process_helpers import (
-    get_activity_instances_to_ignore,
-    granted_processes,
-    normalize_process_selection,
-)
+from ..process_helpers import granted_processes, normalize_process_selection
 from ..security import page_visibility, require_permission
-from ..workitem_sources import (
-    get_domain_for_workitem,
-    recent_activity_rows,
-    total_backlog_count,
-)
+from ..workitem_sources import total_backlog_count
 from .tenant import apply_tenant_scope
-from .workitems import sensitive_blocked_tokens, strip_sensitive_fields
+
+# The 14 / 30 / 90-day windows the range control offers. Anything else
+# normalizes to 14 -- the value reaches SQL by string interpolation (a
+# server-side int, never user text), so the allowlist IS the sanitizer.
+RANGE_CHOICES = (14, 30, 90)
+
+
+def normalize_range(value):
+    """One of RANGE_CHOICES, or 14. Accepts str or int; never raises."""
+    try:
+        days = int(value)
+    except (TypeError, ValueError):
+        return RANGE_CHOICES[0]
+    return days if days in RANGE_CHOICES else RANGE_CHOICES[0]
 
 
 def _allowed_processes():
@@ -45,7 +49,18 @@ def _allowed_processes():
 
 
 def make_cache_key(*args, **kwargs):
-    return f"{request.path}_{session.get('userid')}_{session.get('process_name_dashboard','all')}_{session.get('tenant_scope','')}"
+    """Cache key for the range-aware JSON endpoints.
+
+    The resolved window is part of the key: without it ``?range=14`` and
+    ``?range=90`` would share one 300-second entry and the second range a user
+    clicks would silently serve the first one's data. Flask-Caching evaluates
+    ``key_prefix`` during request handling, so ``request.args`` is available."""
+    days = normalize_range(request.args.get("range") or session.get("dashboard_range"))
+    return (
+        f"{request.path}_{session.get('userid')}_"
+        f"{session.get('process_name_dashboard','all')}_"
+        f"{session.get('tenant_scope','')}_{days}"
+    )
 
 
 def _cacheable_response(rv):
@@ -256,6 +271,196 @@ def compute_today_stats(target_processes, *, strict=False):
     return imported_today, processed_today
 
 
+def _kpi_daily_counts(target_processes, days):
+    """{date: {"imported": n, "processed": n}} for the trailing ``days`` days,
+    zero-filled so a sparse client still draws a continuous sparkline.
+
+    Per-day generalization of compute_today_stats using its EXACT predicates:
+    the default T-SQL leg groups by import date (imported = every row in scope,
+    processed = the subset exported that same day), the MS02 leg counts each
+    column independently. That equality is the point -- each sparkline's last
+    point is then the same number as the KPI above it.
+
+    ponytail: a sibling rather than a refactor of compute_today_stats -- eight
+    tests fake _default_stat_rows with bare (imported, processed) 2-tuples and
+    would break on a changed row shape. Upgrade path: fold the two together
+    when those fakes are rewritten to yield dated rows.
+    """
+    days = max(1, int(days))
+    out = {}
+
+    configs = _statconfig_sources(target_processes)
+    default_configs, ms02_rows = _split_stat_configs(configs)
+
+    sub_queries = []
+    for row in default_configs:
+        condition = f" {row.extra_condition}" if row.extra_condition else ""
+        sub_queries.append(f"""
+            SELECT CAST({row.import_column} AS DATE) as d,
+                   COUNT(*) as imported,
+                   SUM(CASE WHEN CAST({row.export_column} AS DATE) = CAST({row.import_column} AS DATE)
+                            THEN 1 ELSE 0 END) as processed
+            FROM [{DB_STATISTICS}].{row.table}
+            WHERE CAST({row.import_column} AS DATE) >= CAST(DATEADD(day, -{days - 1}, GETDATE()) AS DATE)
+            {condition}
+            GROUP BY CAST({row.import_column} AS DATE)
+        """)
+
+    if sub_queries:
+        full_query = f"""
+            SELECT d, SUM(imported), SUM(processed)
+            FROM ({" UNION ALL ".join(sub_queries)}) as combined
+            GROUP BY d
+        """
+        for row in _default_stat_rows(full_query):
+            d = row[0] if isinstance(row[0], date) else date.fromisoformat(str(row[0])[:10])
+            cell = out.setdefault(d, {"imported": 0, "processed": 0})
+            cell["imported"] += row[1] or 0
+            cell["processed"] += row[2] or 0
+
+    ms02_src = _ms02_source(ms02_rows)
+    if ms02_src:
+        tbl, exp, imp = ms02_src
+        for col, key in ((imp, "imported"), (exp, "processed")):
+            for d, c in _ms02_stat_rows(
+                f"SELECT {col}::date AS d, COUNT(*) AS c "
+                f"FROM {tbl} "
+                f"WHERE {col} >= CURRENT_DATE - {days - 1} "
+                f"GROUP BY {col}::date"
+            ):
+                out.setdefault(d, {"imported": 0, "processed": 0})[key] += c or 0
+
+    today = datetime.now().date()
+    for i in range(days):
+        out.setdefault(today - timedelta(days=i), {"imported": 0, "processed": 0})
+    return {d: out[d] for d in sorted(out) if d >= today - timedelta(days=days - 1)}
+
+
+def _avg_processing_by_day(target_processes, days, *, strict=False):
+    """{date: avg_seconds} over the trailing ``days`` days -- per source,
+    AVG(export - import) grouped by export date; the default-client and MS02
+    buckets then contribute one average each per day, combined as a plain
+    mean-of-means (NOT weighted by row count). Days with no matching rows are
+    ABSENT rather than zero: a zero average would draw a cliff in the
+    sparkline where the truth is "no documents finished that day"."""
+    days = max(1, int(days))
+    per_day = {}
+
+    configs = _statconfig_sources(target_processes)
+    default_configs, ms02_rows = _split_stat_configs(configs)
+
+    sub_queries = []
+    for row in default_configs:
+        if not row.import_column:
+            continue
+        condition = f" {row.extra_condition}" if row.extra_condition else ""
+        sub_queries.append(f"""
+            SELECT CAST({row.export_column} AS DATE) as d,
+                   AVG(CAST(DATEDIFF(second, {row.import_column}, {row.export_column}) AS FLOAT)) as avg_sec
+            FROM [{DB_STATISTICS}].{row.table}
+            WHERE CAST({row.export_column} AS DATE) >= CAST(DATEADD(day, -{days - 1}, GETDATE()) AS DATE)
+            AND {row.import_column} IS NOT NULL
+            AND {row.export_column} > {row.import_column}
+            {condition}
+            GROUP BY CAST({row.export_column} AS DATE)
+        """)
+
+    if sub_queries:
+        full_query = f"""
+            SELECT d, AVG(avg_sec) as overall_avg
+            FROM ({' UNION ALL '.join(sub_queries)}) as combined
+            WHERE avg_sec IS NOT NULL
+            GROUP BY d
+        """
+        srows = (
+            _default_stat_rows(full_query, strict=True)
+            if strict
+            else _default_stat_rows(full_query)
+        )
+        for row in srows:
+            if row[1] is None:
+                continue
+            d = row[0] if isinstance(row[0], date) else date.fromisoformat(str(row[0])[:10])
+            per_day.setdefault(d, []).append(float(row[1]))
+
+    ms02_src = _ms02_source(ms02_rows)
+    if ms02_src:
+        tbl, exp, imp = ms02_src
+        ms02_sql = (
+            f"SELECT {exp}::date AS d, AVG(EXTRACT(EPOCH FROM ({exp} - {imp}))) "
+            f"FROM {tbl} "
+            f"WHERE {exp} >= CURRENT_DATE - {days - 1} "
+            f"AND {imp} IS NOT NULL AND {exp} > {imp} "
+            f"GROUP BY {exp}::date"
+        )
+        mrows = _ms02_stat_rows(ms02_sql, strict=True) if strict else _ms02_stat_rows(ms02_sql)
+        for row in mrows:
+            if row[1] is None:
+                continue
+            per_day.setdefault(row[0], []).append(float(row[1]))
+
+    return {d: sum(v) / len(v) for d, v in per_day.items()}
+
+
+_BACKLOG_HISTORY_SQL = """
+SELECT SnapshotAt, SourceCode, ClientName, ProcessName, BacklogCount
+FROM dbo.BacklogHistory
+WHERE SnapshotAt >= CAST(DATEADD(day, ?, CAST(GETDATE() AS DATE)) AS DATETIME2(0))
+ORDER BY SnapshotAt
+"""
+
+
+def _backlog_history(target_processes, days):
+    """{date: {"<client>.<process>": count}} from dbo.BacklogHistory (Statistics
+    DB), one point per day per process: the LAST snapshot of that day, summed
+    across SourceCodes (a pair can be served by both the Octo and MS02
+    runtimes). Rows outside ``target_processes`` are dropped here in Python --
+    14 days x a handful of processes is a few hundred rows, and a Python
+    membership test beats interpolating a pair list into the WHERE clause.
+
+    Matching is CASE-INSENSITIVE and that is load-bearing, not defensive:
+    BacklogHistory.ClientName comes from Octo's t_Processes.ClientName and is
+    display-cased ('Privera', 'ElektroMaterial', 'Compass'), while
+    target_processes comes from dbo.ProcessSources.ProcessName and is
+    lower-cased ('privera.03_Invoice_New'). Verified on INT 2026-09-04. An
+    exact match silently drops every non-MS02 process and leaves a chart that
+    looks plausible but is missing most of the backlog.
+
+    The collector (ops/backlog_history/backlog_history.py, every 30 min) owns
+    the table; nexora only reads it. A dead Statistics DB yields {} through
+    _default_stat_rows' swallow-and-log contract, which the callers render as
+    an empty chart."""
+    days = max(1, int(days))
+    # Keep the canonical (ProcessSources) spelling as the output key, looked up
+    # by its folded form, so the API returns names the rest of the app knows.
+    wanted = {p.casefold(): p for p in target_processes}
+
+    # (date, client.process) -> {source_code: (snapshot_at, count)} -- keep the
+    # latest snapshot per source before summing, so an early-morning row from
+    # one source never outranks an evening row from another.
+    latest = {}
+    for snapshot_at, source_code, client, process, count in _default_stat_rows(
+        _BACKLOG_HISTORY_SQL, (-(days - 1),)
+    ):
+        name = wanted.get(f"{client}.{process}".casefold())
+        if name is None:
+            continue
+        at = (
+            snapshot_at
+            if isinstance(snapshot_at, datetime)
+            else datetime.fromisoformat(str(snapshot_at))
+        )
+        slot = latest.setdefault((at.date(), name), {})
+        prev = slot.get(source_code)
+        if prev is None or at >= prev[0]:
+            slot[source_code] = (at, count or 0)
+
+    out = {}
+    for (day, name), by_source in latest.items():
+        out.setdefault(day, {})[name] = sum(c for _at, c in by_source.values())
+    return {d: out[d] for d in sorted(out)}
+
+
 def compute_avg_processing_time(target_processes, *, strict=False):
     """Session-free average processing-time computation shared by the dashboard
     KPI card (dashboard_avg_processing_time) and the external API v1
@@ -268,60 +473,11 @@ def compute_avg_processing_time(target_processes, *, strict=False):
     None if no matching rows exist. Per source, AVG(export - import) is taken
     across matching rows; the default-client and MS02 sources then contribute
     one average each, combined as a plain mean-of-means (NOT weighted by row
-    count) -- a source with 2000 rows counts the same as one with 2."""
-    configs = _statconfig_sources(target_processes)
-    default_configs, ms02_rows = _split_stat_configs(configs)
+    count) -- a source with 2000 rows counts the same as one with 2.
 
-    sub_queries = []
-    for row in default_configs:
-        if not row.import_column:
-            continue
-        condition = f" {row.extra_condition}" if row.extra_condition else ""
-        sub_queries.append(f"""
-            SELECT AVG(CAST(DATEDIFF(second, {row.import_column}, {row.export_column}) AS FLOAT)) as avg_sec
-            FROM [{DB_STATISTICS}].{row.table}
-            WHERE CAST({row.export_column} AS DATE) = CAST(GETDATE() AS DATE)
-            AND {row.import_column} IS NOT NULL
-            AND {row.export_column} > {row.import_column}
-            {condition}
-        """)
-
-    avg_values = []
-
-    if sub_queries:
-        full_query = f"""
-            SELECT AVG(avg_sec) as overall_avg
-            FROM ({' UNION ALL '.join(sub_queries)}) as combined
-            WHERE avg_sec IS NOT NULL
-        """
-        srows = (
-            _default_stat_rows(full_query, strict=True)
-            if strict
-            else _default_stat_rows(full_query)
-        )
-        if srows and srows[0][0] is not None:
-            avg_values.append(srows[0][0])
-
-    # MS02 contributes one client-level average (export - import seconds),
-    # weighted equally with the default bucket -- same mean-of-means the
-    # default path already applies across its processes.
-    ms02_src = _ms02_source(ms02_rows)
-    if ms02_src:
-        tbl, exp, imp = ms02_src
-        ms02_sql = (
-            f"SELECT AVG(EXTRACT(EPOCH FROM ({exp} - {imp}))) "
-            f"FROM {tbl} "
-            f"WHERE {exp}::date = CURRENT_DATE "
-            f"AND {imp} IS NOT NULL AND {exp} > {imp}"
-        )
-        mrows = _ms02_stat_rows(ms02_sql, strict=True) if strict else _ms02_stat_rows(ms02_sql)
-        if mrows and mrows[0][0] is not None:
-            avg_values.append(float(mrows[0][0]))
-
-    if not avg_values:
-        return None
-
-    return sum(avg_values) / len(avg_values)
+    Today's slice of _avg_processing_by_day -- one implementation, so the KPI
+    number and its sparkline can never disagree."""
+    return _avg_processing_by_day(target_processes, 1, strict=strict).get(datetime.now().date())
 
 
 def format_avg_processing_display(avg_sec):
@@ -476,6 +632,8 @@ def dashboard_processed_over_time():
     if not target_processes:
         return jsonify({"labels": [], "data": []})
 
+    days = normalize_range(request.args.get("range") or session.get("dashboard_range"))
+
     try:
         configs = _statconfig_sources(target_processes)
 
@@ -492,7 +650,7 @@ def dashboard_processed_over_time():
             sub_queries.append(f"""
                 SELECT {date_col} as d, COUNT(*) as c
                 FROM [{DB_STATISTICS}].{row.table}
-                WHERE {row.export_column} >= DATEADD(day, -14, GETDATE()) {condition}
+                WHERE {row.export_column} >= DATEADD(day, -{days - 1}, GETDATE()) {condition}
                 GROUP BY {date_col}
             """)
 
@@ -518,16 +676,17 @@ def dashboard_processed_over_time():
             for d, c in _ms02_stat_rows(
                 f"SELECT {exp}::date AS d, COUNT(*) AS c "
                 f"FROM {tbl} "
-                f"WHERE {exp} >= CURRENT_DATE - 14 "
+                f"WHERE {exp} >= CURRENT_DATE - {days - 1} "
                 f"GROUP BY {exp}::date"
             ):
                 counts[d] = counts.get(d, 0) + c
 
-        # Zero-fill the trailing 14-day window so a sparse client (e.g. a freshly
-        # onboarded MS02 with only today's rows) renders a continuous trend line
-        # instead of a single, invisible point — the chart was "showing only the date".
+        # Zero-fill the trailing ``days``-day window so a sparse client (e.g. a
+        # freshly onboarded MS02 with only today's rows) renders a continuous trend
+        # line instead of a single, invisible point — the chart was "showing only
+        # the date". The response always carries exactly ``days`` labels.
         today = datetime.now().date()
-        for i in range(15):
+        for i in range(days):
             counts.setdefault(today - timedelta(days=i), 0)
 
         sorted_dates = sorted(counts.keys())
@@ -546,7 +705,7 @@ def dashboard_processed_over_time():
 @require_permission("dashboard.view")
 @cache.cached(
     timeout=60,
-    key_prefix=lambda: f"kpi_stats_{session.get('userid')}_{session.get('process_name_dashboard','all')}_{session.get('tenant_scope','')}",  # type: ignore[arg-type]
+    key_prefix=lambda: f"kpi_stats_{session.get('userid')}_{session.get('process_name_dashboard','all')}_{session.get('tenant_scope','')}_{normalize_range(session.get('dashboard_range'))}",  # type: ignore[arg-type]
     response_filter=_cacheable_response,
 )
 def dashboard_kpi_stats():
@@ -560,7 +719,15 @@ def dashboard_kpi_stats():
 
     if not target_processes:
         return jsonify(
-            {"processed_today": 0, "processed_week": 0, "current_backlog": 0, "imported_today": 0}
+            {
+                "processed_today": 0,
+                "imported_today": 0,
+                "current_backlog": 0,
+                "prev_imported": 0,
+                "prev_processed": 0,
+                "prev_backlog": 0,
+                "series": {"imported": [], "processed": [], "backlog": []},
+            }
         )
 
     try:
@@ -577,11 +744,32 @@ def dashboard_kpi_stats():
             )
             current_backlog += total_backlog_count(pairs)
 
+        # 7 points including today, oldest first -- the sparkline window.
+        counts = _kpi_daily_counts(target_processes, 7)
+        cdays = sorted(counts)
+        backlog_hist = _backlog_history(target_processes, 7)
+        bdays = sorted(backlog_hist)
+        # Live number for today, snapshots for the past: the collector's most
+        # recent row is up to 30 min old, so today's own point uses the value
+        # actually shown above it.
+        backlog_series = [sum(backlog_hist[d].values()) for d in bdays]
+        if backlog_series:
+            backlog_series[-1] = current_backlog
+        prev_backlog = backlog_series[-2] if len(backlog_series) > 1 else 0
+
         return jsonify(
             {
                 "processed_today": processed_today,
                 "imported_today": imported_today,
                 "current_backlog": current_backlog,
+                "prev_imported": counts[cdays[-2]]["imported"] if len(cdays) > 1 else 0,
+                "prev_processed": counts[cdays[-2]]["processed"] if len(cdays) > 1 else 0,
+                "prev_backlog": prev_backlog,
+                "series": {
+                    "imported": [counts[d]["imported"] for d in cdays],
+                    "processed": [counts[d]["processed"] for d in cdays],
+                    "backlog": backlog_series,
+                },
             }
         )
 
@@ -593,7 +781,7 @@ def dashboard_kpi_stats():
 @require_permission("dashboard.view")
 @cache.cached(
     timeout=120,
-    key_prefix=lambda: f"hourly_stats_{session.get('userid')}_{session.get('process_name_dashboard','all')}_{session.get('tenant_scope','')}",  # type: ignore[arg-type]
+    key_prefix=lambda: f"hourly_stats_{session.get('userid')}_{session.get('process_name_dashboard','all')}_{session.get('tenant_scope','')}_{normalize_range(session.get('dashboard_range'))}",  # type: ignore[arg-type]
     response_filter=_cacheable_response,
 )
 def dashboard_hourly_stats():
@@ -663,7 +851,7 @@ def dashboard_hourly_stats():
 @require_permission("dashboard.view")
 @cache.cached(
     timeout=300,
-    key_prefix=lambda: f"avg_proc_time_{session.get('userid')}_{session.get('process_name_dashboard','all')}_{session.get('tenant_scope','')}",  # type: ignore[arg-type]
+    key_prefix=lambda: f"avg_proc_time_{session.get('userid')}_{session.get('process_name_dashboard','all')}_{session.get('tenant_scope','')}_{normalize_range(session.get('dashboard_range'))}",  # type: ignore[arg-type]
     response_filter=_cacheable_response,
 )
 def dashboard_avg_processing_time():
@@ -675,18 +863,104 @@ def dashboard_avg_processing_time():
     target_processes = normalize_process_selection(process_name, allowed_processes)[1]
 
     if not target_processes:
-        return jsonify({"avg_minutes": None, "avg_display": "—"})
+        # Same shape as the populated response: the KPI strip reads prev/series
+        # unconditionally, so a user with no process grants must not hand the
+        # frontend a dict missing half its keys.
+        return jsonify(
+            {
+                "avg_minutes": None,
+                "avg_display": "—",
+                "prev_avg_minutes": None,
+                "series": [],
+            }
+        )
 
     try:
-        avg_sec = compute_avg_processing_time(target_processes)
-        if avg_sec is None:
-            return jsonify({"avg_minutes": None, "avg_display": "—"})
+        series_sec = _avg_processing_by_day(target_processes, 7)
+        today = datetime.now().date()
+        window = [today - timedelta(days=i) for i in range(6, -1, -1)]
+        avg_sec = series_sec.get(today)
+        prev_sec = series_sec.get(today - timedelta(days=1))
 
-        avg_minutes, display = format_avg_processing_display(avg_sec)
-        return jsonify({"avg_minutes": avg_minutes, "avg_display": display})
+        avg_minutes, avg_display = (
+            format_avg_processing_display(avg_sec) if avg_sec is not None else (None, "—")
+        )
+        return jsonify(
+            {
+                "avg_minutes": avg_minutes,
+                "avg_display": avg_display,
+                "prev_avg_minutes": round(prev_sec / 60, 1) if prev_sec is not None else None,
+                # minutes, None where no documents finished that day
+                "series": [
+                    round(series_sec[d] / 60, 1) if d in series_sec else None for d in window
+                ],
+            }
+        )
 
     except Exception as e:
         current_app.logger.error(f"Failed to fetch avg_processing_time: {e}")
+        return jsonify({"error": _("An unexpected error occurred")}), 500
+
+
+_BACKLOG_SERIES_CAP = 4
+
+
+@require_permission("dashboard.view")
+@cache.cached(
+    timeout=300,
+    key_prefix=make_cache_key,  # type: ignore[arg-type]  # callable prefix, stubs say str
+    response_filter=_cacheable_response,
+)
+def dashboard_backlog_trend():
+    if "username" not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+
+    empty = {"labels": [], "series": [], "total": 0, "prev_total": 0}
+    allowed_processes = _allowed_processes()
+    process_name = session.get("process_name_dashboard", "all")
+    target_processes = normalize_process_selection(process_name, allowed_processes)[1]
+    if not target_processes:
+        return jsonify(empty)
+
+    days = normalize_range(request.args.get("range") or session.get("dashboard_range"))
+
+    try:
+        history = _backlog_history(target_processes, days)
+        if not history:
+            return jsonify(empty)
+
+        today = datetime.now().date()
+        window = [today - timedelta(days=i) for i in range(days - 1, -1, -1)]
+
+        current = history.get(max(history), {})
+        ranked = sorted(current, key=lambda n: (-current[n], n))
+        if len(target_processes) == 1:
+            groups = [(_("Backlog"), list(current))]
+        elif len(ranked) > _BACKLOG_SERIES_CAP:
+            groups = [(n, [n]) for n in ranked[:_BACKLOG_SERIES_CAP]]
+            groups.append((_("Other"), ranked[_BACKLOG_SERIES_CAP:]))
+        else:
+            groups = [(n, [n]) for n in ranked]
+
+        series = [
+            {
+                "name": label,
+                "values": [sum(history.get(d, {}).get(n, 0) for n in members) for d in window],
+                "current": sum(current.get(n, 0) for n in members),
+            }
+            for label, members in groups
+        ]
+        totals = [sum(s["values"][i] for s in series) for i in range(len(window))]
+        return jsonify(
+            {
+                "labels": [d.isoformat() for d in window],
+                "series": series,
+                "total": totals[-1] if totals else 0,
+                "prev_total": totals[-2] if len(totals) > 1 else 0,
+            }
+        )
+    except Exception as e:
+        current_app.logger.error(f"Failed to fetch backlog_trend: {e}")
         return jsonify({"error": _("An unexpected error occurred")}), 500
 
 
@@ -720,6 +994,7 @@ def dashboard():
             logged_in_user=logged_in_user,
             userid=userid,
             process_name=process_name,
+            dash_range=normalize_range(session.get("dashboard_range")),
             allowed_processes=allowed_processes,
             dashboard_tenant=scoped_tenant,
             page_visibility=page_visibility(),
@@ -740,67 +1015,18 @@ def dashboard_set_filter():
         request.json.get("process_name", "all"), allowed_processes
     )[0]
     session["process_name_dashboard"] = process_name
-    return jsonify({"ok": True, "process_name": process_name})
-
-
-# ----------------------------- recent activity ----------------------------- #
-
-
-@require_permission("dashboard.view")
-@cache.cached(
-    timeout=120,
-    key_prefix=lambda: f"recent_activity_{session.get('userid')}_{session.get('process_name_dashboard','all')}_{session.get('tenant_scope','')}",  # type: ignore[arg-type]
-)
-def api_recent_activity():
-    try:
-        process_name = session.get("process_name_dashboard", "all")
-        allowed_processes = _allowed_processes()
-        target_processes = normalize_process_selection(process_name, allowed_processes)[1]
-
-        if not target_processes:
-            return jsonify([])
-
-        # (client, process) pairs, NOT two independent client/process
-        # IN-lists -- see _pair_predicate's docstring in workitem_sources.py.
-        pairs = sorted({(p.split(".")[0], p.split(".")[-1]) for p in target_processes if "." in p})
-        activity_ignore_map = get_activity_instances_to_ignore()
-        raw_rows = recent_activity_rows(pairs, activity_ignore_map, top=3)
-
-        # Same sensitive-doc-field gate enforced at every other surface that
-        # shows doc-fields (workitems.filter.documentfields.sensitive) --
-        # this feed was reading raw Octo fields straight through.
-        blocked_tokens = sensitive_blocked_tokens()
-
-        activity = []
-        for row in raw_rows:
-            domain = get_domain_for_workitem(row["id"], client_hint=row.get("client"))
-            returndata = get_workitemdata_param(row["id"], domain)
-            if not returndata:
-                current_app.logger.warning(
-                    f"Activity feed: skipping workitem {row['id']} (Octo lookup failed)"
-                )
-                continue
-            workitemdata, doc_id = returndata
-            _ext, _urls, fields, _fs, _ts = get_extensions_urls_fields(workitemdata, doc_id, domain)
-            fields = {k: v for k, v in fields.items() if v}
-            fields = strip_sensitive_fields(fields, blocked_tokens)
-            activity.append(
-                {
-                    "id": row["id"],
-                    "time": row["modifiedat"].strftime("%H:%M"),
-                    "process": row["process"],
-                    "client": row.get("client"),
-                    "fields": fields,
-                }
-            )
-
-        return jsonify(activity)
-    except Exception as e:
-        # exc_info: the bare message alone ("'NoneType' object has no attribute
-        # 'get'") named neither the file nor the workitem, which is what made
-        # the Octo null-body crash so slow to place.
-        current_app.logger.error(f"Activity feed error: {e}", exc_info=True)
-        return jsonify([])
+    # ponytail: the range rides the session, like the process filter above it --
+    # not nx_lib/ui_prefs.py, which is the pre-paint appearance allowlist. Move
+    # it there if users ask for the choice to follow them across devices.
+    if "range" in (request.json or {}):
+        session["dashboard_range"] = normalize_range(request.json.get("range"))
+    return jsonify(
+        {
+            "ok": True,
+            "process_name": process_name,
+            "range": session.get("dashboard_range", RANGE_CHOICES[0]),
+        }
+    )
 
 
 def register_routes(app):
@@ -823,6 +1049,11 @@ def register_routes(app):
         endpoint="dashboard_avg_processing_time",
         view_func=dashboard_avg_processing_time,
     )
+    app.add_url_rule(
+        "/api/dashboard/backlog_trend",
+        endpoint="dashboard_backlog_trend",
+        view_func=dashboard_backlog_trend,
+    )
 
     # dashboard page + filter
     app.add_url_rule("/dashboard", endpoint="dashboard", view_func=dashboard)
@@ -831,11 +1062,4 @@ def register_routes(app):
         endpoint="dashboard_set_filter",
         view_func=dashboard_set_filter,
         methods=["POST"],
-    )
-
-    # recent activity
-    app.add_url_rule(
-        "/api/dashboard/recent_activity",
-        endpoint="api_recent_activity",
-        view_func=api_recent_activity,
     )

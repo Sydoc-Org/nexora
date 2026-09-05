@@ -1,0 +1,24 @@
+<!-- @dsCard group="Spacing" viewport="700x170" name="Vertical rhythm" subtitle="14px between rows, 18px before a titled section, 44px page inset" -->
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; padding: 16px 18px; background: var(--nx-card); font-family: var(--nx-font); color: var(--nx-text); }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; }
+  .sw { display: flex; flex-direction: column; gap: 6px; width: 96px; }
+  .chip { height: 44px; border-radius: 8px; border: 1px solid var(--nx-border); }
+  .name { font-size: 10.5px; font-weight: 600; color: var(--nx-text); }
+  .hex { font-family: var(--nx-mono); font-size: 9.5px; color: var(--nx-text-meta); }
+  .cap { font-size: 9.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--nx-text-meta); }
+  table { border-collapse: collapse; font-size: 11.5px; }
+  td { padding: 3px 14px 3px 0; color: var(--nx-text-sec); }
+  td.k { font-family: var(--nx-mono); color: var(--nx-text); }
+</style>
+
+<div style="border-left:2px solid var(--nx-accent-tint);padding-left:14px">
+  <div style="height:14px;border-bottom:1px solid var(--nx-border)"></div>
+  <div style="font-size:11px;color:var(--nx-text-meta);padding:4px 0">14px — zwischen Zeilen einer Ansicht (--sp-6)</div>
+  <div style="height:18px;border-bottom:1px solid var(--nx-border)"></div>
+  <div style="font-size:11px;color:var(--nx-text-meta);padding:4px 0">18px — vor einem neuen Abschnitt (--sp-7)</div>
+  <div style="height:30px;border-bottom:1px solid var(--nx-border)"></div>
+  <div style="font-size:11px;color:var(--nx-text-meta);padding:4px 0">30px — Innenabstand einer KPI-Zelle (--sp-9)</div>
+</div>

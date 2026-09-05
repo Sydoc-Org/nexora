@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-04 23:06+0200\n"
+"POT-Creation-Date: 2026-09-05 08:55+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -27,10 +27,24 @@ msgid "Date is outside the allowed entry window"
 msgstr "La data è al di fuori della finestra di inserimento consentita"
 
 #: nx_lib/whats_new.py:29
+msgid "A denser Dashboard"
+msgstr "Una dashboard più densa"
+
+#: nx_lib/whats_new.py:31
+msgid ""
+"The Dashboard reads like a console now. Each KPI shows how it moved since"
+" yesterday plus a seven-day sparkline, the throughput chart fills the "
+"width and holds the hourly view as a tab, and a new Backlog section "
+"traces the last 14, 30 or 90 days per process. The Recent Validations "
+"column is gone — the workitems page is where workitems live."
+msgstr ""
+"La dashboard ora si legge come una console. Ogni indicatore mostra la variazione rispetto a ieri e una sparkline di sette giorni, il grafico del throughput occupa tutta la larghezza e include la vista oraria come scheda, e una nuova sezione «Arretrato» traccia gli ultimi 14, 30 o 90 giorni per processo. La colonna «Validazioni recenti» non c'è più — i workitem si consultano nella pagina Workitems."
+
+#: nx_lib/whats_new.py:43
 msgid "Reporting has a new home screen"
 msgstr "Il reporting ha una nuova schermata iniziale"
 
-#: nx_lib/whats_new.py:31
+#: nx_lib/whats_new.py:45
 msgid ""
 "The reporting page is now a workbench: a Library of every report you can "
 "see, a Results screen that brings back your last result without re-"
@@ -42,11 +56,11 @@ msgstr ""
 "risultato senza rieseguirlo, dashboard, invii pianificati e una barra a "
 "sinistra con ogni fonte dati e il suo tempo di risposta attuale."
 
-#: nx_lib/whats_new.py:42
+#: nx_lib/whats_new.py:56
 msgid "Look inside a data source"
 msgstr "Guarda dentro una fonte dati"
 
-#: nx_lib/whats_new.py:44
+#: nx_lib/whats_new.py:58
 msgid ""
 "Click a card in the Sources rail to see the database behind it: the "
 "tables that source actually reads, their columns and types, and a diagram"
@@ -57,11 +71,11 @@ msgstr ""
 " e un diagramma dei collegamenti. Solo la struttura — nessun dato viene "
 "mostrato."
 
-#: nx_lib/whats_new.py:54
+#: nx_lib/whats_new.py:68
 msgid "Dashboards you can arrange"
 msgstr "Dashboard che puoi organizzare"
 
-#: nx_lib/whats_new.py:56
+#: nx_lib/whats_new.py:70
 msgid ""
 "Adding a card asks everything in one dialog — which saved report, how to "
 "draw it, its title and its size. In edit mode drag a tile anywhere and "
@@ -74,11 +88,11 @@ msgstr ""
 " riquadro «Report intero» mostra un report salvato esattamente come la "
 "libreria."
 
-#: nx_lib/whats_new.py:67
+#: nx_lib/whats_new.py:81
 msgid "Meet Eddard"
 msgstr "Ecco Eddard"
 
-#: nx_lib/whats_new.py:69
+#: nx_lib/whats_new.py:83
 msgid ""
 "The reporting assistant has a name and a face — the little black hole in "
 "the top bar. Ask it a question in plain language and open what it built "
@@ -88,11 +102,11 @@ msgstr ""
 "nella barra in alto. Fagli una domanda in linguaggio naturale e apri nel "
 "builder ciò che ha costruito prima di fidarti del numero."
 
-#: nx_lib/whats_new.py:79
+#: nx_lib/whats_new.py:93
 msgid "Charts in your colours"
 msgstr "Grafici nei tuoi colori"
 
-#: nx_lib/whats_new.py:81
+#: nx_lib/whats_new.py:95
 msgid ""
 "The palette button in the chart toolbar recolours each series and the "
 "title, and can move a series onto its own right-hand axis so a few "
@@ -104,11 +118,11 @@ msgstr ""
 "destro, così qualche centinaio resta leggibile accanto a decine di "
 "migliaia. Le tue scelte vengono salvate con il report."
 
-#: nx_lib/whats_new.py:91
+#: nx_lib/whats_new.py:105
 msgid "Press ? for the shortcuts"
 msgstr "Premi ? per le scorciatoie"
 
-#: nx_lib/whats_new.py:93
+#: nx_lib/whats_new.py:107
 msgid ""
 "A cheatsheet of every keyboard shortcut on the page, one keypress away. "
 "Press ? anywhere outside a text box."
@@ -116,11 +130,11 @@ msgstr ""
 "Un promemoria di tutte le scorciatoie da tastiera della pagina, a un "
 "tasto di distanza. Premi ? fuori da un campo di testo."
 
-#: nx_lib/whats_new.py:101
+#: nx_lib/whats_new.py:115
 msgid "Everything loads quicker"
 msgstr "Tutto si carica più velocemente"
 
-#: nx_lib/whats_new.py:103
+#: nx_lib/whats_new.py:117
 msgid ""
 "Pages are compressed in transit, their scripts are cached between visits,"
 " and the reporting page stopped fetching the same lists eight times per "
@@ -130,11 +144,11 @@ msgstr ""
 "restano in cache tra una visita e l'altra e la pagina di reporting non "
 "recupera più gli stessi elenchi otto volte per caricamento."
 
-#: nx_lib/whats_new.py:112
+#: nx_lib/whats_new.py:126
 msgid "Who can do what, on one page"
 msgstr "Chi può fare cosa, in una pagina"
 
-#: nx_lib/whats_new.py:114
+#: nx_lib/whats_new.py:128
 msgid ""
 "The new permission matrix under Admin shows every access profile against "
 "every permission in a single grid, so a missing grant is something you "
@@ -144,11 +158,11 @@ msgstr ""
 "rispetto a ogni permesso in un'unica griglia: un permesso mancante si "
 "vede invece di doverlo cercare."
 
-#: nx_lib/whats_new.py:129
+#: nx_lib/whats_new.py:143
 msgid "Imports, exports and backlog on one chart"
 msgstr "Importazioni, esportazioni e backlog in un unico grafico"
 
-#: nx_lib/whats_new.py:131
+#: nx_lib/whats_new.py:145
 msgid ""
 "Document Processing gained date-anchored measures: pick documents or "
 "pages imported, exported and the backlog together over time and they all "
@@ -161,11 +175,11 @@ msgstr ""
 "L'origine separata «Backlog History» è stata ritirata: la sostituisce la "
 "nuova misura Backlog."
 
-#: nx_lib/whats_new.py:142
+#: nx_lib/whats_new.py:156
 msgid "The reporting AI panel gets out of your way"
 msgstr "Il pannello IA del reporting non è più d'ostacolo"
 
-#: nx_lib/whats_new.py:144
+#: nx_lib/whats_new.py:158
 msgid ""
 "The chat panel now floats instead of blocking the page: drag it by its "
 "header, keep working behind it, and select or copy any answer or "
@@ -175,11 +189,11 @@ msgstr ""
 "trascina dall'intestazione, il lavoro continua dietro di esso e ogni "
 "risposta o SQL generato si può selezionare e copiare."
 
-#: nx_lib/whats_new.py:153
+#: nx_lib/whats_new.py:167
 msgid "Large workitem searches load faster"
 msgstr "Le ricerche di workitem estese si caricano più rapidamente"
 
-#: nx_lib/whats_new.py:155
+#: nx_lib/whats_new.py:169
 msgid ""
 "Big result sets arrive in two phases, so the first rows show up right "
 "away. Typing a partial id now matches by prefix and the closest hits are "
@@ -189,11 +203,11 @@ msgstr ""
 "compaiono subito. Un ID parziale ora corrisponde per prefisso e i "
 "risultati più vicini vengono elencati per primi."
 
-#: nx_lib/whats_new.py:164
+#: nx_lib/whats_new.py:178
 msgid "Tell us what you think"
 msgstr "Ogni riscontro è benvenuto"
 
-#: nx_lib/whats_new.py:166
+#: nx_lib/whats_new.py:180
 msgid ""
 "The new Feedback page (profile dropdown → Feedback) sends your praise, "
 "gripes and ideas straight to the nexora team."
@@ -201,11 +215,11 @@ msgstr ""
 "La nuova pagina Feedback (menu del profilo → Feedback) invia elogi, "
 "critiche e idee direttamente al team nexora."
 
-#: nx_lib/whats_new.py:174
+#: nx_lib/whats_new.py:188
 msgid "Dark mode, polished"
 msgstr "Modalità scura, perfezionata"
 
-#: nx_lib/whats_new.py:176
+#: nx_lib/whats_new.py:190
 msgid ""
 "The light flash on page loads is gone, checkboxes, menus and tables "
 "follow the theme everywhere, and Appearance adds a \"Fireflies\" page "
@@ -215,11 +229,11 @@ msgstr ""
 "controllo, menu e tabelle seguono il tema in ogni punto e Aspetto "
 "aggiunge lo sfondo pagina «Lucciole»."
 
-#: nx_lib/whats_new.py:191
+#: nx_lib/whats_new.py:205
 msgid "Filters apply instantly"
 msgstr "I filtri si applicano subito"
 
-#: nx_lib/whats_new.py:193
+#: nx_lib/whats_new.py:207
 msgid ""
 "The Apply button is gone from the Generali filter bars — changing any "
 "filter or date reloads the list right away."
@@ -227,11 +241,11 @@ msgstr ""
 "Il pulsante Applica è scomparso dalle barre dei filtri Generali — "
 "modificando un filtro o una data l'elenco si ricarica subito."
 
-#: nx_lib/whats_new.py:201
+#: nx_lib/whats_new.py:215
 msgid "Type to find a user in the filters"
 msgstr "Digita per trovare un utente nei filtri"
 
-#: nx_lib/whats_new.py:203
+#: nx_lib/whats_new.py:217
 msgid ""
 "The user filter on the Generali pages is now a search box: type a few "
 "letters, pick the name, and the list filters instantly."
@@ -239,11 +253,11 @@ msgstr ""
 "Il filtro utente delle pagine Generali è ora un campo di ricerca: digita "
 "qualche lettera, scegli il nome e l'elenco si filtra all'istante."
 
-#: nx_lib/whats_new.py:218
+#: nx_lib/whats_new.py:232
 msgid "Forecast your report trends"
 msgstr "Previsioni per i trend dei tuoi report"
 
-#: nx_lib/whats_new.py:220
+#: nx_lib/whats_new.py:234
 msgid ""
 "Reports charted over a single date breakdown (per week, month, …) gain a "
 "Forecast toggle: the chart extends with a dashed prediction line and a "
@@ -255,11 +269,11 @@ msgstr ""
 "linea di previsione tratteggiata e una banda di confidenza; anche le "
 "esportazioni e le mail pianificate includono la previsione."
 
-#: nx_lib/whats_new.py:230
+#: nx_lib/whats_new.py:244
 msgid "Compare with the prior period"
 msgstr "Confronto con il periodo precedente"
 
-#: nx_lib/whats_new.py:232
+#: nx_lib/whats_new.py:246
 msgid ""
 "Simple-tab reports with a relative date range now show ↑/↓ change chips "
 "and a small trend sparkline against the equivalent prior period — see at "
@@ -270,11 +284,11 @@ msgstr ""
 "rispetto al periodo precedente equivalente — per vedere a colpo d'occhio "
 "se i numeri sono saliti o scesi."
 
-#: nx_lib/whats_new.py:242
+#: nx_lib/whats_new.py:256
 msgid "Backlog over time"
 msgstr "Backlog nel tempo"
 
-#: nx_lib/whats_new.py:244
+#: nx_lib/whats_new.py:258
 msgid ""
 "Reporting has a new Backlog measure — track how the open backlog develops"
 " per client or process, week by week."
@@ -282,11 +296,11 @@ msgstr ""
 "Il reporting ha una nuova misura Backlog — segui settimana per settimana "
 "come si sviluppa il backlog aperto per cliente o processo."
 
-#: nx_lib/whats_new.py:254
+#: nx_lib/whats_new.py:268
 msgid "Chat with the reporting AI"
 msgstr "Chatta con l'IA dei report"
 
-#: nx_lib/whats_new.py:256
+#: nx_lib/whats_new.py:270
 msgid ""
 "The one-shot Ask AI is now a full chat panel on both Reporting tabs — ask"
 " follow-up questions in context, watch live progress while the agent "
@@ -297,11 +311,11 @@ msgstr ""
 " l'avanzamento in tempo reale e continua o riavvia un'esecuzione "
 "interrotta troppo presto."
 
-#: nx_lib/whats_new.py:266
+#: nx_lib/whats_new.py:280
 msgid "Filter several processes at once"
 msgstr "Filtrare più processi contemporaneamente"
 
-#: nx_lib/whats_new.py:268
+#: nx_lib/whats_new.py:282
 msgid ""
 "The process filter on Dashboard and Workitems is now a multi-select — "
 "combine two or three processes in one view."
@@ -309,11 +323,11 @@ msgstr ""
 "Il filtro processi su Dashboard e Workitems è ora a selezione multipla — "
 "combina due o tre processi in un'unica vista."
 
-#: nx_lib/whats_new.py:276
+#: nx_lib/whats_new.py:290
 msgid "Smarter document value search"
 msgstr "Ricerca più intelligente dei valori dei documenti"
 
-#: nx_lib/whats_new.py:278
+#: nx_lib/whats_new.py:292
 msgid ""
 "Search workitems by document value without picking a field first — "
 "matches are found across every field you may see. Each search row now has"
@@ -325,11 +339,11 @@ msgstr ""
 "Ogni riga di ricerca ha ora un operatore (contiene, =, ≠, inizia con, "
 "finisce con) e le righe si combinano con AND/OR."
 
-#: nx_lib/whats_new.py:288
+#: nx_lib/whats_new.py:302
 msgid "Date-range presets"
 msgstr "Intervalli di date predefiniti"
 
-#: nx_lib/whats_new.py:290
+#: nx_lib/whats_new.py:304
 msgid ""
 "Today, Yesterday, This week, Last 7 days, This month — one click in the "
 "Workitems advanced filter instead of typing dates."
@@ -337,11 +351,11 @@ msgstr ""
 "Oggi, Ieri, Questa settimana, Ultimi 7 giorni, Questo mese — un clic nel "
 "filtro avanzato dei workitems invece di digitare le date."
 
-#: nx_lib/whats_new.py:298
+#: nx_lib/whats_new.py:312
 msgid "Filter workitems by stage"
 msgstr "Filtrare i workitems per fase"
 
-#: nx_lib/whats_new.py:300
+#: nx_lib/whats_new.py:314
 msgid ""
 "A new Stage filter (Import, Extraction, Validation, Delivery) narrows the"
 " list to workitems currently in that step."
@@ -349,11 +363,11 @@ msgstr ""
 "Un nuovo filtro Fase (Importazione, Estrazione, Validazione, Consegna) "
 "restringe l'elenco ai workitems attualmente in quel passaggio."
 
-#: nx_lib/whats_new.py:308
+#: nx_lib/whats_new.py:322
 msgid "See deleted workitems"
 msgstr "Vedere i workitems eliminati"
 
-#: nx_lib/whats_new.py:310
+#: nx_lib/whats_new.py:324
 msgid ""
 "The status filter gains a Deleted option — workitems that were deleted, "
 "previously hidden entirely, can now be shown on demand, badged red."
@@ -362,11 +376,11 @@ msgstr ""
 "finora completamente nascosti, possono ora essere mostrati su richiesta, "
 "contrassegnati in rosso."
 
-#: nx_lib/whats_new.py:319
+#: nx_lib/whats_new.py:333
 msgid "Make nexora look your way"
 msgstr "Dai a nexora il tuo stile"
 
-#: nx_lib/whats_new.py:321
+#: nx_lib/whats_new.py:335
 msgid ""
 "The new Appearance page has a live preview and more choices: light, dark "
 "or system theme, custom accent color, font size, corner style, high "
@@ -379,11 +393,11 @@ msgstr ""
 "nelle tabelle, sfondi di pagina e velocità di animazione. Le tue "
 "impostazioni seguono il tuo account su ogni dispositivo."
 
-#: nx_lib/whats_new.py:332
+#: nx_lib/whats_new.py:346
 msgid "API documentation in the app"
 msgstr "Documentazione API nell'app"
 
-#: nx_lib/whats_new.py:334
+#: nx_lib/whats_new.py:348
 msgid ""
 "The external API is now documented on the new API Documentation page — "
 "authentication, endpoints and copyable examples included. Every endpoint "
@@ -395,11 +409,11 @@ msgstr ""
 "anche un gemello di test — stesso indirizzo e stessa struttura, dati "
 "fittizi — per integrare senza toccare la produzione."
 
-#: nx_lib/whats_new.py:344
+#: nx_lib/whats_new.py:358
 msgid "System status at a glance for admins"
 msgstr "Stato del sistema a colpo d'occhio per gli admin"
 
-#: nx_lib/whats_new.py:346
+#: nx_lib/whats_new.py:360
 msgid ""
 "The new Status page shows each component's health, a 30-day uptime strip "
 "and the incident history — checked every few minutes by the outage "
@@ -410,11 +424,11 @@ msgstr ""
 "controllati ogni pochi minuti dal monitor guasti, con un chiaro avviso se"
 " i dati diventano obsoleti."
 
-#: nx_lib/whats_new.py:356
+#: nx_lib/whats_new.py:370
 msgid "Chat, notifications and workitem tags retired"
 msgstr "Chat, notifiche e tag dei workitems ritirati"
 
-#: nx_lib/whats_new.py:358
+#: nx_lib/whats_new.py:372
 msgid ""
 "The chat page, the notification bell, and workitem tags, priority, "
 "assignment and comments have been removed to keep nexora focused on "
@@ -425,11 +439,11 @@ msgstr ""
 "mantenere nexora concentrato sull'elaborazione dei documenti. I dati "
 "esistenti restano conservati."
 
-#: nx_lib/whats_new.py:374
+#: nx_lib/whats_new.py:388
 msgid "Build multi-card dashboards"
 msgstr "Crea dashboard multi-card"
 
-#: nx_lib/whats_new.py:376
+#: nx_lib/whats_new.py:390
 msgid ""
 "Save several reports as one dashboard: combine KPI, chart and table "
 "cards, drag to rearrange, set global filters with per-card overrides, and"
@@ -439,11 +453,11 @@ msgstr ""
 "tabelle, riordinale trascinandole, imposta filtri globali con eccezioni "
 "per card, ed esporta o esplora i dettagli da ogni card."
 
-#: nx_lib/whats_new.py:385
+#: nx_lib/whats_new.py:399
 msgid "Drill through to the documents"
 msgstr "Esplorare fino ai documenti"
 
-#: nx_lib/whats_new.py:387
+#: nx_lib/whats_new.py:401
 msgid ""
 "Click a chart element or result row in Reporting to open the underlying "
 "document rows, with workitem links and export."
@@ -452,11 +466,11 @@ msgstr ""
 "per aprire le righe dei documenti sottostanti, con link ai workitems ed "
 "esportazione."
 
-#: nx_lib/whats_new.py:395
+#: nx_lib/whats_new.py:409
 msgid "Combine measures in one report"
 msgstr "Combinare misure in un report"
 
-#: nx_lib/whats_new.py:397
+#: nx_lib/whats_new.py:411
 msgid ""
 "The guided report builder now takes several measures at once (from the "
 "same source) and has its own process step, with coverage badges showing "
@@ -466,11 +480,11 @@ msgstr ""
 " (dalla stessa fonte) e ha un passaggio dedicato ai processi, con badge "
 "di copertura che mostrano quali processi forniscono ciascun campo."
 
-#: nx_lib/whats_new.py:406
+#: nx_lib/whats_new.py:420
 msgid "Machine-to-machine API"
 msgstr "API machine-to-machine"
 
-#: nx_lib/whats_new.py:408
+#: nx_lib/whats_new.py:422
 msgid ""
 "External clients can fetch KPI numbers — like today's imported and "
 "processed counts — over the new authenticated /api/v1 interface."
@@ -634,11 +648,12 @@ msgstr "Si è verificato un errore imprevisto"
 #: nx_lib/views/admin/permissions.py:248 nx_lib/views/admin/permissions.py:581
 #: nx_lib/views/admin/permissions.py:623 nx_lib/views/admin/permissions.py:668
 #: nx_lib/views/admin/permissions.py:707 nx_lib/views/admin/permissions.py:744
-#: nx_lib/views/admin/permissions.py:776 nx_lib/views/dashboard.py:469
-#: nx_lib/views/dashboard.py:554 nx_lib/views/dashboard.py:601
-#: nx_lib/views/dashboard.py:671 nx_lib/views/workitems.py:1091
-#: nx_lib/views/workitems.py:1798 nx_lib/views/workitems.py:1800
-#: nx_lib/views/workitems.py:1926 nx_lib/views/workitems.py:2038
+#: nx_lib/views/admin/permissions.py:776 nx_lib/views/dashboard.py:625
+#: nx_lib/views/dashboard.py:713 nx_lib/views/dashboard.py:789
+#: nx_lib/views/dashboard.py:859 nx_lib/views/dashboard.py:916
+#: nx_lib/views/workitems.py:1091 nx_lib/views/workitems.py:1798
+#: nx_lib/views/workitems.py:1800 nx_lib/views/workitems.py:1926
+#: nx_lib/views/workitems.py:2038
 msgid "Not authorized"
 msgstr "Non autorizzato"
 
@@ -646,10 +661,10 @@ msgstr "Non autorizzato"
 #: nx_lib/views/admin/permissions.py:612 nx_lib/views/admin/system.py:148
 #: nx_lib/views/admin/system.py:189 nx_lib/views/admin/system.py:232
 #: nx_lib/views/admin/system.py:252 nx_lib/views/admin/users.py:402
-#: nx_lib/views/admin/users.py:554 nx_lib/views/dashboard.py:543
-#: nx_lib/views/dashboard.py:590 nx_lib/views/dashboard.py:660
-#: nx_lib/views/dashboard.py:690 nx_lib/views/generali/_crud.py:180
-#: nx_lib/views/generali/attendance.py:99
+#: nx_lib/views/admin/users.py:554 nx_lib/views/dashboard.py:702
+#: nx_lib/views/dashboard.py:778 nx_lib/views/dashboard.py:848
+#: nx_lib/views/dashboard.py:902 nx_lib/views/dashboard.py:964
+#: nx_lib/views/generali/_crud.py:180 nx_lib/views/generali/attendance.py:99
 #: nx_lib/views/generali/documents.py:254
 #: nx_lib/views/generali/documents.py:288
 #: nx_lib/views/generali/documents.py:462
@@ -659,6 +674,15 @@ msgstr "Non autorizzato"
 #: nx_lib/views/generali/reporting.py:322 nx_lib/views/workitems.py:2099
 msgid "An unexpected error occurred"
 msgstr "Si è verificato un errore imprevisto"
+
+#: nx_lib/views/dashboard.py:938 templates/appearance.html:357
+#: templates/dashboard.html:113
+msgid "Backlog"
+msgstr "Arretrato"
+
+#: nx_lib/views/dashboard.py:941 templates/js/_reporting_dashboard_js.html:32
+msgid "Other"
+msgstr "Altro"
 
 #: nx_lib/views/profile.py:79
 msgid "Email Adress is not valid"
@@ -750,112 +774,112 @@ msgstr "Domanda"
 msgid "Could not send feedback. Please try again later."
 msgstr "Impossibile inviare il feedback. Riprova più tardi."
 
-#: nx_lib/views/reporting.py:1288 nx_lib/views/reporting.py:1376
-#: nx_lib/views/reporting.py:1437 nx_lib/views/reporting.py:1565
-#: nx_lib/views/reporting.py:1743 nx_lib/views/reporting.py:2133
-#: nx_lib/views/reporting.py:2255 nx_lib/views/reporting.py:2330
-#: nx_lib/views/reporting.py:3501
+#: nx_lib/views/reporting.py:1282 nx_lib/views/reporting.py:1370
+#: nx_lib/views/reporting.py:1431 nx_lib/views/reporting.py:1559
+#: nx_lib/views/reporting.py:1737 nx_lib/views/reporting.py:2127
+#: nx_lib/views/reporting.py:2249 nx_lib/views/reporting.py:2324
+#: nx_lib/views/reporting.py:3495
 msgid "Invalid JSON body"
 msgstr "Corpo JSON non valido"
 
-#: nx_lib/views/reporting.py:1292 nx_lib/views/reporting.py:2290
-#: nx_lib/views/reporting.py:3112 nx_lib/views/reporting.py:3510
+#: nx_lib/views/reporting.py:1286 nx_lib/views/reporting.py:2284
+#: nx_lib/views/reporting.py:3106 nx_lib/views/reporting.py:3504
 msgid "Not authorized for this source"
 msgstr "Non autorizzato per questa sorgente"
 
-#: nx_lib/views/reporting.py:1295 nx_lib/views/reporting.py:2293
+#: nx_lib/views/reporting.py:1289 nx_lib/views/reporting.py:2287
 msgid "This report definition is invalid or outdated."
 msgstr "Questa definizione di report non è valida o è obsoleta."
 
-#: nx_lib/views/reporting.py:1299
+#: nx_lib/views/reporting.py:1293
 msgid "Could not build report"
 msgstr "Impossibile creare il report"
 
-#: nx_lib/views/reporting.py:1304
+#: nx_lib/views/reporting.py:1298
 msgid "Could not run report"
 msgstr "Impossibile eseguire il report"
 
-#: nx_lib/views/reporting.py:1359
+#: nx_lib/views/reporting.py:1353
 msgid "SQL is required."
 msgstr "L'istruzione SQL è obbligatoria."
 
-#: nx_lib/views/reporting.py:1360
+#: nx_lib/views/reporting.py:1354
 #, python-brace-format
 msgid "The SQL exceeds {n} characters."
 msgstr "L'istruzione SQL supera {n} caratteri."
 
-#: nx_lib/views/reporting.py:1361
+#: nx_lib/views/reporting.py:1355
 #, python-brace-format
 msgid "Disallowed keyword: {kw}"
 msgstr "Parola chiave non consentita: {kw}"
 
-#: nx_lib/views/reporting.py:1362
+#: nx_lib/views/reporting.py:1356
 msgid "The SQL could not be parsed."
 msgstr "Impossibile analizzare l'istruzione SQL."
 
-#: nx_lib/views/reporting.py:1363
+#: nx_lib/views/reporting.py:1357
 msgid "Exactly one statement is allowed."
 msgstr "È consentita una sola istruzione."
 
-#: nx_lib/views/reporting.py:1364
+#: nx_lib/views/reporting.py:1358
 msgid "Only SELECT / WITH / set operations are allowed."
 msgstr "Sono consentite solo operazioni SELECT / WITH / di insieme."
 
-#: nx_lib/views/reporting.py:1365
+#: nx_lib/views/reporting.py:1359
 #, python-brace-format
 msgid "Disallowed construct: {kw}"
 msgstr "Costrutto non consentito: {kw}"
 
-#: nx_lib/views/reporting.py:1366
+#: nx_lib/views/reporting.py:1360
 msgid "T-SQL does not support LIMIT — use TOP (n) instead."
 msgstr "T-SQL non supporta LIMIT — usare invece TOP (n)."
 
-#: nx_lib/views/reporting.py:1380 nx_lib/views/reporting.py:1414
+#: nx_lib/views/reporting.py:1374 nx_lib/views/reporting.py:1408
 msgid "Not authenticated"
 msgstr "Non autenticato"
 
-#: nx_lib/views/reporting.py:1382 nx_lib/views/reporting.py:2263
+#: nx_lib/views/reporting.py:1376 nx_lib/views/reporting.py:2257
 msgid "Acknowledgment required"
 msgstr "Conferma richiesta"
 
-#: nx_lib/views/reporting.py:1387 nx_lib/views/reporting.py:2271
+#: nx_lib/views/reporting.py:1381 nx_lib/views/reporting.py:2265
 msgid "Not authorized for this SQL target"
 msgstr "Non autorizzato per questa destinazione SQL"
 
-#: nx_lib/views/reporting.py:1391 nx_lib/views/reporting.py:2277
+#: nx_lib/views/reporting.py:1385 nx_lib/views/reporting.py:2271
 msgid "Invalid SQL request."
 msgstr "Richiesta SQL non valida."
 
-#: nx_lib/views/reporting.py:1393 nx_lib/views/reporting.py:2279
+#: nx_lib/views/reporting.py:1387 nx_lib/views/reporting.py:2273
 msgid "SQL source is not configured"
 msgstr "La sorgente SQL non è configurata"
 
-#: nx_lib/views/reporting.py:1397
+#: nx_lib/views/reporting.py:1391
 msgid "Could not run query"
 msgstr "Impossibile eseguire la query"
 
-#: nx_lib/views/reporting.py:1427
+#: nx_lib/views/reporting.py:1421
 msgid "Could not record acknowledgment"
 msgstr "Impossibile registrare la conferma"
 
-#: nx_lib/views/reporting.py:1440 nx_lib/views/reporting.py:1568
-#: nx_lib/views/reporting.py:1746
+#: nx_lib/views/reporting.py:1434 nx_lib/views/reporting.py:1562
+#: nx_lib/views/reporting.py:1740
 msgid "A question is required"
 msgstr "È richiesta una domanda"
 
-#: nx_lib/views/reporting.py:1443
+#: nx_lib/views/reporting.py:1437
 msgid "Not authorized to receive AI-drafted SQL"
 msgstr "Non autorizzato a ricevere SQL redatto dall'IA"
 
-#: nx_lib/views/reporting.py:1447 nx_lib/views/reporting.py:1515
-#: nx_lib/views/reporting.py:1572 nx_lib/views/reporting.py:1661
-#: nx_lib/views/reporting.py:1786 nx_lib/views/reporting.py:2090
-#: nx_lib/views/reporting.py:2156 nx_lib/views/reporting.py:2213
+#: nx_lib/views/reporting.py:1441 nx_lib/views/reporting.py:1509
+#: nx_lib/views/reporting.py:1566 nx_lib/views/reporting.py:1655
+#: nx_lib/views/reporting.py:1780 nx_lib/views/reporting.py:2084
+#: nx_lib/views/reporting.py:2150 nx_lib/views/reporting.py:2207
 msgid "The AI assistant is not configured"
 msgstr "L'assistente IA non è configurato"
 
-#: nx_lib/views/reporting.py:1475 nx_lib/views/reporting.py:1594
-#: nx_lib/views/reporting.py:1808 nx_lib/views/reporting.py:2178
+#: nx_lib/views/reporting.py:1469 nx_lib/views/reporting.py:1588
+#: nx_lib/views/reporting.py:1802 nx_lib/views/reporting.py:2172
 #, python-format
 msgid ""
 "You have reached the daily AI request limit (%(limit)s). Please try again"
@@ -864,26 +888,26 @@ msgstr ""
 "Ha raggiunto il limite giornaliero di richieste IA (%(limit)s). Riprovi "
 "domani."
 
-#: nx_lib/views/reporting.py:1532 nx_lib/views/reporting.py:1678
-#: nx_lib/views/reporting.py:2070 nx_lib/views/reporting.py:2094
-#: nx_lib/views/reporting.py:2230
+#: nx_lib/views/reporting.py:1526 nx_lib/views/reporting.py:1672
+#: nx_lib/views/reporting.py:2064 nx_lib/views/reporting.py:2088
+#: nx_lib/views/reporting.py:2224
 msgid "Eddard could not answer right now"
 msgstr "Eddard non è riuscito a rispondere in questo momento"
 
-#: nx_lib/views/reporting.py:1610 nx_lib/views/reporting.py:1613
-#: nx_lib/views/reporting.py:1617 nx_lib/views/reporting.py:1619
+#: nx_lib/views/reporting.py:1604 nx_lib/views/reporting.py:1607
+#: nx_lib/views/reporting.py:1611 nx_lib/views/reporting.py:1613
 msgid "Invalid refine context"
 msgstr "Contesto di perfezionamento non valido"
 
-#: nx_lib/views/reporting.py:1704
+#: nx_lib/views/reporting.py:1698
 msgid "Could not build a valid report"
 msgstr "Impossibile creare un report valido"
 
-#: nx_lib/views/reporting.py:1750
+#: nx_lib/views/reporting.py:1744
 msgid "Invalid history"
 msgstr "Cronologia non valida"
 
-#: nx_lib/views/reporting.py:1968
+#: nx_lib/views/reporting.py:1962
 msgid ""
 "I couldn't write a summary this time, but I did produce a report draft "
 "and a validated SQL query — use the actions below to open them."
@@ -892,7 +916,7 @@ msgstr ""
 "bozza di report e una query SQL convalidata — le apra tramite le azioni "
 "qui sotto."
 
-#: nx_lib/views/reporting.py:1974
+#: nx_lib/views/reporting.py:1968
 msgid ""
 "I couldn't write a summary this time, but I did produce a report draft — "
 "use “Open report” below to run it."
@@ -900,7 +924,7 @@ msgstr ""
 "Questa volta non sono riuscito a scrivere un riepilogo, ma ho creato una "
 "bozza di report — la esegua tramite “Apri report” qui sotto."
 
-#: nx_lib/views/reporting.py:1979
+#: nx_lib/views/reporting.py:1973
 msgid ""
 "I couldn't write a summary this time, but I did draft a SQL query — use "
 "the actions below to review it."
@@ -908,7 +932,7 @@ msgstr ""
 "Questa volta non sono riuscito a scrivere un riepilogo, ma ho preparato "
 "una query SQL — la verifichi tramite le azioni qui sotto."
 
-#: nx_lib/views/reporting.py:1984
+#: nx_lib/views/reporting.py:1978
 msgid ""
 "I couldn't complete this request. Please try rephrasing the question or "
 "narrowing it down."
@@ -916,204 +940,204 @@ msgstr ""
 "Non sono riuscito a completare questa richiesta. Riformuli la domanda o "
 "la restringa."
 
-#: nx_lib/views/reporting.py:2137 nx_lib/views/reporting.py:2335
+#: nx_lib/views/reporting.py:2131 nx_lib/views/reporting.py:2329
 msgid "columns and rows are required"
 msgstr "colonne e righe sono obbligatorie"
 
-#: nx_lib/views/reporting.py:2260
+#: nx_lib/views/reporting.py:2254
 msgid "Not authorized for live SQL"
 msgstr "Non autorizzato per SQL in tempo reale"
 
-#: nx_lib/views/reporting.py:2282
+#: nx_lib/views/reporting.py:2276
 msgid "Could not export query"
 msgstr "Impossibile esportare la query"
 
-#: nx_lib/views/reporting.py:2284 nx_lib/views/reporting.py:2312
-#: nx_lib/views/reporting.py:2346 templates/hero.html:165
+#: nx_lib/views/reporting.py:2278 nx_lib/views/reporting.py:2306
+#: nx_lib/views/reporting.py:2340 templates/hero.html:165
 #: templates/js/_reporting_js.html:480
 #: templates/js/_reporting_scheduled_js.html:15 templates/reporting.html:569
 msgid "Report"
 msgstr "Rapporto"
 
-#: nx_lib/views/reporting.py:2297
+#: nx_lib/views/reporting.py:2291
 msgid "Could not export report"
 msgstr "Impossibile esportare il report"
 
-#: nx_lib/views/reporting.py:2305 templates/_reporting_simple.html:235
+#: nx_lib/views/reporting.py:2299 templates/_reporting_simple.html:235
 #: templates/js/_reporting_js.html:504 templates/js/_reporting_simple_js.html:5
 #: templates/js/_reporting_viz_js.html:264 templates/reporting.html:429
 msgid "Forecast"
 msgstr "Previsione"
 
-#: nx_lib/views/reporting.py:2496
+#: nx_lib/views/reporting.py:2490
 msgid "Could not list reports"
 msgstr "Impossibile elencare i report"
 
-#: nx_lib/views/reporting.py:2521 nx_lib/views/reporting.py:2596
-#: nx_lib/views/reporting.py:2618 nx_lib/views/reporting.py:2694
-#: nx_lib/views/reporting.py:2704 nx_lib/views/reporting.py:2754
-#: nx_lib/views/reporting.py:2823 nx_lib/views/reporting.py:2847
-#: nx_lib/views/reporting.py:2894 nx_lib/views/reporting.py:2929
-#: nx_lib/views/reporting.py:2942 nx_lib/views/reporting.py:2953
-#: nx_lib/views/reporting.py:3318 nx_lib/views/reporting.py:3337
-#: nx_lib/views/reporting.py:3442 nx_lib/views/reporting.py:3461
+#: nx_lib/views/reporting.py:2515 nx_lib/views/reporting.py:2590
+#: nx_lib/views/reporting.py:2612 nx_lib/views/reporting.py:2688
+#: nx_lib/views/reporting.py:2698 nx_lib/views/reporting.py:2748
+#: nx_lib/views/reporting.py:2817 nx_lib/views/reporting.py:2841
+#: nx_lib/views/reporting.py:2888 nx_lib/views/reporting.py:2923
+#: nx_lib/views/reporting.py:2936 nx_lib/views/reporting.py:2947
+#: nx_lib/views/reporting.py:3312 nx_lib/views/reporting.py:3331
+#: nx_lib/views/reporting.py:3436 nx_lib/views/reporting.py:3455
 msgid "Not found"
 msgstr "Non trovato"
 
-#: nx_lib/views/reporting.py:2534
+#: nx_lib/views/reporting.py:2528
 msgid "Could not load report"
 msgstr "Impossibile caricare il report"
 
-#: nx_lib/views/reporting.py:2547 nx_lib/views/reporting.py:2576
+#: nx_lib/views/reporting.py:2541 nx_lib/views/reporting.py:2570
 msgid "name and definition are required"
 msgstr "nome e definizione sono obbligatori"
 
-#: nx_lib/views/reporting.py:2550 nx_lib/views/reporting.py:2579
+#: nx_lib/views/reporting.py:2544 nx_lib/views/reporting.py:2573
 msgid "Report definition too large"
 msgstr "Definizione del report troppo grande"
 
-#: nx_lib/views/reporting.py:2563
+#: nx_lib/views/reporting.py:2557
 msgid "Could not save report"
 msgstr "Impossibile salvare il report"
 
-#: nx_lib/views/reporting.py:2600
+#: nx_lib/views/reporting.py:2594
 msgid "Could not update report"
 msgstr "Impossibile aggiornare il report"
 
-#: nx_lib/views/reporting.py:2622
+#: nx_lib/views/reporting.py:2616
 msgid "Could not delete report"
 msgstr "Impossibile eliminare il report"
 
-#: nx_lib/views/reporting.py:2712
+#: nx_lib/views/reporting.py:2706
 msgid "Invalid visibility"
 msgstr "Visibilità non valida"
 
-#: nx_lib/views/reporting.py:2721
+#: nx_lib/views/reporting.py:2715
 msgid "User not found"
 msgstr "Utente non trovato"
 
-#: nx_lib/views/reporting.py:2723
+#: nx_lib/views/reporting.py:2717
 msgid "Cannot share a report with yourself"
 msgstr "Non puoi condividere un report con te stesso"
 
-#: nx_lib/views/reporting.py:2744 nx_lib/views/reporting.py:2765
+#: nx_lib/views/reporting.py:2738 nx_lib/views/reporting.py:2759
 msgid "Could not update sharing"
 msgstr "Impossibile aggiornare la condivisione"
 
-#: nx_lib/views/reporting.py:2837 nx_lib/views/reporting.py:2989
+#: nx_lib/views/reporting.py:2831 nx_lib/views/reporting.py:2983
 #: templates/js/_reporting_scheduled_js.html:25
 msgid "Could not list schedules"
 msgstr "Impossibile elencare le pianificazioni"
 
-#: nx_lib/views/reporting.py:2884 templates/js/_reporting_scheduled_js.html:26
+#: nx_lib/views/reporting.py:2878 templates/js/_reporting_scheduled_js.html:26
 msgid "Could not save schedule"
 msgstr "Impossibile salvare la pianificazione"
 
-#: nx_lib/views/reporting.py:2933
+#: nx_lib/views/reporting.py:2927
 msgid "Could not update schedule"
 msgstr "Impossibile aggiornare la pianificazione"
 
-#: nx_lib/views/reporting.py:2957
+#: nx_lib/views/reporting.py:2951
 msgid "Could not delete schedule"
 msgstr "Impossibile eliminare la pianificazione"
 
-#: nx_lib/views/reporting.py:3118
+#: nx_lib/views/reporting.py:3112
 msgid "This source's database is not configured."
 msgstr "Il database di questa fonte non è configurato."
 
-#: nx_lib/views/reporting.py:3123
+#: nx_lib/views/reporting.py:3117
 msgid "Could not reach this database."
 msgstr "Impossibile raggiungere questo database."
 
-#: nx_lib/views/reporting.py:3128
+#: nx_lib/views/reporting.py:3122
 msgid "Could not read this database's schema."
 msgstr "Impossibile leggere lo schema di questo database."
 
-#: nx_lib/views/reporting.py:3144 nx_lib/views/reporting.py:3194
+#: nx_lib/views/reporting.py:3138 nx_lib/views/reporting.py:3188
 msgid "Invalid body"
 msgstr "Corpo non valido"
 
-#: nx_lib/views/reporting.py:3146
+#: nx_lib/views/reporting.py:3140
 msgid "code must be 1-64 chars: letters, digits, . _ -"
 msgstr "il codice deve contenere 1-64 caratteri: lettere, cifre, . _ -"
 
-#: nx_lib/views/reporting.py:3148
+#: nx_lib/views/reporting.py:3142
 msgid "kind must be 'curated' or 'sql'"
 msgstr "kind deve essere 'curated' o 'sql'"
 
-#: nx_lib/views/reporting.py:3150 nx_lib/views/reporting.py:3200
+#: nx_lib/views/reporting.py:3144 nx_lib/views/reporting.py:3194
 msgid "label is required"
 msgstr "l'etichetta è obbligatoria"
 
-#: nx_lib/views/reporting.py:3152
+#: nx_lib/views/reporting.py:3146
 msgid "permission is required"
 msgstr "l'autorizzazione è obbligatoria"
 
-#: nx_lib/views/reporting.py:3158
+#: nx_lib/views/reporting.py:3152
 msgid "columns must be valid JSON"
 msgstr "le colonne devono essere JSON valido"
 
-#: nx_lib/views/reporting.py:3196
+#: nx_lib/views/reporting.py:3190
 msgid "code must start with a letter/underscore: letters, digits, _"
 msgstr "il codice deve iniziare con una lettera/trattino basso: lettere, cifre, _"
 
-#: nx_lib/views/reporting.py:3198
+#: nx_lib/views/reporting.py:3192
 msgid "sourceId is required"
 msgstr "sourceId è obbligatorio"
 
-#: nx_lib/views/reporting.py:3203
+#: nx_lib/views/reporting.py:3197
 msgid "aggregation must be one of: "
 msgstr "aggregation deve essere uno dei seguenti valori: "
 
-#: nx_lib/views/reporting.py:3205
+#: nx_lib/views/reporting.py:3199
 msgid "baseField is required unless aggregation is 'count'"
 msgstr "baseField è obbligatorio a meno che aggregation non sia 'count'"
 
-#: nx_lib/views/reporting.py:3264
+#: nx_lib/views/reporting.py:3258
 msgid "Could not list sources"
 msgstr "Impossibile elencare le sorgenti"
 
-#: nx_lib/views/reporting.py:3293
+#: nx_lib/views/reporting.py:3287
 msgid "Could not save source (code already exists?)"
 msgstr "Impossibile salvare la sorgente (codice già esistente?)"
 
-#: nx_lib/views/reporting.py:3323
+#: nx_lib/views/reporting.py:3317
 msgid "Could not update source"
 msgstr "Impossibile aggiornare la sorgente"
 
-#: nx_lib/views/reporting.py:3342
+#: nx_lib/views/reporting.py:3336
 msgid "Could not delete source"
 msgstr "Impossibile eliminare la sorgente"
 
-#: nx_lib/views/reporting.py:3387
+#: nx_lib/views/reporting.py:3381
 msgid "Could not list metrics"
 msgstr "Impossibile elencare le metriche"
 
-#: nx_lib/views/reporting.py:3417
+#: nx_lib/views/reporting.py:3411
 msgid "Could not save metric (code already exists?)"
 msgstr "Impossibile salvare la metrica (codice già esistente?)"
 
-#: nx_lib/views/reporting.py:3447
+#: nx_lib/views/reporting.py:3441
 msgid "Could not update metric"
 msgstr "Impossibile aggiornare la metrica"
 
-#: nx_lib/views/reporting.py:3466
+#: nx_lib/views/reporting.py:3460
 msgid "Could not delete metric"
 msgstr "Impossibile eliminare la metrica"
 
-#: nx_lib/views/reporting.py:3508
+#: nx_lib/views/reporting.py:3502
 msgid "Unknown or unsupported source"
 msgstr "Sorgente sconosciuta o non supportata"
 
-#: nx_lib/views/reporting.py:3513
+#: nx_lib/views/reporting.py:3507
 msgid "Source engine is not configured"
 msgstr "Il motore della sorgente non è configurato"
 
-#: nx_lib/views/reporting.py:3520
+#: nx_lib/views/reporting.py:3514
 msgid "This request is invalid."
 msgstr "Questa richiesta non è valida."
 
-#: nx_lib/views/reporting.py:3523
+#: nx_lib/views/reporting.py:3517
 msgid "Could not load values"
 msgstr "Impossibile caricare i valori"
 
@@ -1862,7 +1886,7 @@ msgstr "Sviluppo"
 msgid "API Documentation"
 msgstr "Documentazione API"
 
-#: templates/_header.html:325 templates/dashboard.html:33
+#: templates/_header.html:325 templates/dashboard.html:30
 msgid "Global Dashboard"
 msgstr "Dashboard globale"
 
@@ -2426,7 +2450,7 @@ msgstr ""
 "Scelga fino a tre — il primo è l'asse del grafico, il secondo diventa la "
 "serie colorata."
 
-#: templates/_reporting_simple.html:99
+#: templates/_reporting_simple.html:99 templates/dashboard.html:65
 #: templates/js/_reporting_simple_js.html:129
 msgid "Time range"
 msgstr "Intervallo di tempo"
@@ -3275,8 +3299,12 @@ msgstr "Scegli una preimpostazione o un colore a piacere."
 
 #: templates/appearance.html:83
 #, python-format
-msgid "Set by the %(org)s branding. An administrator changes it under Organizations."
-msgstr "Impostato dal branding di %(org)s. Un amministratore lo modifica in Organizzazioni."
+msgid ""
+"Set by the %(org)s branding. An administrator changes it under "
+"Organizations."
+msgstr ""
+"Impostato dal branding di %(org)s. Un amministratore lo modifica in "
+"Organizzazioni."
 
 #: templates/appearance.html:83
 msgid "organization"
@@ -3517,20 +3545,17 @@ msgstr "Dashboard"
 msgid "Today at a glance"
 msgstr "Oggi in sintesi"
 
-#: templates/appearance.html:350
+#: templates/appearance.html:350 templates/dashboard.html:77
 msgid "Processed today"
 msgstr "Elaborati oggi"
-
-#: templates/appearance.html:357
-msgid "Backlog"
-msgstr "Arretrato"
 
 #: templates/appearance.html:368 templates/workitems_overview.html:100
 #: templates/workitems_overview.html:403
 msgid "Workitem"
 msgstr "Workitem"
 
-#: templates/appearance.html:370 templates/generali_importstatus.html:103
+#: templates/appearance.html:370 templates/dashboard.html:43
+#: templates/generali_importstatus.html:103
 msgid "Updated"
 msgstr "Aggiornato"
 
@@ -3546,20 +3571,10 @@ msgstr "Filtra"
 msgid "Dashboard - nexora"
 msgstr "Dashboard - nexora"
 
-#: templates/dashboard.html:30
+#: templates/dashboard.html:28
 #, python-format
 msgid "%(tenant)s Dashboard"
 msgstr "Dashboard %(tenant)s"
-
-#: templates/dashboard.html:31
-msgid "Real-time overview of this tenant's document processing only."
-msgstr ""
-"Panoramica in tempo reale della sola elaborazione documenti di questo "
-"tenant."
-
-#: templates/dashboard.html:34
-msgid "Every process you may see, across all tenants."
-msgstr "Tutti i processi che puoi vedere, in tutti i tenant."
 
 #: templates/dashboard.html:37
 #, python-format
@@ -3568,49 +3583,66 @@ msgstr "Accesso effettuato come %(name)s"
 
 #: templates/dashboard.html:37
 #, python-format
-msgid "Last sign-in: %(when)s"
-msgstr "Ultimo accesso: %(when)s"
+msgid "last sign-in %(when)s"
+msgstr "ultimo accesso %(when)s"
 
-#: templates/dashboard.html:45 templates/workitems_overview.html:82
+#: templates/dashboard.html:43
+msgid "next in"
+msgstr "prossimo tra"
+
+#: templates/admin/sessions.html:22 templates/dashboard.html:46
+#: templates/maintenance.html:154
+msgid "Refresh"
+msgstr "Aggiorna"
+
+#: templates/dashboard.html:52 templates/workitems_overview.html:82
 msgid "Process"
 msgstr "Processo"
 
-#: templates/dashboard.html:54 templates/reporting.html:369
+#: templates/dashboard.html:61 templates/reporting.html:369
 #: templates/workitems_overview.html:93
 msgid "Filter by client and process"
 msgstr "Filtra per cliente e processo"
 
-#: templates/dashboard.html:62
-msgid "Imported Today"
-msgstr "Importati oggi"
-
 #: templates/dashboard.html:69
-msgid "Processed Today"
-msgstr "Elaborati oggi"
+msgid "d"
+msgstr "g"
 
 #: templates/dashboard.html:76
-msgid "Current Backlog"
+msgid "Imported today"
+msgstr "Importati oggi"
+
+#: templates/dashboard.html:78
+msgid "Current backlog"
 msgstr "Arretrato attuale"
 
-#: templates/dashboard.html:83
-msgid "Avg. Processing Time"
+#: templates/dashboard.html:79
+msgid "Avg. processing time"
 msgstr "Tempo medio di elaborazione"
 
-#: templates/dashboard.html:95
-msgid "Documents Processed Over Time"
+#: templates/dashboard.html:95 templates/js/_dashboard_js.html:16
+msgid "Documents processed over time"
 msgstr "Documenti elaborati nel tempo"
 
-#: templates/dashboard.html:105
-msgid "Recent Validations"
-msgstr "Validazioni recenti"
+#: templates/dashboard.html:99 templates/js/_reporting_simple_js.html:33
+msgid "Over time"
+msgstr "Nel tempo"
 
-#: templates/dashboard.html:120
-msgid "Documents Processed by Hour (Today)"
-msgstr "Documenti elaborati per ora (oggi)"
+#: templates/dashboard.html:100
+msgid "Today by hour"
+msgstr "Oggi per ora"
 
-#: templates/dashboard.html:125
+#: templates/dashboard.html:107
 msgid "No documents processed yet today."
 msgstr "Nessun documento elaborato ancora oggi."
+
+#: templates/dashboard.html:114
+msgid "open items"
+msgstr "aperti"
+
+#: templates/dashboard.html:118
+msgid "Trend"
+msgstr "Andamento"
 
 #: templates/feedback.html:9
 msgid "Feedback - nexora"
@@ -4772,10 +4804,6 @@ msgstr "Manutenzione programmata"
 #: templates/maintenance.html:135
 msgid "The application is temporarily unavailable. Please check back shortly."
 msgstr "L'applicazione è temporaneamente non disponibile. Riprova a breve."
-
-#: templates/admin/sessions.html:22 templates/maintenance.html:154
-msgid "Refresh"
-msgstr "Aggiorna"
 
 #: templates/maintenance.html:157
 msgid "Login"
@@ -7550,13 +7578,45 @@ msgstr "Scrivici"
 msgid "Chat to our team"
 msgstr "Scrivi al nostro team"
 
-#: templates/js/_dashboard_js.html:48
+#: templates/js/_dashboard_js.html:14
 msgid "No data to display"
 msgstr "Nessun dato da visualizzare"
 
-#: templates/js/_dashboard_js.html:222 templates/js/_dashboard_js.html:327
-msgid "Documents Processed"
+#: templates/js/_dashboard_js.html:15
+msgid "Documents processed"
 msgstr "Documenti elaborati"
+
+#: templates/js/_dashboard_js.html:17
+msgid "Documents processed today, by hour"
+msgstr "Documenti elaborati oggi, per ora"
+
+#: templates/js/_dashboard_js.html:18
+#, python-brace-format
+msgid "{days} days · peak {peak}"
+msgstr "{days} giorni · picco {peak}"
+
+#: templates/js/_dashboard_js.html:19
+#, python-brace-format
+msgid "peak {peak} at {hour}"
+msgstr "picco {peak} alle {hour}"
+
+#: templates/js/_dashboard_js.html:20
+msgid "vs. yesterday"
+msgstr "vs. ieri"
+
+#: templates/js/_dashboard_js.html:21
+#, python-brace-format
+msgid "Trend, {days} days"
+msgstr "Andamento, {days} giorni"
+
+#: templates/js/_dashboard_js.html:22
+#, python-brace-format
+msgid "{delta} since yesterday"
+msgstr "{delta} da ieri"
+
+#: templates/js/_dashboard_js.html:23
+msgid "Could not refresh the dashboard"
+msgstr "Impossibile aggiornare il dashboard"
 
 #: templates/js/_feedback_js.html:120
 msgid "Sending…"
@@ -8060,10 +8120,6 @@ msgstr "Impossibile caricare questa scheda."
 #: templates/js/_reporting_viz_js.html:120
 msgid "Charting library unavailable."
 msgstr "Libreria dei grafici non disponibile."
-
-#: templates/js/_reporting_dashboard_js.html:32
-msgid "Other"
-msgstr "Altro"
 
 #: templates/js/_reporting_dashboard_js.html:34
 msgid "Duplicate"
@@ -8606,10 +8662,6 @@ msgstr "Modifiche salvate."
 #, python-brace-format
 msgid "{name} (copy)"
 msgstr "{name} (copia)"
-
-#: templates/js/_reporting_simple_js.html:33
-msgid "Over time"
-msgstr "Nel tempo"
 
 #: templates/js/_reporting_simple_js.html:34
 msgid "None — just the total"
@@ -10310,4 +10362,18 @@ msgstr "A"
 
 #~ msgid "Workitems overview"
 #~ msgstr "Panoramica Workitems"
+
+#~ msgid "Real-time overview of this tenant's document processing only."
+#~ msgstr ""
+#~ "Panoramica in tempo reale della sola "
+#~ "elaborazione documenti di questo tenant."
+
+#~ msgid "Every process you may see, across all tenants."
+#~ msgstr "Tutti i processi che puoi vedere, in tutti i tenant."
+
+#~ msgid "Processed Today"
+#~ msgstr "Elaborati oggi"
+
+#~ msgid "Recent Validations"
+#~ msgstr "Validazioni recenti"
 

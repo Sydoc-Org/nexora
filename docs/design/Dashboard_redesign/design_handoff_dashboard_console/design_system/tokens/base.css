@@ -1,0 +1,19 @@
+/* Minimal page reset the slim screens assume. Component styling lives in the
+   React components, not here — this only sets the page surface and type. */
+body {
+  margin: 0;
+  background: var(--nx-page);
+  color: var(--nx-text);
+  font-family: var(--nx-font);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  accent-color: var(--nx-accent);
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--nx-accent-hover); text-decoration: none; }
+a:hover { color: var(--nx-accent); text-decoration: underline; }
+.nx-num { font-family: var(--nx-mono); font-variant-numeric: tabular-nums; }
+.nx-eyebrow {
+  font-size: var(--fs-eyebrow); font-weight: 700; text-transform: uppercase;
+  letter-spacing: var(--tracking-eyebrow); color: var(--nx-text-meta); margin: 0;
+}

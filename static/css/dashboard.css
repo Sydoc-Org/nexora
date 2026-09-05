@@ -19,111 +19,6 @@ body {
   100% { background-position: -200% 0; }
 }
 
-/* --- Progress Steps --- */
-.progress-step {
-  display: flex;
-  align-items: center;
-  flex-grow: 1;
-  position: relative;
-}
-
-.progress-step:not(:last-child)::after {
-  content: "";
-  position: absolute;
-  left: 18px;
-  top: 40px;
-  height: 2px;
-  width: calc(100% - 36px);
-  background-color: #e5e7eb;
-  transition: background-color 0.6s ease; /* Smooth fill */
-}
-
-.progress-step.completed:not(:last-child)::after {
-  background-color: var(--nx-accent, #4f46e5);
-}
-
-.progress-icon {
-  z-index: 10;
-  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-/* --- Animations --- */
-@keyframes rotate {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.animate-rotate {
-  animation: rotate 2s linear infinite; /* Slightly faster for loading spinners */
-}
-
-@keyframes pulse-soft {
-  0% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.4);
-  }
-  70% {
-    transform: scale(1.05);
-    box-shadow: 0 0 0 10px rgba(79, 70, 229, 0);
-  }
-  100% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(79, 70, 229, 0);
-  }
-}
-
-.animate-pulse-icon {
-  animation: pulse-soft 2s infinite;
-}
-
-/* --- Timeline --- */
-.timeline-item {
-  display: flex;
-  position: relative;
-  align-items: center;
-  padding-left: 4.5rem;
-  padding-bottom: 2rem; /* Spacing between items */
-  transition: transform 0.3s ease;
-}
-
-.timeline-item:hover {
-    transform: translateX(4px);
-}
-
-.timeline-connector {
-  position: absolute;
-  left: 28px;
-  top: 56px; /* Start below the icon */
-  height: calc(100% - 56px); /* Connect to next icon */
-  width: 2px;
-  background-color: #e5e7eb;
-}
-
-.timeline-item:last-child .timeline-connector {
-  display: none;
-}
-
-.timeline-icon {
-  position: absolute;
-  left: 0;
-  top: 0; /* Align top */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  z-index: 10;
-  background-color: white;
-  border: 2px solid #e5e7eb;
-  transition: border-color 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.timeline-item:hover .timeline-icon {
-    border-color: var(--nx-accent, #6366f1);
-    transform: scale(1.1);
-}
-
 /* --- Flatpickr (Date Picker) Overrides --- */
 .flatpickr-calendar {
   font-family: 'Inter', sans-serif;
@@ -167,12 +62,51 @@ span.flatpickr-weekday {
   font-size: 0.8rem;
 }
 
-/* --- Mobile --- */
+/* ============================================================
+   Dashboard console (option 1a). Layout only — every component
+   used here (.nx-kpi-strip, .nx-segmented, .nx-tabs--slim,
+   .nx-chart-head, .nx-legend) lives in nexora-ui.css so the next
+   migrated page reuses it. No hardcoded colours: the design's
+   amber IS var(--nx-accent).
+   ============================================================ */
+
+/* Row 1 — page head. One flex row; the live indicator + refresh button
+   sit right of a spacer. Replaces the two-line title/subtitle block. */
+.nx-dash-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.nx-dash-head__meta {
+  font-size: var(--fs-meta); color: var(--nx-text-meta);
+  font-variant-numeric: tabular-nums; margin: 2px 0 0;
+}
+.nx-dash-head__right {
+  margin-left: auto; display: flex; align-items: center; gap: 12px;
+}
+.nx-dash-head__live { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Row 2 — filter row, closed by a rule. D11: the shared .nx-scope
+   component is sized here, never edited in nexora-ui.css. */
+.nx-dash-filter {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-top: 18px; padding-bottom: 14px;
+  border-bottom: 1px solid var(--nx-border);
+}
+.nx-dash-filter__spacer { margin-left: auto; }
+.nx-dash-filter .nx-scope { min-width: 260px; }
+.nx-dash-filter .nx-scope-btn {
+  min-height: var(--ctl-h); padding: 0 9px; font-size: var(--fs-control); font-weight: 500;
+}
+.nx-dash-filter .nx-scope-summary {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* Row 4 — main chart: full content width, no frame. */
+.nx-dash-chart { padding: 16px 0 8px; }
+.nx-dash-chart__body { height: 290px; margin-top: 14px; }
+
+/* Row 5 — backlog trend: no frame, separated by a top rule only. */
+.nx-dash-backlog { padding: 18px 0 4px; margin-top: 10px; }
+.nx-dash-backlog__body { height: 200px; margin-top: 10px; }
+
 @media (max-width: 768px) {
-  main.container { padding: 1rem !important; }
-  .h-85  { height: 16rem !important; }
-  .h-56  { height: 14rem !important; }
-  .timeline-item { padding-left: 3rem; padding-bottom: 1.25rem; }
-  .timeline-icon { width: 44px; height: 44px; }
-  .timeline-connector { left: 22px; top: 44px; height: calc(100% - 44px); }
+  .nx-dash-chart__body { height: 220px; }
+  .nx-dash-backlog__body { height: 180px; }
 }
