@@ -654,9 +654,33 @@ where `doc_count` counts *rows*. The `workitem_count` metric is currently
 **disabled** (see migration `0021`) — all four count variants (`COUNT(*)`,
 `COUNT(WorkitemID)`, `COUNT(DISTINCT WorkItemID)`, `COUNT(Barcode)`) are
 identical on the Statistics tables because there is one row per workitem and no
-NULL workitem ids. The picker therefore offers only `doc_count`. Re-enable the
-metric row in `dbo.ReportingMetrics` if a multi-row-per-workitem source ever
-appears. Rows from a process without a workitem mapping still contribute nothing
+NULL workitem ids. Re-enable the metric row in `dbo.ReportingMetrics` if a
+multi-row-per-workitem source ever appears.
+
+**`doc_count` is disabled too, since migration `0102`/`0103`.** The measure list
+now reads as a clear either/or — a document is counted on the day it was
+*imported* or the day it was *exported*, never on an unanchored "just count the
+rows". `docs_imported` / `docs_exported` say which, and plot on the shared
+`activity_date` axis. Five saved reports were built on `doc_count`, four of them
+named for import or export because they predate the anchored measures, so `0103`
+repoints them first: the metric **and** the date column, filter and sort move
+together, since a definition anchored on `docs_imported` but grouped on
+`import_date` is rejected by `_prepare_run`. The numbers are unchanged — counting
+rows grouped by import month is exactly what `docs_imported` does. Only reports
+whose shape is unambiguous (source `docprocessing`, a metrics array of exactly
+one `doc_count`, every date reference the same field) are touched; anything else
+keeps `doc_count`, stops resolving, and is left for its owner to rebuild rather
+than rewritten by a migration on a guess.
+
+> `0102` shipped this with a broken guard and is superseded by `0103`: T-SQL
+> `LIKE` reads `[` as the start of a character class, so the pattern
+> `'%"metrics": [{"metric": "doc_count"}]%'` matched nothing and the migration
+> disabled the measure without repointing anything. It failed *open* — zero rows,
+> no error. `0103` inspects the metrics array with `JSON_VALUE` instead of
+> pattern-matching JSON as text. **Guard saved-report rewrites with `JSON_VALUE`,
+> not `LIKE`.**
+
+Rows from a process without a workitem mapping still contribute nothing
 to the `workitem_id` column (it projects as NULL), and the `workitem_id`
 dimension/filter field remains fully available.
 
@@ -995,8 +1019,27 @@ It had accumulated for years unread (#254).
 
 Migration `0097` registered the **EM** table as the pilot; `0100` unions all
 **seven** tables into `NexoraDB.dbo.vFieldExtractionQuality` and renames the
-source `em_field_quality` → `field_quality`. It is a curated `table` source
+source `em_field_quality` → `field_quality`; `0101` narrows it to onboarded
+processes and drops the two count measures. It is a curated `table` source
 gated by `reporting.source.field_quality`.
+
+**Onboarded processes only (`0101`).** The process picker was offering Octo's
+raw `PROCESS` values straight off the telemetry — `BuchererFields`,
+`PriveraPostFields`, `01_Garantiekarten`, `01_Invoice_1` — none of which nexora
+reports on anywhere else. The view now keeps only rows whose process is
+registered in `dbo.ProcessSources`, matched on **both** the organization and the
+process name. Name alone would be wrong: `02_Invoice` belongs to
+*elektromaterial* **and** to *privera*, so onboarding one would silently admit
+the other — which is why each stream carries its
+`dbo.Organizations.organizationcode` in the CTE. Same data-driven contract as
+`MappedInNexoraPct`: **to bring a process back, add a `dbo.ProcessSources` row,
+don't edit the view.**
+
+On INT that leaves 57,149 of 69,576 rows and exactly four processes
+(`01_Invoice_SAP`, `02_Invoice`, `02_Posteingang`, `03_Invoice_New`). Bucherer
+and Geberit leave the source entirely — they have no `dbo.Organizations` row at
+all, so they cannot match — and so does Privera's `02_Invoice` stream, which is
+onboarded for EM but not for Privera.
 
 **One source with a `Customer` dimension, not seven sources.** All seven tables
 are column-identical, and `dbo.FieldAliases` is a *flat, global* map — so
@@ -1008,8 +1051,8 @@ duplicated measure rows to keep in step.
 
 | dimension  | values |
 |---|---|
-| `Customer` | `Bucherer`, `Compass`, `ElektroMaterial`, `Geberit`, `Privera` — matching `dbo.Organizations.Organization` where a row exists. Hardcoded as literals in the view *on purpose*: joining `Organizations` would couple it to the tenancy tables being reshaped in #255, to earn two labels. |
-| `Stream`   | one per telemetry table (`em`, `compass`, `priverainvoice2025`, …). Privera has three. |
+| `Customer` | `Compass`, `ElektroMaterial`, `Privera` today — matching `dbo.Organizations.Organization`. Hardcoded as literals in the view *on purpose*: joining `Organizations` would couple it to the tenancy tables being reshaped in #255, to earn a few labels. The union still carries Bucherer and Geberit; the `0101` process filter is what keeps them out until they are onboarded. |
+| `Stream`   | one per telemetry table (`em`, `compass`, `priverainvoice2025`, …). Privera has three, of which two survive the process filter. |
 | `Process`  | Octo's own process name, straight off the row. |
 
 Four things about that view are load-bearing:
@@ -1101,6 +1144,13 @@ needs a live DB, so it is not in `tests/unit/`; re-run it by hand if the view
 changes. The `0100` union was checked the same way and left EM untouched:
 51.026% correct / 10.586% deviation / 53.914% extracted over 17,107 rows, the
 same figures to three decimals as the EM-only view.
+
+Those EM figures are the *whole-table* ones and are what the equivalence check
+compares. Since `0101` the source itself reports EM on its onboarded process
+only (`02_Invoice`, 7,091 rows → 48.26% correct), because `01_Invoice_1` — 59%
+of EM's telemetry — is a legacy process that was never onboarded. Re-run the
+equivalence check against the raw table, not the view, or the populations will
+not line up.
 
 ## Source visualizer (`reporting.sources.schema`)
 

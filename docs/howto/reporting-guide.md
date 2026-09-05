@@ -50,12 +50,16 @@ guide as an app page.
 - To see **which document fields extraction gets right**, pick the "Field
   extraction quality" measure **"Extraction correct %"** and break down by
   **Field**. Sort by the measure ascending and the worst field is the top row.
-- That source now covers **all seven customers**, so break down by **Customer**
-  to compare them, or add a Customer filter to look at one. Field names are
-  translated to a shared vocabulary first, which is what makes the comparison
-  meaningful: whatever each customer calls its invoice number, it lands on the
-  same "Invoice number" row. **Stream** splits a customer that runs more than
-  one document flow — Privera has three.
+- That source covers **every customer whose process is onboarded in nexora**, so
+  break down by **Customer** to compare them, or add a Customer filter to look at
+  one. Field names are translated to a shared vocabulary first, which is what
+  makes the comparison meaningful: whatever each customer calls its invoice
+  number, it lands on the same "Invoice number" row. **Stream** splits a customer
+  that runs more than one document flow.
+- The measure list is grouped by source, and the process list only offers
+  processes nexora has actually onboarded — Octo's own internal process names
+  are not reportable. If a process you expect is missing, it needs onboarding;
+  it is not a display filter you can switch off.
 - Two traps on that source. Use **"Extraction correct %"**, not "Extracted %":
   the latter only asks whether the machine put *anything* in the box, and
   everything Octo fills in automatically comes back fully extracted. And stay

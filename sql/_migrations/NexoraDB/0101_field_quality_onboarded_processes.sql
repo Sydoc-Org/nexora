@@ -1,75 +1,105 @@
-﻿USE [nexora]
+-- 0101_field_quality_onboarded_processes.sql
+-- Issue #254, follow-up to 0100. Two changes, both about what the wizard
+-- offers rather than how anything is calculated.
+--
+-- 1) ONBOARDED PROCESSES ONLY. The process picker was listing Octo's raw
+--    PROCESS values straight off the telemetry tables, including ones nexora
+--    has never onboarded -- BuchererFields, PriveraPostFields, 01_Garantiekarten,
+--    01_Invoice_1. Those are not processes anyone reports on anywhere else in
+--    the app, and a picker offering them invites reports nobody can act on.
+--
+--    The view now keeps only rows whose process is registered in
+--    dbo.ProcessSources, matched on BOTH the organization and the process name.
+--    Matching on the process name alone would be wrong: '02_Invoice' belongs to
+--    elektromaterial AND to privera, so onboarding one would silently admit the
+--    other. That is why each stream carries its Organizations.organizationcode.
+--
+--    This is data-driven on purpose, exactly like MappedInNexoraPct's use of
+--    FieldAliases: to bring a process back, add a dbo.ProcessSources row --
+--    do not edit this view.
+--
+--    Effect on INT: 58,628 of 69,576 rows survive.
+--      dropped  Bucherer / BuchererFields         460 rows  (whole customer)
+--      dropped  Geberit  / 01_Garantiekarten      400 rows  (whole customer)
+--      dropped  ElektroMaterial / 01_Invoice_1 10,016 rows  (legacy process)
+--      dropped  Privera  / PriveraPostFields       72 rows
+--    Bucherer and Geberit have no dbo.Organizations row at all, so they carry
+--    no organization code and cannot match -- they leave the source entirely
+--    until they are onboarded properly.
+--
+-- 2) The two count measures come off the wizard. 'Field instances' and
+--    'Workitems (distinct)' answer "how much data is in scope", not "how well
+--    does extraction work", which is what this source is for. Disabled rather
+--    than deleted -- dbo.ReportingMetrics is read WHERE Enabled = 1, so this is
+--    reversible with a single UPDATE and keeps the definitions on record.
+--
+-- Idempotent.
+
 GO
-DROP VIEW [dbo].[vFieldExtractionQuality]
-GO
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER OFF
-GO
-CREATE   VIEW [dbo].[vFieldExtractionQuality] AS
+CREATE OR ALTER VIEW dbo.vFieldExtractionQuality AS
 WITH cfa AS (
     SELECT N'Bucherer' AS Customer, N'bucherer' AS Stream, NULL AS OrgCode,
            WORKITEM_ID, PROCESS, FIELD, [TYPE], VALUE_BEFORE_VALIDATION, [RESULT], [TIME], CONF_BEST_CANDIDATE, CONF_2ND_CANDIDATE, IS_SET_BY_MACHINE, IS_USER_VERIFIED, IS_USER_ENTERED, IS_USER_MODIFIED, VALUE_FROM_CANDIDATE_LIST, VALUE_ORIGIN, HISTORY_SOURCE, STATUS_BEFORE_VALIDATION, STATUS_AFTER_VALIDATION
-    FROM [SYDOC_Statistik].dbo.Bucherer_Collect_Field_Attributes
+    FROM [$(StatisticsDb)].dbo.Bucherer_Collect_Field_Attributes
     UNION ALL
     SELECT N'Compass' AS Customer, N'compass' AS Stream, N'CMPS' AS OrgCode,
            WORKITEM_ID, PROCESS, FIELD, [TYPE], VALUE_BEFORE_VALIDATION, [RESULT], [TIME], CONF_BEST_CANDIDATE, CONF_2ND_CANDIDATE, IS_SET_BY_MACHINE, IS_USER_VERIFIED, IS_USER_ENTERED, IS_USER_MODIFIED, VALUE_FROM_CANDIDATE_LIST, VALUE_ORIGIN, HISTORY_SOURCE, STATUS_BEFORE_VALIDATION, STATUS_AFTER_VALIDATION
-    FROM [SYDOC_Statistik].dbo.Compass_Collect_Field_Attributes
+    FROM [$(StatisticsDb)].dbo.Compass_Collect_Field_Attributes
     UNION ALL
     SELECT N'ElektroMaterial' AS Customer, N'em' AS Stream, N'LKTR' AS OrgCode,
            WORKITEM_ID, PROCESS, FIELD, [TYPE], VALUE_BEFORE_VALIDATION, [RESULT], [TIME], CONF_BEST_CANDIDATE, CONF_2ND_CANDIDATE, IS_SET_BY_MACHINE, IS_USER_VERIFIED, IS_USER_ENTERED, IS_USER_MODIFIED, VALUE_FROM_CANDIDATE_LIST, VALUE_ORIGIN, HISTORY_SOURCE, STATUS_BEFORE_VALIDATION, STATUS_AFTER_VALIDATION
-    FROM [SYDOC_Statistik].dbo.Em_Collect_Field_Attributes
+    FROM [$(StatisticsDb)].dbo.Em_Collect_Field_Attributes
     UNION ALL
     SELECT N'Geberit' AS Customer, N'geberit' AS Stream, NULL AS OrgCode,
            WORKITEM_ID, PROCESS, FIELD, [TYPE], VALUE_BEFORE_VALIDATION, [RESULT], [TIME], CONF_BEST_CANDIDATE, CONF_2ND_CANDIDATE, IS_SET_BY_MACHINE, IS_USER_VERIFIED, IS_USER_ENTERED, IS_USER_MODIFIED, VALUE_FROM_CANDIDATE_LIST, VALUE_ORIGIN, HISTORY_SOURCE, STATUS_BEFORE_VALIDATION, STATUS_AFTER_VALIDATION
-    FROM [SYDOC_Statistik].dbo.Geberit_Collect_Field_Attributes
+    FROM [$(StatisticsDb)].dbo.Geberit_Collect_Field_Attributes
     UNION ALL
     SELECT N'Privera' AS Customer, N'priverainvoice' AS Stream, N'PRVR' AS OrgCode,
            WORKITEM_ID, PROCESS, FIELD, [TYPE], VALUE_BEFORE_VALIDATION, [RESULT], [TIME], CONF_BEST_CANDIDATE, CONF_2ND_CANDIDATE, IS_SET_BY_MACHINE, IS_USER_VERIFIED, IS_USER_ENTERED, IS_USER_MODIFIED, VALUE_FROM_CANDIDATE_LIST, VALUE_ORIGIN, HISTORY_SOURCE, STATUS_BEFORE_VALIDATION, STATUS_AFTER_VALIDATION
-    FROM [SYDOC_Statistik].dbo.PriveraInvoice_Collect_Field_Attributes
+    FROM [$(StatisticsDb)].dbo.PriveraInvoice_Collect_Field_Attributes
     UNION ALL
     SELECT N'Privera' AS Customer, N'priverainvoice2025' AS Stream, N'PRVR' AS OrgCode,
            WORKITEM_ID, PROCESS, FIELD, [TYPE], VALUE_BEFORE_VALIDATION, [RESULT], [TIME], CONF_BEST_CANDIDATE, CONF_2ND_CANDIDATE, IS_SET_BY_MACHINE, IS_USER_VERIFIED, IS_USER_ENTERED, IS_USER_MODIFIED, VALUE_FROM_CANDIDATE_LIST, VALUE_ORIGIN, HISTORY_SOURCE, STATUS_BEFORE_VALIDATION, STATUS_AFTER_VALIDATION
-    FROM [SYDOC_Statistik].dbo.PriveraInvoice2025_Collect_Field_Attributes
+    FROM [$(StatisticsDb)].dbo.PriveraInvoice2025_Collect_Field_Attributes
     UNION ALL
     SELECT N'Privera' AS Customer, N'priverapost' AS Stream, N'PRVR' AS OrgCode,
            WORKITEM_ID, PROCESS, FIELD, [TYPE], VALUE_BEFORE_VALIDATION, [RESULT], [TIME], CONF_BEST_CANDIDATE, CONF_2ND_CANDIDATE, IS_SET_BY_MACHINE, IS_USER_VERIFIED, IS_USER_ENTERED, IS_USER_MODIFIED, VALUE_FROM_CANDIDATE_LIST, VALUE_ORIGIN, HISTORY_SOURCE, STATUS_BEFORE_VALIDATION, STATUS_AFTER_VALIDATION
-    FROM [SYDOC_Statistik].dbo.PriveraPost_Collect_Field_Attributes
+    FROM [$(StatisticsDb)].dbo.PriveraPost_Collect_Field_Attributes
 ),
 dates AS (
     SELECT N'bucherer' AS Stream, CONVERT(nvarchar(50), [Workitem]) COLLATE DATABASE_DEFAULT AS Workitem,
            MIN([ImportDate]) AS ImportDate, MAX([UploadDatetime]) AS ExportDate
-    FROM [SYDOC_Statistik].dbo.Bucherer_Invoice
+    FROM [$(StatisticsDb)].dbo.Bucherer_Invoice
     GROUP BY CONVERT(nvarchar(50), [Workitem]) COLLATE DATABASE_DEFAULT
     UNION ALL
     SELECT N'compass' AS Stream, CONVERT(nvarchar(50), [WorkItem]) COLLATE DATABASE_DEFAULT AS Workitem,
            MIN([ImportDate]) AS ImportDate, MAX([UploadDatetime]) AS ExportDate
-    FROM [SYDOC_Statistik].dbo.Compass_Invoice
+    FROM [$(StatisticsDb)].dbo.Compass_Invoice
     GROUP BY CONVERT(nvarchar(50), [WorkItem]) COLLATE DATABASE_DEFAULT
     UNION ALL
     SELECT N'em' AS Stream, CONVERT(nvarchar(50), [WorkItem]) COLLATE DATABASE_DEFAULT AS Workitem,
            MIN([ImportDatetime]) AS ImportDate, MAX([ExportEM_dt]) AS ExportDate
-    FROM [SYDOC_Statistik].dbo.EM_Invoice
+    FROM [$(StatisticsDb)].dbo.EM_Invoice
     GROUP BY CONVERT(nvarchar(50), [WorkItem]) COLLATE DATABASE_DEFAULT
     UNION ALL
     SELECT N'geberit' AS Stream, CONVERT(nvarchar(50), [WorkItem]) COLLATE DATABASE_DEFAULT AS Workitem,
            MIN([ImportDate]) AS ImportDate, MAX([UploadDatetime]) AS ExportDate
-    FROM [SYDOC_Statistik].dbo.Geberit_Garantiekarten
+    FROM [$(StatisticsDb)].dbo.Geberit_Garantiekarten
     GROUP BY CONVERT(nvarchar(50), [WorkItem]) COLLATE DATABASE_DEFAULT
     UNION ALL
     SELECT N'priverainvoice' AS Stream, CONVERT(nvarchar(50), [WID]) COLLATE DATABASE_DEFAULT AS Workitem,
            MIN([ImportTime]) AS ImportDate, MAX([ExportDate]) AS ExportDate
-    FROM [SYDOC_Statistik].dbo.PriveraInvoice
+    FROM [$(StatisticsDb)].dbo.PriveraInvoice
     GROUP BY CONVERT(nvarchar(50), [WID]) COLLATE DATABASE_DEFAULT
     UNION ALL
     SELECT N'priverainvoice2025' AS Stream, CONVERT(nvarchar(50), [WID]) COLLATE DATABASE_DEFAULT AS Workitem,
            MIN([ImportTime]) AS ImportDate, MAX([ExportDate]) AS ExportDate
-    FROM [SYDOC_Statistik].dbo.PriveraInvoice
+    FROM [$(StatisticsDb)].dbo.PriveraInvoice
     GROUP BY CONVERT(nvarchar(50), [WID]) COLLATE DATABASE_DEFAULT
     UNION ALL
     SELECT N'priverapost' AS Stream, CONVERT(nvarchar(50), [WorkItemID]) COLLATE DATABASE_DEFAULT AS Workitem,
            MIN([ImportDatetime_dt]) AS ImportDate, MAX([ExportDatetime_dt]) AS ExportDate
-    FROM [SYDOC_Statistik].dbo.PriveraPosteingang
+    FROM [$(StatisticsDb)].dbo.PriveraPosteingang
     GROUP BY CONVERT(nvarchar(50), [WorkItemID]) COLLATE DATABASE_DEFAULT
 )
 SELECT
@@ -136,4 +166,42 @@ WHERE EXISTS (
           AND SUBSTRING(ps.ProcessName, CHARINDEX('.', ps.ProcessName) + 1, 200)
               = cfa.PROCESS COLLATE DATABASE_DEFAULT
       );
+GO
+
+-- 2) The two count measures leave the wizard.
+UPDATE dbo.ReportingMetrics
+SET Enabled = 0
+WHERE Code IN ('fq_instances', 'fq_workitems');
+GO
+
+-- Keep the catalog exactly as 0100 left it -- re-asserted so a partially
+-- applied history cannot leave the columns and the view out of step.
+UPDATE dbo.ReportingSources
+SET ColumnsJSON = N'[{"field":"FieldKey","label":"Field","type":"string","filterable":true,"sortable":true},
+       {"field":"Customer","label":"Customer","type":"string","filterable":true,"sortable":true},
+       {"field":"FieldLabel","label":"Field (incl. unmapped)","type":"string","filterable":true,"sortable":true},
+       {"field":"Field","label":"Field (Octo raw name)","type":"string","filterable":true,"sortable":true},
+       {"field":"FieldType","label":"Field type","type":"string","filterable":true,"sortable":true},
+       {"field":"Process","label":"Process","type":"string","filterable":true,"sortable":true},
+       {"field":"Stream","label":"Stream","type":"string","filterable":true,"sortable":true},
+       {"field":"Workitem","label":"Workitem","type":"string","filterable":true,"sortable":true},
+       {"field":"ImportDate","label":"Import date","type":"datetime","filterable":true,"sortable":true,"grainable":true},
+       {"field":"ExportDate","label":"Export date","type":"datetime","filterable":true,"sortable":true,"grainable":true},
+       {"field":"Confidence","label":"Confidence %","type":"number","filterable":true,"sortable":true,"aggregable":true},
+       {"field":"Confidence2nd","label":"2nd-candidate confidence %","type":"number","filterable":true,"sortable":true,"aggregable":true},
+       {"field":"ExtractionTimeMs","label":"Extraction time (ms)","type":"number","filterable":true,"sortable":true,"aggregable":true},
+       {"field":"ExtractedPct","label":"Extracted %","type":"number","filterable":true,"sortable":true,"aggregable":true},
+       {"field":"CorrectPct","label":"Extraction correct %","type":"number","filterable":true,"sortable":true,"aggregable":true},
+       {"field":"DeviationPct","label":"Deviation %","type":"number","filterable":true,"sortable":true,"aggregable":true},
+       {"field":"SetByMachinePct","label":"Set by machine %","type":"number","filterable":true,"sortable":true,"aggregable":true},
+       {"field":"UserVerifiedPct","label":"User verified %","type":"number","filterable":true,"sortable":true,"aggregable":true},
+       {"field":"UserEnteredPct","label":"User entered %","type":"number","filterable":true,"sortable":true,"aggregable":true},
+       {"field":"UserModifiedPct","label":"User corrected %","type":"number","filterable":true,"sortable":true,"aggregable":true},
+       {"field":"FromCandidateListPct","label":"From candidate list %","type":"number","filterable":true,"sortable":true,"aggregable":true},
+       {"field":"MappedInNexoraPct","label":"Mapped in nexora %","type":"number","filterable":true,"sortable":true,"aggregable":true},
+       {"field":"ValueOrigin","label":"Value origin","type":"string","filterable":true,"sortable":true},
+       {"field":"HistorySource","label":"History source","type":"string","filterable":true,"sortable":true},
+       {"field":"StatusBeforeValidation","label":"Status before validation","type":"string","filterable":true,"sortable":true},
+       {"field":"StatusAfterValidation","label":"Status after validation","type":"string","filterable":true,"sortable":true}]'
+WHERE Code = 'field_quality';
 GO

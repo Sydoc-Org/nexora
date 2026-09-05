@@ -581,6 +581,17 @@
     return b;
   }
 
+  // Uppercase caption above a cluster of choice chips. Used by both the
+  // measure step (one cluster per source) and the breakdown step (Time /
+  // Document fields / Or); the class is a full-width flex item, so it forces
+  // the wrap onto its own row.
+  function groupLabel(text) {
+    var l = document.createElement('div');
+    l.className = 'rs-choice-group-label';
+    l.textContent = text;
+    return l;
+  }
+
   async function loadSourcesCatalog() {
     if (RS.state.sources) return RS.state.sources;
     var list = null;
@@ -658,18 +669,31 @@
     var multi = visible.length > 1;
     visible.forEach(function (sid) {
       var src = RS.state.sources.find(function (s) { return s.id === sid; });
-      (bySource[sid] || []).forEach(function (m) {
-        // Sources without metrics never appear; admins grow the wizard's
-        // reach by adding rows in the metrics registry, zero code change.
-        var srcProcs = src.processes || [];
-        var fld = m.baseField
-          ? (src.fields || []).find(function (f) { return f.field === m.baseField; })
-          : null;
-        // A metric whose base field no allowed process provides can never run
-        // for this user (resolve_metrics 400s) — don't offer it.
-        if (m.baseField && !fld) return;
-        var label = multi ? (m.label + ' · ' + src.label) : m.label;
-        var btn = choiceBtn(label, function () {
+      var srcProcs = src.processes || [];
+      // Resolve each metric's base field up front. A metric whose base field no
+      // allowed process provides can never run for this user (resolve_metrics
+      // 400s), so it is not offered — and resolving first is also what keeps a
+      // source that ends up with no offerable metric from printing a caption
+      // over an empty cluster.
+      var offered = (bySource[sid] || []).map(function (m) {
+        return {
+          m: m,
+          fld: m.baseField
+            ? (src.fields || []).find(function (f) { return f.field === m.baseField; })
+            : null
+        };
+      }).filter(function (o) { return !o.m.baseField || o.fld; });
+      if (!offered.length) return;
+      // One captioned cluster per source, the same shape the breakdown step
+      // uses. With a single source there is nothing to tell apart, so the
+      // caption is dropped and the chips read as one plain list.
+      // Sources without metrics never appear; admins grow the wizard's reach
+      // by adding rows in the metrics registry, zero code change.
+      if (multi) list.appendChild(groupLabel(src.label));
+      offered.forEach(function (o) {
+        var m = o.m;
+        var fld = o.fld;
+        var btn = choiceBtn(m.label, function () {
           toggleMeasure(m, src);
         }, !!(w.source && w.source.id === src.id
               && w.measures.some(function (x) { return x.code === m.code; })));
@@ -886,13 +910,6 @@
     // CSS :has() shim keyed on #rsStepBreakdown[hidden], see reporting.css).
     function updatePickedCount() {
       RS.el('rsPickedCount').textContent = RS.I18N.pickedCount.replace('{n}', String(w.breakdowns.length));
-    }
-
-    function groupLabel(text) {
-      var l = document.createElement('div');
-      l.className = 'rs-choice-group-label';
-      l.textContent = text;
-      return l;
     }
 
     // The chip list is re-rendered whenever the process scope changes: a chip

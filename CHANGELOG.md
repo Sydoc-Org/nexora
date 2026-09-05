@@ -18,13 +18,17 @@ Work toward the next release.
   page: break down by Field and rank by "Extraction correct %", "User
   corrected %" or "Avg. confidence %" to see which fields extraction handles
   well and which cost validators the most time. Nine measures, gated by
-  `reporting.source.field_quality`. It covers **all seven customer streams** —
-  Bucherer, Compass, ElektroMaterial, Geberit and Privera's three — as one
-  source with a Customer breakdown rather than seven separate ones, which is
-  what lets you rank the *same* field across customers: field names are
+  `reporting.source.field_quality`. It unions **all seven customer telemetry
+  streams** — Bucherer, Compass, ElektroMaterial, Geberit and Privera's three —
+  into one source with a Customer breakdown rather than seven separate ones,
+  which is what lets you rank the *same* field across customers: field names are
   normalised to a shared vocabulary first, so whatever each customer calls its
   invoice number lands on the same row. A Stream dimension splits a customer
-  running more than one document flow.
+  running more than one document flow. Only **onboarded processes** are
+  reportable — the picker no longer offers Octo's internal process names, and
+  the filter reads `dbo.ProcessSources` matched on organization *and* process,
+  so onboarding a process is all it takes to bring it in (and `02_Invoice` being
+  onboarded for ElektroMaterial does not admit Privera's).
   Raw field values and the validating user are deliberately not exposed — the
   source answers "which fields extract well", not "what did this invoice say"
   or "who fixed it". Octo's ~630 raw field names are translated through the
@@ -41,6 +45,23 @@ Work toward the next release.
   permanently at 100%.
 
 ### Changed
+
+- **The Simple wizard's measure list is grouped by source.** With more than one
+  source the chips used to be one flat list with a `· Source Name` suffix on
+  every label; they are now clustered under a caption per source, the same
+  pattern the breakdown step already used. Reads far better now that picking a
+  measure greys out every chip from the other sources — that constraint has
+  always been there, but with a second source it went from two greyed chips to
+  most of the list.
+- **"Document count" is retired in favour of "Documents imported" /
+  "Documents exported".** The measure list now says which date a document is
+  counted on instead of leaving it unanchored. Five saved reports built on
+  `doc_count` are repointed automatically, moving the date column, filter and
+  sort onto the shared `activity_date` axis along with the measure — the numbers
+  are unchanged. Only unambiguous definitions are rewritten; anything else keeps
+  `doc_count` and is left for its owner. "Field instances" and "Workitems
+  (distinct)" also come off the field-quality source: they measure how much data
+  is in scope, not how well extraction works.
 
 - **Migrations can reach another database on the same server.**
   `scripts/db-migrate.py` now passes the configured database names to sqlcmd as

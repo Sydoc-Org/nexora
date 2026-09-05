@@ -133,3 +133,39 @@ def test_no_raw_document_values_are_exposed(catalog):
         "valueafter",
     ):
         assert leaked not in fields
+
+
+# --- 0101: onboarded processes only -----------------------------------------
+
+ONBOARDED = MIGRATIONS / "0101_field_quality_onboarded_processes.sql"
+
+
+@pytest.fixture(scope="module")
+def onboarded_sql():
+    return ONBOARDED.read_text(encoding="utf-8")
+
+
+def test_process_filter_is_scoped_to_the_organization(onboarded_sql):
+    # '02_Invoice' belongs to elektromaterial AND to privera. Matching on the
+    # process name alone would let one customer's onboarding silently admit the
+    # other's telemetry, so the EXISTS must also compare the organization.
+    where = onboarded_sql.split("WHERE EXISTS", 1)[1].split(");", 1)[0]
+    assert "dbo.ProcessSources" in where
+    assert "OrganizationCode" in where, "the process filter must be org-scoped"
+    assert "ClientCode" in where
+
+
+def test_every_stream_declares_an_organization_slot(onboarded_sql):
+    # Each UNION ALL branch carries an OrgCode -- a literal for an onboarded
+    # customer, NULL for one with no dbo.Organizations row. A branch that
+    # forgot it would not compile, but a branch that silently reused another
+    # customer's code would cross-admit telemetry, so count them.
+    view = onboarded_sql.split("CREATE OR ALTER VIEW", 1)[1].split("\nGO", 1)[0]
+    cfa = view.split("WITH cfa AS", 1)[1].split("dates AS", 1)[0]
+    assert cfa.count("AS OrgCode") == len(CLIENT_TABLES)
+
+
+def test_onboarded_filter_keeps_the_catalog_and_view_in_step(onboarded_sql, catalog):
+    # 0101 re-asserts 0100's ColumnsJSON. If the two ever diverge, a report
+    # resolves a column the view no longer projects.
+    assert [c["field"] for c in _catalog(onboarded_sql)] == [c["field"] for c in catalog]
