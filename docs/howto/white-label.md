@@ -38,7 +38,9 @@ its sidebar group and its generated pages by right (`nx_lib/views/tenant.py::_ca
 else — sydoc staff working Generali, say — needs `tenant.<code>.view`. Editing generated records is
 always the explicit `tenant.<code>.edit` grant. A tenant-scoped user (`tenant_scoped`, set in
 `nx_lib/hooks.py`) sees only their tenant group in place of the global Dashboard / Reporting /
-Workitems links; sydoc staff (SYDC, no tenant) keep the global navigation.
+Workitems links. Since `0104` sydoc AG (SYDC) is a member of the `sydoc` tenant and ISS (SSIX) of
+`generali`; sydoc staff keep every tenant group and the Global entries through their
+`tenant.<code>.view` grants and page permissions, so only `demo` (DMEO) sits outside a tenant.
 
 **Mounted pages and the tenant dashboard.** A `custom` row in `dbo.TenantPages` carries a
 `LayoutJSON` with `endpoint` (an argument-less GET route), `label`, `icon`, an optional `active`
@@ -48,8 +50,9 @@ since migrations `0097`/`0098` they link `/dashboard?tenant=<code>` and `/workit
 `nx_lib/views/tenant.py::apply_tenant_scope` resolves the tenant (404 unknown, 403 not viewable),
 stores it in `session['tenant_scope']`, and every process allow-list on both pages — the dashboard
 KPIs, the workitems list, field config, suggestions, import — comes through
-`nx_lib/process_helpers.py::granted_processes`, which intersects the user's `*.filter.process.*`
-grants with the processes whose organization belongs to that tenant
+`nx_lib/process_helpers.py::granted_processes`, which intersects the user's process grants
+(`process.<client>.<name>.view` since migration `0087`, or the legacy `*.filter.process.*` codes)
+with the processes whose organization belongs to that tenant
 (`nx_lib/tenant/registry.py::tenant_processes`; an unresolvable scope narrows to nothing). A user
 inside a tenant lands on their tenant's pages by default; staff without a pick get the **Global
 Dashboard** / **Global Workitems** (every process they may see, across tenants). The scope is

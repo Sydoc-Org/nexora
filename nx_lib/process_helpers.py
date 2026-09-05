@@ -4,24 +4,45 @@ Most permissions are scoped by ``<client>.<process>`` (e.g. ``Privera.Invoices``
 so these helpers translate permission strings into SQL parameter lists.
 """
 
+import re
+
 from flask import current_app, session
 
 from .db import engine_nexora_db
 from .extensions import cache
 from .tenant.registry import tenant_processes
 
+# #238 (migration 0087): one ``process.<client>.<name>.view`` code per process
+# replaces the three per-page families (``workitems.filter.process.*``,
+# ``dashboard.filter.process.*``, ``reporting.scope.process.*``). Databases
+# behind that migration (TEST, PROD until the deploy) still carry the old codes,
+# so every reader accepts both shapes for now.
+_PROCESS_VIEW_RE = re.compile(r"^process\.(.+)\.view$")
+
+
+def process_grants(perms, prefix):
+    """``{'<client>.<process>', ...}`` from a permission list: the
+    ``process.<client>.<process>.view`` codes plus the legacy
+    ``<prefix><client>.<process>`` family. Pure -- no session, no tenant scope
+    (the reporting runner feeds it a report owner's grants)."""
+    out = set()
+    for perm in perms:
+        if perm.startswith(prefix):
+            out.add(perm.split(".")[-2] + "." + perm.split(".")[-1])
+            continue
+        m = _PROCESS_VIEW_RE.match(perm)
+        if m:
+            out.add(m.group(1))
+    return out
+
 
 def granted_processes(prefix):
-    """``{'<client>.<process>', ...}`` the session holds ``<prefix><client>.<process>``
-    grants for, narrowed to the tenant the session is scoped to
-    (``session['tenant_scope']``, set by ``nx_lib/views/tenant.py::
+    """The session's ``process_grants``, narrowed to the tenant the session is
+    scoped to (``session['tenant_scope']``, set by ``nx_lib/views/tenant.py::
     apply_tenant_scope`` -- 0097/0098). A scope whose process list cannot be
     resolved narrows to nothing, never to everything. Every process allow-list
     on the dashboard and the workitems pages comes through here."""
-    perms = session.get("permissions", [])
-    allowed = {
-        perm.split(".")[-2] + "." + perm.split(".")[-1] for perm in perms if perm.startswith(prefix)
-    }
+    allowed = process_grants(session.get("permissions", []), prefix)
     scope = session.get("tenant_scope")
     if scope:
         allowed &= tenant_processes(scope) or set()

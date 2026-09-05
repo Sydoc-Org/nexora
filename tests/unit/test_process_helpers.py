@@ -328,3 +328,32 @@ def test_granted_processes_fails_closed_when_the_scope_cannot_resolve(ph_fake_se
     ph_fake_session["permissions"] = list(_SCOPE_GRANTS)
     ph_fake_session["tenant_scope"] = "ms02"
     assert ph_mod.granted_processes("workitems.filter.process.") == set()
+
+
+# ---------- process_grants: both code shapes (0087) ----------
+
+
+def test_process_grants_reads_both_code_shapes():
+    perms = [
+        "workitems.view",
+        "workitems.filter.process.privera.02_Posteingang",  # legacy family
+        "process.sydoc.05_PDBS.view",  # 0087 shape
+        "process.compass.01_Invoice_SAP.view",
+        "reporting.scope.process.privera.03_Invoice_New",  # another family: ignored here
+        "tenant.ms02.view",
+    ]
+    assert ph_mod.process_grants(perms, "workitems.filter.process.") == {
+        "privera.02_Posteingang",
+        "sydoc.05_PDBS",
+        "compass.01_Invoice_SAP",
+    }
+    assert ph_mod.process_grants(perms, "reporting.scope.process.") == {
+        "privera.03_Invoice_New",
+        "sydoc.05_PDBS",
+        "compass.01_Invoice_SAP",
+    }
+
+
+def test_granted_processes_accepts_the_0087_shape(ph_fake_session):
+    ph_fake_session["permissions"] = ["dashboard.view", "process.sydoc.05_PDBS.view"]
+    assert ph_mod.granted_processes("dashboard.filter.process.") == {"sydoc.05_PDBS"}
