@@ -25,6 +25,7 @@ from ..extensions import cache
 from ..octo import get_extensions_urls_fields, get_workitemdata_param
 from ..process_helpers import (
     get_activity_instances_to_ignore,
+    granted_processes,
     normalize_process_selection,
 )
 from ..security import page_visibility, require_permission
@@ -462,14 +463,7 @@ def dashboard_processed_over_time():
         return jsonify({"error": _("Not authorized")}), 401
 
     perms = session.get("permissions", [])
-    prefix = "dashboard.filter.process."
-    allowed_processes = sorted(
-        {
-            (perm.split(".")[-2] + "." + perm.split(".")[-1])
-            for perm in perms
-            if perm.startswith(prefix)
-        }
-    )
+    allowed_processes = granted_processes(perms)
     process_name = session.get("process_name_dashboard", "all")
 
     target_processes = normalize_process_selection(process_name, allowed_processes)[1]
@@ -554,15 +548,8 @@ def dashboard_kpi_stats():
     if "username" not in session:
         return jsonify({"error": _("Not authorized")}), 401
 
-    prefix = "dashboard.filter.process."
     perms = session.get("permissions", [])
-    allowed_processes = sorted(
-        {
-            (perm.split(".")[-2] + "." + perm.split(".")[-1])
-            for perm in perms
-            if perm.startswith(prefix)
-        }
-    )
+    allowed_processes = granted_processes(perms)
     process_name = session.get("process_name_dashboard", "all")
 
     target_processes = normalize_process_selection(process_name, allowed_processes)[1]
@@ -609,15 +596,8 @@ def dashboard_hourly_stats():
     if "username" not in session:
         return jsonify({"error": _("Not authorized")}), 401
 
-    prefix = "dashboard.filter.process."
     perms = session.get("permissions", [])
-    allowed_processes = sorted(
-        {
-            (perm.split(".")[-2] + "." + perm.split(".")[-1])
-            for perm in perms
-            if perm.startswith(prefix)
-        }
-    )
+    allowed_processes = granted_processes(perms)
     process_name = session.get("process_name_dashboard", "all")
     target_processes = normalize_process_selection(process_name, allowed_processes)[1]
 
@@ -687,15 +667,8 @@ def dashboard_avg_processing_time():
     if "username" not in session:
         return jsonify({"error": _("Not authorized")}), 401
 
-    prefix = "dashboard.filter.process."
     perms = session.get("permissions", [])
-    allowed_processes = sorted(
-        {
-            (perm.split(".")[-2] + "." + perm.split(".")[-1])
-            for perm in perms
-            if perm.startswith(prefix)
-        }
-    )
+    allowed_processes = granted_processes(perms)
     process_name = session.get("process_name_dashboard", "all")
     target_processes = normalize_process_selection(process_name, allowed_processes)[1]
 
@@ -733,14 +706,7 @@ def dashboard():
         login_at = session.get("login_at") if show_note else None
         prev_login_at = session.get("prev_login_at") if show_note else None
 
-        prefix = "dashboard.filter.process."
-        allowed_processes = sorted(
-            {
-                (perm.split(".")[-2] + "." + perm.split(".")[-1])
-                for perm in perms
-                if perm.startswith(prefix)
-            }
-        )
+        allowed_processes = granted_processes(perms)
 
         process_name = normalize_process_selection(
             request.args.get("prcfD", "all"), allowed_processes
@@ -767,14 +733,7 @@ def dashboard_set_filter():
     if "username" not in session:
         return jsonify({"error": "Not authorized"}), 401
     perms = session.get("permissions", [])
-    prefix = "dashboard.filter.process."
-    allowed_processes = sorted(
-        {
-            (perm.split(".")[-2] + "." + perm.split(".")[-1])
-            for perm in perms
-            if perm.startswith(prefix)
-        }
-    )
+    allowed_processes = granted_processes(perms)
     payload = request.get_json(silent=True) or {}
     process_name = normalize_process_selection(
         payload.get("process_name", "all"), allowed_processes
@@ -793,17 +752,10 @@ def dashboard_set_filter():
 )
 def api_recent_activity():
     try:
-        prefix = "dashboard.filter.process."
         process_name = session.get("process_name_dashboard", "all")
 
         perms = session.get("permissions", [])
-        allowed_processes = sorted(
-            {
-                (perm.split(".")[-2] + "." + perm.split(".")[-1])
-                for perm in perms
-                if perm.startswith(prefix)
-            }
-        )
+        allowed_processes = granted_processes(perms)
         target_processes = normalize_process_selection(process_name, allowed_processes)[1]
 
         if not target_processes:

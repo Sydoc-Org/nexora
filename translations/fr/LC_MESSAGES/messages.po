@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-03 09:44+0200\n"
+"POT-Creation-Date: 2026-09-04 23:46+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -18,11 +18,11 @@ msgstr ""
 msgid "Error fetching activity instance"
 msgstr "Erreur lors de la récupération de l'instance d'activité"
 
-#: nx_lib/security.py:105
+#: nx_lib/security.py:129
 msgid "Invalid date"
 msgstr "Date invalide"
 
-#: nx_lib/security.py:107
+#: nx_lib/security.py:131
 msgid "Date is outside the allowed entry window"
 msgstr "La date est en dehors de la période de saisie autorisée"
 
@@ -697,24 +697,24 @@ msgstr ""
 msgid "Unexpected error occurred"
 msgstr "Une erreur inattendue s'est produite"
 
-#: nx_lib/views/admin/permissions.py:247 nx_lib/views/admin/permissions.py:559
-#: nx_lib/views/admin/permissions.py:601 nx_lib/views/admin/permissions.py:646
-#: nx_lib/views/admin/permissions.py:685 nx_lib/views/admin/permissions.py:724
-#: nx_lib/views/admin/permissions.py:756 nx_lib/views/dashboard.py:462
-#: nx_lib/views/dashboard.py:555 nx_lib/views/dashboard.py:610
-#: nx_lib/views/dashboard.py:688 nx_lib/views/workitems.py:404
-#: nx_lib/views/workitems.py:1123 nx_lib/views/workitems.py:1125
-#: nx_lib/views/workitems.py:1220 nx_lib/views/workitems.py:1332
+#: nx_lib/views/admin/permissions.py:245 nx_lib/views/admin/permissions.py:578
+#: nx_lib/views/admin/permissions.py:620 nx_lib/views/admin/permissions.py:665
+#: nx_lib/views/admin/permissions.py:704 nx_lib/views/admin/permissions.py:743
+#: nx_lib/views/admin/permissions.py:775 nx_lib/views/dashboard.py:463
+#: nx_lib/views/dashboard.py:549 nx_lib/views/dashboard.py:597
+#: nx_lib/views/dashboard.py:668 nx_lib/views/workitems.py:387
+#: nx_lib/views/workitems.py:1094 nx_lib/views/workitems.py:1096
+#: nx_lib/views/workitems.py:1191 nx_lib/views/workitems.py:1303
 msgid "Not authorized"
 msgstr "Non autorisé"
 
 #: nx_lib/views/admin/logs.py:154 nx_lib/views/admin/organizations.py:180
-#: nx_lib/views/admin/permissions.py:590 nx_lib/views/admin/system.py:148
+#: nx_lib/views/admin/permissions.py:609 nx_lib/views/admin/system.py:148
 #: nx_lib/views/admin/system.py:191 nx_lib/views/admin/system.py:234
-#: nx_lib/views/admin/system.py:254 nx_lib/views/admin/users.py:384
-#: nx_lib/views/admin/users.py:536 nx_lib/views/dashboard.py:544
-#: nx_lib/views/dashboard.py:599 nx_lib/views/dashboard.py:677
-#: nx_lib/views/dashboard.py:715 nx_lib/views/generali/_crud.py:187
+#: nx_lib/views/admin/system.py:254 nx_lib/views/admin/users.py:389
+#: nx_lib/views/admin/users.py:541 nx_lib/views/dashboard.py:538
+#: nx_lib/views/dashboard.py:586 nx_lib/views/dashboard.py:657
+#: nx_lib/views/dashboard.py:688 nx_lib/views/generali/_crud.py:187
 #: nx_lib/views/generali/attendance.py:98
 #: nx_lib/views/generali/documents.py:288
 #: nx_lib/views/generali/documents.py:327
@@ -722,7 +722,7 @@ msgstr "Non autorisé"
 #: nx_lib/views/generali/documents.py:537
 #: nx_lib/views/generali/importstatus.py:119 nx_lib/views/generali/pdqm.py:102
 #: nx_lib/views/generali/reporting.py:261
-#: nx_lib/views/generali/reporting.py:324 nx_lib/views/workitems.py:1393
+#: nx_lib/views/generali/reporting.py:324 nx_lib/views/workitems.py:1364
 msgid "An unexpected error occurred"
 msgstr "Une erreur inattendue s'est produite"
 
@@ -832,8 +832,8 @@ msgid "%(field)s must be numeric."
 msgstr "%(field)s doit être numérique."
 
 #: nx_lib/views/admin/clients.py:154 nx_lib/views/admin/organizations.py:94
-#: nx_lib/views/admin/processes.py:383 nx_lib/views/admin/processes.py:536
-#: nx_lib/views/admin/users.py:122 nx_lib/views/tenant.py:458
+#: nx_lib/views/admin/processes.py:385 nx_lib/views/admin/processes.py:538
+#: nx_lib/views/admin/users.py:131 nx_lib/views/tenant.py:458
 #: nx_lib/views/tenant.py:522 nx_lib/views/tenant.py:567
 #: nx_lib/views/tenant.py:602 nx_lib/views/tenant.py:641
 msgid "An unexpected error occurred."
@@ -859,11 +859,11 @@ msgstr "Enregistrement mis à jour avec succès."
 msgid "Record deleted successfully."
 msgstr "Enregistrement supprimé avec succès."
 
-#: nx_lib/views/workitems.py:390 nx_lib/views/workitems.py:539
+#: nx_lib/views/workitems.py:373 nx_lib/views/workitems.py:522
 msgid "Could not fetch values"
 msgstr "Impossible de récupérer les valeurs"
 
-#: nx_lib/views/workitems.py:595
+#: nx_lib/views/workitems.py:578
 msgid ""
 "Exporting fields, history, or images requires selecting 10 or fewer "
 "workitems."
@@ -871,23 +871,23 @@ msgstr ""
 "L'export des champs, de l'historique ou des images nécessite de "
 "sélectionner 10 workitems ou moins."
 
-#: nx_lib/views/workitems.py:889
+#: nx_lib/views/workitems.py:872
 msgid "TRUNCATED"
 msgstr "TRONQUÉ"
 
-#: nx_lib/views/workitems.py:890
+#: nx_lib/views/workitems.py:873
 msgid "exported"
 msgstr "exportés"
 
-#: nx_lib/views/workitems.py:890
+#: nx_lib/views/workitems.py:873
 msgid "matching workitems"
 msgstr "workitems correspondants"
 
-#: nx_lib/views/workitems.py:896
+#: nx_lib/views/workitems.py:879
 msgid "EXPORT TIMED OUT"
 msgstr "EXPORT EXPIRÉ"
 
-#: nx_lib/views/workitems.py:897
+#: nx_lib/views/workitems.py:880
 msgid ""
 "no fields or images completed before the time limit; this is not a zero-"
 "result export"
@@ -895,114 +895,114 @@ msgstr ""
 "aucun champ ni image n'a été terminé avant la limite de temps ; il ne "
 "s'agit pas d'un export sans résultat"
 
-#: nx_lib/views/workitems.py:1013 nx_lib/views/workitems.py:1084
+#: nx_lib/views/workitems.py:989 nx_lib/views/workitems.py:1055
 msgid "No file part in the request."
 msgstr "Aucune partie de fichier dans la requête."
 
-#: nx_lib/views/workitems.py:1020 nx_lib/views/workitems.py:1087
+#: nx_lib/views/workitems.py:996 nx_lib/views/workitems.py:1058
 msgid "No file selected for uploading."
 msgstr "Aucun fichier sélectionné pour le téléversement."
 
-#: nx_lib/views/workitems.py:1024
+#: nx_lib/views/workitems.py:1000
 msgid "No target process selected."
 msgstr "Aucun processus cible sélectionné."
 
-#: nx_lib/views/workitems.py:1036
+#: nx_lib/views/workitems.py:1007
 msgid "You do not have permission to import to this process."
 msgstr "Vous n'avez pas l'autorisation d'importer dans ce processus."
 
-#: nx_lib/views/workitems.py:1051
+#: nx_lib/views/workitems.py:1022
 #, python-brace-format
 msgid "File '{}' successfully imported into {}."
 msgstr "Fichier '{}' importé avec succès dans {}."
 
-#: nx_lib/views/workitems.py:1056
+#: nx_lib/views/workitems.py:1027
 msgid "An error occurred while saving the file."
 msgstr "Une erreur s'est produite lors de l'enregistrement du fichier."
 
-#: nx_lib/views/workitems.py:1058
+#: nx_lib/views/workitems.py:1029
 msgid "Invalid file type. Please upload a valid PDF."
 msgstr "Type de fichier invalide. Veuillez téléverser un PDF valide."
 
-#: nx_lib/views/workitems.py:1081 nx_lib/views/workitems.py:1580
+#: nx_lib/views/workitems.py:1052 nx_lib/views/workitems.py:1546
 msgid "This import is only available for the MS02 client."
 msgstr "Cet import est uniquement disponible pour le client MS02."
 
-#: nx_lib/views/workitems.py:1091
+#: nx_lib/views/workitems.py:1062
 msgid "Invalid file type. Please upload a valid Excel (.xlsx) file."
 msgstr ""
 "Type de fichier invalide. Veuillez téléverser un fichier Excel valide "
 "(.xlsx)."
 
-#: nx_lib/views/workitems.py:1099
+#: nx_lib/views/workitems.py:1070
 msgid "The Excel file has no usable rows."
 msgstr "Le fichier Excel ne contient aucune ligne exploitable."
 
-#: nx_lib/views/workitems.py:1116
+#: nx_lib/views/workitems.py:1087
 msgid "Could not save the prepared documents. Please try again."
 msgstr "Impossible de sauvegarder les documents préparés. Veuillez réessayer."
 
-#: nx_lib/views/workitems.py:1195 nx_lib/views/workitems.py:1228
+#: nx_lib/views/workitems.py:1166 nx_lib/views/workitems.py:1199
 msgid "Workitem not found"
 msgstr "Workitem introuvable"
 
-#: nx_lib/views/workitems.py:1199 nx_lib/views/workitems.py:1326
+#: nx_lib/views/workitems.py:1170 nx_lib/views/workitems.py:1297
 msgid "Internal Server Error"
 msgstr "Erreur interne du serveur"
 
-#: nx_lib/views/workitems.py:1241
+#: nx_lib/views/workitems.py:1212
 msgid "Media index out of bounds"
 msgstr "Index du média hors limites"
 
-#: nx_lib/views/workitems.py:1269
+#: nx_lib/views/workitems.py:1240
 msgid "Failed to render PDF page"
 msgstr "Échec du rendu de la page PDF"
 
-#: nx_lib/views/workitems.py:1302
+#: nx_lib/views/workitems.py:1273
 msgid "Failed to process TIFF image"
 msgstr "Échec du traitement de l'image TIFF"
 
-#: nx_lib/views/workitems.py:1391
+#: nx_lib/views/workitems.py:1362
 msgid "Failed to fetch audit history"
 msgstr "Échec de la récupération de l'historique d'audit"
 
-#: nx_lib/views/workitems.py:1462
+#: nx_lib/views/workitems.py:1428
 msgid "This page is only available for the MS02 client."
 msgstr "Cette page est uniquement disponible pour le client MS02."
 
-#: nx_lib/views/workitems.py:1586
+#: nx_lib/views/workitems.py:1552
 msgid "Could not clear the prepared documents. Please try again."
 msgstr "Impossible de supprimer les documents préparés. Veuillez réessayer."
 
-#: nx_lib/views/workitems.py:1647
+#: nx_lib/views/workitems.py:1613
 msgid "Could not load saved views."
 msgstr "Impossible de charger les vues enregistrées."
 
-#: nx_lib/views/workitems.py:1661 nx_lib/views/workitems.py:1664
+#: nx_lib/views/workitems.py:1627 nx_lib/views/workitems.py:1630
 msgid "Invalid view name or filters."
 msgstr "Nom de vue ou filtres invalides."
 
-#: nx_lib/views/workitems.py:1678 nx_lib/views/workitems.py:1731
+#: nx_lib/views/workitems.py:1644 nx_lib/views/workitems.py:1697
 msgid "View not found."
 msgstr "Vue introuvable."
 
-#: nx_lib/views/workitems.py:1693
+#: nx_lib/views/workitems.py:1659
 msgid "Too many saved views — delete one first."
 msgstr "Trop de vues enregistrées — supprimez-en d'abord une."
 
-#: nx_lib/views/workitems.py:1710
+#: nx_lib/views/workitems.py:1676
 msgid "A view with this name already exists."
 msgstr "Une vue portant ce nom existe déjà."
 
-#: nx_lib/views/workitems.py:1713
+#: nx_lib/views/workitems.py:1679
 msgid "Could not save the view."
 msgstr "Impossible d'enregistrer la vue."
 
-#: nx_lib/views/workitems.py:1735
+#: nx_lib/views/workitems.py:1701
 msgid "Could not delete the view."
 msgstr "Impossible de supprimer la vue."
 
-#: nx_lib/views/admin/clients.py:81 nx_lib/views/admin/processes.py:177
+#: nx_lib/views/admin/clients.py:81 nx_lib/views/admin/processes.py:178
 msgid "Client code must be 2-50 lowercase letters, digits or underscores."
 msgstr ""
 "Le code client doit comporter 2 à 50 lettres minuscules, chiffres ou "
@@ -1058,10 +1058,10 @@ msgstr "Client mis à jour avec succès."
 #: nx_lib/views/admin/clients.py:200 nx_lib/views/admin/clients.py:245
 #: nx_lib/views/admin/organizations.py:121
 #: nx_lib/views/admin/organizations.py:153
-#: nx_lib/views/admin/organizations.py:334 nx_lib/views/admin/processes.py:419
-#: nx_lib/views/admin/processes.py:482 nx_lib/views/admin/processes.py:578
-#: nx_lib/views/admin/processes.py:607 nx_lib/views/admin/users.py:210
-#: nx_lib/views/admin/users.py:458
+#: nx_lib/views/admin/organizations.py:334 nx_lib/views/admin/processes.py:421
+#: nx_lib/views/admin/processes.py:484 nx_lib/views/admin/processes.py:580
+#: nx_lib/views/admin/processes.py:609 nx_lib/views/admin/users.py:218
+#: nx_lib/views/admin/users.py:463
 msgid "An error occurred."
 msgstr "Une erreur s'est produite."
 
@@ -1075,7 +1075,7 @@ msgstr ""
 msgid "Client deleted successfully."
 msgstr "Client supprimé avec succès."
 
-#: nx_lib/views/admin/organizations.py:74 nx_lib/views/admin/users.py:48
+#: nx_lib/views/admin/organizations.py:74 nx_lib/views/admin/users.py:54
 msgid "All fields are required."
 msgstr "Tous les champs sont obligatoires."
 
@@ -1121,40 +1121,40 @@ msgstr "Le logo est trop volumineux (max. 512 Ko)."
 msgid "Branding saved."
 msgstr "Branding enregistré."
 
-#: nx_lib/views/admin/permissions.py:290
+#: nx_lib/views/admin/permissions.py:288
 msgid "Could not fetch users"
 msgstr "Impossible de récupérer les utilisateurs"
 
-#: nx_lib/views/admin/permissions.py:336
+#: nx_lib/views/admin/permissions.py:334
 msgid "Name is required"
 msgstr "Le nom est obligatoire"
 
-#: nx_lib/views/admin/permissions.py:366
+#: nx_lib/views/admin/permissions.py:385
 msgid "Profile saved successfully"
 msgstr "Profil enregistré avec succès"
 
-#: nx_lib/views/admin/permissions.py:545
+#: nx_lib/views/admin/permissions.py:564
 msgid "Overrides updated successfully"
 msgstr "Dérogations mises à jour avec succès"
 
-#: nx_lib/views/admin/permissions.py:610 nx_lib/views/admin/permissions.py:740
-#: nx_lib/views/admin/permissions.py:786
+#: nx_lib/views/admin/permissions.py:629 nx_lib/views/admin/permissions.py:759
+#: nx_lib/views/admin/permissions.py:805
 msgid "Permission not found"
 msgstr "Autorisation introuvable"
 
-#: nx_lib/views/admin/permissions.py:690 nx_lib/views/admin/permissions.py:729
+#: nx_lib/views/admin/permissions.py:709 nx_lib/views/admin/permissions.py:748
 msgid "Code and description are required"
 msgstr "Le code et la description sont obligatoires"
 
-#: nx_lib/views/admin/permissions.py:707
+#: nx_lib/views/admin/permissions.py:726
 msgid "Permission created successfully"
 msgstr "Autorisation créée avec succès"
 
-#: nx_lib/views/admin/permissions.py:742
+#: nx_lib/views/admin/permissions.py:761
 msgid "Permission updated successfully"
 msgstr "Autorisation mise à jour avec succès"
 
-#: nx_lib/views/admin/permissions.py:779
+#: nx_lib/views/admin/permissions.py:798
 #, python-format
 msgid ""
 "Cannot delete: used in %(p)d profile(s) and %(o)d override(s). Remove all"
@@ -1163,20 +1163,20 @@ msgstr ""
 "Impossible de supprimer : utilisé dans %(p)d profil(s) et %(o)d "
 "substitution(s). Veuillez d'abord supprimer toutes les affectations."
 
-#: nx_lib/views/admin/permissions.py:788
+#: nx_lib/views/admin/permissions.py:807
 msgid "Permission deleted successfully"
 msgstr "Autorisation supprimée avec succès"
 
-#: nx_lib/views/admin/processes.py:99
+#: nx_lib/views/admin/processes.py:100
 msgid "Mapping config is currently unavailable."
 msgstr "La configuration de mappage est actuellement indisponible."
 
-#: nx_lib/views/admin/processes.py:163
+#: nx_lib/views/admin/processes.py:164
 #, python-format
 msgid "%(field)s is required."
 msgstr "%(field)s est obligatoire."
 
-#: nx_lib/views/admin/processes.py:168
+#: nx_lib/views/admin/processes.py:169
 #, python-format
 msgid ""
 "%(field)s must be a plain SQL identifier (letters, digits, underscores, "
@@ -1185,7 +1185,7 @@ msgstr ""
 "%(field)s doit être un identifiant SQL simple (lettres, chiffres, tirets "
 "bas, points, guillemets ou crochets)."
 
-#: nx_lib/views/admin/processes.py:181
+#: nx_lib/views/admin/processes.py:182
 msgid ""
 "Process name must be exactly <customer>.<process> -- two parts separated "
 "by a single dot (e.g. acme.01_Invoice), letters, digits, dashes or "
@@ -1198,25 +1198,25 @@ msgstr ""
 "qui donne accès à ce processus est dérivée de ces deux parties : toute "
 "autre forme ne pourra jamais être accordée."
 
-#: nx_lib/views/admin/processes.py:188
+#: nx_lib/views/admin/processes.py:189
 msgid "Field key must be 1-100 letters, digits, dots, dashes or underscores."
 msgstr ""
 "La clé de champ doit comporter 1 à 100 lettres, chiffres, points, tirets "
 "ou tirets bas."
 
-#: nx_lib/views/admin/processes.py:203
+#: nx_lib/views/admin/processes.py:204
 msgid "Table alias must be at most 10 characters."
 msgstr "L'alias de table ne doit pas dépasser 10 caractères."
 
-#: nx_lib/views/admin/processes.py:206
+#: nx_lib/views/admin/processes.py:207
 msgid "Id column type must be a plain SQL type name."
 msgstr "Le type de la colonne Id doit être un nom de type SQL simple."
 
-#: nx_lib/views/admin/processes.py:216
+#: nx_lib/views/admin/processes.py:217
 msgid "Column type must be a plain SQL type name."
 msgstr "Le type de colonne doit être un nom de type SQL simple."
 
-#: nx_lib/views/admin/processes.py:327
+#: nx_lib/views/admin/processes.py:328
 #, python-format
 msgid ""
 "Unknown client code %(code)s -- it must be an existing runtime source "
@@ -1225,7 +1225,7 @@ msgstr ""
 "Code client %(code)s inconnu – il doit correspondre à une source "
 "d'exécution existante de la page Clients."
 
-#: nx_lib/views/admin/processes.py:340
+#: nx_lib/views/admin/processes.py:341
 #, python-format
 msgid ""
 "Process name %(name)s collides with the existing %(other_client)s / "
@@ -1237,7 +1237,7 @@ msgstr ""
 "%(code)s, donc accorder l'un donnerait droit à l'autre. Choisissez un "
 "autre nom."
 
-#: nx_lib/views/admin/processes.py:370
+#: nx_lib/views/admin/processes.py:372
 #, python-format
 msgid ""
 "Process source created. Its permission %(code)s was created but granted "
@@ -1246,19 +1246,19 @@ msgstr ""
 "Source de processus créée. L'autorisation %(code)s a été créée mais n'est"
 " attribuée à personne -- attribuez-la dans Contrôle d'accès."
 
-#: nx_lib/views/admin/processes.py:378
+#: nx_lib/views/admin/processes.py:380
 msgid "This process source already exists."
 msgstr "Cette source de processus existe déjà."
 
-#: nx_lib/views/admin/processes.py:414 nx_lib/views/admin/processes.py:467
+#: nx_lib/views/admin/processes.py:416 nx_lib/views/admin/processes.py:469
 msgid "Process source not found."
 msgstr "Source de processus introuvable."
 
-#: nx_lib/views/admin/processes.py:416
+#: nx_lib/views/admin/processes.py:418
 msgid "Process source updated successfully."
 msgstr "Source de processus mise à jour avec succès."
 
-#: nx_lib/views/admin/processes.py:453
+#: nx_lib/views/admin/processes.py:455
 msgid ""
 "This process source still has field mappings and cannot be deleted. "
 "Remove them first."
@@ -1266,33 +1266,33 @@ msgstr ""
 "Cette source de processus possède encore des mappages de champs et ne "
 "peut pas être supprimée. Supprimez-les d'abord."
 
-#: nx_lib/views/admin/processes.py:469
+#: nx_lib/views/admin/processes.py:471
 msgid "Process source deleted successfully."
 msgstr "Source de processus supprimée avec succès."
 
-#: nx_lib/views/admin/processes.py:475
+#: nx_lib/views/admin/processes.py:477
 msgid "This process source is still referenced and cannot be deleted."
 msgstr ""
 "Cette source de processus est encore référencée et ne peut pas être "
 "supprimée."
 
-#: nx_lib/views/admin/processes.py:519
+#: nx_lib/views/admin/processes.py:521
 msgid "Field mapping created successfully."
 msgstr "Mappage de champ créé avec succès."
 
-#: nx_lib/views/admin/processes.py:528
+#: nx_lib/views/admin/processes.py:530
 msgid "This field mapping already exists, or its process source does not."
 msgstr "Ce mappage de champ existe déjà, ou sa source de processus n'existe pas."
 
-#: nx_lib/views/admin/processes.py:571 nx_lib/views/admin/processes.py:600
+#: nx_lib/views/admin/processes.py:573 nx_lib/views/admin/processes.py:602
 msgid "Field mapping not found."
 msgstr "Mappage de champ introuvable."
 
-#: nx_lib/views/admin/processes.py:573
+#: nx_lib/views/admin/processes.py:575
 msgid "Field mapping updated successfully."
 msgstr "Mappage de champ mis à jour avec succès."
 
-#: nx_lib/views/admin/processes.py:602
+#: nx_lib/views/admin/processes.py:604
 msgid "Field mapping deleted successfully."
 msgstr "Mappage de champ supprimé avec succès."
 
@@ -1300,19 +1300,19 @@ msgstr "Mappage de champ supprimé avec succès."
 msgid "Unknown environment."
 msgstr "Environnement inconnu."
 
-#: nx_lib/views/admin/users.py:56 nx_lib/views/admin/users.py:176
-msgid "Permission Denied for this action."
-msgstr "Autorisation refusée pour cette action."
-
-#: nx_lib/views/admin/users.py:68 nx_lib/views/admin/users.py:182
+#: nx_lib/views/admin/users.py:66 nx_lib/views/admin/users.py:181
 msgid "Unknown access profile."
 msgstr "Profil d'accès inconnu."
 
-#: nx_lib/views/admin/users.py:75 nx_lib/views/admin/users.py:189
+#: nx_lib/views/admin/users.py:76 nx_lib/views/admin/users.py:189
+msgid "Permission Denied for this action."
+msgstr "Autorisation refusée pour cette action."
+
+#: nx_lib/views/admin/users.py:84 nx_lib/views/admin/users.py:197
 msgid "Unknown organization."
 msgstr "Organisation inconnue."
 
-#: nx_lib/views/admin/users.py:110
+#: nx_lib/views/admin/users.py:119
 msgid ""
 "User created, but the email could not be sent. Ask them to use 'Forgot "
 "password'."
@@ -1320,40 +1320,40 @@ msgstr ""
 "Utilisateur créé, mais l'e-mail n'a pas pu être envoyé. Demandez-lui "
 "d'utiliser la fonction 'Mot de passe oublié'."
 
-#: nx_lib/views/admin/users.py:115
+#: nx_lib/views/admin/users.py:124
 msgid "User created and email sent."
 msgstr "Utilisateur créé et e-mail envoyé."
 
-#: nx_lib/views/admin/users.py:117
+#: nx_lib/views/admin/users.py:126
 #: templates/js/admin/_access_control_js.html:25
 msgid "User created successfully."
 msgstr "Utilisateur créé avec succès."
 
-#: nx_lib/views/admin/users.py:119
+#: nx_lib/views/admin/users.py:128
 msgid "Username or email already exists."
 msgstr "Le nom d'utilisateur ou l'e-mail existe déjà."
 
-#: nx_lib/views/admin/users.py:207
+#: nx_lib/views/admin/users.py:215
 msgid "User updated successfully."
 msgstr "Utilisateur mis à jour avec succès."
 
-#: nx_lib/views/admin/users.py:404
+#: nx_lib/views/admin/users.py:409
 msgid "You cannot delete your own account."
 msgstr "Vous ne pouvez pas supprimer votre propre compte."
 
-#: nx_lib/views/admin/users.py:450
+#: nx_lib/views/admin/users.py:455
 msgid "User not found."
 msgstr "Utilisateur introuvable."
 
-#: nx_lib/views/admin/users.py:452
+#: nx_lib/views/admin/users.py:457
 msgid "User deleted successfully."
 msgstr "Utilisateur supprimé avec succès."
 
-#: nx_lib/views/admin/users.py:581
+#: nx_lib/views/admin/users.py:586
 msgid "Could not fetch logs"
 msgstr "Impossible de récupérer les journaux"
 
-#: nx_lib/views/admin/users.py:624
+#: nx_lib/views/admin/users.py:629
 msgid "Could not fetch sessions"
 msgstr "Impossible de récupérer les sessions"
 
@@ -6606,13 +6606,13 @@ msgstr ""
 
 #: templates/admin/processes.html:34
 msgid ""
-"Adding a process source also creates its workitems.filter.process.<name> "
+"Adding a process source also creates its process.<client>.<name>.view "
 "permission, granted to nobody -- grant it under Access Control. The join "
 "condition, time filters and extra condition are free-form SQL fragments "
 "and stay read-only here: they are editable only by a database migration."
 msgstr ""
 "L'ajout d'une source de processus crée aussi son autorisation "
-"workitems.filter.process.<name>, attribuée à personne -- attribuez-la "
+"process.<client>.<name>.view, attribuée à personne -- attribuez-la "
 "dans Contrôle d'accès. La condition de jointure, les filtres temporels et"
 " la condition supplémentaire sont des fragments SQL libres et restent en "
 "lecture seule ici : ils ne sont modifiables que par une migration de base"

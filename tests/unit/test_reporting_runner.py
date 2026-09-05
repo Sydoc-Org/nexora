@@ -38,7 +38,7 @@ FAKE_CATALOG = [
 OWNER_PERMS = {
     "reporting.view",
     "reporting.source.docprocessing",
-    "reporting.scope.process.acme.inv",
+    "process.acme.inv.view",
 }
 
 
@@ -316,7 +316,7 @@ def test_scheduled_definition_scoped_to_client_only_queries_that_clients_process
     monkeypatch.setattr(rv, "_load_process_configs", capture_configs)
     monkeypatch.setattr(rv, "_load_field_col_maps", capture_col_maps)
 
-    owner_perms = OWNER_PERMS | {"reporting.scope.process.other.inv"}
+    owner_perms = OWNER_PERMS | {"process.other.inv.view"}
     definition = _definition(scope={"clients": ["acme"], "processes": []})
 
     runner_mod.execute_definition(definition, owner_perms, 1, "tester", "en")
@@ -355,7 +355,7 @@ def test_scheduled_empty_scope_intersection_never_widens_to_all_allowed(monkeypa
     monkeypatch.setattr(rv, "_load_process_configs", load_configs)
     monkeypatch.setattr(rv, "_load_field_col_maps", load_col_maps)
 
-    owner_perms = OWNER_PERMS | {"reporting.scope.process.other.inv"}
+    owner_perms = OWNER_PERMS | {"process.other.inv.view"}
     definition = _definition(scope={"clients": ["nope"], "processes": []})
 
     with pytest.raises(QueryBuildError):

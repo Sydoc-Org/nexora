@@ -33,6 +33,7 @@ from ...db import (
 )
 from ...extensions import cache
 from ...i18n import get_locale
+from ...process_helpers import granted_processes
 from ...reporting.catalog import fetch_docprocessing_catalog
 from ...reporting.query import build_table_query
 from ...reporting.sandbox import (
@@ -55,8 +56,6 @@ from ...reporting.sources import (
 from ...reporting.table_query import build_generic_query, table_source_catalog
 from ...reporting.tokens import date_fields_from_catalog, resolve_definition_tokens
 from ...security import has_permission
-
-_SCOPE_PREFIX = "reporting.scope.process."
 
 _SQL_TARGET_ENGINES = {
     "statistics": engine_statistics_ro,
@@ -375,18 +374,8 @@ def _run_sql(target, sql, *, userid, username):
 
 
 def _allowed_processes():
-    """Processes the caller may include, from reporting.scope.process.* perms.
-
-    Code shape: reporting.scope.process.<client>.<process> -> '<client>.<process>'.
-    """
-    perms = session.get("permissions", [])
-    return sorted(
-        {
-            ".".join(p[len(_SCOPE_PREFIX) :].rsplit(".", 1))
-            for p in perms
-            if p.startswith(_SCOPE_PREFIX)
-        }
-    )
+    """Processes the caller may include, from process.<client>.<name>.view perms."""
+    return granted_processes(session.get("permissions", []))
 
 
 def _load_process_configs(target_processes):
@@ -464,7 +453,7 @@ def _effective_scope(rd, allowed):
     is in scope when its client is listed in `scope.clients` OR it is named in
     `scope.processes`. Empty clients AND empty processes means "all allowed"
     (the default). Anything requested that the caller isn't granted is silently
-    dropped — the `reporting.scope.process.*` grant is the security boundary.
+    dropped — the `process.<client>.<name>.view` grant is the security boundary.
     """
     scope = rd.get("scope") or {}
     requested_procs = set(scope.get("processes") or [])

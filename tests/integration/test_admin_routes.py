@@ -984,7 +984,7 @@ def fake_mapping_db(monkeypatch):
     db = _FakeMappingDb(
         sources={("ms02", "privera.02_Posteingang")},
         mappings={("ms02", "privera.02_Posteingang", "doctype")},
-        permissions={"workitems.filter.process.privera.02_Posteingang"},
+        permissions={"process.privera.02_Posteingang.view"},
     )
     monkeypatch.setattr(admin_module.processes, "engine_nexora_db", db)
     return db
@@ -1060,8 +1060,8 @@ def test_process_source_add_provisions_permission_exactly_once(
 
     perm_params = fake_mapping_db.params_for("INSERT INTO dbo.Permission")
     assert len(perm_params) == 1
-    assert perm_params[0][0] == "workitems.filter.process.acme.01_Eingang"
-    assert "workitems.filter.process.acme.01_Eingang" in fake_mapping_db.permissions
+    assert perm_params[0][0] == "process.acme.01_Eingang.view"
+    assert "process.acme.01_Eingang.view" in fake_mapping_db.permissions
 
 
 def test_process_source_add_provisions_permission_granted_to_nobody(
@@ -1101,7 +1101,7 @@ def test_process_source_add_permission_provisioning_is_idempotent(
         == 200
     )
     assert add().status_code == 200
-    assert sum(1 for c in fake_mapping_db.permissions if c.endswith("acme.01_Eingang")) == 1
+    assert sum(1 for c in fake_mapping_db.permissions if c.endswith("acme.01_Eingang.view")) == 1
 
 
 # ---- cache invalidation on every write path (D8) ----------------------------
@@ -1109,25 +1109,33 @@ def test_process_source_add_permission_provisioning_is_idempotent(
 
 # ---- ProcessName shape: the entitlement invariant ---------------------------
 #
-# Every consumer of workitems.filter.process.<ProcessName> derives the process
-# name back out of the permission code as exactly the last two dot-segments
-# (nx_lib/views/workitems.py, nx_lib/process_helpers.py). Before this page
-# existed the two-segment invariant held because process names were
-# migration-controlled; now an admin types them, so the endpoint has to enforce
-# it -- every shape below fails SILENTLY at runtime otherwise.
+# The auto-provisioned process.<client>.<name>.view permission is built from
+# _permission_reduction(process_name) -- the last two dot-segments of
+# ProcessName. Every consumer then reads the pair back out of the permission
+# code via granted_processes() (nx_lib/process_helpers.py), which strips the
+# fixed "process." prefix and ".view" suffix and requires exactly one dot in
+# what's left. Before this page existed the two-segment invariant held because
+# process names were migration-controlled; now an admin types them, so the
+# endpoint has to enforce it -- every malformed shape below either mis-derives
+# a reduction or gets silently dropped by granted_processes' single-dot check,
+# never grantable as the admin intended.
 
 
 def _derive_process_from_permission(code):
-    """Exactly what workitems.py / process_helpers.py do to a permission code."""
-    parts = code.split(".")
-    return f"{parts[-2]}.{parts[-1]}"
+    """Exactly what granted_processes() (nx_lib/process_helpers.py) derives
+    back out of a permission code -- or None when the pair fails the
+    single-dot check and is silently dropped."""
+    from nx_lib.process_helpers import granted_processes
+
+    result = granted_processes([code])
+    return result[0] if result else None
 
 
 @pytest.mark.parametrize(
     "bad_name",
     [
-        "Invoice",  # no dot -> derives as "process.Invoice", grant never matches
-        "acme.eu.01_Invoice",  # three parts -> derives as "eu.01_Invoice"
+        "Invoice",  # no dot -> dropped by granted_processes' single-dot check
+        "acme.eu.01_Invoice",  # three parts -> two dots, also dropped
         "a.b.c.d",
         ".leading",
         "trailing.",
@@ -1144,21 +1152,23 @@ def test_process_source_add_rejects_names_the_permission_layer_misparses(
     assert "<customer>.<process>" in resp.get_json()["message"]
     # Nothing written, nothing provisioned, nothing invalidated.
     assert not any(n for _c, n in fake_mapping_db.sources if n == bad_name)
-    assert f"workitems.filter.process.{bad_name}" not in fake_mapping_db.permissions
+    assert f"process.{bad_name}.view" not in fake_mapping_db.permissions
     assert spy_invalidate == []
 
 
 @pytest.mark.parametrize("bad_name", ["Invoice", "acme.eu.01_Invoice"])
 def test_the_rejected_shapes_really_would_have_mis_derived(bad_name):
     """Guard the premise of the test above rather than just asserting a regex:
-    these names do NOT round-trip through the permission code."""
-    assert _derive_process_from_permission(f"workitems.filter.process.{bad_name}") != bad_name
+    these names do NOT round-trip through the permission code -- the
+    malformed pair is silently dropped by granted_processes' single-dot
+    check, not mis-derived to a different process."""
+    assert _derive_process_from_permission(f"process.{bad_name}.view") != bad_name
 
 
 def test_two_segment_names_round_trip_through_the_permission_code():
     for name in ("acme.01_Invoice", "privera.02_Posteingang", "sydoc.05_PDBS", "a-b.c_d"):
         assert admin_module._PROCESS_NAME_RE.match(name), name
-        assert _derive_process_from_permission(f"workitems.filter.process.{name}") == name
+        assert _derive_process_from_permission(f"process.{name}.view") == name
 
 
 def test_every_process_name_on_int_still_passes_the_tightened_pattern():
@@ -1239,7 +1249,7 @@ def test_process_source_add_rejects_an_unknown_client_code(
     assert resp.status_code == 400, resp.get_json()
     assert "defualt" in resp.get_json()["message"]
     assert ("defualt", "acme.01_Eingang") not in fake_mapping_db.sources
-    assert "workitems.filter.process.acme.01_Eingang" not in fake_mapping_db.permissions
+    assert "process.acme.01_Eingang.view" not in fake_mapping_db.permissions
     assert spy_invalidate == []
 
 
@@ -2521,7 +2531,7 @@ def test_api_admin_permission_crud_roundtrip(admin_client, admin_all_perms, db_c
     """Add -> edit -> verify Code round-trip with case preserved -> delete.
 
     Proves add/edit persist Code correctly and it's never lowercased, since
-    *.filter.process.* codes elsewhere are case-significant.
+    process.<client>.<name>.view codes elsewhere are case-significant.
     """
     from sqlalchemy import text
 

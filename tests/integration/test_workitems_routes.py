@@ -410,7 +410,7 @@ def test_get_workitems_data_skips_sensitive_docfield_search(
         lambda uid: [
             "workitems.view",
             "workitems.filter.documentfields",
-            "workitems.filter.process.sydoc.test_proc",
+            "process.sydoc.test_proc.view",
         ],
     )
 
@@ -480,7 +480,7 @@ def test_docfield_search_absent_ms02_engine_fails_closed(
         lambda uid: [
             "workitems.view",
             "workitems.filter.documentfields",
-            "workitems.filter.process.sydoc.test_proc",
+            "process.sydoc.test_proc.view",
         ],
     )
 
@@ -526,7 +526,7 @@ def test_docfield_search_ms02_resolver_error_fails_closed(
         lambda uid: [
             "workitems.view",
             "workitems.filter.documentfields",
-            "workitems.filter.process.sydoc.test_proc",
+            "process.sydoc.test_proc.view",
         ],
     )
 
@@ -593,7 +593,7 @@ def test_get_workitems_data_queries_nonsensitive_docfield_search(
         lambda uid: [
             "workitems.view",
             "workitems.filter.documentfields",
-            "workitems.filter.process.sydoc.test_proc",
+            "process.sydoc.test_proc.view",
         ],
     )
 
@@ -654,7 +654,7 @@ def test_get_workitems_data_unmapped_docfield_zeroes_both_sources(
         lambda uid: [
             "workitems.view",
             "workitems.filter.documentfields",
-            "workitems.filter.process.sydoc.test_proc",
+            "process.sydoc.test_proc.view",
         ],
     )
 
@@ -706,7 +706,7 @@ def test_get_workitems_data_docfield_cache_hits_resolution_once(
         lambda uid: [
             "workitems.view",
             "workitems.filter.documentfields",
-            "workitems.filter.process.sydoc.test_proc",
+            "process.sydoc.test_proc.view",
         ],
     )
 
@@ -758,7 +758,7 @@ def test_get_workitems_data_docfield_cache_never_caches_error_path(
         lambda uid: [
             "workitems.view",
             "workitems.filter.documentfields",
-            "workitems.filter.process.sydoc.test_proc",
+            "process.sydoc.test_proc.view",
         ],
     )
 
@@ -825,7 +825,7 @@ def test_get_workitems_data_ms02_docfield_resolves_nonempty_set(
         lambda uid: [
             "workitems.view",
             "workitems.filter.documentfields",
-            "workitems.filter.process.sydoc.test_proc",
+            "process.sydoc.test_proc.view",
         ],
     )
 
@@ -886,7 +886,7 @@ def test_get_workitems_data_ms02_docfield_cache_hits_resolution_once(
         lambda uid: [
             "workitems.view",
             "workitems.filter.documentfields",
-            "workitems.filter.process.sydoc.test_proc",
+            "process.sydoc.test_proc.view",
         ],
     )
 
@@ -954,7 +954,7 @@ def test_get_workitems_data_fieldless_pair_searches_all_columns(
         lambda uid: [
             "workitems.view",
             "workitems.filter.documentfields",
-            "workitems.filter.process.sydoc.test_proc",
+            "process.sydoc.test_proc.view",
         ],
     )
 
@@ -1017,7 +1017,7 @@ def test_get_workitems_data_fieldless_pair_excludes_sensitive_columns(
         lambda uid: [
             "workitems.view",
             "workitems.filter.documentfields",
-            "workitems.filter.process.sydoc.test_proc",
+            "process.sydoc.test_proc.view",
         ],
     )
 
@@ -1068,7 +1068,7 @@ def _op_test_scaffold(monkeypatch, sql_log):
         lambda uid: [
             "workitems.view",
             "workitems.filter.documentfields",
-            "workitems.filter.process.sydoc.test_proc",
+            "process.sydoc.test_proc.view",
         ],
     )
     monkeypatch.setattr(wv, "engine_statistics_db", _SqlLogEngine(sql_log))
@@ -1279,7 +1279,7 @@ def test_api_docfield_values_no_field_widens_and_excludes_sensitive(
         lambda uid: [
             "workitems.view",
             "workitems.filter.documentfields",
-            "workitems.filter.process.sydoc.test_proc",
+            "process.sydoc.test_proc.view",
         ],
     )
 
@@ -2170,7 +2170,7 @@ def test_api_docfield_values_process_not_allowed_returns_empty(
     user_client, workitems_all_perms, monkeypatch
 ):
     """A caller holding the blanket workitems.filter.documentfields perm but
-    NOT workitems.filter.process.<p> for the specific process requested must
+    NOT process.<client>.<name>.view for the specific process requested must
     not get value suggestions leaked from that process -- fail closed to []
     (never a leak, never an error that confirms/denies existence)."""
     import nx_lib.views.workitems as wv
@@ -2181,7 +2181,7 @@ def test_api_docfield_values_process_not_allowed_returns_empty(
     with user_client.session_transaction() as sess:
         sess["permissions"] = [
             "workitems.filter.documentfields",
-            "workitems.filter.process.sydoc.allowedprocess",
+            "process.sydoc.allowedprocess.view",
         ]
 
     resp = user_client.get(
@@ -2197,7 +2197,7 @@ def test_api_docfield_values_all_scopes_to_allowed_processes(
 ):
     """`process=all` (the JS default when no process filter is selected) must
     not be an unfiltered escape hatch: it narrows to the caller's own
-    workitems.filter.process.* grants, not every process in SearchConfig.
+    process.<client>.<name>.view grants, not every process in SearchConfig.
     With zero process grants, "all" fails closed to []."""
     import nx_lib.views.workitems as wv
 
@@ -2272,7 +2272,7 @@ def test_prepared_docs_link_visible_for_target_process(
         lambda uid: [
             "workitems.view",
             "workitems.import.preparedaudit",
-            "workitems.filter.process.sydoc.05_PDBS",
+            "process.sydoc.05_PDBS.view",
         ],
     )
 
@@ -2304,7 +2304,7 @@ def test_prepared_docs_link_rendered_but_hidden_off_target(
         lambda uid: [
             "workitems.view",
             "workitems.import.preparedaudit",
-            "workitems.filter.process.sydoc.05_PDBS",
+            "process.sydoc.05_PDBS.view",
         ],
     )
 

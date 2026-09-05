@@ -11,6 +11,7 @@ Returns (columns, rows) where columns is a list of {field, header} suitable for
 nx_lib.reporting.export.
 """
 
+from ..process_helpers import granted_processes
 from .catalog import fetch_docprocessing_catalog
 from .query import build_table_query
 from .schema import (
@@ -23,17 +24,9 @@ from .sources import DEFAULT_ROW_LIMIT, MAX_ROW_LIMIT
 from .table_query import build_generic_query, table_source_catalog
 from .tokens import date_fields_from_catalog, resolve_definition_tokens
 
-_SCOPE_PREFIX = "reporting.scope.process."
-
 
 def _allowed_processes_from_perms(perms):
-    return sorted(
-        {
-            ".".join(p[len(_SCOPE_PREFIX) :].rsplit(".", 1))
-            for p in perms
-            if p.startswith(_SCOPE_PREFIX)
-        }
-    )
+    return granted_processes(perms)
 
 
 def _normalize_columns(definition, resolved_metrics=None, source_metrics=None):

@@ -56,6 +56,7 @@ from ..prepared_documents import (
 )
 from ..process_helpers import (
     get_activity_instances_to_ignore,
+    granted_processes,
     normalize_process_selection,
     prepare_process_selection_lists,
 )
@@ -110,12 +111,7 @@ def api_config_fields():
         return jsonify({}), 401
 
     perms = session.get("permissions", [])
-    prefix = "workitems.filter.process."
-    allowed_processes = {
-        (perm.split(".")[-2] + "." + perm.split(".")[-1])
-        for perm in perms
-        if perm.startswith(prefix)
-    }
+    allowed_processes = set(granted_processes(perms))
 
     current_lang = str(get_locale())
     _sees_sensitive = has_permission("workitems.filter.documentfields.sensitive")
@@ -184,15 +180,8 @@ def _strip_export_fields(details_map, blocked_tokens):
 
 def _ms02_target_processes():
     """The user's MS02-eligible process allow-list, derived the same way
-    _get_workitems_data does (from workitems.filter.process.* perms)."""
-    prefix = "workitems.filter.process."
-    out = []
-    for perm in session.get("permissions", []):
-        if perm.startswith(prefix):
-            parts = perm.split(".")
-            if len(parts) >= 2:
-                out.append(f"{parts[-2]}.{parts[-1]}")
-    return out
+    _get_workitems_data does (from process.<client>.<name>.view perms)."""
+    return granted_processes(session.get("permissions", []))
 
 
 # _ms02_pid_specs/_ms02_prepared_docs_processes moved to
@@ -243,7 +232,7 @@ def _granted_process_pairs():
     """(client, process) pairs the caller holds a workitems grant for, lowered
     for case-insensitive comparison (the list query authorizes these via a
     case-insensitive SQL `=`, so the entitlement check must match that)."""
-    pairs = prepare_process_selection_lists("workitems.filter.process.", "all")
+    pairs = prepare_process_selection_lists("all")
     return {(c.lower(), p.lower()) for c, p in pairs}
 
 
@@ -303,14 +292,8 @@ def _session_scope():
     query body itself stays session-free. The external API builds its own
     scope from the key's ProcessList instead (nx_lib/views/api_external.py) --
     same keys, no session."""
-    prefix = "workitems.filter.process."
     perms = session.get("permissions", [])
-    allowed = set()
-    for perm in perms:
-        if perm.startswith(prefix):
-            parts = perm.split(".")
-            if len(parts) >= 2:
-                allowed.add(f"{parts[-2]}.{parts[-1]}")
+    allowed = set(granted_processes(perms))
     return {
         # compound '<client>.<process>' strings the caller may see
         "allowed": allowed,
@@ -421,10 +404,10 @@ def api_docfield_values():
     # not be trusted as-is -- a caller holding only the blanket
     # workitems.filter.documentfields perm could otherwise pull value
     # suggestions from any process, including ones they hold no
-    # workitems.filter.process.<p> grant for. Reuse _ms02_target_processes(),
-    # the existing workitems.filter.process.* allow-list helper, rather than
-    # re-deriving it; "all" narrows to the caller's own allowed set rather
-    # than every process configured in the mapping_config registry.
+    # process.<client>.<name>.view grant for. Reuse _ms02_target_processes(),
+    # the existing process-scope allow-list helper, rather than re-deriving
+    # it; "all" narrows to the caller's own allowed set rather than every
+    # process configured in the mapping_config registry.
     allowed_processes_set = set(_ms02_target_processes())
 
     # `process` is "all" or a comma-joined multi-selection (issue #150);
@@ -933,14 +916,7 @@ def workitems_overview():
         end_date = datetime.fromisoformat(end_date_str) if end_date_str else None
 
         perms = session.get("permissions", [])
-        prefix = "workitems.filter.process."
-        allowed_processes = sorted(
-            {
-                (perm.split(".")[-2] + "." + perm.split(".")[-1])
-                for perm in perms
-                if perm.startswith(prefix)
-            }
-        )
+        allowed_processes = granted_processes(perms)
 
         process_name = request.args.get("prcfW", "all")
         if process_name != "all" and process_name not in allowed_processes:
@@ -1025,12 +1001,7 @@ def import_workitems():
         return redirect(url_for("workitems_overview"))
 
     perms = session.get("permissions", [])
-    prefix = "workitems.filter.process."
-    allowed_processes = {
-        (perm.split(".")[-2] + "." + perm.split(".")[-1])
-        for perm in perms
-        if perm.startswith(prefix)
-    }
+    allowed_processes = set(granted_processes(perms))
 
     if process_name not in allowed_processes:
         flash(_("You do not have permission to import to this process."), "error")
@@ -1398,12 +1369,7 @@ def api_workitems_page_init():
         return jsonify({}), 401
 
     perms = session.get("permissions", [])
-    prefix = "workitems.filter.process."
-    allowed_processes = {
-        (perm.split(".")[-2] + "." + perm.split(".")[-1])
-        for perm in perms
-        if perm.startswith(prefix)
-    }
+    allowed_processes = set(granted_processes(perms))
     current_lang = str(get_locale())
     _sees_sensitive = has_permission("workitems.filter.documentfields.sensitive")
     _fields_key = f"config_fields_{'_'.join(sorted(allowed_processes))}_{current_lang}_s{int(_sees_sensitive)}"

@@ -1,7 +1,10 @@
 """Process- and client-name helpers shared between dashboard and workitems.
 
-Most permissions are scoped by ``<client>.<process>`` (e.g. ``Privera.Invoices``)
-so these helpers translate permission strings into SQL parameter lists.
+Most permissions are scoped by one ``process.<client>.<name>.view`` family
+(spec #238 phase 2 -- the successor to three duplicate per-process
+permission families formerly owned separately by workitems, dashboard and
+reporting, unified by migration 0087) so these helpers translate permission
+strings into SQL parameter lists.
 """
 
 from flask import current_app, session
@@ -10,14 +13,34 @@ from .db import engine_nexora_db
 from .extensions import cache
 from .security import has_permission
 
+PROCESS_SCOPE_PREFIX = "process."
+PROCESS_SCOPE_SUFFIX = ".view"
 
-def _selected_pairs(prefix, process_name):
+
+def process_scope_code(pair):
+    """'<client>.<name>' -> 'process.<client>.<name>.view' (spec #238)."""
+    return f"{PROCESS_SCOPE_PREFIX}{pair}{PROCESS_SCOPE_SUFFIX}"
+
+
+def granted_processes(perms):
+    """Sorted '<client>.<name>' pairs the permission list grants. Only the
+    process.<client>.<name>.view family counts; anything else is ignored."""
+    out = set()
+    for perm in perms:
+        if perm.startswith(PROCESS_SCOPE_PREFIX) and perm.endswith(PROCESS_SCOPE_SUFFIX):
+            pair = perm[len(PROCESS_SCOPE_PREFIX) : -len(PROCESS_SCOPE_SUFFIX)]
+            if pair.count(".") == 1:
+                out.add(pair)
+    return sorted(out)
+
+
+def _selected_pairs(process_name):
     """Granted (client, process) pairs for a comma-joined selection."""
     pairs = set()
     for name in process_name.split(","):
         name = name.strip()
         parts = name.split(".")
-        if len(parts) >= 2 and has_permission(f"{prefix}{name}"):
+        if len(parts) == 2 and has_permission(process_scope_code(name)):
             pairs.add((parts[0], parts[1]))
     return sorted(pairs)
 
@@ -40,11 +63,11 @@ def normalize_process_selection(process_name, allowed_processes):
     return ",".join(picked), picked
 
 
-def prepare_process_selection_sql(prefix, process_name):
+def prepare_process_selection_sql(process_name):
     """Build an OR-joined parameterized (client, process) pair predicate --
     e.g. "(client = ? AND process = ?) OR (client = ? AND process = ?)" --
     plus its flat params list, from the caller's granted
-    "<prefix><client>.<process>" permissions.
+    "process.<client>.<process>.view" permissions.
 
     ``process_name`` is "all" or a comma-joined list of "<client>.<process>"
     (issue #150); each entry is permission-checked on its own.
@@ -56,18 +79,10 @@ def prepare_process_selection_sql(prefix, process_name):
     """
     try:
         perms = session.get("permissions", [])
-        pairs = []
         if process_name == "all":
-            unique_pairs = set()
-            for perm in perms:
-                if perm.startswith(prefix):
-                    parts = perm.split(".")
-                    client = parts[-2]
-                    proc = parts[-1]
-                    unique_pairs.add((client, proc))
-            pairs = sorted(unique_pairs)
+            pairs = [tuple(p.split(".", 1)) for p in granted_processes(perms)]
         else:
-            pairs = _selected_pairs(prefix, process_name)
+            pairs = _selected_pairs(process_name)
         predicate = " OR ".join("(client = ? AND process = ?)" for _ in pairs)
         params = [value for pair in pairs for value in pair]
         return params, predicate
@@ -76,7 +91,7 @@ def prepare_process_selection_sql(prefix, process_name):
         raise
 
 
-def prepare_process_selection_lists(prefix, process_name):
+def prepare_process_selection_lists(process_name):
     """Like prepare_process_selection_sql but returns the granted (client,
     process) pairs as a plain list of tuples (no placeholder strings, no SQL
     text) — for the multi-source WorkitemFilter, which builds its own
@@ -89,16 +104,10 @@ def prepare_process_selection_lists(prefix, process_name):
     """
     try:
         perms = session.get("permissions", [])
-        pairs = []
         if process_name == "all":
-            unique_pairs = set()
-            for perm in perms:
-                if perm.startswith(prefix):
-                    parts = perm.split(".")
-                    unique_pairs.add((parts[-2], parts[-1]))
-            pairs = sorted(unique_pairs)
+            pairs = [tuple(p.split(".", 1)) for p in granted_processes(perms)]
         else:
-            pairs = _selected_pairs(prefix, process_name)
+            pairs = _selected_pairs(process_name)
         return pairs
     except Exception as e:
         current_app.logger.error(f"Failed to prepare process selection lists: {e}")
