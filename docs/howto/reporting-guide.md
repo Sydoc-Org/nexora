@@ -522,6 +522,9 @@ card is a **piece of a report** — one KPI tile, the chart, the table, or the
 whole report — shown exactly as the report itself shows it. Change the report
 and every card built from it follows.
 
+- A dashboard takes the **whole width of the window** — the workspace rail
+  slides away while it is open and comes back when you return to the Library.
+  **Present** shows it fullscreen for a wall screen or a meeting (Esc leaves).
 - **Edit / Done** toggles edit mode: drag cards to rearrange or resize them,
   add, duplicate or remove them, and set the **global filters**.
 - **Add a card** (header button, or the dashed tile at the end of the grid):

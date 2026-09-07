@@ -238,6 +238,9 @@
           '<span class="rdb-editing-dot" aria-hidden="true"></span>' + esc(I18N.editing) + '</span>' +
         '<button type="button" id="rdbAddCard" class="rdb-addcard-btn" data-testid="rdb-add-card" hidden>' +
           '<i class="fas fa-plus" aria-hidden="true"></i>' + esc(I18N.addCard) + '</button>' +
+        '<button type="button" id="rdbPresent" class="nx-btn nx-btn--secondary" data-testid="rdb-present" ' +
+          'title="' + esc(I18N.presentTitle) + '">' +
+          '<i class="fas fa-expand" aria-hidden="true"></i>' + esc(I18N.present) + '</button>' +
         (canExport ?
           '<button type="button" id="rdbExport" class="nx-btn nx-btn--secondary" data-testid="rdb-export">' +
             '<i class="fas fa-file-export" aria-hidden="true"></i>' + esc(I18N.export_) + '</button>'
@@ -260,6 +263,20 @@
     });
     el('rdbTitleInput').addEventListener('blur', commitTitle);
     if (canExport) el('rdbExport').addEventListener('click', toggleExportMenu);
+    // Present: the dashboard element itself goes fullscreen -- the browser
+    // hides everything else, the grid gets the whole screen. Edit mode ends
+    // first (autosaving) so a wall screen never shows drag handles. Esc leaves.
+    el('rdbPresent').hidden = !document.fullscreenEnabled;
+    el('rdbPresent').addEventListener('click', function () {
+      if (state.editing) toggleEditing();
+      var host = el('rsDashboard');
+      if (host.requestFullscreen) host.requestFullscreen().catch(function () { toast(I18N.presentFailed, true); });
+    });
+    document.addEventListener('fullscreenchange', function () {
+      var on = document.fullscreenElement === el('rsDashboard');
+      el('rsDashboard').classList.toggle('rdb-presenting', on);
+      renderHeader();
+    });
     // Header "Add card" and the grid's add-card tile both open the same
     // overlay: pick a saved report, then take pieces of it.
     el('rdbAddCard').addEventListener('click', openAddMask);
@@ -372,7 +389,7 @@
     el('rdbEditingPill').hidden = !state.editing;
     el('rdbAddCard').hidden = !state.editing;
     el('rdbRenamePencil').hidden = !state.editing || !state.canEdit;
-    el('rdbEditToggle').hidden = !state.canEdit;
+    el('rdbEditToggle').hidden = !state.canEdit || !!document.fullscreenElement;
     el('rdbEditToggle').textContent = state.editing ? I18N.done : I18N.edit;
   }
 

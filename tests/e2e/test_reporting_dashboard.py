@@ -1646,3 +1646,25 @@ def test_legacy_card_shows_notice_and_never_runs(nexora_server, page):
     expect(page.get_by_test_id("rs-dashboard")).to_be_visible()
     expect(page.get_by_test_id("rdb-card-legacy")).to_contain_text("older dashboard version")
     assert runs == []
+
+
+def test_dashboard_view_is_full_bleed_and_offers_present(nexora_server, page):
+    """Opening a dashboard flags body.rdb-fullbleed (rail hidden, width caps
+    lifted); going back to the library removes it. Present is offered."""
+    _login(page, nexora_server)
+    page.route(
+        "**/api/reporting/reports",
+        lambda r: r.fulfill(status=200, content_type="application/json", body=json.dumps([])),
+    )
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    expect(page.get_by_test_id("rc-rail")).to_be_visible()
+    page.get_by_test_id("rs-new-dashboard").click()
+    expect(page.get_by_test_id("rs-dashboard")).to_be_visible()
+    assert page.evaluate("document.body.classList.contains('rdb-fullbleed')")
+    expect(page.get_by_test_id("rc-rail")).to_be_hidden()
+    expect(page.get_by_test_id("rdb-present")).to_be_visible()
+    grid_w = page.get_by_test_id("rdb-grid").bounding_box()["width"]
+    assert grid_w > page.viewport_size["width"] * 0.7, grid_w
+    page.get_by_test_id("rdb-back").click()
+    expect(page.get_by_test_id("rc-rail")).to_be_visible()
+    assert not page.evaluate("document.body.classList.contains('rdb-fullbleed')")

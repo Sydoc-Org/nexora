@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-07 14:59+0200\n"
+"POT-Creation-Date: 2026-09-07 15:09+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -2437,14 +2437,17 @@ msgid ""
 "report and it opens in full — hover a KPI tile or the chart, or use the "
 "table’s button, to put that piece on the dashboard, or take the whole "
 "report. Cards follow the report: change colours, chart type or filters in"
-" the report itself."
+" the report itself. A dashboard uses the whole window width; “Present” "
+"shows it fullscreen — Esc leaves."
 msgstr ""
 "Les cartes du tableau de bord sont des morceaux de vos rapports "
 "enregistrés : « Ajouter une carte », choisissez un rapport et il s’ouvre "
 "en entier — survolez une tuile KPI ou le graphique, ou utilisez le bouton"
 " du tableau, pour placer ce morceau sur le tableau de bord, ou prenez le "
 "rapport entier. Les cartes suivent le rapport : modifiez couleurs, type "
-"de graphique ou filtres dans le rapport lui-même."
+"de graphique ou filtres dans le rapport lui-même. Un tableau de bord "
+"occupe toute la largeur de la fenêtre ; « Présenter » l’affiche en plein "
+"écran — Échap pour quitter."
 
 #: templates/_reporting_help.html:46
 msgid ""
@@ -2853,7 +2856,7 @@ msgid "Table"
 msgstr "Tableau"
 
 #: templates/_reporting_simple.html:297
-#: templates/js/_reporting_dashboard_js.html:50
+#: templates/js/_reporting_dashboard_js.html:53
 #: templates/js/_reporting_simple_js.html:31
 msgid "Show table"
 msgstr "Afficher le tableau"
@@ -3152,7 +3155,7 @@ msgstr "Champs de réponse"
 
 #: templates/api_docs.html:230 templates/api_docs.html:271
 #: templates/api_docs.html:303 templates/api_docs.html:446
-#: templates/js/_reporting_dashboard_js.html:19
+#: templates/js/_reporting_dashboard_js.html:22
 msgid "Field"
 msgstr "Champ"
 
@@ -4325,7 +4328,7 @@ msgstr "Effort (heures)"
 #: templates/generali_projectmanagement.html:280
 #: templates/generali_reporting.html:229 templates/generali_reporting.html:312
 #: templates/generali_reporting.html:337
-#: templates/js/_reporting_dashboard_js.html:23 templates/reporting.html:491
+#: templates/js/_reporting_dashboard_js.html:26 templates/reporting.html:491
 #: templates/reporting.html:588 templates/reporting.html:601
 #: templates/tenant/page.html:133 templates/workitems_overview.html:511
 #: templates/workitems_overview.html:607
@@ -5072,7 +5075,7 @@ msgstr "Préparé par"
 msgid "Per page"
 msgstr "Par page"
 
-#: templates/js/_reporting_dashboard_js.html:22
+#: templates/js/_reporting_dashboard_js.html:25
 #: templates/js/_reporting_simple_js.html:60
 #: templates/js/admin/_logs_js.html:169 templates/prepared_documents.html:149
 msgid "Apply"
@@ -5487,7 +5490,7 @@ msgstr "Colonnes"
 msgid "Filters"
 msgstr "Filtres"
 
-#: templates/js/_reporting_dashboard_js.html:16 templates/reporting.html:473
+#: templates/js/_reporting_dashboard_js.html:19 templates/reporting.html:473
 #: templates/workitems_overview.html:331
 msgid "Add filter"
 msgstr "Ajouter un filtre"
@@ -6044,14 +6047,14 @@ msgstr "Recherche par valeur de document"
 msgid "All fields"
 msgstr "Tous les champs"
 
-#: templates/js/_reporting_dashboard_js.html:24
+#: templates/js/_reporting_dashboard_js.html:27
 #: templates/js/_reporting_js.html:42
 #: templates/js/_reporting_simple_js.html:100
 #: templates/workitems_overview.html:239 templates/workitems_overview.html:298
 msgid "contains"
 msgstr "contient"
 
-#: templates/js/_reporting_dashboard_js.html:25
+#: templates/js/_reporting_dashboard_js.html:28
 #: templates/js/_reporting_js.html:43
 #: templates/js/_reporting_simple_js.html:101
 #: templates/workitems_overview.html:242 templates/workitems_overview.html:301
@@ -7460,7 +7463,7 @@ msgid "Activate"
 msgstr "Activer"
 
 #: templates/admin/tenants_manage.html:92
-#: templates/js/_reporting_dashboard_js.html:34
+#: templates/js/_reporting_dashboard_js.html:37
 #: templates/js/_reporting_js.html:75
 msgid "Remove"
 msgstr "Supprimer"
@@ -7878,7 +7881,7 @@ msgid "No documents found for the selected criteria."
 msgstr "Aucun document trouvé pour les critères sélectionnés."
 
 #: templates/js/_generali_documents_js.html:148
-#: templates/js/_reporting_dashboard_js.html:45
+#: templates/js/_reporting_dashboard_js.html:48
 #: templates/js/_reporting_schema_js.html:6 templates/tenant/page.html:98
 msgid "Loading…"
 msgstr "Chargement…"
@@ -8210,74 +8213,86 @@ msgid "Add card"
 msgstr "Ajouter une carte"
 
 #: templates/js/_reporting_dashboard_js.html:11
+msgid "Present"
+msgstr "Présenter"
+
+#: templates/js/_reporting_dashboard_js.html:12
+msgid "Show this dashboard fullscreen (Esc to leave)"
+msgstr "Afficher ce tableau de bord en plein écran (Échap pour quitter)"
+
+#: templates/js/_reporting_dashboard_js.html:13
+msgid "Fullscreen is not available here."
+msgstr "Le plein écran n’est pas disponible ici."
+
+#: templates/js/_reporting_dashboard_js.html:14
 msgid "Untitled dashboard"
 msgstr "Tableau de bord sans titre"
 
-#: templates/js/_reporting_dashboard_js.html:12
+#: templates/js/_reporting_dashboard_js.html:15
 msgid "New card"
 msgstr "Nouvelle carte"
 
-#: templates/js/_reporting_dashboard_js.html:13
+#: templates/js/_reporting_dashboard_js.html:16
 #, python-brace-format
 msgid "{n} cards · drag to rearrange · drag a corner to resize"
 msgstr ""
 "{n} cartes · glisser pour réorganiser · glisser un coin pour "
 "redimensionner"
 
-#: templates/js/_reporting_dashboard_js.html:14
+#: templates/js/_reporting_dashboard_js.html:17
 msgid "Global filters"
 msgstr "Filtres globaux"
 
-#: templates/js/_reporting_dashboard_js.html:15
+#: templates/js/_reporting_dashboard_js.html:18
 msgid "apply to every card · a card can override them"
 msgstr "s'appliquent à chaque carte · une carte peut les remplacer"
 
-#: templates/js/_reporting_dashboard_js.html:17
+#: templates/js/_reporting_dashboard_js.html:20
 msgid "inherits global filters"
 msgstr "hérite des filtres globaux"
 
-#: templates/js/_reporting_dashboard_js.html:18
+#: templates/js/_reporting_dashboard_js.html:21
 msgid "This card overrides the global filters"
 msgstr "Cette carte remplace les filtres globaux"
 
-#: templates/js/_reporting_dashboard_js.html:20
+#: templates/js/_reporting_dashboard_js.html:23
 msgid "Operator"
 msgstr "Opérateur"
 
-#: templates/js/_reporting_dashboard_js.html:21
+#: templates/js/_reporting_dashboard_js.html:24
 #: templates/js/_reporting_viz_js.html:13
 msgid "Value"
 msgstr "Valeur"
 
-#: templates/js/_reporting_dashboard_js.html:26
+#: templates/js/_reporting_dashboard_js.html:29
 #: templates/js/_reporting_js.html:44
 #: templates/js/_reporting_simple_js.html:102
 msgid "is empty"
 msgstr "est vide"
 
-#: templates/js/_reporting_dashboard_js.html:27
+#: templates/js/_reporting_dashboard_js.html:30
 #: templates/js/_reporting_js.html:45
 #: templates/js/_reporting_simple_js.html:103
 msgid "is not empty"
 msgstr "n'est pas vide"
 
-#: templates/js/_reporting_dashboard_js.html:28
+#: templates/js/_reporting_dashboard_js.html:31
 msgid "Dashboard saved"
 msgstr "Tableau de bord enregistré"
 
-#: templates/js/_reporting_dashboard_js.html:29
+#: templates/js/_reporting_dashboard_js.html:32
 msgid "Could not save the dashboard"
 msgstr "Impossible d'enregistrer le tableau de bord"
 
-#: templates/js/_reporting_dashboard_js.html:30
+#: templates/js/_reporting_dashboard_js.html:33
 msgid "Could not load this card."
 msgstr "Impossible de charger cette carte."
 
-#: templates/js/_reporting_dashboard_js.html:31
+#: templates/js/_reporting_dashboard_js.html:34
 msgid "The saved report behind this card no longer exists."
 msgstr "Le rapport enregistré derrière cette carte n’existe plus."
 
-#: templates/js/_reporting_dashboard_js.html:32
+#: templates/js/_reporting_dashboard_js.html:35
 msgid ""
 "This card comes from an older dashboard version. Remove it and add the "
 "piece again."
@@ -8285,27 +8300,27 @@ msgstr ""
 "Cette carte provient d’une ancienne version du tableau de bord. "
 "Supprimez-la et ajoutez de nouveau le morceau."
 
-#: templates/js/_reporting_dashboard_js.html:33
+#: templates/js/_reporting_dashboard_js.html:36
 msgid "Duplicate"
 msgstr "Dupliquer"
 
-#: templates/js/_reporting_dashboard_js.html:35
+#: templates/js/_reporting_dashboard_js.html:38
 msgid "Add a card"
 msgstr "Ajouter une carte"
 
-#: templates/js/_reporting_dashboard_js.html:36
+#: templates/js/_reporting_dashboard_js.html:39
 msgid "pick a saved report, then take any piece of it"
 msgstr "choisissez un rapport enregistré, puis prenez-en n’importe quel morceau"
 
-#: templates/js/_reporting_dashboard_js.html:37
+#: templates/js/_reporting_dashboard_js.html:40
 msgid "Add a card to the dashboard"
 msgstr "Ajouter une carte au tableau de bord"
 
-#: templates/js/_reporting_dashboard_js.html:38
+#: templates/js/_reporting_dashboard_js.html:41
 msgid "Which report?"
 msgstr "Quel rapport ?"
 
-#: templates/js/_reporting_dashboard_js.html:39
+#: templates/js/_reporting_dashboard_js.html:42
 msgid ""
 "This is the report as saved. Hover a KPI, the chart or the table and add "
 "it to the dashboard — or take the whole report."
@@ -8313,42 +8328,42 @@ msgstr ""
 "Voici le rapport tel qu’enregistré. Survolez un KPI, le graphique ou le "
 "tableau et ajoutez-le au tableau de bord — ou prenez le rapport entier."
 
-#: templates/js/_reporting_dashboard_js.html:40
+#: templates/js/_reporting_dashboard_js.html:43
 msgid "Add to dashboard"
 msgstr "Ajouter au tableau de bord"
 
-#: templates/js/_reporting_dashboard_js.html:41
+#: templates/js/_reporting_dashboard_js.html:44
 msgid "Added"
 msgstr "Ajouté"
 
-#: templates/js/_reporting_dashboard_js.html:42
+#: templates/js/_reporting_dashboard_js.html:45
 msgid "Add whole report"
 msgstr "Ajouter le rapport entier"
 
-#: templates/js/_reporting_dashboard_js.html:43
+#: templates/js/_reporting_dashboard_js.html:46
 msgid "Drag to resize"
 msgstr "Glisser pour redimensionner"
 
-#: templates/js/_reporting_dashboard_js.html:44
+#: templates/js/_reporting_dashboard_js.html:47
 msgid "No saved reports yet"
 msgstr "Aucun rapport enregistré pour l'instant"
 
-#: templates/js/_reporting_dashboard_js.html:46
+#: templates/js/_reporting_dashboard_js.html:49
 #: templates/js/_reporting_drill_js.html:17
 #: templates/js/_reporting_simple_js.html:23
 msgid "Could not export this report."
 msgstr "Impossible d'exporter ce rapport."
 
-#: templates/js/_reporting_dashboard_js.html:47
+#: templates/js/_reporting_dashboard_js.html:50
 msgid "No cards to export yet."
 msgstr "Aucune carte à exporter pour le moment."
 
-#: templates/js/_reporting_dashboard_js.html:51
+#: templates/js/_reporting_dashboard_js.html:54
 #: templates/js/_reporting_simple_js.html:32
 msgid "Hide table"
 msgstr "Masquer le tableau"
 
-#: templates/js/_reporting_dashboard_js.html:52
+#: templates/js/_reporting_dashboard_js.html:55
 #: templates/js/_reporting_simple_js.html:134
 #, python-brace-format
 msgid "{n} rows"

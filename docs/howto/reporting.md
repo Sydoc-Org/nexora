@@ -526,6 +526,13 @@ render a "remove and add the piece again" notice and never run.
   not the card's piece and, for `kpi`, keeps only tile `kpiIndex`. Chart and
   table pieces skip the totals clone and the compare run. There are no
   dashboard-authored renderers any more.
+- **Full-bleed + Present** — `setView('dashboard')` toggles `body.rdb-fullbleed`;
+  `reporting-console.css` then hides `.rc-rail`, collapses the body grid to one
+  column and lifts the shell's and the dashboard's own max-width, so the
+  12-column grid spans the viewport. **Present** (`#rdbPresent`) calls
+  `requestFullscreen()` on `#rsDashboard` (edit mode ends and autosaves first);
+  `:fullscreen` styles hide the app-only chrome. Hidden when the browser has no
+  Fullscreen API.
 - **Access model** — identical to any other saved report: the dashboard row
   lives in `dbo.Reports` like every other `kind`, gated by `Visibility`
   (private/shared) and `dbo.ReportShares` (per-user, optional edit grant).

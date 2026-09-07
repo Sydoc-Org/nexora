@@ -1685,3 +1685,42 @@ body.reporting-console .rdb-pick-host .rdb-pick-btn { top: 6px; right: 6px; }
 /* KPI tiles: bottom-right, clear of the two-line caption row. */
 body.reporting-console .rdb-pick-host .rs-kpi-total-card .rdb-pick-btn,
 body.reporting-console .rdb-pick-host .reporting-ledger-kpi .rdb-pick-btn { top: auto; bottom: 6px; }
+
+/* ============================================================
+   Full-bleed dashboard. While the dashboard view is open (body.rdb-fullbleed,
+   toggled by the Simple pane's setView) the workspace rail steps aside and
+   every width cap on the way down -- shell, body grid, the dashboard's own
+   1240px -- lets go, so the 12-column grid spans the viewport.
+   ============================================================ */
+body.reporting-console.rdb-fullbleed .rc-shell,
+body.reporting-console.rdb-fullbleed .reporting-shell { max-width: none; padding-inline: 28px; }
+body.reporting-console.rdb-fullbleed .rc-body { grid-template-columns: minmax(0, 1fr); }
+body.reporting-console.rdb-fullbleed .rc-rail { display: none; }
+body.reporting-console.rdb-fullbleed .reporting-simple { max-width: none; padding-inline: 0; }
+body.reporting-console.rdb-fullbleed .reporting-dashboard { max-width: none; padding: 4px 0 60px; }
+
+/* Present: the dashboard element is the fullscreen element. Page background,
+   room to breathe, no chrome that only makes sense in the app. */
+.reporting-dashboard:fullscreen {
+  background: var(--nx-page);
+  overflow: auto;
+  max-width: none;
+  padding: 28px 36px 60px;
+}
+.reporting-dashboard:fullscreen #rdbBack,
+.reporting-dashboard:fullscreen #rdbAddCard,
+.reporting-dashboard:fullscreen #rdbExport,
+.reporting-dashboard:fullscreen #rdbRenamePencil,
+.reporting-dashboard:fullscreen .rdb-filterbar-hint,
+.reporting-dashboard:fullscreen .rdb-add-tile { display: none; }
+.reporting-dashboard:fullscreen #rdbPresent i::before { content: "\f066"; }  /* fa-compress */
+.reporting-dashboard:fullscreen .rdb-grid { --rdb-row: 132px; }
+/* Whole-report card: the chart grows into whatever height the card has
+   instead of stopping at a fixed 320px and leaving air below. */
+body.reporting-console .rdb-card[data-type="report"] .rdb-card-body { display: flex; flex-direction: column; }
+body.reporting-console .rdb-card[data-type="report"] .rdb-report { flex: 1 1 auto; align-items: stretch; min-height: 0; }
+body.reporting-console .rdb-card[data-type="report"] .rdb-report-chartcard { display: flex; flex-direction: column; min-height: 0; }
+body.reporting-console .rdb-card[data-type="report"] .rdb-report-chart { flex: 1 1 auto; height: auto; min-height: 240px; position: relative; }
+body.reporting-console .rdb-card[data-type="report"] .rdb-report-chart canvas {
+  position: absolute; inset: 0; width: 100% !important; height: 100% !important;
+}

@@ -51,6 +51,9 @@
     RS.el('rsWizard').hidden = view !== 'wizard';
     RS.el('rsResult').hidden = view !== 'result';
     RS.el('rsDashboard').hidden = view !== 'dashboard';
+    // The dashboard grid takes the whole viewport width: the workspace rail
+    // and the shell's max-width step aside while it is open (reporting-console.css).
+    document.body.classList.toggle('rdb-fullbleed', view === 'dashboard');
     if (view !== 'result') {
       // Only the Chart.js instance is torn down; the rest of the result DOM
       // (KPI band, table, caption, chips, query card) stays rendered so the

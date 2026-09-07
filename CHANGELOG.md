@@ -105,7 +105,9 @@ Work toward the next release.
   gone; cards saved by the old version show a remove-and-re-add notice.
   Cards use the Results tab's Console surfaces: a KPI card is the flat KPI
   tile (each of Total / Buckets / Avg / Peak is its own pickable tile), chart
-  and table sit flush in the card with a title row and row count.
+  and table sit flush in the card with a title row and row count. The
+  dashboard view is full-bleed — the workspace rail and every width cap step
+  aside — and a **Present** button shows it fullscreen (Esc leaves).
 - **Simple wizard breakdown step curated.** Date chips read as their field
   (“Import date”, “Export date”) instead of “Over time (…)”. Document
   processing shows Process, Page Count, Document Type, Document Source and
