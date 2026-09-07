@@ -59,8 +59,8 @@ def _load_env_files(repo_root: Path, env_name: str) -> None:
 # .env without mutating os.environ (dotenv_values just parses the file), so
 # local setups that only set ENVIRONMENT via the root .env still resolve the
 # right per-environment file instead of silently loading none of it.
-_env_name = os.environ.get("ENVIRONMENT") or dotenv_values(REPO_ROOT / ".env").get(
-    "ENVIRONMENT", ""
+_env_name = (
+    os.environ.get("ENVIRONMENT") or dotenv_values(REPO_ROOT / ".env").get("ENVIRONMENT") or ""
 )
 
 _pre_dotenv_keys = frozenset(os.environ)

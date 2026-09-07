@@ -37,11 +37,11 @@ UI_PREF_PATTERNS = {
 }
 
 
-def sanitize_ui_prefs(raw):
+def sanitize_ui_prefs(raw: object) -> dict[str, str]:
     """Keep only known keys carrying allowed values."""
     if not isinstance(raw, dict):
         return {}
-    out = {}
+    out: dict[str, str] = {}
     for k, v in raw.items():
         if k in UI_PREF_CHOICES and v in UI_PREF_CHOICES[k]:
             out[k] = v
@@ -50,7 +50,7 @@ def sanitize_ui_prefs(raw):
     return out
 
 
-def load_ui_prefs(userid):
+def load_ui_prefs(userid: int) -> dict[str, str]:
     """Read stored prefs from dbo.Users; {} when unset or unparsable."""
     conn = None
     try:
@@ -69,7 +69,7 @@ def load_ui_prefs(userid):
     return {}
 
 
-def save_ui_prefs(userid, prefs):
+def save_ui_prefs(userid: int, prefs: dict[str, str]) -> bool:
     """Persist the (already sanitized) prefs dict as JSON."""
     conn = None
     try:

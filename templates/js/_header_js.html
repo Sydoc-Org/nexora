@@ -20,11 +20,11 @@
         { section: "{{ _('Admin') }}", label: "{{ _('Active Sessions') }}",  icon: 'fa-users',     url: "{{ url_for('admin_sessions_view') }}" },
         { section: "{{ _('Admin') }}", label: "{{ _('System Logs') }}",      icon: 'fa-list-ul',   url: "{{ url_for('admin_logs_view') }}" },
         {% endif %}
-        {% if has_permission('admin.create.user') %}
+        {% if has_permission('admin.users.add') %}
         { section: "{{ _('Admin action') }}", label: "{{ _('Add user') }}",         icon: 'fa-user-plus',   url: "{{ url_for('admin_access_control') }}#add-user" },
         {% endif %}
-        {% if has_permission('admin.add.organization') %}
-        { section: "{{ _('Admin action') }}", label: "{{ _('Add organization') }}",  icon: 'fa-circle-plus', url: "{{ url_for('admin_organizations_view') }}#add-org" },
+        {% if has_permission('admin.organizations.add') %}
+        { section: "{{ _('Admin action') }}", label: "{{ _('Add organization') }}", icon: 'fa-circle-plus', url: "{{ url_for('admin_organizations_view') }}#add-org" },
         {% endif %}
         {% if page_visibility.dashboardPagePerm %}
         { section: "{{ _('Workspace') }}", label: "{{ _('Dashboard') }}",              icon: 'fa-chart-line', url: "{{ url_for('dashboard') }}" },

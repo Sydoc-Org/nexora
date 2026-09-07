@@ -3,7 +3,7 @@
 Test users have these admin permissions seeded:
 - admin@test.local: admin.view + admin.users.manage + dashboard.view
 
-Most admin sub-routes require finer-grained perms (admin.view.organizations,
+Most admin sub-routes require finer-grained perms (admin.organizations.view,
 admin.maintenance.edit, etc.) that no seed user has. To exercise the 200
 path of the route body without expanding sql/test/seed.sql, the
 `admin_all_perms` fixture monkeypatches nx_lib.security.has_permission to
@@ -80,7 +80,7 @@ def test_admin_dashboard_with_perm_renders(admin_client):
 
 @pytest.fixture()
 def no_restart_perm(monkeypatch):
-    """Drop admin.restart the way STAGING does (#198): it resolves NexoraDB to
+    """Drop admin.server.restart the way STAGING does (#198): it resolves NexoraDB to
     the prod server, where migration 0059 never ran. Patches the binding inside
     views.admin.system only, so the admin.view gate in security.require_permission —
     which looks up its own module global — still lets the page render."""
@@ -104,17 +104,60 @@ def test_api_admin_restart_denied_for_remote_caller_without_perm(admin_client, n
     assert resp.status_code == 403
 
 
-# ============================ permission matrix ===============================
+# ============================ permissions grid ================================
 
 
-def test_admin_permission_matrix_view_gated(noperm_client):
-    resp = noperm_client.get("/admin/permission_matrix")
-    assert resp.status_code == 403
+def test_admin_permissions_page_gated(noperm_client):
+    assert noperm_client.get("/admin/permissions").status_code == 403
 
 
-def test_admin_permission_matrix_view_with_perms(admin_client, admin_all_perms):
-    resp = admin_client.get("/admin/permission_matrix")
+def test_admin_permissions_page_renders_grid(admin_client, admin_all_perms):
+    resp = admin_client.get("/admin/permissions")
     assert resp.status_code == 200
+    html = resp.get_data(as_text=True)
+    assert 'data-testid="admin-perms-grid"' in html and "TestNoPerm" in html and "jd.view" in html
+
+
+def _grant_ids(db_conn):
+    from sqlalchemy import text
+
+    access_id = db_conn.execute(
+        text("SELECT AccessID FROM dbo.AccessProfile WHERE Name = 'TestNoPerm'")
+    ).scalar()
+    perm_id = db_conn.execute(
+        text("SELECT PermissionID FROM dbo.Permission WHERE Code = 'jd.view'")
+    ).scalar()
+    return access_id, perm_id
+
+
+def _grant_count(db_conn, access_id, perm_id):
+    from sqlalchemy import text
+
+    return db_conn.execute(
+        text(
+            "SELECT COUNT(*) FROM dbo.AccessProfilePermission WHERE AccessID = :a AND PermissionID = :p"
+        ),
+        {"a": access_id, "p": perm_id},
+    ).scalar()
+
+
+def test_profile_grants_save_round_trip(admin_client, admin_all_perms, db_conn):
+    access_id, perm_id = _grant_ids(db_conn)
+    body = {"changes": [{"accessId": access_id, "permissionId": perm_id, "granted": True}]}
+    assert admin_client.post("/api/admin/profiles/grants", json=body).get_json() == {
+        "success": True,
+        "applied": 1,
+    }
+    assert _grant_count(db_conn, access_id, perm_id) == 1
+    body["changes"][0]["granted"] = False
+    assert admin_client.post("/api/admin/profiles/grants", json=body).get_json()["applied"] == 1
+    assert _grant_count(db_conn, access_id, perm_id) == 0
+
+
+def test_profile_grants_save_rejects_bad_body(admin_client, admin_all_perms):
+    assert (
+        admin_client.post("/api/admin/profiles/grants", json={"changes": "nope"}).status_code == 400
+    )
 
 
 def test_api_admin_permission_holders_unknown_returns_404(admin_client, admin_all_perms):
@@ -511,10 +554,10 @@ def test_admin_clients_form_covers_every_writable_column(
 def test_admin_clients_view_only_gets_no_edit_affordances(
     admin_client, admin_all_perms, fake_clients_db, monkeypatch
 ):
-    """admin.view.clients without admin.edit.clients: the page renders, but no
+    """admin.clients.view without admin.clients.edit: the page renders, but no
     Add/Edit/Delete button -- clicking one only ever produced a 403 toast."""
     monkeypatch.setattr(
-        "nx_lib.views.admin.clients.has_permission", lambda code: code != "admin.edit.clients"
+        "nx_lib.views.admin.clients.has_permission", lambda code: code != "admin.clients.edit"
     )
     resp = admin_client.get("/admin/clients")
     assert resp.status_code == 200
@@ -985,7 +1028,7 @@ def fake_mapping_db(monkeypatch):
     db = _FakeMappingDb(
         sources={("ms02", "privera.02_Posteingang")},
         mappings={("ms02", "privera.02_Posteingang", "doctype")},
-        permissions={"workitems.filter.process.privera.02_Posteingang"},
+        permissions={"process.privera.02_Posteingang.view"},
     )
     monkeypatch.setattr(admin_module.processes, "engine_nexora_db", db)
     return db
@@ -1061,8 +1104,8 @@ def test_process_source_add_provisions_permission_exactly_once(
 
     perm_params = fake_mapping_db.params_for("INSERT INTO dbo.Permission")
     assert len(perm_params) == 1
-    assert perm_params[0][0] == "workitems.filter.process.acme.01_Eingang"
-    assert "workitems.filter.process.acme.01_Eingang" in fake_mapping_db.permissions
+    assert perm_params[0][0] == "process.acme.01_Eingang.view"
+    assert "process.acme.01_Eingang.view" in fake_mapping_db.permissions
 
 
 def test_process_source_add_provisions_permission_granted_to_nobody(
@@ -1102,7 +1145,7 @@ def test_process_source_add_permission_provisioning_is_idempotent(
         == 200
     )
     assert add().status_code == 200
-    assert sum(1 for c in fake_mapping_db.permissions if c.endswith("acme.01_Eingang")) == 1
+    assert sum(1 for c in fake_mapping_db.permissions if c.endswith("acme.01_Eingang.view")) == 1
 
 
 # ---- cache invalidation on every write path (D8) ----------------------------
@@ -1110,25 +1153,33 @@ def test_process_source_add_permission_provisioning_is_idempotent(
 
 # ---- ProcessName shape: the entitlement invariant ---------------------------
 #
-# Every consumer of workitems.filter.process.<ProcessName> derives the process
-# name back out of the permission code as exactly the last two dot-segments
-# (nx_lib/views/workitems.py, nx_lib/process_helpers.py). Before this page
-# existed the two-segment invariant held because process names were
-# migration-controlled; now an admin types them, so the endpoint has to enforce
-# it -- every shape below fails SILENTLY at runtime otherwise.
+# The auto-provisioned process.<client>.<name>.view permission is built from
+# _permission_reduction(process_name) -- the last two dot-segments of
+# ProcessName. Every consumer then reads the pair back out of the permission
+# code via granted_processes() (nx_lib/process_helpers.py), which strips the
+# fixed "process." prefix and ".view" suffix and requires exactly one dot in
+# what's left. Before this page existed the two-segment invariant held because
+# process names were migration-controlled; now an admin types them, so the
+# endpoint has to enforce it -- every malformed shape below either mis-derives
+# a reduction or gets silently dropped by granted_processes' single-dot check,
+# never grantable as the admin intended.
 
 
 def _derive_process_from_permission(code):
-    """Exactly what workitems.py / process_helpers.py do to a permission code."""
-    parts = code.split(".")
-    return f"{parts[-2]}.{parts[-1]}"
+    """Exactly what granted_processes() (nx_lib/process_helpers.py) derives
+    back out of a permission code -- or None when the pair fails the
+    single-dot check and is silently dropped."""
+    from nx_lib.process_helpers import process_grants
+
+    result = sorted(process_grants([code]))
+    return result[0] if result else None
 
 
 @pytest.mark.parametrize(
     "bad_name",
     [
-        "Invoice",  # no dot -> derives as "process.Invoice", grant never matches
-        "acme.eu.01_Invoice",  # three parts -> derives as "eu.01_Invoice"
+        "Invoice",  # no dot -> dropped by granted_processes' single-dot check
+        "acme.eu.01_Invoice",  # three parts -> two dots, also dropped
         "a.b.c.d",
         ".leading",
         "trailing.",
@@ -1145,21 +1196,23 @@ def test_process_source_add_rejects_names_the_permission_layer_misparses(
     assert "<customer>.<process>" in resp.get_json()["message"]
     # Nothing written, nothing provisioned, nothing invalidated.
     assert not any(n for _c, n in fake_mapping_db.sources if n == bad_name)
-    assert f"workitems.filter.process.{bad_name}" not in fake_mapping_db.permissions
+    assert f"process.{bad_name}.view" not in fake_mapping_db.permissions
     assert spy_invalidate == []
 
 
 @pytest.mark.parametrize("bad_name", ["Invoice", "acme.eu.01_Invoice"])
 def test_the_rejected_shapes_really_would_have_mis_derived(bad_name):
     """Guard the premise of the test above rather than just asserting a regex:
-    these names do NOT round-trip through the permission code."""
-    assert _derive_process_from_permission(f"workitems.filter.process.{bad_name}") != bad_name
+    these names do NOT round-trip through the permission code -- the
+    malformed pair is silently dropped by granted_processes' single-dot
+    check, not mis-derived to a different process."""
+    assert _derive_process_from_permission(f"process.{bad_name}.view") != bad_name
 
 
 def test_two_segment_names_round_trip_through_the_permission_code():
     for name in ("acme.01_Invoice", "privera.02_Posteingang", "sydoc.05_PDBS", "a-b.c_d"):
         assert admin_module._PROCESS_NAME_RE.match(name), name
-        assert _derive_process_from_permission(f"workitems.filter.process.{name}") == name
+        assert _derive_process_from_permission(f"process.{name}.view") == name
 
 
 def test_every_process_name_on_int_still_passes_the_tightened_pattern():
@@ -1240,7 +1293,7 @@ def test_process_source_add_rejects_an_unknown_client_code(
     assert resp.status_code == 400, resp.get_json()
     assert "defualt" in resp.get_json()["message"]
     assert ("defualt", "acme.01_Eingang") not in fake_mapping_db.sources
-    assert "workitems.filter.process.acme.01_Eingang" not in fake_mapping_db.permissions
+    assert "process.acme.01_Eingang.view" not in fake_mapping_db.permissions
     assert spy_invalidate == []
 
 
@@ -1643,17 +1696,30 @@ def test_admin_add_user_missing_fields_returns_400(admin_client, admin_all_perms
     assert resp.status_code == 400
 
 
-def test_admin_add_user_duplicate_returns_409_or_500(admin_client, admin_all_perms, monkeypatch):
+def test_add_user_refuses_a_higher_ranked_profile(user_client, admin_all_perms):
+    # TestUser has Rank 10; TestAdmin is Rank 100 -> not assignable even with every code.
+    resp = user_client.post(
+        "/admin/users/add",
+        json={
+            "username": f"r{uuid.uuid4().hex[:6]}",
+            "password": "Test1234!",
+            "fullname": "Rank Test",
+            "email": f"r{uuid.uuid4().hex[:6]}@test.local",
+            "organization": "Test Organization",
+            "accessprofile": "TestAdmin",
+        },
+    )
+    assert resp.status_code == 403
+
+
+def test_admin_add_user_duplicate_returns_409_or_500(admin_client, admin_all_perms):
     """Re-add user@test.local → IntegrityError 409.
 
-    admin_all_perms only patches nx_lib.security.has_permission (reached by the
-    @require_permission decorator's dynamic lookup); it does NOT reach the
-    inline admin.assign.user.accessprofile.* gate added to admin_add_user,
-    which resolves nx_lib.views.admin.users.has_permission (bound at import
-    time). Patch that binding too so this test keeps exercising the
-    duplicate-409 path instead of newly dying on the 403 gate.
+    admin@test.local is TestAdmin (Rank 100), real-assigning TestUser (Rank
+    10) — the rank-ceiling check in assignable_profile_ids() passes for real,
+    no mocking needed; admin_all_perms only covers the
+    @require_permission("admin.users.add") decorator gate.
     """
-    monkeypatch.setattr("nx_lib.views.admin.users.has_permission", lambda code: True)
     resp = admin_client.post(
         "/admin/users/add",
         json={
@@ -1668,23 +1734,19 @@ def test_admin_add_user_duplicate_returns_409_or_500(admin_client, admin_all_per
     assert resp.status_code in (200, 409, 500)
 
 
-def test_admin_add_user_without_assign_permission_returns_403(admin_client, monkeypatch, db_conn):
-    """admin.create.user alone must not be enough to assign an access profile.
+def test_admin_add_user_returns_403_when_profile_not_assignable(admin_client, monkeypatch, db_conn):
+    """admin.users.add alone must not be enough to assign an access profile.
 
-    The @require_permission("admin.create.user") decorator resolves the REAL
+    The @require_permission("admin.users.add") decorator resolves the REAL
     nx_lib.security.has_permission at call time — TestAdmin (admin@test.local)
     is seeded with every permission, so that check still passes. Only the
-    inline admin.assign.user.accessprofile.<profile> gate is denied here, by
-    patching the nx_lib.views.admin.users module-level binding (the one the
-    inline call inside admin_add_user actually resolves — patching
-    nx_lib.security.has_permission would NOT reach it).
+    rank-ceiling assignable_profile_ids() gate denies here, by patching the
+    nx_lib.views.admin.users module-level binding (the one admin_add_user
+    actually calls) to return an empty set — no profile is assignable.
     """
     from sqlalchemy import text
 
-    monkeypatch.setattr(
-        "nx_lib.views.admin.users.has_permission",
-        lambda code: not code.startswith("admin.assign.user.accessprofile."),
-    )
+    monkeypatch.setattr("nx_lib.views.admin.users.assignable_profile_ids", lambda: set())
     username = "task5-deny@test.local"
     resp = admin_client.post(
         "/admin/users/add",
@@ -1705,18 +1767,16 @@ def test_admin_add_user_without_assign_permission_returns_403(admin_client, monk
     assert count == 0
 
 
-def test_admin_add_user_with_assign_permission_returns_200(admin_client, monkeypatch, db_conn):
-    """Holding the assign-permission (in addition to admin.create.user) allows creation.
+def test_admin_add_user_with_assign_permission_returns_200(admin_client, db_conn):
+    """admin@test.local (TestAdmin, Rank 100) may really assign TestUser (Rank 10).
 
-    Deliberately does NOT use admin_all_perms — that fixture patches
-    nx_lib.security.has_permission, which the inline gate in admin_add_user
-    (bound as nx_lib.views.admin.users.has_permission at import time) cannot see.
+    Deliberately does NOT use admin_all_perms or mock assignable_profile_ids —
+    this exercises the real rank-ceiling query end to end.
     """
     from sqlalchemy import text
 
     from nx_lib.db import engine_nexora_db
 
-    monkeypatch.setattr("nx_lib.views.admin.users.has_permission", lambda code: True)
     username = f"task5-allow-{uuid.uuid4().hex[:8]}@test.local"
     user_id = None
     try:
@@ -1788,8 +1848,6 @@ def test_admin_add_user_invite_generates_password_and_mails_link(
 
     from nx_lib.db import engine_nexora_db
     from nx_lib.views.auth import _load_reset_token
-
-    monkeypatch.setattr("nx_lib.views.admin.users.has_permission", lambda code: True)
 
     sent = {}
 
@@ -1865,12 +1923,12 @@ def test_admin_edit_user_nonexistent(admin_client, admin_all_perms):
 # profile is outside that set (e.g. a lesser admin viewing a user who holds a
 # super-admin-only profile), no <option> is `selected`, the browser defaults
 # to submitting the first option, and saving any unrelated field silently
-# reassigns the profile. These tests patch nx_lib.views.admin.users.has_permission
-# (the module-level binding the inline gate in admin_edit_user actually
-# resolves — see test_admin_add_user_without_assign_permission_returns_403's
-# docstring above) to simulate an admin who cannot assign 'TestUser' or
-# 'TestNoPerm', while editing user@test.local whose current profile IS
-# 'TestUser'.
+# reassigns the profile. These tests patch
+# nx_lib.views.admin.users.assignable_profile_ids (the module-level binding
+# admin_edit_user actually calls — see
+# test_admin_add_user_returns_403_when_profile_not_assignable's docstring
+# above) to simulate an admin who can assign nothing, while editing
+# user@test.local whose current profile IS 'TestUser'.
 
 
 def test_admin_edit_user_unchanged_unassignable_profile_roundtrips(
@@ -1881,14 +1939,7 @@ def test_admin_edit_user_unchanged_unassignable_profile_roundtrips(
     value even when it isn't in this admin's assignable set."""
     from sqlalchemy import text
 
-    monkeypatch.setattr(
-        "nx_lib.views.admin.users.has_permission",
-        lambda code: code
-        not in (
-            "admin.assign.user.accessprofile.testuser",
-            "admin.assign.user.accessprofile.testnoperm",
-        ),
-    )
+    monkeypatch.setattr("nx_lib.views.admin.users.assignable_profile_ids", lambda: set())
     uid = db_conn.execute(
         text("SELECT userID FROM Users WHERE username = 'user@test.local'")
     ).scalar()
@@ -1924,14 +1975,7 @@ def test_admin_edit_user_changed_to_unassignable_profile_returns_403(
     this admin's assignable set."""
     from sqlalchemy import text
 
-    monkeypatch.setattr(
-        "nx_lib.views.admin.users.has_permission",
-        lambda code: code
-        not in (
-            "admin.assign.user.accessprofile.testuser",
-            "admin.assign.user.accessprofile.testnoperm",
-        ),
-    )
+    monkeypatch.setattr("nx_lib.views.admin.users.assignable_profile_ids", lambda: set())
     uid = db_conn.execute(
         text("SELECT userID FROM Users WHERE username = 'user@test.local'")
     ).scalar()
@@ -1982,14 +2026,7 @@ def test_admin_edit_user_missing_accessprofile_key_saves_other_fields(
     successfully -- 200, not 403 -- and must leave the profile untouched."""
     from sqlalchemy import text
 
-    monkeypatch.setattr(
-        "nx_lib.views.admin.users.has_permission",
-        lambda code: code
-        not in (
-            "admin.assign.user.accessprofile.testuser",
-            "admin.assign.user.accessprofile.testnoperm",
-        ),
-    )
+    monkeypatch.setattr("nx_lib.views.admin.users.assignable_profile_ids", lambda: set())
     uid = db_conn.execute(
         text("SELECT userID FROM Users WHERE username = 'user@test.local'")
     ).scalar()
@@ -2029,14 +2066,7 @@ def test_admin_user_detail_current_unassignable_option_not_disabled(
 
     from sqlalchemy import text
 
-    monkeypatch.setattr(
-        "nx_lib.views.admin.users.has_permission",
-        lambda code: code
-        not in (
-            "admin.assign.user.accessprofile.testuser",
-            "admin.assign.user.accessprofile.testnoperm",
-        ),
-    )
+    monkeypatch.setattr("nx_lib.views.admin.users.assignable_profile_ids", lambda: set())
     uid = db_conn.execute(
         text("SELECT userID FROM Users WHERE username = 'user@test.local'")
     ).scalar()
@@ -2362,19 +2392,88 @@ def test_get_users_admin_access_control(admin_client, admin_all_perms):
     assert resp.status_code in (200, 500)
 
 
-def test_get_profile_details_seeded_id(admin_client, admin_all_perms, db_conn):
-    from sqlalchemy import text
-
-    aid = db_conn.execute(
-        text("SELECT AccessID FROM AccessProfile WHERE Name = 'TestAdmin'")
-    ).scalar()
-    resp = admin_client.get(f"/api/admin/access_profile/{aid}/details")
-    assert resp.status_code in (200, 500)
-
-
 def test_save_access_profile_missing_body(admin_client, admin_all_perms):
     resp = admin_client.post("/api/admin/access_profile/save", json={})
     assert resp.status_code in (200, 400, 500)
+
+
+def test_save_access_profile_updates_rank(admin_client, admin_all_perms, db_conn):
+    """The profile save carries the rank (#238 Task 13); grants moved to the grid."""
+    from sqlalchemy import text
+
+    access_id = db_conn.execute(
+        text("SELECT AccessID FROM dbo.AccessProfile WHERE Name = 'TestNoPerm'")
+    ).scalar()
+    resp = admin_client.post(
+        "/api/admin/access_profile/save",
+        json={
+            "accessId": access_id,
+            "name": "TestNoPerm",
+            "description": "Test no-permission profile",
+            "rank": 5,
+        },
+    )
+    assert resp.status_code == 200
+    assert (
+        db_conn.execute(
+            text("SELECT Rank FROM dbo.AccessProfile WHERE AccessID = :a"), {"a": access_id}
+        ).scalar()
+        == 5
+    )
+    db_conn.execute(
+        text("UPDATE dbo.AccessProfile SET Rank = 0 WHERE AccessID = :a"), {"a": access_id}
+    )
+    db_conn.commit()
+
+
+def test_save_access_profile_new_profile_inherits_creator_rank(
+    admin_client, admin_all_perms, db_conn
+):
+    """#238 Phase 1 review finding: a brand-new profile (no accessId in the
+    save payload) must inherit the creating actor's own Rank rather than
+    fall through to the AccessProfile.Rank column default of 0. A Rank-0
+    profile is assignable by every profiled actor per
+    security.assignable_profile_ids() -- strictly weaker than the deleted
+    admin.assign.user.accessprofile.* codes it replaced."""
+    from sqlalchemy import text
+
+    creator_rank = db_conn.execute(
+        text(
+            "SELECT ap.Rank FROM dbo.Users u "
+            "JOIN dbo.AccessProfile ap ON ap.AccessID = u.accessid "
+            "WHERE u.username = 'admin@test.local'"
+        )
+    ).scalar()
+    assert creator_rank == 100  # seeded TestAdmin profile Rank (sql/test/seed.sql)
+
+    name = f"task-rank-inherit-{uuid.uuid4().hex[:8]}"
+    access_id = None
+    try:
+        resp = admin_client.post(
+            "/api/admin/access_profile/save",
+            json={"name": name, "description": "probe for creator-rank inheritance"},
+        )
+        assert resp.status_code == 200
+
+        row = db_conn.execute(
+            text("SELECT AccessID, Rank FROM dbo.AccessProfile WHERE Name = :name"),
+            {"name": name},
+        ).fetchone()
+        assert row is not None
+        access_id, rank = row
+        assert rank == creator_rank
+        assert rank != 0
+    finally:
+        if access_id is not None:
+            db_conn.execute(
+                text("DELETE FROM dbo.AccessProfilePermission WHERE AccessID = :aid"),
+                {"aid": access_id},
+            )
+            db_conn.execute(
+                text("DELETE FROM dbo.AccessProfile WHERE AccessID = :aid"),
+                {"aid": access_id},
+            )
+            db_conn.commit()
 
 
 def test_get_user_overrides_seeded(admin_client, admin_all_perms, db_conn):
@@ -2451,7 +2550,7 @@ def test_api_admin_permission_crud_roundtrip(admin_client, admin_all_perms, db_c
     """Add -> edit -> verify Code round-trip with case preserved -> delete.
 
     Proves add/edit persist Code correctly and it's never lowercased, since
-    *.filter.process.* codes elsewhere are case-significant.
+    process.<client>.<name>.view codes elsewhere are case-significant.
     """
     from sqlalchemy import text
 
@@ -2580,14 +2679,14 @@ def test_header_prepaint_injects_brand_json_and_accent_fallback(admin_client, mo
 
 
 def test_header_prepaint_accent_fallback_source_uses_brand_then_hardcoded():
-    """Regression guard for D4 (spec): the *user's own* stored accent must
-    still win over the org brand accent, which itself only replaces the
+    """Regression guard (0dae9db0): the org brand accent wins over the user's
+    stored pick, which itself only replaces the
     previously-hardcoded default. Asserted against the template source since
     exercising the inline pre-paint script needs a JS engine."""
     with open("templates/_header.html", encoding="utf-8") as f:
         src = f.read()
-    assert "accent:     stored.accent     || (brand.accent_hex ? 'custom' : 'amber')," in src
-    assert "accentHex:  stored.accentHex  || brand.accent_hex || '#4f46e5'," in src
+    assert "accent:     brand.accent_hex ? 'custom' : (stored.accent || 'amber')," in src
+    assert "accentHex:  brand.accent_hex || stored.accentHex || '#4f46e5'," in src
 
 
 def test_brand_logo_class_bounds_both_axes():
@@ -2772,9 +2871,9 @@ def test_branding_save_without_permission_is_403(noperm_client):
 
 
 def test_branding_save_gate_is_the_branding_permission(admin_client, monkeypatch):
-    """admin.view.organizations alone must not be enough to save branding."""
+    """admin.organizations.view alone must not be enough to save branding."""
     monkeypatch.setattr(
-        "nx_lib.security.has_permission", lambda code: code == "admin.view.organizations"
+        "nx_lib.security.has_permission", lambda code: code == "admin.organizations.view"
     )
     resp = admin_client.post(_BRANDING_URL, json={"brand_name": "Provera"})
     assert resp.status_code == 403
@@ -2911,14 +3010,14 @@ def test_organizations_page_shows_branding_panel_with_perm(
 
 
 def test_organizations_page_hides_branding_panel_without_perm(admin_client, monkeypatch):
-    """A viewer who only holds admin.view.organizations must not see the
+    """A viewer who only holds admin.organizations.view must not see the
     controls at all -- a 403 toast after the click is the bug, not the gate."""
     monkeypatch.setattr(
-        "nx_lib.security.has_permission", lambda code: code == "admin.view.organizations"
+        "nx_lib.security.has_permission", lambda code: code == "admin.organizations.view"
     )
     monkeypatch.setattr(
         "nx_lib.views.admin.organizations.has_permission",
-        lambda code: code == "admin.view.organizations",
+        lambda code: code == "admin.organizations.view",
     )
     resp = admin_client.get("/admin/organizations")
     assert resp.status_code == 200

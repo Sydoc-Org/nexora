@@ -300,13 +300,13 @@ def init_2fa():
 
     if request.method == "POST":
         code = request.form.get("code")
-        secret = session.get("temp_2fa_secret")
+        pending_secret = session.get("temp_2fa_secret")
 
-        if not code or not secret:
+        if not code or not pending_secret:
             flash(_("Session expired, please try again"), "error")
             return redirect(url_for("init_2fa"))
 
-        totp = pyotp.TOTP(secret)
+        totp = pyotp.TOTP(pending_secret)
         # valid_window=1 also accepts the adjacent 30s windows. Guards against
         # client/server clock skew and the window rolling over between code
         # generation and verification (the latter flakes E2E tests hard).
@@ -323,7 +323,7 @@ def init_2fa():
                     SET twoFA = 1, TwoFASecret = ?
                     WHERE userid = ?
                     """,
-                    (secret, user_id),
+                    (pending_secret, user_id),
                 )
                 conn.commit()
 
@@ -377,7 +377,7 @@ def verify_2fa():
         return render_template("verify_2fa.html")
 
     if request.method == "POST":
-        code = request.form.get("code")
+        code = request.form.get("code") or ""
         user_id = session["pre_2fa_userid"]
 
         conn = engine_nexora_db.raw_connection()
@@ -445,6 +445,10 @@ def init_reset_password():
             pre_auth_userid,
         )
         row = cursor.fetchone()
+        if row is None:
+            # No matching user (e.g. pre_auth_userid missing/stale) -- surfaces
+            # as the generic "something went wrong" below via the outer except.
+            raise ValueError("init_reset_password: user not found")
         stored_hash = row[0]
         stored_2fa = row[1]
         stored_username = row[2]
@@ -786,6 +790,9 @@ def set_new_password():
             email_for_password_reset,
         )
         row = cursor.fetchone()
+        if row is None:
+            # No matching user for this email -- surfaces via the outer except.
+            raise ValueError("set_new_password: user not found")
         stored_hash = row[0]
 
         if isinstance(stored_hash, str):

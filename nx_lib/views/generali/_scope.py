@@ -51,9 +51,9 @@ def _generali_scope_where(perm_prefix, user_column, requested_org_code):
     the caller's GRANTS -- never from a client-supplied organizationcode (#193
     cross-org read). Returns (clauses, params):
 
-    - <perm>.edit.transorganizational: honour an optional requested org filter,
+    - <perm>.edit.all: honour an optional requested org filter,
       otherwise no constraint (all orgs).
-    - <perm>.edit.organizational only: clamp to the caller's SESSION org; any
+    - <perm>.edit.org only: clamp to the caller's SESSION org; any
       requested organizationcode is ignored.
     - neither grant: clamp to the caller's own user id.
 
@@ -66,11 +66,11 @@ def _generali_scope_where(perm_prefix, user_column, requested_org_code):
     # a top-of-file import here would bind a stale copy at import time).
     from . import _generali_userids_in_org, has_permission
 
-    if has_permission(f"{perm_prefix}.edit.transorganizational"):
+    if has_permission(f"{perm_prefix}.edit.all"):
         if not requested_org_code:
             return [], []
         org_scope = requested_org_code
-    elif has_permission(f"{perm_prefix}.edit.organizational"):
+    elif has_permission(f"{perm_prefix}.edit.org"):
         org_scope = session.get("organizationcode")
     else:
         return [f"{user_column} = ?"], [session.get("userid")]

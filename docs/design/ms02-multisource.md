@@ -96,7 +96,7 @@ Postgres-syntax `TimeFilter`s (the `'default'` rows stay T-SQL).
 
 Doc-field visibility is permission-aware — `FieldLabels.IsSensitive` in the registry (formerly
 `dbo.Search_Field_Labels.IsSensitive`, decapitated by `0075`) marks sensitive `FieldKey`s, gated by
-the shared `workitems.filter.documentfields.sensitive` permission and enforced server-side at every
+the shared `workitems.filter.docfields.sensitive.view` permission and enforced server-side at every
 surface (dropdown, values API, search, detail panel, CSV).
 
 Since #148 the search is **value-first** ("Document Value Search"): a pair with a value but no
@@ -128,7 +128,7 @@ The register is viewed on the standalone `/prepared_documents` page (route in
 OFFSET/FETCH pagination and a live (non-stored) Octo cross-reference status column computed per
 page via `resolve_ms02_pid_to_wids`. The workitems-page link to that page is shown only when an
 MS02 prepared-docs target process is selected (e.g. `sydoc.05_PDBS`); it is hidden on "All
-Processes" and on non-PDBS processes. Gated by `workitems.import.preparedaudit` (migration `0029`,
+Processes" and on non-PDBS processes. Gated by `workitems.prepared.view` (migration `0029`,
 reused) AND `ms02_active`; registered in `page_visibility()` as `preparedDocsPagePerm`.
 
 The earlier transient session-overlay (`?pidImport=<token>` filter with row-merge + synthetic

@@ -24,7 +24,7 @@ from ._crud import (
 # ----------------------------- Generali PDQM -------------------------------- #
 
 
-@require_permission("generali.pdqm.view")
+@require_permission("tenant.generali.pdqm.view")
 def generali_pdqm():
     try:
         if "username" not in session:
@@ -35,23 +35,23 @@ def generali_pdqm():
             userid=session.get("userid"),
             page_visibility=page_visibility(),
             organizationcode=session.get("organizationcode"),
-            can_add=has_permission("generali.pdqm.add"),
-            can_add_bypass_deadline=has_permission("generali.pdqm.add.bypass.deadline"),
-            can_edit=has_permission("generali.pdqm.edit.organizational")
-            or has_permission("generali.pdqm.edit.transorganizational"),
-            can_edit_transorg=has_permission("generali.pdqm.edit.transorganizational"),
-            can_delete=has_permission("generali.pdqm.delete.organizational")
-            or has_permission("generali.pdqm.delete.transorganizational"),
-            can_delete_transorg=has_permission("generali.pdqm.delete.transorganizational"),
-            can_add_for_org=has_permission("generali.pdqm.add.organizational"),
-            can_add_transorg=has_permission("generali.pdqm.add.transorganizational"),
+            can_add=has_permission("tenant.generali.pdqm.add"),
+            can_add_bypass_deadline=has_permission("tenant.generali.pdqm.add.pastdeadline"),
+            can_edit=has_permission("tenant.generali.pdqm.edit.org")
+            or has_permission("tenant.generali.pdqm.edit.all"),
+            can_edit_transorg=has_permission("tenant.generali.pdqm.edit.all"),
+            can_delete=has_permission("tenant.generali.pdqm.delete.org")
+            or has_permission("tenant.generali.pdqm.delete.all"),
+            can_delete_transorg=has_permission("tenant.generali.pdqm.delete.all"),
+            can_add_for_org=has_permission("tenant.generali.pdqm.add.org"),
+            can_add_transorg=has_permission("tenant.generali.pdqm.add.all"),
         )
     except Exception as e:
         current_app.logger.error(f"Error loading Generali PDQM: {e}")
         return render_template("handlers/500.html"), 500
 
 
-@require_permission("generali.pdqm.view")
+@require_permission("tenant.generali.pdqm.view")
 def api_generali_pdqm_categories():
     conn = None
     try:
@@ -71,7 +71,7 @@ def api_generali_pdqm_categories():
         cursor.close()
 
         # nested: { parent: { parentSub_or_"": [sub, ...] } }
-        grouped = {}
+        grouped: dict[str, dict] = {}
         for parent, parent_sub, sub in rows:
             if parent not in grouped:
                 grouped[parent] = {}
@@ -93,8 +93,7 @@ def api_generali_pdqm_categories():
             """,
                 [locale],
             )
-            for orig, trans in cursor2.fetchall():
-                translations[orig] = trans
+            translations = dict(cursor2.fetchall())
             cursor2.close()
 
         return jsonify({"success": True, "categories": grouped, "translations": translations})
@@ -141,8 +140,7 @@ PDQM = CrudTable(
     slug="pdqm",
     table="[Generali].[dbo].[PDQMReport]",
     user_column="UserID",
-    perm_prefix="generali.pdqm",
-    view_perm="generali.pdqm.view",
+    perm_prefix="tenant.generali.pdqm",
     api_base="/api/generali/pdqm",
     label="Generali PDQM",
     user_lookup_label="PDQM",

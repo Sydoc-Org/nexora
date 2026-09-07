@@ -6,7 +6,7 @@ Flask 3 / Python 3.13 / SQL Server / IIS (PROD).
 ## Quick start
 
 ```powershell
-git clone https://github.com/Sydoc-Code/nexora.git C:\dev\nexora    # not under OneDrive
+git clone https://github.com/Sydoc-Org/nexora.git C:\dev\nexora    # not under OneDrive
 cd C:\dev\nexora
 .\bootstrap.ps1
 # follow the printed checklist (edit env\INT.env, reset NEXORA_TEST, etc.)
@@ -27,6 +27,8 @@ The pre-push hook runs the same suite in two tiers on every `git push` — fast 
 ## Deploy
 
 Push to `main` → GitHub Actions runs the `test` job → if green, the `deploy` job mirrors the repo to IIS on SYAPP01 and applies any pending SQL migrations. See `.github/workflows/deploy.yml` and `docs/howto/iis.md`.
+
+Changes land through a PR from a short-lived topic branch, never a direct push to `main` — by convention, since branch protection is unavailable on this repo's plan. **Every** merge to `main` deploys; a release tag (`v3.2.5`) only labels what shipped and does not trigger anything. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the branching, parallel-work and release rules.
 
 ## Contributing
 

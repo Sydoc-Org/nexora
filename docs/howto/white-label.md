@@ -69,7 +69,7 @@ in a collapsible **Tenants** group in the admin sidebar:
 
 | Route | UI label | Axis |
 |---|---|---|
-| `/admin/tenants/manage` | **Manage** (Tenants) | create/edit tenants, their organizations and mounted pages (`admin.view.tenants` / `admin.edit.tenants`, migration `0095`); entities/fields stay migration-only |
+| `/admin/tenants/manage` | **Manage** (Tenants) | create/edit tenants, their organizations and mounted pages (`admin.tenants.view` / `admin.tenants.edit`, migration `0095`); entities/fields stay migration-only |
 | `/admin/tenants` | **Overview** (Tenants) | read-only join of all three: tenant → organizations → users, access profiles, data connection, process configurations; plus pages; plus what is not in a tenant (#256 phase 1) |
 | `/admin/organizations` | **Organizations** (name kept) | 2 — who the users work for |
 | `/admin/clients` | **Data Connections** | 1 — where the data lives |
@@ -104,7 +104,7 @@ DB at all, and it does so through the admin UI, not a migration.
 
 ## `/admin/clients` — runtime sources
 
-Permissions: `admin.view.clients` (read), `admin.edit.clients` (add/edit/delete). Both are granted to
+Permissions: `admin.clients.view` (read), `admin.clients.edit` (add/edit/delete). Both are granted to
 `Enterprise Admin` and `Global Admin` by migration `0080`.
 
 The table lists five columns per `dbo.Clients` row — `ClientCode`, `DisplayName`, `Dialect`
@@ -155,7 +155,7 @@ decision; this only makes the degradation visible.
 
 ## `/admin/processes` — process sources and field mappings
 
-Permissions: `admin.view.processes` (read), `admin.edit.processes` (add/edit/delete). Both granted to
+Permissions: `admin.processes.view` (read), `admin.processes.edit` (add/edit/delete). Both granted to
 `Enterprise Admin` and `Global Admin` by migration `0080`.
 
 Reads and writes `dbo.ProcessSources` and `dbo.ProcessFieldMappings` (migration `0074`) entirely
@@ -188,7 +188,7 @@ its permission, and yielding config that can never resolve.
 
 This used to be described as "customer-prefixed by convention only". That is **wrong**, and the
 admin UI made the mistake reachable. The permission auto-provisioned for a process is
-`workitems.filter.process.<ProcessName>`, and every consumer reconstructs the process name out of
+`process.<ProcessName>.view`, and every consumer reconstructs the process name out of
 that code as **exactly the last two dot-segments** (`nx_lib/views/workitems.py`,
 `nx_lib/process_helpers.py`: `parts[-2], parts[-1]`). So the name must be two segments — no more, no
 fewer:
@@ -208,10 +208,10 @@ process names that reduce alike share one entitlement. `FieldKey` keeps the loos
 `_FIELD_KEY_RE` shape: it never becomes a permission code.
 
 **Adding a process source auto-provisions its permission.** Saving a new `(ClientCode, ProcessName)`
-row also creates a `workitems.filter.process.<ProcessName>` permission row in the same request, in
+row also creates a `process.<ProcessName>.view` permission row in the same request, in
 one transaction — otherwise step 3 of the onboarding table below would still require a migration and
 the whole point of this page would be lost. The permission is created **granted to nobody**: granting
-it to a user or access profile stays a deliberate, separate step at `/admin/access-control`. Deleting
+it to a user or access profile stays a deliberate, separate step at `/admin/permissions`. Deleting
 a process source does **not** delete its permission row — that would silently revoke access nobody
 asked to change; re-adding the same process later reuses the existing permission (the insert is
 idempotent, mirroring migration `0059`'s shape).
@@ -219,18 +219,18 @@ idempotent, mirroring migration `0059`'s shape).
 Deleting a process source is refused with **409** while it still has field mappings — remove those
 first.
 
-### `admin.edit.processes` is a high-trust permission
+### `admin.processes.edit` is a high-trust permission
 
 Read the identifier validation above as *injection* hardening, not as a security boundary between
-customers. It is not one. `admin.edit.processes` lets a holder rewrite `TableName` on an **existing**
+customers. It is not one. `admin.processes.edit` lets a holder rewrite `TableName` on an **existing**
 process source, and `_IDENT` accepts any qualified identifier in either dialect. A holder can
-therefore repoint an already-granted `workitems.filter.process.privera.02_Posteingang` at a different
+therefore repoint an already-granted `process.privera.02_Posteingang.view` at a different
 customer's statistik table: no new grant is needed, no permission changes, and nothing is audited.
 The practical meaning of the permission is **"can point any granted process at any table in the
 runtime database"** — which is inherent to an editable config surface, not a defect to be patched.
 
 Grant it accordingly. Migration `0080` hands it to every access profile that already holds
-`admin.view.organizations` (`Enterprise Admin`, `Global Admin`); treat adding anyone else to that set
+`admin.organizations.view` (`Enterprise Admin`, `Global Admin`); treat adding anyone else to that set
 as the cross-tenant data-access decision it is.
 
 ### Scope limits — deliberately not editable here
@@ -254,10 +254,10 @@ For the common case — a new customer riding the shared `default` runtime, no n
    existing clients), `ProcessName` in the **required** `<customer>.<process>` shape, e.g.
    `acme.01_Invoice` (see the hard rule above — any other shape is rejected), and its
    table/column mapping. This
-   step auto-creates the `workitems.filter.process.acme.01_Invoice` permission, granted to nobody.
+   step auto-creates the `process.acme.01_Invoice.view` permission, granted to nobody.
 4. **Add field mappings** for that process source on the same page, one row per doc-field.
-5. **Grant the permission** at `/admin/access-control` — attach
-   `workitems.filter.process.acme.01_Invoice` to the users or access profiles who should see that
+5. **Grant the permission** at `/admin/permissions` — tick
+   `process.acme.01_Invoice.view` to the users or access profiles who should see that
    customer's workitems. Nothing is visible to anyone until this step happens.
 
 No SQL migration, no deploy, no app-pool recycle for this path — the whole thing is admin-UI writes
@@ -385,9 +385,9 @@ The stored filename is derived from the organization code, never from the upload
 
 ### Editing a brand
 
-The branding panel on `/admin/organizations` sits behind **`admin.edit.organization.branding`**
+The branding panel on `/admin/organizations` sits behind **`admin.organizations.branding.edit`**
 (seeded by migration `0080`, granted to `Enterprise Admin` and `Global Admin`). A viewer holding only
-`admin.view.organizations` never sees the panel or its per-row button. `POST
+`admin.organizations.view` never sees the panel or its per-row button. `POST
 /admin/organizations/<organizationcode>/branding` accepts JSON (name + accent only) or
 `multipart/form-data` (plus `logo`); a save without an upload leaves the stored logo untouched.
 Every successful save calls `invalidate_branding()`.

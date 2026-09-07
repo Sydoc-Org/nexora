@@ -103,7 +103,7 @@ def _filter_clause(pid, collected, prepared):
     """Build a shared WHERE clause + params for count/fetch (kept in lockstep
     so the pagination total always matches what fetch actually returns)."""
     clauses = []
-    params = []
+    params: list = []
     if pid:
         clauses.append("PID = ?")
         params.append(str(pid))
@@ -161,22 +161,20 @@ def fetch_prepared_documents_page(
         )
         params = [*params, int(offset), int(limit)]
         cur.execute(base, params)
-        out = []
-        for r in cur.fetchall():
-            out.append(
-                {
-                    "id": r[0],
-                    "pid": str(r[1]) if r[1] is not None else "",
-                    "collected": bool(r[2]),
-                    "collected_by": r[3] or "",
-                    "prepared": bool(r[4]),
-                    "prepared_by": r[5] or "",
-                    "uploaded_by": r[6],
-                    "uploaded_at": str(r[7]) if r[7] is not None else None,
-                    "updated_at": str(r[8]) if r[8] is not None else None,
-                }
-            )
-        return out
+        return [
+            {
+                "id": r[0],
+                "pid": str(r[1]) if r[1] is not None else "",
+                "collected": bool(r[2]),
+                "collected_by": r[3] or "",
+                "prepared": bool(r[4]),
+                "prepared_by": r[5] or "",
+                "uploaded_by": r[6],
+                "uploaded_at": str(r[7]) if r[7] is not None else None,
+                "updated_at": str(r[8]) if r[8] is not None else None,
+            }
+            for r in cur.fetchall()
+        ]
     finally:
         if conn is not None:
             conn.close()

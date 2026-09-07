@@ -20,7 +20,7 @@ def _data(mod):
         "generali.dashboard.view",
         "process.privera.02_InitialScan.view",
         "workitems.filter.process.compass.01_Invoice_SAP",
-        "admin.view.users",
+        "admin.users.view",
         "dashboard.view",
         "tenant.ms02.view",
     ]
@@ -58,7 +58,7 @@ def _data(mod):
             2: {
                 "dashboard.view",
                 "generali.dashboard.view",
-                "admin.view.users",
+                "admin.users.view",
                 "workitems.filter.process.compass.01_Invoice_SAP",
             },
             3: {"generali.dashboard.view"},
@@ -67,7 +67,7 @@ def _data(mod):
             6: {"generali.dashboard.view"},
         },
         process_org={"privera.02_InitialScan": "PRVR"},
-        corpus="dashboard.view admin.view.users",
+        corpus="dashboard.view admin.users.view",
     )
 
 

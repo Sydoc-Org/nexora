@@ -180,8 +180,8 @@ def _dead_engine(msg="StatisticsDB down"):
 
 
 _PERMS = [
-    "dashboard.filter.process.sydoc.Alpha",
-    "dashboard.filter.process.sydoc.05_PDBS",
+    "process.sydoc.Alpha.view",
+    "process.sydoc.05_PDBS.view",
 ]
 
 _CONFIGS = [
@@ -388,8 +388,8 @@ def test_kpi_stats_backlog_derives_granted_pairs_not_cross_product(app, monkeypa
         session["username"] = "u"
         session["userid"] = 990010
         session["permissions"] = [
-            "dashboard.filter.process.A.P1",
-            "dashboard.filter.process.B.P2",
+            "process.A.P1.view",
+            "process.B.P2.view",
         ]
         session["process_name_dashboard"] = "all"
         rv = dv.dashboard_kpi_stats.uncached()

@@ -33,6 +33,7 @@ Routes covered (13 endpoints):
 import concurrent.futures
 import csv
 import io
+from pathlib import Path
 
 import pytest
 import requests
@@ -106,11 +107,20 @@ def test_workitems_overview_with_perms(user_client, workitems_all_perms):
 
 
 def test_workitems_overview_uses_shared_detail_panel(user_client, workitems_all_perms):
-    """The workitems page wires the shared renderer."""
+    """The workitems page wires the shared renderer. Since #191 shim-ified both
+    _workitem_detail_panel_js.html and _workitems_overview_js.html, the actual
+    `NexoraWorkitemDetail.render` call now lives in static/js/workitems_overview.js,
+    not the page's inline HTML -- assert the page loads that script, and that the
+    script itself makes the call."""
     resp = user_client.get("/workitems")
-    # 200 or 500-fallback possible in CI; the partial markers live in template body.
+    # 200 or 500-fallback possible in CI; the include markers live in template body.
     if resp.status_code == 200:
-        assert b"NexoraWorkitemDetail.render" in resp.data
+        assert b"workitems_overview.js" in resp.data
+        assert b"workitem_detail_panel.js" in resp.data
+    static_js = (
+        Path(__file__).resolve().parents[2] / "static" / "js" / "workitems_overview.js"
+    ).read_text(encoding="utf-8")
+    assert "NexoraWorkitemDetail.render" in static_js
 
 
 # ============================ API: config/data ===============================
@@ -169,7 +179,7 @@ def test_api_config_fields_perm_state_in_cache_key(user_client, monkeypatch):
 
     # Without the sensitive perm the response is filtered + cached under _s0.
     monkeypatch.setattr(
-        wv, "has_permission", lambda code: code != "workitems.filter.documentfields.sensitive"
+        wv, "has_permission", lambda code: code != "workitems.filter.docfields.sensitive.view"
     )
     monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: {"validationuser"})
     r0 = user_client.get("/api/config/fields")
@@ -385,7 +395,7 @@ def test_get_workitems_data_skips_sensitive_docfield_search(
     gated in commit ae83bcb via `if docfield in blocked_docfields: continue`).
     A sensitive docfield/docvalue pair must contribute NO SQL constraint --
     neither block may even build/execute its StatisticsDB constraint query --
-    when the caller lacks workitems.filter.documentfields.sensitive, and the
+    when the caller lacks workitems.filter.docfields.sensitive.view, and the
     resulting WorkitemFilter must carry no docfield constraint at all."""
     import nx_lib.hooks as hooks
     import nx_lib.views.workitems as wv
@@ -401,8 +411,8 @@ def test_get_workitems_data_skips_sensitive_docfield_search(
         "load_permissions_for_user",
         lambda uid: [
             "workitems.view",
-            "workitems.filter.documentfields",
-            "workitems.filter.process.sydoc.test_proc",
+            "workitems.filter.docfields.view",
+            "process.sydoc.test_proc.view",
         ],
     )
 
@@ -415,7 +425,7 @@ def test_get_workitems_data_skips_sensitive_docfield_search(
     monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["validationuser"])
     monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: {"validationuser"})
     monkeypatch.setattr(
-        wv, "has_permission", lambda code: code != "workitems.filter.documentfields.sensitive"
+        wv, "has_permission", lambda code: code != "workitems.filter.docfields.sensitive.view"
     )
 
     # Mapped on BOTH legs -- proves the skip is caused by the sensitive-field
@@ -471,8 +481,8 @@ def test_docfield_search_absent_ms02_engine_fails_closed(
         "load_permissions_for_user",
         lambda uid: [
             "workitems.view",
-            "workitems.filter.documentfields",
-            "workitems.filter.process.sydoc.test_proc",
+            "workitems.filter.docfields.view",
+            "process.sydoc.test_proc.view",
         ],
     )
 
@@ -517,8 +527,8 @@ def test_docfield_search_ms02_resolver_error_fails_closed(
         "load_permissions_for_user",
         lambda uid: [
             "workitems.view",
-            "workitems.filter.documentfields",
-            "workitems.filter.process.sydoc.test_proc",
+            "workitems.filter.docfields.view",
+            "process.sydoc.test_proc.view",
         ],
     )
 
@@ -584,8 +594,8 @@ def test_get_workitems_data_queries_nonsensitive_docfield_search(
         "load_permissions_for_user",
         lambda uid: [
             "workitems.view",
-            "workitems.filter.documentfields",
-            "workitems.filter.process.sydoc.test_proc",
+            "workitems.filter.docfields.view",
+            "process.sydoc.test_proc.view",
         ],
     )
 
@@ -645,8 +655,8 @@ def test_get_workitems_data_unmapped_docfield_zeroes_both_sources(
         "load_permissions_for_user",
         lambda uid: [
             "workitems.view",
-            "workitems.filter.documentfields",
-            "workitems.filter.process.sydoc.test_proc",
+            "workitems.filter.docfields.view",
+            "process.sydoc.test_proc.view",
         ],
     )
 
@@ -697,8 +707,8 @@ def test_get_workitems_data_docfield_cache_hits_resolution_once(
         "load_permissions_for_user",
         lambda uid: [
             "workitems.view",
-            "workitems.filter.documentfields",
-            "workitems.filter.process.sydoc.test_proc",
+            "workitems.filter.docfields.view",
+            "process.sydoc.test_proc.view",
         ],
     )
 
@@ -749,8 +759,8 @@ def test_get_workitems_data_docfield_cache_never_caches_error_path(
         "load_permissions_for_user",
         lambda uid: [
             "workitems.view",
-            "workitems.filter.documentfields",
-            "workitems.filter.process.sydoc.test_proc",
+            "workitems.filter.docfields.view",
+            "process.sydoc.test_proc.view",
         ],
     )
 
@@ -816,8 +826,8 @@ def test_get_workitems_data_ms02_docfield_resolves_nonempty_set(
         "load_permissions_for_user",
         lambda uid: [
             "workitems.view",
-            "workitems.filter.documentfields",
-            "workitems.filter.process.sydoc.test_proc",
+            "workitems.filter.docfields.view",
+            "process.sydoc.test_proc.view",
         ],
     )
 
@@ -877,8 +887,8 @@ def test_get_workitems_data_ms02_docfield_cache_hits_resolution_once(
         "load_permissions_for_user",
         lambda uid: [
             "workitems.view",
-            "workitems.filter.documentfields",
-            "workitems.filter.process.sydoc.test_proc",
+            "workitems.filter.docfields.view",
+            "process.sydoc.test_proc.view",
         ],
     )
 
@@ -945,8 +955,8 @@ def test_get_workitems_data_fieldless_pair_searches_all_columns(
         "load_permissions_for_user",
         lambda uid: [
             "workitems.view",
-            "workitems.filter.documentfields",
-            "workitems.filter.process.sydoc.test_proc",
+            "workitems.filter.docfields.view",
+            "process.sydoc.test_proc.view",
         ],
     )
 
@@ -1008,8 +1018,8 @@ def test_get_workitems_data_fieldless_pair_excludes_sensitive_columns(
         "load_permissions_for_user",
         lambda uid: [
             "workitems.view",
-            "workitems.filter.documentfields",
-            "workitems.filter.process.sydoc.test_proc",
+            "workitems.filter.docfields.view",
+            "process.sydoc.test_proc.view",
         ],
     )
 
@@ -1022,7 +1032,7 @@ def test_get_workitems_data_fieldless_pair_excludes_sensitive_columns(
     monkeypatch.setattr(
         wv,
         "has_permission",
-        lambda code: code != "workitems.filter.documentfields.sensitive",
+        lambda code: code != "workitems.filter.docfields.sensitive.view",
     )
     monkeypatch.setattr(wv, "resolve_ms02_docfield_ids", lambda *a, **k: None)
     monkeypatch.setattr(wv, "fetch_merged_page", lambda filt, offset, per_page: ([], 0, []))
@@ -1059,8 +1069,8 @@ def _op_test_scaffold(monkeypatch, sql_log):
         "load_permissions_for_user",
         lambda uid: [
             "workitems.view",
-            "workitems.filter.documentfields",
-            "workitems.filter.process.sydoc.test_proc",
+            "workitems.filter.docfields.view",
+            "process.sydoc.test_proc.view",
         ],
     )
     monkeypatch.setattr(wv, "engine_statistics_db", _SqlLogEngine(sql_log))
@@ -1216,17 +1226,22 @@ def test_docfield_or_pair_processed_without_early_break(
         return [], 0, []
 
     import nx_lib.views.workitems as wv
+    import nx_lib.workitems.fields as wf
 
     monkeypatch.setattr(wv, "fetch_merged_page", _fake_fetch_merged_page)
 
     pair_indices = []
-    _orig_docfield_op = wv._docfield_op
+    _orig_docfield_op = wf._docfield_op
 
     def _spy_docfield_op(docops, idx):
         pair_indices.append(idx)
         return _orig_docfield_op(docops, idx)
 
-    monkeypatch.setattr(wv, "_docfield_op", _spy_docfield_op)
+    # _docfield_op now lives in nx_lib.workitems.fields, called module-
+    # qualified (`fields._docfield_op`) from both _docfield_pairs_normalized
+    # (same module) and the pair-fold loop in nx_lib.workitems.query -- so
+    # patching it here on its owning module intercepts both call sites.
+    monkeypatch.setattr(wf, "_docfield_op", _spy_docfield_op)
 
     resp = user_client.get(
         "/api/workitems",
@@ -1265,8 +1280,8 @@ def test_api_docfield_values_no_field_widens_and_excludes_sensitive(
         "load_permissions_for_user",
         lambda uid: [
             "workitems.view",
-            "workitems.filter.documentfields",
-            "workitems.filter.process.sydoc.test_proc",
+            "workitems.filter.docfields.view",
+            "process.sydoc.test_proc.view",
         ],
     )
 
@@ -1279,7 +1294,7 @@ def test_api_docfield_values_no_field_widens_and_excludes_sensitive(
     monkeypatch.setattr(
         wv,
         "has_permission",
-        lambda code: code != "workitems.filter.documentfields.sensitive",
+        lambda code: code != "workitems.filter.docfields.sensitive.view",
     )
 
     captured_field_keys = {}
@@ -2131,7 +2146,7 @@ def test_api_docfield_values_blocks_sensitive_without_perm(
     monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: {"validationuser"})
     # Everything allowed EXCEPT the sensitive perm.
     monkeypatch.setattr(
-        wv, "has_permission", lambda code: code != "workitems.filter.documentfields.sensitive"
+        wv, "has_permission", lambda code: code != "workitems.filter.docfields.sensitive.view"
     )
     resp = user_client.get("/api/docfield_values?field=validationuser&process=all")
     assert resp.status_code == 200
@@ -2156,8 +2171,8 @@ def test_api_docfield_values_allows_sensitive_with_perm(
 def test_api_docfield_values_process_not_allowed_returns_empty(
     user_client, workitems_all_perms, monkeypatch
 ):
-    """A caller holding the blanket workitems.filter.documentfields perm but
-    NOT workitems.filter.process.<p> for the specific process requested must
+    """A caller holding the blanket workitems.filter.docfields.view perm but
+    NOT process.<client>.<name>.view for the specific process requested must
     not get value suggestions leaked from that process -- fail closed to []
     (never a leak, never an error that confirms/denies existence)."""
     import nx_lib.views.workitems as wv
@@ -2167,8 +2182,8 @@ def test_api_docfield_values_process_not_allowed_returns_empty(
 
     with user_client.session_transaction() as sess:
         sess["permissions"] = [
-            "workitems.filter.documentfields",
-            "workitems.filter.process.sydoc.allowedprocess",
+            "workitems.filter.docfields.view",
+            "process.sydoc.allowedprocess.view",
         ]
 
     resp = user_client.get(
@@ -2184,7 +2199,7 @@ def test_api_docfield_values_all_scopes_to_allowed_processes(
 ):
     """`process=all` (the JS default when no process filter is selected) must
     not be an unfiltered escape hatch: it narrows to the caller's own
-    workitems.filter.process.* grants, not every process in SearchConfig.
+    process.<client>.<name>.view grants, not every process in SearchConfig.
     With zero process grants, "all" fails closed to []."""
     import nx_lib.views.workitems as wv
 
@@ -2192,7 +2207,7 @@ def test_api_docfield_values_all_scopes_to_allowed_processes(
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
 
     with user_client.session_transaction() as sess:
-        sess["permissions"] = ["workitems.filter.documentfields"]  # no process grants
+        sess["permissions"] = ["workitems.filter.docfields.view"]  # no process grants
 
     resp = user_client.get(
         "/api/docfield_values",
@@ -2258,8 +2273,8 @@ def test_prepared_docs_link_visible_for_target_process(
         "load_permissions_for_user",
         lambda uid: [
             "workitems.view",
-            "workitems.import.preparedaudit",
-            "workitems.filter.process.sydoc.05_PDBS",
+            "workitems.prepared.view",
+            "process.sydoc.05_PDBS.view",
         ],
     )
 
@@ -2290,8 +2305,8 @@ def test_prepared_docs_link_rendered_but_hidden_off_target(
         "load_permissions_for_user",
         lambda uid: [
             "workitems.view",
-            "workitems.import.preparedaudit",
-            "workitems.filter.process.sydoc.05_PDBS",
+            "workitems.prepared.view",
+            "process.sydoc.05_PDBS.view",
         ],
     )
 
@@ -2554,8 +2569,8 @@ def test_prepared_documents_octo_status_false_when_stage_not_found(
     monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: {"100": [42]})
     monkeypatch.setattr(
         wv,
-        "_resolve_prepared_doc_wid_stage",
-        lambda w: {"status": None, "current_stage": None},
+        "_resolve_prepared_doc_wid_stages",
+        lambda wids: {w: {"status": None, "current_stage": None} for w in wids},
     )
 
     captured = {}
@@ -2641,12 +2656,12 @@ def test_prepared_documents_resolves_stage_against_owning_client_engine(
         calls.append(("default", engine))
         return {"status": "Ready", "current_stage": "Extraction"}
 
-    def fake_pg_resolve(engine, wid):
+    def fake_pg_batch_resolve(engine, wids):
         calls.append(("ms02", engine))
-        return {"status": "Done", "current_stage": "Delivery"}
+        return {int(w): {"status": "Done", "current_stage": "Delivery"} for w in wids}
 
     monkeypatch.setattr(wv, "resolve_octo_wid_stage", fake_default_resolve)
-    monkeypatch.setattr(wv, "_resolve_octo_wid_stage_pg", fake_pg_resolve)
+    monkeypatch.setattr(wv, "_resolve_octo_wid_stage_pg_batch", fake_pg_batch_resolve)
 
     captured = {}
     real_render_template = wv.render_template
@@ -2772,8 +2787,8 @@ def test_prepared_documents_preview_button_requires_details_view(
     monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: {"100": [42]})
     monkeypatch.setattr(
         wv,
-        "_resolve_prepared_doc_wid_stage",
-        lambda w: {"status": "Ready", "current_stage": "Import"},
+        "_resolve_prepared_doc_wid_stages",
+        lambda wids: {w: {"status": "Ready", "current_stage": "Import"} for w in wids},
     )
 
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
@@ -3265,8 +3280,8 @@ def test_prepared_docs_preview_button_carries_stage(user_client, workitems_all_p
     monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: {"100": [42]})
     monkeypatch.setattr(
         wv,
-        "_resolve_prepared_doc_wid_stage",
-        lambda w: {"status": "In Progress", "current_stage": "Validation"},
+        "_resolve_prepared_doc_wid_stages",
+        lambda wids: {w: {"status": "In Progress", "current_stage": "Validation"} for w in wids},
     )
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
     resp = user_client.get("/prepared_documents")

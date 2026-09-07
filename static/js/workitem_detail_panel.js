@@ -1,0 +1,822 @@
+// Shared workitem detail panel + lightbox renderer (#191). Included from
+// workitems_overview.html, reporting.html (drill drawer) and
+// prepared_documents.html via templates/js/_workitem_detail_panel_js.html,
+// which supplies window.NX_I18N_WORKITEM_DETAIL_PANEL before this loads.
+(function () {
+  const API_PREFIX = window.API_PREFIX;
+  const csrfToken = document.getElementById("csrfToken")?.value || "";
+  const I18N = window.NX_I18N_WORKITEM_DETAIL_PANEL;
+
+  window.fieldConfig = window.fieldConfig || { search_options: {}, labels: {} };
+
+  function buildPanelMarkup(workitemid, status, currentStage, perms, readOnly) {
+    const imagesBlock = perms.images
+      ? `<div id="image-container-${workitemid}" class="flex-1 flex justify-center items-center overflow-y-scroll p-2 border-2 border-dashed border-gray-200 rounded-2xl bg-white"><p class="text-gray-500 text-center px-2">${I18N.clickToggleAgain}</p></div>`
+      : `<div class="flex-1 flex justify-center items-center p-2 border-2 border-gray-100 rounded-2xl bg-gray-50"><div class="text-center"><i class="fas fa-eye-slash text-gray-400 text-3xl mb-2"></i><p class="text-gray-500">${I18N.mediaPreviewRestricted}</p></div></div>`;
+    const historyBlock = perms.audit
+      ? `<div id="history-container-${workitemid}" class="flex-grow overflow-y-auto pr-2"><p class="text-gray-500 italic">${I18N.loadingHistory}</p></div>`
+      : `<div class="flex-grow flex items-center justify-center bg-gray-50 rounded"><p class="text-gray-400"><i class="fas fa-lock mr-2"></i>${I18N.auditHistoryRestricted}</p></div>`;
+    const fieldsBlock = perms.fields
+      ? `<div id="fields-container-${workitemid}" data-src-wid="${workitemid}" class="flex-grow pr-2"><p class="text-gray-500 italic">${I18N.loadingDetails}</p></div>`
+      : `<div class="flex-grow flex items-center justify-center bg-gray-50 rounded"><p class="text-gray-400 italic"><i class="fas fa-lock mr-2"></i>${I18N.documentFieldsRestricted}</p></div>`;
+    return `
+      <div class="details-content-wrapper p-4 bg-gray-100 flex flex-col gap-6">
+        <div id="detail-panel-header-${workitemid}" class="detail-panel-header"></div>
+        ${readOnly ? '' : `<div id="timeline-container-${workitemid}" class="relative bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-gray-100" data-current-stage="${currentStage}" data-status="${status}">
+          <div class="relative flex justify-between items-center">
+            <div class="absolute top-1/2 h-1 -translate-y-1/2 bg-gray-200 rounded-full" style="left: 28px; right: 28px;"></div>
+            <div class="progress-line absolute top-1/2 h-1 -translate-y-1/2 bg-[var(--nx-accent)] rounded-full" style="left: 28px; right: 28px; transform: scaleX(0); transform-origin: left; transition: transform 0.8s ease-in-out;"></div>
+            <div class="process-step z-10 flex flex-col items-center text-center"><div class="step-icon-wrapper flex items-center justify-center w-14 h-14 bg-white border-2 border-gray-300 rounded-full"><i class="fas fa-cloud-arrow-up text-xl text-gray-400"></i></div><p class="step-label mt-3 font-semibold text-gray-500 text-sm">Import</p></div>
+            <div class="process-step z-10 flex flex-col items-center text-center"><div class="step-icon-wrapper flex items-center justify-center w-14 h-14 bg-white border-2 border-gray-300 rounded-full"><i class="fas fa-gears text-xl text-gray-400"></i></div><p class="step-label mt-3 font-semibold text-gray-500 text-sm">Extraction</p></div>
+            <div class="process-step z-10 flex flex-col items-center text-center"><div class="step-icon-wrapper flex items-center justify-center w-14 h-14 bg-white border-2 border-gray-300 rounded-full"><i class="fas fa-shield-halved text-xl text-gray-400"></i></div><p class="step-label mt-3 font-semibold text-gray-500 text-sm">Validation</p></div>
+            <div class="process-step z-10 flex flex-col items-center text-center"><div class="step-icon-wrapper flex items-center justify-center w-14 h-14 bg-white border-2 border-gray-300 rounded-full"><i class="fas fa-paper-plane text-xl text-gray-400"></i></div><p class="step-label mt-3 font-semibold text-gray-500 text-sm">Delivery</p></div>
+          </div>
+        </div>`}
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          <div class="flex flex-col gap-6 h-[50rem]">
+            ${imagesBlock}
+            <div class="flex-1 flex flex-col bg-white rounded-2xl p-5 border border-gray-100 shadow-sm overflow-hidden">
+              <h4 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3 border-b border-gray-100 pb-3">${I18N.history}</h4>
+              ${historyBlock}
+            </div>
+          </div>
+          <div class="flex flex-col bg-white rounded-2xl p-5 border border-gray-100 shadow-sm h-[50rem] overflow-y-auto">
+            <h4 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3 border-b border-gray-100 pb-3">${I18N.documentDetails}</h4>
+            ${fieldsBlock}
+          </div>
+        </div>
+        ${perms.fields ? `<div id="tables-container-${workitemid}" data-src-wid="${workitemid}" class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm" hidden></div>` : ''}
+      </div>`;
+  }
+
+  async function loadHistory(workitemId) {
+        const historyContainer = document.getElementById(`history-container-${workitemId}`);
+        if (!historyContainer) {
+            console.error(`History container not found for workitem ID: ${workitemId}`);
+            return;
+        }
+
+        if (historyContainer.dataset.loaded === 'true') {
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_PREFIX}api/get_audithistory/${workitemId}${_clientQS(workitemId, '?')}`, {headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+            }});
+            if (response.status === 403) {
+                 historyContainer.innerHTML = `<p class="text-gray-400 italic"><i class="fas fa-lock mr-2"></i>${I18N.restricted}</p>`;
+                 return;
+            }
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            const historyData = await response.json();
+
+            historyContainer.innerHTML = '';
+
+            if (historyData.length === 0) {
+                historyContainer.innerHTML = `<p class="text-gray-500">${I18N.noHistory}</p>`;
+            } else {
+                const timeline = document.createElement('div');
+                timeline.className = 'border-l-2 border-[var(--nx-card-hover-border)] ml-2';
+
+                historyData.forEach(item => {
+                    const eventElement = document.createElement('div');
+                    eventElement.className = 'relative mb-4 pl-6';
+
+                    const dot = document.createElement('div');
+                    dot.className = 'absolute -left-[7px] top-1 h-3 w-3 rounded-full bg-[var(--nx-accent)]';
+                    eventElement.appendChild(dot);
+
+                    const eventText = document.createElement('p');
+                    eventText.className = 'text-sm text-gray-800';
+                    eventText.innerHTML = `<strong class="font-semibold">${item.Step}:</strong> ${item.Activity}`;
+                    eventElement.appendChild(eventText);
+
+                    const detailsText = document.createElement('p');
+                    detailsText.className = 'text-xs text-gray-500 mt-1';
+                    const eventDate = new Date(item.DateTime);
+                    const formattedDate = eventDate.toLocaleString(undefined, {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    detailsText.textContent = formattedDate;
+                    eventElement.appendChild(detailsText);
+
+                    timeline.appendChild(eventElement);
+                });
+                historyContainer.appendChild(timeline);
+            }
+            historyContainer.dataset.loaded = 'true';
+        } catch (error) {
+            console.error('Failed to load history:', error);
+            historyContainer.innerHTML = `<p class="text-red-500">${I18N.couldNotLoadHistory}</p>`;
+        }
+    }
+
+  function renderWorkitemTimeline(container) {
+        if (!container || container.dataset.rendered === 'true') return;
+
+        const currentStage = container.dataset.currentStage;
+        const status = container.dataset.status;
+        const progressLine = container.querySelector('.progress-line');
+        const stepElements = container.querySelectorAll('.process-step');
+
+        const stages = ['Import', 'Extraction', 'Validation', 'Delivery'];
+        const stageIndex = stages.indexOf(currentStage);
+        const scaleFactors = {
+            0: 0,
+            1: 0.3334,
+            2: 0.6667,
+            3: 1
+        };
+
+        const progressValues = {
+            0: '0%',
+            1: '33%',
+            2: '66%',
+            3: '100%'
+        };
+
+        stepElements.forEach(step => {
+            step.querySelector('.step-icon-wrapper').classList.remove('active', 'completed');
+            step.querySelector('.step-label').classList.remove('active', 'completed');
+        });
+
+        if (status === 'Done') {
+            stepElements.forEach(step => {
+                step.querySelector('.step-icon-wrapper').classList.add('completed');
+                step.querySelector('.step-label').classList.add('completed');
+            });
+            progressLine.style.transform = `scaleX(1)`;
+        } else if (stageIndex !== -1) {
+            for (let i = 0; i < stageIndex; i++) {
+                stepElements[i].querySelector('.step-icon-wrapper').classList.add('completed');
+                stepElements[i].querySelector('.step-label').classList.add('completed');
+            }
+            stepElements[stageIndex].querySelector('.step-icon-wrapper').classList.add('active');
+            stepElements[stageIndex].querySelector('.step-label').classList.add('active');
+            progressLine.style.transform = `scaleX(${scaleFactors[stageIndex]})`;
+        } else {
+            progressLine.style.transform = `scaleX(0)`;
+        }
+
+        container.dataset.rendered = 'true';
+    }
+
+  function loadImagesInBatch(container, workitemid, totalImages) {
+        const existingBtn = container.querySelector('.load-more-btn');
+        if (existingBtn) {
+            existingBtn.remove();
+        }
+
+        const loadedCount = parseInt(container.dataset.loadedCount || '0', 10);
+        const batchSize = 7;
+        const endIndex = Math.min(loadedCount + batchSize, totalImages);
+
+        for (let i = loadedCount; i < endIndex; i++) {
+            loadImage(container, workitemid, i);
+        }
+
+        container.dataset.loadedCount = endIndex;
+
+        if (endIndex < totalImages) {
+            const loadMoreBtn = document.createElement('button');
+            loadMoreBtn.className = 'load-more-btn col-span-full text-center w-full mt-4 px-4 py-2 bg-[var(--nx-accent)] text-white rounded-lg hover:bg-[var(--nx-accent-hover)] transition';
+            loadMoreBtn.textContent = `${I18N.loadMore} (${endIndex} / ${totalImages})`;
+            loadMoreBtn.dataset.workitemid = workitemid;
+            loadMoreBtn.dataset.totalImages = totalImages;
+            container.appendChild(loadMoreBtn);
+        }
+    }
+
+  // Escape values interpolated into innerHTML. Field/cell values + column
+  // names are extracted document content (attacker-influenceable via a crafted
+  // document), so they must never be injected raw. (Box .title is set via the
+  // DOM property, which is already safe.)
+  function srcEsc(s) {
+        return String(s == null ? '' : s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+  // A table cell is "just another source": flatten line-item cells to the
+  // same {key,label,value,locations,confidence,kind} shape the overlay draws.
+  // key encodes table/row/cell so a grid cell click can pulse exactly its box.
+  function tableCellSources(workitemid) {
+        const tables = (window.__tableByWorkitem && window.__tableByWorkitem[workitemid]) || [];
+        const out = [];
+        tables.forEach((t, ti) => (t.rows || []).forEach((row, ri) => row.forEach((c, ci) => {
+            out.push({
+                key: `t${ti}r${ri}c${ci}`, label: c.col, value: c.value,
+                locations: c.locations || [], confidence: c.confidence, kind: 'cell',
+            });
+        })));
+        return out;
+    }
+
+  function allSources(workitemid) {
+        const fields = (window.__srcByWorkitem && window.__srcByWorkitem[workitemid]) || [];
+        return fields.concat(tableCellSources(workitemid));
+    }
+
+  // No DB label for a raw Octo column code (e.g. "TabNetAmount", "OrdPk")?
+  // Split it into words instead of showing it shouting in one block.
+  function splitCode(s) {
+        return String(s)
+            .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+            .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
+    }
+
+  // Line-item tables render as REAL tables (one <tr> per row) in their own
+  // full-width card below the two-column grid -- the narrow Document Details
+  // column could only ever stack cells label-over-value, which made rows
+  // impossible to compare (#199). Wide SAP-style Tab*/Ord* grids scroll
+  // horizontally inside .src-table-scroll.
+  function renderTableGrids(workitemid) {
+        const tables = (window.__tableByWorkitem && window.__tableByWorkitem[workitemid]) || [];
+        const labels = window.fieldConfig.labels || {};
+        let html = '';
+        tables.forEach((t, ti) => {
+            const rows = t.rows || [];
+            if (!rows.length) return;
+            // Column order = first seen across all rows (a row may omit cells).
+            const cols = [];
+            rows.forEach(row => row.forEach(c => { if (cols.indexOf(c.col) === -1) cols.push(c.col); }));
+            const title = srcEsc(t.title || 'Table')
+                + ` <span class="src-table-count">(${rows.length} ${rows.length === 1 ? I18N.row : I18N.rows})</span>`;
+            const head = `<th class="src-table-rownum">#</th>`
+                + cols.map(col => `<th>${srcEsc(labels[col.toLowerCase()] || splitCode(col))}</th>`).join('');
+            const body = rows.map((row, ri) => {
+                const byCol = {};
+                row.forEach((c, ci) => { byCol[c.col] = { c: c, ci: ci }; });
+                const cells = cols.map(col => {
+                    const hit = byCol[col];
+                    // Missing cell, or extracted as empty: one em dash. An empty value
+                    // with a 0% confidence chip next to it is noise, not information.
+                    if (!hit || !String(hit.c.value == null ? '' : hit.c.value).trim()) {
+                        return `<td class="src-table-empty">&mdash;</td>`;
+                    }
+                    const c = hit.c;
+                    const hasLoc = !!(c.locations && c.locations.length);
+                    const page = hasLoc ? c.locations[0].page : '';
+                    const confCls = window.srcConfClass(c.confidence);
+                    const confBadge = confCls
+                        ? ` <span class="src-conf-badge ${confCls}" title="${I18N.extractionConfidence}">${window.srcConfPct(c.confidence)}</span>`
+                        : '';
+                    // ponytail: no per-cell "no source location" badge -- one badge per cell
+                    // buries the values it annotates. The pointer/hover affordance on
+                    // .is-locatable already marks which cells can be located.
+                    const titleAttr = hasLoc
+                        ? ` title="${I18N.clickToLocate}"` : '';
+                    return `<td class="src-field-row${hasLoc ? ' is-locatable' : ''}"`
+                        + ` data-key="t${ti}r${ri}c${hit.ci}" data-page="${page}"${titleAttr}>`
+                        + `${srcEsc(c.value)}${confBadge}</td>`;
+                }).join('');
+                return `<tr><td class="src-table-rownum">${ri + 1}</td>${cells}</tr>`;
+            }).join('');
+            html += `<details class="src-table-grid" open><summary class="src-table-title">${title}</summary>`
+                + `<div class="src-table-scroll"><table class="src-table">`
+                + `<thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div></details>`;
+        });
+        return html;
+    }
+
+  function buildSourceDetailsHtml(workitemid, opts) {
+        const fields = (window.__fieldsByWorkitem && window.__fieldsByWorkitem[workitemid]) || {};
+        // Suppress the "no source location" badge when the user lacks the
+        // source-location perm (the backend strips locations from everything,
+        // so it's a permission state, not missing data).
+        const locVisible = !(window.__srcLocVisibleByWorkitem
+            && window.__srcLocVisibleByWorkitem[workitemid] === false);
+        let html = '';
+        if (Object.keys(fields).length > 0) {
+            const srcByKey = {};
+            (window.__srcByWorkitem && window.__srcByWorkitem[workitemid] || []).forEach(s => { srcByKey[s.key] = s; });
+            let fieldsHtml = '<dl class="divide-y divide-gray-200">';
+            for (const key in fields) {
+                if (Object.hasOwnProperty.call(fields, key) && fields[key]) {
+                    const labelKey = key.toLowerCase();
+                    const label = (window.fieldConfig.labels || {})[labelKey] || key;
+                    const src = srcByKey[key];
+                    const hasLoc = !!(src && src.locations && src.locations.length);
+                    const page = hasLoc ? src.locations[0].page : '';
+                    const rowCls = 'src-field-row py-2 flex justify-between items-center gap-4'
+                        + (hasLoc ? ' is-locatable' : '');
+                    const badge = (locVisible && src && !hasLoc)
+                        ? ` <span class="src-no-loc-badge">${I18N.noSourceLocation}</span>` : '';
+                    const titleAttr = hasLoc
+                        ? ` title="${I18N.clickToLocate}"` : '';
+                    const confCls = src ? window.srcConfClass(src.confidence) : '';
+                    const confBadge = confCls
+                        ? ` <span class="src-conf-badge ${confCls}" title="${I18N.extractionConfidence}">${window.srcConfPct(src.confidence)}</span>`
+                        : '';
+                    fieldsHtml += `
+                        <div class="${rowCls}" data-key="${key}" data-page="${page}"${titleAttr}>
+                            <dt class="text-gray-500 truncate">${srcEsc(label)}${badge}</dt>
+                            <dd class="font-semibold text-gray-900 text-right">${srcEsc(fields[key])}${confBadge}</dd>
+                        </div>`;
+                }
+            }
+            fieldsHtml += '</dl>';
+            html += fieldsHtml;
+        }
+        // Inline panel keeps tables out (they live in their own full-width card);
+        // the lightbox review panel is standalone, so it still appends them.
+        if (!opts || opts.tables !== false) html += renderTableGrids(workitemid);
+        return html;
+    }
+
+  function renderThumbOverlay(wrap, imgEl, workitemid, page) {
+        const old = wrap.querySelector('.src-hl-layer-thumb');
+        if (old) old.remove();
+        if (localStorage.getItem('srcHlOn') !== '1') return;
+        const srcs = allSources(workitemid);
+        const natW = imgEl.naturalWidth, natH = imgEl.naturalHeight;
+        const w = imgEl.clientWidth, h = imgEl.clientHeight;
+        if (!natW || !natH || !w || !h) return;
+        const scale = Math.min(w / natW, h / natH);
+        const offX = (w - natW * scale) / 2, offY = (h - natH * scale) / 2;
+        const layer = document.createElement('div');
+        layer.className = 'src-hl-layer-thumb';
+        srcs.forEach(s => (s.locations || []).forEach(loc => {
+            if (loc.page !== page) return;
+            const b = document.createElement('div');
+            const confCls = window.srcConfClass(s.confidence);
+            b.className = 'src-hl-box' + (confCls ? ' ' + confCls : '')
+                + (s.kind === 'cell' ? ' src-hl-box--cell' : '');
+            b.style.left = (offX + loc.rect.left * scale) + 'px';
+            b.style.top = (offY + loc.rect.top * scale) + 'px';
+            b.style.width = (loc.rect.width * scale) + 'px';
+            b.style.height = (loc.rect.height * scale) + 'px';
+            layer.appendChild(b);
+        }));
+        wrap.appendChild(layer);
+    }
+
+  function refreshThumbOverlays() {
+        document.querySelectorAll('.src-thumb').forEach(wrap => {
+            const img = wrap.querySelector('img.workitem-image');
+            if (img) {
+                renderThumbOverlay(wrap, img, wrap.dataset.workitemid,
+                                   parseInt(wrap.dataset.page || '0', 10));
+            }
+        });
+    }
+
+  async function loadImage(container, workitemid, index) {
+        const placeholder = document.createElement('div');
+        placeholder.className = 'flex justify-center items-center w-40 h-40 bg-gray-200 rounded animate-pulse';
+
+        const loadMoreButton = container.querySelector('.load-more-btn');
+        if (loadMoreButton) {
+            container.insertBefore(placeholder, loadMoreButton);
+        } else {
+            container.appendChild(placeholder);
+        }
+        try {
+            const apiUrl = `${API_PREFIX}api/get_media_raw/${workitemid}/${index}${_clientQS(workitemid, '?')}`;
+            const response = await fetch(apiUrl, {headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+            }});
+
+            if (!response.ok) {
+                throw new Error(`Status ${response.status}`);
+            }
+
+            const imageBlob = await response.blob();
+            const imageUrl = URL.createObjectURL(imageBlob);
+
+            const imgElement = document.createElement('img');
+            imgElement.src = imageUrl;
+            imgElement.alt = `${I18N.media} ${index + 1} ${I18N.forWorkitem}${workitemid}`;
+            // object-contain (not cover) shows the whole page so source boxes map correctly.
+            imgElement.className = 'w-40 h-40 object-contain rounded shadow-lg workitem-image cursor-pointer bg-gray-50';
+
+            const thumbWrap = document.createElement('div');
+            thumbWrap.className = 'src-thumb';
+            thumbWrap.dataset.workitemid = String(workitemid);
+            thumbWrap.dataset.page = String(index);
+            thumbWrap.appendChild(imgElement);
+
+            imgElement.onload = () => {
+                placeholder.replaceWith(thumbWrap);
+                renderThumbOverlay(thumbWrap, imgElement, String(workitemid), index);
+            };
+
+            imgElement.onerror = () => {
+                URL.revokeObjectURL(imageUrl);
+                throw new Error('Image could not be loaded into element.');
+            }
+
+
+        } catch (error) {
+            console.error(`Error loading image index ${index}:`, error);
+            placeholder.innerHTML = `<div class="text-center text-xs text-red-600 p-2">${I18N.failedToLoadImage}${index + 1}</div>`;
+            placeholder.classList.remove('animate-pulse', 'bg-gray-200');
+            placeholder.classList.add('bg-red-100', 'border', 'border-red-400');
+        }
+    }
+
+  async function loadDetailData(workitemid, perms) {
+    const imageContainer = document.getElementById(`image-container-${workitemid}`);
+    const fieldsContainer = document.getElementById(`fields-container-${workitemid}`);
+    if (perms && perms.audit !== false) loadHistory(workitemid);
+    if (!(imageContainer && imageContainer.dataset.loaded !== 'true') && !fieldsContainer) return;
+    if (imageContainer) imageContainer.innerHTML = `<p class="text-gray-500 animate-pulse">${I18N.checkingForMedia}</p>`;
+    try {
+      const infoResponse = await fetch(`${API_PREFIX}api/get_media_info/${workitemid}${_clientQS(workitemid, '?')}`, {headers: {
+        'Content-Type': 'application/json', 'X-CSRFToken': csrfToken
+      }});
+      if (!infoResponse.ok) {
+        if (infoResponse.status === 403) throw new Error("Restricted");
+        throw new Error('Could not fetch media information.');
+      }
+      const mediaInfo = await infoResponse.json();
+      const imageCount = mediaInfo.media_count || 0;
+      const fields = mediaInfo.fields || {};
+      window.__srcByWorkitem = window.__srcByWorkitem || {};
+      window.__srcByWorkitem[workitemid] = mediaInfo.field_sources || [];
+      window.__tableByWorkitem = window.__tableByWorkitem || {};
+      window.__tableByWorkitem[workitemid] = mediaInfo.table_sources || [];
+      window.__srcLocVisibleByWorkitem = window.__srcLocVisibleByWorkitem || {};
+      window.__srcLocVisibleByWorkitem[workitemid] = mediaInfo.source_location_visible !== false;
+      if (fieldsContainer) {
+        window.__fieldsByWorkitem = window.__fieldsByWorkitem || {};
+        window.__fieldsByWorkitem[workitemid] = fields;
+        fieldsContainer.innerHTML = buildSourceDetailsHtml(workitemid, { tables: false })
+          || `<p class="text-gray-500 p-2">${I18N.noAdditionalDetails}</p>`;
+      }
+      const tablesContainer = document.getElementById(`tables-container-${workitemid}`);
+      if (tablesContainer) {
+        const tablesHtml = renderTableGrids(workitemid);
+        tablesContainer.innerHTML = tablesHtml;
+        tablesContainer.hidden = !tablesHtml;
+      }
+      if (imageContainer) {
+        imageContainer.dataset.loaded = 'true';
+        if (imageCount === 0) {
+          imageContainer.innerHTML = `<p class="text-gray-500">${I18N.noMediaFound}</p>`;
+        } else {
+          imageContainer.innerHTML = '';
+          imageContainer.classList.remove('justify-center', 'items-center');
+          imageContainer.classList.add('flex-wrap', 'gap-4', 'justify-start');
+          imageContainer.dataset.loadedCount = '0';
+          loadImagesInBatch(imageContainer, workitemid, imageCount);
+        }
+      }
+    } catch (error) {
+      if (imageContainer) {
+        imageContainer.innerHTML = `<p class="text-red-500">${I18N.couldNotLoadMedia}</p>`;
+        imageContainer.dataset.loaded = 'true';
+      }
+    }
+  }
+
+  window.NexoraWorkitemDetail = window.NexoraWorkitemDetail || {};
+  window.NexoraWorkitemDetail._buildPanelMarkup = buildPanelMarkup;
+  // wid -> client code of the row it was rendered from (see render()).
+  const _clientByWid = {};
+  function _clientQS(workitemId, sep) {
+    const c = _clientByWid[String(workitemId)];
+    return c ? `${sep}client=${encodeURIComponent(c)}` : '';
+  }
+  window.NexoraWorkitemDetail.render = function (workitemId, containerEl, opts) {
+    const { readOnly = false, perms = {} } = opts || {};
+    if (!containerEl) return;
+    const wid = String(workitemId);
+    // Workitem ids are not unique across clients, so every detail request
+    // must say which client's row was clicked.
+    _clientByWid[wid] = (opts && opts.client) || containerEl.dataset.client || '';
+    const status = containerEl.dataset.status || (opts && opts.status) || '';
+    const currentStage = containerEl.dataset.currentStage || (opts && opts.currentStage) || '';
+    containerEl.innerHTML = buildPanelMarkup(wid, status, currentStage, perms, readOnly);
+    renderWorkitemTimeline(containerEl.querySelector('[id^="timeline-container-"]'));
+    _renderHeaderChip(wid, opts);            // filled in Task 3.4; no-op until then
+    loadDetailData(wid, perms);
+    return wid;
+  };
+  const _PREPARED_DOCS_URL = API_PREFIX + "prepared_documents";
+  function _renderHeaderChip(workitemId, opts) {
+    const pid = opts && opts.inRegisterPid;
+    if (!pid) return;
+    const host = document.getElementById(`detail-panel-header-${workitemId}`);
+    if (!host) return;
+    const url = `${_PREPARED_DOCS_URL}?pid=${encodeURIComponent(pid)}`;
+    host.innerHTML = `<a href="${url}" class="nx-label nx-label--blue inline-flex items-center gap-1"
+      data-testid="workitem-in-register"><i class="fas fa-clipboard-list"></i>${I18N.inRegister}</a>`;
+  }
+
+  window.NexoraWorkitemDetail.attachLightbox = function (cfg) {
+    // --- closure-local state per instance ---
+    let currentImages = [];
+    let currentIndex = 0;
+
+    // --- resolve shell elements from the explicit id-map ---
+    const modal = document.getElementById(cfg.modal);
+    const modalImg = document.getElementById(cfg.image);
+    const srcHlLayer = document.getElementById(cfg.hlLayer);
+    const srcHlToggle = document.getElementById(cfg.hlToggle);
+    const srcHlToggleLabel = document.getElementById(cfg.hlToggleLabel);
+
+    // No-op when the shell is absent (e.g. partial rendered without the modal markup).
+    if (!modal) return { openForWorkitem() {}, close() {} };
+
+    // --- modal-scoped button lookups (prevents collision with other .modal-close elements) ---
+    const closeBtn = modal.querySelector('.modal-close');
+    const prevBtn = modal.querySelector('.modal-prev');
+    const nextBtn = modal.querySelector('.modal-next');
+
+    // ---- Source highlighting (read-only: show where values were found) ----
+    const srcHl = {
+        on: localStorage.getItem('srcHlOn') === '1',
+        workitemid: null,
+        pendingPulse: null,
+    };
+
+    // Safety net: keep the overlay locked to the image's box if it changes size
+    // after the initial draw for any reason other than the open zoom (e.g. the
+    // values panel reflowing, late image decode, viewport resize). Skipped while a
+    // zoom animation is mid-flight -- that frame is handled by drawOverlayWhenStable
+    // once the animation finishes, so boxes never flash out of register.
+    if (window.ResizeObserver && modalImg) {
+        new ResizeObserver(() => {
+            if (!modal || modal.style.display !== 'flex') return;
+            const animating = modalImg.getAnimations && modalImg.getAnimations().length;
+            if (!animating) renderModalOverlay();
+        }).observe(modalImg);
+    }
+
+    function currentSources() {
+        return window.allSources(srcHl.workitemid);
+    }
+
+    function hasAnyLocation() {
+        return currentSources().some(s => (s.locations || []).length > 0);
+    }
+
+    function renderModalOverlay(pulseKey) {
+        if (!srcHlLayer || !modalImg) return;
+        srcHlLayer.innerHTML = '';
+        // Only offer the toggle when this document actually has locations.
+        if (srcHlToggle) {
+            srcHlToggle.hidden = !hasAnyLocation();
+            srcHlToggle.classList.toggle('is-on', srcHl.on);
+            if (srcHlToggleLabel) {
+                srcHlToggleLabel.textContent = srcHl.on
+                    ? I18N.hideSources : I18N.showSources;
+            }
+        }
+        if (!srcHl.on && !pulseKey) return;
+        const natW = modalImg.naturalWidth, natH = modalImg.naturalHeight;
+        if (!natW || !natH) return;  // image not decoded yet
+        // Measure the image's LAYOUT box (offset*), NOT getBoundingClientRect().
+        // getBoundingClientRect() returns the *visual* (post-transform) rect, so
+        // reading it while the lightbox zoom animation (scale 0.5 -> 1) is mid-flight
+        // pinned the overlay to a shrunken frame that was never updated once the zoom
+        // settled -> boxes stranded in blank space, and "jumping" on hide/show because
+        // the re-render then measured the settled rect. offset* is transform-immune,
+        // so the overlay always maps to the final displayed page. The layer is
+        // position:absolute inside #imageModal, so offsetLeft/Top share its space.
+        const w = modalImg.offsetWidth, h = modalImg.offsetHeight;
+        if (!w || !h) return;  // not laid out yet
+        srcHlLayer.style.left = modalImg.offsetLeft + 'px';
+        srcHlLayer.style.top = modalImg.offsetTop + 'px';
+        srcHlLayer.style.width = w + 'px';
+        srcHlLayer.style.height = h + 'px';
+        currentSources().forEach(src => {
+            (src.locations || []).forEach(loc => {
+                if (loc.page !== currentIndex) return;
+                const confCls = window.srcConfClass(src.confidence);
+                const box = document.createElement('div');
+                box.className = 'src-hl-box'
+                    + (confCls ? ' ' + confCls : '')
+                    + (src.kind === 'cell' ? ' src-hl-box--cell' : '')
+                    + (pulseKey && src.key === pulseKey ? ' is-pulse' : '');
+                box.style.left = (loc.rect.left / natW * w) + 'px';
+                box.style.top = (loc.rect.top / natH * h) + 'px';
+                box.style.width = (loc.rect.width / natW * w) + 'px';
+                box.style.height = (loc.rect.height / natH * h) + 'px';
+                const confPct = window.srcConfPct(src.confidence);
+                box.title = src.label + ': ' + (src.value == null ? '' : src.value)
+                    + (confPct ? ' (' + confPct + ')' : '');
+                srcHlLayer.appendChild(box);
+            });
+        });
+    }
+
+    function setSrcHl(on) {
+        srcHl.on = on;
+        localStorage.setItem('srcHlOn', on ? '1' : '0');
+        renderModalOverlay();
+        window.refreshThumbOverlays();
+    }
+
+    // A value/cell was clicked to locate it -> make sure source boxes are on so
+    // the user sees them in context. The toggle flips to "Hide sources" on the
+    // next renderModalOverlay (driven by showImage). No-op if already on.
+    function ensureSourcesOn() {
+        if (srcHl.on) return;
+        srcHl.on = true;
+        localStorage.setItem('srcHlOn', '1');
+        window.refreshThumbOverlays();
+    }
+
+    // Open the lightbox for a specific workitem + page (used by click-to-locate
+    // and the thumbnail click handler). pulseKey flashes one field's box.
+    function openModalForWorkitem(workitemid, index, pulseKey) {
+        const ic = document.getElementById('image-container-' + workitemid);
+        if (!ic) return;
+        const allImages = Array.from(ic.querySelectorAll('.workitem-image'));
+        if (!allImages.length) return;
+        currentImages = allImages.map(img => img.src);
+        srcHl.workitemid = String(workitemid);
+        srcHl.pendingPulse = pulseKey || null;
+        if (pulseKey) ensureSourcesOn();   // located via a value click -> show boxes
+        renderReviewPanel(String(workitemid));
+        modal.style.display = 'flex';
+        showImage(Math.min(Math.max(index, 0), currentImages.length - 1));
+    }
+
+    // Fill the in-lightbox review panel (right pane) with the workitem's extracted
+    // values, reusing the exact same rows as the inline panel. Hidden (image goes
+    // full-width) when the document has no extracted values.
+    function renderReviewPanel(workitemid) {
+        const panel = document.getElementById(cfg.reviewPanel);
+        const body = document.getElementById(cfg.reviewPanelBody);
+        if (!panel || !body) return;
+        const html = window.buildSourceDetailsHtml(workitemid, { tables: false });
+        body.innerHTML = html;
+        panel.hidden = !html;
+        renderReviewTables(workitemid);
+    }
+
+    // Line-item tables get their own box UNDER the page, spanning the image
+    // pane only -- a table squeezed into the values sidebar has to scroll for
+    // every column. The box is created lazily so the three templates carrying
+    // this modal (workitems, prepared documents, reporting) need no markup.
+    function reviewTablesBox() {
+        const panel = document.getElementById(cfg.reviewPanel);
+        const modalBody = panel && panel.closest('.src-modal-body');
+        if (!modalBody) return null;
+        let box = modalBody.querySelector('.src-modal-tables');
+        if (!box) {
+            box = document.createElement('div');
+            box.className = 'src-modal-tables';
+            modalBody.appendChild(box);
+        }
+        return box;
+    }
+
+    function renderReviewTables(workitemid) {
+        const box = reviewTablesBox();
+        if (!box) return;
+        const html = window.renderTableGrids(workitemid);
+        box.innerHTML = html;
+        box.hidden = !html;
+    }
+
+    // Render the overlay only once the displayed page is geometrically SETTLED:
+    // (1) the image bitmap is decoded (so its layout box reflects the real page
+    // aspect) and (2) the open-zoom animation (scale 0.5 -> 1) has finished. The
+    // overlay layer is a SIBLING of the image, so it never inherits that zoom
+    // transform -- drawing mid-animation strands the boxes off the still-scaling
+    // page (boxes already visible but in the wrong place), and they only snapped
+    // into register on a later hide/show that re-rendered against the settled
+    // image. Waiting for each running animation's `finished` promise makes the
+    // boxes appear already aligned. With no animation running (e.g. reopening the
+    // same lightbox, or prev/next navigation) it renders immediately.
+    function drawOverlayWhenStable(pulse) {
+        const render = () => requestAnimationFrame(() => renderModalOverlay(pulse));
+        const afterDecode = () => {
+            const anims = modalImg.getAnimations ? modalImg.getAnimations() : [];
+            if (anims.length) Promise.allSettled(anims.map(a => a.finished)).then(render);
+            else render();
+        };
+        if (modalImg.complete && modalImg.naturalWidth) afterDecode();
+        else modalImg.addEventListener('load', afterDecode, { once: true });
+    }
+
+    function showImage(index) {
+        if (index >= 0 && index < currentImages.length) {
+            modalImg.src = currentImages[index];
+            currentIndex = index;
+            prevBtn.style.display = index > 0 ? 'block' : 'none';
+            nextBtn.style.display = index < currentImages.length - 1 ? 'block' : 'none';
+            const pulse = srcHl.pendingPulse;
+            srcHl.pendingPulse = null;
+            drawOverlayWhenStable(pulse);
+        }
+    }
+
+    // renderThumbOverlay / refreshThumbOverlays are defined at module scope
+    // (near loadImage) so loadImage's onload handler can reach them.
+
+    const closeModal = () => {
+        modal.style.display = "none";
+        currentImages = [];
+        currentIndex = 0;
+        if (srcHlLayer) srcHlLayer.innerHTML = '';
+        const tbox = document.querySelector('.src-modal-tables');
+        if (tbox) { tbox.innerHTML = ''; tbox.hidden = true; }
+    };
+
+    document.addEventListener('click', (event) => {
+        if (event.target.classList.contains('workitem-image')) {
+            const imageContainer = event.target.closest('[id^="image-container-"]');
+            if (!imageContainer) return;
+            const workitemid = imageContainer.id.replace('image-container-', '');
+            const allImages = Array.from(imageContainer.querySelectorAll('.workitem-image'));
+            const clickedIndex = allImages.findIndex(img => img.src === event.target.src);
+            if (clickedIndex !== -1) {
+                openModalForWorkitem(workitemid, clickedIndex, null);
+            }
+        }
+    });
+
+    // Click a field value with a known location -> open the page + pulse its box.
+    document.addEventListener('click', (event) => {
+        const row = event.target.closest('.src-field-row.is-locatable');
+        if (!row) return;
+        const fc = row.closest('[data-src-wid]');
+        if (!fc) return;
+        const workitemid = fc.dataset.srcWid;
+        openModalForWorkitem(workitemid, parseInt(row.dataset.page || '0', 10), row.dataset.key);
+    });
+
+    // Click a value/cell in the in-lightbox review panel -> the modal is already
+    // open, so just navigate to that field's page and pulse its box.
+    document.addEventListener('click', (event) => {
+        const panel = document.getElementById(cfg.reviewPanel);
+        if (!panel) return;
+        const row = event.target.closest('.src-field-row.is-locatable');
+        if (!row || !row.closest('.src-modal-values, .src-modal-tables')) return;
+        ensureSourcesOn();   // clicking a value turns boxes on (toggle -> "Hide sources")
+        srcHl.pendingPulse = row.dataset.key;
+        showImage(parseInt(row.dataset.page || '0', 10));
+    });
+
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (modal) modal.addEventListener('click', (event) => {
+        // Close when clicking the backdrop or the empty letterbox area around the
+        // page (but not the image, the values panel, the nav arrows or the toggle).
+        if (event.target === modal || event.target.classList.contains('src-modal-page')) {
+            closeModal();
+        }
+    });
+
+    if (prevBtn) prevBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        showImage(currentIndex - 1);
+    });
+
+    if (nextBtn) nextBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        showImage(currentIndex + 1);
+    });
+
+    if (srcHlToggle) srcHlToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setSrcHl(!srcHl.on);
+    });
+    window.addEventListener('resize', () => {
+        if (modal.style.display === 'flex') renderModalOverlay();
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (modal.style.display === "flex") {
+            if (event.key === 'Escape') {
+                closeModal();
+            } else if (event.key === 'ArrowLeft') {
+                event.preventDefault();
+                showImage(currentIndex - 1);
+            } else if (event.key === 'ArrowRight') {
+                event.preventDefault();
+                showImage(currentIndex + 1);
+            }
+        }
+    });
+
+    return { openForWorkitem: openModalForWorkitem, close: closeModal };
+  };
+
+  Object.assign(window.NexoraWorkitemDetail, {
+    loadDetailData, loadHistory, renderWorkitemTimeline,
+    loadImage, loadImagesInBatch, buildSourceDetailsHtml,
+    renderTableGrids, tableCellSources, allSources, srcEsc, renderThumbOverlay,
+    refreshThumbOverlays,
+  });
+  window.srcEsc = srcEsc; window.tableCellSources = tableCellSources;
+  window.allSources = allSources; window.renderTableGrids = renderTableGrids;
+  window.buildSourceDetailsHtml = buildSourceDetailsHtml;
+  window.renderThumbOverlay = renderThumbOverlay; window.refreshThumbOverlays = refreshThumbOverlays;
+  window.loadImage = loadImage; window.loadImagesInBatch = loadImagesInBatch;
+  window.loadHistory = loadHistory;
+  window.renderWorkitemTimeline = renderWorkitemTimeline;
+})();

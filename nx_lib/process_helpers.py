@@ -1,7 +1,10 @@
 """Process- and client-name helpers shared between dashboard and workitems.
 
-Most permissions are scoped by ``<client>.<process>`` (e.g. ``Privera.Invoices``)
-so these helpers translate permission strings into SQL parameter lists.
+Most permissions are scoped by one ``process.<client>.<name>.view`` family
+(spec #238 phase 2 -- the successor to three duplicate per-process
+permission families formerly owned separately by workitems, dashboard and
+reporting, unified by migration 0087) so these helpers translate permission
+strings into SQL parameter lists.
 """
 
 import re
@@ -18,25 +21,32 @@ from .tenant.registry import tenant_processes
 # behind that migration (TEST, PROD until the deploy) still carry the old codes,
 # so every reader accepts both shapes for now.
 _PROCESS_VIEW_RE = re.compile(r"^process\.(.+)\.view$")
+_LEGACY_PREFIXES = (
+    "workitems.filter.process.",
+    "dashboard.filter.process.",
+    "reporting.scope.process.",
+)
 
 
-def process_grants(perms, prefix):
+def process_grants(perms, prefix=None):
     """``{'<client>.<process>', ...}`` from a permission list: the
     ``process.<client>.<process>.view`` codes plus the legacy
-    ``<prefix><client>.<process>`` family. Pure -- no session, no tenant scope
-    (the reporting runner feeds it a report owner's grants)."""
+    ``<prefix><client>.<process>`` family (any of the three legacy families when
+    ``prefix`` is None). Pure -- no session, no tenant scope (the reporting
+    runner feeds it a report owner's grants)."""
+    legacy = (prefix,) if prefix else _LEGACY_PREFIXES
     out = set()
     for perm in perms:
-        if perm.startswith(prefix):
+        if perm.startswith(legacy):
             out.add(perm.split(".")[-2] + "." + perm.split(".")[-1])
             continue
         m = _PROCESS_VIEW_RE.match(perm)
-        if m:
+        if m and m.group(1).count(".") == 1:  # exactly <client>.<name>; anything else is dropped
             out.add(m.group(1))
     return out
 
 
-def granted_processes(prefix):
+def granted_processes(prefix=None):
     """The session's ``process_grants``, narrowed to the tenant the session is
     scoped to (``session['tenant_scope']``, set by ``nx_lib/views/tenant.py::
     apply_tenant_scope`` -- 0097/0098). A scope whose process list cannot be
@@ -49,7 +59,16 @@ def granted_processes(prefix):
     return allowed
 
 
-def _selected_pairs(prefix, process_name):
+PROCESS_SCOPE_PREFIX = "process."
+PROCESS_SCOPE_SUFFIX = ".view"
+
+
+def process_scope_code(pair):
+    """'<client>.<name>' -> 'process.<client>.<name>.view' (spec #238)."""
+    return f"{PROCESS_SCOPE_PREFIX}{pair}{PROCESS_SCOPE_SUFFIX}"
+
+
+def _selected_pairs(process_name, prefix=None):
     """Granted (client, process) pairs for a comma-joined selection -- inside
     the session's tenant scope, like every other allow-list here."""
     allowed = granted_processes(prefix)
@@ -80,11 +99,11 @@ def normalize_process_selection(process_name, allowed_processes):
     return ",".join(picked), picked
 
 
-def prepare_process_selection_sql(prefix, process_name):
+def prepare_process_selection_sql(process_name):
     """Build an OR-joined parameterized (client, process) pair predicate --
     e.g. "(client = ? AND process = ?) OR (client = ? AND process = ?)" --
     plus its flat params list, from the caller's granted
-    "<prefix><client>.<process>" permissions.
+    "process.<client>.<process>.view" permissions.
 
     ``process_name`` is "all" or a comma-joined list of "<client>.<process>"
     (issue #150); each entry is permission-checked on its own.
@@ -97,9 +116,9 @@ def prepare_process_selection_sql(prefix, process_name):
     try:
         pairs = []
         if process_name == "all":
-            pairs = sorted(tuple(n.split(".")[-2:]) for n in granted_processes(prefix))
+            pairs = sorted(tuple(n.split(".")[-2:]) for n in granted_processes())
         else:
-            pairs = _selected_pairs(prefix, process_name)
+            pairs = _selected_pairs(process_name)
         predicate = " OR ".join("(client = ? AND process = ?)" for _ in pairs)
         params = [value for pair in pairs for value in pair]
         return params, predicate
@@ -108,7 +127,7 @@ def prepare_process_selection_sql(prefix, process_name):
         raise
 
 
-def prepare_process_selection_lists(prefix, process_name):
+def prepare_process_selection_lists(process_name):
     """Like prepare_process_selection_sql but returns the granted (client,
     process) pairs as a plain list of tuples (no placeholder strings, no SQL
     text) — for the multi-source WorkitemFilter, which builds its own
@@ -122,9 +141,9 @@ def prepare_process_selection_lists(prefix, process_name):
     try:
         pairs = []
         if process_name == "all":
-            pairs = sorted(tuple(n.split(".")[-2:]) for n in granted_processes(prefix))
+            pairs = sorted(tuple(n.split(".")[-2:]) for n in granted_processes())
         else:
-            pairs = _selected_pairs(prefix, process_name)
+            pairs = _selected_pairs(process_name)
         return pairs
     except Exception as e:
         current_app.logger.error(f"Failed to prepare process selection lists: {e}")
@@ -148,7 +167,7 @@ def get_activity_instances_to_ignore():
         cursor = conn.cursor()
         cursor.execute("SELECT ProcessName, ActivityInstanceName FROM ActivityInstancesToIgnore")
         rows = cursor.fetchall()
-        grouped = {}
+        grouped: dict[tuple, set] = {}
         for row in rows:
             if "." not in row.ProcessName:
                 continue

@@ -11,7 +11,7 @@ MAINTENANCE_SEVERITIES = {"info", "warning", "critical"}
 
 # Cached lookup of active blocking maintenance — TTL'd so we don't hit the DB
 # on every request. Returns dict or None.
-_MAINTENANCE_BLOCK_CACHE = {"expires_at": 0.0, "data": None}
+_MAINTENANCE_BLOCK_CACHE: dict = {"expires_at": 0.0, "data": None}
 _MAINTENANCE_BLOCK_TTL = 5  # seconds
 
 _MAINTENANCE_LOCKOUT_SKIP_PATHS = (

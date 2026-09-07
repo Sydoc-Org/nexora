@@ -191,7 +191,6 @@ EXPECTED_NON_GENERALI_ENDPOINTS = {
     "admin_active_sessions",
     "admin_access_control",
     "get_users_admin_access_control",
-    "get_profile_details",
     "save_access_profile",
     "get_user_overrides",
     "api_admin_user_effective_permissions",
@@ -236,3 +235,18 @@ def test_create_app_full_non_generali_endpoint_set_registered():
         f"register_routes() regression detected — these endpoints disappeared: "
         f"{sorted(missing)}. Extra (new) endpoints: {sorted(extra)}"
     )
+
+
+def test_no_route_matches_easyprivacy_reporting_metrics_filter():
+    """EasyPrivacy ships the generic URL filter ``/reporting/metrics``; ad
+    blockers abort any fetch matching it, which on PROD silently emptied the
+    Simple wizard's measure step. Filter lists only apply to sub-resource
+    requests, so the /reporting/metrics admin *page* (a top-level navigation)
+    is fine; every fetched /api/ route must stay clear of that substring."""
+    app = create_app()
+    offenders = [
+        r.rule
+        for r in app.url_map.iter_rules()
+        if r.rule.startswith("/api/") and "/reporting/metrics" in r.rule
+    ]
+    assert offenders == []

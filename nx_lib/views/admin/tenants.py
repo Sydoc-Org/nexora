@@ -173,7 +173,7 @@ def _page_rows(reg):
     }
 
 
-@require_permission("admin.view.organizations")
+@require_permission("admin.organizations.view")
 def admin_tenants_view():
     """Gated like Customers: the page lists users by organization. The data-
     connection and process-configuration boxes additionally hide behind the
@@ -224,8 +224,8 @@ def admin_tenants_view():
             tree=tree,
             tenant_registry_available=treg is not None,
             mapping_config_available=mreg is not None,
-            can_view_clients=has_permission("admin.view.clients"),
-            can_view_processes=has_permission("admin.view.processes"),
+            can_view_clients=has_permission("admin.clients.view"),
+            can_view_processes=has_permission("admin.processes.view"),
             logged_in_user=session.get("username"),
             userid=session.get("userid"),
             page_visibility=page_visibility(),

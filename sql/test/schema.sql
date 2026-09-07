@@ -63,7 +63,8 @@ CREATE TABLE dbo.AccessProfile (
     AccessID INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
     Name NVARCHAR(50) NOT NULL UNIQUE,
     Description NVARCHAR(200) NULL,
-    OrganizationCode NVARCHAR(5) NULL   -- 0090: bound to one organization; NULL = global
+    OrganizationCode NVARCHAR(5) NULL,  -- 0090: bound to one organization; NULL = global
+    Rank INT NOT NULL DEFAULT 0
 );
 GO
 
@@ -115,7 +116,6 @@ GO
 CREATE TABLE dbo.AccessProfilePermission (
     AccessID INT NOT NULL FOREIGN KEY REFERENCES dbo.AccessProfile(AccessID),
     PermissionID INT NOT NULL FOREIGN KEY REFERENCES dbo.Permission(PermissionID),
-    Effect CHAR(1) NOT NULL CHECK (Effect IN ('A', 'D')),
     PRIMARY KEY (AccessID, PermissionID)
 );
 GO
@@ -155,31 +155,13 @@ BEGIN
     SELECT @PermID = PermissionID FROM dbo.Permission WHERE Code = @PermCode;
 
     IF @PermID IS NULL RETURN 0;
-
-    IF EXISTS (
-        SELECT 1 FROM dbo.UserPermissionOverride
-        WHERE UserID = @UserID AND PermissionID = @PermID AND Effect = 'D'
-    ) RETURN 0;
-
-    IF EXISTS (
-        SELECT 1 FROM dbo.UserPermissionOverride
-        WHERE UserID = @UserID AND PermissionID = @PermID AND Effect = 'A'
-    ) RETURN 1;
-
-    IF EXISTS (
-        SELECT 1
-        FROM dbo.Users u
-        JOIN dbo.AccessProfilePermission ap ON ap.AccessID = u.accessID
-        WHERE u.userID = @UserID AND ap.PermissionID = @PermID AND ap.Effect = 'D'
-    ) RETURN 0;
-
-    IF EXISTS (
-        SELECT 1
-        FROM dbo.Users u
-        JOIN dbo.AccessProfilePermission ap ON ap.AccessID = u.accessID
-        WHERE u.userID = @UserID AND ap.PermissionID = @PermID AND ap.Effect = 'A'
-    ) RETURN 1;
-
+    IF EXISTS (SELECT 1 FROM dbo.UserPermissionOverride
+               WHERE UserID = @UserID AND PermissionID = @PermID AND Effect = 'D') RETURN 0;
+    IF EXISTS (SELECT 1 FROM dbo.UserPermissionOverride
+               WHERE UserID = @UserID AND PermissionID = @PermID AND Effect = 'A') RETURN 1;
+    IF EXISTS (SELECT 1 FROM dbo.Users u
+               JOIN dbo.AccessProfilePermission ap ON ap.AccessID = u.accessid
+               WHERE u.userID = @UserID AND ap.PermissionID = @PermID) RETURN 1;
     RETURN 0;
 END;
 GO
@@ -190,9 +172,15 @@ CREATE PROCEDURE dbo.spGetUserPermissions
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT DISTINCT p.Code
+    SELECT p.Code
     FROM dbo.Permission p
-    WHERE dbo.fnUserHasPermission(@UserID, p.Code) = 1;
+    WHERE NOT EXISTS (SELECT 1 FROM dbo.UserPermissionOverride o
+                      WHERE o.UserID = @UserID AND o.PermissionID = p.PermissionID AND o.Effect = 'D')
+      AND ( EXISTS (SELECT 1 FROM dbo.UserPermissionOverride o
+                    WHERE o.UserID = @UserID AND o.PermissionID = p.PermissionID AND o.Effect = 'A')
+         OR EXISTS (SELECT 1 FROM dbo.Users u
+                    JOIN dbo.AccessProfilePermission ap ON ap.AccessID = u.accessid
+                    WHERE u.userID = @UserID AND ap.PermissionID = p.PermissionID) );
 END;
 GO
 

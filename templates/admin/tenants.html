@@ -55,7 +55,7 @@
 
     {% macro connection_box(client) %}
         {% if not can_view_clients %}
-        <p class="tenant-dim"><i class="fas fa-lock"></i> {{ _('Requires admin.view.clients') }}</p>
+        <p class="tenant-dim"><i class="fas fa-lock"></i> {{ _('Requires admin.clients.view') }}</p>
         {% elif client.missing %}
         <p class="nx-c-danger"><i class="fas fa-triangle-exclamation"></i> {{ _('Client %(code)s is missing', code=client.ClientCode) }}</p>
         {% else %}
@@ -98,7 +98,7 @@
 
     {% macro processes_box(org) %}
         {% if not can_view_processes %}
-        <p class="tenant-dim"><i class="fas fa-lock"></i> {{ _('Requires admin.view.processes') }}</p>
+        <p class="tenant-dim"><i class="fas fa-lock"></i> {{ _('Requires admin.processes.view') }}</p>
         {% elif not mapping_config_available %}
         <p class="nx-c-danger"><i class="fas fa-triangle-exclamation"></i> {{ _('Mapping configuration unavailable') }}</p>
         {% else %}

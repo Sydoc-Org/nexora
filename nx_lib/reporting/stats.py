@@ -12,6 +12,7 @@ is a list of positional lists. ``spec`` selects the operation and its arguments.
 import math
 import statistics
 from collections import Counter
+from typing import Any
 
 MAX_STATS_ROWS = 100_000  # defensive cap; callers already row-cap upstream
 
@@ -52,7 +53,7 @@ def _describe_one(columns, rows, field):
     raw = [r[idx] for r in rows]
     non_null = [v for v in raw if v is not None]
     numericish = all(isinstance(v, int | float) and not isinstance(v, bool) for v in non_null)
-    base = {"count": len(non_null), "nulls": len(raw) - len(non_null)}
+    base: dict = {"count": len(non_null), "nulls": len(raw) - len(non_null)}
     if non_null and numericish:
         nums = [float(v) for v in non_null]
         base.update(
@@ -73,7 +74,7 @@ def _describe_one(columns, rows, field):
     return base
 
 
-_AGG_FUNCS = {
+_AGG_FUNCS: dict[str, Any] = {
     "count": len,
     "sum": sum,
     "min": lambda n: min(n) if n else None,
@@ -108,7 +109,7 @@ def _percentile(sorted_nums, q):
 def _group_by(columns, rows, by, agg):
     by_idx = [_col_index(columns, f) for f in by]
     agg_idx = {f: _col_index(columns, f) for f in agg}
-    buckets = {}
+    buckets: dict[tuple, list] = {}
     for r in rows:
         key = tuple(r[i] for i in by_idx)
         buckets.setdefault(key, []).append(r)

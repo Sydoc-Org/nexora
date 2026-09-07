@@ -22,6 +22,80 @@ class PermissionDenied(HTTPException):
     description = "Forbidden"
 
 
+# <area>[.<object>[.<sub>]].<action>[.<scope>] -- spec #238. External identifiers
+# (process names, reporting source codes) may carry capitals and underscores.
+PERMISSION_CODE_RE = re.compile(
+    r"^[a-z]+(\.[a-z]+)?(\.[A-Za-z0-9_]+)*"
+    r"\.(view|add|edit|delete|use|run|export|schedule|manage|bypass|import|restart)"
+    r"(\.(org|all|pastdeadline))?$"
+)
+
+
+_ACTIONS = (
+    "view",
+    "add",
+    "edit",
+    "delete",
+    "use",
+    "run",
+    "import",
+    "export",
+    "schedule",
+    "manage",
+    "bypass",
+    "restart",
+)
+_SCOPES = ("", "org", "all", "pastdeadline")
+_TWO_SEGMENT_AREAS = ("tenant",)
+
+
+def _split_code(code):
+    """-> (area, object_key, action, scope) per the #238 grammar. The object is
+    the first segment after the area; area-level codes (admin.view,
+    reporting.export) have object == area."""
+    parts = code.split(".")
+    n_area = 2 if parts[0] in _TWO_SEGMENT_AREAS and len(parts) > 2 else 1
+    area = ".".join(parts[:n_area])
+    tail = parts[n_area:]
+    scope = tail.pop() if tail and tail[-1] in _SCOPES[1:] else ""
+    action = tail.pop() if tail and tail[-1] in _ACTIONS else ""
+    obj = f"{area}.{tail[0]}" if tail else area
+    return area, obj, action, scope
+
+
+def group_permissions(rows):
+    """Area -> object -> permissions tree for the grid and the user-detail page.
+    Each returned permission is a copy of its row plus ``gate``: the .view code
+    (the object's, else the area's) the UI greys it behind, or None."""
+    codes = {row["Code"] for row in rows}
+    areas: dict[str, dict[str, list]] = {}
+    for row in rows:
+        area, obj, action, scope = _split_code(row["Code"])
+        gate = next(
+            (c for c in (f"{obj}.view", f"{area}.view") if c != row["Code"] and c in codes), None
+        )
+        areas.setdefault(area, {}).setdefault(obj, []).append(
+            ({**row, "gate": gate}, action, scope)
+        )
+    tree = []
+    for area in sorted(areas):
+        objects = []
+        for obj in sorted(areas[area], key=lambda k: (k != area, k)):
+            perms = sorted(
+                areas[area][obj],
+                key=lambda t: (
+                    _ACTIONS.index(t[1]) if t[1] in _ACTIONS else 99,
+                    _SCOPES.index(t[2]),
+                    t[0]["Code"],
+                ),
+            )
+            objects.append(
+                {"key": obj, "label": obj[len(area) + 1 :], "perms": [t[0] for t in perms]}
+            )
+        tree.append({"area": area, "objects": objects})
+    return tree
+
+
 def load_permissions_for_user(user_id):
     conn = engine_nexora_db.raw_connection()
     cur = conn.cursor()
@@ -32,11 +106,28 @@ def load_permissions_for_user(user_id):
     return perms
 
 
-def assign_profile_code(profile_name) -> str:
-    """The admin.assign.user.accessprofile.<slug> code for a profile: the name
-    lowercased with everything but letters and digits dropped, so both
-    'nexoraUser' and 'Sydoc User' style names slug cleanly ('sydocuser')."""
-    return "admin.assign.user.accessprofile." + re.sub(r"[^a-z0-9]", "", str(profile_name).lower())
+def assignable_profile_ids() -> set[int]:
+    """AccessIDs the current user may assign: every profile whose Rank is at or
+    below the rank of the user's own profile (spec #238 D5). No login or no
+    profile -> nothing. Replaces the admin.assign.user.accessprofile.* codes."""
+    uid = session.get("userid")
+    if not uid:
+        return set()
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT ap.AccessID FROM dbo.AccessProfile ap
+            WHERE ap.Rank <= (SELECT ISNULL(MAX(me.Rank), -1)
+                              FROM dbo.Users u JOIN dbo.AccessProfile me ON me.AccessID = u.accessid
+                              WHERE u.userID = ?)
+            """,
+            (uid,),
+        )
+        return {row[0] for row in cur.fetchall()}
+    finally:
+        conn.close()
 
 
 def has_permission(code: str) -> bool:
@@ -143,24 +234,24 @@ def page_visibility():
         "dashboardPagePerm": has_permission("dashboard.view"),
         "reportingPagePerm": has_permission("reporting.view"),
         "workitemsPagePerm": has_permission("workitems.view"),
-        "preparedDocsPagePerm": has_permission("workitems.import.preparedaudit"),
+        "preparedDocsPagePerm": has_permission("workitems.prepared.view"),
         # invoicesPagePerm removed with the archived invoices page (#177).
         "apiDocsPagePerm": has_permission("api.docs.view"),
-        "generaliPagePerm": has_permission("generali.dashboard.view"),
-        "generaliDocumentsPerm": has_permission("generali.documentlist.view"),
-        "generaliReportingPerm": has_permission("generali.reporting.view"),
-        "generaliAdditionalServicesPerm": has_permission("generali.additionalservices.view"),
-        "generaliBaseServicesPerm": has_permission("generali.baseservices.view"),
-        "generaliProjectManagementPerm": has_permission("generali.projectmanagement.view"),
-        "generaliPDQMPerm": has_permission("generali.pdqm.view"),
-        "generaliImportStatusPerm": has_permission("generali.importstatus.view"),
+        "generaliPagePerm": has_permission("tenant.generali.view"),
+        "generaliDocumentsPerm": has_permission("tenant.generali.documents.view"),
+        "generaliReportingPerm": has_permission("tenant.generali.reporting.view"),
+        "generaliAdditionalServicesPerm": has_permission("tenant.generali.attendance.view"),
+        "generaliBaseServicesPerm": has_permission("tenant.generali.baseservices.view"),
+        "generaliProjectManagementPerm": has_permission("tenant.generali.projectmanagement.view"),
+        "generaliPDQMPerm": has_permission("tenant.generali.pdqm.view"),
+        "generaliImportStatusPerm": has_permission("tenant.generali.importstatus.view"),
         "adminStatusPagePerm": has_permission("admin.status.view"),
         "adminMaintenanceViewPerm": has_permission("admin.maintenance.view"),
         "adminMaintenanceEditPerm": has_permission("admin.maintenance.edit"),
         "adminMaintenanceBypassPerm": has_permission("admin.maintenance.bypass"),
-        "adminClientsPagePerm": has_permission("admin.view.clients"),
-        "adminProcessesPagePerm": has_permission("admin.view.processes"),
-        "adminTenantsPagePerm": has_permission("admin.view.tenants"),
+        "adminClientsPagePerm": has_permission("admin.clients.view"),
+        "adminProcessesPagePerm": has_permission("admin.processes.view"),
+        "adminTenantsPagePerm": has_permission("admin.tenants.view"),
     }
 
 

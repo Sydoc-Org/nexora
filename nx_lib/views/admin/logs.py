@@ -12,7 +12,7 @@ from ...db import engine_nexora_db
 from ...security import page_visibility, require_permission
 
 
-@require_permission("admin.view.system.logs")
+@require_permission("admin.logs.view")
 def admin_logs_view():
     organizations = []
     conn = None
@@ -92,7 +92,7 @@ def _build_logs_where_clause():
     return " AND ".join(parts), params
 
 
-@require_permission("admin.view.system.logs")
+@require_permission("admin.logs.view")
 def api_admin_logs_search():
     page = request.args.get("page", 1, type=int)
     per_page = 50
@@ -107,7 +107,9 @@ def api_admin_logs_search():
         cursor = conn.cursor()
 
         cursor.execute(f"SELECT COUNT(*) FROM Logs WHERE {where_clause}", params)
-        total_count = cursor.fetchone()[0]
+        count_row = cursor.fetchone()
+        assert count_row is not None  # SELECT COUNT(*) always returns exactly one row
+        total_count = count_row[0]
 
         sql = f"""
             SELECT LogID, Timestamp, Username, HttpRequestMethod, Path,
@@ -119,26 +121,25 @@ def api_admin_logs_search():
         """
         cursor.execute(sql, [*params, offset, per_page])
 
-        logs = []
-        for row in cursor.fetchall():
-            logs.append(
-                {
-                    "LogID": row.LogID,
-                    # Emit ISO-8601 explicitly so the client can pass it straight
-                    # to `new Date(...)`. Flask's default JSON encoder uses RFC 1123
-                    # which doesn't survive the +'Z' timezone-suffix hack.
-                    "Timestamp": row.Timestamp.isoformat()
-                    if hasattr(row.Timestamp, "isoformat")
-                    else row.Timestamp,
-                    "Username": row.Username,
-                    "HttpRequestMethod": row.HttpRequestMethod,
-                    "Path": row.Path,
-                    "HttpResponseCode": row.HttpResponseCode,
-                    "Args": row.Args,
-                    "RequestIpAddress": row.RequestIpAddress,
-                    "durationSeconds": row.durationSeconds,
-                }
-            )
+        logs = [
+            {
+                "LogID": row.LogID,
+                # Emit ISO-8601 explicitly so the client can pass it straight
+                # to `new Date(...)`. Flask's default JSON encoder uses RFC 1123
+                # which doesn't survive the +'Z' timezone-suffix hack.
+                "Timestamp": row.Timestamp.isoformat()
+                if hasattr(row.Timestamp, "isoformat")
+                else row.Timestamp,
+                "Username": row.Username,
+                "HttpRequestMethod": row.HttpRequestMethod,
+                "Path": row.Path,
+                "HttpResponseCode": row.HttpResponseCode,
+                "Args": row.Args,
+                "RequestIpAddress": row.RequestIpAddress,
+                "durationSeconds": row.durationSeconds,
+            }
+            for row in cursor.fetchall()
+        ]
 
         return jsonify(
             {
@@ -158,7 +159,7 @@ def api_admin_logs_search():
             conn.close()
 
 
-@require_permission("admin.view.system.logs")
+@require_permission("admin.logs.view")
 def api_admin_logs_export():
     """Stream the filtered log set as CSV. Capped at 50k rows so a wide-open
     filter doesn't yank the whole table."""

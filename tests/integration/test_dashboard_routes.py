@@ -1,7 +1,7 @@
 """Integration tests for nx_lib.views.dashboard — page + KPI APIs.
 
 Seed test users (user@test.local, admin@test.local) have only the
-`dashboard.view` permission, not the per-process `dashboard.filter.process.*`
+`dashboard.view` permission, not the per-process `process.<client>.<name>.view`
 codes. That means most KPI endpoints short-circuit at the
 `if not target_processes` guard and return an empty/zero response — which is
 ideal for an integration test (deterministic, no DB-write needed).
@@ -71,7 +71,7 @@ def test_processed_over_time_anonymous_returns_401(client):
 
 
 def test_processed_over_time_authed_returns_empty(user_client):
-    """No dashboard.filter.process.* perms → empty labels/data."""
+    """No process.<client>.<name>.view perms → empty labels/data."""
     resp = user_client.get("/api/dashboard/processed_over_time")
     assert resp.status_code == 200
     body = resp.get_json()
@@ -146,9 +146,9 @@ def test_set_filter_unknown_process_falls_back_to_all(user_client):
 # Defect: these endpoints only checked "username" in session, missing the
 # @require_permission("dashboard.view") gate present on every sibling dashboard
 # route (see test_dashboard_without_perm_returns_403 above for the page route's
-# equivalent). A user holding just a grantable dashboard.filter.process.*
+# equivalent). A user holding just a grantable process.<client>.<name>.view
 # permission (but not the base dashboard.view) could curl real KPI data.
-# noperm_client (no permissions at all, incl. no filter.process.* grants) is
+# noperm_client (no permissions at all, incl. no process-scope grants) is
 # the strictest case of "missing dashboard.view" and — same as the page route
 # — must 403 before any Statconfig/DB work happens, matching this module's own
 # "deterministic, no DB-write needed" precedent noted above.
@@ -181,7 +181,7 @@ def test_processed_over_time_error_response_is_not_cached(user_client, monkeypat
     monkeypatch.setattr(
         nx_lib.hooks,
         "load_permissions_for_user",
-        lambda uid: ["dashboard.view", "dashboard.filter.process.sydoc.TestProc"],
+        lambda uid: ["dashboard.view", "process.sydoc.TestProc.view"],
     )
 
     def _boom():

@@ -22,7 +22,7 @@ from ...security import has_permission, page_visibility, require_permission
 from ...tenant.registry import registry as tenant_registry
 
 
-@require_permission("admin.view.organizations")
+@require_permission("admin.organizations.view")
 def admin_organizations_view():
     conn = None
     cursor = None
@@ -43,7 +43,8 @@ def admin_organizations_view():
         # predates migration 0081) -- degrade to "nothing branded", never error.
         brands = branding_registry() or {}
         for org in organizations:
-            brand = brands.get(org.get("organizationcode")) or {}
+            org_code = org.get("organizationcode")
+            brand = (brands.get(org_code) if isinstance(org_code, str) else None) or {}
             org["brand_name"] = brand.get("name")
             org["brand_accent_hex"] = brand.get("accent_hex")
             org["brand_logo_file"] = brand.get("logo_file")
@@ -53,7 +54,7 @@ def admin_organizations_view():
         treg = tenant_registry()
         for org in organizations:
             t = (
-                treg.tenants.get(org.get("tenant_code"))
+                treg.tenants.get(org.get("tenant_code") or "")
                 if treg and org.get("tenant_code")
                 else None
             )
@@ -72,7 +73,7 @@ def admin_organizations_view():
             "admin/organizations.html",
             organizations=organizations,
             tenants=tenants,
-            can_edit_branding=has_permission("admin.edit.organization.branding"),
+            can_edit_branding=has_permission("admin.organizations.branding.edit"),
             logged_in_user=session.get("username"),
             userid=session.get("userid"),
             page_visibility=page_visibility(),
@@ -93,7 +94,7 @@ def _tenant_code(data):
     return (data.get("tenantcode") or "").strip() or None
 
 
-@require_permission("admin.add.organization")
+@require_permission("admin.organizations.add")
 def admin_add_organization():
     import re as _re
 
@@ -132,7 +133,7 @@ def admin_add_organization():
             conn.close()
 
 
-@require_permission("admin.edit.organization")
+@require_permission("admin.organizations.edit")
 def admin_edit_organization(organizationcode):
     data = request.get_json()
     organization = data.get("organizationname")
@@ -159,7 +160,7 @@ def admin_edit_organization(organizationcode):
             conn.close()
 
 
-@require_permission("admin.delete.organization")
+@require_permission("admin.organizations.delete")
 def admin_delete_organization(organizationcode):
     conn = None
     cursor = None
@@ -191,7 +192,7 @@ def admin_delete_organization(organizationcode):
             conn.close()
 
 
-@require_permission("admin.view.organizations")
+@require_permission("admin.organizations.view")
 def api_admin_organizations_list():
     if "username" not in session:
         return jsonify({"error": "Not authorized"}), 401
@@ -272,7 +273,7 @@ def _org_exists(cursor, organizationcode):
     return cursor.fetchone() is not None
 
 
-@require_permission("admin.edit.organization.branding")
+@require_permission("admin.organizations.branding.edit")
 def api_admin_organization_branding_save(organizationcode):
     """Save an organization's brand name, accent hex and logo (#98 phase 4).
 
@@ -344,6 +345,7 @@ def api_admin_organization_branding_save(organizationcode):
             return jsonify({"success": False, "message": _("Organization not found.")}), 404
 
         if logo_bytes is not None:
+            assert logo_filename is not None  # set together with logo_bytes above
             branding_dir = Path(PATHS.branding)
             branding_dir.mkdir(parents=True, exist_ok=True)
             target = _branding_logo_target(branding_dir, logo_filename)

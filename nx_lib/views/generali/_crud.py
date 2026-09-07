@@ -46,6 +46,13 @@ from ._scope import _generali_orgs_for_userids, _generali_scope_where
 # clauses are spliced in. Position matters: it fixes the SQL parameter order.
 SCOPE = "__scope__"
 
+# Export ceiling for ?all=true on the generated api_list endpoints (beautify
+# phase-2c Task 5 / D4): non-breaking below the cap -- a caller with <= this
+# many matching rows gets identical behaviour to before. Only the pathological
+# case (e.g. an unfiltered export against a multi-million-row table) is capped
+# instead of returning every row.
+ALL_EXPORT_CAP = 100_000
+
 
 # --------------------------------------------------------------------------- #
 # Descriptor pieces
@@ -145,8 +152,7 @@ class CrudTable:
     slug: str  # api path + endpoint-name segment, e.g. "baseservices"
     table: str  # fully bracketed SQL table name
     user_column: str  # owner column, e.g. "UserID"
-    perm_prefix: str  # action permission prefix, e.g. "generali.baseservices"
-    view_perm: str  # view permission (differs from perm_prefix for attendance)
+    perm_prefix: str  # permission prefix, e.g. "tenant.generali.baseservices"
     api_base: str  # e.g. "/api/generali/baseservices"
     label: str  # log label, e.g. "Generali Base Services"
     user_lookup_label: str = ""  # label in the list endpoint's warning log
@@ -185,7 +191,7 @@ def _lookup_users(user_ids, label):
 
     Never fatal: a failed lookup degrades to unnamed rows, as before.
     """
-    user_map = {}
+    user_map: dict = {}
     if not user_ids:
         return user_map
     from . import engine_nexora_db
@@ -291,17 +297,17 @@ def _parse_write_body(d, body):
 def _resolve_target_user(d, body):
     """(user_id, error_response) -- who the new record is booked for.
 
-    Defaults to the caller. Booking for someone else needs the organizational
-    or transorganizational add grant, and without the latter the target must
-    sit in the caller's own org.
+    Defaults to the caller. Booking for someone else needs the ``.org`` or
+    ``.all`` add grant, and without the latter the target must sit in the
+    caller's own org.
     """
     caller_id = session.get("userid")
     target_raw = body.get("userId")
     if target_raw is None or str(target_raw) == str(caller_id):
         return caller_id, None
 
-    has_org_perm = has_permission(f"{d.perm_prefix}.add.organizational")
-    has_transorg_perm = has_permission(f"{d.perm_prefix}.add.transorganizational")
+    has_org_perm = has_permission(f"{d.perm_prefix}.add.org")
+    has_transorg_perm = has_permission(f"{d.perm_prefix}.add.all")
     if not has_org_perm and not has_transorg_perm:
         raise PermissionDenied()
     try:
@@ -334,7 +340,7 @@ def _resolve_target_user(d, body):
 def _make_monthreport(d):
     spec = d.monthreport
 
-    @require_permission(d.view_perm)
+    @require_permission(f"{d.perm_prefix}.view")
     def monthreport():
         conn = None
         try:
@@ -346,11 +352,11 @@ def _make_monthreport(d):
             ctx = _month_window()
 
             where_clauses = [f"{spec.date_column} >= ?", f"{spec.date_column} <= ?"]
-            params = [str(ctx["first_day"]), str(ctx["last_day"])]
+            params: list = [str(ctx["first_day"]), str(ctx["last_day"])]
             if (
                 spec.self_restrict
-                and not has_permission(f"{d.perm_prefix}.edit.organizational")
-                and not has_permission(f"{d.perm_prefix}.edit.transorganizational")
+                and not has_permission(f"{d.perm_prefix}.edit.org")
+                and not has_permission(f"{d.perm_prefix}.edit.all")
             ):
                 where_clauses.append(f"{d.user_column} = ?")
                 params.append(session.get("userid"))
@@ -417,15 +423,13 @@ def _make_monthreport(d):
 
 
 def _make_org_users(d):
-    @require_any_permission(
-        f"{d.perm_prefix}.add.organizational", f"{d.perm_prefix}.add.transorganizational"
-    )
+    @require_any_permission(f"{d.perm_prefix}.add.org", f"{d.perm_prefix}.add.all")
     def api_org_users():
         conn = None
         try:
             from . import engine_nexora_db
 
-            transorg = has_permission(f"{d.perm_prefix}.add.transorganizational")
+            transorg = has_permission(f"{d.perm_prefix}.add.all")
             org_code = session.get("organizationcode")
             if not transorg and not org_code:
                 return jsonify({"success": False, "error": "No organization on session"}), 400
@@ -453,7 +457,7 @@ def _make_org_users(d):
 
 
 def _make_organizations(d):
-    @require_permission(d.view_perm)
+    @require_permission(f"{d.perm_prefix}.view")
     def api_organizations():
         conn = None
         try:
@@ -461,8 +465,8 @@ def _make_organizations(d):
 
             restrict_to_self = (
                 d.organizations_restrict
-                and not has_permission(f"{d.perm_prefix}.edit.organizational")
-                and not has_permission(f"{d.perm_prefix}.edit.transorganizational")
+                and not has_permission(f"{d.perm_prefix}.edit.org")
+                and not has_permission(f"{d.perm_prefix}.edit.all")
             )
             conn = engine_generali_db.raw_connection()
             cursor = conn.cursor()
@@ -491,13 +495,13 @@ def _make_organizations(d):
 
 
 def _make_filter_users(d):
-    @require_permission(d.view_perm)
+    @require_permission(f"{d.perm_prefix}.view")
     def api_filter_users():
         try:
             from . import engine_generali_db, engine_nexora_db
 
-            transorg = has_permission(f"{d.perm_prefix}.edit.transorganizational")
-            org_edit = has_permission(f"{d.perm_prefix}.edit.organizational")
+            transorg = has_permission(f"{d.perm_prefix}.edit.all")
+            org_edit = has_permission(f"{d.perm_prefix}.edit.org")
             if not transorg and not org_edit:
                 return jsonify({"success": True, "users": []})
             gen_conn = engine_generali_db.raw_connection()
@@ -578,7 +582,7 @@ def _list_where(d, spec):
 def _make_list(d):
     spec = d.list_spec
 
-    @require_permission(d.view_perm)
+    @require_permission(f"{d.perm_prefix}.view")
     def api_list():
         conn = None
         try:
@@ -599,12 +603,24 @@ def _make_list(d):
                 agg_cols += f", {spec.aggregate[0]}"
             cursor.execute(f"SELECT {agg_cols} FROM {d.table} {where_sql}", params)
             agg = cursor.fetchone()
+            assert agg is not None  # aggregate SELECT always returns exactly one row
             total_records = agg[0] or 0
             total_pages = max(1, -(-total_records // per_page))
 
-            fetch_all = request.args.get("all", "").lower() == "true"
-            pagination_sql = "" if fetch_all else "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY"
-            sql_params = params if fetch_all else [*params, offset, per_page]
+            requested_all = request.args.get("all", "").lower() == "true"
+            # Cap ?all=true at the export ceiling instead of returning every
+            # matching row: non-breaking when total_records <= the cap (same
+            # SQL as before), only the pathological case gets bounded.
+            truncated = requested_all and total_records > ALL_EXPORT_CAP
+            if truncated:
+                pagination_sql = "OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY"
+                sql_params = [*params, ALL_EXPORT_CAP]
+            elif requested_all:
+                pagination_sql = ""
+                sql_params = params
+            else:
+                pagination_sql = "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY"
+                sql_params = [*params, offset, per_page]
             cursor.execute(
                 f"""
             SELECT {spec.select}
@@ -625,6 +641,9 @@ def _make_list(d):
             records = [spec.record(r, user_map.get(r[spec.user_index], {})) for r in rows]
 
             payload = {"success": True, "records": records}
+            if truncated:
+                payload["truncated"] = True
+                payload["capped_at"] = ALL_EXPORT_CAP
             if spec.aggregate:
                 payload[spec.aggregate[1]] = spec.aggregate[2](agg[1])
             payload["pagination"] = {
@@ -660,7 +679,7 @@ def _make_add(d):
             if err:
                 return err
 
-            deadline_err = _check_add_deadline(for_date, f"{d.perm_prefix}.add.bypass.deadline")
+            deadline_err = _check_add_deadline(for_date, f"{d.perm_prefix}.add.pastdeadline")
             if deadline_err:
                 return jsonify({"success": False, "error": deadline_err}), 403
 
@@ -706,9 +725,7 @@ def _make_add(d):
 def _make_edit(d):
     write = d.write
 
-    @require_any_permission(
-        f"{d.perm_prefix}.edit.organizational", f"{d.perm_prefix}.edit.transorganizational"
-    )
+    @require_any_permission(f"{d.perm_prefix}.edit.org", f"{d.perm_prefix}.edit.all")
     def api_edit(record_id):
         conn = None
         try:
@@ -721,7 +738,7 @@ def _make_edit(d):
 
             conn = engine_generali_db.raw_connection()
             cursor = conn.cursor()
-            if not has_permission(f"{d.perm_prefix}.edit.transorganizational"):
+            if not has_permission(f"{d.perm_prefix}.edit.all"):
                 _check_generali_record_org(cursor, d.table, d.user_column, record_id)
             assignments = ", ".join(f"{col} = ?" for col in write.update_order)
             cursor.execute(
@@ -747,9 +764,7 @@ def _make_edit(d):
 
 
 def _make_delete(d):
-    @require_any_permission(
-        f"{d.perm_prefix}.delete.organizational", f"{d.perm_prefix}.delete.transorganizational"
-    )
+    @require_any_permission(f"{d.perm_prefix}.delete.org", f"{d.perm_prefix}.delete.all")
     def api_delete(record_id):
         conn = None
         try:
@@ -757,7 +772,7 @@ def _make_delete(d):
 
             conn = engine_generali_db.raw_connection()
             cursor = conn.cursor()
-            if not has_permission(f"{d.perm_prefix}.delete.transorganizational"):
+            if not has_permission(f"{d.perm_prefix}.delete.all"):
                 _check_generali_record_org(cursor, d.table, d.user_column, record_id)
             cursor.execute(f"DELETE FROM {d.table} WHERE ID = ?", [record_id])
             conn.commit()

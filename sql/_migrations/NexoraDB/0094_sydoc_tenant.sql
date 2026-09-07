@@ -45,15 +45,20 @@ GO
 
 -- tenant.sydoc.view: every profile bound to a member organization, plus globalAdmin so the
 -- platform admins see the group. Nobody gets .edit.
-INSERT INTO dbo.AccessProfilePermission (AccessID, PermissionID, Effect)
-SELECT ap.AccessID, tv.PermissionID, 'A'
+-- Schema-adaptive (edited after INT applied it, checksum re-blessed): PROD runs
+-- this after 0086 dropped AccessProfilePermission.Effect. See docs/howto/db-migrations.md.
+DECLARE @hasEffect BIT = CASE WHEN COL_LENGTH('dbo.AccessProfilePermission', 'Effect') IS NULL THEN 0 ELSE 1 END;
+DECLARE @sql NVARCHAR(MAX) = N'
+INSERT INTO dbo.AccessProfilePermission (AccessID, PermissionID' + CASE WHEN @hasEffect = 1 THEN N', Effect' ELSE N'' END + N')
+SELECT ap.AccessID, tv.PermissionID' + CASE WHEN @hasEffect = 1 THEN N', ''A''' ELSE N'' END + N'
   FROM dbo.AccessProfile ap
-  JOIN dbo.Permission tv ON tv.Code = 'tenant.sydoc.view'
- WHERE (ap.OrganizationCode IN ('LKTR', 'PRVR', 'CMPS') OR ap.Name = 'globalAdmin')
+  JOIN dbo.Permission tv ON tv.Code = ''tenant.sydoc.view''
+ WHERE (ap.OrganizationCode IN (''LKTR'', ''PRVR'', ''CMPS'') OR ap.Name IN (''globalAdmin'', ''Global Admin''))
    AND NOT EXISTS (
         SELECT 1 FROM dbo.AccessProfilePermission x
         WHERE x.AccessID = ap.AccessID AND x.PermissionID = tv.PermissionID
-       );
+       );';
+EXEC sp_executesql @sql;
 GO
 
 INSERT INTO dbo.TenantPages (TenantCode, PageKey, PageType, EntityKey, LayoutJSON, SortOrder, Status)

@@ -2,7 +2,7 @@
 
 Requires ENVIRONMENT=TEST with reporting.* permissions seeded (sql/test/seed.sql
 grants every permission to TestAdmin, which includes reporting.view and
-reporting.source.docprocessing). The page chrome and source select are asserted;
+reporting.source.docprocessing.use). The page chrome and source select are asserted;
 data rows are not checked because the statistics DB is absent in TEST.
 """
 
@@ -323,7 +323,7 @@ def _stub_advanced_run_and_caption(page, caption="Client A drives most of the to
 
 @pytest.mark.flaky_e2e
 def test_advanced_chart_mount_fires_caption_for_explain_data_holder(nexora_server, page):
-    """admin@test.local holds reporting.ai.explain_data (sql/test/seed.sql
+    """admin@test.local holds reporting.ai.explain.use (sql/test/seed.sql
     grants every permission to TestAdmin) -- switching to the Chart view
     mounts the chart and fires an auto caption that renders with its AI chip."""
     _login(page, nexora_server)
@@ -342,7 +342,7 @@ def test_advanced_chart_mount_fires_caption_for_explain_data_holder(nexora_serve
 @pytest.mark.flaky_e2e
 def test_advanced_caption_absent_without_explain_data_permission(nexora_server, page):
     """noai@test.local has every TestAdmin permission EXCEPT
-    reporting.ai.explain_data (per-user deny override, sql/test/seed.sql) --
+    reporting.ai.explain.use (per-user deny override, sql/test/seed.sql) --
     the caption slot must not exist in the DOM at all, and the rest of the
     Advanced pane (run, chart) must work exactly as it does for an
     explain_data holder (Task 13's 'unaffected without the perm' spot-check)."""
@@ -446,7 +446,7 @@ def test_advanced_caption_does_not_survive_a_failed_run(nexora_server, page):
 # Forecast eligibility needs a real single-grained-date-column + metric
 # definition (forecastEligibleDef), which the semantic-metrics registry has
 # nothing seeded for in TEST (sql/test/seed.sql carries no metric rows) --
-# so this stubs /api/reporting/sources + /api/reporting/metrics with a
+# so this stubs /api/reporting/sources + /api/reporting/measures with a
 # minimal one-field/one-metric catalog (same WIZ_STUB_SOURCES/METRICS shape
 # test_reporting_simple.py uses for its own builder-catalog stubs), driving
 # the real field-picker + Add metric UI rather than faking builder state.
@@ -523,7 +523,7 @@ def test_advanced_forecast_toggle_and_grid_rows(nexora_server, page):
         ),
     )
     page.route(
-        "**/api/reporting/metrics",
+        "**/api/reporting/measures",
         lambda r: r.fulfill(
             status=200, content_type="application/json", body=json.dumps(ADV_FC_STUB_METRICS)
         ),

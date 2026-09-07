@@ -110,7 +110,7 @@ def apply_tenant_scope():
     view's catch-all ``try`` so the 404/403 are not swallowed."""
     raw = request.args.get("tenant")
     explicit = raw is not None
-    if explicit:
+    if raw is not None:
         code = raw.strip() or None
     else:
         code = session.get("tenant_scope") or organization_tenant(session.get("organizationcode"))
@@ -454,7 +454,7 @@ def tenant_page(tenant_code, page_key):
     entity = entity_for(tenant_code, page.entity) if page.entity else None
     if entity is None:
         abort(404)
-    fields = [f for f in fields_for(tenant_code, page.entity) if f.visible]
+    fields = [f for f in fields_for(tenant_code, entity.key) if f.visible]
 
     # Built here, not in the template: Jinja's expression language has no
     # list-comprehension syntax, only the {% for %} statement tag.

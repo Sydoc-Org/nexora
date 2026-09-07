@@ -46,7 +46,7 @@ REPORTING_CATEGORY_LABELS = {
 }
 
 
-@require_permission("generali.reporting.view")
+@require_permission("tenant.generali.reporting.view")
 def generali_reporting():
     try:
         if "username" not in session:
@@ -57,14 +57,14 @@ def generali_reporting():
             userid=session.get("userid"),
             page_visibility=page_visibility(),
             organizationcode=session.get("organizationcode"),
-            can_add=has_permission("generali.reporting.add"),
-            can_add_bypass_deadline=has_permission("generali.reporting.add.bypass.deadline"),
-            can_edit=has_permission("generali.reporting.edit.organizational")
-            or has_permission("generali.reporting.edit.transorganizational"),
-            can_edit_transorg=has_permission("generali.reporting.edit.transorganizational"),
-            can_delete=has_permission("generali.reporting.delete.organizational")
-            or has_permission("generali.reporting.delete.transorganizational"),
-            can_delete_transorg=has_permission("generali.reporting.delete.transorganizational"),
+            can_add=has_permission("tenant.generali.reporting.add"),
+            can_add_bypass_deadline=has_permission("tenant.generali.reporting.add.pastdeadline"),
+            can_edit=has_permission("tenant.generali.reporting.edit.org")
+            or has_permission("tenant.generali.reporting.edit.all"),
+            can_edit_transorg=has_permission("tenant.generali.reporting.edit.all"),
+            can_delete=has_permission("tenant.generali.reporting.delete.org")
+            or has_permission("tenant.generali.reporting.delete.all"),
+            can_delete_transorg=has_permission("tenant.generali.reporting.delete.all"),
         )
     except Exception as e:
         current_app.logger.error(f"Error loading Generali Reporting: {e}")
@@ -115,8 +115,7 @@ REPORTING = CrudTable(
     slug="reporting",
     table="[dbo].[reportingiss]",
     user_column="ReportByUserID",
-    perm_prefix="generali.reporting",
-    view_perm="generali.reporting.view",
+    perm_prefix="tenant.generali.reporting",
     api_base="/api/generali/reporting",
     label="Generali Reporting",
     user_lookup_label="reporting",
@@ -179,7 +178,7 @@ for _name, _fn in (
 del _name, _fn
 
 
-@require_permission("generali.reporting.add")
+@require_permission("tenant.generali.reporting.add")
 def api_generali_reporting_add():
     """Hand-written: books only for the caller and rejects a duplicate report for
     the same date+category, which no sibling table does."""
@@ -210,7 +209,7 @@ def api_generali_reporting_add():
         if category not in REPORTING_CATEGORIES:
             return jsonify({"success": False, "error": "Invalid category"}), 400
         deadline_err = _check_add_deadline(
-            report_for_date, "generali.reporting.add.bypass.deadline"
+            report_for_date, "tenant.generali.reporting.add.pastdeadline"
         )
         if deadline_err:
             return jsonify({"success": False, "error": deadline_err}), 403
@@ -227,7 +226,9 @@ def api_generali_reporting_add():
             """,
                 [report_for_date, user_id, category],
             )
-            if cursor.fetchone()[0] > 0:
+            count_row = cursor.fetchone()
+            assert count_row is not None  # SELECT COUNT(*) always returns exactly one row
+            if count_row[0] > 0:
                 return jsonify(
                     {
                         "success": False,
@@ -262,9 +263,7 @@ def api_generali_reporting_add():
             conn.close()
 
 
-@require_any_permission(
-    "generali.reporting.edit.organizational", "generali.reporting.edit.transorganizational"
-)
+@require_any_permission("tenant.generali.reporting.edit.org", "tenant.generali.reporting.edit.all")
 def api_generali_reporting_edit():
     """Hand-written: PUTs to the collection URL and takes the record id in the
     body, unlike every sibling's PUT /<int:record_id>."""
@@ -294,7 +293,7 @@ def api_generali_reporting_edit():
 
         conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
-        if not has_permission("generali.reporting.edit.transorganizational"):
+        if not has_permission("tenant.generali.reporting.edit.all"):
             _check_generali_record_org(cursor, "[dbo].[reportingiss]", "ReportByUserID", record_id)
         cursor.execute(
             """

@@ -20,7 +20,68 @@ from .version import __version__
 
 # Newest first. Entry keys: title, body, perm (None = everyone),
 # endpoint (url_for name, None = no link), icon (fontawesome, no "fa-" prefix).
-RELEASES = [
+RELEASES: list[dict] = [
+    {
+        "version": "3.2.4",
+        "date": "2026-09-03",
+        "entries": [
+            {
+                "title": _("One grid for every permission"),
+                "body": _(
+                    "Admin > Permissions shows every access profile against every "
+                    "permission; tick a cell, save, done. Profiles now carry a rank "
+                    "that decides which profiles an admin may hand out."
+                ),
+                "perm": "admin.profiles.view",
+                "endpoint": "admin_permissions",
+                "icon": "table-cells",
+            },
+            {
+                "title": _("Choose how deeply Eddard thinks"),
+                "body": _(
+                    "Click into the chat box and pick Quick, Balanced or Deep. "
+                    "Quick answers straightforward counts fast; Deep gives Eddard "
+                    "more room on hard, multi-source questions. Shown only when "
+                    "the configured model supports it."
+                ),
+                "perm": "reporting.ai.use",
+                "endpoint": "reporting",
+                "icon": "gauge-high",
+            },
+            {
+                "title": _("Faster pages everywhere"),
+                "body": _(
+                    "The reporting registry, the Generali dashboard filters and "
+                    "the static assets are now cached, and several heavy pages "
+                    "make one database query where they used to make one per row."
+                ),
+                "perm": None,
+                "endpoint": None,
+                "icon": "bolt",
+            },
+            {
+                "title": _("Generali daily average counts every day"),
+                "body": _(
+                    "The dashboard's daily average now divides by the days in the "
+                    "selected range, not only by the days that had data, so quiet "
+                    "days no longer inflate the figure."
+                ),
+                "perm": None,
+                "endpoint": "generali_documents",
+                "icon": "chart-line",
+            },
+            {
+                "title": _("Amber is the new default accent"),
+                "body": _(
+                    "New users and anyone who never picked a colour now see Amber "
+                    "instead of Indigo. Your own choice in Settings is untouched."
+                ),
+                "perm": None,
+                "endpoint": None,
+                "icon": "palette",
+            },
+        ],
+    },
     {
         "version": "3.2.3",
         "date": "2026-08-27",
@@ -60,7 +121,7 @@ RELEASES = [
                     "columns and types, and a diagram of how they connect. "
                     "Structure only — no data is shown."
                 ),
-                "perm": "reporting.sources.schema",
+                "perm": "reporting.sources.schema.view",
                 "endpoint": "reporting",
                 "icon": "diagram-project",
             },
@@ -130,7 +191,7 @@ RELEASES = [
                     "missing grant is something you can see instead of hunt."
                 ),
                 "perm": "admin.view",
-                "endpoint": "admin_permission_matrix",
+                "endpoint": "admin_permissions",
                 "icon": "table-cells",
             },
         ],
@@ -148,7 +209,7 @@ RELEASES = [
                     "axis. The separate Backlog History source is retired — the "
                     "new Backlog measure replaces it."
                 ),
-                "perm": "reporting.source.docprocessing",
+                "perm": "reporting.source.docprocessing.use",
                 "endpoint": "reporting",
                 "icon": "chart-line",
             },
@@ -207,7 +268,7 @@ RELEASES = [
                     "The Apply button is gone from the Generali filter bars — "
                     "changing any filter or date reloads the list right away."
                 ),
-                "perm": "generali.baseservices.view",
+                "perm": "tenant.generali.baseservices.view",
                 "endpoint": "generali_base_services",
                 "icon": "bolt",
             },
@@ -218,7 +279,7 @@ RELEASES = [
                     "type a few letters, pick the name, and the list filters "
                     "instantly."
                 ),
-                "perm": "generali.baseservices.view",
+                "perm": "tenant.generali.baseservices.view",
                 "endpoint": "generali_base_services",
                 "icon": "magnifying-glass",
             },
@@ -260,7 +321,7 @@ RELEASES = [
                 ),
                 # 0069 retired the standalone backlog source; the Backlog
                 # measure now lives on the docprocessing source.
-                "perm": "reporting.source.docprocessing",
+                "perm": "reporting.source.docprocessing.use",
                 "endpoint": "reporting",
                 "icon": "layer-group",
             },
@@ -294,7 +355,7 @@ RELEASES = [
                     "Each search row now has an operator (contains, =, ≠, starts "
                     "with, ends with) and rows combine with AND/OR."
                 ),
-                "perm": "workitems.filter.documentfields",
+                "perm": "workitems.filter.docfields.view",
                 "endpoint": "workitems_overview",
                 "icon": "magnifying-glass",
             },
@@ -314,7 +375,7 @@ RELEASES = [
                     "A new Stage filter (Import, Extraction, Validation, Delivery) "
                     "narrows the list to workitems currently in that step."
                 ),
-                "perm": "workitems.filter.stage",
+                "perm": "workitems.filter.stage.view",
                 "endpoint": "workitems_overview",
                 "icon": "list-check",
             },
@@ -325,7 +386,7 @@ RELEASES = [
                     "were deleted, previously hidden entirely, can now be shown "
                     "on demand, badged red."
                 ),
-                "perm": "workitems.filter.status.deleted",
+                "perm": "workitems.filter.deleted.view",
                 "endpoint": "workitems_overview",
                 "icon": "trash-can",
             },

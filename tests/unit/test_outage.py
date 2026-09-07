@@ -159,8 +159,7 @@ def test_recovery_sends_one_mail_after_min_hold():
 def test_flapping_component_sends_one_open_and_one_recover():
     """The ping_prdsrv lesson: ~200 mails from a link toggling every minute."""
     seq = [(False, 0), (False, 1)]
-    for i in range(2, 40):  # alternate green/red every minute for 38 polls
-        seq.append((i % 2 == 0, i))
+    seq.extend((i % 2 == 0, i) for i in range(2, 40))  # alternate green/red every minute
     seq += [(True, 200), (True, 201)]  # then genuinely stable, past min-hold
     _state, events = _run(seq, min_hold_s=1800)
     assert [e for e, _ in events] == ["open", "recover"]

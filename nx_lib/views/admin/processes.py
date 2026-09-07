@@ -10,6 +10,7 @@ from flask_babel import gettext as _
 from ... import mapping_config
 from ...db import engine_nexora_db
 from ...mapping_config import invalidate_mapping_config
+from ...process_helpers import process_scope_code
 from ...security import has_permission, page_visibility, require_permission
 from .clients import _CLIENT_CODE_RE
 
@@ -41,7 +42,7 @@ def _process_source_dict(source, fields):
     }
 
 
-@require_permission("admin.view.processes")
+@require_permission("admin.processes.view")
 def admin_processes_view():
     """Read-only view of dbo.ProcessSources / ProcessFieldMappings (migration
     0074), grouped by ClientCode -- a *runtime source* (default/ms02, see
@@ -52,13 +53,13 @@ def admin_processes_view():
     registry() returning None means the config failed to load (a load error
     is never cached) -- render an explicit "unavailable" state rather than an
     empty-looking success. The edit affordances render only for
-    admin.edit.processes; the free-form SQL fragment columns (JoinCondition,
+    admin.processes.edit; the free-form SQL fragment columns (JoinCondition,
     TimeFilter, SuggestionTimeFilter, ExtraCondition) stay read-only for
     everybody -- they are editable only by a migration."""
     reg = mapping_config.registry()
     clients_data = []
     if reg is not None:
-        by_client = {}
+        by_client: dict = {}
         for (client, process), source in reg.sources.items():
             fields = sorted(
                 (m for m in reg.mappings if m.client == client and m.process == process),
@@ -79,7 +80,7 @@ def admin_processes_view():
     return render_template(
         "admin/processes.html",
         mapping_config_available=reg is not None,
-        can_edit=has_permission("admin.edit.processes"),
+        can_edit=has_permission("admin.processes.edit"),
         clients_data=clients_data,
         client_codes=_client_codes(),
         organizations=_organization_options(),
@@ -89,7 +90,7 @@ def admin_processes_view():
     )
 
 
-@require_permission("admin.view.processes")
+@require_permission("admin.processes.view")
 def api_admin_processes_list():
     """JSON mirror of admin_processes_view() for a single client (or every
     client when ``?client=`` is omitted) -- read through nx_lib/mapping_config.py,
@@ -116,16 +117,17 @@ def api_admin_processes_list():
 
 # ProcessName MUST be exactly <customer>.<process> -- two dot-separated
 # segments, no more, no fewer. This is NOT cosmetic and NOT "convention only":
-# every consumer of the auto-provisioned workitems.filter.process.<ProcessName>
-# permission reconstructs the process name from the permission code as exactly
-# the LAST TWO dot-segments (nx_lib/views/workitems.py, nx_lib/process_helpers.py
-# `parts[-2], parts[-1]`). A one-segment name ("Invoice") derives back as
-# "process.Invoice" and the grant silently never matches; a three-segment name
-# ("acme.eu.01_Invoice") derives back as "eu.01_Invoice", same silent dead end;
-# and worse, "x.acme.01_Invoice" reduces to "acme.01_Invoice", so it would
-# piggyback on another customer's existing grant. Until this page existed the
-# invariant held only because process names were migration-controlled -- now an
-# admin types them, so it is enforced here.
+# the auto-provisioned process.<client>.<name>.view permission is built from
+# _permission_reduction(process_name) below, which takes exactly the LAST TWO
+# dot-segments of ProcessName as the <client>.<name> pair every consumer reads
+# back via granted_processes() (nx_lib/process_helpers.py). A one-segment name
+# ("Invoice") reduces to "Invoice" -- no dot, so granted_processes() (which
+# requires exactly one) silently drops it and the grant never matches; a
+# three-segment name ("acme.eu.01_Invoice") reduces to "eu.01_Invoice", same
+# silent dead end; and worse, "x.acme.01_Invoice" reduces to "acme.01_Invoice",
+# so it would piggyback on another customer's existing grant. Until this page
+# existed the invariant held only because process names were
+# migration-controlled -- now an admin types them, so it is enforced here.
 _PROCESS_NAME_RE = re.compile(r"^[A-Za-z0-9_\-]{1,49}\.[A-Za-z0-9_\-]{1,50}$")
 
 # FieldKey is a plain mapping key (doctype, invoice_no) -- it is never turned
@@ -152,7 +154,6 @@ _COLUMN_TYPE_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_ ]{0,29}$")
 # writable here: no validator can make an arbitrary predicate safe, so they
 # stay migration-only. They appear in no INSERT/UPDATE and in no form below --
 # a payload carrying them is ignored, not applied.
-_PROCESS_PERMISSION_PREFIX = "workitems.filter.process."
 
 
 def _validate_identifier_fields(data, fields, errors, *, required=()):
@@ -193,7 +194,7 @@ def _validate_process_identity(client_code, process_name, errors, field_key=None
 def _validate_process_source_payload(data, client_code, process_name):
     """Server-side validation for the process-source write endpoints -- never
     trust the client-side checks in templates/js/admin/_processes_js.html."""
-    errors = []
+    errors: list = []
     _validate_process_identity(client_code, process_name, errors)
     _validate_identifier_fields(
         data,
@@ -227,7 +228,7 @@ def _organizations(cursor):
 
 
 def _validate_field_mapping_payload(data, client_code, process_name, field_key):
-    errors = []
+    errors: list = []
     _validate_process_identity(client_code, process_name, errors, field_key=field_key)
     _validate_identifier_fields(data, ("ColumnName",), errors, required=("ColumnName",))
     column_type = (data.get("ColumnType") or "").strip()
@@ -255,8 +256,8 @@ def _validation_error(errors):
 
 def _permission_reduction(process_name):
     """The (customer, process) pair every consumer derives back out of a
-    ``workitems.filter.process.<ProcessName>`` code -- the last two dot
-    segments. Two process names sharing a reduction share an entitlement,
+    ``process.<client>.<name>.view`` code -- the last two dot segments of
+    ProcessName. Two process names sharing a reduction share an entitlement,
     whatever their ClientCode: the permission code carries no client."""
     return ".".join((process_name or "").split(".")[-2:])
 
@@ -326,12 +327,12 @@ def _client_codes():
             conn.close()
 
 
-@require_permission("admin.edit.processes")
+@require_permission("admin.processes.edit")
 def api_admin_process_source_add():
     """Add a dbo.ProcessSources row (migration 0074) AND provision its
-    ``workitems.filter.process.<ProcessName>`` permission in the same
-    transaction -- self-service onboarding is the whole point of this page, and
-    a process nobody can be granted is a half-created process.
+    ``process.<client>.<name>.view`` permission in the same transaction --
+    self-service onboarding is the whole point of this page, and a process
+    nobody can be granted is a half-created process.
 
     The permission is created granted to NOBODY: granting stays a deliberate
     act at /admin/access-control. The insert mirrors migration 0059's
@@ -378,7 +379,7 @@ def api_admin_process_source_add():
                             name=process_name,
                             other_client=conflict[0],
                             other=conflict[1],
-                            code=f"{_PROCESS_PERMISSION_PREFIX}{_permission_reduction(process_name)}",
+                            code=process_scope_code(_permission_reduction(process_name)),
                         ),
                     }
                 ),
@@ -390,11 +391,12 @@ def api_admin_process_source_add():
             "VALUES (?,?,?,?,?,?,?,?,?)",
             (client_code, process_name, *_process_source_values(data), _organization_code(data)),
         )
-        code = f"{_PROCESS_PERMISSION_PREFIX}{process_name}"
+        reduction = _permission_reduction(process_name)
+        code = process_scope_code(reduction)
         cursor.execute(
             "INSERT INTO dbo.Permission (Code, Description) SELECT ?, ? "
             "WHERE NOT EXISTS (SELECT 1 FROM dbo.Permission p WHERE p.Code = ?)",
-            (code, f"View {process_name} workitems"[:200], code),
+            (code, f"Process {reduction}: workitems, dashboard and reports"[:200], code),
         )
         conn.commit()
         invalidate_mapping_config()
@@ -423,7 +425,7 @@ def api_admin_process_source_add():
             conn.close()
 
 
-@require_permission("admin.edit.processes")
+@require_permission("admin.processes.edit")
 def api_admin_process_source_edit(clientcode, processname):
     """Edit the identifier columns of a dbo.ProcessSources row. Identity
     (ClientCode, ProcessName) comes from the URL and is never rewritten -- a
@@ -459,13 +461,13 @@ def api_admin_process_source_edit(clientcode, processname):
             conn.close()
 
 
-@require_permission("admin.edit.processes")
+@require_permission("admin.processes.edit")
 def api_admin_process_source_delete(clientcode, processname):
     """Delete a dbo.ProcessSources row. Refused with 409 while field mappings
     still reference it -- FK_ProcessFieldMappings_ProcessSources would raise
     anyway, and a 500 tells the admin nothing about what to do next.
 
-    The ``workitems.filter.process.<name>`` permission row is deliberately left
+    The ``process.<client>.<name>.view`` permission row is deliberately left
     behind: dropping it would silently revoke access the admin never asked to
     change, and re-adding the process re-uses it (see the add endpoint)."""
     conn = None
@@ -522,7 +524,7 @@ def api_admin_process_source_delete(clientcode, processname):
             conn.close()
 
 
-@require_permission("admin.edit.processes")
+@require_permission("admin.processes.edit")
 def api_admin_field_mapping_add():
     """Add a dbo.ProcessFieldMappings row -- one doc-field of one process."""
     data = request.get_json() or {}
@@ -576,7 +578,7 @@ def api_admin_field_mapping_add():
             conn.close()
 
 
-@require_permission("admin.edit.processes")
+@require_permission("admin.processes.edit")
 def api_admin_field_mapping_edit(clientcode, processname, fieldkey):
     """Edit a field mapping's column. Identity comes from the URL -- renaming a
     FieldKey is a delete plus an add, not an update."""
@@ -618,7 +620,7 @@ def api_admin_field_mapping_edit(clientcode, processname, fieldkey):
             conn.close()
 
 
-@require_permission("admin.edit.processes")
+@require_permission("admin.processes.edit")
 def api_admin_field_mapping_delete(clientcode, processname, fieldkey):
     conn = None
     cursor = None

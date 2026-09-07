@@ -48,10 +48,10 @@ def _get(client):
 
 ALL = {
     "workitems.details.view",
-    "workitems.details.view.images",
-    "workitems.details.view.fields",
-    "workitems.details.view.confidence",
-    "workitems.details.view.source_location",
+    "workitems.details.images.view",
+    "workitems.details.fields.view",
+    "workitems.details.confidence.view",
+    "workitems.details.sources.view",
 }
 
 
@@ -64,12 +64,12 @@ def test_media_info_includes_field_sources(client, monkeypatch):
 
 
 def test_field_sources_empty_without_fields_perm(client, monkeypatch):
-    _patch(monkeypatch, {"workitems.details.view", "workitems.details.view.images"})
+    _patch(monkeypatch, {"workitems.details.view", "workitems.details.images.view"})
     assert _get(client).get_json()["field_sources"] == []
 
 
 def test_locations_stripped_without_images_perm(client, monkeypatch):
-    _patch(monkeypatch, {"workitems.details.view", "workitems.details.view.fields"})
+    _patch(monkeypatch, {"workitems.details.view", "workitems.details.fields.view"})
     srcs = _get(client).get_json()["field_sources"]
     # values preserved, boxes removed
     assert [s["value"] for s in srcs] == ["INV-1", "7.7"]
@@ -79,7 +79,7 @@ def test_locations_stripped_without_images_perm(client, monkeypatch):
 def test_locations_stripped_without_source_location_perm(client, monkeypatch):
     # images + fields + confidence, but NOT source_location -> boxes removed,
     # values + confidence kept; the badge-suppressing flag goes false.
-    _patch(monkeypatch, ALL - {"workitems.details.view.source_location"})
+    _patch(monkeypatch, ALL - {"workitems.details.sources.view"})
     body = _get(client).get_json()
     srcs = body["field_sources"]
     assert all(s["locations"] == [] for s in srcs)
@@ -91,7 +91,7 @@ def test_locations_stripped_without_source_location_perm(client, monkeypatch):
 def test_confidence_stripped_without_confidence_perm(client, monkeypatch):
     # images + fields + source_location, but NOT confidence -> confidence removed,
     # boxes kept.
-    _patch(monkeypatch, ALL - {"workitems.details.view.confidence"})
+    _patch(monkeypatch, ALL - {"workitems.details.confidence.view"})
     srcs = _get(client).get_json()["field_sources"]
     assert all("confidence" not in s for s in srcs)
     assert srcs[0]["locations"] == SOURCES[0]["locations"]

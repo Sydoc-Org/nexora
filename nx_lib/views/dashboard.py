@@ -287,7 +287,7 @@ def _kpi_daily_counts(target_processes, days):
     when those fakes are rewritten to yield dated rows.
     """
     days = max(1, int(days))
-    out = {}
+    out: dict = {}
 
     configs = _statconfig_sources(target_processes)
     default_configs, ms02_rows = _split_stat_configs(configs)
@@ -344,7 +344,7 @@ def _avg_processing_by_day(target_processes, days, *, strict=False):
     ABSENT rather than zero: a zero average would draw a cliff in the
     sparkline where the truth is "no documents finished that day"."""
     days = max(1, int(days))
-    per_day = {}
+    per_day: dict = {}
 
     configs = _statconfig_sources(target_processes)
     default_configs, ms02_rows = _split_stat_configs(configs)
@@ -438,7 +438,7 @@ def _backlog_history(target_processes, days):
     # (date, client.process) -> {source_code: (snapshot_at, count)} -- keep the
     # latest snapshot per source before summing, so an early-morning row from
     # one source never outranks an evening row from another.
-    latest = {}
+    latest: dict = {}
     for snapshot_at, source_code, client, process, count in _default_stat_rows(
         _BACKLOG_HISTORY_SQL, (-(days - 1),)
     ):
@@ -455,7 +455,7 @@ def _backlog_history(target_processes, days):
         if prev is None or at >= prev[0]:
             slot[source_code] = (at, count or 0)
 
-    out = {}
+    out: dict = {}
     for (day, name), by_source in latest.items():
         out.setdefault(day, {})[name] = sum(c for _at, c in by_source.values())
     return {d: out[d] for d in sorted(out)}
@@ -654,7 +654,7 @@ def dashboard_processed_over_time():
                 GROUP BY {date_col}
             """)
 
-        counts = {}
+        counts: dict = {}
         if sub_queries:
             full_query = f"""
                 SELECT d, SUM(c) as total_count
@@ -813,7 +813,7 @@ def dashboard_hourly_stats():
                 GROUP BY DATEPART(hour, {row.export_column})
             """)
 
-        hourly = {}
+        hourly: dict = {}
 
         if sub_queries:
             full_query = f"""
@@ -1011,15 +1011,16 @@ def dashboard_set_filter():
     if "username" not in session:
         return jsonify({"error": "Not authorized"}), 401
     allowed_processes = _allowed_processes()
+    payload = request.get_json(silent=True) or {}
     process_name = normalize_process_selection(
-        request.json.get("process_name", "all"), allowed_processes
+        payload.get("process_name", "all"), allowed_processes
     )[0]
     session["process_name_dashboard"] = process_name
     # ponytail: the range rides the session, like the process filter above it --
     # not nx_lib/ui_prefs.py, which is the pre-paint appearance allowlist. Move
     # it there if users ask for the choice to follow them across devices.
-    if "range" in (request.json or {}):
-        session["dashboard_range"] = normalize_range(request.json.get("range"))
+    if "range" in payload:
+        session["dashboard_range"] = normalize_range(payload.get("range"))
     return jsonify(
         {
             "ok": True,

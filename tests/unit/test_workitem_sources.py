@@ -48,6 +48,7 @@ def _mk_filter():
 
 
 def test_sqlserver_source_normalizes_rows(app):
+    # Two-query pattern: a separate COUNT(*) plus the paged query.
     count_row = [3]
     data_row = MagicMock(
         ModifiedAt=datetime(2026, 6, 16, 9, 0, 0),
@@ -71,21 +72,25 @@ def test_sqlserver_source_normalizes_rows(app):
     assert rows[0]["client"] == "default"
     assert "priority" not in rows[0]
     assert "tags" not in rows[0]
+    # Two queries: a separate COUNT(*) then the page query, no COUNT(*) OVER().
+    assert fake_cur.execute.call_count == 2
+    executed_sql = " ".join(str(c.args[0]) for c in fake_cur.execute.call_args_list)
+    assert "COUNT(*) OVER()" not in executed_sql
 
 
 def test_postgres_source_builds_pg_sql(app):
     # psycopg2 cursor returns namedtuple-ish rows; we normalize by attribute.
-    count_row = [2]
+    # total rides along via COUNT(*) OVER() -- no separate count query.
     data_rows = [
         MagicMock(
             modifiedat=datetime(2026, 6, 16, 9, 5, 0),
             workitemid=1001,
             status="Ready",
             currentstage="Extraction",
+            totalcount=2,
         ),
     ]
     fake_cur = MagicMock()
-    fake_cur.fetchone.return_value = count_row
     fake_cur.fetchall.return_value = data_rows
     fake_conn = MagicMock()
     fake_conn.cursor.return_value = fake_cur
@@ -104,6 +109,30 @@ def test_postgres_source_builds_pg_sql(app):
     executed_sql = " ".join(str(c.args[0]) for c in fake_cur.execute.call_args_list)
     assert "%s" in executed_sql
     assert "?" not in executed_sql
+    # Single query: COUNT(*) OVER() in the page query, no separate COUNT(*).
+    assert fake_cur.execute.call_count == 1
+    assert "COUNT(*) OVER()" in executed_sql
+
+
+def test_postgres_source_zero_rows_falls_back_to_count_query(app):
+    """Same empty-page fallback contract as the SQL Server source."""
+    fake_cur = MagicMock()
+    fake_cur.fetchall.return_value = []
+    fake_cur.fetchone.return_value = [4]
+    fake_conn = MagicMock()
+    fake_conn.cursor.return_value = fake_cur
+
+    src = PostgresSource(CLIENTS_code="ms02")
+    with patch.object(src, "engine") as eng, app.app_context():
+        eng.raw_connection.return_value = fake_conn
+        rows, total = src.list_workitems(_mk_filter(), offset=1000, limit=40)
+
+    assert rows == []
+    assert total == 4
+    assert fake_cur.execute.call_count == 2
+    fallback_sql = str(fake_cur.execute.call_args_list[1].args[0])
+    assert "COUNT(*)" in fallback_sql
+    assert "OVER()" not in fallback_sql
 
 
 def _captured_sql(src, filt):
@@ -136,7 +165,7 @@ def test_status_in_progress_filter_covers_all_non_terminal_codes(app):
 def test_deleted_workitems_hidden_unless_explicitly_filtered_for(app):
     """Status 2 (deleted) is hard-excluded from every default list. Asking for it
     by status code -- which the view only maps for holders of
-    workitems.filter.status.deleted -- must DROP that exclusion, otherwise the
+    workitems.filter.deleted.view -- must DROP that exclusion, otherwise the
     two clauses contradict and the filter returns nothing."""
     for src in (SqlServerSource(), PostgresSource(CLIENTS_code="ms02")):
         name = type(src).__name__
@@ -529,15 +558,15 @@ def test_fetch_merged_page_warm_loop_does_not_blind_cache_colliding_id(app, monk
     monkeypatch.setattr(s1, "has_workitem", lambda wid: True)
     monkeypatch.setattr(s2, "has_workitem", lambda wid: True)
     monkeypatch.setattr(ws, "_cache_lookup", lambda wid: None)
-    stored = []
-    monkeypatch.setattr(ws, "_cache_store", lambda wid, code: stored.append((wid, code)))
+    store_calls = []
+    monkeypatch.setattr(ws, "_cache_store_many", lambda pairs: store_calls.append(list(pairs)))
 
     with app.app_context():
         rows, total, degraded = ws.fetch_merged_page(_mk_filter(), offset=0, limit=40)
 
     assert [r["workitemid"] for r in rows] == [1216, 1216]  # both rows still render
     assert degraded == []
-    assert stored == [], "colliding id must not be blind-cached by the warm loop"
+    assert store_calls == [], "colliding id must not be blind-cached by the batched warm loop"
 
 
 def test_fetch_merged_page_warm_loop_caches_a_single_claimant_id(app, monkeypatch):
@@ -569,19 +598,110 @@ def test_fetch_merged_page_warm_loop_caches_a_single_claimant_id(app, monkeypatc
     monkeypatch.setattr(s1, "has_workitem", lambda wid: False)
     monkeypatch.setattr(s2, "has_workitem", lambda wid: wid == 1001)
     monkeypatch.setattr(ws, "_cache_lookup", lambda wid: None)
-    stored = []
-    monkeypatch.setattr(ws, "_cache_store", lambda wid, code: stored.append((wid, code)))
+    store_calls = []
+    monkeypatch.setattr(ws, "_cache_store_many", lambda pairs: store_calls.append(list(pairs)))
 
     with app.app_context():
         rows, total, degraded = ws.fetch_merged_page(_mk_filter(), offset=0, limit=40)
 
     assert [r["workitemid"] for r in rows] == [5, 1001]
     assert degraded == []
-    assert stored == [(1001, "ms02")], "unambiguous id must be warmed into the cache"
+    # One batched call for the whole page, not one per row.
+    assert store_calls == [[(1001, "ms02")]], "unambiguous id must be warmed into the cache"
     # Exactly one active_sources() call total (fetch_merged_page's own, at the
     # top of the function) -- get_source_for_workitem must not construct a
     # second fresh set of source instances per probed row.
     assert active_sources_calls == [1]
+
+
+def test_fetch_merged_page_warm_loop_batches_all_uncached_rows_into_one_store_call(
+    app, monkeypatch
+):
+    """N uncached, unambiguous rows on a page must produce exactly ONE
+    _cache_store_many call carrying all N pairs -- not N per-row calls. This
+    is the batching behaviour Task 2 exists to prove: the old code called
+    get_source_for_workitem (and therefore _cache_store, one MERGE+commit)
+    once per uncached row."""
+    s1, s2 = SqlServerSource(), SqlServerSource()
+    s2.code = "ms02"
+    monkeypatch.setattr(ws, "active_sources", lambda: [s1, s2])
+    ms02_ids = {1001, 1002, 1003, 1004}
+    monkeypatch.setattr(
+        s1,
+        "list_workitems",
+        lambda filt, offset, limit: ([_row(5, 30, client="default")], 1),
+    )
+    monkeypatch.setattr(
+        s2,
+        "list_workitems",
+        lambda filt, offset, limit: (
+            [_row(wid, 20 + i, client="ms02") for i, wid in enumerate(sorted(ms02_ids))],
+            len(ms02_ids),
+        ),
+    )
+    monkeypatch.setattr(s1, "has_workitem", lambda wid: False)
+    monkeypatch.setattr(s2, "has_workitem", lambda wid: wid in ms02_ids)
+    monkeypatch.setattr(ws, "_cache_lookup_many", lambda ids: {})
+    store_calls = []
+    monkeypatch.setattr(ws, "_cache_store_many", lambda pairs: store_calls.append(list(pairs)))
+
+    with app.app_context():
+        ws.fetch_merged_page(_mk_filter(), offset=0, limit=40)
+
+    assert len(store_calls) == 1, "must batch every uncached row's cache write into one call"
+    assert sorted(store_calls[0]) == [(wid, "ms02") for wid in sorted(ms02_ids)]
+
+
+def test_cache_store_many_issues_one_merge_and_one_commit(app):
+    """The batched upsert itself: N pairs -> exactly one cursor.execute (one
+    multi-row MERGE) and one commit, not N."""
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_conn.cursor.return_value = mock_cursor
+    with (
+        app.app_context(),
+        patch.object(ws.engine_nexora_db, "raw_connection", return_value=mock_conn),
+    ):
+        ws._cache_store_many([(1, "ms02"), (2, "ms02"), (3, "ms02")])
+
+    assert mock_cursor.execute.call_count == 1
+    sql, params = mock_cursor.execute.call_args[0]
+    assert sql.count("MERGE") == 1
+    assert params == ["1", "ms02", "2", "ms02", "3", "ms02"]
+    assert mock_conn.commit.call_count == 1
+    mock_conn.close.assert_called_once()
+
+
+def test_cache_store_many_drops_default_and_dedupes_by_id(app):
+    """'default' pairs are never cached (matches _cache_store's contract) and
+    a duplicate id collapses to its first occurrence before the MERGE runs,
+    since a MERGE cannot target the same key twice in one USING clause."""
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_conn.cursor.return_value = mock_cursor
+    with (
+        app.app_context(),
+        patch.object(ws.engine_nexora_db, "raw_connection", return_value=mock_conn),
+    ):
+        ws._cache_store_many(
+            [(1, "default"), (2, "ms02"), (2, "generali")]  # (2, "generali") ignored, dup id
+        )
+
+    assert mock_cursor.execute.call_count == 1
+    sql, params = mock_cursor.execute.call_args[0]
+    assert params == ["2", "ms02"]
+
+
+def test_cache_store_many_empty_input_short_circuits(app):
+    with app.app_context(), patch.object(ws.engine_nexora_db, "raw_connection") as mock_raw:
+        ws._cache_store_many([])
+    mock_raw.assert_not_called()
+
+
+def test_cache_store_many_all_default_short_circuits(app):
+    with app.app_context(), patch.object(ws.engine_nexora_db, "raw_connection") as mock_raw:
+        ws._cache_store_many([(1, "default"), (2, "default")])
+    mock_raw.assert_not_called()
 
 
 # ---------------- dashboard source-awareness (Task 14) ---------------- #
@@ -1317,6 +1437,64 @@ def test_resolve_octo_wid_stage_pg_returns_empty_when_not_found(app):
             "status": None,
             "current_stage": None,
         }
+
+
+def test_resolve_octo_wid_stage_pg_batch_returns_empty_without_engine(app):
+    with app.app_context():
+        assert ws._resolve_octo_wid_stage_pg_batch(None, [1, 2, 3]) == {}
+
+
+def test_resolve_octo_wid_stage_pg_batch_returns_empty_with_no_valid_wids(app):
+    from unittest.mock import MagicMock
+
+    eng = MagicMock()
+    with app.app_context():
+        assert ws._resolve_octo_wid_stage_pg_batch(eng, ["not-an-int", None]) == {}
+    # No round-trip attempted at all when there's nothing valid to ask for.
+    eng.raw_connection.assert_not_called()
+
+
+def test_resolve_octo_wid_stage_pg_batch_degrades_to_empty_on_error(app):
+    class Boom:
+        def raw_connection(self):
+            raise RuntimeError("pg down")
+
+    with app.app_context():
+        assert ws._resolve_octo_wid_stage_pg_batch(Boom(), [1, 2]) == {}
+
+
+def test_resolve_octo_wid_stage_pg_batch_issues_one_query_for_many_wids(app):
+    """N wids -> exactly ONE execute() call (ANY(%s) array param), not N --
+    this is the fix for the prepared-documents page's stage N+1. Same SQL
+    vocabulary/column mapping as the single-wid twin, plus the wid column."""
+    from unittest.mock import MagicMock
+
+    fake_cur = MagicMock()
+    fake_cur.fetchall.return_value = [
+        (42, "In Progress", "Validation"),
+        (43, "Done", "Delivery"),
+    ]
+    fake_conn = MagicMock()
+    fake_conn.cursor.return_value = fake_cur
+    eng = MagicMock()
+    eng.raw_connection.return_value = fake_conn
+
+    with app.app_context():
+        result = ws._resolve_octo_wid_stage_pg_batch(eng, [42, 43, 44])
+
+    assert fake_cur.execute.call_count == 1
+    sql, params = fake_cur.execute.call_args[0]
+    assert '"t_WorkItems"' in sql
+    assert '"t_ActivityInstances"' in sql
+    assert "= ANY(%s)" in sql
+    assert params == [[42, 43, 44]]
+    # wid 44 had no matching row -- simply absent from the result, exactly
+    # like the single-wid resolver returning its empty stage for a miss.
+    assert result == {
+        42: {"status": "In Progress", "current_stage": "Validation"},
+        43: {"status": "Done", "current_stage": "Delivery"},
+    }
+    assert 44 not in result
 
 
 def test_cache_lookup_many_issues_one_query_and_maps_hits(app):

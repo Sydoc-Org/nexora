@@ -31,7 +31,7 @@
         {% if can_edit %}
         <p class="nx-c-meta" style="font-size:0.85rem;margin:0 0 16px" data-testid="admin-processes-help-writes">
             <i class="fas fa-shield-halved"></i>
-            {{ _("Adding a process source also creates its workitems.filter.process.&lt;name&gt; permission, granted to nobody -- grant it under Access Control. The join condition, time filters and extra condition are free-form SQL fragments and stay read-only here: they are editable only by a database migration.") }}
+            {{ _("Adding a process source also creates its process.<client>.<name>.view permission, granted to nobody -- grant it under Access Control. The join condition, time filters and extra condition are free-form SQL fragments and stay read-only here: they are editable only by a database migration.") }}
         </p>
         {% endif %}
 

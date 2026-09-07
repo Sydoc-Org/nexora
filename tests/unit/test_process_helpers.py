@@ -9,6 +9,8 @@ from nx_lib.process_helpers import (
     get_activity_instances_to_ignore,
     prepare_process_selection_lists,
     prepare_process_selection_sql,
+    process_grants,
+    process_scope_code,
 )
 
 
@@ -34,6 +36,27 @@ def ph_fake_session(monkeypatch):
     return sess
 
 
+# ---------- granted_processes / process_scope_code ----------
+
+
+def test_granted_processes_parses_the_single_family():
+    perms = [
+        "process.privera.03_Invoice_New.view",
+        "dashboard.view",
+        "process.compass.01_Invoice_SAP.view",
+        "processes.view",
+        "process.privera.03_Invoice_New.edit",
+    ]
+    assert sorted(process_grants(perms, "dashboard.filter.process.")) == [
+        "compass.01_Invoice_SAP",
+        "privera.03_Invoice_New",
+    ]
+
+
+def test_process_scope_code_round_trips():
+    assert process_scope_code("privera.03_Invoice_New") == "process.privera.03_Invoice_New.view"
+
+
 # ---------- prepare_process_selection_sql ----------
 
 
@@ -46,12 +69,12 @@ def test_prepare_process_selection_sql_all_builds_pair_predicate_not_cross_produ
     fixed shape must return an OR-joined pair predicate whose params can only
     ever reconstruct the two GRANTED pairs."""
     ph_fake_session["permissions"] = [
-        "stat.A.P1",
-        "stat.B.P2",
+        "process.A.P1.view",
+        "process.B.P2.view",
         "unrelated.perm",
     ]
     with app.app_context():
-        params, predicate = prepare_process_selection_sql("stat.", "all")
+        params, predicate = prepare_process_selection_sql("all")
 
     assert predicate == "(client = ? AND process = ?) OR (client = ? AND process = ?)"
     assert params == ["A", "P1", "B", "P2"]
@@ -65,12 +88,12 @@ def test_prepare_process_selection_sql_all_builds_pair_predicate_not_cross_produ
 
 
 def test_prepare_process_selection_sql_specific_uses_has_permission(app, ph_fake_session):
-    ph_fake_session["permissions"] = ["stat.Privera.Invoices"]
+    ph_fake_session["permissions"] = ["process.Privera.Invoices.view"]
     # Need to also patch security.session because has_permission reads it
     import nx_lib.security as sec_mod
 
     with patch.object(sec_mod, "session", ph_fake_session), app.app_context():
-        params, predicate = prepare_process_selection_sql("stat.", "Privera.Invoices")
+        params, predicate = prepare_process_selection_sql("Privera.Invoices")
     assert params == ["Privera", "Invoices"]
     assert predicate == "(client = ? AND process = ?)"
 
@@ -80,7 +103,7 @@ def test_prepare_process_selection_sql_specific_without_perm_empty(app, ph_fake_
 
     ph_fake_session["permissions"] = []
     with patch.object(sec_mod, "session", ph_fake_session), app.app_context():
-        params, predicate = prepare_process_selection_sql("stat.", "Privera.Invoices")
+        params, predicate = prepare_process_selection_sql("Privera.Invoices")
     assert params == []
     assert predicate == ""
 
@@ -94,7 +117,7 @@ def test_prepare_process_selection_sql_logs_and_raises_on_exception(app, ph_fake
         app.app_context(),
         pytest.raises(RuntimeError),
     ):
-        prepare_process_selection_sql("stat.", "all")
+        prepare_process_selection_sql("all")
 
 
 # ---------- prepare_process_selection_lists ----------
@@ -106,12 +129,12 @@ def test_prepare_process_selection_lists_all_builds_granted_pairs_not_cross_prod
     """Same cross-product scenario as the _sql twin, for the list-building
     sibling used by the multi-source WorkitemFilter."""
     ph_fake_session["permissions"] = [
-        "workitems.filter.process.A.P1",
-        "workitems.filter.process.B.P2",
+        "process.A.P1.view",
+        "process.B.P2.view",
         "unrelated.perm",
     ]
     with app.app_context():
-        pairs = prepare_process_selection_lists("workitems.filter.process.", "all")
+        pairs = prepare_process_selection_lists("all")
 
     assert pairs == [("A", "P1"), ("B", "P2")]
     assert ("A", "P2") not in pairs
@@ -119,11 +142,11 @@ def test_prepare_process_selection_lists_all_builds_granted_pairs_not_cross_prod
 
 
 def test_prepare_process_selection_lists_specific_uses_has_permission(app, ph_fake_session):
-    ph_fake_session["permissions"] = ["workitems.filter.process.Privera.Invoices"]
+    ph_fake_session["permissions"] = ["process.Privera.Invoices.view"]
     import nx_lib.security as sec_mod
 
     with patch.object(sec_mod, "session", ph_fake_session), app.app_context():
-        pairs = prepare_process_selection_lists("workitems.filter.process.", "Privera.Invoices")
+        pairs = prepare_process_selection_lists("Privera.Invoices")
     assert pairs == [("Privera", "Invoices")]
 
 
@@ -132,7 +155,7 @@ def test_prepare_process_selection_lists_specific_without_perm_empty(app, ph_fak
 
     ph_fake_session["permissions"] = []
     with patch.object(sec_mod, "session", ph_fake_session), app.app_context():
-        pairs = prepare_process_selection_lists("workitems.filter.process.", "Privera.Invoices")
+        pairs = prepare_process_selection_lists("Privera.Invoices")
     assert pairs == []
 
 
@@ -144,7 +167,7 @@ def test_prepare_process_selection_lists_logs_and_raises_on_exception(app, ph_fa
         app.app_context(),
         pytest.raises(RuntimeError),
     ):
-        prepare_process_selection_lists("workitems.filter.process.", "all")
+        prepare_process_selection_lists("all")
 
 
 def test_prepare_process_selection_lists_multiselect_keeps_only_granted(app, ph_fake_session):
@@ -154,11 +177,11 @@ def test_prepare_process_selection_lists_multiselect_keeps_only_granted(app, ph_
     import nx_lib.security as sec_mod
 
     ph_fake_session["permissions"] = [
-        "workitems.filter.process.A.P1",
-        "workitems.filter.process.B.P2",
+        "process.A.P1.view",
+        "process.B.P2.view",
     ]
     with patch.object(sec_mod, "session", ph_fake_session), app.app_context():
-        pairs = prepare_process_selection_lists("workitems.filter.process.", "A.P1,C.P3,B.P2")
+        pairs = prepare_process_selection_lists("A.P1,C.P3,B.P2")
     assert pairs == [("A", "P1"), ("B", "P2")]
 
 
@@ -317,9 +340,7 @@ def test_granted_processes_narrows_to_the_scoped_tenant(ph_fake_session, monkeyp
     ph_fake_session["tenant_scope"] = "ms02"
     assert ph_mod.granted_processes("workitems.filter.process.") == {"sydoc.05_PDBS"}
     # the pair helpers ride the same narrowing
-    assert ph_mod.prepare_process_selection_lists("workitems.filter.process.", "all") == [
-        ("sydoc", "05_PDBS")
-    ]
+    assert ph_mod.prepare_process_selection_lists("all") == [("sydoc", "05_PDBS")]
     assert ph_mod._selected_pairs("workitems.filter.process.", "privera.02_Posteingang") == []
 
 

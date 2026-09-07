@@ -80,14 +80,14 @@
                 <p class="admin-overview-card-desc">{{ _('Users, permissions and access profiles') }}</p>
             </a>
 
-            <a href="{{ url_for('admin_permission_matrix') }}" class="nx-card nx-card--link admin-overview-card" data-testid="admin-overview-permission-matrix">
+            <a href="{{ url_for('admin_permissions') }}" class="nx-card nx-card--link admin-overview-card" data-testid="admin-overview-permissions">
                 <div class="admin-overview-card-top">
-                    <div class="nx-meta">{{ _('Permission Matrix') }}</div>
-                    <i class="fas fa-diagram-project admin-overview-card-icon"></i>
+                    <div class="nx-meta">{{ _('Permissions') }}</div>
+                    <i class="fas fa-table-cells admin-overview-card-icon"></i>
                 </div>
-                <div class="admin-overview-card-number admin-overview-card-number--text">{{ _('Matrix') }}</div>
-                <div class="admin-overview-card-label">{{ _('view') }}</div>
-                <p class="admin-overview-card-desc">{{ _('Who can see what, filterable both ways') }}</p>
+                <div class="admin-overview-card-number admin-overview-card-number--text">{{ _('Grid') }}</div>
+                <div class="admin-overview-card-label">{{ _('edit') }}</div>
+                <p class="admin-overview-card-desc">{{ _('Every profile against every permission. Tick, save, done.') }}</p>
             </a>
 
             <a href="{{ url_for('admin_organizations_view') }}" class="nx-card nx-card--link admin-overview-card" data-testid="admin-overview-organizations">

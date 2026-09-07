@@ -288,8 +288,9 @@ def _build_anchored_query(rd, process_configs, field_col_maps, resolved_metrics,
                 where.append(_filter_clause(col, f["op"], f.get("value"), leg_params))
             if skip:
                 continue
-            for f in act_filters:
-                where.append(_filter_clause(raw_date, f["op"], f.get("value"), leg_params))
+            where.extend(
+                _filter_clause(raw_date, f["op"], f.get("value"), leg_params) for f in act_filters
+            )
             cond = f" {cfg['condition']}" if cfg.get("condition") else ""
             params.extend(leg_params)
             sub_queries.append(
@@ -324,9 +325,10 @@ def _build_anchored_query(rd, process_configs, field_col_maps, resolved_metrics,
         # Newest snapshot instant only — per bucket when the axis is bucketed,
         # globally otherwise (raw-grain axis needs no restriction). The MAX
         # subquery repeats the activity filters, so its params come last.
-        sub_params = []
-        for f in act_filters:
-            sub_where.append(_filter_clause(snap, f["op"], f.get("value"), sub_params))
+        sub_params: list = []
+        sub_where.extend(
+            _filter_clause(snap, f["op"], f.get("value"), sub_params) for f in act_filters
+        )
         if ACTIVITY_FIELD in columns and act_grain is not None:
             where.append(
                 f"[SnapshotAt] IN (SELECT MAX([SnapshotAt]) FROM {_BACKLOG_OBJECT} "

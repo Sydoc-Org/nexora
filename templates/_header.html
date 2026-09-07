@@ -222,10 +222,10 @@
                         <i class="fas fa-id-badge sidebar-nav-icon sidebar-subitem-icon"></i>
                         <span class="sidebar-label">{{ _('Access Control') }}</span>
                     </a>
-                    <a href="{{ url_for('admin_permission_matrix') }}"
-                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'admin_permission_matrix' else '' }}" data-testid="header-nav-admin-permission-matrix">
-                        <i class="fas fa-diagram-project sidebar-nav-icon sidebar-subitem-icon"></i>
-                        <span class="sidebar-label">{{ _('Permission Matrix') }}</span>
+                    <a href="{{ url_for('admin_permissions') }}"
+                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'admin_permissions' else '' }}" data-testid="header-nav-admin-permissions">
+                        <i class="fas fa-table-cells sidebar-nav-icon sidebar-subitem-icon"></i>
+                        <span class="sidebar-label">{{ _('Permissions') }}</span>
                     </a>
                     <a href="{{ url_for('admin_sessions_view') }}"
                         class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'admin_sessions' else '' }}" data-testid="header-nav-admin-sessions">

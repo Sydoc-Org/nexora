@@ -38,18 +38,18 @@ def test_reporting_page_renders_chat_panel_when_ai_enabled(admin_client):
 
 def test_reporting_page_caption_slots_need_only_explain_data(admin_client):
     """Regression for the Phase 4 review finding: the caption <div>s must be
-    gated on reporting.ai.explain_data alone (D-CAPTION), not on the
+    gated on reporting.ai.explain.use alone (D-CAPTION), not on the
     ai_explain_enabled AND-combo (which also requires reporting.sql.run --
     that extra requirement is for Surface C's live-SQL tool binding, an
     unrelated concern). A caller with explain_data but NOT sql.run must still
     see both #rpCaption (Advanced) and #rsCaption (Simple)."""
 
     def _perm(code):
-        return code in ("reporting.view", "reporting.ai.explain_data")
+        return code in ("reporting.view", "reporting.ai.explain.use")
 
     with (
         patch("nx_lib.security.has_permission", side_effect=_perm),
-        patch("nx_lib.views.reporting.has_permission", side_effect=_perm),
+        patch("nx_lib.views.reporting.pages.has_permission", side_effect=_perm),
     ):
         resp = admin_client.get("/reporting")
     assert resp.status_code == 200
@@ -112,10 +112,9 @@ def test_sql_run_serializes_binary_and_time_cells(user_client):
     rows = [[b"\x00\x01\x02", time(13, 45, 0)]]
     with (
         patch("nx_lib.security.has_permission", return_value=True),
-        patch("nx_lib.views.reporting.has_permission", return_value=True),
-        patch("nx_lib.views.reporting._has_acked", return_value=True),
-        patch("nx_lib.views.reporting._authorize_sql_target"),
-        patch("nx_lib.views.reporting._run_sql", return_value=(columns, rows)),
+        patch("nx_lib.views.reporting.run._has_acked", return_value=True),
+        patch("nx_lib.views.reporting.run._authorize_sql_target"),
+        patch("nx_lib.views.reporting.run._run_sql", return_value=(columns, rows)),
     ):
         resp = user_client.post(
             "/api/reporting/sql/run", json={"target": "statistics", "sql": "SELECT 1"}
@@ -134,10 +133,10 @@ def test_export_sql_target_coerces_bytes_and_control_char_cells(user_client):
     rows = [[b"caf\xc3\xa9", "bell\x07ringer"]]
     with (
         patch("nx_lib.security.has_permission", return_value=True),
-        patch("nx_lib.views.reporting.has_permission", return_value=True),
-        patch("nx_lib.views.reporting._has_acked", return_value=True),
-        patch("nx_lib.views.reporting._authorize_sql_target"),
-        patch("nx_lib.views.reporting._run_sql", return_value=(columns, rows)),
+        patch("nx_lib.views.reporting.export.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.export._has_acked", return_value=True),
+        patch("nx_lib.views.reporting.export._authorize_sql_target"),
+        patch("nx_lib.views.reporting.export._run_sql", return_value=(columns, rows)),
     ):
         resp = user_client.post(
             "/api/reporting/export",
@@ -383,7 +382,7 @@ def test_reports_list_skips_row_when_preview_kind_still_raises(admin_client):
     assert boom_resp.status_code == 200, boom_resp.data
     boom_rid = boom_resp.get_json()["id"]
 
-    from nx_lib.views.reporting import _preview_kind as real_preview_kind
+    from nx_lib.views.reporting.reports import _preview_kind as real_preview_kind
 
     def _boom_preview_kind(defn):
         if isinstance(defn, dict) and defn.get("marker") == "boom":
@@ -391,7 +390,7 @@ def test_reports_list_skips_row_when_preview_kind_still_raises(admin_client):
         return real_preview_kind(defn)
 
     try:
-        with patch("nx_lib.views.reporting._preview_kind", side_effect=_boom_preview_kind):
+        with patch("nx_lib.views.reporting.reports._preview_kind", side_effect=_boom_preview_kind):
             resp = admin_client.get("/api/reporting/reports")
         assert resp.status_code == 200
         ids = {row["id"] for row in resp.get_json()}
@@ -653,7 +652,7 @@ def test_runner_dry_run_processes_due_table_report(admin_client):
             "code": "sched_users",
             "kind": "curated",
             "label": "Sched Users",
-            "permission": "reporting.source.docprocessing",
+            "permission": "reporting.source.docprocessing.use",
             "provider": "table",
             "engine": "nexora",
             "baseObject": "dbo.Users",
@@ -727,7 +726,7 @@ def test_zero_dim_latest_metric_run_constrains_to_latest_bucket(admin_client):
             "code": "latest_test_src",
             "kind": "curated",
             "label": "Latest Test Src",
-            "permission": "reporting.source.docprocessing",
+            "permission": "reporting.source.docprocessing.use",
             "provider": "table",
             "engine": "nexora",
             "baseObject": "dbo.Users",
@@ -808,7 +807,7 @@ def test_runner_alert_skips_mail_and_advances(admin_client):
             "code": "alert_users",
             "kind": "curated",
             "label": "Alert Users",
-            "permission": "reporting.source.docprocessing",
+            "permission": "reporting.source.docprocessing.use",
             "provider": "table",
             "engine": "nexora",
             "baseObject": "dbo.Users",
@@ -990,7 +989,7 @@ def test_table_source_end_to_end(admin_client):
             "code": "e2e_users",
             "kind": "curated",
             "label": "E2E Users",
-            "permission": "reporting.source.docprocessing",
+            "permission": "reporting.source.docprocessing.use",
             "provider": "table",
             "engine": "nexora",
             "baseObject": "dbo.Users",
@@ -1052,13 +1051,12 @@ def test_run_response_includes_sql_and_params(admin_client):
     fake_rows = [[99]]
     with (
         patch(
-            "nx_lib.views.reporting._prepare_run",
+            "nx_lib.views.reporting.run._prepare_run",
             return_value=(fake_cols, fake_sql, fake_params, None),
         ),
-        patch("nx_lib.views.reporting._execute", return_value=fake_rows),
+        patch("nx_lib.views.reporting.run._execute", return_value=fake_rows),
         patch("nx_lib.security.has_permission", return_value=True),
-        patch("nx_lib.views.reporting.has_permission", return_value=True),
-        patch("nx_lib.views.reporting._resolved_dates_meta", return_value=None),
+        patch("nx_lib.views.reporting.run._resolved_dates_meta", return_value=None),
     ):
         resp = admin_client.post("/api/reporting/run", json={"source": "x"})
     assert resp.status_code == 200
@@ -1084,13 +1082,12 @@ def test_run_response_includes_pretty_sql(admin_client):
     fake_rows = [["x", 1]]
     with (
         patch(
-            "nx_lib.views.reporting._prepare_run",
+            "nx_lib.views.reporting.run._prepare_run",
             return_value=(fake_cols, fake_sql, fake_params, None),
         ),
-        patch("nx_lib.views.reporting._execute", return_value=fake_rows),
+        patch("nx_lib.views.reporting.run._execute", return_value=fake_rows),
         patch("nx_lib.security.has_permission", return_value=True),
-        patch("nx_lib.views.reporting.has_permission", return_value=True),
-        patch("nx_lib.views.reporting._resolved_dates_meta", return_value=None),
+        patch("nx_lib.views.reporting.run._resolved_dates_meta", return_value=None),
     ):
         resp = admin_client.post("/api/reporting/run", json={"source": "x"})
     assert resp.status_code == 200
@@ -1114,13 +1111,12 @@ def test_run_response_includes_inlined_display_sql(admin_client):
     fake_rows = [["x", 1]]
     with (
         patch(
-            "nx_lib.views.reporting._prepare_run",
+            "nx_lib.views.reporting.run._prepare_run",
             return_value=(fake_cols, fake_sql, fake_params, None),
         ),
-        patch("nx_lib.views.reporting._execute", return_value=fake_rows),
+        patch("nx_lib.views.reporting.run._execute", return_value=fake_rows),
         patch("nx_lib.security.has_permission", return_value=True),
-        patch("nx_lib.views.reporting.has_permission", return_value=True),
-        patch("nx_lib.views.reporting._resolved_dates_meta", return_value=None),
+        patch("nx_lib.views.reporting.run._resolved_dates_meta", return_value=None),
     ):
         resp = admin_client.post("/api/reporting/run", json={"source": "x"})
     assert resp.status_code == 200
@@ -1150,13 +1146,12 @@ def test_run_compare_true_with_token_filter_returns_comparison(admin_client):
     }
     with (
         patch(
-            "nx_lib.views.reporting._prepare_run",
+            "nx_lib.views.reporting.run._prepare_run",
             return_value=(fake_cols, fake_sql, [], None),
         ),
-        patch("nx_lib.views.reporting._execute", side_effect=[main_rows, comparison_rows]),
+        patch("nx_lib.views.reporting.run._execute", side_effect=[main_rows, comparison_rows]),
         patch("nx_lib.security.has_permission", return_value=True),
-        patch("nx_lib.views.reporting.has_permission", return_value=True),
-        patch("nx_lib.views.reporting._resolved_dates_meta", return_value=None),
+        patch("nx_lib.views.reporting.run._resolved_dates_meta", return_value=None),
     ):
         resp = admin_client.post("/api/reporting/run", json=body)
     assert resp.status_code == 200
@@ -1178,13 +1173,12 @@ def test_run_compare_true_without_token_filter_omits_comparison(admin_client):
     body = {"source": "x", "filters": [], "compare": True}
     with (
         patch(
-            "nx_lib.views.reporting._prepare_run",
+            "nx_lib.views.reporting.run._prepare_run",
             return_value=(fake_cols, fake_sql, [], None),
         ),
-        patch("nx_lib.views.reporting._execute", return_value=fake_rows) as mock_execute,
+        patch("nx_lib.views.reporting.run._execute", return_value=fake_rows) as mock_execute,
         patch("nx_lib.security.has_permission", return_value=True),
-        patch("nx_lib.views.reporting.has_permission", return_value=True),
-        patch("nx_lib.views.reporting._resolved_dates_meta", return_value=None),
+        patch("nx_lib.views.reporting.run._resolved_dates_meta", return_value=None),
     ):
         resp = admin_client.post("/api/reporting/run", json=body)
     assert resp.status_code == 200
@@ -1206,16 +1200,15 @@ def test_run_compare_execute_error_degrades_without_failing_main_run(admin_clien
     }
     with (
         patch(
-            "nx_lib.views.reporting._prepare_run",
+            "nx_lib.views.reporting.run._prepare_run",
             return_value=(fake_cols, fake_sql, [], None),
         ),
         patch(
-            "nx_lib.views.reporting._execute",
+            "nx_lib.views.reporting.run._execute",
             side_effect=[main_rows, RuntimeError("comparison boom")],
         ),
         patch("nx_lib.security.has_permission", return_value=True),
-        patch("nx_lib.views.reporting.has_permission", return_value=True),
-        patch("nx_lib.views.reporting._resolved_dates_meta", return_value=None),
+        patch("nx_lib.views.reporting.run._resolved_dates_meta", return_value=None),
     ):
         resp = admin_client.post("/api/reporting/run", json=body)
     assert resp.status_code == 200
@@ -1233,13 +1226,12 @@ def test_run_without_compare_key_calls_execute_exactly_once(admin_client):
     body = {"source": "x"}
     with (
         patch(
-            "nx_lib.views.reporting._prepare_run",
+            "nx_lib.views.reporting.run._prepare_run",
             return_value=(fake_cols, fake_sql, [], None),
         ),
-        patch("nx_lib.views.reporting._execute", return_value=fake_rows) as mock_execute,
+        patch("nx_lib.views.reporting.run._execute", return_value=fake_rows) as mock_execute,
         patch("nx_lib.security.has_permission", return_value=True),
-        patch("nx_lib.views.reporting.has_permission", return_value=True),
-        patch("nx_lib.views.reporting._resolved_dates_meta", return_value=None),
+        patch("nx_lib.views.reporting.run._resolved_dates_meta", return_value=None),
     ):
         resp = admin_client.post("/api/reporting/run", json=body)
     assert resp.status_code == 200
@@ -1268,10 +1260,12 @@ def test_export_xlsx_embeds_chart_image(admin_client):
         "chartImage": "data:image/png;base64," + _TINY_PNG_B64,
     }
     with (
-        patch("nx_lib.views.reporting._prepare_run", return_value=(fake_cols, fake_sql, [], None)),
-        patch("nx_lib.views.reporting._execute", return_value=fake_rows),
+        patch(
+            "nx_lib.views.reporting.export._prepare_run",
+            return_value=(fake_cols, fake_sql, [], None),
+        ),
+        patch("nx_lib.views.reporting.export._execute", return_value=fake_rows),
         patch("nx_lib.security.has_permission", return_value=True),
-        patch("nx_lib.views.reporting.has_permission", return_value=True),
     ):
         resp = admin_client.post("/api/reporting/export", json=body)
     assert resp.status_code == 200
@@ -1291,11 +1285,11 @@ def test_export_ignores_garbage_chart_image(admin_client):
     }
     with (
         patch(
-            "nx_lib.views.reporting._prepare_run", return_value=(fake_cols, "SELECT 1", [], None)
+            "nx_lib.views.reporting.export._prepare_run",
+            return_value=(fake_cols, "SELECT 1", [], None),
         ),
-        patch("nx_lib.views.reporting._execute", return_value=fake_rows),
+        patch("nx_lib.views.reporting.export._execute", return_value=fake_rows),
         patch("nx_lib.security.has_permission", return_value=True),
-        patch("nx_lib.views.reporting.has_permission", return_value=True),
     ):
         resp = admin_client.post("/api/reporting/export", json=body)
     assert resp.status_code == 200
@@ -1352,11 +1346,10 @@ def test_run_validation_error_is_translated_with_detail(admin_client):
 
     with (
         patch(
-            "nx_lib.views.reporting._prepare_run",
+            "nx_lib.views.reporting.run._prepare_run",
             side_effect=ReportDefinitionError("at least one column is required"),
         ),
         patch("nx_lib.security.has_permission", return_value=True),
-        patch("nx_lib.views.reporting.has_permission", return_value=True),
     ):
         resp = admin_client.post("/api/reporting/run", json={"source": "x"})
     assert resp.status_code == 400
@@ -1371,11 +1364,10 @@ def test_sql_run_sandbox_error_is_translated_with_rule_and_detail(admin_client):
 
     with (
         patch("nx_lib.security.has_permission", return_value=True),
-        patch("nx_lib.views.reporting.has_permission", return_value=True),
-        patch("nx_lib.views.reporting._has_acked", return_value=True),
-        patch("nx_lib.views.reporting._authorize_sql_target"),
+        patch("nx_lib.views.reporting.run._has_acked", return_value=True),
+        patch("nx_lib.views.reporting.run._authorize_sql_target"),
         patch(
-            "nx_lib.views.reporting._run_sql",
+            "nx_lib.views.reporting.run._run_sql",
             side_effect=SqlSandboxError(
                 "not_select", "only SELECT / WITH / set-operations are allowed"
             ),
@@ -1402,10 +1394,9 @@ def test_sql_run_generic_500_detail_is_humanized(admin_client):
     )
     with (
         patch("nx_lib.security.has_permission", return_value=True),
-        patch("nx_lib.views.reporting.has_permission", return_value=True),
-        patch("nx_lib.views.reporting._has_acked", return_value=True),
-        patch("nx_lib.views.reporting._authorize_sql_target"),
-        patch("nx_lib.views.reporting._run_sql", side_effect=Exception(odbc_text)),
+        patch("nx_lib.views.reporting.run._has_acked", return_value=True),
+        patch("nx_lib.views.reporting.run._authorize_sql_target"),
+        patch("nx_lib.views.reporting.run._run_sql", side_effect=Exception(odbc_text)),
     ):
         resp = admin_client.post(
             "/api/reporting/sql/run", json={"target": "statistics", "sql": "SELECT 1"}
@@ -1440,10 +1431,10 @@ _FC_ROWS = [[f"2025-{m:02d}-01", 10 + 2 * (m - 1)] for m in range(1, 9)]
 def test_run_forecast_enabled_returns_block(admin_client):
     with (
         patch(
-            "nx_lib.views.reporting._prepare_run",
+            "nx_lib.views.reporting.run._prepare_run",
             return_value=(_FC_COLS, "SELECT 1", [], None),
         ),
-        patch("nx_lib.views.reporting._execute", return_value=_FC_ROWS),
+        patch("nx_lib.views.reporting.run._execute", return_value=_FC_ROWS),
     ):
         resp = admin_client.post("/api/reporting/run", json=_FC_DEF)
     assert resp.status_code == 200
@@ -1461,10 +1452,10 @@ def test_run_forecast_disabled_or_absent_omits_block(admin_client):
     quiet = dict(_FC_DEF, forecast={"enabled": False, "horizon": 3})
     with (
         patch(
-            "nx_lib.views.reporting._prepare_run",
+            "nx_lib.views.reporting.run._prepare_run",
             return_value=(_FC_COLS, "SELECT 1", [], None),
         ),
-        patch("nx_lib.views.reporting._execute", return_value=_FC_ROWS),
+        patch("nx_lib.views.reporting.run._execute", return_value=_FC_ROWS),
     ):
         resp = admin_client.post("/api/reporting/run", json=quiet)
     assert resp.status_code == 200
@@ -1474,10 +1465,10 @@ def test_run_forecast_disabled_or_absent_omits_block(admin_client):
 def test_run_forecast_short_history_reports_unavailable(admin_client):
     with (
         patch(
-            "nx_lib.views.reporting._prepare_run",
+            "nx_lib.views.reporting.run._prepare_run",
             return_value=(_FC_COLS, "SELECT 1", [], None),
         ),
-        patch("nx_lib.views.reporting._execute", return_value=_FC_ROWS[:3]),
+        patch("nx_lib.views.reporting.run._execute", return_value=_FC_ROWS[:3]),
     ):
         resp = admin_client.post("/api/reporting/run", json=_FC_DEF)
     assert resp.status_code == 200
@@ -1488,10 +1479,10 @@ def test_export_forecast_appends_marker_rows(admin_client):
     body = dict(_FC_DEF, format="csv")
     with (
         patch(
-            "nx_lib.views.reporting._prepare_run",
+            "nx_lib.views.reporting.export._prepare_run",
             return_value=(_FC_COLS, "SELECT 1", [], None),
         ),
-        patch("nx_lib.views.reporting._execute", return_value=_FC_ROWS),
+        patch("nx_lib.views.reporting.export._execute", return_value=_FC_ROWS),
     ):
         resp = admin_client.post("/api/reporting/export", json=body)
     assert resp.status_code == 200
@@ -1535,14 +1526,14 @@ _FC_WIDE_WIDE_ROWS = [
 def test_run_forecast_fits_on_widened_history_not_visible_window(admin_client):
     with (
         patch(
-            "nx_lib.views.reporting._prepare_run",
+            "nx_lib.views.reporting.run._prepare_run",
             side_effect=[
                 (_FC_WIDE_COLS, "SELECT 1", [], None),
                 (_FC_WIDE_COLS, "SELECT 2", [], None),
             ],
         ) as mock_prepare,
         patch(
-            "nx_lib.views.reporting._execute",
+            "nx_lib.views.reporting.run._execute",
             side_effect=[_FC_WIDE_VISIBLE_ROWS, _FC_WIDE_WIDE_ROWS],
         ),
     ):
@@ -1565,24 +1556,28 @@ def test_export_forecast_fits_on_widened_history_not_visible_window(admin_client
     # Same widen-refit-with-fallback as api_run (via the shared _forecast_for
     # helper) — the export's forecast must not silently regress to a
     # trend-only fit on the 6-row visible window (#178 finding 2).
+    #
+    # api_export's own _prepare_run/_execute (main query) and _forecast_for's
+    # internal widened rerun now live in different modules (export.py vs.
+    # run.py, beautify-phase-2a Task 3) -- two separate mocks, one per module,
+    # rather than one shared side_effect queue.
     body = dict(_FC_WIDE_DEF, format="csv")
     with (
         patch(
-            "nx_lib.views.reporting._prepare_run",
-            side_effect=[
-                (_FC_WIDE_COLS, "SELECT 1", [], None),
-                (_FC_WIDE_COLS, "SELECT 2", [], None),
-            ],
-        ) as mock_prepare,
-        patch(
-            "nx_lib.views.reporting._execute",
-            side_effect=[_FC_WIDE_VISIBLE_ROWS, _FC_WIDE_WIDE_ROWS],
+            "nx_lib.views.reporting.export._prepare_run",
+            return_value=(_FC_WIDE_COLS, "SELECT 1", [], None),
         ),
+        patch("nx_lib.views.reporting.export._execute", return_value=_FC_WIDE_VISIBLE_ROWS),
+        patch(
+            "nx_lib.views.reporting.run._prepare_run",
+            return_value=(_FC_WIDE_COLS, "SELECT 2", [], None),
+        ) as mock_widen_prepare,
+        patch("nx_lib.views.reporting.run._execute", return_value=_FC_WIDE_WIDE_ROWS),
     ):
         resp = admin_client.post("/api/reporting/export", json=body)
     assert resp.status_code == 200
-    assert mock_prepare.call_count == 2
-    widened_rd = mock_prepare.call_args_list[1].args[0]
+    assert mock_widen_prepare.call_count == 1
+    widened_rd = mock_widen_prepare.call_args_list[0].args[0]
     assert widened_rd["filters"][0]["op"] == "between"
     assert "compare" not in widened_rd
     text = resp.data.decode("utf-8-sig")
@@ -1602,7 +1597,7 @@ def test_runner_forecast_export_rows_failure_still_sends_mail(admin_client):
             "code": "sched_fc_users",
             "kind": "curated",
             "label": "Sched Forecast Users",
-            "permission": "reporting.source.docprocessing",
+            "permission": "reporting.source.docprocessing.use",
             "provider": "table",
             "engine": "nexora",
             "baseObject": "dbo.Users",
@@ -1684,7 +1679,7 @@ def test_runner_forecast_export_rows_failure_still_sends_mail(admin_client):
 def _create_field_values_source(admin_client):
     """A 'backlog_history'-shaped table source (#178), created dynamically
     since the TEST NexoraDB fixture doesn't seed the real migration-0053 row.
-    Reuses the already-granted reporting.source.docprocessing permission,
+    Reuses the already-granted reporting.source.docprocessing.use permission,
     same idiom as test_zero_dim_latest_metric_run_constrains_to_latest_bucket."""
     src = admin_client.post(
         "/api/reporting/admin/sources",
@@ -1692,7 +1687,7 @@ def _create_field_values_source(admin_client):
             "code": "field_values_test_src",
             "kind": "curated",
             "label": "Field Values Test Src",
-            "permission": "reporting.source.docprocessing",
+            "permission": "reporting.source.docprocessing.use",
             "provider": "table",
             "engine": "nexora",
             "baseObject": "dbo.Users",
@@ -1726,7 +1721,9 @@ def test_field_values_returns_distinct_values(admin_client):
     src_id = _create_field_values_source(admin_client)
     fake_rows = [["01_EasyTax"], ["03_Invoice_New"]]
     try:
-        with patch("nx_lib.views.reporting._execute", return_value=fake_rows) as mock_execute:
+        with patch(
+            "nx_lib.views.reporting.catalog._execute", return_value=fake_rows
+        ) as mock_execute:
             resp = admin_client.post(
                 "/api/reporting/field_values",
                 json={"source": "field_values_test_src", "field": "username"},
@@ -1746,7 +1743,7 @@ def test_field_values_unknown_field_returns_400(admin_client):
     before any query executes."""
     src_id = _create_field_values_source(admin_client)
     try:
-        with patch("nx_lib.views.reporting._execute") as mock_execute:
+        with patch("nx_lib.views.reporting.catalog._execute") as mock_execute:
             resp = admin_client.post(
                 "/api/reporting/field_values",
                 json={"source": "field_values_test_src", "field": "Nope"},
@@ -1755,7 +1752,7 @@ def test_field_values_unknown_field_returns_400(admin_client):
         assert "error" in resp.get_json()
         mock_execute.assert_not_called()
 
-        with patch("nx_lib.views.reporting._execute") as mock_execute:
+        with patch("nx_lib.views.reporting.catalog._execute") as mock_execute:
             resp = admin_client.post(
                 "/api/reporting/field_values",
                 json={"source": "field_values_test_src", "field": "locale"},

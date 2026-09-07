@@ -60,7 +60,7 @@ def get_ip():
 
 
 def _start_timer():
-    request.start_time = time.time()
+    request.start_time = time.time()  # type: ignore[attr-defined]
 
 
 def _enforce_active_session():
@@ -121,9 +121,18 @@ def _reload_user_permissions():
     if "userid" in session:
         uid = str(session["userid"])
         try:
-            session["permissions"] = user_cache.get_or_load(
+            fresh = user_cache.get_or_load(
                 "permissions", uid, lambda: load_permissions_for_user(uid)
             )
+            # Only touch the session when the value actually changed: assigning
+            # unconditionally marks the session dirty every request, which means
+            # a filesystem write + Set-Cookie on every single request on PROD
+            # (Flask-Session filesystem backend). The read above still runs
+            # fresh every request through the same TTL cache as before -- only
+            # the subsequent write is now conditional (#155 stays intact: this
+            # never changes what is read, only when we persist it).
+            if session.get("permissions") != fresh:
+                session["permissions"] = fresh
         except Exception as e:
             current_app.logger.error(f"reload_user_permissions error: {e}")
 
@@ -154,7 +163,12 @@ def _load_user_ui_prefs():
         return
     if "userid" in session:
         uid = session["userid"]
-        session["ui_prefs"] = user_cache.get_or_load("ui_prefs", uid, lambda: load_ui_prefs(uid))
+        fresh = user_cache.get_or_load("ui_prefs", uid, lambda: load_ui_prefs(uid))
+        # Same rationale as _reload_user_permissions: skip the write (and the
+        # session-dirty side effect) when the freshly-read value hasn't
+        # changed. The read itself is unconditional and unchanged.
+        if session.get("ui_prefs") != fresh:
+            session["ui_prefs"] = fresh
 
 
 def _invalidate_user_cache(resp):
@@ -291,7 +305,10 @@ def _inject_brand():
     (branding_logo aborts 401 without a userid). Mirror that route's gate."""
     if "userid" not in session:
         return {"brand": {}}
-    return {"brand": brand_for_org(session.get("organizationcode")) or {}}
+    org_code = session.get("organizationcode")
+    if not isinstance(org_code, str):
+        return {"brand": {}}
+    return {"brand": brand_for_org(org_code) or {}}
 
 
 def _inject_tenant_nav():

@@ -26,7 +26,7 @@ _STATUS_IN_PROGRESS = 1
 
 # Soft-deleted workitems. Hidden from every list unless the caller explicitly
 # filtered FOR them, which the view only allows for holders of
-# workitems.filter.status.deleted (internal-only permission, issue #125).
+# workitems.filter.deleted.view (internal-only permission, issue #125).
 _STATUS_DELETED = 2
 
 
@@ -263,7 +263,7 @@ class SqlServerSource:
                 cte_sql + f"SELECT COUNT(*) FROM LatestCTE {stage_clause}",
                 [*params, *stage_params],
             )
-            total = cur.fetchone()[0] or 0
+            total = (cur.fetchone() or (0,))[0] or 0
 
             cur.execute(
                 cte_sql
@@ -345,7 +345,7 @@ class SqlServerSource:
                 """,
                 pair_params,
             )
-            return cur.fetchone()[0] or 0
+            return (cur.fetchone() or (0,))[0] or 0
         except Exception as e:
             current_app.logger.error(f"SqlServerSource.backlog_count: {e}")
             return 0
@@ -694,7 +694,7 @@ def parse_prepared_xlsx(data):
         prep_i = assigned.get("prepared_flag")
         pby_i = assigned.get("prepared_by")
 
-        out = []
+        out: list[dict] = []
         seen = set()
         for row in rows_iter:
             if len(out) >= _PREPARED_MAX_ROWS:
@@ -764,6 +764,7 @@ def resolve_ms02_pid_ids(engine, specs, pid_values):
         for spec in specs:
             table, id_col, pid_col, time_filter = spec[0], spec[1], spec[2], spec[3]
             field_type = spec[4] if len(spec) > 4 else None
+            values: list
             if field_type in _MS02_INT_TYPES:
                 # An unparseable PID can't match an int column -- drop just
                 # that value (I2), not the whole spec's batch of valid PIDs.
@@ -837,6 +838,7 @@ def resolve_ms02_pid_to_wids(engine, specs, pid_values):
                     f"resolve_ms02_pid_to_wids: unsafe identifier {(id_col, pid_col)}"
                 )
                 continue
+            values: list
             if field_type in _MS02_INT_TYPES:
                 # An unparseable PID can't match an int column -- drop just
                 # that value (I2), not the whole spec's batch of valid PIDs.
@@ -993,6 +995,69 @@ def _resolve_octo_wid_stage_pg(engine, wid):
             conn.close()
 
 
+def _resolve_octo_wid_stage_pg_batch(engine, wids):
+    """Batch twin of _resolve_octo_wid_stage_pg: resolves (status, current_stage)
+    for MANY wids in a single round trip via WHERE twi."ID" = ANY(%s), instead
+    of one ranked-CTE query per wid (the prepared-documents page's stage N+1,
+    up to 200 queries/page before this). Returns {wid_int: {"status":...,
+    "current_stage":...}} -- only for wids that actually matched; a wid with
+    no row in t_WorkItems/t_ActivityInstances is simply absent from the dict,
+    same as the single-wid resolver returning its empty stage for a miss
+    (caller fills in the {"status": None, "current_stage": None} default for
+    any wid missing from this result). Never raises: on absent engine, an
+    empty/all-invalid wid list, or a DB error, returns {}."""
+    if engine is None:
+        return {}
+    wid_ints = []
+    for w in wids:
+        try:
+            wid_ints.append(int(w))
+        except (TypeError, ValueError):
+            continue
+    if not wid_ints:
+        return {}
+    conn = None
+    try:
+        conn = engine.raw_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            WITH WorkitemCTE AS (
+                SELECT
+                    twi."ID" AS wid,
+                    CASE
+                        WHEN twi."Status" = 0 THEN 'Ready' WHEN twi."Status" = 5 THEN 'Done' ELSE 'In Progress'
+                    END AS status,
+                    CASE
+                        WHEN twi."Status" = 5 THEN 'Delivery'
+                        WHEN tai."ActivityInstanceName" LIKE '%%C+A%%' THEN 'Validation'
+                        WHEN tai."ActivityInstanceName" LIKE '%%Export%%' OR tai."ActivityInstanceName" LIKE '%%Exp%%' THEN 'Delivery'
+                        WHEN tai."ActivityInstanceName" LIKE '%%Import%%' OR tai."ActivityInstanceName" LIKE '%%Imp%%' THEN 'Import'
+                        WHEN tai."ActivityInstanceName" LIKE '%%Extract%%' OR tai."ActivityInstanceName" LIKE '%%OCR%%' THEN 'Extraction'
+                        WHEN tai."ActivityInstanceName" LIKE '%%Pause%%' OR tai."ActivityInstanceName" LIKE '%%Deletion%%' OR tai."ActivityInstanceName" LIKE '%%Lieferung%%' THEN 'Delivery'
+                        ELSE 'Extraction'
+                    END AS current_stage,
+                    ROW_NUMBER() OVER (PARTITION BY twi."ID" ORDER BY twi."ModifiedAt" DESC) AS rn
+                FROM "t_WorkItems" twi
+                JOIN "t_ActivityInstances" tai ON twi."ActivityInstanceID" = tai."ID"
+                WHERE twi."ID" = ANY(%s)
+            )
+            SELECT wid, status, current_stage FROM WorkitemCTE WHERE rn = 1
+            """,
+            [wid_ints],
+        )
+        result = {}
+        for row in cur.fetchall():
+            result[row[0]] = {"status": row[1], "current_stage": row[2]}
+        return result
+    except Exception as e:
+        current_app.logger.error(f"_resolve_octo_wid_stage_pg_batch: {e}")
+        return {}
+    finally:
+        if conn is not None:
+            conn.close()
+
+
 def resolve_ms02_wids_to_pids(engine, specs, wids):
     """Inverse of resolve_ms02_pid_to_wids: map workitem ids -> their PID (col_pid)
     value, columnar. Used by the reverse 'In register' chip to learn each visible
@@ -1032,6 +1097,7 @@ def resolve_ms02_wids_to_pids(engine, specs, wids):
                     f"resolve_ms02_wids_to_pids: unsafe identifier {(id_col, pid_col)}"
                 )
                 continue
+            id_values: list[int] | list[str]
             if id_column_type in _MS02_INT_TYPES:
                 sql = (
                     f'SELECT DISTINCT "{id_col}", "{pid_col}"::text'
@@ -1078,6 +1144,7 @@ class PostgresSource:
         self.engine = client.runtime_engine if client else None
 
     def has_workitem(self, workitem_id):
+        assert self.engine is not None  # guaranteed by the client registry for a registered code
         conn = self.engine.raw_connection()
         try:
             cur = conn.cursor(cursor_factory=psycopg2.extras.NamedTupleCursor)
@@ -1092,6 +1159,7 @@ class PostgresSource:
     def process_of(self, workitem_id):
         """(ClientName, ProcessName) for a workitem, or None. PG dialect of the
         SqlServerSource.process_of entitlement lookup (#193)."""
+        assert self.engine is not None  # guaranteed by the client registry for a registered code
         conn = self.engine.raw_connection()
         try:
             cur = conn.cursor(cursor_factory=psycopg2.extras.NamedTupleCursor)
@@ -1166,6 +1234,7 @@ class PostgresSource:
         if not filt.client_process_pairs:
             return [], 0
         where, params = self._build_where(filt)
+        assert self.engine is not None  # guaranteed by the client registry for a registered code
         conn = self.engine.raw_connection()
         try:
             cur = conn.cursor(cursor_factory=psycopg2.extras.NamedTupleCursor)
@@ -1213,22 +1282,34 @@ class PostgresSource:
                 else "ORDER BY modifiedat DESC"
             )
 
-            cur.execute(
-                cte_sql + f"SELECT COUNT(*) FROM latest {stage_clause}",
-                [*params, *stage_params],
-            )
-            total = cur.fetchone()[0] or 0
-
+            # Single pass: COUNT(*) OVER() rides along on every row of the
+            # page query, so the total comes from row 0 instead of a second
+            # full scan of the same CTE.
             cur.execute(
                 cte_sql
                 + f"""
-                SELECT modifiedat, workitemid, status, currentstage
+                SELECT modifiedat, workitemid, status, currentstage, COUNT(*) OVER() AS totalcount
                 FROM latest {stage_clause}
                 {order_clause}
                 LIMIT %s OFFSET %s
                 """,
                 [*params, *stage_params, limit, offset],
             )
+            fetched = cur.fetchall()
+            if fetched:
+                total = fetched[0].totalcount
+            else:
+                # The window function has no row to ride on when the page
+                # itself is empty -- which happens both for "no matches at
+                # all" and "matches exist but offset paged past the end".
+                # Tell them apart with a cheap COUNT-only fallback over the
+                # same filtered/deduped set (same shape as the old always-run
+                # count query, just no longer paid on every request).
+                cur.execute(
+                    cte_sql + f"SELECT COUNT(*) FROM latest {stage_clause}",
+                    [*params, *stage_params],
+                )
+                total = (cur.fetchone() or (0,))[0] or 0
             rows = [
                 {
                     "modifiedat": r.modifiedat,
@@ -1237,7 +1318,7 @@ class PostgresSource:
                     "current_stage": r.currentstage,
                     "client": self.code,
                 }
-                for r in cur.fetchall()
+                for r in fetched
             ]
         finally:
             conn.close()
@@ -1245,6 +1326,7 @@ class PostgresSource:
         return rows, total
 
     def recent_rows(self, pairs, activity_ignore_map, top=3):
+        assert self.engine is not None  # guaranteed by the client registry for a registered code
         conn = self.engine.raw_connection()
         try:
             cur = conn.cursor(cursor_factory=psycopg2.extras.NamedTupleCursor)
@@ -1288,6 +1370,7 @@ class PostgresSource:
             conn.close()
 
     def backlog_count(self, pairs):
+        assert self.engine is not None  # guaranteed by the client registry for a registered code
         conn = self.engine.raw_connection()
         try:
             cur = conn.cursor(cursor_factory=psycopg2.extras.NamedTupleCursor)
@@ -1302,7 +1385,7 @@ class PostgresSource:
                 """,
                 pair_params,
             )
-            return cur.fetchone()[0] or 0
+            return (cur.fetchone() or (0,))[0] or 0
         except Exception as e:
             current_app.logger.error(f"PostgresSource.backlog_count: {e}")
             return 0
@@ -1319,11 +1402,11 @@ def active_sources():
 
 def non_default_source_instances():
     """Source instances for every registered non-default client."""
-    instances = []
-    for client in non_default_clients():
-        if client.dialect == "postgres":
-            instances.append(PostgresSource(CLIENTS_code=client.code))
-    return instances
+    return [
+        PostgresSource(CLIENTS_code=client.code)
+        for client in non_default_clients()
+        if client.dialect == "postgres"
+    ]
 
 
 def _cache_lookup(workitem_id):
@@ -1363,7 +1446,7 @@ def _cache_lookup_many(workitem_ids):
     conn = engine_nexora_db.raw_connection()
     try:
         cur = conn.cursor()
-        seen_counts = {}
+        seen_counts: dict[str, int] = {}
         for i in range(0, len(ids), 1000):
             chunk = ids[i : i + 1000]
             placeholders = ",".join("?" for _ in chunk)
@@ -1395,24 +1478,77 @@ def _cache_store(workitem_id, client_code):
     """Idempotent upsert of id -> client_code. Only non-default ids are cached."""
     if client_code == "default":
         return
+    _cache_store_many([(workitem_id, client_code)])
+
+
+def _cache_store_many(pairs):
+    """Idempotent batched upsert of [(workitem_id, client_code), ...] -- ONE
+    MERGE (a multi-row VALUES USING clause) + ONE commit for the whole list,
+    instead of one MERGE+commit per pair. Pairs with client_code == 'default'
+    are dropped (never cached), matching _cache_store's single-row contract.
+    Duplicate workitem_ids are collapsed to their first occurrence -- a MERGE
+    whose USING rows target the same key twice raises at the server, and a
+    page's rows are unique ids to begin with, so this is a defensive no-op in
+    practice. Chunked at 1000 rows (2000 params) to stay under SQL Server's
+    2100-parameter ceiling; a single page is always far smaller than that, so
+    in practice this is exactly one execute() call."""
+    seen: dict[str, str] = {}
+    for workitem_id, client_code in pairs:
+        if client_code == "default":
+            continue
+        seen.setdefault(str(workitem_id), client_code)
+    if not seen:
+        return
+    items = list(seen.items())
     conn = engine_nexora_db.raw_connection()
     try:
         cur = conn.cursor()
-        cur.execute(
-            """
-            MERGE dbo.WorkitemSourceCache AS tgt
-            USING (SELECT ? AS WorkItemID, ? AS ClientCode) AS src
-            ON tgt.WorkItemID = src.WorkItemID AND tgt.ClientCode = src.ClientCode
-            WHEN MATCHED THEN UPDATE SET ClientCode = src.ClientCode, ResolvedAt = SYSUTCDATETIME()
-            WHEN NOT MATCHED THEN INSERT (WorkItemID, ClientCode) VALUES (src.WorkItemID, src.ClientCode);
-            """,
-            (str(workitem_id), client_code),
-        )
+        for i in range(0, len(items), 1000):
+            chunk = items[i : i + 1000]
+            values_sql = ",".join("(?,?)" for _ in chunk)
+            params = [v for pair in chunk for v in pair]
+            cur.execute(
+                f"""
+                MERGE dbo.WorkitemSourceCache AS tgt
+                USING (VALUES {values_sql}) AS src (WorkItemID, ClientCode)
+                ON tgt.WorkItemID = src.WorkItemID AND tgt.ClientCode = src.ClientCode
+                WHEN MATCHED THEN UPDATE SET ClientCode = src.ClientCode, ResolvedAt = SYSUTCDATETIME()
+                WHEN NOT MATCHED THEN INSERT (WorkItemID, ClientCode) VALUES (src.WorkItemID, src.ClientCode);
+                """,
+                params,
+            )
         conn.commit()
     except Exception as e:
-        current_app.logger.error(f"WorkitemSourceCache store({workitem_id}): {e}")
+        current_app.logger.error(f"WorkitemSourceCache store_many({len(items)} rows): {e}")
     finally:
         conn.close()
+
+
+def _resolve_source_claimers(workitem_id, sources):
+    """Probe ALL sources, INCLUDING the default one, for ``workitem_id``.
+    Returns ``(code, claimers)``: exactly one claimant -> that client (the
+    caller may cache it); zero claimants -> 'default'; more than one ->
+    logs the collision loudly and falls back to 'default'. Caching is the
+    caller's call -- this function only decides the fail-safe outcome, so
+    ``get_source_for_workitem`` can cache one row at a time while
+    ``fetch_merged_page`` batches a whole page's worth."""
+    claimers = []
+    for src in sources if sources is not None else active_sources():
+        try:
+            if src.has_workitem(workitem_id):
+                claimers.append(src.code)
+        except Exception as e:
+            current_app.logger.error(f"probe {src.code} for {workitem_id}: {e}")
+
+    if len(claimers) > 1:
+        current_app.logger.error(
+            f"AMBIGUOUS workitem routing: id {workitem_id} claimed by {claimers}. "
+            "ID spaces are no longer disjoint — falling back to 'default'. Switch "
+            "to UI-carried client tags (compound identity) to disambiguate."
+        )
+    if len(claimers) == 1:
+        return claimers[0], claimers
+    return "default", claimers
 
 
 def get_source_for_workitem(workitem_id, client_hint=None, sources=None):
@@ -1444,24 +1580,10 @@ def get_source_for_workitem(workitem_id, client_hint=None, sources=None):
     if cached:
         return cached
 
-    claimers = []
-    for src in sources if sources is not None else active_sources():
-        try:
-            if src.has_workitem(workitem_id):
-                claimers.append(src.code)
-        except Exception as e:
-            current_app.logger.error(f"probe {src.code} for {workitem_id}: {e}")
-
+    code, claimers = _resolve_source_claimers(workitem_id, sources)
     if len(claimers) == 1:
-        _cache_store(workitem_id, claimers[0])
-        return claimers[0]
-    if len(claimers) > 1:
-        current_app.logger.error(
-            f"AMBIGUOUS workitem routing: id {workitem_id} claimed by {claimers}. "
-            "ID spaces are no longer disjoint — falling back to 'default'. Switch "
-            "to UI-carried client tags (compound identity) to disambiguate."
-        )
-    return "default"
+        _cache_store(workitem_id, code)
+    return code
 
 
 def get_domain_for_workitem(workitem_id, client_hint=None):
@@ -1534,24 +1656,30 @@ def fetch_merged_page(filt, offset, limit):
     # batched cache lookup for every non-default id on the page (instead of
     # up to `limit` sequential round-trips). Ids that come back missing --
     # not cached yet, or ambiguous per _cache_lookup_many's own fail-safe --
-    # fall through to get_source_for_workitem's collision fail-safe (not a
-    # direct _cache_store) so a colliding id -- claimed by more than one
-    # source -- is left uncached instead of being pinned to whichever
-    # client's page happened to list it first during this warm pass. Pass
-    # the ``sources`` list this function already built above -- avoids
-    # get_source_for_workitem constructing a second fresh set of source
-    # instances (2 extra objects) for every non-default row on the page; the
-    # live has_workitem probes themselves are unchanged, since
-    # list_workitems' permission/date/status-filtered, offset+limit-capped
-    # rows are not proof of exclusive ownership the way an unscoped
-    # has_workitem check is -- skipping the probe based on this page's own
-    # row shape would risk under-detecting a real collision whose twin row
-    # didn't happen to surface in this particular filtered fetch.
+    # are resolved via the same collision fail-safe get_source_for_workitem
+    # uses (_resolve_source_claimers), but the resulting cache write is
+    # collected instead of stored immediately: a colliding id -- claimed by
+    # more than one source -- is left uncached exactly as before, and every
+    # unambiguous id is written in ONE batched MERGE + ONE commit after the
+    # loop, instead of a MERGE+commit per row. Pass the ``sources`` list
+    # this function already built above -- avoids constructing a second
+    # fresh set of source instances (2 extra objects) for every non-default
+    # row on the page; the live has_workitem probes themselves are
+    # unchanged, since list_workitems' permission/date/status-filtered,
+    # offset+limit-capped rows are not proof of exclusive ownership the way
+    # an unscoped has_workitem check is -- skipping the probe based on this
+    # page's own row shape would risk under-detecting a real collision whose
+    # twin row didn't happen to surface in this particular filtered fetch.
     non_default_ids = [r["workitemid"] for r in page if r["client"] != "default"]
     cached_map = _cache_lookup_many(non_default_ids)
+    to_cache = []
     for wid in non_default_ids:
         if str(wid) not in cached_map:
-            get_source_for_workitem(wid, sources=sources)
+            code, claimers = _resolve_source_claimers(wid, sources)
+            if len(claimers) == 1:
+                to_cache.append((wid, code))
+    if to_cache:
+        _cache_store_many(to_cache)
 
     return page, total, degraded
 

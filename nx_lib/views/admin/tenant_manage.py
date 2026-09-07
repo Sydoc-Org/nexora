@@ -166,7 +166,7 @@ def _set_memberships(cursor, code, org_codes):
 # -------------------------------------------------------------------- page --
 
 
-@require_permission("admin.view.tenants")
+@require_permission("admin.tenants.view")
 def admin_tenants_manage_view():
     conn = None
     cursor = None
@@ -201,7 +201,7 @@ def admin_tenants_manage_view():
             tenants=tenants,
             organizations=organizations,
             endpoints=mountable_endpoints(current_app.url_map),
-            can_edit=has_permission("admin.edit.tenants"),
+            can_edit=has_permission("admin.tenants.edit"),
             logged_in_user=session.get("username"),
             userid=session.get("userid"),
             page_visibility=page_visibility(),
@@ -219,7 +219,7 @@ def admin_tenants_manage_view():
 # -------------------------------------------------------------- tenants --
 
 
-@require_permission("admin.edit.tenants")
+@require_permission("admin.tenants.edit")
 def api_admin_tenants_add():
     data = request.get_json() or {}
     errors = validate_tenant_payload(data, require_code=True)
@@ -266,7 +266,7 @@ def api_admin_tenants_add():
             conn.close()
 
 
-@require_permission("admin.edit.tenants")
+@require_permission("admin.tenants.edit")
 def api_admin_tenants_edit(tenantcode):
     data = request.get_json() or {}
     errors = validate_tenant_payload(data, require_code=False)
@@ -301,7 +301,7 @@ def api_admin_tenants_edit(tenantcode):
             conn.close()
 
 
-@require_permission("admin.edit.tenants")
+@require_permission("admin.tenants.edit")
 def api_admin_tenants_delete(tenantcode):
     """Refused (409) while organizations still belong to the tenant. Otherwise
     removes the tenant with its page/entity/field descriptors; the
@@ -313,7 +313,7 @@ def api_admin_tenants_delete(tenantcode):
         conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT COUNT(*) FROM Organizations WHERE TenantCode = ?", (tenantcode,))
-        n = cursor.fetchone()[0]
+        n = (cursor.fetchone() or [0])[0]
         if n:
             return _error(
                 [_("%(n)d organization(s) still belong to this tenant. Move them first.", n=n)],
@@ -342,7 +342,7 @@ def api_admin_tenants_delete(tenantcode):
 # ---------------------------------------------------------------- pages --
 
 
-@require_permission("admin.edit.tenants")
+@require_permission("admin.tenants.edit")
 def api_admin_tenant_page_add(tenantcode):
     data = request.get_json() or {}
     mountable = mountable_endpoints(current_app.url_map)
@@ -386,7 +386,7 @@ def api_admin_tenant_page_add(tenantcode):
             conn.close()
 
 
-@require_permission("admin.edit.tenants")
+@require_permission("admin.tenants.edit")
 def api_admin_tenant_page_status(tenantcode, pagekey):
     data = request.get_json() or {}
     status = data.get("Status")
@@ -416,7 +416,7 @@ def api_admin_tenant_page_status(tenantcode, pagekey):
             conn.close()
 
 
-@require_permission("admin.edit.tenants")
+@require_permission("admin.tenants.edit")
 def api_admin_tenant_page_delete(tenantcode, pagekey):
     conn = None
     cursor = None

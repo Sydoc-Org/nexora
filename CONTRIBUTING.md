@@ -62,6 +62,15 @@ uv export --format requirements-txt --no-hashes          -o requirements-dev.txt
 `tests/unit/test_dependencies.py` fails if `nx_lib/`, `scripts/` or `ops/`
 imports a package that `pyproject.toml` does not declare.
 
+## Type checking
+
+`[tool.mypy]` in `pyproject.toml` applies `check_untyped_defs` + `strict_optional`
+repo-wide; `disallow_untyped_defs` (every function fully annotated) arrives
+per-module via `[[tool.mypy.overrides]]`, never as a single repo-wide flip. **A
+module added to that overrides list never leaves it; new modules ship typed.**
+Grow the list by picking an already-clean or small, contract-heavy module,
+annotating it fully, adding its dotted path to the overrides `module` list, and
+confirming `python -m mypy nx_lib nx_main.py` is still green.
 ## The shared test database
 
 There is exactly one `NEXORA_TEST`, on `INTSQL01`, and CI and every developer's
@@ -117,17 +126,18 @@ reddens a suite without slowing it — the deploy that exposed this failed in
 - Functions: `fn` + `PascalCase`
 - Migration files: `NNNN_short_snake_case.sql`
 
-**Branches:** the pre-push guard (`scripts/git-hooks/branch-name-guard.ps1`)
-only lets these names push:
-- `v<x.y[.z]>` — the release-cycle branch, named after the version it ships
-  (e.g. `v3.1`, `v3.2.3`). Convention since the 3.1 cycle.
-- `v<x.y.z.n>` — a per-developer branch off a cycle, so two people can work the
-  same release without sharing one branch (e.g. `v3.2.3.1` beside `v3.2.3`).
-  Merge it into the cycle branch, and the cycle branch into `main` via PR.
-- `feature/<x.y.z>` — the pre-3.1 naming, kept for in-flight branches only.
+**Branches:** one short-lived topic branch per issue, cut from `main`. The
+pre-push guard (`scripts/git-hooks/branch-name-guard.ps1`) only lets these
+names push:
+- `<type>/<slug>` — the topic branch. `<type>` is one of the Conventional-Commit
+  types below; `<slug>` is lowercase-with-hyphens and should start with the
+  issue number: `fix/253-collab-rules`, `feat/241-dashboard-overwork`,
+  `docs/nx-cli-reference`.
+- `v<x.y[.z[.n]]>` — **legacy** release-cycle and per-developer branches, still
+  accepted so work already in flight can push. Do not cut new ones.
+- `feature/<x.y.z>` — the pre-3.1 naming, same story.
 
-Anything else (`fix/…`, `chore/…`, `hotfix/…`) is refused at push time — put the
-work on the current cycle branch instead.
+Anything else is refused at push time.
 
 **Commits — Conventional Commits:**
 - `feat: <subject>` — new user-facing feature
@@ -143,7 +153,85 @@ work on the current cycle branch instead.
 
 ## Pull requests
 
-- Target `main`
+- Target `main`. **Never push to `main` directly** — everything lands via PR.
+  The pre-push hook refuses it (`git push --no-verify` bypasses, as always).
+  That local guard is the enforcement, because GitHub's is not for sale here:
+  the repo is private under the `Sydoc-Org` organization, which is on GitHub
+  Free for organizations, where branch protection and rulesets are both
+  unavailable (the API answers `403 Upgrade to GitHub Pro or make this
+  repository public`). Upgrading the org to GitHub Team unlocks them; the day
+  that happens, make the rule real server-side too (PR required, zero
+  approvals, CI job `test` green, no force-push, no deletion, admins included):
+
+  ```
+  gh api -X PUT repos/Sydoc-Org/nexora/branches/main/protection --input - <<'JSON'
+  {
+    "required_pull_request_reviews": {"required_approving_review_count": 0},
+    "required_status_checks": {"strict": false, "contexts": ["test"]},
+    "enforce_admins": true,
+    "restrictions": null,
+    "allow_force_pushes": false,
+    "allow_deletions": false
+  }
+  JSON
+  ```
+
+- **Review is optional, not required.** Once CI is green you may merge your own
+  PR. Ask for a look when the change is risky or crosses someone else's area;
+  do not sit blocked waiting for one.
 - Pre-push hook runs unit + integration tests (~5 min); the full suite
-  including e2e runs in CI, which PR merges and `deploy` both require
+  including e2e runs in CI on the **PR**. The post-merge run on `main` that
+  gates `deploy` re-runs only the fast tier — e2e is not repeated
 - Keep PRs small and focused. The repo prefers many small PRs over one large one.
+- Squash or merge, your call — but delete the branch after merging.
+
+## Working in parallel
+
+Two people, one auto-deploying `main`. The rules that keep merges cheap:
+
+**One issue, one branch, one to two days.** Cut it from an up-to-date `main`,
+merge it back, delete it. A branch that lives a week is not a branch, it is a
+fork — split the work instead. Merge `main` into your branch daily (or rebase
+if it is unpushed); the cost of a conflict grows with the square of how long
+you let it sit.
+
+**Claim before you collide.** These files are edited by everybody, so say what
+you are taking in the issue before you write it:
+
+| Hotspot | Rule |
+|---|---|
+| `sql/_migrations/<Db>/NNNN_*.sql` | Run `python scripts/db-migrate.py --dry-run` and post the number you are claiming in the issue **before** creating the file. Two people picking `0080` is the classic nexora conflict — and migrations are immutable once applied, so the loser renumbers by writing a new one. |
+| `sql/<Database>/**` | Auto-generated dumps of INT. **Never hand-edit, never hand-merge.** On conflict take either side, then re-run `python sql/sync-from-db.py`. |
+| `translations/*.po`, `messages.pot` | Same — regenerate with `/nx-i18n` rather than resolving hunks by hand. `pybabel` silently mangles malformed lines. |
+| `CHANGELOG.md` `[Unreleased]` | Append at the **end** of your category, never in the middle. Conflicts here are always "keep both". |
+| `docs/superpowers/handoffs/` | Date-prefixed filenames; two sessions never write the same one. |
+
+**Stay out of each other's process.** Long refactors get their own git worktree
+(`git worktree add`) so a `git stash` or a branch switch on one side cannot
+sweep the other's uncommitted files. INT is shared: the pre-commit hook applies
+your migrations to the live INT database the moment you commit, and `NEXORA_TEST`
+serialises on an application lock (see above) — a waiting test run is correct
+behaviour, not a hang.
+
+## Releases
+
+The version lives in exactly two places, `nx_lib/version.py` and
+`pyproject.toml`, and `tests/unit/test_version.py` fails if they disagree.
+
+A release is a **tag on `main`, not a branch**:
+
+```powershell
+# on a topic branch
+#   1. bump __version__ in nx_lib/version.py and version in pyproject.toml
+#   2. uv lock
+#   3. promote CHANGELOG.md's [Unreleased] to "## [3.2.5] - YYYY-MM-DD"
+# then PR it, merge, and tag the merge commit:
+git switch main
+git pull
+git tag v3.2.5
+git push origin v3.2.5
+```
+
+Deploy is not tied to the tag — **every** push to `main` deploys (see
+`README.md`). The tag is a label on what shipped, so you can say "PROD is
+running v3.2.5" and `git diff v3.2.4..v3.2.5` means something.

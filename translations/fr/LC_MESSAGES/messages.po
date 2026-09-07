@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-05 08:55+0200\n"
+"POT-Creation-Date: 2026-09-07 08:35+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -18,19 +18,92 @@ msgstr ""
 msgid "Error fetching activity instance"
 msgstr "Erreur lors de la récupération de l'instance d'activité"
 
-#: nx_lib/security.py:105
+#: nx_lib/security.py:204
 msgid "Invalid date"
 msgstr "Date invalide"
 
-#: nx_lib/security.py:107
+#: nx_lib/security.py:206
 msgid "Date is outside the allowed entry window"
 msgstr "La date est en dehors de la période de saisie autorisée"
 
 #: nx_lib/whats_new.py:29
+msgid "One grid for every permission"
+msgstr "Une grille pour chaque permission"
+
+#: nx_lib/whats_new.py:31
+msgid ""
+"Admin > Permissions shows every access profile against every permission; "
+"tick a cell, save, done. Profiles now carry a rank that decides which "
+"profiles an admin may hand out."
+msgstr ""
+"Admin > Permissions affiche chaque profil d'accès face à chaque "
+"permission ; cochez une case, enregistrez, c'est fait. Les profils "
+"portent désormais un rang qui décide quels profils un admin peut "
+"attribuer."
+
+#: nx_lib/whats_new.py:40
+msgid "Choose how deeply Eddard thinks"
+msgstr "Choisissez la profondeur de réflexion d'Eddard"
+
+#: nx_lib/whats_new.py:42
+msgid ""
+"Click into the chat box and pick Quick, Balanced or Deep. Quick answers "
+"straightforward counts fast; Deep gives Eddard more room on hard, multi-"
+"source questions. Shown only when the configured model supports it."
+msgstr ""
+"Cliquez dans la zone de discussion et choisissez Rapide, Équilibré ou "
+"Approfondi. Rapide répond vite aux comptages simples ; Approfondi laisse "
+"à Eddard plus de latitude pour les questions difficiles portant sur "
+"plusieurs sources. Affiché uniquement si le modèle configuré le prend en "
+"charge."
+
+#: nx_lib/whats_new.py:52
+msgid "Faster pages everywhere"
+msgstr "Des pages plus rapides partout"
+
+#: nx_lib/whats_new.py:54
+msgid ""
+"The reporting registry, the Generali dashboard filters and the static "
+"assets are now cached, and several heavy pages make one database query "
+"where they used to make one per row."
+msgstr ""
+"Le registre de reporting, les filtres du tableau de bord Generali et les "
+"fichiers statiques sont désormais mis en cache, et plusieurs pages "
+"lourdes n'effectuent plus qu'une requête en base au lieu d'une par ligne."
+
+#: nx_lib/whats_new.py:63
+msgid "Generali daily average counts every day"
+msgstr "La moyenne journalière Generali compte chaque jour"
+
+#: nx_lib/whats_new.py:65
+msgid ""
+"The dashboard's daily average now divides by the days in the selected "
+"range, not only by the days that had data, so quiet days no longer "
+"inflate the figure."
+msgstr ""
+"La moyenne journalière du tableau de bord divise désormais par les jours "
+"de la période sélectionnée, et non plus seulement par les jours ayant des"
+" données ; les jours calmes ne gonflent plus le chiffre."
+
+#: nx_lib/whats_new.py:74
+msgid "Amber is the new default accent"
+msgstr "Ambre est la nouvelle couleur d'accent par défaut"
+
+#: nx_lib/whats_new.py:76
+msgid ""
+"New users and anyone who never picked a colour now see Amber instead of "
+"Indigo. Your own choice in Settings is untouched."
+msgstr ""
+"Les nouveaux utilisateurs et ceux qui n'ont jamais choisi de couleur "
+"voient désormais Ambre au lieu d'Indigo. Votre propre choix dans les "
+"Paramètres reste inchangé."
+
+#: nx_lib/whats_new.py:90
 msgid "A denser Dashboard"
 msgstr "Un tableau de bord plus dense"
 
-#: nx_lib/whats_new.py:31
+
+#: nx_lib/whats_new.py:92
 msgid ""
 "The Dashboard reads like a console now. Each KPI shows how it moved since"
 " yesterday plus a seven-day sparkline, the throughput chart fills the "
@@ -40,11 +113,12 @@ msgid ""
 msgstr ""
 "Le tableau de bord se lit désormais comme une console. Chaque indicateur affiche son évolution depuis hier et une sparkline sur sept jours, le graphique de débit occupe toute la largeur et intègre la vue horaire sous forme d'onglet, et une nouvelle section « En attente » retrace les 14, 30 ou 90 derniers jours par processus. La colonne « Validations récentes » a disparu — les workitems se consultent sur la page Workitems."
 
-#: nx_lib/whats_new.py:43
+
+#: nx_lib/whats_new.py:104
 msgid "Reporting has a new home screen"
 msgstr "Le reporting a un nouvel écran d'accueil"
 
-#: nx_lib/whats_new.py:45
+#: nx_lib/whats_new.py:106
 msgid ""
 "The reporting page is now a workbench: a Library of every report you can "
 "see, a Results screen that brings back your last result without re-"
@@ -57,11 +131,11 @@ msgstr ""
 " planifiés, et une barre à gauche listant chaque source de données avec "
 "son temps de réponse actuel."
 
-#: nx_lib/whats_new.py:56
+#: nx_lib/whats_new.py:117
 msgid "Look inside a data source"
 msgstr "Regardez à l'intérieur d'une source de données"
 
-#: nx_lib/whats_new.py:58
+#: nx_lib/whats_new.py:119
 msgid ""
 "Click a card in the Sources rail to see the database behind it: the "
 "tables that source actually reads, their columns and types, and a diagram"
@@ -72,11 +146,11 @@ msgstr ""
 "types, et un diagramme de leurs liens. Structure uniquement — aucune "
 "donnée n'est affichée."
 
-#: nx_lib/whats_new.py:68
+#: nx_lib/whats_new.py:129
 msgid "Dashboards you can arrange"
 msgstr "Des tableaux de bord que vous organisez"
 
-#: nx_lib/whats_new.py:70
+#: nx_lib/whats_new.py:131
 msgid ""
 "Adding a card asks everything in one dialog — which saved report, how to "
 "draw it, its title and its size. In edit mode drag a tile anywhere and "
@@ -89,11 +163,11 @@ msgstr ""
 "poignée d'angle ; la tuile « Rapport entier » affiche un rapport "
 "enregistré exactement comme la bibliothèque."
 
-#: nx_lib/whats_new.py:81
+#: nx_lib/whats_new.py:142
 msgid "Meet Eddard"
 msgstr "Voici Eddard"
 
-#: nx_lib/whats_new.py:83
+#: nx_lib/whats_new.py:144
 msgid ""
 "The reporting assistant has a name and a face — the little black hole in "
 "the top bar. Ask it a question in plain language and open what it built "
@@ -104,11 +178,11 @@ msgstr ""
 "dans le constructeur ce qu'il a construit avant de faire confiance au "
 "chiffre."
 
-#: nx_lib/whats_new.py:93
+#: nx_lib/whats_new.py:154
 msgid "Charts in your colours"
 msgstr "Des graphiques à vos couleurs"
 
-#: nx_lib/whats_new.py:95
+#: nx_lib/whats_new.py:156
 msgid ""
 "The palette button in the chart toolbar recolours each series and the "
 "title, and can move a series onto its own right-hand axis so a few "
@@ -120,11 +194,11 @@ msgstr ""
 "que quelques centaines restent lisibles à côté de dizaines de milliers. "
 "Vos choix sont enregistrés avec le rapport."
 
-#: nx_lib/whats_new.py:105
+#: nx_lib/whats_new.py:166
 msgid "Press ? for the shortcuts"
 msgstr "Appuyez sur ? pour les raccourcis"
 
-#: nx_lib/whats_new.py:107
+#: nx_lib/whats_new.py:168
 msgid ""
 "A cheatsheet of every keyboard shortcut on the page, one keypress away. "
 "Press ? anywhere outside a text box."
@@ -132,11 +206,11 @@ msgstr ""
 "Un aide-mémoire de tous les raccourcis clavier de la page, à une touche "
 "près. Appuyez sur ? en dehors d'un champ de texte."
 
-#: nx_lib/whats_new.py:115
+#: nx_lib/whats_new.py:176
 msgid "Everything loads quicker"
 msgstr "Tout se charge plus vite"
 
-#: nx_lib/whats_new.py:117
+#: nx_lib/whats_new.py:178
 msgid ""
 "Pages are compressed in transit, their scripts are cached between visits,"
 " and the reporting page stopped fetching the same lists eight times per "
@@ -146,11 +220,11 @@ msgstr ""
 "en cache d'une visite à l'autre, et la page de reporting ne récupère plus"
 " les mêmes listes huit fois par chargement."
 
-#: nx_lib/whats_new.py:126
+#: nx_lib/whats_new.py:187
 msgid "Who can do what, on one page"
 msgstr "Qui peut faire quoi, sur une seule page"
 
-#: nx_lib/whats_new.py:128
+#: nx_lib/whats_new.py:189
 msgid ""
 "The new permission matrix under Admin shows every access profile against "
 "every permission in a single grid, so a missing grant is something you "
@@ -160,11 +234,11 @@ msgstr ""
 "d'accès face à chaque permission dans une seule grille : une autorisation"
 " manquante se voit au lieu de se chercher."
 
-#: nx_lib/whats_new.py:143
+#: nx_lib/whats_new.py:204
 msgid "Imports, exports and backlog on one chart"
 msgstr "Imports, exports et backlog sur un seul graphique"
 
-#: nx_lib/whats_new.py:145
+#: nx_lib/whats_new.py:206
 msgid ""
 "Document Processing gained date-anchored measures: pick documents or "
 "pages imported, exported and the backlog together over time and they all "
@@ -177,11 +251,11 @@ msgstr ""
 "dates. La source « Backlog History » distincte est supprimée : la "
 "nouvelle mesure Backlog la remplace."
 
-#: nx_lib/whats_new.py:156
+#: nx_lib/whats_new.py:217
 msgid "The reporting AI panel gets out of your way"
 msgstr "Le panneau IA des rapports ne gêne plus"
 
-#: nx_lib/whats_new.py:158
+#: nx_lib/whats_new.py:219
 msgid ""
 "The chat panel now floats instead of blocking the page: drag it by its "
 "header, keep working behind it, and select or copy any answer or "
@@ -191,11 +265,11 @@ msgstr ""
 " se déplace par son en-tête, le travail continue derrière lui, et chaque "
 "réponse ou requête SQL générée peut être sélectionnée et copiée."
 
-#: nx_lib/whats_new.py:167
+#: nx_lib/whats_new.py:228
 msgid "Large workitem searches load faster"
 msgstr "Les grandes recherches de workitems se chargent plus vite"
 
-#: nx_lib/whats_new.py:169
+#: nx_lib/whats_new.py:230
 msgid ""
 "Big result sets arrive in two phases, so the first rows show up right "
 "away. Typing a partial id now matches by prefix and the closest hits are "
@@ -206,11 +280,11 @@ msgstr ""
 "recherché par préfixe et les résultats les plus proches apparaissent en "
 "tête."
 
-#: nx_lib/whats_new.py:178
+#: nx_lib/whats_new.py:239
 msgid "Tell us what you think"
 msgstr "Chaque retour est bienvenu"
 
-#: nx_lib/whats_new.py:180
+#: nx_lib/whats_new.py:241
 msgid ""
 "The new Feedback page (profile dropdown → Feedback) sends your praise, "
 "gripes and ideas straight to the nexora team."
@@ -218,11 +292,11 @@ msgstr ""
 "La nouvelle page Feedback (menu du profil → Feedback) envoie compliments,"
 " critiques et idées directement à l'équipe nexora."
 
-#: nx_lib/whats_new.py:188
+#: nx_lib/whats_new.py:249
 msgid "Dark mode, polished"
 msgstr "Mode sombre, peaufiné"
 
-#: nx_lib/whats_new.py:190
+#: nx_lib/whats_new.py:251
 msgid ""
 "The light flash on page loads is gone, checkboxes, menus and tables "
 "follow the theme everywhere, and Appearance adds a \"Fireflies\" page "
@@ -232,11 +306,11 @@ msgstr ""
 "menus et tableaux suivent partout le thème, et Apparence ajoute un "
 "arrière-plan de page « Lucioles »."
 
-#: nx_lib/whats_new.py:205
+#: nx_lib/whats_new.py:266
 msgid "Filters apply instantly"
 msgstr "Les filtres s'appliquent instantanément"
 
-#: nx_lib/whats_new.py:207
+#: nx_lib/whats_new.py:268
 msgid ""
 "The Apply button is gone from the Generali filter bars — changing any "
 "filter or date reloads the list right away."
@@ -244,11 +318,11 @@ msgstr ""
 "Le bouton Appliquer a disparu des barres de filtres Generali — modifier "
 "un filtre ou une date recharge la liste immédiatement."
 
-#: nx_lib/whats_new.py:215
+#: nx_lib/whats_new.py:276
 msgid "Type to find a user in the filters"
 msgstr "Tapez pour trouver un utilisateur dans les filtres"
 
-#: nx_lib/whats_new.py:217
+#: nx_lib/whats_new.py:278
 msgid ""
 "The user filter on the Generali pages is now a search box: type a few "
 "letters, pick the name, and the list filters instantly."
@@ -257,11 +331,11 @@ msgstr ""
 "recherche : tapez quelques lettres, choisissez le nom, et la liste se "
 "filtre instantanément."
 
-#: nx_lib/whats_new.py:232
+#: nx_lib/whats_new.py:293
 msgid "Forecast your report trends"
 msgstr "Prévoyez les tendances de vos rapports"
 
-#: nx_lib/whats_new.py:234
+#: nx_lib/whats_new.py:295
 msgid ""
 "Reports charted over a single date breakdown (per week, month, …) gain a "
 "Forecast toggle: the chart extends with a dashed prediction line and a "
@@ -273,11 +347,11 @@ msgstr ""
 " prédiction en pointillés et d'une bande de confiance ; les exports et "
 "les envois planifiés incluent aussi la prévision."
 
-#: nx_lib/whats_new.py:244
+#: nx_lib/whats_new.py:305
 msgid "Compare with the prior period"
 msgstr "Comparez avec la période précédente"
 
-#: nx_lib/whats_new.py:246
+#: nx_lib/whats_new.py:307
 msgid ""
 "Simple-tab reports with a relative date range now show ↑/↓ change chips "
 "and a small trend sparkline against the equivalent prior period — see at "
@@ -288,11 +362,11 @@ msgstr ""
 "de tendance par rapport à la période précédente équivalente — voyez d'un "
 "coup d'œil si les chiffres montent ou descendent."
 
-#: nx_lib/whats_new.py:256
+#: nx_lib/whats_new.py:317
 msgid "Backlog over time"
 msgstr "Backlog dans le temps"
 
-#: nx_lib/whats_new.py:258
+#: nx_lib/whats_new.py:319
 msgid ""
 "Reporting has a new Backlog measure — track how the open backlog develops"
 " per client or process, week by week."
@@ -300,11 +374,11 @@ msgstr ""
 "La page Rapports dispose d'une nouvelle mesure Backlog — suivez semaine "
 "après semaine l'évolution du backlog ouvert par client ou par processus."
 
-#: nx_lib/whats_new.py:268
+#: nx_lib/whats_new.py:329
 msgid "Chat with the reporting AI"
 msgstr "Discutez avec l'IA des rapports"
 
-#: nx_lib/whats_new.py:270
+#: nx_lib/whats_new.py:331
 msgid ""
 "The one-shot Ask AI is now a full chat panel on both Reporting tabs — ask"
 " follow-up questions in context, watch live progress while the agent "
@@ -315,11 +389,11 @@ msgstr ""
 "contexte, suivez la progression en direct et poursuivez ou relancez une "
 "exécution arrêtée trop tôt."
 
-#: nx_lib/whats_new.py:280
+#: nx_lib/whats_new.py:341
 msgid "Filter several processes at once"
 msgstr "Filtrer plusieurs processus à la fois"
 
-#: nx_lib/whats_new.py:282
+#: nx_lib/whats_new.py:343
 msgid ""
 "The process filter on Dashboard and Workitems is now a multi-select — "
 "combine two or three processes in one view."
@@ -328,11 +402,11 @@ msgstr ""
 "à sélection multiple — combinez deux ou trois processus dans une même "
 "vue."
 
-#: nx_lib/whats_new.py:290
+#: nx_lib/whats_new.py:351
 msgid "Smarter document value search"
 msgstr "Recherche de valeurs de documents plus intelligente"
 
-#: nx_lib/whats_new.py:292
+#: nx_lib/whats_new.py:353
 msgid ""
 "Search workitems by document value without picking a field first — "
 "matches are found across every field you may see. Each search row now has"
@@ -345,11 +419,11 @@ msgstr ""
 "(contient, =, ≠, commence par, se termine par) et les lignes se combinent"
 " avec ET/OU."
 
-#: nx_lib/whats_new.py:302
+#: nx_lib/whats_new.py:363
 msgid "Date-range presets"
 msgstr "Plages de dates prédéfinies"
 
-#: nx_lib/whats_new.py:304
+#: nx_lib/whats_new.py:365
 msgid ""
 "Today, Yesterday, This week, Last 7 days, This month — one click in the "
 "Workitems advanced filter instead of typing dates."
@@ -357,11 +431,11 @@ msgstr ""
 "Aujourd'hui, Hier, Cette semaine, 7 derniers jours, Ce mois-ci — un clic "
 "dans le filtre avancé des workitems au lieu de saisir des dates."
 
-#: nx_lib/whats_new.py:312
+#: nx_lib/whats_new.py:373
 msgid "Filter workitems by stage"
 msgstr "Filtrer les workitems par étape"
 
-#: nx_lib/whats_new.py:314
+#: nx_lib/whats_new.py:375
 msgid ""
 "A new Stage filter (Import, Extraction, Validation, Delivery) narrows the"
 " list to workitems currently in that step."
@@ -369,11 +443,11 @@ msgstr ""
 "Un nouveau filtre Étape (Importation, Extraction, Validation, Livraison) "
 "restreint la liste aux workitems actuellement à cette étape."
 
-#: nx_lib/whats_new.py:322
+#: nx_lib/whats_new.py:383
 msgid "See deleted workitems"
 msgstr "Voir les workitems supprimés"
 
-#: nx_lib/whats_new.py:324
+#: nx_lib/whats_new.py:385
 msgid ""
 "The status filter gains a Deleted option — workitems that were deleted, "
 "previously hidden entirely, can now be shown on demand, badged red."
@@ -382,11 +456,11 @@ msgstr ""
 "supprimés, jusqu'ici totalement masqués, peuvent désormais être affichés "
 "à la demande, marqués en rouge."
 
-#: nx_lib/whats_new.py:333
+#: nx_lib/whats_new.py:394
 msgid "Make nexora look your way"
 msgstr "Donnez à nexora votre style"
 
-#: nx_lib/whats_new.py:335
+#: nx_lib/whats_new.py:396
 msgid ""
 "The new Appearance page has a live preview and more choices: light, dark "
 "or system theme, custom accent color, font size, corner style, high "
@@ -399,11 +473,11 @@ msgstr ""
 "plans de page et vitesse d'animation. Vos réglages suivent votre compte "
 "sur chaque appareil."
 
-#: nx_lib/whats_new.py:346
+#: nx_lib/whats_new.py:407
 msgid "API documentation in the app"
 msgstr "Documentation de l'API dans l'application"
 
-#: nx_lib/whats_new.py:348
+#: nx_lib/whats_new.py:409
 msgid ""
 "The external API is now documented on the new API Documentation page — "
 "authentication, endpoints and copyable examples included. Every endpoint "
@@ -416,11 +490,11 @@ msgstr ""
 "adresse et même structure, données factices — pour intégrer sans toucher "
 "à la production."
 
-#: nx_lib/whats_new.py:358
+#: nx_lib/whats_new.py:419
 msgid "System status at a glance for admins"
 msgstr "Le statut du système en un coup d'œil pour les admins"
 
-#: nx_lib/whats_new.py:360
+#: nx_lib/whats_new.py:421
 msgid ""
 "The new Status page shows each component's health, a 30-day uptime strip "
 "and the incident history — checked every few minutes by the outage "
@@ -431,11 +505,11 @@ msgstr ""
 "toutes les quelques minutes par le moniteur de pannes, avec un "
 "avertissement clair si les données deviennent obsolètes."
 
-#: nx_lib/whats_new.py:370
+#: nx_lib/whats_new.py:431
 msgid "Chat, notifications and workitem tags retired"
 msgstr "Chat, notifications et tags de workitems retirés"
 
-#: nx_lib/whats_new.py:372
+#: nx_lib/whats_new.py:433
 msgid ""
 "The chat page, the notification bell, and workitem tags, priority, "
 "assignment and comments have been removed to keep nexora focused on "
@@ -446,11 +520,11 @@ msgstr ""
 " pour recentrer nexora sur le traitement des documents. Les données "
 "existantes sont conservées."
 
-#: nx_lib/whats_new.py:388
+#: nx_lib/whats_new.py:449
 msgid "Build multi-card dashboards"
 msgstr "Composez des tableaux de bord multi-cartes"
 
-#: nx_lib/whats_new.py:390
+#: nx_lib/whats_new.py:451
 msgid ""
 "Save several reports as one dashboard: combine KPI, chart and table "
 "cards, drag to rearrange, set global filters with per-card overrides, and"
@@ -461,11 +535,11 @@ msgstr ""
 "définissez des filtres globaux avec des exceptions par carte, et exportez"
 " ou explorez les détails depuis chaque carte."
 
-#: nx_lib/whats_new.py:399
+#: nx_lib/whats_new.py:460
 msgid "Drill through to the documents"
 msgstr "Explorer jusqu'aux documents"
 
-#: nx_lib/whats_new.py:401
+#: nx_lib/whats_new.py:462
 msgid ""
 "Click a chart element or result row in Reporting to open the underlying "
 "document rows, with workitem links and export."
@@ -474,11 +548,11 @@ msgstr ""
 "Rapports pour ouvrir les lignes de documents sous-jacentes, avec liens "
 "workitem et export."
 
-#: nx_lib/whats_new.py:409
+#: nx_lib/whats_new.py:470
 msgid "Combine measures in one report"
 msgstr "Combiner des mesures dans un rapport"
 
-#: nx_lib/whats_new.py:411
+#: nx_lib/whats_new.py:472
 msgid ""
 "The guided report builder now takes several measures at once (from the "
 "same source) and has its own process step, with coverage badges showing "
@@ -489,11 +563,11 @@ msgstr ""
 "des badges de couverture indiquant quels processus fournissent chaque "
 "champ."
 
-#: nx_lib/whats_new.py:420
+#: nx_lib/whats_new.py:481
 msgid "Machine-to-machine API"
 msgstr "API machine à machine"
 
-#: nx_lib/whats_new.py:422
+#: nx_lib/whats_new.py:483
 msgid ""
 "External clients can fetch KPI numbers — like today's imported and "
 "processed counts — over the new authenticated /api/v1 interface."
@@ -601,86 +675,86 @@ msgstr "Code invalide. Veuillez réessayer."
 msgid "Invalid code"
 msgstr "Code invalide"
 
-#: nx_lib/views/auth.py:431 nx_lib/views/auth.py:772
+#: nx_lib/views/auth.py:431 nx_lib/views/auth.py:776
 #: templates/js/_profile_js.html:5
 msgid "Passwords do not match"
 msgstr "Les mots de passe ne correspondent pas"
 
-#: nx_lib/views/auth.py:433 nx_lib/views/auth.py:774
+#: nx_lib/views/auth.py:433 nx_lib/views/auth.py:778
 msgid "All Fields must be filled"
 msgstr "Tous les champs doivent être remplis"
 
-#: nx_lib/views/auth.py:437 nx_lib/views/auth.py:778
+#: nx_lib/views/auth.py:437 nx_lib/views/auth.py:782
 #: nx_lib/views/profile.py:193
 msgid "New password has to be atleast 8 characters long, with no whitespaces"
 msgstr "Le nouveau mot de passe doit comporter au moins 8 caractères, sans espaces"
 
-#: nx_lib/views/auth.py:457 nx_lib/views/auth.py:796
+#: nx_lib/views/auth.py:461 nx_lib/views/auth.py:803
 msgid "New Password musn't be previously used password"
 msgstr "Le nouveau mot de passe ne doit pas être un mot de passe déjà utilisé"
 
-#: nx_lib/views/auth.py:490 nx_lib/views/auth.py:843
+#: nx_lib/views/auth.py:494 nx_lib/views/auth.py:850
 msgid "Something went wrong, please try again"
 msgstr "Une erreur s'est produite, veuillez réessayer"
 
-#: nx_lib/views/auth.py:642 nx_lib/views/auth.py:706
+#: nx_lib/views/auth.py:646 nx_lib/views/auth.py:710
 msgid "Invalid credentials"
 msgstr "Identifiants invalides"
 
-#: nx_lib/views/auth.py:671
+#: nx_lib/views/auth.py:675
 #, python-format
 msgid "Too many failed attempts. Try again in %(minutes)d minute(s)."
 msgstr "Trop de tentatives échouées. Réessayez dans %(minutes)d minute(s)."
 
-#: nx_lib/views/auth.py:710
+#: nx_lib/views/auth.py:714
 msgid "Login temporarily unavailable"
 msgstr "Connexion temporairement indisponible"
 
-#: nx_lib/views/auth.py:828
+#: nx_lib/views/auth.py:835
 msgid "Password set. You can now sign in."
 msgstr "Mot de passe défini. Vous pouvez maintenant vous connecter."
 
-#: nx_lib/views/auth.py:830
+#: nx_lib/views/auth.py:837
 msgid "Password changed"
 msgstr "Mot de passe modifié"
 
-#: nx_lib/views/auth.py:973
+#: nx_lib/views/auth.py:980
 msgid "If that email is registered, a reset link has been sent."
 msgstr ""
 "Si cette adresse e-mail est enregistrée, un lien de réinitialisation du "
 "mot de passe a été envoyé."
 
-#: nx_lib/views/auth.py:977
+#: nx_lib/views/auth.py:984
 msgid "Unexpected error occurred"
 msgstr "Une erreur inattendue s'est produite"
 
-#: nx_lib/views/admin/permissions.py:248 nx_lib/views/admin/permissions.py:581
-#: nx_lib/views/admin/permissions.py:623 nx_lib/views/admin/permissions.py:668
-#: nx_lib/views/admin/permissions.py:707 nx_lib/views/admin/permissions.py:744
-#: nx_lib/views/admin/permissions.py:776 nx_lib/views/dashboard.py:625
+#: nx_lib/views/admin/permissions.py:243 nx_lib/views/admin/permissions.py:561
+#: nx_lib/views/admin/permissions.py:603 nx_lib/views/admin/permissions.py:648
+#: nx_lib/views/admin/permissions.py:687 nx_lib/views/admin/permissions.py:726
+#: nx_lib/views/admin/permissions.py:758 nx_lib/views/dashboard.py:625
 #: nx_lib/views/dashboard.py:713 nx_lib/views/dashboard.py:789
 #: nx_lib/views/dashboard.py:859 nx_lib/views/dashboard.py:916
-#: nx_lib/views/workitems.py:1091 nx_lib/views/workitems.py:1798
-#: nx_lib/views/workitems.py:1800 nx_lib/views/workitems.py:1926
-#: nx_lib/views/workitems.py:2038
+#: nx_lib/views/workitems.py:386 nx_lib/views/workitems.py:1093
+#: nx_lib/views/workitems.py:1095 nx_lib/views/workitems.py:1188
+#: nx_lib/views/workitems.py:1300
 msgid "Not authorized"
 msgstr "Non autorisé"
 
-#: nx_lib/views/admin/logs.py:153 nx_lib/views/admin/organizations.py:213
-#: nx_lib/views/admin/permissions.py:612 nx_lib/views/admin/system.py:148
-#: nx_lib/views/admin/system.py:189 nx_lib/views/admin/system.py:232
-#: nx_lib/views/admin/system.py:252 nx_lib/views/admin/users.py:402
-#: nx_lib/views/admin/users.py:554 nx_lib/views/dashboard.py:702
+#: nx_lib/views/admin/logs.py:154 nx_lib/views/admin/organizations.py:214
+#: nx_lib/views/admin/permissions.py:592 nx_lib/views/admin/system.py:148
+#: nx_lib/views/admin/system.py:191 nx_lib/views/admin/system.py:234
+#: nx_lib/views/admin/system.py:254 nx_lib/views/admin/users.py:421
+#: nx_lib/views/admin/users.py:573 nx_lib/views/dashboard.py:702
 #: nx_lib/views/dashboard.py:778 nx_lib/views/dashboard.py:848
 #: nx_lib/views/dashboard.py:902 nx_lib/views/dashboard.py:964
-#: nx_lib/views/generali/_crud.py:180 nx_lib/views/generali/attendance.py:99
-#: nx_lib/views/generali/documents.py:254
+#: nx_lib/views/generali/_crud.py:186 nx_lib/views/generali/attendance.py:98
 #: nx_lib/views/generali/documents.py:288
-#: nx_lib/views/generali/documents.py:462
-#: nx_lib/views/generali/documents.py:496
-#: nx_lib/views/generali/importstatus.py:117 nx_lib/views/generali/pdqm.py:103
-#: nx_lib/views/generali/reporting.py:259
-#: nx_lib/views/generali/reporting.py:322 nx_lib/views/workitems.py:2099
+#: nx_lib/views/generali/documents.py:327
+#: nx_lib/views/generali/documents.py:503
+#: nx_lib/views/generali/documents.py:537
+#: nx_lib/views/generali/importstatus.py:119 nx_lib/views/generali/pdqm.py:102
+#: nx_lib/views/generali/reporting.py:260
+#: nx_lib/views/generali/reporting.py:321 nx_lib/views/workitems.py:1361
 msgid "An unexpected error occurred"
 msgstr "Une erreur inattendue s'est produite"
 
@@ -721,437 +795,67 @@ msgstr "Les nouveaux mots de passe ne correspondent pas"
 msgid "All fields must be filled"
 msgstr "Tous les champs doivent être remplis"
 
-#: nx_lib/views/profile.py:223
-msgid "Password updated successfully!"
-msgstr "Mot de passe mis à jour avec succès !"
-
-#: nx_lib/views/profile.py:225
-msgid "Current password is incorrect"
-msgstr "Le mot de passe actuel est incorrect"
-
-#: nx_lib/views/profile.py:230 nx_lib/views/profile.py:243
-#: nx_lib/views/profile.py:256
+#: nx_lib/views/profile.py:203 nx_lib/views/profile.py:233
+#: nx_lib/views/profile.py:246 nx_lib/views/profile.py:259
 msgid "Unexpected Error"
 msgstr "Erreur inattendue"
 
-#: nx_lib/views/profile.py:252
+#: nx_lib/views/profile.py:226
+msgid "Password updated successfully!"
+msgstr "Mot de passe mis à jour avec succès !"
+
+#: nx_lib/views/profile.py:228
+msgid "Current password is incorrect"
+msgstr "Le mot de passe actuel est incorrect"
+
+#: nx_lib/views/profile.py:255
 msgid "Language changed successfully!"
 msgstr "Langue modifiée avec succès !"
 
-#: nx_lib/views/profile.py:340
+#: nx_lib/views/profile.py:343
 msgid "Unauthorized"
 msgstr "Non autorisé"
 
-#: nx_lib/views/profile.py:347
+#: nx_lib/views/profile.py:350
 msgid "Please choose a category."
 msgstr "Veuillez choisir une catégorie."
 
-#: nx_lib/views/profile.py:349 templates/js/_feedback_js.html:149
+#: nx_lib/views/profile.py:352 templates/js/_feedback_js.html:149
 msgid "Please describe the problem or idea."
 msgstr "Veuillez décrire le problème ou l'idée."
 
-#: nx_lib/views/profile.py:351
+#: nx_lib/views/profile.py:354
 msgid "Message is too long."
 msgstr "Le message est trop long."
 
-#: nx_lib/views/profile.py:364 templates/js/_feedback_js.html:84
+#: nx_lib/views/profile.py:367 templates/js/_feedback_js.html:84
 msgid "Screenshot must be a PNG or JPEG image."
 msgstr "La capture d'écran doit être une image PNG ou JPEG."
 
-#: nx_lib/views/profile.py:367 templates/js/_feedback_js.html:89
+#: nx_lib/views/profile.py:370 templates/js/_feedback_js.html:89
 msgid "Screenshot is too large (max 5 MB)."
 msgstr "La capture d'écran est trop volumineuse (5 Mo max)."
 
-#: nx_lib/views/profile.py:374
+#: nx_lib/views/profile.py:377
 msgid "Feedback is not configured on this environment."
 msgstr "Le feedback n'est pas configuré sur cet environnement."
 
-#: nx_lib/views/profile.py:376 templates/feedback.html:60
+#: nx_lib/views/profile.py:379 templates/feedback.html:60
 msgid "Bug"
 msgstr "Bug"
 
-#: nx_lib/views/profile.py:376 templates/feedback.html:63
+#: nx_lib/views/profile.py:379 templates/feedback.html:63
 msgid "Idea"
 msgstr "Idée"
 
-#: nx_lib/views/profile.py:376 templates/feedback.html:66
+#: nx_lib/views/profile.py:379 templates/feedback.html:66
 msgid "Question"
 msgstr "Question"
 
-#: nx_lib/views/profile.py:399 templates/js/_feedback_js.html:169
+#: nx_lib/views/profile.py:402 templates/js/_feedback_js.html:169
 #: templates/js/_feedback_js.html:175
 msgid "Could not send feedback. Please try again later."
 msgstr "Impossible d'envoyer le feedback. Veuillez réessayer plus tard."
-
-#: nx_lib/views/reporting.py:1282 nx_lib/views/reporting.py:1370
-#: nx_lib/views/reporting.py:1431 nx_lib/views/reporting.py:1559
-#: nx_lib/views/reporting.py:1737 nx_lib/views/reporting.py:2127
-#: nx_lib/views/reporting.py:2249 nx_lib/views/reporting.py:2324
-#: nx_lib/views/reporting.py:3495
-msgid "Invalid JSON body"
-msgstr "Corps JSON invalide"
-
-#: nx_lib/views/reporting.py:1286 nx_lib/views/reporting.py:2284
-#: nx_lib/views/reporting.py:3106 nx_lib/views/reporting.py:3504
-msgid "Not authorized for this source"
-msgstr "Non autorisé pour cette source"
-
-#: nx_lib/views/reporting.py:1289 nx_lib/views/reporting.py:2287
-msgid "This report definition is invalid or outdated."
-msgstr "Cette définition de rapport est invalide ou obsolète."
-
-#: nx_lib/views/reporting.py:1293
-msgid "Could not build report"
-msgstr "Impossible de générer le rapport"
-
-#: nx_lib/views/reporting.py:1298
-msgid "Could not run report"
-msgstr "Impossible d'exécuter le rapport"
-
-#: nx_lib/views/reporting.py:1353
-msgid "SQL is required."
-msgstr "Le SQL est requis."
-
-#: nx_lib/views/reporting.py:1354
-#, python-brace-format
-msgid "The SQL exceeds {n} characters."
-msgstr "Le SQL dépasse {n} caractères."
-
-#: nx_lib/views/reporting.py:1355
-#, python-brace-format
-msgid "Disallowed keyword: {kw}"
-msgstr "Mot-clé non autorisé : {kw}"
-
-#: nx_lib/views/reporting.py:1356
-msgid "The SQL could not be parsed."
-msgstr "Le SQL n'a pas pu être analysé."
-
-#: nx_lib/views/reporting.py:1357
-msgid "Exactly one statement is allowed."
-msgstr "Une seule instruction est autorisée."
-
-#: nx_lib/views/reporting.py:1358
-msgid "Only SELECT / WITH / set operations are allowed."
-msgstr "Seules les opérations SELECT / WITH / d'ensemble sont autorisées."
-
-#: nx_lib/views/reporting.py:1359
-#, python-brace-format
-msgid "Disallowed construct: {kw}"
-msgstr "Construction non autorisée : {kw}"
-
-#: nx_lib/views/reporting.py:1360
-msgid "T-SQL does not support LIMIT — use TOP (n) instead."
-msgstr "T-SQL ne prend pas en charge LIMIT — utilisez TOP (n) à la place."
-
-#: nx_lib/views/reporting.py:1374 nx_lib/views/reporting.py:1408
-msgid "Not authenticated"
-msgstr "Non authentifié"
-
-#: nx_lib/views/reporting.py:1376 nx_lib/views/reporting.py:2257
-msgid "Acknowledgment required"
-msgstr "Confirmation requise"
-
-#: nx_lib/views/reporting.py:1381 nx_lib/views/reporting.py:2265
-msgid "Not authorized for this SQL target"
-msgstr "Non autorisé pour cette cible SQL"
-
-#: nx_lib/views/reporting.py:1385 nx_lib/views/reporting.py:2271
-msgid "Invalid SQL request."
-msgstr "Requête SQL invalide."
-
-#: nx_lib/views/reporting.py:1387 nx_lib/views/reporting.py:2273
-msgid "SQL source is not configured"
-msgstr "La source SQL n'est pas configurée"
-
-#: nx_lib/views/reporting.py:1391
-msgid "Could not run query"
-msgstr "Impossible d'exécuter la requête"
-
-#: nx_lib/views/reporting.py:1421
-msgid "Could not record acknowledgment"
-msgstr "Impossible d'enregistrer la confirmation"
-
-#: nx_lib/views/reporting.py:1434 nx_lib/views/reporting.py:1562
-#: nx_lib/views/reporting.py:1740
-msgid "A question is required"
-msgstr "Une question est requise"
-
-#: nx_lib/views/reporting.py:1437
-msgid "Not authorized to receive AI-drafted SQL"
-msgstr "Non autorisé à recevoir du SQL rédigé par l'IA"
-
-#: nx_lib/views/reporting.py:1441 nx_lib/views/reporting.py:1509
-#: nx_lib/views/reporting.py:1566 nx_lib/views/reporting.py:1655
-#: nx_lib/views/reporting.py:1780 nx_lib/views/reporting.py:2084
-#: nx_lib/views/reporting.py:2150 nx_lib/views/reporting.py:2207
-msgid "The AI assistant is not configured"
-msgstr "L'assistant IA n'est pas configuré"
-
-#: nx_lib/views/reporting.py:1469 nx_lib/views/reporting.py:1588
-#: nx_lib/views/reporting.py:1802 nx_lib/views/reporting.py:2172
-#, python-format
-msgid ""
-"You have reached the daily AI request limit (%(limit)s). Please try again"
-" tomorrow."
-msgstr ""
-"Vous avez atteint la limite quotidienne de requêtes IA (%(limit)s). "
-"Veuillez réessayer demain."
-
-#: nx_lib/views/reporting.py:1526 nx_lib/views/reporting.py:1672
-#: nx_lib/views/reporting.py:2064 nx_lib/views/reporting.py:2088
-#: nx_lib/views/reporting.py:2224
-msgid "Eddard could not answer right now"
-msgstr "Eddard n'a pas pu répondre pour le moment"
-
-#: nx_lib/views/reporting.py:1604 nx_lib/views/reporting.py:1607
-#: nx_lib/views/reporting.py:1611 nx_lib/views/reporting.py:1613
-msgid "Invalid refine context"
-msgstr "Contexte de raffinement invalide"
-
-#: nx_lib/views/reporting.py:1698
-msgid "Could not build a valid report"
-msgstr "Impossible de créer un rapport valide"
-
-#: nx_lib/views/reporting.py:1744
-msgid "Invalid history"
-msgstr "Historique invalide"
-
-#: nx_lib/views/reporting.py:1962
-msgid ""
-"I couldn't write a summary this time, but I did produce a report draft "
-"and a validated SQL query — use the actions below to open them."
-msgstr ""
-"Je n'ai pas pu rédiger de résumé cette fois, mais j'ai produit une "
-"ébauche de rapport et une requête SQL validée — utilisez les actions ci-"
-"dessous pour les ouvrir."
-
-#: nx_lib/views/reporting.py:1968
-msgid ""
-"I couldn't write a summary this time, but I did produce a report draft — "
-"use “Open report” below to run it."
-msgstr ""
-"Je n'ai pas pu rédiger de résumé cette fois, mais j'ai produit une "
-"ébauche de rapport — utilisez « Ouvrir le rapport » ci-dessous pour "
-"l'exécuter."
-
-#: nx_lib/views/reporting.py:1973
-msgid ""
-"I couldn't write a summary this time, but I did draft a SQL query — use "
-"the actions below to review it."
-msgstr ""
-"Je n'ai pas pu rédiger de résumé cette fois, mais j'ai rédigé une requête"
-" SQL — utilisez les actions ci-dessous pour la vérifier."
-
-#: nx_lib/views/reporting.py:1978
-msgid ""
-"I couldn't complete this request. Please try rephrasing the question or "
-"narrowing it down."
-msgstr ""
-"Je n'ai pas pu traiter cette demande. Veuillez reformuler la question ou "
-"la préciser."
-
-#: nx_lib/views/reporting.py:2131 nx_lib/views/reporting.py:2329
-msgid "columns and rows are required"
-msgstr "les colonnes et les lignes sont obligatoires"
-
-#: nx_lib/views/reporting.py:2254
-msgid "Not authorized for live SQL"
-msgstr "Non autorisé pour le SQL en direct"
-
-#: nx_lib/views/reporting.py:2276
-msgid "Could not export query"
-msgstr "Impossible d'exporter la requête"
-
-#: nx_lib/views/reporting.py:2278 nx_lib/views/reporting.py:2306
-#: nx_lib/views/reporting.py:2340 templates/hero.html:165
-#: templates/js/_reporting_js.html:480
-#: templates/js/_reporting_scheduled_js.html:15 templates/reporting.html:569
-msgid "Report"
-msgstr "Rapport"
-
-#: nx_lib/views/reporting.py:2291
-msgid "Could not export report"
-msgstr "Impossible d'exporter le rapport"
-
-#: nx_lib/views/reporting.py:2299 templates/_reporting_simple.html:235
-#: templates/js/_reporting_js.html:504 templates/js/_reporting_simple_js.html:5
-#: templates/js/_reporting_viz_js.html:264 templates/reporting.html:429
-msgid "Forecast"
-msgstr "Prévision"
-
-#: nx_lib/views/reporting.py:2490
-msgid "Could not list reports"
-msgstr "Impossible de lister les rapports"
-
-#: nx_lib/views/reporting.py:2515 nx_lib/views/reporting.py:2590
-#: nx_lib/views/reporting.py:2612 nx_lib/views/reporting.py:2688
-#: nx_lib/views/reporting.py:2698 nx_lib/views/reporting.py:2748
-#: nx_lib/views/reporting.py:2817 nx_lib/views/reporting.py:2841
-#: nx_lib/views/reporting.py:2888 nx_lib/views/reporting.py:2923
-#: nx_lib/views/reporting.py:2936 nx_lib/views/reporting.py:2947
-#: nx_lib/views/reporting.py:3312 nx_lib/views/reporting.py:3331
-#: nx_lib/views/reporting.py:3436 nx_lib/views/reporting.py:3455
-msgid "Not found"
-msgstr "Introuvable"
-
-#: nx_lib/views/reporting.py:2528
-msgid "Could not load report"
-msgstr "Impossible de charger le rapport"
-
-#: nx_lib/views/reporting.py:2541 nx_lib/views/reporting.py:2570
-msgid "name and definition are required"
-msgstr "le nom et la définition sont obligatoires"
-
-#: nx_lib/views/reporting.py:2544 nx_lib/views/reporting.py:2573
-msgid "Report definition too large"
-msgstr "Définition du rapport trop volumineuse"
-
-#: nx_lib/views/reporting.py:2557
-msgid "Could not save report"
-msgstr "Impossible d'enregistrer le rapport"
-
-#: nx_lib/views/reporting.py:2594
-msgid "Could not update report"
-msgstr "Impossible de mettre à jour le rapport"
-
-#: nx_lib/views/reporting.py:2616
-msgid "Could not delete report"
-msgstr "Impossible de supprimer le rapport"
-
-#: nx_lib/views/reporting.py:2706
-msgid "Invalid visibility"
-msgstr "Visibilité invalide"
-
-#: nx_lib/views/reporting.py:2715
-msgid "User not found"
-msgstr "Utilisateur introuvable"
-
-#: nx_lib/views/reporting.py:2717
-msgid "Cannot share a report with yourself"
-msgstr "Vous ne pouvez pas partager un rapport avec vous-même"
-
-#: nx_lib/views/reporting.py:2738 nx_lib/views/reporting.py:2759
-msgid "Could not update sharing"
-msgstr "Impossible de mettre à jour le partage"
-
-#: nx_lib/views/reporting.py:2831 nx_lib/views/reporting.py:2983
-#: templates/js/_reporting_scheduled_js.html:25
-msgid "Could not list schedules"
-msgstr "Impossible de lister les planifications"
-
-#: nx_lib/views/reporting.py:2878 templates/js/_reporting_scheduled_js.html:26
-msgid "Could not save schedule"
-msgstr "Impossible d'enregistrer la planification"
-
-#: nx_lib/views/reporting.py:2927
-msgid "Could not update schedule"
-msgstr "Impossible de mettre à jour la planification"
-
-#: nx_lib/views/reporting.py:2951
-msgid "Could not delete schedule"
-msgstr "Impossible de supprimer la planification"
-
-#: nx_lib/views/reporting.py:3112
-msgid "This source's database is not configured."
-msgstr "La base de données de cette source n'est pas configurée."
-
-#: nx_lib/views/reporting.py:3117
-msgid "Could not reach this database."
-msgstr "Impossible d'atteindre cette base de données."
-
-#: nx_lib/views/reporting.py:3122
-msgid "Could not read this database's schema."
-msgstr "Impossible de lire le schéma de cette base de données."
-
-#: nx_lib/views/reporting.py:3138 nx_lib/views/reporting.py:3188
-msgid "Invalid body"
-msgstr "Corps invalide"
-
-#: nx_lib/views/reporting.py:3140
-msgid "code must be 1-64 chars: letters, digits, . _ -"
-msgstr "le code doit comporter 1 à 64 caractères : lettres, chiffres, . _ -"
-
-#: nx_lib/views/reporting.py:3142
-msgid "kind must be 'curated' or 'sql'"
-msgstr "kind doit être 'curated' ou 'sql'"
-
-#: nx_lib/views/reporting.py:3144 nx_lib/views/reporting.py:3194
-msgid "label is required"
-msgstr "le libellé est obligatoire"
-
-#: nx_lib/views/reporting.py:3146
-msgid "permission is required"
-msgstr "l'autorisation est obligatoire"
-
-#: nx_lib/views/reporting.py:3152
-msgid "columns must be valid JSON"
-msgstr "les colonnes doivent être au format JSON valide"
-
-#: nx_lib/views/reporting.py:3190
-msgid "code must start with a letter/underscore: letters, digits, _"
-msgstr ""
-"le code doit commencer par une lettre/un trait de soulignement : lettres,"
-" chiffres, _"
-
-#: nx_lib/views/reporting.py:3192
-msgid "sourceId is required"
-msgstr "sourceId est obligatoire"
-
-#: nx_lib/views/reporting.py:3197
-msgid "aggregation must be one of: "
-msgstr "aggregation doit être l'une des valeurs suivantes : "
-
-#: nx_lib/views/reporting.py:3199
-msgid "baseField is required unless aggregation is 'count'"
-msgstr "baseField est obligatoire sauf si aggregation vaut 'count'"
-
-#: nx_lib/views/reporting.py:3258
-msgid "Could not list sources"
-msgstr "Impossible de lister les sources"
-
-#: nx_lib/views/reporting.py:3287
-msgid "Could not save source (code already exists?)"
-msgstr "Impossible d'enregistrer la source (le code existe déjà ?)"
-
-#: nx_lib/views/reporting.py:3317
-msgid "Could not update source"
-msgstr "Impossible de mettre à jour la source"
-
-#: nx_lib/views/reporting.py:3336
-msgid "Could not delete source"
-msgstr "Impossible de supprimer la source"
-
-#: nx_lib/views/reporting.py:3381
-msgid "Could not list metrics"
-msgstr "Impossible de lister les métriques"
-
-#: nx_lib/views/reporting.py:3411
-msgid "Could not save metric (code already exists?)"
-msgstr "Impossible d'enregistrer la métrique (le code existe déjà ?)"
-
-#: nx_lib/views/reporting.py:3441
-msgid "Could not update metric"
-msgstr "Impossible de mettre à jour la métrique"
-
-#: nx_lib/views/reporting.py:3460
-msgid "Could not delete metric"
-msgstr "Impossible de supprimer la métrique"
-
-#: nx_lib/views/reporting.py:3502
-msgid "Unknown or unsupported source"
-msgstr "Source inconnue ou non prise en charge"
-
-#: nx_lib/views/reporting.py:3507
-msgid "Source engine is not configured"
-msgstr "Le moteur de la source n'est pas configuré"
-
-#: nx_lib/views/reporting.py:3514
-msgid "This request is invalid."
-msgstr "Cette requête n'est pas valide."
-
-#: nx_lib/views/reporting.py:3517
-msgid "Could not load values"
-msgstr "Impossible de charger les valeurs"
 
 #: nx_lib/views/tenant.py:289
 #, python-format
@@ -1168,9 +872,9 @@ msgstr "%(field)s doit être une date valide (AAAA-MM-JJ)."
 msgid "%(field)s must be numeric."
 msgstr "%(field)s doit être numérique."
 
-#: nx_lib/views/admin/clients.py:154 nx_lib/views/admin/organizations.py:127
-#: nx_lib/views/admin/processes.py:418 nx_lib/views/admin/processes.py:571
-#: nx_lib/views/admin/users.py:142 nx_lib/views/tenant.py:523
+#: nx_lib/views/admin/clients.py:154 nx_lib/views/admin/organizations.py:128
+#: nx_lib/views/admin/processes.py:420 nx_lib/views/admin/processes.py:573
+#: nx_lib/views/admin/users.py:158 nx_lib/views/tenant.py:523
 #: nx_lib/views/tenant.py:587 nx_lib/views/tenant.py:632
 #: nx_lib/views/tenant.py:667 nx_lib/views/tenant.py:706
 msgid "An unexpected error occurred."
@@ -1196,11 +900,11 @@ msgstr "Enregistrement mis à jour avec succès."
 msgid "Record deleted successfully."
 msgstr "Enregistrement supprimé avec succès."
 
-#: nx_lib/views/workitems.py:1082 nx_lib/views/workitems.py:1226
+#: nx_lib/views/workitems.py:372 nx_lib/views/workitems.py:521
 msgid "Could not fetch values"
 msgstr "Impossible de récupérer les valeurs"
 
-#: nx_lib/views/workitems.py:1282
+#: nx_lib/views/workitems.py:577
 msgid ""
 "Exporting fields, history, or images requires selecting 10 or fewer "
 "workitems."
@@ -1208,23 +912,23 @@ msgstr ""
 "L'export des champs, de l'historique ou des images nécessite de "
 "sélectionner 10 workitems ou moins."
 
-#: nx_lib/views/workitems.py:1576
+#: nx_lib/views/workitems.py:871
 msgid "TRUNCATED"
 msgstr "TRONQUÉ"
 
-#: nx_lib/views/workitems.py:1577
+#: nx_lib/views/workitems.py:872
 msgid "exported"
 msgstr "exportés"
 
-#: nx_lib/views/workitems.py:1577
+#: nx_lib/views/workitems.py:872
 msgid "matching workitems"
 msgstr "workitems correspondants"
 
-#: nx_lib/views/workitems.py:1583
+#: nx_lib/views/workitems.py:878
 msgid "EXPORT TIMED OUT"
 msgstr "EXPORT EXPIRÉ"
 
-#: nx_lib/views/workitems.py:1584
+#: nx_lib/views/workitems.py:879
 msgid ""
 "no fields or images completed before the time limit; this is not a zero-"
 "result export"
@@ -1232,114 +936,114 @@ msgstr ""
 "aucun champ ni image n'a été terminé avant la limite de temps ; il ne "
 "s'agit pas d'un export sans résultat"
 
-#: nx_lib/views/workitems.py:1694 nx_lib/views/workitems.py:1759
+#: nx_lib/views/workitems.py:989 nx_lib/views/workitems.py:1054
 msgid "No file part in the request."
 msgstr "Aucune partie de fichier dans la requête."
 
-#: nx_lib/views/workitems.py:1701 nx_lib/views/workitems.py:1762
+#: nx_lib/views/workitems.py:996 nx_lib/views/workitems.py:1057
 msgid "No file selected for uploading."
 msgstr "Aucun fichier sélectionné pour le téléversement."
 
-#: nx_lib/views/workitems.py:1705
+#: nx_lib/views/workitems.py:1000
 msgid "No target process selected."
 msgstr "Aucun processus cible sélectionné."
 
-#: nx_lib/views/workitems.py:1711
+#: nx_lib/views/workitems.py:1006
 msgid "You do not have permission to import to this process."
 msgstr "Vous n'avez pas l'autorisation d'importer dans ce processus."
 
-#: nx_lib/views/workitems.py:1726
+#: nx_lib/views/workitems.py:1021
 #, python-brace-format
 msgid "File '{}' successfully imported into {}."
 msgstr "Fichier '{}' importé avec succès dans {}."
 
-#: nx_lib/views/workitems.py:1731
+#: nx_lib/views/workitems.py:1026
 msgid "An error occurred while saving the file."
 msgstr "Une erreur s'est produite lors de l'enregistrement du fichier."
 
-#: nx_lib/views/workitems.py:1733
+#: nx_lib/views/workitems.py:1028
 msgid "Invalid file type. Please upload a valid PDF."
 msgstr "Type de fichier invalide. Veuillez téléverser un PDF valide."
 
-#: nx_lib/views/workitems.py:1756 nx_lib/views/workitems.py:2272
+#: nx_lib/views/workitems.py:1051 nx_lib/views/workitems.py:1542
 msgid "This import is only available for the MS02 client."
 msgstr "Cet import est uniquement disponible pour le client MS02."
 
-#: nx_lib/views/workitems.py:1766
+#: nx_lib/views/workitems.py:1061
 msgid "Invalid file type. Please upload a valid Excel (.xlsx) file."
 msgstr ""
 "Type de fichier invalide. Veuillez téléverser un fichier Excel valide "
 "(.xlsx)."
 
-#: nx_lib/views/workitems.py:1774
+#: nx_lib/views/workitems.py:1069
 msgid "The Excel file has no usable rows."
 msgstr "Le fichier Excel ne contient aucune ligne exploitable."
 
-#: nx_lib/views/workitems.py:1791
+#: nx_lib/views/workitems.py:1086
 msgid "Could not save the prepared documents. Please try again."
 msgstr "Impossible de sauvegarder les documents préparés. Veuillez réessayer."
 
-#: nx_lib/views/workitems.py:1870 nx_lib/views/workitems.py:1934
+#: nx_lib/views/workitems.py:1163 nx_lib/views/workitems.py:1196
 msgid "Workitem not found"
 msgstr "Workitem introuvable"
 
-#: nx_lib/views/workitems.py:1874 nx_lib/views/workitems.py:2032
+#: nx_lib/views/workitems.py:1167 nx_lib/views/workitems.py:1294
 msgid "Internal Server Error"
 msgstr "Erreur interne du serveur"
 
-#: nx_lib/views/workitems.py:1947
+#: nx_lib/views/workitems.py:1209
 msgid "Media index out of bounds"
 msgstr "Index du média hors limites"
 
-#: nx_lib/views/workitems.py:1975
+#: nx_lib/views/workitems.py:1237
 msgid "Failed to render PDF page"
 msgstr "Échec du rendu de la page PDF"
 
-#: nx_lib/views/workitems.py:2008
+#: nx_lib/views/workitems.py:1270
 msgid "Failed to process TIFF image"
 msgstr "Échec du traitement de l'image TIFF"
 
-#: nx_lib/views/workitems.py:2097
+#: nx_lib/views/workitems.py:1359
 msgid "Failed to fetch audit history"
 msgstr "Échec de la récupération de l'historique d'audit"
 
-#: nx_lib/views/workitems.py:2155
+#: nx_lib/views/workitems.py:1424
 msgid "This page is only available for the MS02 client."
 msgstr "Cette page est uniquement disponible pour le client MS02."
 
-#: nx_lib/views/workitems.py:2278
+#: nx_lib/views/workitems.py:1548
 msgid "Could not clear the prepared documents. Please try again."
 msgstr "Impossible de supprimer les documents préparés. Veuillez réessayer."
 
-#: nx_lib/views/workitems.py:2339
+#: nx_lib/views/workitems.py:1609
 msgid "Could not load saved views."
 msgstr "Impossible de charger les vues enregistrées."
 
-#: nx_lib/views/workitems.py:2353 nx_lib/views/workitems.py:2356
+#: nx_lib/views/workitems.py:1623 nx_lib/views/workitems.py:1626
 msgid "Invalid view name or filters."
 msgstr "Nom de vue ou filtres invalides."
 
-#: nx_lib/views/workitems.py:2370 nx_lib/views/workitems.py:2419
+#: nx_lib/views/workitems.py:1640 nx_lib/views/workitems.py:1693
 msgid "View not found."
 msgstr "Vue introuvable."
 
-#: nx_lib/views/workitems.py:2383
+#: nx_lib/views/workitems.py:1655
 msgid "Too many saved views — delete one first."
 msgstr "Trop de vues enregistrées — supprimez-en d'abord une."
 
-#: nx_lib/views/workitems.py:2398
+#: nx_lib/views/workitems.py:1672
 msgid "A view with this name already exists."
 msgstr "Une vue portant ce nom existe déjà."
 
-#: nx_lib/views/workitems.py:2401
+#: nx_lib/views/workitems.py:1675
 msgid "Could not save the view."
 msgstr "Impossible d'enregistrer la vue."
 
-#: nx_lib/views/workitems.py:2423
+#: nx_lib/views/workitems.py:1697
 msgid "Could not delete the view."
 msgstr "Impossible de supprimer la vue."
 
-#: nx_lib/views/admin/clients.py:81 nx_lib/views/admin/processes.py:179
+#: nx_lib/views/admin/clients.py:81 nx_lib/views/admin/processes.py:180
 msgid "Client code must be 2-50 lowercase letters, digits or underscores."
 msgstr ""
 "Le code client doit comporter 2 à 50 lettres minuscules, chiffres ou "
@@ -1393,17 +1097,17 @@ msgid "Client updated successfully."
 msgstr "Client mis à jour avec succès."
 
 #: nx_lib/views/admin/clients.py:200 nx_lib/views/admin/clients.py:245
-#: nx_lib/views/admin/organizations.py:154
-#: nx_lib/views/admin/organizations.py:186
-#: nx_lib/views/admin/organizations.py:366 nx_lib/views/admin/processes.py:454
-#: nx_lib/views/admin/processes.py:517 nx_lib/views/admin/processes.py:613
-#: nx_lib/views/admin/processes.py:642 nx_lib/views/admin/tenant_manage.py:261
+#: nx_lib/views/admin/organizations.py:155
+#: nx_lib/views/admin/organizations.py:187
+#: nx_lib/views/admin/organizations.py:368 nx_lib/views/admin/processes.py:456
+#: nx_lib/views/admin/processes.py:519 nx_lib/views/admin/processes.py:615
+#: nx_lib/views/admin/processes.py:644 nx_lib/views/admin/tenant_manage.py:261
 #: nx_lib/views/admin/tenant_manage.py:296
 #: nx_lib/views/admin/tenant_manage.py:334
 #: nx_lib/views/admin/tenant_manage.py:381
 #: nx_lib/views/admin/tenant_manage.py:411
-#: nx_lib/views/admin/tenant_manage.py:436 nx_lib/views/admin/users.py:227
-#: nx_lib/views/admin/users.py:476
+#: nx_lib/views/admin/tenant_manage.py:436 nx_lib/views/admin/users.py:248
+#: nx_lib/views/admin/users.py:495
 msgid "An error occurred."
 msgstr "Une erreur s'est produite."
 
@@ -1417,93 +1121,102 @@ msgstr ""
 msgid "Client deleted successfully."
 msgstr "Client supprimé avec succès."
 
-#: nx_lib/views/admin/organizations.py:104 nx_lib/views/admin/users.py:71
+#: nx_lib/views/admin/organizations.py:105 nx_lib/views/admin/users.py:78
 msgid "All fields are required."
 msgstr "Tous les champs sont obligatoires."
 
-#: nx_lib/views/admin/organizations.py:122
+#: nx_lib/views/admin/organizations.py:123
 msgid "Organization created successfully."
 msgstr "Organisation créée avec succès."
 
-#: nx_lib/views/admin/organizations.py:124
+#: nx_lib/views/admin/organizations.py:125
 msgid "Organization already exists."
 msgstr "L'organisation existe déjà."
 
-#: nx_lib/views/admin/organizations.py:151
+#: nx_lib/views/admin/organizations.py:152
 msgid "Organization updated successfully."
 msgstr "Organisation mise à jour avec succès."
 
-#: nx_lib/views/admin/organizations.py:173
-#: nx_lib/views/admin/organizations.py:292
-#: nx_lib/views/admin/organizations.py:344
-#: nx_lib/views/admin/organizations.py:351
+#: nx_lib/views/admin/organizations.py:174
+#: nx_lib/views/admin/organizations.py:293
+#: nx_lib/views/admin/organizations.py:345
+#: nx_lib/views/admin/organizations.py:353
 msgid "Organization not found."
 msgstr "Organisation introuvable."
 
-#: nx_lib/views/admin/organizations.py:183
+#: nx_lib/views/admin/organizations.py:184
 msgid "Organization deleted successfully."
 msgstr "Organisation supprimée avec succès."
 
-#: nx_lib/views/admin/organizations.py:301
+#: nx_lib/views/admin/organizations.py:302
 msgid "Accent colour must be a hex value like #336699."
 msgstr "La couleur d'accent doit être une valeur hexadécimale comme #336699."
 
-#: nx_lib/views/admin/organizations.py:315
-#: nx_lib/views/admin/organizations.py:331
+#: nx_lib/views/admin/organizations.py:316
+#: nx_lib/views/admin/organizations.py:332
 msgid "Logo must be an SVG, PNG or JPEG image."
 msgstr "Le logo doit être une image SVG, PNG ou JPEG."
 
-#: nx_lib/views/admin/organizations.py:325
+#: nx_lib/views/admin/organizations.py:326
 #: templates/js/admin/_organizations_js.html:276
 msgid "Logo is too large (max 512 KB)."
 msgstr "Le logo est trop volumineux (max. 512 Ko)."
 
-#: nx_lib/views/admin/organizations.py:379
+#: nx_lib/views/admin/organizations.py:381
 #: templates/js/admin/_organizations_js.html:313
 msgid "Branding saved."
 msgstr "Branding enregistré."
 
-#: nx_lib/views/admin/permissions.py:291
+#: nx_lib/views/admin/permissions.py:132
+msgid "Invalid payload"
+msgstr "Données invalides"
+
+#: nx_lib/views/admin/permissions.py:286
 msgid "Could not fetch users"
 msgstr "Impossible de récupérer les utilisateurs"
 
-#: nx_lib/views/admin/permissions.py:339
+#: nx_lib/views/admin/permissions.py:305
+msgid "Rank must be a number"
+msgstr "Le rang doit être un nombre"
+
+#: nx_lib/views/admin/permissions.py:308
 msgid "Name is required"
 msgstr "Le nom est obligatoire"
 
-#: nx_lib/views/admin/permissions.py:361
+#: nx_lib/views/admin/permissions.py:346
 #, python-format
 msgid "%(n)d user(s) outside %(org)s hold this profile. Move them first."
 msgstr ""
 "%(n)d utilisateur(s) hors de %(org)s détiennent ce profil. Déplacez-les "
 "d’abord."
 
-#: nx_lib/views/admin/permissions.py:388
+
+#: nx_lib/views/admin/permissions.py:368
 msgid "Profile saved successfully"
 msgstr "Profil enregistré avec succès"
 
-#: nx_lib/views/admin/permissions.py:567
+#: nx_lib/views/admin/permissions.py:547
 msgid "Overrides updated successfully"
 msgstr "Dérogations mises à jour avec succès"
 
-#: nx_lib/views/admin/permissions.py:632 nx_lib/views/admin/permissions.py:760
-#: nx_lib/views/admin/permissions.py:802
+#: nx_lib/views/admin/permissions.py:612 nx_lib/views/admin/permissions.py:742
+#: nx_lib/views/admin/permissions.py:788
 msgid "Permission not found"
 msgstr "Autorisation introuvable"
 
-#: nx_lib/views/admin/permissions.py:712 nx_lib/views/admin/permissions.py:749
+#: nx_lib/views/admin/permissions.py:692 nx_lib/views/admin/permissions.py:731
 msgid "Code and description are required"
 msgstr "Le code et la description sont obligatoires"
 
-#: nx_lib/views/admin/permissions.py:727
+#: nx_lib/views/admin/permissions.py:709
 msgid "Permission created successfully"
 msgstr "Autorisation créée avec succès"
 
-#: nx_lib/views/admin/permissions.py:762
+#: nx_lib/views/admin/permissions.py:744
 msgid "Permission updated successfully"
 msgstr "Autorisation mise à jour avec succès"
 
-#: nx_lib/views/admin/permissions.py:795
+#: nx_lib/views/admin/permissions.py:781
 #, python-format
 msgid ""
 "Cannot delete: used in %(p)d profile(s) and %(o)d override(s). Remove all"
@@ -1512,20 +1225,20 @@ msgstr ""
 "Impossible de supprimer : utilisé dans %(p)d profil(s) et %(o)d "
 "substitution(s). Veuillez d'abord supprimer toutes les affectations."
 
-#: nx_lib/views/admin/permissions.py:804
+#: nx_lib/views/admin/permissions.py:790
 msgid "Permission deleted successfully"
 msgstr "Autorisation supprimée avec succès"
 
-#: nx_lib/views/admin/processes.py:101
+#: nx_lib/views/admin/processes.py:102
 msgid "Mapping config is currently unavailable."
 msgstr "La configuration de mappage est actuellement indisponible."
 
-#: nx_lib/views/admin/processes.py:165
+#: nx_lib/views/admin/processes.py:166
 #, python-format
 msgid "%(field)s is required."
 msgstr "%(field)s est obligatoire."
 
-#: nx_lib/views/admin/processes.py:170
+#: nx_lib/views/admin/processes.py:171
 #, python-format
 msgid ""
 "%(field)s must be a plain SQL identifier (letters, digits, underscores, "
@@ -1534,7 +1247,7 @@ msgstr ""
 "%(field)s doit être un identifiant SQL simple (lettres, chiffres, tirets "
 "bas, points, guillemets ou crochets)."
 
-#: nx_lib/views/admin/processes.py:183
+#: nx_lib/views/admin/processes.py:184
 msgid ""
 "Process name must be exactly <customer>.<process> -- two parts separated "
 "by a single dot (e.g. acme.01_Invoice), letters, digits, dashes or "
@@ -1547,29 +1260,30 @@ msgstr ""
 "qui donne accès à ce processus est dérivée de ces deux parties : toute "
 "autre forme ne pourra jamais être accordée."
 
-#: nx_lib/views/admin/processes.py:190
+#: nx_lib/views/admin/processes.py:191
 msgid "Field key must be 1-100 letters, digits, dots, dashes or underscores."
 msgstr ""
 "La clé de champ doit comporter 1 à 100 lettres, chiffres, points, tirets "
 "ou tirets bas."
 
-#: nx_lib/views/admin/processes.py:205
+#: nx_lib/views/admin/processes.py:206
 msgid "Table alias must be at most 10 characters."
 msgstr "L'alias de table ne doit pas dépasser 10 caractères."
 
-#: nx_lib/views/admin/processes.py:208
+#: nx_lib/views/admin/processes.py:209
 msgid "Id column type must be a plain SQL type name."
 msgstr "Le type de la colonne Id doit être un nom de type SQL simple."
 
-#: nx_lib/views/admin/processes.py:211
+#: nx_lib/views/admin/processes.py:212
 msgid "Organization code must be 1-5 letters or digits."
 msgstr "Le code d’organisation doit comporter 1 à 5 lettres ou chiffres."
 
-#: nx_lib/views/admin/processes.py:235
+
+#: nx_lib/views/admin/processes.py:236
 msgid "Column type must be a plain SQL type name."
 msgstr "Le type de colonne doit être un nom de type SQL simple."
 
-#: nx_lib/views/admin/processes.py:361
+#: nx_lib/views/admin/processes.py:362
 #, python-format
 msgid ""
 "Unknown client code %(code)s -- it must be an existing runtime source "
@@ -1578,7 +1292,7 @@ msgstr ""
 "Code client %(code)s inconnu – il doit correspondre à une source "
 "d'exécution existante de la page Clients."
 
-#: nx_lib/views/admin/processes.py:374
+#: nx_lib/views/admin/processes.py:375
 #, python-format
 msgid ""
 "Process name %(name)s collides with the existing %(other_client)s / "
@@ -1590,7 +1304,7 @@ msgstr ""
 "%(code)s, donc accorder l'un donnerait droit à l'autre. Choisissez un "
 "autre nom."
 
-#: nx_lib/views/admin/processes.py:405
+#: nx_lib/views/admin/processes.py:407
 #, python-format
 msgid ""
 "Process source created. Its permission %(code)s was created but granted "
@@ -1599,19 +1313,19 @@ msgstr ""
 "Source de processus créée. L'autorisation %(code)s a été créée mais n'est"
 " attribuée à personne -- attribuez-la dans Contrôle d'accès."
 
-#: nx_lib/views/admin/processes.py:413
+#: nx_lib/views/admin/processes.py:415
 msgid "This process source already exists."
 msgstr "Cette source de processus existe déjà."
 
-#: nx_lib/views/admin/processes.py:449 nx_lib/views/admin/processes.py:502
+#: nx_lib/views/admin/processes.py:451 nx_lib/views/admin/processes.py:504
 msgid "Process source not found."
 msgstr "Source de processus introuvable."
 
-#: nx_lib/views/admin/processes.py:451
+#: nx_lib/views/admin/processes.py:453
 msgid "Process source updated successfully."
 msgstr "Source de processus mise à jour avec succès."
 
-#: nx_lib/views/admin/processes.py:488
+#: nx_lib/views/admin/processes.py:490
 msgid ""
 "This process source still has field mappings and cannot be deleted. "
 "Remove them first."
@@ -1619,33 +1333,33 @@ msgstr ""
 "Cette source de processus possède encore des mappages de champs et ne "
 "peut pas être supprimée. Supprimez-les d'abord."
 
-#: nx_lib/views/admin/processes.py:504
+#: nx_lib/views/admin/processes.py:506
 msgid "Process source deleted successfully."
 msgstr "Source de processus supprimée avec succès."
 
-#: nx_lib/views/admin/processes.py:510
+#: nx_lib/views/admin/processes.py:512
 msgid "This process source is still referenced and cannot be deleted."
 msgstr ""
 "Cette source de processus est encore référencée et ne peut pas être "
 "supprimée."
 
-#: nx_lib/views/admin/processes.py:554
+#: nx_lib/views/admin/processes.py:556
 msgid "Field mapping created successfully."
 msgstr "Mappage de champ créé avec succès."
 
-#: nx_lib/views/admin/processes.py:563
+#: nx_lib/views/admin/processes.py:565
 msgid "This field mapping already exists, or its process source does not."
 msgstr "Ce mappage de champ existe déjà, ou sa source de processus n'existe pas."
 
-#: nx_lib/views/admin/processes.py:606 nx_lib/views/admin/processes.py:635
+#: nx_lib/views/admin/processes.py:608 nx_lib/views/admin/processes.py:637
 msgid "Field mapping not found."
 msgstr "Mappage de champ introuvable."
 
-#: nx_lib/views/admin/processes.py:608
+#: nx_lib/views/admin/processes.py:610
 msgid "Field mapping updated successfully."
 msgstr "Mappage de champ mis à jour avec succès."
 
-#: nx_lib/views/admin/processes.py:637
+#: nx_lib/views/admin/processes.py:639
 msgid "Field mapping deleted successfully."
 msgstr "Mappage de champ supprimé avec succès."
 
@@ -1659,13 +1373,16 @@ msgstr ""
 "Le code tenant doit comporter 2 à 50 lettres minuscules, chiffres ou "
 "tirets bas."
 
+
 #: nx_lib/views/admin/tenant_manage.py:74
 msgid "Display name is required (max. 100 characters)."
 msgstr "Le nom d’affichage est obligatoire (100 caractères max.)."
 
+
 #: nx_lib/views/admin/tenant_manage.py:79
 msgid "Organizations must be a list of organization codes."
 msgstr "Les organisations doivent être une liste de codes d’organisation."
+
 
 #: nx_lib/views/admin/tenant_manage.py:89
 msgid "Page key must be 1-100 lowercase letters, digits, '.', '_' or '-'."
@@ -1673,18 +1390,22 @@ msgstr ""
 "La clé de page doit comporter 1 à 100 lettres minuscules, chiffres, '.', "
 "'_' ou '-'."
 
+
 #: nx_lib/views/admin/tenant_manage.py:92
 #: nx_lib/views/admin/tenant_manage.py:355
 msgid "Endpoint is not a mountable page."
 msgstr "Le point de terminaison n’est pas une page montable."
 
+
 #: nx_lib/views/admin/tenant_manage.py:95
 msgid "Label is required (max. 100 characters)."
 msgstr "Le libellé est obligatoire (100 caractères max.)."
 
+
 #: nx_lib/views/admin/tenant_manage.py:98
 msgid "Icon must be a Font Awesome class like fa-chart-line."
 msgstr "L’icône doit être une classe Font Awesome comme fa-chart-line."
+
 
 #: nx_lib/views/admin/tenant_manage.py:101
 msgid "Active marker may only contain letters, digits, '_' or '-'."
@@ -1692,19 +1413,23 @@ msgstr ""
 "Le marqueur actif ne peut contenir que des lettres, des chiffres, '_' ou "
 "'-'."
 
+
 #: nx_lib/views/admin/tenant_manage.py:105
 msgid "Sort order must be a number."
 msgstr "L’ordre de tri doit être un nombre."
 
+
 #: nx_lib/views/admin/tenant_manage.py:237
 msgid "Tenant already exists."
 msgstr "Le tenant existe déjà."
+
 
 #: nx_lib/views/admin/tenant_manage.py:240
 #: nx_lib/views/admin/tenant_manage.py:283
 #, python-format
 msgid "%(n)d organization code(s) do not exist."
 msgstr "%(n)d code(s) d’organisation n’existent pas."
+
 
 #: nx_lib/views/admin/tenant_manage.py:253
 #, python-format
@@ -1716,15 +1441,18 @@ msgstr ""
 "immédiatement ; accordez tenant.%(code)s.view dans le contrôle d’accès "
 "pour y admettre d’autres collaborateurs."
 
+
 #: nx_lib/views/admin/tenant_manage.py:289
 #: nx_lib/views/admin/tenant_manage.py:330
 #: nx_lib/views/admin/tenant_manage.py:363
 msgid "Tenant not found."
 msgstr "Tenant introuvable."
 
+
 #: nx_lib/views/admin/tenant_manage.py:293
 msgid "Tenant updated."
 msgstr "Tenant mis à jour."
+
 
 #: nx_lib/views/admin/tenant_manage.py:319
 #, python-format
@@ -1733,36 +1461,44 @@ msgstr ""
 "%(n)d organisation(s) appartiennent encore à ce tenant. Déplacez-les "
 "d’abord."
 
+
 #: nx_lib/views/admin/tenant_manage.py:331
 msgid "Tenant deleted."
 msgstr "Tenant supprimé."
+
 
 #: nx_lib/views/admin/tenant_manage.py:376
 msgid "Page added."
 msgstr "Page ajoutée."
 
+
 #: nx_lib/views/admin/tenant_manage.py:379
 msgid "A page with this key already exists."
 msgstr "Une page avec cette clé existe déjà."
 
+
 #: nx_lib/views/admin/tenant_manage.py:394
 msgid "Status must be 'active' or 'draft'."
 msgstr "Le statut doit être 'active' ou 'draft'."
+
 
 #: nx_lib/views/admin/tenant_manage.py:407
 #: nx_lib/views/admin/tenant_manage.py:432
 msgid "Page not found."
 msgstr "Page introuvable."
 
+
 #: nx_lib/views/admin/tenant_manage.py:408
 msgid "Page updated."
 msgstr "Page mise à jour."
+
 
 #: nx_lib/views/admin/tenant_manage.py:433
 msgid "Page removed."
 msgstr "Page retirée."
 
-#: nx_lib/views/admin/users.py:39
+
+#: nx_lib/views/admin/users.py:46
 #, python-format
 msgid ""
 "Profile %(profile)s belongs to organization %(org)s and cannot be "
@@ -1771,11 +1507,20 @@ msgstr ""
 "Le profil %(profile)s appartient à l’organisation %(org)s et ne peut pas "
 "être attribué à un utilisateur de %(user_org)s."
 
-#: nx_lib/views/admin/users.py:79 nx_lib/views/admin/users.py:196
+
+#: nx_lib/views/admin/users.py:90 nx_lib/views/admin/users.py:208
+msgid "Unknown access profile."
+msgstr "Profil d'accès inconnu."
+
+#: nx_lib/views/admin/users.py:100 nx_lib/views/admin/users.py:216
 msgid "Permission Denied for this action."
 msgstr "Autorisation refusée pour cette action."
 
-#: nx_lib/views/admin/users.py:130
+#: nx_lib/views/admin/users.py:108 nx_lib/views/admin/users.py:224
+msgid "Unknown organization."
+msgstr "Organisation inconnue."
+
+#: nx_lib/views/admin/users.py:146
 msgid ""
 "User created, but the email could not be sent. Ask them to use 'Forgot "
 "password'."
@@ -1783,46 +1528,425 @@ msgstr ""
 "Utilisateur créé, mais l'e-mail n'a pas pu être envoyé. Demandez-lui "
 "d'utiliser la fonction 'Mot de passe oublié'."
 
-#: nx_lib/views/admin/users.py:135
+#: nx_lib/views/admin/users.py:151
 msgid "User created and email sent."
 msgstr "Utilisateur créé et e-mail envoyé."
 
-#: nx_lib/views/admin/users.py:137
-#: templates/js/admin/_access_control_js.html:576
+#: nx_lib/views/admin/users.py:153
+#: templates/js/admin/_access_control_js.html:15
 msgid "User created successfully."
 msgstr "Utilisateur créé avec succès."
 
-#: nx_lib/views/admin/users.py:139
+#: nx_lib/views/admin/users.py:155
 msgid "Username or email already exists."
 msgstr "Le nom d'utilisateur ou l'e-mail existe déjà."
 
-#: nx_lib/views/admin/users.py:224
+#: nx_lib/views/admin/users.py:245
 msgid "User updated successfully."
 msgstr "Utilisateur mis à jour avec succès."
 
-#: nx_lib/views/admin/users.py:422
+#: nx_lib/views/admin/users.py:441
 msgid "You cannot delete your own account."
 msgstr "Vous ne pouvez pas supprimer votre propre compte."
 
-#: nx_lib/views/admin/users.py:468
+#: nx_lib/views/admin/users.py:487
 msgid "User not found."
 msgstr "Utilisateur introuvable."
 
-#: nx_lib/views/admin/users.py:470
+#: nx_lib/views/admin/users.py:489
 msgid "User deleted successfully."
 msgstr "Utilisateur supprimé avec succès."
 
-#: nx_lib/views/admin/users.py:599
+#: nx_lib/views/admin/users.py:618
 msgid "Could not fetch logs"
 msgstr "Impossible de récupérer les journaux"
 
-#: nx_lib/views/admin/users.py:643
+#: nx_lib/views/admin/users.py:661
 msgid "Could not fetch sessions"
 msgstr "Impossible de récupérer les sessions"
 
-#: nx_lib/views/generali/documents.py:82
+#: nx_lib/views/generali/documents.py:115
 msgid "startDate and endDate are required"
 msgstr "startDate et endDate sont obligatoires."
+
+#: nx_lib/views/reporting/admin_registry.py:45
+#: nx_lib/views/reporting/admin_registry.py:95
+msgid "Invalid body"
+msgstr "Corps invalide"
+
+#: nx_lib/views/reporting/admin_registry.py:47
+msgid "code must be 1-64 chars: letters, digits, . _ -"
+msgstr "le code doit comporter 1 à 64 caractères : lettres, chiffres, . _ -"
+
+#: nx_lib/views/reporting/admin_registry.py:49
+msgid "kind must be 'curated' or 'sql'"
+msgstr "kind doit être 'curated' ou 'sql'"
+
+#: nx_lib/views/reporting/admin_registry.py:51
+#: nx_lib/views/reporting/admin_registry.py:101
+msgid "label is required"
+msgstr "le libellé est obligatoire"
+
+#: nx_lib/views/reporting/admin_registry.py:53
+msgid "permission is required"
+msgstr "l'autorisation est obligatoire"
+
+#: nx_lib/views/reporting/admin_registry.py:59
+msgid "columns must be valid JSON"
+msgstr "les colonnes doivent être au format JSON valide"
+
+#: nx_lib/views/reporting/admin_registry.py:97
+msgid "code must start with a letter/underscore: letters, digits, _"
+msgstr ""
+"le code doit commencer par une lettre/un trait de soulignement : lettres,"
+" chiffres, _"
+
+#: nx_lib/views/reporting/admin_registry.py:99
+msgid "sourceId is required"
+msgstr "sourceId est obligatoire"
+
+#: nx_lib/views/reporting/admin_registry.py:104
+msgid "aggregation must be one of: "
+msgstr "aggregation doit être l'une des valeurs suivantes : "
+
+#: nx_lib/views/reporting/admin_registry.py:106
+msgid "baseField is required unless aggregation is 'count'"
+msgstr "baseField est obligatoire sauf si aggregation vaut 'count'"
+
+#: nx_lib/views/reporting/admin_registry.py:165
+msgid "Could not list sources"
+msgstr "Impossible de lister les sources"
+
+#: nx_lib/views/reporting/admin_registry.py:196
+msgid "Could not save source (code already exists?)"
+msgstr "Impossible d'enregistrer la source (le code existe déjà ?)"
+
+#: nx_lib/views/reporting/admin_registry.py:221
+#: nx_lib/views/reporting/admin_registry.py:240
+#: nx_lib/views/reporting/admin_registry.py:347
+#: nx_lib/views/reporting/admin_registry.py:366
+#: nx_lib/views/reporting/reports.py:194 nx_lib/views/reporting/reports.py:271
+#: nx_lib/views/reporting/reports.py:293 nx_lib/views/reporting/reports.py:369
+#: nx_lib/views/reporting/reports.py:379 nx_lib/views/reporting/reports.py:429
+#: nx_lib/views/reporting/schedules.py:70
+#: nx_lib/views/reporting/schedules.py:94
+#: nx_lib/views/reporting/schedules.py:143
+#: nx_lib/views/reporting/schedules.py:178
+#: nx_lib/views/reporting/schedules.py:191
+#: nx_lib/views/reporting/schedules.py:202
+msgid "Not found"
+msgstr "Introuvable"
+
+#: nx_lib/views/reporting/admin_registry.py:226
+msgid "Could not update source"
+msgstr "Impossible de mettre à jour la source"
+
+#: nx_lib/views/reporting/admin_registry.py:245
+msgid "Could not delete source"
+msgstr "Impossible de supprimer la source"
+
+#: nx_lib/views/reporting/admin_registry.py:290
+msgid "Could not list metrics"
+msgstr "Impossible de lister les métriques"
+
+#: nx_lib/views/reporting/admin_registry.py:322
+msgid "Could not save metric (code already exists?)"
+msgstr "Impossible d'enregistrer la métrique (le code existe déjà ?)"
+
+#: nx_lib/views/reporting/admin_registry.py:352
+msgid "Could not update metric"
+msgstr "Impossible de mettre à jour la métrique"
+
+#: nx_lib/views/reporting/admin_registry.py:371
+msgid "Could not delete metric"
+msgstr "Impossible de supprimer la métrique"
+
+#: nx_lib/views/reporting/ai.py:310 nx_lib/views/reporting/ai.py:438
+#: nx_lib/views/reporting/ai.py:619 nx_lib/views/reporting/ai.py:1010
+#: nx_lib/views/reporting/catalog.py:123 nx_lib/views/reporting/export.py:94
+#: nx_lib/views/reporting/export.py:169 nx_lib/views/reporting/run.py:166
+#: nx_lib/views/reporting/run.py:254
+msgid "Invalid JSON body"
+msgstr "Corps JSON invalide"
+
+#: nx_lib/views/reporting/ai.py:313 nx_lib/views/reporting/ai.py:441
+#: nx_lib/views/reporting/ai.py:622
+msgid "A question is required"
+msgstr "Une question est requise"
+
+#: nx_lib/views/reporting/ai.py:316
+msgid "Not authorized to receive AI-drafted SQL"
+msgstr "Non autorisé à recevoir du SQL rédigé par l'IA"
+
+#: nx_lib/views/reporting/ai.py:320 nx_lib/views/reporting/ai.py:388
+#: nx_lib/views/reporting/ai.py:445 nx_lib/views/reporting/ai.py:534
+#: nx_lib/views/reporting/ai.py:663 nx_lib/views/reporting/ai.py:967
+#: nx_lib/views/reporting/ai.py:1033 nx_lib/views/reporting/ai.py:1090
+msgid "The AI assistant is not configured"
+msgstr "L'assistant IA n'est pas configuré"
+
+#: nx_lib/views/reporting/ai.py:348 nx_lib/views/reporting/ai.py:467
+#: nx_lib/views/reporting/ai.py:685 nx_lib/views/reporting/ai.py:1055
+#, python-format
+msgid ""
+"You have reached the daily AI request limit (%(limit)s). Please try again"
+" tomorrow."
+msgstr ""
+"Vous avez atteint la limite quotidienne de requêtes IA (%(limit)s). "
+"Veuillez réessayer demain."
+
+#: nx_lib/views/reporting/ai.py:405 nx_lib/views/reporting/ai.py:551
+#: nx_lib/views/reporting/ai.py:947 nx_lib/views/reporting/ai.py:971
+#: nx_lib/views/reporting/ai.py:1107
+msgid "Eddard could not answer right now"
+msgstr "Eddard n'a pas pu répondre pour le moment"
+
+#: nx_lib/views/reporting/ai.py:483 nx_lib/views/reporting/ai.py:486
+#: nx_lib/views/reporting/ai.py:490 nx_lib/views/reporting/ai.py:492
+msgid "Invalid refine context"
+msgstr "Contexte de raffinement invalide"
+
+#: nx_lib/views/reporting/ai.py:580
+msgid "Could not build a valid report"
+msgstr "Impossible de créer un rapport valide"
+
+#: nx_lib/views/reporting/ai.py:626
+msgid "Invalid history"
+msgstr "Historique invalide"
+
+#: nx_lib/views/reporting/ai.py:845
+msgid ""
+"I couldn't write a summary this time, but I did produce a report draft "
+"and a validated SQL query — use the actions below to open them."
+msgstr ""
+"Je n'ai pas pu rédiger de résumé cette fois, mais j'ai produit une "
+"ébauche de rapport et une requête SQL validée — utilisez les actions ci-"
+"dessous pour les ouvrir."
+
+#: nx_lib/views/reporting/ai.py:851
+msgid ""
+"I couldn't write a summary this time, but I did produce a report draft — "
+"use “Open report” below to run it."
+msgstr ""
+"Je n'ai pas pu rédiger de résumé cette fois, mais j'ai produit une "
+"ébauche de rapport — utilisez « Ouvrir le rapport » ci-dessous pour "
+"l'exécuter."
+
+#: nx_lib/views/reporting/ai.py:856
+msgid ""
+"I couldn't write a summary this time, but I did draft a SQL query — use "
+"the actions below to review it."
+msgstr ""
+"Je n'ai pas pu rédiger de résumé cette fois, mais j'ai rédigé une requête"
+" SQL — utilisez les actions ci-dessous pour la vérifier."
+
+#: nx_lib/views/reporting/ai.py:861
+msgid ""
+"I couldn't complete this request. Please try rephrasing the question or "
+"narrowing it down."
+msgstr ""
+"Je n'ai pas pu traiter cette demande. Veuillez reformuler la question ou "
+"la préciser."
+
+#: nx_lib/views/reporting/ai.py:1014 nx_lib/views/reporting/export.py:174
+msgid "columns and rows are required"
+msgstr "les colonnes et les lignes sont obligatoires"
+
+#: nx_lib/views/reporting/catalog.py:130
+msgid "Unknown or unsupported source"
+msgstr "Source inconnue ou non prise en charge"
+
+#: nx_lib/views/reporting/catalog.py:132 nx_lib/views/reporting/export.py:129
+#: nx_lib/views/reporting/health.py:167 nx_lib/views/reporting/run.py:170
+msgid "Not authorized for this source"
+msgstr "Non autorisé pour cette source"
+
+#: nx_lib/views/reporting/catalog.py:135
+msgid "Source engine is not configured"
+msgstr "Le moteur de la source n'est pas configuré"
+
+#: nx_lib/views/reporting/catalog.py:142
+msgid "This request is invalid."
+msgstr "Cette requête n'est pas valide."
+
+#: nx_lib/views/reporting/catalog.py:145
+msgid "Could not load values"
+msgstr "Impossible de charger les valeurs"
+
+#: nx_lib/views/reporting/export.py:99
+msgid "Not authorized for live SQL"
+msgstr "Non autorisé pour le SQL en direct"
+
+#: nx_lib/views/reporting/export.py:102 nx_lib/views/reporting/run.py:260
+msgid "Acknowledgment required"
+msgstr "Confirmation requise"
+
+#: nx_lib/views/reporting/export.py:110 nx_lib/views/reporting/run.py:265
+msgid "Not authorized for this SQL target"
+msgstr "Non autorisé pour cette cible SQL"
+
+#: nx_lib/views/reporting/export.py:116 nx_lib/views/reporting/run.py:269
+msgid "Invalid SQL request."
+msgstr "Requête SQL invalide."
+
+#: nx_lib/views/reporting/export.py:118 nx_lib/views/reporting/run.py:271
+msgid "SQL source is not configured"
+msgstr "La source SQL n'est pas configurée"
+
+#: nx_lib/views/reporting/export.py:121
+msgid "Could not export query"
+msgstr "Impossible d'exporter la requête"
+
+#: nx_lib/views/reporting/export.py:123 nx_lib/views/reporting/export.py:151
+#: nx_lib/views/reporting/export.py:185 templates/hero.html:165
+#: templates/js/_reporting_js.html:33
+#: templates/js/_reporting_scheduled_js.html:15 templates/reporting.html:569
+msgid "Report"
+msgstr "Rapport"
+
+#: nx_lib/views/reporting/export.py:132 nx_lib/views/reporting/run.py:173
+msgid "This report definition is invalid or outdated."
+msgstr "Cette définition de rapport est invalide ou obsolète."
+
+#: nx_lib/views/reporting/export.py:136
+msgid "Could not export report"
+msgstr "Impossible d'exporter le rapport"
+
+#: nx_lib/views/reporting/export.py:144 templates/_reporting_simple.html:235
+#: templates/js/_reporting_js.html:54 templates/js/_reporting_simple_js.html:5
+#: templates/js/_reporting_viz_js.html:14 templates/reporting.html:429
+msgid "Forecast"
+msgstr "Prévision"
+
+#: nx_lib/views/reporting/health.py:173
+msgid "This source's database is not configured."
+msgstr "La base de données de cette source n'est pas configurée."
+
+#: nx_lib/views/reporting/health.py:178
+msgid "Could not reach this database."
+msgstr "Impossible d'atteindre cette base de données."
+
+#: nx_lib/views/reporting/health.py:183
+msgid "Could not read this database's schema."
+msgstr "Impossible de lire le schéma de cette base de données."
+
+#: nx_lib/views/reporting/reports.py:169
+msgid "Could not list reports"
+msgstr "Impossible de lister les rapports"
+
+#: nx_lib/views/reporting/reports.py:207
+msgid "Could not load report"
+msgstr "Impossible de charger le rapport"
+
+#: nx_lib/views/reporting/reports.py:220 nx_lib/views/reporting/reports.py:251
+msgid "name and definition are required"
+msgstr "le nom et la définition sont obligatoires"
+
+#: nx_lib/views/reporting/reports.py:223 nx_lib/views/reporting/reports.py:254
+msgid "Report definition too large"
+msgstr "Définition du rapport trop volumineuse"
+
+#: nx_lib/views/reporting/reports.py:238
+msgid "Could not save report"
+msgstr "Impossible d'enregistrer le rapport"
+
+#: nx_lib/views/reporting/reports.py:275
+msgid "Could not update report"
+msgstr "Impossible de mettre à jour le rapport"
+
+#: nx_lib/views/reporting/reports.py:297
+msgid "Could not delete report"
+msgstr "Impossible de supprimer le rapport"
+
+#: nx_lib/views/reporting/reports.py:387
+msgid "Invalid visibility"
+msgstr "Visibilité invalide"
+
+#: nx_lib/views/reporting/reports.py:396
+msgid "User not found"
+msgstr "Utilisateur introuvable"
+
+#: nx_lib/views/reporting/reports.py:398
+msgid "Cannot share a report with yourself"
+msgstr "Vous ne pouvez pas partager un rapport avec vous-même"
+
+#: nx_lib/views/reporting/reports.py:419 nx_lib/views/reporting/reports.py:440
+msgid "Could not update sharing"
+msgstr "Impossible de mettre à jour le partage"
+
+#: nx_lib/views/reporting/run.py:177
+msgid "Could not build report"
+msgstr "Impossible de générer le rapport"
+
+#: nx_lib/views/reporting/run.py:182
+msgid "Could not run report"
+msgstr "Impossible d'exécuter le rapport"
+
+#: nx_lib/views/reporting/run.py:237
+msgid "SQL is required."
+msgstr "Le SQL est requis."
+
+#: nx_lib/views/reporting/run.py:238
+#, python-brace-format
+msgid "The SQL exceeds {n} characters."
+msgstr "Le SQL dépasse {n} caractères."
+
+#: nx_lib/views/reporting/run.py:239
+#, python-brace-format
+msgid "Disallowed keyword: {kw}"
+msgstr "Mot-clé non autorisé : {kw}"
+
+#: nx_lib/views/reporting/run.py:240
+msgid "The SQL could not be parsed."
+msgstr "Le SQL n'a pas pu être analysé."
+
+#: nx_lib/views/reporting/run.py:241
+msgid "Exactly one statement is allowed."
+msgstr "Une seule instruction est autorisée."
+
+#: nx_lib/views/reporting/run.py:242
+msgid "Only SELECT / WITH / set operations are allowed."
+msgstr "Seules les opérations SELECT / WITH / d'ensemble sont autorisées."
+
+#: nx_lib/views/reporting/run.py:243
+#, python-brace-format
+msgid "Disallowed construct: {kw}"
+msgstr "Construction non autorisée : {kw}"
+
+#: nx_lib/views/reporting/run.py:244
+msgid "T-SQL does not support LIMIT — use TOP (n) instead."
+msgstr "T-SQL ne prend pas en charge LIMIT — utilisez TOP (n) à la place."
+
+#: nx_lib/views/reporting/run.py:258 nx_lib/views/reporting/run.py:292
+msgid "Not authenticated"
+msgstr "Non authentifié"
+
+#: nx_lib/views/reporting/run.py:275
+msgid "Could not run query"
+msgstr "Impossible d'exécuter la requête"
+
+#: nx_lib/views/reporting/run.py:305
+msgid "Could not record acknowledgment"
+msgstr "Impossible d'enregistrer la confirmation"
+
+#: nx_lib/views/reporting/schedules.py:84
+#: nx_lib/views/reporting/schedules.py:238
+#: templates/js/_reporting_scheduled_js.html:25
+msgid "Could not list schedules"
+msgstr "Impossible de lister les planifications"
+
+#: nx_lib/views/reporting/schedules.py:133
+#: templates/js/_reporting_scheduled_js.html:26
+msgid "Could not save schedule"
+msgstr "Impossible d'enregistrer la planification"
+
+#: nx_lib/views/reporting/schedules.py:182
+msgid "Could not update schedule"
+msgstr "Impossible de mettre à jour la planification"
+
+#: nx_lib/views/reporting/schedules.py:206
+msgid "Could not delete schedule"
+msgstr "Impossible de supprimer la planification"
 
 #: templates/_header.html:194
 msgid "Open navigation"
@@ -1844,9 +1968,9 @@ msgid "Access Control"
 msgstr "Contrôle d'accès"
 
 #: templates/_header.html:228 templates/admin/admin_overview.html:85
-#: templates/admin/permission_matrix.html:21
-msgid "Permission Matrix"
-msgstr "Matrice des autorisations"
+#: templates/admin/permissions.html:21 templates/admin/user_detail.html:88
+msgid "Permissions"
+msgstr "Permissions"
 
 #: templates/_header.html:233
 msgid "Sessions"
@@ -1858,7 +1982,7 @@ msgstr "Journaux"
 
 #: templates/_header.html:244 templates/admin/logs.html:66
 #: templates/admin/logs.html:99 templates/admin/tenants_manage.html:78
-#: templates/admin/user_detail.html:228 templates/api_docs.html:189
+#: templates/admin/user_detail.html:222 templates/api_docs.html:189
 #: templates/appearance.html:369 templates/generali_importstatus.html:50
 #: templates/generali_importstatus.html:106
 #: templates/generali_reporting.html:116 templates/workitems_overview.html:136
@@ -1874,9 +1998,11 @@ msgstr "Maintenance"
 msgid "Tenants"
 msgstr "Tenants"
 
-#: templates/_header.html:278 templates/js/admin/_permission_matrix_js.html:56
+
+#: templates/_header.html:278
 msgid "Manage"
 msgstr "Gérer"
+
 
 #: templates/_header.html:284 templates/admin/admin_overview.html:95
 #: templates/admin/organizations.html:19 templates/admin/tenants_manage.html:38
@@ -1888,9 +2014,11 @@ msgstr "Organisations"
 msgid "Data Connections"
 msgstr "Connexions de données"
 
+
 #: templates/_header.html:297 templates/admin/processes.html:19
 msgid "Process Configurations"
 msgstr "Configurations de processus"
+
 
 #: templates/_header.html:311
 msgid "Development"
@@ -1904,6 +2032,7 @@ msgstr "Documentation API"
 msgid "Global Dashboard"
 msgstr "Tableau de bord global"
 
+
 #: templates/_header.html:326 templates/generali-dashboard.html:69
 #: templates/generali_additionalservices.html:52
 #: templates/generali_baseservices.html:52 templates/generali_documents.html:45
@@ -1915,6 +2044,7 @@ msgstr "Rapports"
 #: templates/_header.html:327 templates/workitems_overview.html:62
 msgid "Global Workitems"
 msgstr "Workitems globaux"
+
 
 #: templates/_header.html:436 templates/_header.html:438
 #: templates/appearance.html:302 templates/appearance.html:307
@@ -1998,7 +2128,7 @@ msgstr "fermer"
 msgid "Switch to user..."
 msgstr "Passer à l'utilisateur ..."
 
-#: templates/_header.html:559 templates/admin/access_control.html:167
+#: templates/_header.html:559 templates/admin/access_control.html:130
 msgid "Global"
 msgstr "Global"
 
@@ -2374,7 +2504,8 @@ msgstr "Trier les rapports"
 msgid "Recently updated"
 msgstr "Récemment mis à jour"
 
-#: templates/_reporting_simple.html:31 templates/admin/organizations.html:32
+#: templates/_reporting_simple.html:31 templates/admin/access_control.html:217
+#: templates/admin/organizations.html:32
 msgid "Name"
 msgstr "Nom"
 
@@ -2390,12 +2521,12 @@ msgstr "2 par ligne"
 msgid "4 per row"
 msgstr "4 par ligne"
 
-#: templates/_reporting_simple.html:41 templates/js/_reporting_js.html:1527
+#: templates/_reporting_simple.html:41 templates/js/_reporting_js.html:66
 #: templates/js/_reporting_simple_js.html:17
 msgid "My reports"
 msgstr "Mes rapports"
 
-#: templates/_reporting_simple.html:53 templates/js/_reporting_js.html:1533
+#: templates/_reporting_simple.html:53 templates/js/_reporting_js.html:67
 #: templates/js/_reporting_simple_js.html:19
 msgid "Shared with me"
 msgstr "Partagés avec moi"
@@ -2431,27 +2562,27 @@ msgstr "Ventiler par…"
 msgid "Granularity"
 msgstr "Granularité"
 
-#: templates/_reporting_simple.html:90 templates/js/_reporting_js.html:356
+#: templates/_reporting_simple.html:90 templates/js/_reporting_js.html:22
 #: templates/js/_reporting_simple_js.html:65
 msgid "Day"
 msgstr "Jour"
 
-#: templates/_reporting_simple.html:91 templates/js/_reporting_js.html:356
+#: templates/_reporting_simple.html:91 templates/js/_reporting_js.html:23
 #: templates/js/_reporting_simple_js.html:66
 msgid "Week"
 msgstr "Semaine"
 
-#: templates/_reporting_simple.html:92 templates/js/_reporting_js.html:356
+#: templates/_reporting_simple.html:92 templates/js/_reporting_js.html:24
 #: templates/js/_reporting_simple_js.html:67
 msgid "Month"
 msgstr "Mois"
 
-#: templates/_reporting_simple.html:93 templates/js/_reporting_js.html:357
+#: templates/_reporting_simple.html:93 templates/js/_reporting_js.html:25
 #: templates/js/_reporting_simple_js.html:68
 msgid "Quarter"
 msgstr "Trimestre"
 
-#: templates/_reporting_simple.html:94 templates/js/_reporting_js.html:357
+#: templates/_reporting_simple.html:94 templates/js/_reporting_js.html:26
 #: templates/js/_reporting_simple_js.html:69
 msgid "Year"
 msgstr "Année"
@@ -2506,7 +2637,7 @@ msgid "So far"
 msgstr "Jusqu'ici"
 
 #: templates/_reporting_simple.html:147 templates/appearance.html:37
-#: templates/js/_reporting_js.html:1097 templates/js/_reporting_js.html:1109
+#: templates/js/_reporting_js.html:58
 #: templates/js/_reporting_metrics_js.html:132
 #: templates/js/_reporting_sources_js.html:102
 msgid "Saved"
@@ -2517,7 +2648,7 @@ msgstr "Enregistré"
 msgid "Rename"
 msgstr "Renommer"
 
-#: templates/_reporting_simple.html:158 templates/js/_reporting_js.html:1085
+#: templates/_reporting_simple.html:158 templates/js/_reporting_js.html:57
 msgid "Report name"
 msgstr "Nom du rapport"
 
@@ -2544,14 +2675,14 @@ msgstr "Excel"
 msgid "Export"
 msgstr "Exporter"
 
-#: templates/_reporting_simple.html:177 templates/admin/access_control.html:279
-#: templates/admin/maintenance.html:114 templates/admin/processes.html:208
-#: templates/admin/processes.html:244
+#: templates/_reporting_simple.html:177 templates/admin/access_control.html:240
+#: templates/admin/maintenance.html:114 templates/admin/permissions.html:101
+#: templates/admin/processes.html:208 templates/admin/processes.html:244
 #: templates/generali_additionalservices.html:324
 #: templates/generali_baseservices.html:273 templates/generali_pdqm.html:348
 #: templates/generali_projectmanagement.html:259
 #: templates/generali_reporting.html:316
-#: templates/js/_generali_reporting_js.html:766 templates/reporting.html:402
+#: templates/js/_generali_reporting_js.html:37 templates/reporting.html:402
 #: templates/reporting.html:602 templates/reporting_metrics.html:77
 #: templates/reporting_sources.html:88 templates/tenant/page.html:134
 msgid "Save"
@@ -2567,8 +2698,8 @@ msgid "Open in Advanced"
 msgstr "Ouvrir dans Avancé"
 
 #: templates/_reporting_simple.html:188 templates/js/_reporting_ai_js.html:41
-#: templates/js/_reporting_js.html:496
-#: templates/js/_reporting_simple_js.html:95 templates/reporting.html:405
+#: templates/js/_reporting_js.html:46 templates/js/_reporting_simple_js.html:95
+#: templates/reporting.html:405
 msgid "Show query"
 msgstr "Afficher la requête"
 
@@ -2967,8 +3098,7 @@ msgstr "Champ"
 #: templates/admin/tenants_manage.html:74 templates/api_docs.html:230
 #: templates/api_docs.html:262 templates/api_docs.html:271
 #: templates/api_docs.html:303 templates/api_docs.html:446
-#: templates/generali_documents.html:228
-#: templates/js/_reporting_viz_js.html:166
+#: templates/generali_documents.html:228 templates/js/_reporting_viz_js.html:11
 msgid "Type"
 msgstr "Type"
 
@@ -3301,6 +3431,7 @@ msgstr "Couleur d'accent"
 msgid "Your organization's branding sets the accent color."
 msgstr "L'identité visuelle de votre organisation définit la couleur d'accent."
 
+
 #: templates/appearance.html:76
 msgid "Pick a preset or choose any color you like."
 msgstr "Choisissez un préréglage ou la couleur de votre choix."
@@ -3314,9 +3445,11 @@ msgstr ""
 "Définie par l'identité visuelle de %(org)s. Un administrateur la modifie "
 "sous Organisations."
 
+
 #: templates/appearance.html:83
 msgid "organization"
 msgstr "organisation"
+
 
 #: templates/appearance.html:88
 msgid "Classic"
@@ -3362,7 +3495,8 @@ msgstr "Uni"
 msgid "Aurora"
 msgstr "Aurore"
 
-#: templates/appearance.html:121 templates/reporting.html:424
+#: templates/admin/admin_overview.html:88 templates/appearance.html:121
+#: templates/reporting.html:424
 msgid "Grid"
 msgstr "Grille"
 
@@ -3584,6 +3718,7 @@ msgstr "Tableau de bord - nexora"
 msgid "%(tenant)s Dashboard"
 msgstr "Tableau de bord %(tenant)s"
 
+
 #: templates/dashboard.html:37
 #, python-format
 msgid "Signed in as %(name)s"
@@ -3594,9 +3729,11 @@ msgstr "Connecté en tant que %(name)s"
 msgid "last sign-in %(when)s"
 msgstr "dernière connexion %(when)s"
 
+
 #: templates/dashboard.html:43
 msgid "next in"
 msgstr "prochaine dans"
+
 
 #: templates/admin/sessions.html:22 templates/dashboard.html:46
 #: templates/maintenance.html:154
@@ -3616,21 +3753,26 @@ msgstr "Filtrer par client et processus"
 msgid "d"
 msgstr "j"
 
+
 #: templates/dashboard.html:76
 msgid "Imported today"
 msgstr "Importés aujourd'hui"
+
 
 #: templates/dashboard.html:78
 msgid "Current backlog"
 msgstr "File d'attente actuelle"
 
+
 #: templates/dashboard.html:79
 msgid "Avg. processing time"
 msgstr "Temps de traitement moyen"
 
+
 #: templates/dashboard.html:95 templates/js/_dashboard_js.html:16
 msgid "Documents processed over time"
 msgstr "Documents traités au fil du temps"
+
 
 #: templates/dashboard.html:99 templates/js/_reporting_simple_js.html:33
 msgid "Over time"
@@ -3640,6 +3782,7 @@ msgstr "Dans le temps"
 msgid "Today by hour"
 msgstr "Aujourd'hui par heure"
 
+
 #: templates/dashboard.html:107
 msgid "No documents processed yet today."
 msgstr "Aucun document traité pour le moment aujourd'hui."
@@ -3648,9 +3791,11 @@ msgstr "Aucun document traité pour le moment aujourd'hui."
 msgid "open items"
 msgstr "en attente"
 
+
 #: templates/dashboard.html:118
 msgid "Trend"
 msgstr "Tendance"
+
 
 #: templates/feedback.html:9
 msgid "Feedback - nexora"
@@ -3683,7 +3828,7 @@ msgstr ""
 #: templates/generali_monthreport.html:123
 #: templates/generali_projectmanagement.html:190
 #: templates/generali_reporting.html:75 templates/generali_reporting.html:158
-#: templates/js/_reporting_viz_js.html:167
+#: templates/js/_reporting_viz_js.html:12
 msgid "Category"
 msgstr "Catégorie"
 
@@ -3828,12 +3973,9 @@ msgstr "Volume de traitement journalier"
 #: templates/generali-dashboard.html:144 templates/generali_documents.html:36
 #: templates/js/_generali_dashboard_js.html:25
 #: templates/js/_reporting_dashboard_js.html:33
-#: templates/js/_reporting_js.html:500
+#: templates/js/_reporting_js.html:50
 #: templates/js/_reporting_simple_js.html:111
-#: templates/js/_reporting_viz_js.html:557
-#: templates/js/_reporting_viz_js.html:619
-#: templates/js/_reporting_viz_js.html:675
-#: templates/js/_reporting_viz_js.html:677 templates/prepared_documents.html:51
+#: templates/js/_reporting_viz_js.html:18 templates/prepared_documents.html:51
 #: templates/workitems_overview.html:70
 msgid "Total"
 msgstr "Total"
@@ -3935,8 +4077,8 @@ msgstr "Date de fin"
 msgid "Parent Category"
 msgstr "Catégorie parente"
 
-#: templates/admin/access_control.html:57
-#: templates/admin/access_control.html:66 templates/admin/logs.html:52
+#: templates/admin/access_control.html:52
+#: templates/admin/access_control.html:61 templates/admin/logs.html:52
 #: templates/admin/logs.html:68 templates/admin/logs.html:76
 #: templates/generali_additionalservices.html:75
 #: templates/generali_additionalservices.html:87
@@ -3955,8 +4097,7 @@ msgstr "Catégorie parente"
 #: templates/js/_generali_pdqm_js.html:284
 #: templates/js/_generali_pdqm_js.html:293
 #: templates/js/_generali_pdqm_js.html:305
-#: templates/js/_reporting_viz_js.html:639
-#: templates/js/_reporting_viz_js.html:641
+#: templates/js/_reporting_viz_js.html:19
 msgid "All"
 msgstr "Tous"
 
@@ -3969,14 +4110,13 @@ msgstr "Tous"
 msgid "Sub Category"
 msgstr "Sous-catégorie"
 
-#: templates/admin/access_control.html:64
-#: templates/admin/access_control.html:95
-#: templates/admin/access_control.html:214
-#: templates/admin/access_control.html:315 templates/admin/logs.html:74
+#: templates/admin/access_control.html:59
+#: templates/admin/access_control.html:90
+#: templates/admin/access_control.html:178
+#: templates/admin/access_control.html:225 templates/admin/logs.html:74
 #: templates/admin/modals/_user_modals.html:61
-#: templates/admin/permission_matrix.html:56 templates/admin/processes.html:60
-#: templates/admin/processes.html:160 templates/admin/processes.html:169
-#: templates/admin/user_detail.html:65
+#: templates/admin/processes.html:60 templates/admin/processes.html:160
+#: templates/admin/processes.html:169 templates/admin/user_detail.html:65
 #: templates/generali_additionalservices.html:95
 #: templates/generali_baseservices.html:83 templates/generali_pdqm.html:103
 #: templates/generali_projectmanagement.html:71
@@ -3991,9 +4131,8 @@ msgstr "Organisation"
 msgid "All Organizations"
 msgstr "Toutes les organisations"
 
-#: templates/admin/access_control.html:93 templates/admin/logs.html:97
-#: templates/admin/logs.html:129 templates/admin/permission_matrix.html:55
-#: templates/generali_additionalservices.html:107
+#: templates/admin/access_control.html:88 templates/admin/logs.html:97
+#: templates/admin/logs.html:129 templates/generali_additionalservices.html:107
 #: templates/generali_additionalservices.html:151
 #: templates/generali_additionalservices.html:211
 #: templates/generali_baseservices.html:95
@@ -4004,7 +4143,6 @@ msgstr "Toutes les organisations"
 #: templates/generali_projectmanagement.html:124
 #: templates/generali_projectmanagement.html:172
 #: templates/generali_reporting.html:104 templates/generali_reporting.html:155
-#: templates/js/admin/_access_control_js.html:745
 msgid "User"
 msgstr "Utilisateur"
 
@@ -4033,8 +4171,7 @@ msgstr "Heures"
 msgid "Recorded At"
 msgstr "Enregistré à"
 
-#: templates/admin/access_control.html:97
-#: templates/admin/access_control.html:129 templates/admin/clients.html:57
+#: templates/admin/access_control.html:92 templates/admin/clients.html:57
 #: templates/admin/maintenance.html:39 templates/admin/organizations.html:34
 #: templates/admin/processes.html:78 templates/admin/sessions.html:33
 #: templates/admin/tenants_manage.html:41
@@ -4109,21 +4246,19 @@ msgstr "Sélectionner d'abord la catégorie parente"
 msgid "Effort (hours)"
 msgstr "Effort (heures)"
 
-#: templates/admin/access_control.html:231
-#: templates/admin/access_control.html:248
-#: templates/admin/access_control.html:278
-#: templates/admin/access_control.html:407 templates/admin/clients.html:101
+#: templates/admin/access_control.html:195
+#: templates/admin/access_control.html:239 templates/admin/clients.html:101
 #: templates/admin/clients.html:176 templates/admin/maintenance.html:113
 #: templates/admin/maintenance.html:129
 #: templates/admin/modals/_organizations_modals.html:13
 #: templates/admin/modals/_organizations_modals.html:51
 #: templates/admin/modals/_user_modals.html:13
 #: templates/admin/modals/_user_modals.html:80
-#: templates/admin/organizations.html:98 templates/admin/processes.html:123
-#: templates/admin/processes.html:207 templates/admin/processes.html:243
-#: templates/admin/tenants_manage.html:133
+#: templates/admin/organizations.html:98 templates/admin/permissions.html:100
+#: templates/admin/processes.html:123 templates/admin/processes.html:207
+#: templates/admin/processes.html:243 templates/admin/tenants_manage.html:133
 #: templates/admin/tenants_manage.html:174 templates/admin/user_detail.html:78
-#: templates/admin/user_detail.html:282
+#: templates/admin/user_detail.html:276
 #: templates/generali_additionalservices.html:261
 #: templates/generali_additionalservices.html:320
 #: templates/generali_additionalservices.html:345
@@ -4147,7 +4282,7 @@ msgstr "Annuler"
 #: templates/generali_baseservices.html:226 templates/generali_pdqm.html:276
 #: templates/generali_projectmanagement.html:219
 #: templates/generali_reporting.html:233
-#: templates/js/_generali_reporting_js.html:619
+#: templates/js/_generali_reporting_js.html:34
 msgid "Submit"
 msgstr "Soumettre"
 
@@ -4171,10 +4306,10 @@ msgstr "Supprimer l'entrée"
 msgid "This action cannot be undone."
 msgstr "Cette action est irréversible."
 
-#: templates/admin/access_control.html:249 templates/admin/clients.html:81
-#: templates/admin/maintenance.html:130 templates/admin/organizations.html:53
+#: templates/admin/clients.html:81 templates/admin/maintenance.html:130
+#: templates/admin/organizations.html:53 templates/admin/permissions.html:57
 #: templates/admin/processes.html:66 templates/admin/processes.html:89
-#: templates/admin/tenants_manage.html:56 templates/admin/user_detail.html:285
+#: templates/admin/tenants_manage.html:56 templates/admin/user_detail.html:279
 #: templates/generali_additionalservices.html:349
 #: templates/generali_baseservices.html:298 templates/generali_pdqm.html:373
 #: templates/generali_projectmanagement.html:284
@@ -4187,12 +4322,10 @@ msgstr "Cette action est irréversible."
 #: templates/js/_generali_pdqm_js.html:584
 #: templates/js/_generali_project_management_js.html:324
 #: templates/js/_generali_project_management_js.html:338
-#: templates/js/_generali_reporting_js.html:809
-#: templates/js/_generali_reporting_js.html:823
+#: templates/js/_generali_reporting_js.html:40
 #: templates/js/_reporting_metrics_js.html:52
 #: templates/js/_reporting_sources_js.html:40
 #: templates/js/_tenant_page_js.html:30
-#: templates/js/admin/_access_control_js.html:671
 #: templates/js/admin/_maintenance_js.html:132
 #: templates/js/admin/_user_management_js.html:79 templates/reporting.html:390
 msgid "Delete"
@@ -4378,20 +4511,14 @@ msgstr "Total des entrées"
 #: templates/generali_monthreport.html:130
 #: templates/generali_reporting.html:121 templates/generali_reporting.html:161
 #: templates/generali_reporting.html:288 templates/generali_reporting.html:289
-#: templates/js/_generali_reporting_js.html:35
-#: templates/js/_generali_reporting_js.html:297
-#: templates/js/_generali_reporting_js.html:305
-#: templates/js/_generali_reporting_js.html:669
+#: templates/js/_generali_reporting_js.html:10
 msgid "On Time"
 msgstr "Dans les délais"
 
 #: templates/generali_monthreport.html:80
 #: templates/generali_monthreport.html:133
 #: templates/generali_reporting.html:122
-#: templates/js/_generali_reporting_js.html:37
-#: templates/js/_generali_reporting_js.html:297
-#: templates/js/_generali_reporting_js.html:305
-#: templates/js/_generali_reporting_js.html:669
+#: templates/js/_generali_reporting_js.html:11
 msgid "Late"
 msgstr "En retard"
 
@@ -4474,7 +4601,7 @@ msgstr "Effort de projet"
 #: templates/admin/maintenance.html:57
 #: templates/generali_projectmanagement.html:207
 #: templates/generali_projectmanagement.html:246
-#: templates/js/_workitems_overview_js.html:1420
+#: templates/js/_workitems_overview_js.html:37
 msgid "optional"
 msgstr "optionnel"
 
@@ -4504,32 +4631,27 @@ msgid "All Categories"
 msgstr "Toutes les catégories"
 
 #: templates/generali_reporting.html:80
-#: templates/js/_generali_reporting_js.html:23
-#: templates/js/_generali_reporting_js.html:274
+#: templates/js/_generali_reporting_js.html:5
 msgid "KPI 1: Delivery physical post"
 msgstr "KPI 1: Export courrier physique"
 
 #: templates/generali_reporting.html:81
-#: templates/js/_generali_reporting_js.html:24
-#: templates/js/_generali_reporting_js.html:275
+#: templates/js/_generali_reporting_js.html:6
 msgid "KPI 2: Delivery physical post with scanning"
 msgstr "KPI 2: Export courrier physique avec numérisation"
 
 #: templates/generali_reporting.html:82
-#: templates/js/_generali_reporting_js.html:25
-#: templates/js/_generali_reporting_js.html:276
+#: templates/js/_generali_reporting_js.html:7
 msgid "KPI 3: Provision of Archival Records"
 msgstr "KPI 3: Mise à disposition de documents d'archives"
 
 #: templates/generali_reporting.html:83
-#: templates/js/_generali_reporting_js.html:26
-#: templates/js/_generali_reporting_js.html:277
+#: templates/js/_generali_reporting_js.html:8
 msgid "KPI 12: Stray document (digital)"
 msgstr "KPI 12: Document égaré (numérique)"
 
 #: templates/generali_reporting.html:84
-#: templates/js/_generali_reporting_js.html:27
-#: templates/js/_generali_reporting_js.html:278
+#: templates/js/_generali_reporting_js.html:9
 msgid "KPI 13: Stray document (physical)"
 msgstr "KPI 13: Document égaré (physique)"
 
@@ -4546,24 +4668,22 @@ msgid "Edit Report"
 msgstr "Modifier le rapport"
 
 #: templates/generali_reporting.html:283
-#: templates/js/_generali_reporting_js.html:473
+#: templates/js/_generali_reporting_js.html:24
 msgid "Report Date"
 msgstr "Date du rapport"
 
 #: templates/generali_reporting.html:293
-#: templates/js/_generali_reporting_js.html:344
-#: templates/js/_generali_reporting_js.html:381
-#: templates/js/_generali_reporting_js.html:699
+#: templates/js/_generali_reporting_js.html:20
 msgid "Email Received"
 msgstr "E-mail reçu"
 
 #: templates/generali_reporting.html:298 templates/hero.html:224
-#: templates/js/_generali_reporting_js.html:348
+#: templates/js/_generali_reporting_js.html:21
 msgid "Delivery"
 msgstr "Livraison"
 
 #: templates/generali_reporting.html:303
-#: templates/js/_generali_reporting_js.html:353
+#: templates/js/_generali_reporting_js.html:22
 msgid "Latest Delivery"
 msgstr "Dernière livraison"
 
@@ -4629,7 +4749,7 @@ msgstr ""
 "Notre système automatisé gère chaque étape avec précision et sécurité. "
 "Suivez en temps réel le traitement d'un document."
 
-#: templates/hero.html:203 templates/js/_workitems_overview_js.html:220
+#: templates/hero.html:203 templates/js/_workitems_overview_js.html:16
 #: templates/workitems_overview.html:373
 msgid "Import"
 msgstr "Importation"
@@ -4699,7 +4819,7 @@ msgstr "Accédez à votre portail maintenant"
 msgid "Login - nexora"
 msgstr "Connexion - nexora"
 
-#: templates/admin/access_control.html:192 templates/admin/logs.html:44
+#: templates/admin/access_control.html:156 templates/admin/logs.html:44
 #: templates/admin/modals/_user_modals.html:32 templates/admin/sessions.html:29
 #: templates/admin/user_detail.html:37 templates/index.html:98
 #: templates/profile.html:137
@@ -4710,7 +4830,7 @@ msgstr "Nom d'utilisateur"
 msgid "Your Username"
 msgstr "Votre nom d'utilisateur"
 
-#: templates/admin/access_control.html:227
+#: templates/admin/access_control.html:191
 #: templates/admin/modals/_user_modals.html:71 templates/index.html:109
 #: templates/profile.html:65 templates/set_password.html:106
 msgid "Password"
@@ -4864,7 +4984,6 @@ msgid "Any"
 msgstr "Tous"
 
 #: templates/admin/clients.html:65 templates/admin/tenants_manage.html:51
-#: templates/js/admin/_access_control_js.html:721
 #: templates/prepared_documents.html:94 templates/prepared_documents.html:109
 msgid "Yes"
 msgstr "Oui"
@@ -4882,8 +5001,7 @@ msgstr "Préparé"
 msgid "Group by"
 msgstr "Grouper par"
 
-#: templates/admin/access_control.html:346 templates/admin/user_detail.html:156
-#: templates/prepared_documents.html:123
+#: templates/admin/user_detail.html:156 templates/prepared_documents.html:123
 msgid "None"
 msgstr "Aucun"
 
@@ -4923,17 +5041,17 @@ msgstr ""
 "Aucun document préparé pour l'instant. Importez un fichier Excel pour "
 "commencer."
 
-#: templates/admin/logs.html:108 templates/admin/user_detail.html:238
+#: templates/admin/logs.html:108 templates/admin/user_detail.html:232
 #: templates/js/_generali_documents_js.html:274
-#: templates/js/_workitems_overview_js.html:1029
+#: templates/js/_workitems_overview_js.html:31
 #: templates/prepared_documents.html:234 templates/tenant/page.html:100
 msgid "Previous"
 msgstr "Précédent"
 
-#: templates/admin/logs.html:109 templates/admin/user_detail.html:239
+#: templates/admin/logs.html:109 templates/admin/user_detail.html:233
 #: templates/js/_generali_documents_js.html:278
-#: templates/js/_generali_reporting_js.html:262
-#: templates/js/_workitems_overview_js.html:1035
+#: templates/js/_generali_reporting_js.html:18
+#: templates/js/_workitems_overview_js.html:32
 #: templates/prepared_documents.html:240 templates/tenant/page.html:101
 msgid "Next"
 msgstr "Suivant"
@@ -4947,7 +5065,7 @@ msgstr "Aperçu du workitem"
 msgid "Show where extracted values were found on the document"
 msgstr "Afficher où les valeurs extraites ont été trouvées dans le document"
 
-#: templates/js/_workitem_detail_panel_js.html:569
+#: templates/js/_workitem_detail_panel_js.html:33
 #: templates/prepared_documents.html:273 templates/reporting.html:292
 #: templates/workitems_overview.html:625
 msgid "Show sources"
@@ -4984,8 +5102,7 @@ msgstr "Gérez vos préférences de profil, de mot de passe et de langue."
 msgid "Settings sections"
 msgstr "Sections des paramètres"
 
-#: templates/admin/access_control.html:55 templates/admin/user_detail.html:29
-#: templates/js/admin/_access_control_js.html:746
+#: templates/admin/access_control.html:50 templates/admin/user_detail.html:29
 #: templates/js/admin/_user_detail_js.html:335 templates/profile.html:60
 msgid "Profile"
 msgstr "Profil"
@@ -5010,13 +5127,14 @@ msgstr "JPG ou PNG · les images carrées sont les plus adaptées"
 msgid "Your username cannot be changed."
 msgstr "Votre nom d'utilisateur ne peut pas être modifié."
 
-#: templates/admin/access_control.html:196
+#: templates/admin/access_control.html:160
 #: templates/admin/modals/_user_modals.html:39
 #: templates/admin/user_detail.html:41 templates/profile.html:143
 msgid "Full name"
 msgstr "Nom complet"
 
-#: templates/admin/user_detail.html:80 templates/profile.html:157
+#: templates/admin/permissions.html:31 templates/admin/user_detail.html:80
+#: templates/profile.html:157
 msgid "Save changes"
 msgstr "Enregistrer les modifications"
 
@@ -5191,9 +5309,7 @@ msgstr ""
 "Les rapports s'exécutent automatiquement et sont livrés dans votre boîte "
 "de réception ou à votre équipe."
 
-#: templates/admin/permission_matrix.html:57
-#: templates/admin/user_detail.html:124
-#: templates/js/admin/_access_control_js.html:747 templates/reporting.html:359
+#: templates/admin/user_detail.html:124 templates/reporting.html:359
 #: templates/reporting_metrics.html:41 templates/reporting_metrics.html:53
 msgid "Source"
 msgstr "Source"
@@ -5203,8 +5319,8 @@ msgstr "Source"
 msgid "Processes"
 msgstr "Processus"
 
-#: templates/js/_reporting_js.html:204 templates/js/_reporting_js.html:231
-#: templates/js/_reporting_simple_js.html:70 templates/reporting.html:365
+#: templates/js/_reporting_js.html:20 templates/js/_reporting_simple_js.html:70
+#: templates/reporting.html:365
 msgid "All processes"
 msgstr "Tous les processus"
 
@@ -5224,7 +5340,7 @@ msgstr "Nécessite la permission reporting.sql.run"
 msgid "SQL"
 msgstr "SQL"
 
-#: templates/js/_reporting_js.html:481 templates/reporting.html:381
+#: templates/js/_reporting_js.html:34 templates/reporting.html:381
 msgid "Untitled report"
 msgstr "Rapport sans titre"
 
@@ -5232,7 +5348,7 @@ msgstr "Rapport sans titre"
 msgid "Report title"
 msgstr "Titre du rapport"
 
-#: templates/js/_reporting_js.html:1503 templates/reporting.html:385
+#: templates/js/_reporting_js.html:64 templates/reporting.html:385
 msgid "Saved reports…"
 msgstr "Rapports enregistrés…"
 
@@ -5308,7 +5424,7 @@ msgstr ""
 "Lorsqu'une métrique est sélectionnée, les colonnes ci-dessus deviennent "
 "le regroupement."
 
-#: templates/js/_reporting_viz_js.html:721 templates/reporting.html:471
+#: templates/js/_reporting_viz_js.html:22 templates/reporting.html:471
 msgid "Columns"
 msgstr "Colonnes"
 
@@ -5395,18 +5511,18 @@ msgstr "Planifier le rapport"
 msgid "Frequency"
 msgstr "Fréquence"
 
-#: templates/js/_reporting_js.html:1780
+#: templates/js/_reporting_js.html:76
 #: templates/js/_reporting_scheduled_js.html:8 templates/reporting.html:532
 #: templates/reporting.html:571
 msgid "Daily"
 msgstr "Quotidien"
 
-#: templates/js/_reporting_js.html:1780 templates/reporting.html:533
+#: templates/js/_reporting_js.html:77 templates/reporting.html:533
 #: templates/reporting.html:572
 msgid "Weekly"
 msgstr "Hebdomadaire"
 
-#: templates/js/_reporting_js.html:1780 templates/reporting.html:534
+#: templates/js/_reporting_js.html:78 templates/reporting.html:534
 #: templates/reporting.html:573
 msgid "Monthly"
 msgstr "Mensuel"
@@ -5586,11 +5702,10 @@ msgstr ""
 msgid "Registered metrics"
 msgstr "Métriques enregistrées"
 
-#: templates/admin/access_control.html:125 templates/admin/clients.html:51
-#: templates/admin/organizations.html:31 templates/admin/tenants_manage.html:36
-#: templates/reporting_metrics.html:41 templates/reporting_metrics.html:52
-#: templates/reporting_sources.html:41 templates/reporting_sources.html:52
-#: templates/reporting_sources.html:63
+#: templates/admin/clients.html:51 templates/admin/organizations.html:31
+#: templates/admin/tenants_manage.html:36 templates/reporting_metrics.html:41
+#: templates/reporting_metrics.html:52 templates/reporting_sources.html:41
+#: templates/reporting_sources.html:52 templates/reporting_sources.html:63
 msgid "Code"
 msgstr "Code"
 
@@ -5668,7 +5783,7 @@ msgstr "Sources par défaut intégrées"
 msgid "Kind"
 msgstr "Type"
 
-#: templates/admin/access_control.html:345 templates/admin/user_detail.html:123
+#: templates/admin/permissions.html:39 templates/admin/user_detail.html:123
 #: templates/admin/user_detail.html:155 templates/reporting_sources.html:42
 #: templates/reporting_sources.html:53 templates/reporting_sources.html:67
 msgid "Permission"
@@ -5803,13 +5918,16 @@ msgstr "Déposez un fichier PDF ici pour l'importer"
 msgid "%(tenant)s Workitems"
 msgstr "Workitems %(tenant)s"
 
+
 #: templates/workitems_overview.html:60
 msgid "Workitems of this tenant's processes only."
 msgstr "Uniquement les workitems des processus de ce tenant."
 
+
 #: templates/workitems_overview.html:63
 msgid "Every workitem you may see, across all tenants."
 msgstr "Tous les workitems que vous pouvez voir, tous tenants confondus."
+
 
 #: templates/workitems_overview.html:120
 msgid "Stage"
@@ -5833,19 +5951,19 @@ msgid "Custom"
 msgstr "Personnalisé"
 
 #: templates/admin/logs.html:28 templates/admin/status.html:202
-#: templates/js/_reporting_drill_js.html:26 templates/js/_reporting_js.html:26
+#: templates/js/_reporting_drill_js.html:26 templates/js/_reporting_js.html:6
 #: templates/js/_reporting_simple_js.html:53
 #: templates/workitems_overview.html:167
 msgid "Today"
 msgstr "Aujourd'hui"
 
-#: templates/js/_reporting_drill_js.html:26 templates/js/_reporting_js.html:27
+#: templates/js/_reporting_drill_js.html:26 templates/js/_reporting_js.html:7
 #: templates/js/_reporting_simple_js.html:54
 #: templates/workitems_overview.html:168
 msgid "Yesterday"
 msgstr "Hier"
 
-#: templates/js/_reporting_drill_js.html:27 templates/js/_reporting_js.html:28
+#: templates/js/_reporting_drill_js.html:27 templates/js/_reporting_js.html:8
 #: templates/js/_reporting_simple_js.html:55
 #: templates/workitems_overview.html:169
 msgid "This week"
@@ -5855,7 +5973,7 @@ msgstr "Cette semaine"
 msgid "Last 7 days"
 msgstr "7 derniers jours"
 
-#: templates/js/_reporting_drill_js.html:28 templates/js/_reporting_js.html:30
+#: templates/js/_reporting_drill_js.html:28 templates/js/_reporting_js.html:10
 #: templates/js/_reporting_simple_js.html:39
 #: templates/workitems_overview.html:171
 msgid "This month"
@@ -5865,20 +5983,20 @@ msgstr "Ce mois-ci"
 msgid "Document Value Search"
 msgstr "Recherche par valeur de document"
 
-#: templates/js/_workitems_overview_js.html:366
+#: templates/js/_workitems_overview_js.html:20
 #: templates/workitems_overview.html:223 templates/workitems_overview.html:284
 msgid "All fields"
 msgstr "Tous les champs"
 
 #: templates/js/_reporting_dashboard_js.html:24
-#: templates/js/_reporting_js.html:491
+#: templates/js/_reporting_js.html:42
 #: templates/js/_reporting_simple_js.html:101
 #: templates/workitems_overview.html:235 templates/workitems_overview.html:294
 msgid "contains"
 msgstr "contient"
 
 #: templates/js/_reporting_dashboard_js.html:25
-#: templates/js/_reporting_js.html:492
+#: templates/js/_reporting_js.html:43
 #: templates/js/_reporting_simple_js.html:102
 #: templates/workitems_overview.html:238 templates/workitems_overview.html:297
 msgid "starts with"
@@ -5925,7 +6043,7 @@ msgstr "Dernier mouvement le"
 msgid "Loading workitems..."
 msgstr "Chargement des Workitems..."
 
-#: templates/js/_workitems_overview_js.html:834
+#: templates/js/_workitems_overview_js.html:25
 #: templates/workitems_overview.html:452
 msgid "selected"
 msgstr "sélectionné(s)"
@@ -5950,7 +6068,7 @@ msgstr "Choisissez un processus..."
 msgid "Please select a valid process."
 msgstr "Veuillez sélectionner un processus valide."
 
-#: templates/js/_workitems_overview_js.html:224
+#: templates/js/_workitems_overview_js.html:17
 #: templates/workitems_overview.html:511
 msgid "Import File"
 msgstr "Importer le fichier"
@@ -6033,164 +6151,123 @@ msgid "Access Control - nexora"
 msgstr "Contrôle d'accès - nexora"
 
 #: templates/admin/access_control.html:20
-#: templates/admin/admin_overview.html:80
-msgid "Users, permissions and access profiles"
-msgstr "Utilisateurs, permissions et profils d'accès"
+msgid "Users and access profiles"
+msgstr "Utilisateurs et profils d'accès"
 
 #: templates/admin/access_control.html:29 templates/admin/tenants.html:128
 msgid "Users"
 msgstr "Utilisateurs"
 
-#: templates/admin/access_control.html:34 templates/admin/user_detail.html:88
-msgid "Permissions"
-msgstr "Permissions"
-
-#: templates/admin/access_control.html:39
+#: templates/admin/access_control.html:34
 msgid "Access Profiles"
 msgstr "Profils d'accès"
 
-#: templates/admin/access_control.html:49
+#: templates/admin/access_control.html:44
 msgid "Search"
 msgstr "Rechercher"
 
-#: templates/admin/access_control.html:51
+#: templates/admin/access_control.html:46
 msgid "Name, email..."
 msgstr "Nom, e-mail..."
 
-#: templates/admin/access_control.html:75
+#: templates/admin/access_control.html:70
 msgid "Clear filters"
 msgstr "Effacer les filtres"
 
-#: templates/admin/access_control.html:82
-#: templates/admin/access_control.html:183
+#: templates/admin/access_control.html:77
+#: templates/admin/access_control.html:147
 msgid "Add User"
 msgstr "Ajouter un utilisateur"
 
-#: templates/admin/access_control.html:94
-#: templates/admin/access_control.html:206
+#: templates/admin/access_control.html:89
+#: templates/admin/access_control.html:170
 #: templates/admin/modals/_user_modals.html:51
 msgid "Access Profile"
 msgstr "Profil d'accès"
 
-#: templates/admin/access_control.html:96
-#: templates/admin/access_control.html:128 templates/admin/user_detail.html:98
+#: templates/admin/access_control.html:91 templates/admin/user_detail.html:98
 msgid "Overrides"
 msgstr "Remplacements"
 
-#: templates/admin/access_control.html:101
-#: templates/admin/access_control.html:133 templates/admin/logs.html:106
+#: templates/admin/access_control.html:96 templates/admin/logs.html:106
 #: templates/admin/sessions.html:36 templates/admin/user_detail.html:128
-#: templates/admin/user_detail.html:232
-#: templates/js/admin/_access_control_js.html:705
-#: templates/js/admin/_permission_matrix_js.html:43
-#: templates/js/admin/_permission_matrix_js.html:70
-#: templates/js/admin/_sessions_js.html:37
+#: templates/admin/user_detail.html:226 templates/js/admin/_sessions_js.html:37
 #: templates/js/admin/_user_detail_js.html:443
 #: templates/js/admin/_user_detail_js.html:556
 msgid "Loading..."
 msgstr "Chargement..."
 
-#: templates/admin/access_control.html:112
-msgid "Search permissions..."
-msgstr "Rechercher des permissions..."
-
-#: templates/admin/access_control.html:116
-#: templates/admin/access_control.html:261
-#: templates/js/admin/_access_control_js.html:763
-msgid "Add Permission"
-msgstr "Ajouter une permission"
-
-#: templates/admin/access_control.html:126
-#: templates/admin/access_control.html:273
-#: templates/admin/access_control.html:311
-msgid "Description"
-msgstr "Description"
-
-#: templates/admin/access_control.html:127
-msgid "In Profiles"
-msgstr "Dans les profils"
-
-#: templates/admin/access_control.html:142
+#: templates/admin/access_control.html:105
 msgid "profiles"
 msgstr "profils"
 
-#: templates/admin/access_control.html:145
+#: templates/admin/access_control.html:108
+#: templates/admin/access_control.html:209
 msgid "Add Profile"
 msgstr "Ajouter un profil"
 
-#: templates/admin/access_control.html:158 templates/admin/clients.html:80
-#: templates/admin/organizations.html:49 templates/admin/processes.html:64
-#: templates/admin/processes.html:88 templates/admin/tenants_manage.html:54
+#: templates/admin/access_control.html:121 templates/admin/clients.html:80
+#: templates/admin/organizations.html:49 templates/admin/permissions.html:56
+#: templates/admin/processes.html:64 templates/admin/processes.html:88
+#: templates/admin/tenants_manage.html:54
 #: templates/js/_reporting_dashboard_js.html:7
 #: templates/js/_reporting_metrics_js.html:48
 #: templates/js/_reporting_sources_js.html:36
 #: templates/js/_tenant_page_js.html:29
-#: templates/js/admin/_access_control_js.html:668
 #: templates/js/admin/_maintenance_js.html:126
 #: templates/js/admin/_user_management_js.html:78
 msgid "Edit"
 msgstr "Modifier"
 
-#: templates/admin/access_control.html:165
+#: templates/admin/access_control.html:128 templates/admin/permissions.html:40
 msgid "user(s)"
 msgstr "utilisateur(s)"
 
-#: templates/admin/access_control.html:201
+#: templates/admin/access_control.html:132 templates/admin/permissions.html:40
+msgid "rank"
+msgstr "rang"
+
+#: templates/admin/access_control.html:165
 #: templates/admin/modals/_user_modals.html:45
 #: templates/admin/user_detail.html:45
 msgid "Email"
 msgstr "E-mail"
 
-#: templates/admin/access_control.html:224
+#: templates/admin/access_control.html:188
 msgid "Email the user a link to set their own password"
 msgstr "Envoyer à l'utilisateur un lien pour définir son propre mot de passe"
 
-#: templates/admin/access_control.html:232
+#: templates/admin/access_control.html:196
 msgid "Create"
 msgstr "Créer"
 
-#: templates/admin/access_control.html:245
-msgid "Confirm Delete"
-msgstr "Confirmer la suppression"
+#: templates/admin/access_control.html:221 templates/admin/permissions.html:95
+msgid "Description"
+msgstr "Description"
 
-#: templates/admin/access_control.html:269
-msgid "Permission Code"
-msgstr "Code de la permission"
-
-#: templates/admin/access_control.html:274
-msgid "Short description"
-msgstr "Description courte"
-
-#: templates/admin/access_control.html:307
-msgid "Profile Name"
-msgstr "Nom du profil"
-
-#: templates/admin/access_control.html:317
+#: templates/admin/access_control.html:227
 msgid "Global (any organization)"
 msgstr "Global (toute organisation)"
 
-#: templates/admin/access_control.html:322
+
+#: templates/admin/access_control.html:232
 msgid "A bound profile can only be assigned to users of that organization."
 msgstr ""
 "Un profil lié ne peut être attribué qu’aux utilisateurs de cette "
 "organisation."
 
-#: templates/admin/access_control.html:333 templates/admin/user_detail.html:115
-#: templates/admin/user_detail.html:148
-msgid "Filter permissions..."
-msgstr "Filtrer les permissions..."
 
-#: templates/admin/access_control.html:347 templates/admin/user_detail.html:157
-msgid "Deny"
-msgstr "Refuser"
+#: templates/admin/access_control.html:233
+msgid "Rank"
+msgstr "Rang"
 
-#: templates/admin/access_control.html:348 templates/admin/user_detail.html:158
-msgid "Allow"
-msgstr "Autoriser"
-
-#: templates/admin/access_control.html:408
-msgid "Save Changes"
-msgstr "Enregistrer les modifications"
+#: templates/admin/access_control.html:235
+msgid ""
+"An admin may hand out profiles ranked at or below their own. Grants live "
+"on the Permissions page."
+msgstr ""
+"Un admin peut attribuer les profils dont le rang est inférieur ou égal au"
+" sien. Les attributions se gèrent sur la page Permissions."
 
 #: templates/admin/admin_overview.html:8
 msgid "Admin Overview - nexora"
@@ -6233,22 +6310,20 @@ msgid "Database health"
 msgstr "Santé de la base de données"
 
 #: templates/admin/admin_overview.html:79
-#: templates/js/admin/_access_control_js.html:217
 msgid "users"
 msgstr "utilisateurs"
 
-#: templates/admin/admin_overview.html:88
-msgid "Matrix"
-msgstr "Matrice"
+#: templates/admin/admin_overview.html:80
+msgid "Users, permissions and access profiles"
+msgstr "Utilisateurs, permissions et profils d'accès"
 
 #: templates/admin/admin_overview.html:89
-#: templates/js/_reporting_schema_js.html:11
-msgid "view"
-msgstr "vue"
+msgid "edit"
+msgstr "modifier"
 
 #: templates/admin/admin_overview.html:90
-msgid "Who can see what, filterable both ways"
-msgstr "Qui voit quoi, filtrable dans les deux sens"
+msgid "Every profile against every permission. Tick, save, done."
+msgstr "Chaque profil face à chaque permission. Cochez, enregistrez, c'est fait."
 
 #: templates/admin/admin_overview.html:99
 msgid "organizations"
@@ -6257,6 +6332,7 @@ msgstr "organisations"
 #: templates/admin/admin_overview.html:100
 msgid "Organizations and their codes"
 msgstr "Organisations et leurs codes"
+
 
 #: templates/admin/admin_overview.html:105
 msgid "Session Monitor"
@@ -6324,6 +6400,7 @@ msgstr "Redémarrage…"
 msgid "Data Connections - nexora"
 msgstr "Connexions de données - nexora"
 
+
 #: templates/admin/clients.html:20
 msgid ""
 "Where tenant data lives: DB, SQL dialect and Octo domain per client code "
@@ -6332,9 +6409,11 @@ msgstr ""
 "Où résident les données d’un tenant : BD, dialecte SQL et domaine Octo "
 "par code client -- pas l’organisation elle-même (voir Organisations)"
 
+
 #: templates/admin/clients.html:22
 msgid "Add connection"
 msgstr "Ajouter une connexion"
+
 
 #: templates/admin/clients.html:33 templates/admin/status.html:58
 msgid "Client registry degraded"
@@ -6524,13 +6603,13 @@ msgid "End date"
 msgstr "Date de fin"
 
 #: templates/admin/logs.html:96 templates/admin/logs.html:131
-#: templates/admin/user_detail.html:226
+#: templates/admin/user_detail.html:220
 #: templates/js/_reporting_simple_js.html:132
 msgid "Time"
 msgstr "Heure"
 
 #: templates/admin/logs.html:98 templates/admin/logs.html:130
-#: templates/admin/user_detail.html:227
+#: templates/admin/user_detail.html:221
 msgid "Action"
 msgstr "Action"
 
@@ -6538,7 +6617,7 @@ msgstr "Action"
 msgid "IP"
 msgstr "IP"
 
-#: templates/admin/logs.html:101 templates/js/_generali_reporting_js.html:188
+#: templates/admin/logs.html:101 templates/js/_generali_reporting_js.html:15
 msgid "Details"
 msgstr "Détails"
 
@@ -6643,9 +6722,11 @@ msgstr "Supprimer la bannière"
 msgid "Organizations - nexora"
 msgstr "Organisations - nexora"
 
+
 #: templates/admin/organizations.html:20
 msgid "Organizations, their codes and tenant"
 msgstr "Organisations, leurs codes et tenant"
+
 
 #: templates/admin/organizations.html:22 templates/js/_header_js.html:27
 msgid "Add organization"
@@ -6659,6 +6740,7 @@ msgstr "Rechercher des organisations..."
 #: templates/admin/organizations.html:33
 msgid "Tenant"
 msgstr "Tenant"
+
 
 #: templates/admin/organizations.html:51 templates/admin/organizations.html:65
 msgid "Branding"
@@ -6696,47 +6778,41 @@ msgstr "Aperçu du logo"
 msgid "Save branding"
 msgstr "Enregistrer le branding"
 
-#: templates/admin/permission_matrix.html:8
-msgid "Permission Matrix - nexora"
-msgstr "Matrice des autorisations - nexora"
+#: templates/admin/permissions.html:8
+msgid "Permissions - nexora"
+msgstr "Permissions - nexora"
 
-#: templates/admin/permission_matrix.html:22
-msgid ""
-"Who can do what — read-only. Granting and revoking stays on Access "
-"Control."
+#: templates/admin/permissions.html:22
+msgid "Which access profile holds which permission. Tick, save, done."
 msgstr ""
-"Qui peut faire quoi — lecture seule. L'attribution et le retrait des "
-"droits restent gérés dans Contrôle d'accès."
+"Quel profil d'accès détient quelle permission. Cochez, enregistrez, c'est"
+" fait."
 
-#: templates/admin/permission_matrix.html:30
-msgid "By permission"
-msgstr "Par autorisation"
+#: templates/admin/permissions.html:28
+msgid "Filter by code or description…"
+msgstr "Filtrer par code ou description…"
 
-#: templates/admin/permission_matrix.html:35
-msgid "By user"
-msgstr "Par utilisateur"
+#: templates/admin/permissions.html:32
+msgid "Add permission"
+msgstr "Ajouter une permission"
 
-#: templates/admin/permission_matrix.html:45
-msgid "Type a permission code…"
-msgstr "Saisissez un code d'autorisation…"
+#: templates/admin/permissions.html:83
+#: templates/js/admin/_permissions_js.html:13
+msgid "Add Permission"
+msgstr "Ajouter une permission"
 
-#: templates/admin/permission_matrix.html:61
-msgid "Pick a permission above to see who holds it."
-msgstr "Sélectionnez une autorisation ci-dessus pour voir qui la détient."
+#: templates/admin/permissions.html:91
+msgid "Permission Code"
+msgstr "Code de la permission"
 
-#: templates/admin/permission_matrix.html:72
-msgid "Type a user name…"
-msgstr "Saisissez un nom d'utilisateur…"
-
-#: templates/admin/permission_matrix.html:80
-msgid "Pick a user above to see their effective permissions."
-msgstr ""
-"Sélectionnez un utilisateur ci-dessus pour voir ses autorisations "
-"effectives."
+#: templates/admin/permissions.html:96
+msgid "Short description"
+msgstr "Description courte"
 
 #: templates/admin/processes.html:8
 msgid "Process Configurations - nexora"
 msgstr "Configurations de processus - nexora"
+
 
 #: templates/admin/processes.html:20
 msgid ""
@@ -6745,6 +6821,7 @@ msgid ""
 msgstr ""
 "Sources de processus et leurs mappages de champs de document par client "
 "(dbo.ProcessSources / dbo.ProcessFieldMappings)"
+
 
 #: templates/admin/processes.html:22
 msgid "Add process source"
@@ -6764,20 +6841,20 @@ msgstr ""
 "privera.02_Posteingang) : l'autorisation qui y donne accès est dérivée de"
 " ces deux parties, donc toute autre forme ne pourra jamais être accordée."
 
+
 #: templates/admin/processes.html:34
 msgid ""
-"Adding a process source also creates its "
-"workitems.filter.process.&lt;name&gt; permission, granted to nobody -- "
-"grant it under Access Control. The join condition, time filters and extra"
-" condition are free-form SQL fragments and stay read-only here: they are "
-"editable only by a database migration."
+"Adding a process source also creates its process.<client>.<name>.view "
+"permission, granted to nobody -- grant it under Access Control. The join "
+"condition, time filters and extra condition are free-form SQL fragments "
+"and stay read-only here: they are editable only by a database migration."
 msgstr ""
 "L'ajout d'une source de processus crée aussi son autorisation "
-"workitems.filter.process.&lt;name&gt;, attribuée à personne -- attribuez-"
-"la dans Contrôle d'accès. La condition de jointure, les filtres temporels"
-" et la condition supplémentaire sont des fragments SQL libres et restent "
-"en lecture seule ici : ils ne sont modifiables que par une migration de "
-"base de données."
+"process.<client>.<name>.view, attribuée à personne -- attribuez-la dans "
+"Contrôle d'accès. La condition de jointure, les filtres temporels et la "
+"condition supplémentaire sont des fragments SQL libres et restent en "
+"lecture seule ici : ils ne sont modifiables que par une migration de base"
+" de données."
 
 #: templates/admin/processes.html:41
 msgid ""
@@ -6852,6 +6929,7 @@ msgstr ""
 #: templates/admin/processes.html:162 templates/admin/processes.html:171
 msgid "Unassigned"
 msgstr "Non attribué"
+
 
 #: templates/admin/processes.html:178
 msgid "Table Name"
@@ -7126,65 +7204,77 @@ msgstr "Aucun incident enregistré."
 msgid "Tenants - nexora"
 msgstr "Tenants - nexora"
 
+
 #: templates/admin/tenants.html:34
 msgid "No users"
 msgstr "Aucun utilisateur"
+
 
 #: templates/admin/tenants.html:46
 msgid "No profile bound to this organization"
 msgstr "Aucun profil lié à cette organisation"
 
+
 #: templates/admin/tenants.html:50
 msgid "Global profiles in use:"
 msgstr "Profils globaux utilisés :"
 
+
 #: templates/admin/tenants.html:58
-msgid "Requires admin.view.clients"
-msgstr "Nécessite admin.view.clients"
+msgid "Requires admin.clients.view"
+msgstr "Nécessite admin.clients.view"
 
 #: templates/admin/tenants.html:60
 #, python-format
 msgid "Client %(code)s is missing"
 msgstr "Le client %(code)s est manquant"
 
+
 #: templates/admin/tenants.html:90
 #, python-format
 msgid "%(num)d field"
 msgid_plural "%(num)d fields"
-msgstr[0] "%(num)d champ"
+msgstr[0] "Ajouter un champ"
 msgstr[1] "%(num)d champs"
 
 #: templates/admin/tenants.html:101
-msgid "Requires admin.view.processes"
-msgstr "Nécessite admin.view.processes"
+msgid "Requires admin.processes.view"
+msgstr "Nécessite admin.processes.view"
 
 #: templates/admin/tenants.html:103
 msgid "Mapping configuration unavailable"
 msgstr "Configuration de mappage indisponible"
 
+
 #: templates/admin/tenants.html:106
 msgid "No process configuration assigned"
 msgstr "Aucune configuration de processus attribuée"
+
 
 #: templates/admin/tenants.html:107
 msgid "Open Process Configurations"
 msgstr "Ouvrir Configurations de processus"
 
+
 #: templates/admin/tenants.html:132
 msgid "Access profiles"
 msgstr "Profils d’accès"
+
 
 #: templates/admin/tenants.html:136
 msgid "Data connection"
 msgstr "Connexion de données"
 
+
 #: templates/admin/tenants.html:137
 msgid "No data connection"
 msgstr "Aucune connexion de données"
 
+
 #: templates/admin/tenants.html:140
 msgid "Process configurations"
 msgstr "Configurations de processus"
+
 
 #: templates/admin/tenants.html:150
 msgid ""
@@ -7195,9 +7285,11 @@ msgstr ""
 "utilisateurs, profils d’accès, connexion de données et configurations de "
 "processus"
 
+
 #: templates/admin/tenants.html:157
 msgid "Tenant registry unavailable"
 msgstr "Registre des tenants indisponible"
+
 
 #: templates/admin/tenants.html:158
 msgid ""
@@ -7208,26 +7300,30 @@ msgstr ""
 " seulement les organisations et connexions qui existent indépendamment. "
 "Voir app.log."
 
+
 #: templates/admin/tenants.html:162
 msgid "Search tenant, organization, user, profile, connection or process..."
 msgstr ""
 "Rechercher un tenant, une organisation, un utilisateur, un profil, une "
 "connexion ou un processus..."
 
+
 #: templates/admin/tenants.html:174
 msgid "Inactive"
 msgstr "Inactif"
+
 
 #: templates/admin/tenants.html:175
 #, python-format
 msgid "%(num)d organization"
 msgid_plural "%(num)d organizations"
-msgstr[0] "%(num)d organisation"
+msgstr[0] "Ajouter une organisation"
 msgstr[1] "%(num)d organisations"
 
 #: templates/admin/tenants.html:176
 msgid "Permission that grants access to this tenant's pages"
 msgstr "Autorisation donnant accès aux pages de ce tenant"
+
 
 #: templates/admin/tenants.html:183
 msgid ""
@@ -7237,14 +7333,17 @@ msgstr ""
 "Aucune organisation n’appartient encore à ce tenant -- attribuez-en une "
 "sur la page Organisations."
 
+
 #: templates/admin/tenants.html:187 templates/admin/tenants_manage.html:39
 #: templates/admin/tenants_manage.html:55
 msgid "Pages"
 msgstr "Pages"
 
+
 #: templates/admin/tenants.html:195
 msgid "No pages"
 msgstr "Aucune page"
+
 
 #: templates/admin/tenants.html:203
 msgid ""
@@ -7254,37 +7353,46 @@ msgstr ""
 "Aucun tenant pour l’instant. Un tenant regroupe des organisations ; "
 "aujourd’hui les tenants sont créés par migration."
 
+
 #: templates/admin/tenants.html:209
 msgid "Organizations not in a tenant"
 msgstr "Organisations hors tenant"
+
 
 #: templates/admin/tenants.html:218
 msgid "Shared across organizations"
 msgstr "Partagé entre les organisations"
 
+
 #: templates/admin/tenants.html:222
 msgid "Data connections no organization rides"
 msgstr "Connexions de données qu’aucune organisation n’utilise"
+
 
 #: templates/admin/tenants.html:227
 msgid "Process configurations not assigned to an organization"
 msgstr "Configurations de processus non attribuées à une organisation"
 
+
 #: templates/admin/tenants.html:236
 msgid "Global access profiles"
 msgstr "Profils d’accès globaux"
+
 
 #: templates/admin/tenants.html:237
 msgid "Not bound to an organization -- assignable to any user."
 msgstr "Non liés à une organisation -- attribuables à tout utilisateur."
 
+
 #: templates/admin/tenants_manage.html:8
 msgid "Manage Tenants - nexora"
 msgstr "Gérer les tenants - nexora"
 
+
 #: templates/admin/tenants_manage.html:19
 msgid "Manage Tenants"
 msgstr "Gérer les tenants"
+
 
 #: templates/admin/tenants_manage.html:20
 msgid ""
@@ -7294,9 +7402,11 @@ msgstr ""
 "Créer des tenants, décider quelles organisations en font partie et monter"
 " leurs pages"
 
+
 #: templates/admin/tenants_manage.html:22
 msgid "Add tenant"
 msgstr "Ajouter un tenant"
+
 
 #: templates/admin/tenants_manage.html:28
 msgid ""
@@ -7310,37 +7420,45 @@ msgstr ""
 "vers des pages nexora existantes. Les pages list/crud générées et leurs "
 "entités proviennent de migrations et sont affichées ici en lecture seule."
 
+
 #: templates/admin/tenants_manage.html:31
 msgid "Search tenants..."
 msgstr "Rechercher des tenants..."
+
 
 #: templates/admin/tenants_manage.html:61
 msgid "No tenants yet."
 msgstr "Aucun tenant pour l’instant."
 
+
 #: templates/admin/tenants_manage.html:70
 msgid "Pages of"
 msgstr "Pages de"
+
 
 #: templates/admin/tenants_manage.html:73
 msgid "Key"
 msgstr "Clé"
 
+
 #: templates/admin/tenants_manage.html:86
 msgid "entity"
 msgstr "entité"
+
 
 #: templates/admin/tenants_manage.html:91
 msgid "Set draft"
 msgstr "Passer en brouillon"
 
+
 #: templates/admin/tenants_manage.html:91
 msgid "Activate"
 msgstr "Activer"
 
+
 #: templates/admin/tenants_manage.html:92
 #: templates/js/_reporting_dashboard_js.html:35
-#: templates/js/_reporting_js.html:1705 templates/js/_reporting_js.html:1846
+#: templates/js/_reporting_js.html:74
 msgid "Remove"
 msgstr "Supprimer"
 
@@ -7348,50 +7466,62 @@ msgstr "Supprimer"
 msgid "No pages yet."
 msgstr "Aucune page pour l’instant."
 
+
 #: templates/admin/tenants_manage.html:104
 msgid "Mount an existing page"
 msgstr "Monter une page existante"
+
 
 #: templates/admin/tenants_manage.html:106
 msgid "key, e.g. dashboard"
 msgstr "clé, p. ex. dashboard"
 
+
 #: templates/admin/tenants_manage.html:108
 msgid "Page..."
 msgstr "Page..."
+
 
 #: templates/admin/tenants_manage.html:113
 msgid "active_page (optional)"
 msgstr "active_page (facultatif)"
 
+
 #: templates/admin/tenants_manage.html:130
 msgid "Please confirm"
 msgstr "Veuillez confirmer"
+
 
 #: templates/admin/tenants_manage.html:141
 #: templates/js/admin/_tenants_manage_js.html:46
 msgid "Add a new Tenant"
 msgstr "Ajouter un nouveau tenant"
 
+
 #: templates/admin/tenants_manage.html:148
 msgid "Tenant Code"
 msgstr "Code tenant"
+
 
 #: templates/admin/tenants_manage.html:160
 msgid "Organizations in this tenant"
 msgstr "Organisations de ce tenant"
 
+
 #: templates/admin/tenants_manage.html:166
 msgid "currently in"
 msgstr "actuellement dans"
+
 
 #: templates/admin/tenants_manage.html:170
 msgid "Ticking an organization that belongs to another tenant moves it here."
 msgstr "Cocher une organisation appartenant à un autre tenant la déplace ici."
 
+
 #: templates/admin/tenants_manage.html:175
 msgid "Save Tenant"
 msgstr "Enregistrer le tenant"
+
 
 #: templates/admin/user_detail.html:8
 msgid "User detail"
@@ -7402,7 +7532,6 @@ msgid "No profile"
 msgstr "Aucun profil"
 
 #: templates/admin/user_detail.html:49
-#: templates/js/admin/_permission_matrix_js.html:10
 msgid "Access profile"
 msgstr "Profil d'accès"
 
@@ -7426,6 +7555,10 @@ msgstr ""
 "L'ensemble réel d'autorisations de cet utilisateur — profil combiné avec "
 "les remplacements par utilisateur éventuels."
 
+#: templates/admin/user_detail.html:115 templates/admin/user_detail.html:148
+msgid "Filter permissions..."
+msgstr "Filtrer les permissions..."
+
 #: templates/admin/user_detail.html:138
 msgid ""
 "Override the access profile on a per-permission basis. Leave as None to "
@@ -7434,42 +7567,50 @@ msgstr ""
 "Remplacez le profil d'accès autorisation par autorisation. Laissez sur "
 "Aucun pour hériter du profil."
 
-#: templates/admin/user_detail.html:200
+#: templates/admin/user_detail.html:157
+msgid "Deny"
+msgstr "Refuser"
+
+#: templates/admin/user_detail.html:158
+msgid "Allow"
+msgstr "Autoriser"
+
+#: templates/admin/user_detail.html:194
 msgid "Save overrides"
 msgstr "Enregistrer les remplacements"
 
-#: templates/admin/user_detail.html:211
+#: templates/admin/user_detail.html:205
 msgid "Activity"
 msgstr "Activité"
 
-#: templates/admin/user_detail.html:213
+#: templates/admin/user_detail.html:207
 msgid "Recent actions by this user — last 7 days."
 msgstr "Actions récentes de cet utilisateur — 7 derniers jours."
 
-#: templates/admin/user_detail.html:218
+#: templates/admin/user_detail.html:212
 msgid "View all in logs"
 msgstr "Tout voir dans les journaux"
 
-#: templates/admin/user_detail.html:250
+#: templates/admin/user_detail.html:244
 msgid "Danger zone"
 msgstr "Zone de danger"
 
-#: templates/admin/user_detail.html:252
+#: templates/admin/user_detail.html:246
 msgid "Deleting this user is irreversible. Their access is revoked immediately."
 msgstr ""
 "La suppression de cet utilisateur est irréversible. Son accès est révoqué"
 " immédiatement."
 
-#: templates/admin/user_detail.html:260
+#: templates/admin/user_detail.html:254
 msgid "Sign out everywhere"
 msgstr "Déconnecter partout"
 
 #: templates/admin/modals/_user_modals.html:6
-#: templates/admin/user_detail.html:266
+#: templates/admin/user_detail.html:260
 msgid "Delete user"
 msgstr "Supprimer l'utilisateur"
 
-#: templates/admin/user_detail.html:277
+#: templates/admin/user_detail.html:271
 msgid "Delete user?"
 msgstr "Supprimer l'utilisateur ?"
 
@@ -7489,6 +7630,7 @@ msgstr "Nom de l'organisation"
 #: templates/admin/modals/_organizations_modals.html:41
 msgid "Not in a tenant"
 msgstr "Hors tenant"
+
 
 #: templates/admin/modals/_organizations_modals.html:53
 msgid "Save Organization"
@@ -7615,37 +7757,45 @@ msgstr "Aucune donnée à afficher"
 msgid "Documents processed"
 msgstr "Documents traités"
 
+
 #: templates/js/_dashboard_js.html:17
 msgid "Documents processed today, by hour"
 msgstr "Documents traités aujourd'hui, par heure"
+
 
 #: templates/js/_dashboard_js.html:18
 #, python-brace-format
 msgid "{days} days · peak {peak}"
 msgstr "{days} jours · pic {peak}"
 
+
 #: templates/js/_dashboard_js.html:19
 #, python-brace-format
 msgid "peak {peak} at {hour}"
 msgstr "pic {peak} à {hour}"
 
+
 #: templates/js/_dashboard_js.html:20
 msgid "vs. yesterday"
 msgstr "vs hier"
+
 
 #: templates/js/_dashboard_js.html:21
 #, python-brace-format
 msgid "Trend, {days} days"
 msgstr "Tendance, {days} jours"
 
+
 #: templates/js/_dashboard_js.html:22
 #, python-brace-format
 msgid "{delta} since yesterday"
 msgstr "{delta} depuis hier"
 
+
 #: templates/js/_dashboard_js.html:23
 msgid "Could not refresh the dashboard"
 msgstr "Impossible d'actualiser le tableau de bord"
+
 
 #: templates/js/_feedback_js.html:120
 msgid "Sending…"
@@ -7655,7 +7805,7 @@ msgstr "Envoi en cours…"
 #: templates/js/_generali_base_services_js.html:125
 #: templates/js/_generali_pdqm_js.html:233
 #: templates/js/_generali_project_management_js.html:103
-#: templates/js/_generali_reporting_js.html:169
+#: templates/js/_generali_reporting_js.html:13
 msgid "No records found"
 msgstr "Aucun enregistrement trouvé."
 
@@ -7663,8 +7813,8 @@ msgstr "Aucun enregistrement trouvé."
 #: templates/js/_generali_base_services_js.html:126
 #: templates/js/_generali_pdqm_js.html:234
 #: templates/js/_generali_project_management_js.html:104
-#: templates/js/_generali_reporting_js.html:170
-#: templates/js/_workitems_overview_js.html:948
+#: templates/js/_generali_reporting_js.html:14
+#: templates/js/_workitems_overview_js.html:30
 msgid "Try adjusting your filters or resetting the search."
 msgstr "Essayez d'ajuster vos filtres ou de réinitialiser la recherche."
 
@@ -7672,7 +7822,7 @@ msgstr "Essayez d'ajuster vos filtres ou de réinitialiser la recherche."
 #: templates/js/_generali_base_services_js.html:139
 #: templates/js/_generali_pdqm_js.html:249
 #: templates/js/_generali_project_management_js.html:117
-#: templates/js/_generali_reporting_js.html:889
+#: templates/js/_generali_reporting_js.html:42
 msgid "Export failed."
 msgstr "L'exportation a échoué."
 
@@ -7714,7 +7864,7 @@ msgstr "Erreur réseau."
 #: templates/js/_generali_base_services_js.html:340
 #: templates/js/_generali_pdqm_js.html:561
 #: templates/js/_generali_project_management_js.html:316
-#: templates/js/_generali_reporting_js.html:801
+#: templates/js/_generali_reporting_js.html:39
 msgid "Deleting…"
 msgstr "Suppression…"
 
@@ -7722,7 +7872,7 @@ msgstr "Suppression…"
 #: templates/js/_generali_base_services_js.html:354
 #: templates/js/_generali_pdqm_js.html:577
 #: templates/js/_generali_project_management_js.html:331
-#: templates/js/_generali_reporting_js.html:816
+#: templates/js/_generali_reporting_js.html:41
 msgid "Error deleting record."
 msgstr "Erreur lors de la suppression."
 
@@ -7732,8 +7882,8 @@ msgid "Documents"
 msgstr "Documents"
 
 #: templates/js/_generali_documents_js.html:66
-#: templates/js/_generali_reporting_js.html:156
-#: templates/js/_workitems_overview_js.html:819
+#: templates/js/_generali_reporting_js.html:12
+#: templates/js/_workitems_overview_js.html:24
 msgid "Failed to load data. Please try again."
 msgstr "Échec du chargement des données. Veuillez réessayer."
 
@@ -7799,72 +7949,71 @@ msgstr "Essayez d'ajuster vos filtres ou votre plage de dates."
 msgid "No imports found"
 msgstr "Aucune importation trouvée"
 
-#: templates/js/_generali_reporting_js.html:254
+#: templates/js/_generali_reporting_js.html:16
 msgid "Prev"
 msgstr "Préc."
 
-#: templates/js/_generali_reporting_js.html:259
+#: templates/js/_generali_reporting_js.html:17
 #: templates/js/admin/_logs_js.html:106
 #: templates/js/admin/_user_detail_js.html:623
 msgid "Page"
 msgstr "Page"
 
-#: templates/js/_generali_reporting_js.html:329
+#: templates/js/_generali_reporting_js.html:19
 msgid "Select category…"
 msgstr "Sélectionner une catégorie…"
 
-#: templates/js/_generali_reporting_js.html:382
-#: templates/js/_generali_reporting_js.html:699
+#: templates/js/_generali_reporting_js.html:23
 msgid "Mailroom Request"
 msgstr "Demande courrier"
 
-#: templates/js/_generali_reporting_js.html:482
+#: templates/js/_generali_reporting_js.html:25
 msgid "Add another category"
 msgstr "Ajouter une autre catégorie"
 
-#: templates/js/_generali_reporting_js.html:559
+#: templates/js/_generali_reporting_js.html:26
 msgid "Please select a date."
 msgstr "Veuillez sélectionner une date."
 
-#: templates/js/_generali_reporting_js.html:564
+#: templates/js/_generali_reporting_js.html:27
 msgid "Please select a category for each entry."
 msgstr "Veuillez sélectionner une catégorie pour chaque entrée."
 
-#: templates/js/_generali_reporting_js.html:573
+#: templates/js/_generali_reporting_js.html:28
 msgid "Please set the Request timestamp for this category."
 msgstr "Veuillez définir l'horodatage de la demande pour cette catégorie."
 
-#: templates/js/_generali_reporting_js.html:574
+#: templates/js/_generali_reporting_js.html:29
 msgid "Please set the Delivery timestamp for this category."
 msgstr "Veuillez définir l'horodatage de livraison pour cette catégorie."
 
-#: templates/js/_generali_reporting_js.html:586
+#: templates/js/_generali_reporting_js.html:30
 msgid "Duplicate categories in submission."
 msgstr "Catégories en double dans la soumission."
 
-#: templates/js/_generali_reporting_js.html:596
+#: templates/js/_generali_reporting_js.html:31
 msgid "Duplicate date + category combination found."
 msgstr "Catégories en double dans la soumission."
 
-#: templates/js/_generali_reporting_js.html:601
+#: templates/js/_generali_reporting_js.html:32
 msgid "Submitting…"
 msgstr "Envoi en cours…"
 
-#: templates/js/_generali_reporting_js.html:614
+#: templates/js/_generali_reporting_js.html:33
 msgid "Network error for"
 msgstr "Erreur réseau pour"
 
-#: templates/js/_generali_reporting_js.html:729
-msgid "Report date is required."
-msgstr "La date du rapport est obligatoire."
-
-#: templates/js/_generali_reporting_js.html:749
+#: templates/js/_generali_reporting_js.html:35
 msgid "Saving…"
 msgstr "Enregistrement…"
 
-#: templates/js/_generali_reporting_js.html:762
+#: templates/js/_generali_reporting_js.html:36
 msgid "Save failed. Please try again."
 msgstr "Échec de l'enregistrement. Veuillez réessayer."
+
+#: templates/js/_generali_reporting_js.html:38
+msgid "Report date is required."
+msgstr "La date du rapport est obligatoire."
 
 #: templates/js/_header_js.html:10
 msgid "No matching commands."
@@ -7983,7 +8132,7 @@ msgstr "étapes"
 
 #: templates/js/_reporting_ai_js.html:38
 #: templates/js/_reporting_schema_js.html:9
-#: templates/js/_workitem_detail_panel_js.html:248
+#: templates/js/_workitem_detail_panel_js.html:20
 msgid "rows"
 msgstr "lignes"
 
@@ -7995,16 +8144,13 @@ msgstr "Ouvrir le rapport"
 msgid "Insert into SQL editor"
 msgstr "Insérer dans l'éditeur SQL"
 
-#: templates/js/_reporting_ai_js.html:42 templates/js/_reporting_js.html:497
+#: templates/js/_reporting_ai_js.html:42 templates/js/_reporting_js.html:47
 #: templates/js/_reporting_simple_js.html:97
 msgid "Hide query"
 msgstr "Masquer la requête"
 
 #: templates/js/_reporting_ai_js.html:43
-#: templates/js/admin/_access_control_js.html:309
-#: templates/js/admin/_access_control_js.html:582
-#: templates/js/admin/_access_control_js.html:805
-#: templates/js/admin/_access_control_js.html:821
+#: templates/js/admin/_access_control_js.html:9
 #: templates/js/admin/_user_detail_js.html:62
 #: templates/js/admin/_user_detail_js.html:166
 #: templates/js/admin/_user_detail_js.html:288
@@ -8016,7 +8162,7 @@ msgstr "Erreur réseau"
 msgid "Continuing…"
 msgstr "Poursuite en cours…"
 
-#: templates/js/_reporting_ai_js.html:46 templates/js/_reporting_js.html:483
+#: templates/js/_reporting_ai_js.html:46 templates/js/_reporting_js.html:36
 msgid "AI report"
 msgstr "Rapport IA"
 
@@ -8117,18 +8263,18 @@ msgid "Operator"
 msgstr "Opérateur"
 
 #: templates/js/_reporting_dashboard_js.html:21
-#: templates/js/_reporting_viz_js.html:168
+#: templates/js/_reporting_viz_js.html:13
 msgid "Value"
 msgstr "Valeur"
 
 #: templates/js/_reporting_dashboard_js.html:26
-#: templates/js/_reporting_js.html:493
+#: templates/js/_reporting_js.html:44
 #: templates/js/_reporting_simple_js.html:103
 msgid "is empty"
 msgstr "est vide"
 
 #: templates/js/_reporting_dashboard_js.html:27
-#: templates/js/_reporting_js.html:494
+#: templates/js/_reporting_js.html:45
 #: templates/js/_reporting_simple_js.html:104
 msgid "is not empty"
 msgstr "n'est pas vide"
@@ -8146,7 +8292,7 @@ msgid "Could not load this card."
 msgstr "Impossible de charger cette carte."
 
 #: templates/js/_reporting_dashboard_js.html:31
-#: templates/js/_reporting_viz_js.html:120
+#: templates/js/_reporting_viz_js.html:5
 msgid "Charting library unavailable."
 msgstr "Bibliothèque de graphiques indisponible."
 
@@ -8288,37 +8434,37 @@ msgstr "Cliquez sur un workitem pour ouvrir son aperçu en lecture seule."
 msgid "Could not filter this selection — drill cancelled."
 msgstr "Impossible de filtrer cette sélection — exploration annulée."
 
-#: templates/js/_reporting_drill_js.html:27 templates/js/_reporting_js.html:29
+#: templates/js/_reporting_drill_js.html:27 templates/js/_reporting_js.html:9
 #: templates/js/_reporting_simple_js.html:56
 msgid "Last week"
 msgstr "Semaine dernière"
 
-#: templates/js/_reporting_drill_js.html:28 templates/js/_reporting_js.html:31
+#: templates/js/_reporting_drill_js.html:28 templates/js/_reporting_js.html:11
 #: templates/js/_reporting_simple_js.html:40
 msgid "Last month"
 msgstr "Le mois dernier"
 
-#: templates/js/_reporting_drill_js.html:29 templates/js/_reporting_js.html:32
+#: templates/js/_reporting_drill_js.html:29 templates/js/_reporting_js.html:12
 #: templates/js/_reporting_simple_js.html:44
 msgid "This quarter"
 msgstr "Ce trimestre"
 
-#: templates/js/_reporting_drill_js.html:29 templates/js/_reporting_js.html:33
+#: templates/js/_reporting_drill_js.html:29 templates/js/_reporting_js.html:13
 #: templates/js/_reporting_simple_js.html:45
 msgid "Last quarter"
 msgstr "Trimestre dernier"
 
-#: templates/js/_reporting_drill_js.html:30 templates/js/_reporting_js.html:34
+#: templates/js/_reporting_drill_js.html:30 templates/js/_reporting_js.html:14
 #: templates/js/_reporting_simple_js.html:41
 msgid "Last 3 months"
 msgstr "Les 3 derniers mois"
 
-#: templates/js/_reporting_drill_js.html:30 templates/js/_reporting_js.html:35
+#: templates/js/_reporting_drill_js.html:30 templates/js/_reporting_js.html:15
 #: templates/js/_reporting_simple_js.html:42
 msgid "This year"
 msgstr "Cette année"
 
-#: templates/js/_reporting_drill_js.html:31 templates/js/_reporting_js.html:36
+#: templates/js/_reporting_drill_js.html:31 templates/js/_reporting_js.html:16
 #: templates/js/_reporting_simple_js.html:43
 msgid "Last year"
 msgstr "L'année dernière"
@@ -8329,54 +8475,51 @@ msgstr "L'année dernière"
 msgid "Last {n} days"
 msgstr "{n} derniers jours"
 
-#: templates/js/_reporting_js.html:37
+#: templates/js/_reporting_js.html:17
 msgid "Last N days"
 msgstr "N derniers jours"
 
-#: templates/js/_reporting_js.html:39
+#: templates/js/_reporting_js.html:18
 msgid "Custom dates…"
 msgstr "Dates personnalisées…"
 
-#: templates/js/_reporting_js.html:477
+#: templates/js/_reporting_js.html:27
 msgid "Running your report…"
 msgstr "Exécution de votre rapport…"
 
-#: templates/js/_reporting_js.html:478
+#: templates/js/_reporting_js.html:28
 #: templates/js/_reporting_simple_js.html:108
 #, python-brace-format
 msgid "{rows} rows · {ms} ms"
 msgstr "{rows} lignes · {ms} ms"
 
-#: templates/js/_reporting_js.html:479
+#: templates/js/_reporting_js.html:32
 msgid "The request failed"
 msgstr "La requête a échoué"
 
-#: templates/js/_reporting_js.html:482
+#: templates/js/_reporting_js.html:35
 msgid "SQL report"
 msgstr "Rapport SQL"
 
-#: templates/js/_reporting_js.html:488
-#: templates/js/_reporting_simple_js.html:98
+#: templates/js/_reporting_js.html:39 templates/js/_reporting_simple_js.html:98
 msgid "between"
 msgstr "entre"
 
-#: templates/js/_reporting_js.html:489
-#: templates/js/_reporting_simple_js.html:99
+#: templates/js/_reporting_js.html:40 templates/js/_reporting_simple_js.html:99
 msgid "is one of"
 msgstr "est l'un de"
 
-#: templates/js/_reporting_js.html:490
+#: templates/js/_reporting_js.html:41
 #: templates/js/_reporting_simple_js.html:100
 msgid "is not one of"
 msgstr "n'est pas l'un de"
 
-#: templates/js/_reporting_js.html:498
+#: templates/js/_reporting_js.html:48
 #: templates/js/_reporting_simple_js.html:105
 msgid "Copied"
 msgstr "Copié"
 
-#: templates/js/_reporting_js.html:499
-#: templates/js/_reporting_simple_js.html:96
+#: templates/js/_reporting_js.html:49 templates/js/_reporting_simple_js.html:96
 #, python-brace-format
 msgid ""
 "Showing the first {n} rows — narrow the filters or time range to see the "
@@ -8385,100 +8528,99 @@ msgstr ""
 "Affichage des {n} premières lignes — affinez les filtres ou la plage de "
 "temps pour voir la suite."
 
-#: templates/js/_reporting_js.html:501
+#: templates/js/_reporting_js.html:51
 #: templates/js/_reporting_simple_js.html:120
 msgid "Buckets"
 msgstr "Groupes"
 
-#: templates/js/_reporting_js.html:502
+#: templates/js/_reporting_js.html:52
 #: templates/js/_reporting_simple_js.html:121
 msgid "Avg per bucket"
 msgstr "Moy. par groupe"
 
-#: templates/js/_reporting_js.html:503
+#: templates/js/_reporting_js.html:53
 #: templates/js/_reporting_simple_js.html:136
 msgid "AI"
 msgstr "IA"
 
-#: templates/js/_reporting_js.html:799
+#: templates/js/_reporting_js.html:55
 msgid "No rows matched"
 msgstr "Aucune ligne correspondante"
 
-#: templates/js/_reporting_js.html:802
+#: templates/js/_reporting_js.html:56
 msgid "Widen the time range or remove a filter, then run again."
 msgstr "Élargissez la période ou supprimez un filtre, puis relancez le rapport."
 
-#: templates/js/_reporting_js.html:1098 templates/js/_reporting_js.html:1110
+#: templates/js/_reporting_js.html:59
 msgid "Save failed"
 msgstr "Échec de l'enregistrement"
 
-#: templates/js/_reporting_js.html:1133 templates/js/_reporting_js.html:1155
+#: templates/js/_reporting_js.html:60
 msgid "Export failed"
 msgstr "Échec de l'export"
 
-#: templates/js/_reporting_js.html:1141 templates/js/_reporting_js.html:1162
+#: templates/js/_reporting_js.html:61
 msgid "Nothing to export."
 msgstr "Rien à exporter."
 
-#: templates/js/_reporting_js.html:1218
+#: templates/js/_reporting_js.html:62
 msgid "Could not load sources"
 msgstr "Impossible de charger les sources"
 
-#: templates/js/_reporting_js.html:1434
+#: templates/js/_reporting_js.html:63
 msgid "Could not load metrics"
 msgstr "Impossible de charger les métriques"
 
-#: templates/js/_reporting_js.html:1513
+#: templates/js/_reporting_js.html:65
 #: templates/js/_reporting_simple_js.html:138
 msgid "shared"
 msgstr "partagé"
 
-#: templates/js/_reporting_js.html:1540
+#: templates/js/_reporting_js.html:68
 msgid "Could not load saved reports"
 msgstr "Impossible de charger les rapports enregistrés"
 
-#: templates/js/_reporting_js.html:1637
+#: templates/js/_reporting_js.html:69
 msgid "New name"
 msgstr "Nouveau nom"
 
-#: templates/js/_reporting_js.html:1647
+#: templates/js/_reporting_js.html:70
 msgid "Rename failed"
 msgstr "Échec du renommage"
 
-#: templates/js/_reporting_js.html:1655
+#: templates/js/_reporting_js.html:71
 msgid "Delete this saved report?"
 msgstr "Supprimer ce rapport enregistré ?"
 
-#: templates/js/_reporting_js.html:1663
-#: templates/js/_reporting_simple_js.html:93
+#: templates/js/_reporting_js.html:72 templates/js/_reporting_simple_js.html:93
 msgid "Delete failed"
 msgstr "Échec de la suppression"
 
-#: templates/js/_reporting_js.html:1700
+#: templates/js/_reporting_js.html:73
 msgid "can edit"
 msgstr "peut modifier"
 
-#: templates/js/_reporting_js.html:1713
+#: templates/js/_reporting_js.html:75
 msgid "Not shared with anyone yet."
 msgstr "Pas encore partagé."
 
-#: templates/js/_reporting_js.html:1820
+#: templates/js/_reporting_js.html:79
 msgid "No schedules yet."
 msgstr "Aucune planification pour le moment."
 
-#: templates/js/_reporting_js.html:1829
+#: templates/js/_reporting_js.html:80
 msgid "only when total"
 msgstr "uniquement quand le total"
 
-#: templates/js/_reporting_js.html:1831
+#: templates/js/_reporting_js.html:81
 msgid "disabled"
 msgstr "désactivé"
 
-#: templates/js/_reporting_js.html:1840
+#: templates/js/_reporting_js.html:82
 msgid "Disable"
 msgstr "Désactiver"
 
-#: templates/js/_reporting_js.html:1840
+#: templates/js/_reporting_js.html:83
 msgid "Enable"
 msgstr "Activer"
 
@@ -8559,6 +8701,10 @@ msgstr "Aucun résultat."
 #: templates/js/_reporting_schema_js.html:10
 msgid "cols"
 msgstr "colonnes"
+
+#: templates/js/_reporting_schema_js.html:11
+msgid "view"
+msgstr "vue"
 
 #: templates/js/_reporting_schema_js.html:12
 msgid "Primary key"
@@ -8960,47 +9106,47 @@ msgstr "source"
 msgid "sources"
 msgstr "sources"
 
-#: templates/js/_reporting_viz_js.html:124
+#: templates/js/_reporting_viz_js.html:6
 msgid "No data to chart."
 msgstr "Aucune donnée à représenter."
 
-#: templates/js/_reporting_viz_js.html:153
+#: templates/js/_reporting_viz_js.html:7
 msgid "Bar"
 msgstr "Barres"
 
-#: templates/js/_reporting_viz_js.html:154
+#: templates/js/_reporting_viz_js.html:8
 msgid "Line"
 msgstr "Lignes"
 
-#: templates/js/_reporting_viz_js.html:155
+#: templates/js/_reporting_viz_js.html:9
 msgid "Pie"
 msgstr "Secteurs"
 
-#: templates/js/_reporting_viz_js.html:156
+#: templates/js/_reporting_viz_js.html:10
 msgid "Doughnut"
 msgstr "Anneau"
 
-#: templates/js/_reporting_viz_js.html:343
+#: templates/js/_reporting_viz_js.html:15
 msgid "Showing the top 50 categories by value."
 msgstr "Affichage des 50 premières catégories par valeur."
 
-#: templates/js/_reporting_viz_js.html:405
+#: templates/js/_reporting_viz_js.html:16
 msgid "No data to pivot."
 msgstr "Aucune donnée à croiser."
 
-#: templates/js/_reporting_viz_js.html:521
+#: templates/js/_reporting_viz_js.html:17
 msgid "Drag a field into Values to build a pivot."
 msgstr "Faites glisser un champ dans Valeurs pour créer un tableau croisé."
 
-#: templates/js/_reporting_viz_js.html:719
+#: templates/js/_reporting_viz_js.html:20
 msgid "Fields"
 msgstr "Champs"
 
-#: templates/js/_reporting_viz_js.html:720
+#: templates/js/_reporting_viz_js.html:21
 msgid "Rows"
 msgstr "Lignes"
 
-#: templates/js/_reporting_viz_js.html:722
+#: templates/js/_reporting_viz_js.html:23
 msgid "Values"
 msgstr "Valeurs"
 
@@ -9045,264 +9191,207 @@ msgstr "{start}-{end} sur {total}"
 msgid "An unexpected network error occurred."
 msgstr "Une erreur réseau inattendue s'est produite."
 
-#: templates/js/_workitem_detail_panel_js.html:10
+#: templates/js/_workitem_detail_panel_js.html:7
 msgid "Click toggle button again to load media"
 msgstr "Cliquez à nouveau sur le bouton pour charger les médias"
 
-#: templates/js/_workitem_detail_panel_js.html:11
+#: templates/js/_workitem_detail_panel_js.html:8
 msgid "Media preview restricted"
 msgstr "Aperçu des médias restreint"
 
-#: templates/js/_workitem_detail_panel_js.html:13
+#: templates/js/_workitem_detail_panel_js.html:9
 msgid "Loading history..."
 msgstr "Chargement de l'historique..."
 
-#: templates/js/_workitem_detail_panel_js.html:14
+#: templates/js/_workitem_detail_panel_js.html:10
 msgid "Audit history restricted"
 msgstr "Historique d'audit restreint"
 
-#: templates/js/_workitem_detail_panel_js.html:16
+#: templates/js/_workitem_detail_panel_js.html:11
 msgid "Loading details..."
 msgstr "Chargement des détails..."
 
-#: templates/js/_workitem_detail_panel_js.html:17
+#: templates/js/_workitem_detail_panel_js.html:12
 msgid "Document fields restricted"
 msgstr "Champs du document restreints"
 
-#: templates/js/_workitem_detail_panel_js.html:35
+#: templates/js/_workitem_detail_panel_js.html:13
 msgid "History"
 msgstr "Historique"
 
-#: templates/js/_workitem_detail_panel_js.html:40
+#: templates/js/_workitem_detail_panel_js.html:14
 msgid "Document Details"
 msgstr "Détails du document"
 
-#: templates/js/_workitem_detail_panel_js.html:65
+#: templates/js/_workitem_detail_panel_js.html:15
 msgid "Restricted"
 msgstr "Restreint"
 
-#: templates/js/_workitem_detail_panel_js.html:76
+#: templates/js/_workitem_detail_panel_js.html:16
 msgid "No history available for this item"
 msgstr "Aucun historique disponible pour cet élément"
 
-#: templates/js/_workitem_detail_panel_js.html:114
+#: templates/js/_workitem_detail_panel_js.html:17
 msgid "Could not load history"
 msgstr "Impossible de charger l'historique"
 
-#: templates/js/_workitem_detail_panel_js.html:187
+#: templates/js/_workitem_detail_panel_js.html:18
 msgid "Load more"
 msgstr "Charger plus"
 
-#: templates/js/_workitem_detail_panel_js.html:248
+#: templates/js/_workitem_detail_panel_js.html:19
 msgid "row"
 msgstr "ligne"
 
-#: templates/js/_workitem_detail_panel_js.html:266
-#: templates/js/_workitem_detail_panel_js.html:313
+#: templates/js/_workitem_detail_panel_js.html:21
 msgid "Extraction confidence"
 msgstr "Confiance d'extraction"
 
-#: templates/js/_workitem_detail_panel_js.html:272
-#: templates/js/_workitem_detail_panel_js.html:310
+#: templates/js/_workitem_detail_panel_js.html:22
 msgid "Click to locate on the document"
 msgstr "Cliquer pour localiser sur le document"
 
-#: templates/js/_workitem_detail_panel_js.html:308
+#: templates/js/_workitem_detail_panel_js.html:23
 msgid "no source location"
 msgstr "aucune source localisée"
 
-#: templates/js/_workitem_detail_panel_js.html:394
+#: templates/js/_workitem_detail_panel_js.html:24
 msgid "Media"
 msgstr "Médias"
 
-#: templates/js/_workitem_detail_panel_js.html:394
+#: templates/js/_workitem_detail_panel_js.html:25
 msgid "for workitem "
 msgstr "pour le Workitem "
 
-#: templates/js/_workitem_detail_panel_js.html:417
+#: templates/js/_workitem_detail_panel_js.html:26
 msgid "Failed to load image "
 msgstr "Échec du chargement de l'image "
 
-#: templates/js/_workitem_detail_panel_js.html:428
+#: templates/js/_workitem_detail_panel_js.html:27
 msgid "Checking for media..."
 msgstr "Vérification des médias..."
 
-#: templates/js/_workitem_detail_panel_js.html:450
+#: templates/js/_workitem_detail_panel_js.html:28
 msgid "No additional details found."
 msgstr "Aucun détail supplémentaire trouvé."
 
-#: templates/js/_workitem_detail_panel_js.html:461
+#: templates/js/_workitem_detail_panel_js.html:29
 msgid "No media found for this workitem."
 msgstr "Aucun média trouvé pour ce Workitem."
 
-#: templates/js/_workitem_detail_panel_js.html:472
+#: templates/js/_workitem_detail_panel_js.html:30
 msgid "Could not load media."
 msgstr "Impossible de charger les médias."
 
-#: templates/js/_workitem_detail_panel_js.html:509
+#: templates/js/_workitem_detail_panel_js.html:31
 msgid "In register"
 msgstr "Dans le registre"
 
-#: templates/js/_workitem_detail_panel_js.html:569
+#: templates/js/_workitem_detail_panel_js.html:32
 msgid "Hide sources"
 msgstr "Masquer les sources"
 
-#: templates/js/_workitems_overview_js.html:117
+#: templates/js/_workitems_overview_js.html:14
 msgid "Please select valid PDF files."
 msgstr "Veuillez sélectionner des fichiers PDF valides."
 
-#: templates/js/_workitems_overview_js.html:130
+#: templates/js/_workitems_overview_js.html:15
 msgid "files selected"
 msgstr "fichiers sélectionnés"
 
-#: templates/js/_workitems_overview_js.html:330
+#: templates/js/_workitems_overview_js.html:18
 msgid "No fields available"
 msgstr "Aucun champ disponible"
 
-#: templates/js/_workitems_overview_js.html:711
+#: templates/js/_workitems_overview_js.html:19
+msgid "No results"
+msgstr "Aucun résultat"
+
+#: templates/js/_workitems_overview_js.html:21
 msgid "primary"
 msgstr "principal"
 
-#: templates/js/_workitems_overview_js.html:713
+#: templates/js/_workitems_overview_js.html:22
 msgid "Some workitems are temporarily unavailable:"
 msgstr "Certains workitems sont temporairement indisponibles :"
 
-#: templates/js/_workitems_overview_js.html:758
+#: templates/js/_workitems_overview_js.html:23
 msgid "Loading the rest in the background…"
 msgstr "Chargement du reste en arrière-plan…"
 
-#: templates/js/_workitems_overview_js.html:862
+#: templates/js/_workitems_overview_js.html:26
 msgid "selected workitems will be exported"
 msgstr "Workitems sélectionnés seront exportés"
 
-#: templates/js/_workitems_overview_js.html:863
+#: templates/js/_workitems_overview_js.html:27
 msgid "All workitems matching current filters will be exported"
 msgstr "Tous les Workitems correspondant aux filtres actuels seront exportés"
 
-#: templates/js/_workitems_overview_js.html:928
+#: templates/js/_workitems_overview_js.html:28
 msgid "Export failed. Please try again."
 msgstr "L'exportation a échoué. Veuillez réessayer."
 
-#: templates/js/_workitems_overview_js.html:947
+#: templates/js/_workitems_overview_js.html:29
 msgid "No workitems found"
 msgstr "Aucun Workitem trouvé"
 
-#: templates/js/_workitems_overview_js.html:1303
-#: templates/js/_workitems_overview_js.html:1314
-#: templates/js/_workitems_overview_js.html:1352
+#: templates/js/_workitems_overview_js.html:33
 msgid "Deselect view"
 msgstr "Désélectionner la vue"
 
-#: templates/js/_workitems_overview_js.html:1303
-#: templates/js/_workitems_overview_js.html:1352
+#: templates/js/_workitems_overview_js.html:34
 msgid "Apply view"
 msgstr "Appliquer la vue"
 
-#: templates/js/_workitems_overview_js.html:1311
-#: templates/js/_workitems_overview_js.html:1356
+#: templates/js/_workitems_overview_js.html:35
 msgid "Edit view"
 msgstr "Modifier la vue"
 
-#: templates/js/_workitems_overview_js.html:1409
+#: templates/js/_workitems_overview_js.html:36
 msgid "View name…"
 msgstr "Nom de la vue…"
 
-#: templates/js/_workitems_overview_js.html:1475
-#: templates/js/_workitems_overview_js.html:1476
+#: templates/js/_workitems_overview_js.html:38
 msgid "Delete view"
 msgstr "Supprimer la vue"
 
-#: templates/js/_workitems_overview_js.html:1501
+#: templates/js/_workitems_overview_js.html:39
 msgid "View saved."
 msgstr "Vue enregistrée."
 
-#: templates/js/admin/_access_control_js.html:33
+#: templates/js/admin/_access_control_js.html:6
 msgid "No Profile"
 msgstr "Aucun profil"
 
-#: templates/js/admin/_access_control_js.html:194
-msgid "allowed"
-msgstr "autorisé"
-
-#: templates/js/admin/_access_control_js.html:194
-msgid "denied"
-msgstr "refusé"
-
-#: templates/js/admin/_access_control_js.html:201
+#: templates/js/admin/_access_control_js.html:7
 msgid "Create New Access Profile"
 msgstr "Créer un nouveau profil d'accès"
 
-#: templates/js/admin/_access_control_js.html:202
-msgid "will affect 0 users (new profile)"
-msgstr "concerne 0 utilisateur (nouveau profil)"
-
-#: templates/js/admin/_access_control_js.html:211
+#: templates/js/admin/_access_control_js.html:8
 msgid "Edit Profile:"
 msgstr "Modifier le profil :"
 
-#: templates/js/admin/_access_control_js.html:211
-msgid "Adjust permissions assigned to this profile"
-msgstr "Ajuster les permissions attribuées à ce profil"
-
-#: templates/js/admin/_access_control_js.html:217
-msgid "will affect"
-msgstr "concerne"
-
-#: templates/js/admin/_access_control_js.html:217
-msgid "user"
-msgstr "utilisateur"
-
-#: templates/js/admin/_access_control_js.html:239
-msgid "Overrides for"
-msgstr "Remplacements pour"
-
-#: templates/js/admin/_access_control_js.html:240
-msgid "Overrides take priority over the user's access profile"
-msgstr "Les remplacements ont priorité sur le profil d'accès de l'utilisateur"
-
-#: templates/js/admin/_access_control_js.html:245
-msgid "will affect 1 user:"
-msgstr "concerne 1 utilisateur :"
-
-#: templates/js/admin/_access_control_js.html:388
-msgid "Cannot activate"
-msgstr "Impossible d'activer"
-
-#: templates/js/admin/_access_control_js.html:388
-msgid "Enable at least one process filter first."
-msgstr "Veuillez d'abord activer au moins un filtre de processus."
-
-#: templates/js/admin/_access_control_js.html:415
-msgid "Auto-enabled"
-msgstr "Activé automatiquement"
-
-#: templates/js/admin/_access_control_js.html:418
-msgid "Auto-denied"
-msgstr "Refusé automatiquement"
-
-#: templates/js/admin/_access_control_js.html:448
-#: templates/js/admin/_access_control_js.html:597
-#: templates/js/admin/_access_control_js.html:756
+#: templates/js/admin/_access_control_js.html:10
 msgid "Error loading data."
 msgstr "Erreur lors du chargement des données."
 
-#: templates/js/admin/_access_control_js.html:455
+#: templates/js/admin/_access_control_js.html:11
 msgid "No users found."
 msgstr "Aucun utilisateur trouvé."
 
-#: templates/js/admin/_access_control_js.html:463
+#: templates/js/admin/_access_control_js.html:12
 msgid "overrides"
 msgstr "remplacements"
 
-#: templates/js/admin/_access_control_js.html:464
+#: templates/js/admin/_access_control_js.html:13
 msgid "default"
 msgstr "par défaut"
 
-#: templates/js/admin/_access_control_js.html:570
+#: templates/js/admin/_access_control_js.html:14
 msgid "You do not have permission to create users."
 msgstr "Vous n'avez pas la permission de créer des utilisateurs."
 
-#: templates/js/admin/_access_control_js.html:579
+#: templates/js/admin/_access_control_js.html:16
 #: templates/js/admin/_clients_js.html:112
 #: templates/js/admin/_clients_js.html:166
 #: templates/js/admin/_organizations_js.html:104
@@ -9314,63 +9403,6 @@ msgstr "Vous n'avez pas la permission de créer des utilisateurs."
 #: templates/js/admin/_user_management_js.html:173
 msgid "Error:"
 msgstr "Erreur :"
-
-#: templates/js/admin/_access_control_js.html:623
-msgid "No permissions found."
-msgstr "Aucune permission trouvée."
-
-#: templates/js/admin/_access_control_js.html:722
-#: templates/js/admin/_user_detail_js.html:396
-msgid "Denied"
-msgstr "Refusé"
-
-#: templates/js/admin/_access_control_js.html:732
-msgid "No users have this permission assigned."
-msgstr "Aucun utilisateur n'a cette permission attribuée."
-
-#: templates/js/admin/_access_control_js.html:737
-msgid "Users with this permission"
-msgstr "Utilisateurs avec cette permission"
-
-#: templates/js/admin/_access_control_js.html:738
-msgid "explicitly denied"
-msgstr "explicitement refusé"
-
-#: templates/js/admin/_access_control_js.html:748
-msgid "Has Permission"
-msgstr "A la permission"
-
-#: templates/js/admin/_access_control_js.html:773
-msgid "Edit Permission"
-msgstr "Modifier la permission"
-
-#: templates/js/admin/_access_control_js.html:787
-msgid "Code and description are required."
-msgstr "Le code et la description sont obligatoires."
-
-#: templates/js/admin/_access_control_js.html:812
-msgid "Are you sure you want to delete"
-msgstr "Êtes-vous sûr de vouloir supprimer"
-
-#: templates/js/admin/_access_control_js.html:831
-msgid "Override Allow"
-msgstr "Remplacement · Autoriser"
-
-#: templates/js/admin/_access_control_js.html:832
-msgid "Override Deny"
-msgstr "Remplacement · Refuser"
-
-#: templates/js/admin/_access_control_js.html:833
-msgid "Profile Allow"
-msgstr "Profil · Autoriser"
-
-#: templates/js/admin/_access_control_js.html:834
-msgid "Profile Deny"
-msgstr "Profil · Refuser"
-
-#: templates/js/admin/_access_control_js.html:835
-msgid "No assignment"
-msgstr "Aucune attribution"
 
 #: templates/js/admin/_clients_js.html:51
 msgid "Edit Client"
@@ -9494,29 +9526,42 @@ msgstr ""
 "Êtes-vous sûr de vouloir supprimer cette organisation ? Cette action est "
 "irréversible."
 
-#: templates/js/admin/_permission_matrix_js.html:9
-msgid "User override"
-msgstr "Remplacement utilisateur"
+#: templates/js/admin/_permissions_js.html:7
+#, python-brace-format
+msgid "{n} unsaved change(s)"
+msgstr "{n} modification(s) non enregistrée(s)"
 
-#: templates/js/admin/_permission_matrix_js.html:48
-msgid "No one holds this permission."
-msgstr "Personne ne détient cette autorisation."
+#: templates/js/admin/_permissions_js.html:8
+msgid "Grants saved"
+msgstr "Attributions enregistrées"
 
-#: templates/js/admin/_permission_matrix_js.html:60
-msgid "Could not load holders."
-msgstr "Impossible de charger les détenteurs."
+#: templates/js/admin/_permissions_js.html:9
+msgid "Could not save grants"
+msgstr "Impossible d'enregistrer les attributions"
 
-#: templates/js/admin/_permission_matrix_js.html:75
-msgid "This user holds no permissions."
-msgstr "Cet utilisateur ne détient aucune autorisation."
+#: templates/js/admin/_permissions_js.html:10
+msgid "Requires the .view permission of this object"
+msgstr "Nécessite la permission .view de cet objet"
 
-#: templates/js/admin/_permission_matrix_js.html:100
-msgid "Manage overrides"
-msgstr "Gérer les remplacements"
+#: templates/js/admin/_permissions_js.html:11
+msgid "Held by"
+msgstr "Détenue par"
 
-#: templates/js/admin/_permission_matrix_js.html:102
-msgid "Could not load permissions."
-msgstr "Impossible de charger les autorisations."
+#: templates/js/admin/_permissions_js.html:12
+msgid "Nobody holds this permission"
+msgstr "Personne ne détient cette permission"
+
+#: templates/js/admin/_permissions_js.html:14
+msgid "Edit Permission"
+msgstr "Modifier la permission"
+
+#: templates/js/admin/_permissions_js.html:15
+msgid "Code and description are required."
+msgstr "Le code et la description sont obligatoires."
+
+#: templates/js/admin/_permissions_js.html:16
+msgid "Click again to delete"
+msgstr "Cliquez à nouveau pour supprimer"
 
 #: templates/js/admin/_processes_js.html:93
 msgid "Edit process source"
@@ -9590,6 +9635,7 @@ msgstr "Impossible de révoquer la session."
 msgid "Edit Tenant"
 msgstr "Modifier le tenant"
 
+
 #: templates/js/admin/_tenants_manage_js.html:141
 msgid ""
 "Delete this tenant and its page descriptors? Organizations must be moved "
@@ -9598,9 +9644,11 @@ msgstr ""
 "Supprimer ce tenant et ses descripteurs de pages ? Les organisations "
 "doivent d’abord être déplacées."
 
+
 #: templates/js/admin/_tenants_manage_js.html:156
 msgid "Remove this page from the tenant?"
 msgstr "Retirer cette page du tenant ?"
+
 
 #: templates/js/admin/_user_detail_js.html:53
 msgid "User saved."
@@ -9662,6 +9710,10 @@ msgstr "Remplacement · Refuser"
 #: templates/js/admin/_user_detail_js.html:338
 msgid "Profile · Deny"
 msgstr "Profil · Refuser"
+
+#: templates/js/admin/_user_detail_js.html:396
+msgid "Denied"
+msgstr "Refusé"
 
 #: templates/js/admin/_user_detail_js.html:460
 #: templates/js/admin/_user_detail_js.html:499
@@ -10267,14 +10319,167 @@ msgstr "Au"
 #~ msgid "View in workitems"
 #~ msgstr "Ouvrir dans Workitems"
 
-#~ msgid "Organizations"
-#~ msgstr "Organisations"
+#~ msgid "Permission Matrix"
+#~ msgstr "Matrice des autorisations"
+
+#~ msgid "Search permissions..."
+#~ msgstr "Rechercher des permissions..."
+
+#~ msgid "In Profiles"
+#~ msgstr "Dans les profils"
+
+#~ msgid "Confirm Delete"
+#~ msgstr "Confirmer la suppression"
+
+#~ msgid "Profile Name"
+#~ msgstr "Nom du profil"
+
+#~ msgid "Matrix"
+#~ msgstr "Matrice"
+
+#~ msgid "Who can see what, filterable both ways"
+#~ msgstr "Qui voit quoi, filtrable dans les deux sens"
+
+#~ msgid ""
+#~ "Who can do what — read-only. "
+#~ "Granting and revoking stays on Access"
+#~ " Control."
+#~ msgstr ""
+#~ "Qui peut faire quoi — lecture "
+#~ "seule. L'attribution et le retrait des"
+#~ " droits restent gérés dans Contrôle "
+#~ "d'accès."
+
+#~ msgid "By permission"
+#~ msgstr "Par autorisation"
+
+#~ msgid "By user"
+#~ msgstr "Par utilisateur"
+
+#~ msgid "Type a permission code…"
+#~ msgstr "Saisissez un code d'autorisation…"
+
+#~ msgid "Pick a permission above to see who holds it."
+#~ msgstr "Sélectionnez une autorisation ci-dessus pour voir qui la détient."
+
+#~ msgid "Type a user name…"
+#~ msgstr "Saisissez un nom d'utilisateur…"
+
+#~ msgid "Pick a user above to see their effective permissions."
+#~ msgstr ""
+#~ "Sélectionnez un utilisateur ci-dessus "
+#~ "pour voir ses autorisations effectives."
+
+#~ msgid "allowed"
+#~ msgstr "autorisé"
+
+#~ msgid "denied"
+#~ msgstr "refusé"
+
+#~ msgid "will affect 0 users (new profile)"
+#~ msgstr "concerne 0 utilisateur (nouveau profil)"
+
+#~ msgid "Adjust permissions assigned to this profile"
+#~ msgstr "Ajuster les permissions attribuées à ce profil"
+
+#~ msgid "will affect"
+#~ msgstr "concerne"
+
+#~ msgid "user"
+#~ msgstr "utilisateur"
+
+#~ msgid "Overrides for"
+#~ msgstr "Remplacements pour"
+
+#~ msgid "Overrides take priority over the user's access profile"
+#~ msgstr "Les remplacements ont priorité sur le profil d'accès de l'utilisateur"
+
+#~ msgid "will affect 1 user:"
+#~ msgstr "concerne 1 utilisateur :"
+
+#~ msgid "No permissions found."
+#~ msgstr "Aucune permission trouvée."
+
+#~ msgid "Users with this permission"
+#~ msgstr "Utilisateurs avec cette permission"
+
+#~ msgid "explicitly denied"
+#~ msgstr "explicitement refusé"
+
+#~ msgid "Has Permission"
+#~ msgstr "A la permission"
+
+#~ msgid "No users have this permission assigned."
+#~ msgstr "Aucun utilisateur n'a cette permission attribuée."
+
+#~ msgid "Are you sure you want to delete"
+#~ msgstr "Êtes-vous sûr de vouloir supprimer"
+
+#~ msgid "Override Allow"
+#~ msgstr "Remplacement · Autoriser"
+
+#~ msgid "Override Deny"
+#~ msgstr "Remplacement · Refuser"
+
+#~ msgid "Profile Allow"
+#~ msgstr "Profil · Autoriser"
+
+#~ msgid "Profile Deny"
+#~ msgstr "Profil · Refuser"
+
+#~ msgid "No assignment"
+#~ msgstr "Aucune attribution"
+
+#~ msgid "Cannot activate"
+#~ msgstr "Impossible d'activer"
+
+#~ msgid "Enable at least one process filter first."
+#~ msgstr "Veuillez d'abord activer au moins un filtre de processus."
+
+#~ msgid "Auto-enabled"
+#~ msgstr "Activé automatiquement"
+
+#~ msgid "Auto-denied"
+#~ msgstr "Refusé automatiquement"
+
+#~ msgid "User override"
+#~ msgstr "Remplacement utilisateur"
+
+#~ msgid "Manage"
+#~ msgstr "Gérer"
+
+#~ msgid "Could not load holders."
+#~ msgstr "Impossible de charger les détenteurs."
+
+#~ msgid "This user holds no permissions."
+#~ msgstr "Cet utilisateur ne détient aucune autorisation."
+
+#~ msgid "Manage overrides"
+#~ msgstr "Gérer les remplacements"
+
+#~ msgid "Could not load permissions."
+#~ msgstr "Impossible de charger les autorisations."
 
 #~ msgid "Clients"
 #~ msgstr "Clients"
 
-#~ msgid "organizations"
-#~ msgstr "organisations"
+#~ msgid "Workitems"
+#~ msgstr "Workitems"
+
+#~ msgid "Here's a real-time overview of your document processing activity."
+#~ msgstr ""
+#~ "Voici un aperçu en temps réel de"
+#~ " votre activité de traitement de "
+#~ "documents."
+
+#~ msgid "Processed Today"
+#~ msgstr "Traités aujourd'hui"
+
+#~ msgid "Recent Validations"
+#~ msgstr "Validations récentes"
+
+#~ msgid "Workitems overview"
+#~ msgstr "Aperçu des Workitems"
 
 #~ msgid ""
 #~ "Runtime sources (which DB/dialect/Octo tenant"
@@ -10289,127 +10494,6 @@ msgstr "Au"
 #~ msgid "Add client"
 #~ msgstr "Ajouter un client"
 
-#~ msgid "Organization Management - nexora"
-#~ msgstr "Gestion des organisations - nexora"
-
-#~ msgid "Search organizations..."
-#~ msgstr "Rechercher des organisations..."
-
 #~ msgid "Processes - nexora"
 #~ msgstr "Processus - nexora"
-
-#~ msgid "Delete Organization"
-#~ msgstr "Supprimer l'organisation"
-
-#~ msgid "Save Organization"
-#~ msgstr "Enregistrer l'organisation"
-
-#~ msgid "Document Fields"
-#~ msgstr "Champs de document"
-
-#~ msgid "Document Fields - nexora"
-#~ msgstr "Champs de document - nexora"
-
-#~ msgid ""
-#~ "Each tenant with its customer and "
-#~ "users, its data connection, its document"
-#~ " fields and its pages"
-#~ msgstr ""
-
-#~ msgid "Open Document Fields"
-#~ msgstr ""
-#~ "Champs du\n"
-#~ "document"
-
-#~ msgid "Access profiles:"
-#~ msgstr "Profils d’accès :"
-
-#~ msgid "No process sources"
-#~ msgstr "Aucune source de processus"
-
-#~ msgid "Customer"
-#~ msgstr "Client"
-
-#~ msgid "Organization %(code)s is missing"
-#~ msgstr "L’organisation %(code)s est manquante"
-
-#~ msgid "Process sources named after this customer:"
-#~ msgstr "Sources de processus nommées d’après ce client :"
-
-#~ msgid "Every customer belongs to a tenant."
-#~ msgstr "Chaque client appartient à un tenant."
-
-#~ msgid "Data connections without a tenant"
-#~ msgstr "Connexions de données sans tenant"
-
-#~ msgid "Every data connection belongs to a tenant."
-#~ msgstr "Chaque connexion de données appartient à un tenant."
-
-#~ msgid "Add a new Organization"
-#~ msgstr "Ajouter une nouvelle organisation"
-
-#~ msgid "Edit Organization"
-#~ msgstr "Modifier l'organisation"
-
-#~ msgid "Customers"
-#~ msgstr "Clients"
-
-#~ msgid "customers"
-#~ msgstr "clients"
-
-#~ msgid "Customers and their organization codes"
-#~ msgstr "Clients et leurs codes d’organisation"
-
-#~ msgid "Customers - nexora"
-#~ msgstr "Clients - nexora"
-
-#~ msgid "Add customer"
-#~ msgstr "Ajouter un client"
-
-#~ msgid "Search customers..."
-#~ msgstr "Rechercher des clients..."
-
-#~ msgid "Organization (customer)"
-#~ msgstr "Organisation (client)"
-
-#~ msgid "Delete Customer"
-#~ msgstr "Supprimer le client"
-
-#~ msgid "Add a new Customer"
-#~ msgstr "Ajouter un nouveau client"
-
-#~ msgid "Save Customer"
-#~ msgstr "Enregistrer le client"
-
-#~ msgid "Edit Customer"
-#~ msgstr "Modifier le client"
-
-#~ msgid "A data connection is required."
-#~ msgstr "Une connexion de données est requise."
-
-#~ msgid "Unknown data connection."
-#~ msgstr "Connexion de données inconnue."
-
-#~ msgid "Organizations, their codes, tenant and data connection"
-#~ msgstr "Organisations, leurs codes, tenant et connexion de données"
-
-#~ msgid "Workitems"
-#~ msgstr "Workitems"
-
-#~ msgid "Workitems overview"
-#~ msgstr "Aperçu des Workitems"
-
-#~ msgid "Real-time overview of this tenant's document processing only."
-#~ msgstr ""
-#~ "Aperçu en temps réel du traitement "
-#~ "des documents de ce tenant uniquement."
-
-#~ msgid "Every process you may see, across all tenants."
-#~ msgstr "Tous les processus que vous pouvez voir, tous tenants confondus."
-
-#~ msgid "Processed Today"
-#~ msgstr "Traités aujourd'hui"
-
-#~ msgid "Recent Validations"
-#~ msgstr "Validations récentes"
 

@@ -51,6 +51,76 @@ Work toward the next release.
   process filter and stays as it is. A user inside exactly one tenant sees
   its pages flat under a plain label instead of a one-item collapsible
   group; staff and multi-tenant users keep the groups.
+- **`AccessProfile.Rank` governs which profiles an admin may hand out** (#238,
+  migration `0086`): an actor may assign a profile whose rank is at most their
+  own. Enterprise Admin 100, Global Admin 90, supervisors 50, everyone else 10.
+- **One `process.<client>.<name>.view` scope code per process** (migration
+  `0087`) replaces the three per-process families (`workitems.filter.process.*`,
+  `dashboard.filter.process.*`, `reporting.scope.process.*`); every process
+  allow-list reads it through `process_grants()`.
+- **Migrations `0091`, `0092`, `0094`, `0095` run on a post-#238 database.** They
+  were written before `0086` dropped `AccessProfilePermission.Effect` and `0088`
+  renamed the catalogue, and INT applied them first; PROD applies them after, where
+  the old text would not compile. The Effect-dependent statements now sit in
+  `sp_executesql` and the code lookups match both shapes (INT checksums
+  re-blessed, the `0097` precedent). `0115` renames `admin.view/edit.tenants` to
+  `admin.tenants.view/edit` so the two codes `0095` created follow the grammar.
+- **`admin.permissions.edit`** gates catalogue edits (add, rename, delete a
+  permission code) separately from profile grants.
+- **`nx --doctor` Permissions section** warns about codes the code base
+  references that are missing in `dbo.Permission`, and about profiles left at
+  Rank 0.
+- **Admin › Permissions grid** (`/admin/permissions`) replaces the per-profile
+  permission drawer on Access Control and the read-only Permission Matrix page:
+  every access profile against every permission, one checkbox per cell, saved
+  as a diff. Children grey out until their object's `.view` is granted; click a
+  code to see who holds it. Profile rank is edited on Access Control; user
+  overrides on the user detail page use the same area › object grouping.
+- **Enterprise Admin holds every permission** (migration `0106`) — granted
+  today and kept that way by a trigger on `dbo.Permission`, so a code added
+  later by migration or from the admin grid lands on the profile at once.
+
+### Changed
+
+- **Permission codes follow one grammar, `<area>.<object>.<action>[.<scope>]`**
+  (#238, migration `0088`). Every code was renamed; the full old → new mapping
+  is Appendix A of `docs/superpowers/specs/2026-09-01-permission-structure-design.md`,
+  the grammar and the rules around it are `docs/design/permissions.md`. Generali
+  codes live under `tenant.generali.*`. Grants rode along on `PermissionID`, so
+  nobody lost or gained access.
+  **Deploy note:** migrations run before the app pool stops, so the old build
+  serves renamed codes for the deploy window and answers 403 — deploy off-hours.
+
+### Removed
+
+- **`/admin/permission_matrix`** and the Permissions tab on Access Control (both folded into the grid).
+- **Profile-level DENY** (446 semantically empty rows), **the ten
+  `admin.assign.user.accessprofile.*` codes** (rank replaces them), **12 orphan
+  codes** (`invoices.*`, `kundenmagazin.*`, two dead admin codes) and **the
+  three per-process permission families** (#238).
+
+- **Repository moved to the `Sydoc-Org` GitHub organization** (from the
+  personal `Sydoc-Code` account, 2026-09-03). GitHub redirects the old URL,
+  but update your remote:
+  `git remote set-url origin https://github.com/Sydoc-Org/nexora.git`.
+  The org is still on GitHub Free, so branch protection remains the local
+  pre-push guard until the org moves to GitHub Team (see CONTRIBUTING.md).
+- **Branching model: short-lived topic branches instead of version branches**
+  (#253). Nothing is pushed to `main` directly any more — everything lands via
+  PR, review optional so either developer can merge their own once CI is green
+  (the pre-push hook refuses a push from `main`, since branch protection needs
+  a plan this private repo does not have). A
+  branch is `<type>/<slug>` (`fix/253-collab-rules`), cut from `main` and gone
+  within a day or two; `v<x.y.z.n>` branches are legacy and still accepted only
+  so in-flight work can push. Releases become a **tag on `main`** rather than a
+  branch. `scripts/git-hooks/branch-name-guard.ps1` enforces the new names, and
+  `CONTRIBUTING.md` gains "Working in parallel" (the migration-number claim
+  rule and the generated-file conflict hotspots) and "Releases".
+
+## [3.2.4] - 2026-09-03
+
+### Added
+
 - **Answer-depth picker in the Eddard chat composer.** Click into the
   input and a Quick / Balanced / Deep control slides in above it, mapping
   to effort `low` / `medium` / `high` on the `/api/reporting/ai/agent`
@@ -89,7 +159,7 @@ Work toward the next release.
 ### Performance
 
 - **The reporting source/metric registry is cached for 60 seconds.**
-  `_load_db_sources()`/`_load_db_metrics()` in `nx_lib/views/reporting.py`
+  `_load_db_sources()`/`_load_db_metrics()` in `nx_lib/views/reporting/_shared.py`
   hit `dbo.ReportingSources`/`dbo.ReportingMetrics` on every call — up to
   ~8x per report run. Both now use the house TTL-cache pattern (mirrors
   `nx_lib/mapping_config.py`: success-only caching, a load error re-queries
@@ -103,6 +173,64 @@ Work toward the next release.
   365 days — a changed file gets a new URL, so a stale cache is never
   served past the next deploy. A new lint test bans raw
   `url_for('static'` in `templates/**` to keep it that way.
+- **The Generali dashboard's aggregate/filter-option endpoints are cached for
+  120 seconds.** `api_generali_stats` (7 aggregate scans) and
+  `api_generali_filter_options` (7 `DISTINCT` scans) re-scanned
+  `v_ReportJobJoinDefinitions` on every dashboard load. Both now use
+  `dashboard.py`'s existing `@cache.cached` house pattern — a per-user (and,
+  for stats, per-date-range-filter) cache key, and a `response_filter` that
+  never pins an error or validation-failure response for the full TTL.
+  Measured on real INT Generali data: cold 1.780s median → warm (cached)
+  0.064s median, ~28x faster within the 120s window.
+- **`fetch_merged_page`'s per-row source-routing cache write is now one
+  batched `MERGE`, not up to 1000 sequential ones.** The warm loop used to
+  call `get_source_for_workitem` per uncached row, each doing its own
+  MERGE + commit round-trip; a new `_cache_store_many` collects a page's
+  resolved `(WorkItemID, ClientCode)` pairs and writes them in a single
+  multi-row `MERGE ... USING (VALUES ...)` statement (chunked at 1000
+  rows/2000 params). Isolated benchmark against the real NexoraDB, 300
+  uncached ids: 300x sequential `_cache_store` calls, 19.436s median →
+  1x `_cache_store_many` call, 0.088s median — **~221x faster** for the
+  store step. (A real end-to-end page timing wasn't a usable instrument on
+  this INT dataset: MS02's id range sits almost entirely inside the
+  default source's, so nearly every previously-uncached row resolves
+  ambiguous and was never cached in either version — see the isolated
+  number above for the mechanism this actually fixes.)
+- **Prepared Documents' per-page Octo stage lookup is now one query, not
+  one per row.** `prepared_documents()` called
+  `_resolve_prepared_doc_wid_stage` once per pid on the page (up to
+  200/page) against the MS02 Postgres runtime. A new
+  `_resolve_octo_wid_stage_pg_batch` resolves the whole page's wids in one
+  `WHERE twi."ID" = ANY(%s)` query; a missing wid still degrades to the
+  same empty stage sentinel as before. Measured against a real MS02
+  Postgres instance, 200 wids: 200x per-wid queries, 9.021s median → 1x
+  batched query, 0.047s median — **~193x faster**.
+- **`engineNexoraDB`'s connection pool is sized for a full waitress thread
+  complement, and NexoraDB connects fail fast.** `pool_size` 10→32,
+  `max_overflow` 20→16 (every request touches NexoraDB via the
+  session/permission hooks, so the pool used to be smaller than PROD's 32
+  waitress threads); a new `LoginTimeout=5` on the NexoraDB connection
+  string makes a downed DB fail in ~5s instead of the ODBC driver's ~15s
+  default. No single before/after number here — this is headroom, not a
+  hot-path speedup — but verified with 60 concurrent authenticated
+  `/dashboard` requests against the new pool sizing: all 60 returned 200,
+  zero pool-exhaustion warnings in `app.log`/`app_stderr.log`. The
+  `/api/reporting/sources/health` probe was also parallelized (bounded
+  0.8s deadline instead of sequential unbounded per-engine probes), so N
+  down data sources cost ~0.8s total instead of N sequential timeouts.
+- **The permissions/UI-prefs session hooks skip the write when nothing
+  changed.** `_reload_user_permissions`/`_load_user_ui_prefs` still read
+  fresh from the TTL cache every request (unchanged), but now only assign
+  into `session[...]` when the freshly-read value differs from what's
+  already there — Flask marks a session dirty on every assignment
+  regardless of whether the value changed, which meant a filesystem write
+  + `Set-Cookie` on every single request on PROD's Flask-Session
+  filesystem backend. Verified locally via `session.modified` staying
+  `False` on an unchanged-value request and `True` on a real change
+  (permission grant/revoke, pref edit still propagate on the next
+  request); the actual disk-I/O/header-count reduction is PROD-only
+  (Flask-Session's filesystem backend is deliberately off in local dev)
+  and wasn't independently measurable in this environment.
 
 ### Changed
 
@@ -235,6 +363,64 @@ Work toward the next release.
   `dbo.WorkitemSourceCache` and `dbo.Tenants`, names the `MS02_*` env keys,
   and is baked into the `tenant.ms02.*` permission codes.
 
+- **The deploy pipeline stopped testing everything twice.** Every commit
+  reaching `main` arrives through a PR whose CI run already executed the full
+  suite; the post-merge run on `main` then executed it again before deploying,
+  so a merge cost ~42 min of CI for a `deploy` job that itself takes 31 s. The
+  e2e suite (14m51s of the 21-minute test job, plus its Playwright chromium
+  install) is now PR-only. The merge commit — the one artifact the PR run never
+  saw — is still gated by lint, mypy and the unit/integration tier, cutting the
+  path from merge to PROD to roughly 6 minutes.
+- **Beautification Phase 3: tighter mypy and ruff configuration, plus a
+  per-module typing ratchet.** `check_untyped_defs` was enabled repo-wide
+  first (annotation fallout only, no bugs found), then `strict_optional`
+  (found and fixed two real production bugs — see Fixed: admin
+  add/edit-user's unknown accessprofile/org 500, and dashboard
+  `set_filter`'s empty-body 500/415). Ruff gained the `PL` cherry-picks
+  (`PLW1510`, `PLR1714`, `PLR1730`, `PLR0124`) and the full `PERF` rule
+  set; the sole `PLR0124` hit (`field_locations.py`'s `f != f` NaN check)
+  was confirmed a deliberate idiom and rewritten as `math.isnan`/
+  `math.isinf` for clarity, no behavior change. `disallow_untyped_defs`
+  (full annotation required) now applies per-module via
+  `[[tool.mypy.overrides]]` — 10 modules covered so far (`nx_lib/branding.py`,
+  `config.py`, `db.py`, `clients.py`, `mapping_config.py`, `ui_prefs.py`,
+  `version.py`, `reporting/__init__.py`, `views/__init__.py`,
+  `workitems/__init__.py`); the rule (a module never leaves the list, new
+  modules ship typed) is documented in `CONTRIBUTING.md`. CI's mypy step
+  still targets `nx_lib nx_main.py` — no file under `scripts/` was
+  type-annotated as part of this plan, so the CI target was left
+  unchanged.
+- **`/api/workitems` paging's `total` count is now read off the page query
+  itself (`COUNT(*) OVER()`) instead of a second, separate `COUNT(*)`
+  query — PostgreSQL (MS02) only.** `PostgresSource.list_workitems` reads
+  `total` from the paged query's own `COUNT(*) OVER()` column (falling back
+  to the old separate-COUNT query only on an empty page, to keep the exact
+  same reported total when the requested offset lands past the end of the
+  results); the real round-trip saved here is plausible and has no measured
+  regression. `SqlServerSource.list_workitems` was converted the same way
+  and then **reverted back to the original two-query form** after isolated
+  raw-SQL A/B measurement on a real SQL Server instance showed the
+  single-query form is ~12% *slower*, not faster (118.2ms → 132.4ms
+  median) — `COUNT(*) OVER()` with no `PARTITION BY` makes the engine build
+  a window spool over the whole matching set before it can apply
+  `OFFSET`/`FETCH`, pricier than two independent scans on this instance's
+  plan. Net effect: SQL Server paging is unchanged from before this plan;
+  PostgreSQL paging is one query per page request instead of two.
+
+- **Generali list exports (`?all=true`) are now capped at 100,000 rows.**
+  The five generated Generali list endpoints (Attendance, Base Services,
+  Project Management, PDQM, Reporting — `nx_lib/views/generali/_crud.py`'s
+  shared `_make_list` factory) took `?all=true` literally with no upper
+  bound. Below the cap nothing changes (identical rows, identical SQL); only
+  a request whose filters match more than 100,000 rows is now truncated to
+  the export ceiling instead of returning every matching row. No scheduled
+  export script in `ops/`/`scripts/` calls these endpoints — every caller is
+  the "Export to Excel" button in the Generali admin UI. The truncation is
+  now surfaced instead of silent: a capped response carries `truncated: true`
+  and `capped_at: 100000` alongside the (still-uncapped) aggregate/total, and
+  `exportToExcel()` in `static/js/generali_crud.js` /
+  `static/js/generali_reporting.js` shows an `NX.toast` warning naming the
+  row limit when it fires.
 - **Eddard now sets `reasoning_effort` per surface on Azure GPT-5
   deployments.** Nothing set it, so gpt-5-mini deliberated at the API default
   (`medium`) on every call — including one-line chart captions. Measured on
@@ -252,6 +438,25 @@ Work toward the next release.
   re-exports every public name (including everything the test suite
   monkeypatches) so URLs, endpoint names, and `gv.<fn>`/`av.<fn>` call sites
   are unchanged — no Blueprints, no renames, no behavior change.
+- **`nx_lib/views/reporting.py` is now a package.** The ~4k-line module became
+  `nx_lib/views/reporting/`, split by feature cluster (`ai.py`, `pages.py`,
+  `run.py`, `export.py`, `reports.py`, `schedules.py`, `admin_registry.py`,
+  `health.py`, `catalog.py`) plus a shared core (`_shared.py`) for helpers
+  used across clusters (e.g. `_load_db_sources()`/`_load_db_metrics()`).
+  `__init__.py` re-exports every public name so URLs, endpoint names, and
+  monkeypatch targets are unchanged — no Blueprints, no renames, no
+  behavior change.
+- **`nx_lib/views/workitems.py`'s non-route logic extracted into a new,
+  Flask-free package `nx_lib/workitems/`.** Field/table value helpers
+  (`fields.py`, incl. `DOCFIELD_OPS`), sensitive-field redaction
+  (`sensitivity.py`, incl. `strip_sensitive_fields`), media loading/cache-key
+  helpers (`media.py`), and the DB-query helpers behind `_get_workitems_data`
+  including the MS02 prepared-docs/pid-spec helpers (`query.py`) now live
+  outside the view module. `nx_lib/views/workitems.py` keeps only route
+  handlers plus Flask-aware wrapper functions; `nx_lib/views/api_external.py`
+  and `nx_lib/views/dashboard.py` are rewired to import the Flask-free
+  symbols directly from `nx_lib/workitems/*` instead of through the view
+  module. No Blueprints, no renames, no behavior change.
 - **Generali's 8 duplicated CRUD endpoint families collapsed into one shared
   factory.** BaseServices, Attendance, ProjectManagement, PDQM, and Reporting
   each carried near-identical copies of monthreport/org-users/organizations/
@@ -314,6 +519,38 @@ Work toward the next release.
   the same ~12 minutes. Pushes now run unit + integration only (~5 min);
   e2e coverage is unchanged where it gates: nothing merges or deploys
   without the full suite green in CI.
+- **6 more JS-heavy partials converted to #191 shims.**
+  `templates/js/_workitems_overview_js.html`, `_reporting_js.html`
+  (the Advanced tab), `_workitem_detail_panel_js.html` (the panel shared by
+  Workitems, Reporting's drill-through drawer, and Prepared Documents),
+  `_reporting_viz_js.html`, `_generali_reporting_js.html`, and
+  `admin/_access_control_js.html` now hold only a small inline
+  `<script nonce>` with Jinja-rendered data/i18n, loaded via `static_v()`;
+  their behaviour moved to `static/js/workitems_overview.js`,
+  `reporting_advanced.js`, `workitem_detail_panel.js`, `reporting_viz.js`,
+  `generali_reporting.js`, and `admin_access_control.js` respectively. No
+  behavior change — verified per file against integration tests, a
+  Playwright pass on a `--no-conflict` dev instance, and (for
+  `admin_access_control.js`, which gates real permission grants) a live
+  grant/revoke round-trip on a throwaway test user. Two genuine bugs
+  surfaced and were fixed alongside the moves: the workitems overview
+  doc-field filter's hardcoded English "No results" string (moved into the
+  shim's `I18N` map and translated for de/fr/it), and both `_js.html`
+  survivors missing the classic-script IIFE wrap the other four already
+  had, a latent global-scope collision risk.
+- **`static/js/reporting_simple.js` (~4k lines) split into five files
+  behind a new `window.RS` shared namespace.** The monolith's
+  `state`/`el`/`api`/`esc`/`I18N` closures became `RS.state`/`RS.el`/
+  `RS.api`/`RS.esc`/`RS.I18N` (pure rename, no logic change), then the
+  chart/Chart.js layer, the report/dashboard library grid, the KPI/
+  anomalies/drill/result-table layer, and the AI-chip + 4-step wizard each
+  moved out to their own file (`reporting_simple_chart.js`,
+  `_library.js`, `_result.js`, `_wizard.js`), calling back into each other
+  through `window.RS` and into the now much smaller
+  `reporting_simple.js` core (state, `runCurrent`, `save`, `init`, the
+  `window.ReportingSimple` export). `templates/js/_reporting_simple_js.html`
+  loads them in dependency order (chart, library, result, wizard, then
+  core) after its i18n shim, which stays the first script on the page.
 
 ### Removed
 
@@ -368,6 +605,42 @@ Work toward the next release.
   modal's local 15px workaround in `reporting-console.css` is gone with it;
   `.ml-toggle`'s deliberately collapsed switch input opts out.
 
+- **Reporting wizard showed "no measures configured" on PROD for users with an
+  ad blocker.** The Simple wizard's metric catalog was served at
+  `/api/reporting/metrics`, and EasyPrivacy ships the generic URL filter
+  `/reporting/metrics`; uBlock Origin, AdBlock Plus and Brave Shields therefore
+  aborted that one fetch (Firefox: "NetworkError when attempting to fetch
+  resource") while `/api/reporting/sources` loaded fine, so the Sources rail was
+  populated but step 1 of the wizard was empty. Never reproduced on dev or
+  staging because blockers leave `localhost` alone, and opening the URL directly
+  worked because filter lists only apply to sub-resource requests. The route is
+  now `/api/reporting/measures` (the admin CRUD under
+  `/api/reporting/admin/metrics` is not matched and is unchanged); a unit test
+  keeps every registered rule clear of the `/reporting/metrics` substring. The
+  beautification campaign's reporting-package split (below) had already moved
+  this route registration into `nx_lib/views/reporting/catalog.py`; the rename
+  was reapplied there during the merge.
+- **Admin add/edit-user crashed with a 500 on an unknown accessprofile or
+  organization** instead of rejecting the request cleanly. Beautification
+  Phase 3's `strict_optional` mypy flag (enabled repo-wide) surfaced the
+  missing `None` guard around the lookup; the routes now return a 400 for
+  an unrecognized accessprofile/org id.
+- **`/api/dashboard`'s `set_filter` crashed (500/415) when called with an
+  empty JSON body**, because it assumed `request.get_json()` always
+  returns a dict. Also surfaced by `strict_optional`; the endpoint now
+  falls back to "all" instead of raising.
+- **The Simple reporting tab threw on every load.** Beautification Phase 2b's
+  wizard extraction (`reporting_simple_wizard.js`) moved a bottom-of-file
+  event-listener wiring block that calls `RS.el(...)` at top level
+  (module-load time), but `RS.el` is normally set by `reporting_simple.js`,
+  which loads *last* (`_reporting_simple_js.html`'s script order is chart,
+  library, result, wizard, then core) — so `RS.el` was still undefined when
+  wizard.js ran, throwing `TypeError: RS.el is not a function` on every
+  `/reporting` page load. Found during the deferred e2e/browser catch-up for
+  Tasks 7-8 once INT's SQL Server came back up. Fixed the same way the file
+  already handled the analogous `RS.I18N` load-order gap: a same-file
+  fallback, `RS.el = RS.el || window.NX.el`. Regression test:
+  `tests/e2e/test_reporting_simple.py::test_simple_tab_load_has_no_console_errors`.
 - **The Generali dashboard's daily average no longer rewards missing data.**
   `api_generali_stats` built the trend x-axis -- and the average's
   denominator -- from the rows the trend query returned, so days with no

@@ -22,7 +22,7 @@ from ._crud import (
 # ----------------------------- Generali Project Management ------------------ #
 
 
-@require_permission("generali.projectmanagement.view")
+@require_permission("tenant.generali.projectmanagement.view")
 def generali_project_management():
     try:
         if "username" not in session:
@@ -33,20 +33,18 @@ def generali_project_management():
             userid=session.get("userid"),
             page_visibility=page_visibility(),
             organizationcode=session.get("organizationcode"),
-            can_add=has_permission("generali.projectmanagement.add"),
+            can_add=has_permission("tenant.generali.projectmanagement.add"),
             can_add_bypass_deadline=has_permission(
-                "generali.projectmanagement.add.bypass.deadline"
+                "tenant.generali.projectmanagement.add.pastdeadline"
             ),
-            can_edit=has_permission("generali.projectmanagement.edit.organizational")
-            or has_permission("generali.projectmanagement.edit.transorganizational"),
-            can_edit_transorg=has_permission("generali.projectmanagement.edit.transorganizational"),
-            can_delete=has_permission("generali.projectmanagement.delete.organizational")
-            or has_permission("generali.projectmanagement.delete.transorganizational"),
-            can_delete_transorg=has_permission(
-                "generali.projectmanagement.delete.transorganizational"
-            ),
-            can_add_for_org=has_permission("generali.projectmanagement.add.organizational"),
-            can_add_transorg=has_permission("generali.projectmanagement.add.transorganizational"),
+            can_edit=has_permission("tenant.generali.projectmanagement.edit.org")
+            or has_permission("tenant.generali.projectmanagement.edit.all"),
+            can_edit_transorg=has_permission("tenant.generali.projectmanagement.edit.all"),
+            can_delete=has_permission("tenant.generali.projectmanagement.delete.org")
+            or has_permission("tenant.generali.projectmanagement.delete.all"),
+            can_delete_transorg=has_permission("tenant.generali.projectmanagement.delete.all"),
+            can_add_for_org=has_permission("tenant.generali.projectmanagement.add.org"),
+            can_add_transorg=has_permission("tenant.generali.projectmanagement.add.all"),
         )
     except Exception as e:
         current_app.logger.error(f"Error loading Generali Project Management: {e}")
@@ -80,8 +78,7 @@ PROJECTMANAGEMENT = CrudTable(
     slug="projectmanagement",
     table="[Generali].[dbo].[ProjectManagement]",
     user_column="UserID",
-    perm_prefix="generali.projectmanagement",
-    view_perm="generali.projectmanagement.view",
+    perm_prefix="tenant.generali.projectmanagement",
     api_base="/api/generali/projectmanagement",
     label="Generali Project Management",
     user_lookup_label="project management",

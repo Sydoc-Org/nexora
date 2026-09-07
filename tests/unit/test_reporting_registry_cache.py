@@ -11,6 +11,13 @@ from unittest.mock import MagicMock
 import pytest
 
 from nx_lib.views import reporting as rv
+from nx_lib.views.reporting import _shared
+
+# _load_db_sources()/_load_db_metrics() live in _shared.py now
+# (beautify-phase-2a, Task 2) and read engine_nexora_db from its own module
+# namespace, so the engine swap has to land there -- monkeypatching it on the
+# package re-export would not reach that internal read. invalidate_* stay on
+# the package (still defined in __init__.py) and are called via `rv.` as before.
 
 
 @pytest.fixture(autouse=True)
@@ -127,7 +134,7 @@ def _dead_engine(msg="NexoraDB down"):
 
 def test_load_db_sources_caches_within_ttl(app, monkeypatch):
     eng, conn = _engine_with(sources=[_source_row()])
-    monkeypatch.setattr(rv, "engine_nexora_db", eng)
+    monkeypatch.setattr(_shared, "engine_nexora_db", eng)
 
     with app.app_context():
         rows1 = rv._load_db_sources()
@@ -141,7 +148,7 @@ def test_load_db_sources_caches_within_ttl(app, monkeypatch):
 
 def test_load_db_sources_failure_is_not_cached(app, monkeypatch):
     eng = _dead_engine()
-    monkeypatch.setattr(rv, "engine_nexora_db", eng)
+    monkeypatch.setattr(_shared, "engine_nexora_db", eng)
 
     with app.app_context():
         assert rv._load_db_sources() == []
@@ -153,7 +160,7 @@ def test_load_db_sources_failure_is_not_cached(app, monkeypatch):
 
 def test_invalidate_reporting_sources_drops_cache(app, monkeypatch):
     eng, _ = _engine_with(sources=[_source_row()])
-    monkeypatch.setattr(rv, "engine_nexora_db", eng)
+    monkeypatch.setattr(_shared, "engine_nexora_db", eng)
 
     with app.app_context():
         rv._load_db_sources()
@@ -168,7 +175,7 @@ def test_invalidate_reporting_sources_drops_cache(app, monkeypatch):
 def test_load_db_sources_empty_result_is_cached_as_success(app, monkeypatch):
     """An empty-but-successful load IS cached (mirrors mapping_config's contract)."""
     eng, _ = _engine_with(sources=[])
-    monkeypatch.setattr(rv, "engine_nexora_db", eng)
+    monkeypatch.setattr(_shared, "engine_nexora_db", eng)
 
     with app.app_context():
         assert rv._load_db_sources() == []
@@ -182,7 +189,7 @@ def test_load_db_sources_empty_result_is_cached_as_success(app, monkeypatch):
 
 def test_load_db_metrics_caches_within_ttl(app, monkeypatch):
     eng, conn = _engine_with(metrics=[_metric_row()])
-    monkeypatch.setattr(rv, "engine_nexora_db", eng)
+    monkeypatch.setattr(_shared, "engine_nexora_db", eng)
 
     with app.app_context():
         out1 = rv._load_db_metrics()
@@ -196,7 +203,7 @@ def test_load_db_metrics_caches_within_ttl(app, monkeypatch):
 
 def test_load_db_metrics_failure_is_not_cached(app, monkeypatch):
     eng = _dead_engine()
-    monkeypatch.setattr(rv, "engine_nexora_db", eng)
+    monkeypatch.setattr(_shared, "engine_nexora_db", eng)
 
     with app.app_context():
         assert rv._load_db_metrics() == {}
@@ -207,7 +214,7 @@ def test_load_db_metrics_failure_is_not_cached(app, monkeypatch):
 
 def test_invalidate_reporting_metrics_drops_cache(app, monkeypatch):
     eng, _ = _engine_with(metrics=[_metric_row()])
-    monkeypatch.setattr(rv, "engine_nexora_db", eng)
+    monkeypatch.setattr(_shared, "engine_nexora_db", eng)
 
     with app.app_context():
         rv._load_db_metrics()
@@ -221,7 +228,7 @@ def test_invalidate_reporting_metrics_drops_cache(app, monkeypatch):
 
 def test_sources_and_metrics_caches_are_independent(app, monkeypatch):
     eng, _ = _engine_with(sources=[_source_row()], metrics=[_metric_row()])
-    monkeypatch.setattr(rv, "engine_nexora_db", eng)
+    monkeypatch.setattr(_shared, "engine_nexora_db", eng)
 
     with app.app_context():
         rv._load_db_sources()

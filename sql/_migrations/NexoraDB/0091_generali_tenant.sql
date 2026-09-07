@@ -44,25 +44,10 @@ INSERT INTO dbo.Permission (Code, Description)
 SELECT 'tenant.generali.edit', 'Edit generali tenant records'
 WHERE NOT EXISTS (SELECT 1 FROM dbo.Permission WHERE Code = 'tenant.generali.edit');
 GO
-INSERT INTO dbo.UserPermissionOverride (UserID, PermissionID, Effect)
-SELECT DISTINCT u.userID, tv.PermissionID, 'A'
-  FROM dbo.Users u
-  JOIN dbo.Permission tv ON tv.Code = 'tenant.generali.view'
- WHERE EXISTS (
-        SELECT 1 FROM dbo.UserPermissionOverride o
-        JOIN dbo.Permission p ON p.PermissionID = o.PermissionID
-        WHERE o.UserID = u.userID AND o.Effect = 'A' AND p.Code LIKE 'generali.%.view'
-       )
-    OR EXISTS (
-        SELECT 1 FROM dbo.AccessProfilePermission app
-        JOIN dbo.Permission p ON p.PermissionID = app.PermissionID
-        WHERE app.AccessID = u.accessid AND app.Effect = 'ALLOW' AND p.Code LIKE 'generali.%.view'
-       )
-   AND NOT EXISTS (
-        SELECT 1 FROM dbo.UserPermissionOverride o2
-        WHERE o2.UserID = u.userID AND o2.PermissionID = tv.PermissionID
-       );
-GO
+-- (The grant step that stood here matched nothing -- see 0092, which redoes it --
+--  and read AccessProfilePermission.Effect, a column 0086 (#238) drops. On PROD
+--  0086 runs first, so the step is gone rather than broken. Edited after INT
+--  applied it; checksum re-blessed. See docs/howto/db-migrations.md.)
 
 -- 5. Pages: one 'custom' mount per existing Generali page, in the sidebar's old order.
 --    LayoutJSON carries endpoint + label + icon + the active_page value the page sets,

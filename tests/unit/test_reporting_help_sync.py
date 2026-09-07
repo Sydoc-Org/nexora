@@ -39,8 +39,16 @@ def test_silent_when_guide_updated_alongside():
 
 
 def test_silent_when_tips_panel_updated_alongside():
-    staged = ["nx_lib/views/reporting.py", "templates/_reporting_help.html"]
+    staged = ["nx_lib/views/reporting/pages.py", "templates/_reporting_help.html"]
     assert MOD.stale_help_warning(staged) is None
+
+
+def test_warns_for_package_submodule_without_help():
+    """A change under the reporting/ package trips the guard like the old
+    single-file nx_lib/views/reporting.py used to."""
+    warning = MOD.stale_help_warning(["nx_lib/views/reporting/pages.py"])
+    assert warning is not None
+    assert "nx_lib/views/reporting/pages.py" in warning
 
 
 def test_help_partial_itself_does_not_trigger():

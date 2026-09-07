@@ -13,7 +13,7 @@
 
         // White-label branding (#98 phase 4). Branding belongs to the customer
         // organization, never to a runtime client source. The panel and every
-        // affordance are server-gated on admin.edit.organization.branding, so a
+        // affordance are server-gated on admin.organizations.branding.edit, so a
         // viewer never gets a 403 toast after a click.
         const canEditBranding = {{ (can_edit_branding | default(false)) | tojson }};
         const orgBranding = {};
@@ -211,7 +211,7 @@
 
         // ------------------------------ branding panel ------------------------------
         // Rendered only when the server says the viewer holds
-        // admin.edit.organization.branding, so every element below may be absent.
+        // admin.organizations.branding.edit, so every element below may be absent.
         const brandingPanel = document.getElementById('org-branding-panel');
         const brandingForm = document.getElementById('org-branding-form');
 
