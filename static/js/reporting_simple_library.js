@@ -281,6 +281,7 @@
       // D17: a dashboard-kind report routes to the builder view instead of
       // the normal single-report result view.
       if (r.kind === 'dashboard') { openDashboard(r); return; }
+      if (r.kind === 'layout') { RS.setView('layouts'); window.ReportingLayouts.openLayout(r); return; }
       openReport(r);
     });
     wrap.appendChild(b);
@@ -369,6 +370,7 @@
     // second instead of trickling in card by card.
     var idx = 0;
     list.forEach(function (r) {
+      if (r.kind === 'layout') return;
       if (q && r.name.toLowerCase().indexOf(q) === -1) return;
       var g = r.visibility === 'shared' ? 'shared' : (r.owned ? 'mine' : 'direct');
       var c = card(r);
