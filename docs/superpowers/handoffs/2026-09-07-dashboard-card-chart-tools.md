@@ -1,3 +1,9 @@
+> **Superseded on the same date —** a later session wrote
+> [`2026-09-07-live-sql-all-databases-advanced-rail.md`](2026-09-07-live-sql-all-databases-advanced-rail.md)
+> (Advanced back in the rail, Live SQL across every reporting database). Read that one
+> first for current branch state; this file is still the reference for the dashboard
+> card chart tools.
+
 # Handoff — dashboard cards carry the Results tab's chart tools, FLIP drag
 
 **Date:** 2026-09-07 · **Branch:** `refactor/255-admin-nav-tenancy-labels` · nothing pushed ·

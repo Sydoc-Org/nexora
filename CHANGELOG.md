@@ -51,6 +51,10 @@ Work toward the next release.
   slot; the new Generali SQL target sorted first and probed as down (no RO login),
   turning a green card amber. A reachable source now wins the slot.
 
+- **Short dashboard cards can stack beside a tall one.** Cards used to occupy one
+  auto-sized grid row each, so a KPI next to a 3-row chart pushed the next KPI
+  below the chart. Cards now span real row tracks (`grid-row: span rows`) with
+  dense flow, so two 1-row KPIs sit stacked next to the chart.
 - **Present mode had no margins.** The full-bleed padding rule out-ranked the
   fullscreen one, so the dashboard sat border-on-border on a wall screen.
 - **Forecast on a dashboard card "did nothing".** On a report with more than one
