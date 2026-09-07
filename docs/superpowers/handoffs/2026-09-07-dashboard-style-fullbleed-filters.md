@@ -1,3 +1,5 @@
+> **Superseded the same day** — continue from [`2026-09-07-dashboard-card-chart-tools.md`](2026-09-07-dashboard-card-chart-tools.md).
+
 # Handoff — dashboard restyle, full-bleed + Present, report-derived filter bar
 
 **Date:** 2026-09-07 · **Branch:** `refactor/255-admin-nav-tenancy-labels` · nothing pushed ·
