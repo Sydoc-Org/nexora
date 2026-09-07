@@ -16,9 +16,17 @@ from ...db import engine_nexora_db
 from ...extensions import limiter
 from ...i18n import get_locale
 from ...reporting.catalog import fetch_docprocessing_catalog
+from ...reporting.contribution import (
+    contribution_rows,
+    fill_shares,
+    is_ratio_metric,
+    pick_dimensions,
+    single_dimension_definition,
+)
 from ...reporting.forecast import compute_forecast
 from ...reporting.query import QueryBuildError
 from ...reporting.sandbox import MAX_SQL_LEN, SqlSandboxError, humanize_sql_error
+from ...reporting.schedule import total_definition
 from ...reporting.schema import ReportDefinitionError
 from ...reporting.semantic import MetricResolveError
 from ...reporting.sources import DEFAULT_ROW_LIMIT, MAX_ROW_LIMIT, SQL_ROW_CAP, accessible
@@ -35,6 +43,7 @@ from ._shared import (
     _SQL_TARGET_PERMISSION,
     _allowed_processes,
     _authorize_sql_target,
+    _catalog_for_source,
     _effective_sources,
     _execute,
     _get_effective_source,
@@ -225,6 +234,102 @@ def api_run():
     return jsonify(payload)
 
 
+def _grand_total(rd):
+    """Single cell of the zero-column clone (the KPI band's own Total)."""
+    clone = total_definition(rd)
+    columns, sql, params, engine = _prepare_run(clone)
+    rows = _execute(engine, sql, params)
+    cell = rows[0][0] if rows and rows[0] else 0
+    try:
+        return float(cell) if cell is not None else 0.0
+    except (TypeError, ValueError):
+        return 0.0
+
+
+@require_permission("reporting.view")
+@limiter.limit("120 per minute")
+def api_contribution():
+    """Decompose the first metric's change vs. the shifted prior window by a
+    few categorical dimensions (spec 2026-09-07-reporting-contribution-analysis).
+    Every query goes through _prepare_run, so grants/scope equal the report's."""
+    rd = request.get_json(silent=True)
+    if not isinstance(rd, dict):
+        return jsonify({"error": _("Invalid JSON body")}), 400
+    metrics = rd.get("metrics") or []
+    if not metrics or not isinstance(metrics[0], dict) or not metrics[0].get("metric"):
+        return jsonify({"error": _("This report has no measure to explain.")}), 400
+    shifted = shifted_definition_for_comparison(rd)
+    if shifted is None:
+        return jsonify(
+            {
+                "error": _(
+                    "No comparison window — the report needs exactly one relative-date filter."
+                )
+            }
+        ), 400
+    shifted_rd, prior_start, prior_end = shifted
+    source = _get_effective_source(rd.get("source"))
+    if source is None or source.get("kind") != "curated":
+        return jsonify({"error": _("This report definition is invalid or outdated.")}), 400
+    if not has_permission(source["permission"]):
+        return jsonify({"error": _("Not authorized for this source")}), 403
+    metric_code = metrics[0]["metric"]
+    try:
+        catalog, _fields, _filterable, _sortable = _catalog_for_source(source)
+        source_metrics = _metrics_for_source(source["id"], get_locale())
+        current_total = _grand_total(rd)
+        prior_total = _grand_total(shifted_rd)
+    except PermissionError:
+        return jsonify({"error": _("Not authorized for this source")}), 403
+    except (ReportDefinitionError, QueryBuildError, TableQueryError, MetricResolveError) as e:
+        return jsonify(
+            {"error": _("This report definition is invalid or outdated."), "detail": str(e)}
+        ), 400
+    except Exception as e:
+        current_app.logger.error(f"/api/reporting/contribution prepare error: {e}")
+        return jsonify({"error": _("Could not build report")}), 500
+
+    metric_def = source_metrics.get(metric_code) or {}
+    is_ratio = is_ratio_metric(metric_def)
+    dimensions, skipped = [], []
+    for dim in pick_dimensions(catalog, rd.get("filters") or []):
+        field = dim["field"]
+        try:
+            c_cols, c_sql, c_params, c_engine = _prepare_run(
+                single_dimension_definition(rd, field, metric_code)
+            )
+            p_cols, p_sql, p_params, p_engine = _prepare_run(
+                single_dimension_definition(shifted_rd, field, metric_code)
+            )
+            c_rows = _execute(c_engine, c_sql, c_params)
+            p_rows = _execute(p_engine, p_sql, p_params)
+        except Exception as e:  # one unqueryable column must not sink the drawer
+            current_app.logger.warning(f"/api/reporting/contribution skipped {field}: {e}")
+            skipped.append(field)
+            continue
+        dimensions.append(
+            {
+                "field": field,
+                "label": dim.get("label") or field,
+                "rows": contribution_rows(c_rows, p_rows, top=8),
+            }
+        )
+    fill_shares(dimensions, current_total - prior_total, is_ratio)
+    return jsonify(
+        {
+            "priorStart": prior_start.isoformat(),
+            "priorEnd": prior_end.isoformat(),
+            "metric": metric_code,
+            "metricLabel": metric_def.get("label") or metric_code,
+            "isRatio": is_ratio,
+            "currentTotal": current_total,
+            "priorTotal": prior_total,
+            "dimensions": dimensions,
+            "skipped": skipped,
+        }
+    )
+
+
 def _sandbox_error_message(e):
     """Translated user-facing message for a SqlSandboxError, keyed by rule.
 
@@ -325,5 +430,11 @@ def register_routes(app):
         "/api/reporting/sql/ack",
         endpoint="reporting_sql_ack",
         view_func=api_sql_ack,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/api/reporting/contribution",
+        endpoint="reporting_contribution",
+        view_func=api_contribution,
         methods=["POST"],
     )
