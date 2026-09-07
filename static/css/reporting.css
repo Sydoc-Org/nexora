@@ -2498,12 +2498,21 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 .rdb-grid {
   --rdb-row: 118px; --rdb-gap: 14px;
   display: grid; grid-template-columns: repeat(12, 1fr); gap: var(--rdb-gap);
+  /* Real row tracks: a card SPANS --rdb-cardrows of them (grid-row below), so
+     a 3-row chart beside two 1-row KPIs leaves the KPIs free to stack in the
+     same columns. Dense flow backfills such holes with later short cards.
+     minmax(.., auto) lets a whole-report card (height: auto) grow its last
+     row instead of overflowing it. */
+  grid-auto-rows: minmax(var(--rdb-row), auto); grid-auto-flow: row dense;
 }
 .rdb-card {
   background: var(--nx-card); border: 1px solid var(--nx-border);
   border-radius: var(--nx-radius-lg); padding: 14px 18px; box-sizing: border-box;
   min-width: 0; position: relative;  /* anchors the edit-mode control cluster */
   display: flex; flex-direction: column;
+  grid-row: span var(--rdb-cardrows, 2);
+  /* Definite height (not stretch): a chart canvas inside an auto-sized track
+     has no height to fill and grows the track instead -- the chart-fill trap. */
   height: calc(var(--rdb-cardrows, 2) * var(--rdb-row) +
                (var(--rdb-cardrows, 2) - 1) * var(--rdb-gap));
 }
@@ -2914,7 +2923,7 @@ body.reporting-console .rdb-card .rdb-card-tools, .rdb-card .rdb-card-tools {
    KPI tiles run in one strip above the chart exactly like #rsKpiBand, and
    the chart takes the full width. The pick overlay (no .rdb-card around it)
    keeps the compact rail + chart layout, which reads well as a builder. */
-.rdb-card[data-type="report"] { height: auto; }
+.rdb-card[data-type="report"] { height: auto; align-self: start; }
 .rdb-card[data-type="report"] .rdb-report { grid-template-columns: 1fr; gap: 12px; }
 .rdb-card[data-type="report"] .rdb-report-kpis {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px;
