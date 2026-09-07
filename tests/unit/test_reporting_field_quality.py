@@ -18,8 +18,8 @@ MIGRATIONS = REPO_ROOT / "sql" / "_migrations" / "NexoraDB"
 # 0097 created the source and its measures; 0100 unioned it across all seven
 # clients and owns the current catalog. Both stay in scope: the measures live in
 # one file and the columns they aggregate in the other.
-CREATE = MIGRATIONS / "0097_em_field_extraction_quality.sql"
-UNION = MIGRATIONS / "0100_field_quality_all_clients.sql"
+CREATE = MIGRATIONS / "0107_em_field_extraction_quality.sql"
+UNION = MIGRATIONS / "0110_field_quality_all_clients.sql"
 
 # Every telemetry table in the statistics DB. Adding a client means adding a
 # UNION ALL block; this list is what makes forgetting one a test failure.
@@ -137,7 +137,7 @@ def test_no_raw_document_values_are_exposed(catalog):
 
 # --- 0101: onboarded processes only -----------------------------------------
 
-ONBOARDED = MIGRATIONS / "0101_field_quality_onboarded_processes.sql"
+ONBOARDED = MIGRATIONS / "0111_field_quality_onboarded_processes.sql"
 
 
 @pytest.fixture(scope="module")

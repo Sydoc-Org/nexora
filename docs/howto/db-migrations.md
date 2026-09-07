@@ -319,7 +319,7 @@ GO
 
 A variable whose env var is unset is not passed at all, so sqlcmd fails loudly
 on `$(Name)` rather than silently substituting an empty database name. Worked
-example: `0097_em_field_extraction_quality.sql`.
+example: `0107_em_field_extraction_quality.sql`.
 
 ### Touching a column a *lower-numbered* migration may drop
 
@@ -345,7 +345,7 @@ ELSE
                              (AccessID, PermissionID) ...';
 ```
 
-Worked example: the permission grant in `0097_em_field_extraction_quality.sql`,
+Worked example: the permission grant in `0107_em_field_extraction_quality.sql`,
 written before `0086_permission_cleanup_and_rank.sql` retired
 `AccessProfilePermission.Effect`.
 
