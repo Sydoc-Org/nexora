@@ -237,6 +237,7 @@ def api_run():
 def _grand_total(rd):
     """Single cell of the zero-column clone (the KPI band's own Total)."""
     clone = total_definition(rd)
+    clone["metrics"] = [rd["metrics"][0]]
     columns, sql, params, engine = _prepare_run(clone)
     rows = _execute(engine, sql, params)
     cell = rows[0][0] if rows and rows[0] else 0
@@ -258,7 +259,12 @@ def api_contribution():
     metrics = rd.get("metrics") or []
     if not metrics or not isinstance(metrics[0], dict) or not metrics[0].get("metric"):
         return jsonify({"error": _("This report has no measure to explain.")}), 400
-    shifted = shifted_definition_for_comparison(rd)
+    try:
+        shifted = shifted_definition_for_comparison(rd)
+    except ValueError as e:
+        return jsonify(
+            {"error": _("This report definition is invalid or outdated."), "detail": str(e)}
+        ), 400
     if shifted is None:
         return jsonify(
             {
@@ -303,6 +309,9 @@ def api_contribution():
             )
             c_rows = _execute(c_engine, c_sql, c_params)
             p_rows = _execute(p_engine, p_sql, p_params)
+            rows = contribution_rows(c_rows, p_rows, top=8)
+        except PermissionError:
+            return jsonify({"error": _("Not authorized for this source")}), 403
         except Exception as e:  # one unqueryable column must not sink the drawer
             current_app.logger.warning(f"/api/reporting/contribution skipped {field}: {e}")
             skipped.append(field)
@@ -311,7 +320,7 @@ def api_contribution():
             {
                 "field": field,
                 "label": dim.get("label") or field,
-                "rows": contribution_rows(c_rows, p_rows, top=8),
+                "rows": rows,
             }
         )
     fill_shares(dimensions, current_total - prior_total, is_ratio)

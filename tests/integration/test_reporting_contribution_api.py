@@ -2,6 +2,8 @@
 
 import pytest
 
+from nx_lib.db import engine_nexora_db
+
 SOURCE = {
     "code": "contrib_test_src",
     "kind": "curated",
@@ -99,29 +101,53 @@ def test_contribution_without_token_window_400(admin_client, contrib_source):
 
 def test_contribution_shape_and_totals_match_run(admin_client, contrib_source):
     rd = _definition([TOKEN_FILTER])
-    resp = admin_client.post("/api/reporting/contribution", json=rd)
-    assert resp.status_code == 200, resp.data
-    body = resp.get_json()
-    assert set(body) >= {
-        "priorStart",
-        "priorEnd",
-        "metric",
-        "metricLabel",
-        "isRatio",
-        "currentTotal",
-        "priorTotal",
-        "dimensions",
-        "skipped",
-    }
-    assert body["metric"] == "contrib_test_count" and body["isRatio"] is False
-    # string columns in catalog order, no processname on a table source
-    assert [d["field"] for d in body["dimensions"]] == ["Email", "locale"]
-    assert body["dimensions"][0]["label"] == "Email"
-    for row in body["dimensions"][0]["rows"]:
-        assert set(row) == {"value", "current", "prior", "delta", "share"}
-    # D3: header total is the zero-column run's grand total
-    run = admin_client.post("/api/reporting/run", json=rd).get_json()
-    assert body["currentTotal"] == float(run["rows"][0][0])
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE dbo.Users SET LastLoginAt = GETDATE() WHERE Email = ?",
+            ("admin@test.local",),
+        )
+        conn.commit()
+
+        resp = admin_client.post("/api/reporting/contribution", json=rd)
+        assert resp.status_code == 200, resp.data
+        body = resp.get_json()
+        assert set(body) >= {
+            "priorStart",
+            "priorEnd",
+            "metric",
+            "metricLabel",
+            "isRatio",
+            "currentTotal",
+            "priorTotal",
+            "dimensions",
+            "skipped",
+        }
+        assert body["metric"] == "contrib_test_count" and body["isRatio"] is False
+        # string columns in catalog order, no processname on a table source
+        assert [d["field"] for d in body["dimensions"]] == ["Email", "locale"]
+        assert body["dimensions"][0]["label"] == "Email"
+        assert body["dimensions"][0]["rows"]  # non-vacuous: at least one contributor
+        for row in body["dimensions"][0]["rows"]:
+            assert set(row) == {"value", "current", "prior", "delta", "share"}
+        # D3: header total is the zero-column run's grand total
+        run = admin_client.post("/api/reporting/run", json=rd).get_json()
+        assert body["currentTotal"] == float(run["rows"][0][0])
+    finally:
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE dbo.Users SET LastLoginAt = NULL WHERE Email = ?",
+            ("admin@test.local",),
+        )
+        conn.commit()
+        conn.close()
+
+
+def test_contribution_malformed_token_400(admin_client, contrib_source):
+    bad_filter = {"field": "LastLoginAt", "op": "between", "value": {"token": "bogus"}}
+    resp = admin_client.post("/api/reporting/contribution", json=_definition([bad_filter]))
+    assert resp.status_code == 400
 
 
 def test_contribution_eq_filter_drops_that_dimension(admin_client, contrib_source):
@@ -132,4 +158,4 @@ def test_contribution_eq_filter_drops_that_dimension(admin_client, contrib_sourc
 
 def test_contribution_without_permission_403(contrib_source, user_client):
     resp = user_client.post("/api/reporting/contribution", json=_definition([TOKEN_FILTER]))
-    assert resp.status_code in (403, 400)  # user@test.local lacks the source perm
+    assert resp.status_code == 403  # require_permission("reporting.view") denies user@test.local
