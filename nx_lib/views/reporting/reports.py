@@ -15,6 +15,7 @@ from flask_babel import gettext as _
 
 from ...db import engine_nexora_db
 from ...extensions import limiter
+from ...reporting.schema import ReportDefinitionError, validate_layout_definition
 from ...security import require_permission
 
 
@@ -209,6 +210,20 @@ def api_reports_get(report_id):
         conn.close()
 
 
+def _layout_error(rd):
+    """400 body for a malformed kind:'layout' definition, else None. Dashboards
+    and report definitions are (still) not validated on save — the run path
+    validates them; layouts are validated here because nothing else runs them
+    before a report references them."""
+    if not isinstance(rd, dict) or rd.get("kind") != "layout":
+        return None
+    try:
+        validate_layout_definition(rd)
+    except ReportDefinitionError as e:
+        return jsonify({"error": _("This report definition is invalid."), "detail": str(e)}), 400
+    return None
+
+
 @require_permission("reporting.view")
 @limiter.limit("60 per minute")
 def api_reports_create():
@@ -218,6 +233,9 @@ def api_reports_create():
     rd = payload.get("definition")
     if not name or not isinstance(rd, dict):
         return jsonify({"error": _("name and definition are required")}), 400
+    bad = _layout_error(rd)
+    if bad:
+        return bad
     definition_json = json.dumps(rd, ensure_ascii=False)
     if len(definition_json) > 64_000:
         return jsonify({"error": _("Report definition too large")}), 400
@@ -249,6 +267,9 @@ def api_reports_update(report_id):
     rd = payload.get("definition")
     if not name or not isinstance(rd, dict):
         return jsonify({"error": _("name and definition are required")}), 400
+    bad = _layout_error(rd)
+    if bad:
+        return bad
     definition_json = json.dumps(rd, ensure_ascii=False)
     if len(definition_json) > 64_000:
         return jsonify({"error": _("Report definition too large")}), 400

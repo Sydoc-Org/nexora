@@ -1804,3 +1804,37 @@ def test_field_values_without_perm_403(user_client):
         json={"source": "field_values_test_src", "field": "username"},
     )
     assert resp.status_code == 403
+
+
+# --- Task 3: Layout validation on save ---
+
+
+_LAYOUT_OK = {
+    "kind": "layout",
+    "schemaVersion": 1,
+    "title": "Ops standard",
+    "measures": [{"id": "m1", "op": "mean"}],
+    "tiles": [{"id": "t1", "type": "kpi", "measure": "m1", "span": 3, "rows": 2}],
+}
+
+
+def test_reports_create_layout_is_validated(admin_client):
+    bad = dict(_LAYOUT_OK, measures=[{"id": "m1", "op": "delta"}])
+    resp = admin_client.post("/api/reporting/reports", json={"name": "L", "definition": bad})
+    assert resp.status_code == 400
+    assert "delta" in resp.get_json()["detail"]
+
+
+def test_reports_create_layout_ok_then_update_is_validated(admin_client):
+    resp = admin_client.post("/api/reporting/reports", json={"name": "L", "definition": _LAYOUT_OK})
+    assert resp.status_code == 200
+    rid = resp.get_json()["id"]
+    try:
+        bad = dict(_LAYOUT_OK, tiles=[{"id": "t1", "type": "table", "span": 99, "rows": 1}])
+        upd = admin_client.put(
+            f"/api/reporting/reports/{rid}", json={"name": "L", "definition": bad}
+        )
+        assert upd.status_code == 400
+        assert "span" in upd.get_json()["detail"]
+    finally:
+        admin_client.delete(f"/api/reporting/reports/{rid}")
