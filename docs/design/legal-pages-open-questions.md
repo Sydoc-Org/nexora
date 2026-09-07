@@ -10,6 +10,48 @@ put to whoever owns the decision. It is deliberately not a legal document and
 not legal advice — it is the set of facts and choices the pages need before
 they can be published.
 
+> ## PARKED until late September 2026
+>
+> Waiting on the person who owns the client contracts, who is away for about
+> two weeks from 2026-09-07. The three of us — contract owner, Ben and Gregory
+> — will work through the questions below together and agree a finished text
+> before anything goes on the site.
+>
+> **Nothing is blocked by this and nothing is exposed.** `/terms` and
+> `/privacy` do not exist on `main`: no template, no routes in
+> `nx_lib/views/core.py`, no links in the header or footer. PR #264 is closed,
+> so there is no open pull request, no CI running on this branch, and nothing
+> to review or accidentally merge.
+>
+> **Leave this branch completely alone until then.** It touches
+> `messages.pot`, all three `.po`/`.mo` catalogues and
+> `templates/_header.html` — the files most likely to move under us, and
+> exactly the ones the permission rename will rewrite. Merging `main` in
+> repeatedly means resolving the same conflicts several times.
+>
+> **To resume:**
+>
+> 1. Merge `main` in **once**. Do not hand-merge the catalogues — take
+>    `main`'s version wholesale, then re-run `pybabel extract → update →
+>    compile` and re-translate the legal strings. See CLAUDE.md on generated
+>    files.
+> 2. Work through sections 1–4 with the contract owner. Section 5 says which
+>    of them the contract can answer instead of the page.
+> 3. Expect **engineering work, not only wording**, from the retention
+>    answers: there is no request-log expiry at all, and the session prune
+>    (#227) needs a scheduled task on the app host before it deletes anything.
+> 4. Remove the draft banner **last**, once a qualified reviewer has signed
+>    the text off. `tests/integration/test_legal_pages.py` pins the banner and
+>    the absence of any retention claim, so both are deliberate failures if
+>    you remove them early.
+>
+> **Not pushed.** The three commits on `feat/260-legal-pages` are local only.
+> The pre-push gate failed three times on the shared `NEXORA_TEST` database
+> while another developer was working against it — three different,
+> non-reproducible breakages, none in this change. Retrying holds that shared
+> lock for ten to twenty minutes each time, which is worse than waiting. Push
+> once the permission-rename branch has landed and the database is stable.
+
 **Status:** 13 sections drafted, 12 gaps open. Every gap is marked in the page
 itself as a *To be completed* note, so the page and this document cannot drift
 apart silently.
