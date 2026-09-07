@@ -45,6 +45,19 @@ Work toward the next release.
   set. Without the fallbacks an unsupplied key renders blank -- quieter than
   a stale English word, but silent -- and nothing previously checked that
   the two files agreed.
+- **Expired `dbo.ActiveSessions` rows are deleted** (#227). Session expiry was
+  implemented on one half only: the session *files* were pruned on a schedule,
+  the database rows never were, so PROD had accumulated 1,558 rows of which
+  ~93% were expired and the oldest was four months old. An orphaned row cannot
+  authenticate -- its file is gone -- but it still claims to be a session.
+  `ops/cleanup/prune_active_sessions.py` now removes them, with retention
+  derived as `SESSION_LIFETIME + SESSION_ROW_RETENTION_GRACE` (24 h + 7 days)
+  from `nx_lib/config.py` rather than restated, so it cannot drift below the
+  lifetime of a live session and sign someone out. Straight delete, no archive:
+  every reader of the table filters to the last 30 minutes, login history
+  already lives in `dbo.Logs` and `Users.LastLoginAt`, and the one field not
+  duplicated elsewhere is `IPAddress` -- personal data with no retention
+  purpose. `--dry-run` reports without writing.
 - **The 2FA screen works in dark mode** (#243). It never set Tailwind's
   `darkMode: 'class'`, so every `dark:` utility followed the OS
   `prefers-color-scheme` instead of the page's own `.dark` class -- the
