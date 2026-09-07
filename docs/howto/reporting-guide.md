@@ -47,6 +47,30 @@ guide as an app page.
 - Relative presets stay relative: a report saved with "This month" shows the
   current month on every run and in every scheduled mail. Schedule times are
   UTC.
+- To see **which document fields extraction gets right**, pick the "Field
+  extraction quality" measure **"Extraction correct %"** and break down by
+  **Field**. Sort by the measure ascending and the worst field is the top row.
+- That source covers **every customer whose process is onboarded in nexora**, so
+  break down by **Customer** to compare them, or add a Customer filter to look at
+  one. Field names are translated to a shared vocabulary first, which is what
+  makes the comparison meaningful: whatever each customer calls its invoice
+  number, it lands on the same "Invoice number" row. **Stream** splits a customer
+  that runs more than one document flow.
+- The measure list is grouped by source, and the process list only offers
+  processes nexora has actually onboarded — Octo's own internal process names
+  are not reportable. If a process you expect is missing, it needs onboarding;
+  it is not a display filter you can switch off.
+- Two traps on that source. Use **"Extraction correct %"**, not "Extracted %":
+  the latter only asks whether the machine put *anything* in the box, and
+  everything Octo fills in automatically comes back fully extracted. And stay
+  on **Field** rather than "Field (incl. unmapped)" or "Field (Octo raw
+  name)": those two list all ~630 names Octo emits, 230 of which are internal
+  bookkeeping pinned at the maximum, so a chart of them is just flat lines
+  along the top and tells you nothing. "Field" is the ~20 fields nexora knows
+  about, plus one empty bucket for the rest.
+- A field with a **high "Avg. 2nd-candidate confidence %"** sitting close to its
+  best-candidate confidence means the extractor was torn between two readings —
+  usually a better thing to fix than a field that is simply never found.
 - The palette button in the chart toolbar recolours each series and the
   title, and puts a series on its own right-hand axis — Backlog starts there
   by default so a few hundred stays readable next to tens of thousands. Picks

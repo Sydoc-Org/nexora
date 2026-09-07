@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-07 08:35+0200\n"
+"POT-Creation-Date: 2026-09-07 10:01+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1796,121 +1796,117 @@ msgstr ""
 msgid "Global Dashboard"
 msgstr ""
 
-#: templates/_header.html:326 templates/generali-dashboard.html:69
-#: templates/generali_additionalservices.html:52
-#: templates/generali_baseservices.html:52 templates/generali_documents.html:45
-#: templates/generali_projectmanagement.html:52 templates/js/_header_js.html:42
-#: templates/reporting.html:79
-msgid "Reporting"
+#: templates/_header.html:326
+msgid "Global Reporting"
 msgstr ""
 
 #: templates/_header.html:327 templates/workitems_overview.html:62
 msgid "Global Workitems"
 msgstr ""
 
-#: templates/_header.html:436 templates/_header.html:438
+#: templates/_header.html:438 templates/_header.html:440
 #: templates/appearance.html:302 templates/appearance.html:307
 #: templates/js/_header_js.html:13
 msgid "Keep sidebar open"
 msgstr ""
 
-#: templates/_header.html:442 templates/js/_header_js.html:56
+#: templates/_header.html:444 templates/js/_header_js.html:56
 msgid "Toggle dark mode"
 msgstr ""
 
-#: templates/_header.html:444
+#: templates/_header.html:446
 msgid "Dark Mode"
 msgstr ""
 
-#: templates/_header.html:452 templates/profile.html:44
+#: templates/_header.html:454 templates/profile.html:44
 #: templates/profile.html:123
 msgid "Profile Picture"
 msgstr ""
 
-#: templates/_header.html:462
+#: templates/_header.html:464
 msgid "Your profile"
 msgstr ""
 
-#: templates/_header.html:466 templates/appearance.html:34
+#: templates/_header.html:468 templates/appearance.html:34
 #: templates/js/_header_js.html:57 templates/profile.html:75
 #: templates/profile.html:317
 msgid "Appearance"
 msgstr ""
 
-#: templates/_header.html:470 templates/js/_header_js.html:58
+#: templates/_header.html:472 templates/js/_header_js.html:58
 #: templates/whats_new.html:79
 msgid "What's New"
 msgstr ""
 
-#: templates/_header.html:475 templates/feedback.html:34
+#: templates/_header.html:477 templates/feedback.html:34
 #: templates/js/_header_js.html:59
 msgid "Feedback"
 msgstr ""
 
-#: templates/_header.html:482 templates/_header.html:552
-#: templates/_header.html:555
+#: templates/_header.html:484 templates/_header.html:554
+#: templates/_header.html:557
 msgid "Keyboard shortcuts"
 msgstr ""
 
-#: templates/_header.html:486 templates/_small_footer.html:28
+#: templates/_header.html:488 templates/_small_footer.html:28
 #: templates/reporting.html:86
 msgid "Help"
 msgstr ""
 
-#: templates/_header.html:492 templates/_header.html:534
+#: templates/_header.html:494 templates/_header.html:536
 msgid "Switch user"
 msgstr ""
 
-#: templates/_header.html:498 templates/js/_header_js.html:60
+#: templates/_header.html:500 templates/js/_header_js.html:60
 #: templates/profile.html:82
 msgid "Sign out"
 msgstr ""
 
-#: templates/_header.html:515
+#: templates/_header.html:517
 msgid "Command palette"
 msgstr ""
 
-#: templates/_header.html:519
+#: templates/_header.html:521
 msgid "Type a command or search..."
 msgstr ""
 
-#: templates/_header.html:524
+#: templates/_header.html:526
 msgid "navigate"
 msgstr ""
 
-#: templates/_header.html:525
+#: templates/_header.html:527
 msgid "open"
 msgstr ""
 
-#: templates/_header.html:526
+#: templates/_header.html:528
 msgid "close"
 msgstr ""
 
-#: templates/_header.html:538
+#: templates/_header.html:540
 msgid "Switch to user..."
 msgstr ""
 
-#: templates/_header.html:559 templates/admin/access_control.html:130
+#: templates/_header.html:561 templates/admin/access_control.html:130
 msgid "Global"
 msgstr ""
 
-#: templates/_header.html:561
+#: templates/_header.html:563
 msgid "Open command palette"
 msgstr ""
 
-#: templates/_header.html:565
+#: templates/_header.html:567
 msgid "Show this shortcuts overlay"
 msgstr ""
 
-#: templates/_header.html:569
+#: templates/_header.html:571
 msgid "Close the open dialog or panel"
 msgstr ""
 
-#: templates/_header.html:574
+#: templates/_header.html:576
 msgid "Document viewer"
 msgstr ""
 
-#: templates/_header.html:576
+#: templates/_header.html:578
 msgid "Previous / next document page"
 msgstr ""
 
@@ -1963,20 +1959,59 @@ msgid ""
 msgstr ""
 
 #: templates/_reporting_help.html:18
+#, python-format
+msgid ""
+"To see which document fields extraction gets right, pick the “Field "
+"extraction quality” measure “Extraction correct %%” and break down by "
+"“Field”. Sort ascending and the worst field is the top row."
+msgstr ""
+
+#: templates/_reporting_help.html:19
+#, python-format
+msgid ""
+"Two traps on that source. Use “Extraction correct %%”, not “Extracted %%”"
+" — the latter only asks whether the machine put anything in the box, and "
+"everything Octo fills automatically comes back fully extracted. And stay "
+"on “Field” rather than “Field (incl. unmapped)” or “Field (Octo raw "
+"name)”: those list all ~630 names Octo emits, 230 of them internal "
+"bookkeeping pinned at the maximum, so the chart is just flat lines along "
+"the top."
+msgstr ""
+
+#: templates/_reporting_help.html:20
+msgid ""
+"That source covers every customer whose process is onboarded in nexora. "
+"Break down by “Customer” to compare them, or filter to one. Field names "
+"are translated to a shared vocabulary first, so whatever each customer "
+"calls its invoice number lands on the same row — that is what makes the "
+"comparison meaningful. “Stream” splits a customer running more than one "
+"document flow. The process list only offers processes nexora has "
+"onboarded; Octo’s own internal process names are not reportable."
+msgstr ""
+
+#: templates/_reporting_help.html:21
+#, python-format
+msgid ""
+"A field whose “Avg. 2nd-candidate confidence %%” sits close to its best-"
+"candidate confidence means the extractor was torn between two readings — "
+"usually more worth fixing than a field that is simply never found."
+msgstr ""
+
+#: templates/_reporting_help.html:22
 msgid ""
 "The chips above a result are editable: the Processes chip and any “is one"
 " of” filter open a checkbox picker — ticking everything removes the "
 "restriction."
 msgstr ""
 
-#: templates/_reporting_help.html:19
+#: templates/_reporting_help.html:23
 msgid ""
 "Imports, exports and backlog in one chart: pick “Documents imported”, "
 "“Documents exported” and “Backlog” together, then break down “Over time "
 "(Date)” — one line per measure on a shared time axis."
 msgstr ""
 
-#: templates/_reporting_help.html:20
+#: templates/_reporting_help.html:24
 msgid ""
 "Time charts stop at today: the period that contains today is faded/dashed"
 " because it is still filling up, months that haven’t happened aren’t "
@@ -1984,7 +2019,7 @@ msgid ""
 "Backlog’s Total is the newest snapshot."
 msgstr ""
 
-#: templates/_reporting_help.html:21
+#: templates/_reporting_help.html:25
 msgid ""
 "The palette button in the chart toolbar recolours each series and the "
 "title, and puts a series on its own right-hand axis — Backlog starts "
@@ -1992,18 +2027,18 @@ msgid ""
 "thousands. Picks are saved with the report."
 msgstr ""
 
-#: templates/_reporting_help.html:23
+#: templates/_reporting_help.html:27
 msgid "Checking a number"
 msgstr ""
 
-#: templates/_reporting_help.html:25
+#: templates/_reporting_help.html:29
 msgid ""
 "Click a chart bar or a table row to open the documents behind that "
 "number; the “Query” card beside the chart shows exactly how it was "
 "computed."
 msgstr ""
 
-#: templates/_reporting_help.html:26
+#: templates/_reporting_help.html:30
 msgid ""
 "Each measure gets its own total card, named after it — “Total · Documents"
 " imported”, “Total · Documents exported”. There is no combined number: "
@@ -2011,31 +2046,31 @@ msgid ""
 "count anything real."
 msgstr ""
 
-#: templates/_reporting_help.html:27
+#: templates/_reporting_help.html:31
 msgid ""
 "The ↑/↓ comparison chips compare a window shifted back by your range’s "
 "length in days — not the previous calendar period. Hover a chip for the "
 "exact dates."
 msgstr ""
 
-#: templates/_reporting_help.html:28
+#: templates/_reporting_help.html:32
 msgid ""
 "Two people can see different totals on the same report: it always runs "
 "with the viewer’s own data access."
 msgstr ""
 
-#: templates/_reporting_help.html:29
+#: templates/_reporting_help.html:33
 msgid ""
 "Charts cap at 50 axis values and 12 series — past the cap you get a "
 "partial chart or none at all; the table and exports always carry the full"
 " data."
 msgstr ""
 
-#: templates/_reporting_help.html:31
+#: templates/_reporting_help.html:35
 msgid "Saving and sharing"
 msgstr ""
 
-#: templates/_reporting_help.html:33
+#: templates/_reporting_help.html:37
 msgid ""
 "Save writes back to the report you have open — the pencil next to the "
 "title renames it in place. A result that is not a saved report yet (a "
@@ -2043,27 +2078,27 @@ msgid ""
 "reports. To keep the original untouched, use ⋯ → “Save as copy”."
 msgstr ""
 
-#: templates/_reporting_help.html:34
+#: templates/_reporting_help.html:38
 msgid ""
 "A report of yours that you have shared — with everyone or with named "
 "colleagues — is tagged “· shared” on its card. Named shares stay under My"
 " reports; only “shared with everyone” moves it to the Library shelf."
 msgstr ""
 
-#: templates/_reporting_help.html:35
+#: templates/_reporting_help.html:39
 msgid ""
 "A scheduled email runs with the report owner’s data access — recipients "
 "see the owner’s numbers, not their own."
 msgstr ""
 
-#: templates/_reporting_help.html:36
+#: templates/_reporting_help.html:40
 msgid ""
 "Delete a report you own: open its card’s “…” menu under My reports, or "
 "open the report and use ⋯ → Delete report. Shared copies and schedules go"
 " with it."
 msgstr ""
 
-#: templates/_reporting_help.html:37
+#: templates/_reporting_help.html:41
 msgid ""
 "On a dashboard, the “Whole report” tile shows a saved report exactly as "
 "the Simple tab does — totals, chart with its colours, axes and forecast, "
@@ -2071,73 +2106,73 @@ msgid ""
 "change colours or the chart type in the report itself."
 msgstr ""
 
-#: templates/_reporting_help.html:38
+#: templates/_reporting_help.html:42
 msgid ""
 "“Add a card” asks everything in one dialog: which saved report, how to "
 "draw it, its title, and how big — a width in grid columns and a height in"
 " rows. The tile lands showing its data straight away."
 msgstr ""
 
-#: templates/_reporting_help.html:39
+#: templates/_reporting_help.html:43
 msgid ""
 "In edit mode a tile can be dragged anywhere to rearrange it, and resized "
 "by its bottom-right corner grip: width snaps to the 12 grid columns, "
 "height to whole rows. Done saves the layout."
 msgstr ""
 
-#: templates/_reporting_help.html:40
+#: templates/_reporting_help.html:44
 msgid ""
 "A dashboard’s library card previews its real layout — one small tile per "
 "card — plus a card count, so you can tell dashboards apart before opening"
 " one."
 msgstr ""
 
-#: templates/_reporting_help.html:43
+#: templates/_reporting_help.html:47
 msgid "Asking Eddard"
 msgstr ""
 
-#: templates/_reporting_help.html:45
+#: templates/_reporting_help.html:49
 msgid ""
 "Eddard is the reporting assistant behind the chat panel — the little "
 "black hole in the top bar."
 msgstr ""
 
-#: templates/_reporting_help.html:46
+#: templates/_reporting_help.html:50
 msgid ""
 "Name the measure, the time range and the processes: “invoices by process,"
 " last 3 months” beats “show me invoices”."
 msgstr ""
 
-#: templates/_reporting_help.html:47
+#: templates/_reporting_help.html:51
 msgid ""
 "Check what Eddard built with “Open in builder” — the filters and process "
 "scope it chose are visible there before you trust the number."
 msgstr ""
 
-#: templates/_reporting_help.html:48
+#: templates/_reporting_help.html:52
 msgid ""
 "Follow-ups work: the chat remembers the conversation, so “now only this "
 "quarter” refines the last answer."
 msgstr ""
 
-#: templates/_reporting_help.html:49
+#: templates/_reporting_help.html:53
 msgid ""
 "When Eddard used tools, unfold “How the agent worked” to see the steps; "
 "if a “Continue” button appears, click it before rephrasing your question."
 msgstr ""
 
-#: templates/_reporting_help.html:50
+#: templates/_reporting_help.html:54
 msgid ""
 "The answer-depth control sits at the bottom-left of the composer: Quick "
 "for a fast number, Balanced for everyday questions, Deep when the "
 "question is hard and you can wait."
 msgstr ""
 
-#: templates/_reporting_help.html:58
+#: templates/_reporting_help.html:62
 msgid "Full guide"
 msgstr ""
 
-#: templates/_reporting_help.html:59 templates/admin/logs.html:141
+#: templates/_reporting_help.html:63 templates/admin/logs.html:141
 #: templates/js/_reporting_drill_js.html:16
 #: templates/prepared_documents.html:253 templates/prepared_documents.html:265
 #: templates/reporting.html:148 templates/reporting.html:180
@@ -3448,6 +3483,14 @@ msgstr ""
 #: templates/generali-dashboard.html:65 templates/generali_reporting.html:48
 #: templates/js/_header_js.html:39
 msgid "Document List"
+msgstr ""
+
+#: templates/generali-dashboard.html:69
+#: templates/generali_additionalservices.html:52
+#: templates/generali_baseservices.html:52 templates/generali_documents.html:45
+#: templates/generali_projectmanagement.html:52 templates/js/_header_js.html:42
+#: templates/reporting.html:79
+msgid "Reporting"
 msgstr ""
 
 #: templates/generali-dashboard.html:77

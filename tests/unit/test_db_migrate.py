@@ -70,3 +70,47 @@ def test_sqlcmd_uses_f_distinguishes_classic_from_go():
         return_value=mock.Mock(stdout="sqlcmd version 1.8.0\n", stderr="", returncode=0),
     ):
         assert mod._sqlcmd_uses_f("go-sqlcmd.exe") is False
+
+
+def test_sqlcmd_args_emit_db_name_variables():
+    # A migration that reaches across databases (#254: a NexoraDB view over the
+    # Octo statistics tables) cannot hardcode the target name — it differs per
+    # environment. It writes [$(StatisticsDb)] and sqlcmd substitutes.
+    mod = _load_db_migrate()
+    with mock.patch.object(mod, "_sqlcmd_uses_f", return_value=False):
+        args = mod._sqlcmd_args(
+            "sqlcmd.exe",
+            "SRV",
+            "MyDb",
+            "uid",
+            "pwd",
+            Path("0097_x.sql"),
+            {"StatisticsDb": "sydoc_stat_INT"},
+        )
+    assert "-v" in args
+    assert "StatisticsDb=sydoc_stat_INT" in args
+
+
+def test_sqlcmd_args_without_variables_are_unchanged():
+    # Passing no variables must not add a bare -v (sqlcmd would reject it).
+    mod = _load_db_migrate()
+    with mock.patch.object(mod, "_sqlcmd_uses_f", return_value=False):
+        args = mod._sqlcmd_args("sqlcmd.exe", "SRV", "MyDb", "uid", "pwd", Path("0011_x.sql"))
+    assert "-v" not in args
+
+
+def test_sqlcmd_vars_skips_unset_databases():
+    # An environment without a Generali DB must not get GeneraliDb="" — sqlcmd
+    # would substitute an empty name and fail with a confusing parse error.
+    mod = _load_db_migrate()
+
+    class Cfg:
+        DB_NEXORA = "NexoraDB_INT"
+        DB_STATISTICS = "sydoc_stat_INT"
+        DB_GENERALI = None
+
+    variables = mod.sqlcmd_vars(Cfg())
+    assert variables["StatisticsDb"] == "sydoc_stat_INT"
+    assert variables["NexoraDb"] == "NexoraDB_INT"
+    assert "GeneraliDb" not in variables
+    assert "OctoDb" not in variables

@@ -98,6 +98,81 @@ Work toward the next release.
   `admin.assign.user.accessprofile.*` codes** (rank replaces them), **12 orphan
   codes** (`invoices.*`, `kundenmagazin.*`, two dead admin codes) and **the
   three per-process permission families** (#238).
+- **Extraction quality is now reportable (#254).** The Octo runtime has been
+  writing per-field extraction telemetry into the statistics DB for years —
+  one row per document field, with what the machine read, what the validator
+  ended up with, and the extractor's confidence — and nothing looked at it.
+  A new Reporting source, **Field extraction quality**, puts it on the
+  page: break down by Field and rank by "Extraction correct %", "User
+  corrected %" or "Avg. confidence %" to see which fields extraction handles
+  well and which cost validators the most time. Nine measures, gated by
+  `reporting.source.field_quality`. It unions **all seven customer telemetry
+  streams** — Bucherer, Compass, ElektroMaterial, Geberit and Privera's three —
+  into one source with a Customer breakdown rather than seven separate ones,
+  which is what lets you rank the *same* field across customers: field names are
+  normalised to a shared vocabulary first, so whatever each customer calls its
+  invoice number lands on the same row. A Stream dimension splits a customer
+  running more than one document flow. Only **onboarded processes** are
+  reportable — the picker no longer offers Octo's internal process names, and
+  the filter reads `dbo.ProcessSources` matched on organization *and* process,
+  so onboarding a process is all it takes to bring it in (and `02_Invoice` being
+  onboarded for ElektroMaterial does not admit Privera's).
+  Raw field values and the validating user are deliberately not exposed — the
+  source answers "which fields extract well", not "what did this invoice say"
+  or "who fixed it". Octo's ~630 raw field names are translated through the
+  existing `FieldAliases` / `FieldLabels` registries, and "Mapped in nexora %"
+  filters a report down to the fields nexora actually knows about — widened by
+  adding alias rows, not by editing SQL. The measure descriptions spell out two
+  traps the raw numbers hide: "Deviation %" is not the complement of "Extraction
+  correct %" (a field the machine never attempted still deviates when a
+  validator fills it in), and the headline rate understates the extractor —
+  EM reads 51% correct overall but 94.6% on the instances it actually attempts.
+  The breakdown labels put the useful dimension first and call it plainly
+  "Field": it was named "Field key (nexora)" while a near-useless wide variant
+  held the name "Field", so the obvious pick charted 631 series of which 230 sit
+  permanently at 100%.
+
+### Fixed
+
+- **A migration that would have failed on a fresh database.** The permission
+  grant in `0107` referenced `dbo.AccessProfilePermission.Effect`, a column
+  retired by `0086` — a *lower* number, so on any rebuild or PROD deploy the drop
+  runs first and the grant dies with it. It passed on INT only because the column
+  still existed the hour it was applied. Both variants now sit in `sp_executesql`
+  behind a `COL_LENGTH` check: an `IF` alone is not enough, because SQL Server
+  binds every column in a batch before executing any of it, so even the untaken
+  branch takes the whole batch down. `docs/howto/db-migrations.md` writes the
+  trap up, including why this is the one case where editing an applied migration
+  is correct — nothing added later can rescue a file that fails inside itself.
+
+### Changed
+
+- **The Simple wizard's measure list is grouped by source.** With more than one
+  source the chips used to be one flat list with a `· Source Name` suffix on
+  every label; they are now clustered under a caption per source, the same
+  pattern the breakdown step already used. Reads far better now that picking a
+  measure greys out every chip from the other sources — that constraint has
+  always been there, but with a second source it went from two greyed chips to
+  most of the list.
+- **"Document count" is retired in favour of "Documents imported" /
+  "Documents exported".** The measure list now says which date a document is
+  counted on instead of leaving it unanchored. Five saved reports built on
+  `doc_count` are repointed automatically, moving the date column, filter and
+  sort onto the shared `activity_date` axis along with the measure — the numbers
+  are unchanged. Only unambiguous definitions are rewritten; anything else keeps
+  `doc_count` and is left for its owner. "Pages processed" goes the same way —
+  `pages_imported` / `pages_exported` give the same numbers with a stated date —
+  which leaves every Document Processing measure date-anchored, so they now all
+  combine with one another instead of one odd chip greying out the rest. "Field
+  instances" and "Workitems (distinct)" also come off the field-quality source:
+  they measure how much data is in scope, not how well extraction works.
+
+- **Migrations can reach another database on the same server.**
+  `scripts/db-migrate.py` now passes the configured database names to sqlcmd as
+  `-v` variables, so a migration writes `[$(StatisticsDb)]` instead of a
+  hardcoded name that would be wrong on PROD. `$(NexoraDb)`, `$(StatisticsDb)`,
+  `$(GeneraliDb)` and `$(OctoDb)` are available; an unset one is not passed, so
+  sqlcmd fails loudly rather than substituting an empty name.
 
 - **Repository moved to the `Sydoc-Org` GitHub organization** (from the
   personal `Sydoc-Code` account, 2026-09-03). GitHub redirects the old URL,

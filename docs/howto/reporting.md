@@ -654,9 +654,33 @@ where `doc_count` counts *rows*. The `workitem_count` metric is currently
 **disabled** (see migration `0021`) — all four count variants (`COUNT(*)`,
 `COUNT(WorkitemID)`, `COUNT(DISTINCT WorkItemID)`, `COUNT(Barcode)`) are
 identical on the Statistics tables because there is one row per workitem and no
-NULL workitem ids. The picker therefore offers only `doc_count`. Re-enable the
-metric row in `dbo.ReportingMetrics` if a multi-row-per-workitem source ever
-appears. Rows from a process without a workitem mapping still contribute nothing
+NULL workitem ids. Re-enable the metric row in `dbo.ReportingMetrics` if a
+multi-row-per-workitem source ever appears.
+
+**`doc_count` is disabled too, since migration `0102`/`0103`.** The measure list
+now reads as a clear either/or — a document is counted on the day it was
+*imported* or the day it was *exported*, never on an unanchored "just count the
+rows". `docs_imported` / `docs_exported` say which, and plot on the shared
+`activity_date` axis. Five saved reports were built on `doc_count`, four of them
+named for import or export because they predate the anchored measures, so `0103`
+repoints them first: the metric **and** the date column, filter and sort move
+together, since a definition anchored on `docs_imported` but grouped on
+`import_date` is rejected by `_prepare_run`. The numbers are unchanged — counting
+rows grouped by import month is exactly what `docs_imported` does. Only reports
+whose shape is unambiguous (source `docprocessing`, a metrics array of exactly
+one `doc_count`, every date reference the same field) are touched; anything else
+keeps `doc_count`, stops resolving, and is left for its owner to rebuild rather
+than rewritten by a migration on a guess.
+
+> `0102` shipped this with a broken guard and is superseded by `0103`: T-SQL
+> `LIKE` reads `[` as the start of a character class, so the pattern
+> `'%"metrics": [{"metric": "doc_count"}]%'` matched nothing and the migration
+> disabled the measure without repointing anything. It failed *open* — zero rows,
+> no error. `0103` inspects the metrics array with `JSON_VALUE` instead of
+> pattern-matching JSON as text. **Guard saved-report rewrites with `JSON_VALUE`,
+> not `LIKE`.**
+
+Rows from a process without a workitem mapping still contribute nothing
 to the `workitem_id` column (it projects as NULL), and the `workitem_id`
 dimension/filter field remains fully available.
 
@@ -985,6 +1009,150 @@ catalog, and a `Permission` — then grant that permission. A `Kind=sql` row add
 SQL-sandbox source over an existing target. Use the code path below only when a
 source needs bespoke query logic the `table` provider can't express.
 
+### Field extraction quality (`field_quality`)
+
+The Octo runtime writes per-field extraction telemetry into the statistics DB —
+one `<Client>_Collect_Field_Attributes` table per client, one row per (workitem,
+document field), carrying what the machine extracted, what the validator ended
+up with, and the extractor's confidence in its best and second-best candidate.
+It had accumulated for years unread (#254).
+
+Migration `0107` registered the **EM** table as the pilot; `0110` unions all
+**seven** tables into `NexoraDB.dbo.vFieldExtractionQuality` and renames the
+source `em_field_quality` → `field_quality`; `0111` narrows it to onboarded
+processes and drops the two count measures. It is a curated `table` source
+gated by `reporting.source.field_quality`.
+
+**Onboarded processes only (`0111`).** The process picker was offering Octo's
+raw `PROCESS` values straight off the telemetry — `BuchererFields`,
+`PriveraPostFields`, `01_Garantiekarten`, `01_Invoice_1` — none of which nexora
+reports on anywhere else. The view now keeps only rows whose process is
+registered in `dbo.ProcessSources`, matched on **both** the organization and the
+process name. Name alone would be wrong: `02_Invoice` belongs to
+*elektromaterial* **and** to *privera*, so onboarding one would silently admit
+the other — which is why each stream carries its
+`dbo.Organizations.organizationcode` in the CTE. Same data-driven contract as
+`MappedInNexoraPct`: **to bring a process back, add a `dbo.ProcessSources` row,
+don't edit the view.**
+
+On INT that leaves 57,149 of 69,576 rows and exactly four processes
+(`01_Invoice_SAP`, `02_Invoice`, `02_Posteingang`, `03_Invoice_New`). Bucherer
+and Geberit leave the source entirely — they have no `dbo.Organizations` row at
+all, so they cannot match — and so does Privera's `02_Invoice` stream, which is
+onboarded for EM but not for Privera.
+
+**One source with a `Customer` dimension, not seven sources.** All seven tables
+are column-identical, and `dbo.FieldAliases` is a *flat, global* map — so
+"Rechnungsnummer" at one customer and "InvoiceNo" at another both land on the
+canonical key `invoicenr`. Unioning is the whole point: it is what lets you rank
+the same field across customers (on INT, `esrreference` reads 77% at Compass and
+44% at EM). Seven sources could not answer that, and would have meant 63
+duplicated measure rows to keep in step.
+
+| dimension  | values |
+|---|---|
+| `Customer` | `Compass`, `ElektroMaterial`, `Privera` today — matching `dbo.Organizations.Organization`. Hardcoded as literals in the view *on purpose*: joining `Organizations` would couple it to the tenancy tables being reshaped in #255, to earn a few labels. The union still carries Bucherer and Geberit; the `0111` process filter is what keeps them out until they are onboarded. |
+| `Stream`   | one per telemetry table (`em`, `compass`, `priverainvoice2025`, …). Privera has three, of which two survive the process filter. |
+| `Process`  | Octo's own process name, straight off the row. |
+
+Four things about that view are load-bearing:
+
+- **Rates are `0`/`100` floats, not `0`/`1` ints.** `semantic.py` emits a bare
+  `AVG(col)`, and T-SQL integer-divides `AVG` over an `int` column — every rate
+  would come back `0` or `1`. As `0`/`100` floats, `AVG()` *is* the percentage.
+- **It reaches across databases via `$(StatisticsDb)`.** The statistics DB is
+  named differently per environment (`SYDOC_Statistik` / `sydoc_stat` /
+  `sydoc_stat_INT`), so the name cannot be hardcoded;
+  `scripts/db-migrate.py` supplies `NexoraDb` / `StatisticsDb` / `GeneraliDb` /
+  `OctoDb` as sqlcmd `-v` variables that any migration may reference as
+  `$(Name)`. Living in NexoraDB is what lets the view join `FieldAliases` and
+  `FieldLabels` to translate Octo's raw field names into nexora's vocabulary.
+- **Each header table is collapsed to one row per workitem before the join.**
+  A few workitems have duplicate header rows (3 of 6786 in `EM_Invoice` on INT);
+  joining raw would double them and quietly inflate every average.
+- **The date join is keyed on `Stream`, never on `Customer`.** Privera has three
+  telemetry tables across *two* header tables, so a workitem id present in both
+  `PriveraInvoice` and `PriveraPosteingang` would match twice under a
+  `Customer` key. Keyed on `Stream` the join is 1:1 by construction.
+  `test_date_join_is_keyed_on_stream_not_customer` guards this; the definitive
+  check is that view rows == base-table rows per stream (69,576 on INT).
+
+**Dates come from `dbo.ProcessSources`** where it documents the process (Compass,
+EM, PriveraPost, PriveraInvoice). Bucherer and Geberit are not in
+`ProcessSources`; their header tables have Compass's column shape, so they use
+the same `ImportDate` / `UploadDatetime` pair. **Every join is `LEFT`** — a
+stream whose header table doesn't line up still reports its quality numbers and
+simply carries no date, dropping out of over-time breakdowns instead of out of
+the source. On INT that matters: `Bucherer_Invoice` matches 0 of its 2 workitems
+and `PriveraInvoice` is a thin 1,051-row sample that covers only 20 of
+`priverainvoice2025`'s 129 workitems. Both are INT being a partial copy, not a
+wrong mapping — PROD's header tables are complete.
+
+Octo emits ~630 distinct "fields" for EM, most of them internal bookkeeping
+(`DocFilename`, `Val_State`, `ImportDatetime`) that it always fills in perfectly,
+so a breakdown by `Field` buries the real invoice fields under hundreds of rows
+reading 100%. Two ways to cut through that, both data-driven where the hand-built
+`v_*FieldStatistic` views in the statistics DB hardcode ~20 field names in a
+`WHERE` clause:
+
+- **Break down by `FieldKey`** — labelled simply **"Field"** since migration
+  `0109`, and first in the catalog. It is `NULL` for an unmapped field, so the
+  ~20 mapped fields each get a row and everything else collapses into one empty
+  bucket. Needs no filter, so the Simple wizard can express it — this is the
+  recommended route and what the user guide teaches. `FieldLabel` ("Field
+  (incl. unmapped)") and `Field` ("Field (Octo raw name)") are the wide
+  variants; `0109` renamed them because `FieldLabel` was called "Field" and
+  falls back to the raw Octo name for the ~611 unmapped fields, so the obvious
+  pick produced 631 series. Against a 12-series chart cap and the **230 fields
+  Octo pins at exactly 100%** (bookkeeping it fills from the batch every time),
+  that rendered twelve flat lines at the top — the cap filled with ties before
+  any real field appeared.
+- **Filter `MappedInNexoraPct` to `100`** in the Advanced builder, which drops
+  the unmapped rows entirely rather than bucketing them.
+
+**Widen the mapped set by adding `dbo.FieldAliases` rows, not by editing the
+view.**
+
+Raw field *values* (`VALUE_BEFORE_VALIDATION` / `VALUE_AFTER_VALIDATION`) and the
+validating user are deliberately not exposed: this source answers "which fields
+extract well", not "what did this invoice say" or "who fixed it".
+
+**What the measures actually mean.** Three traps, all confirmed against INT data
+(migration `0108` puts the same warnings in the measure descriptions):
+
+- **`Deviation %` is not `100 − Extraction correct %`.** 1,317 of EM's 17,107
+  rows (7.7%) deviate while nothing was extracted at all — the machine found no
+  candidate and the validator typed a value in. Across EM the two read 51.0% and
+  10.6%, summing to 61.6%, not 100%. Subtracting one from the other is wrong.
+- **`Extraction correct %` trusts Octo's `RESULT` flag**, not a literal text
+  comparison. The two disagree on 1.7% of rows (150 flagged `Different` while
+  identical, 139 flagged `Equal` while different — most likely formatting
+  normalisation inside Octo). This is deliberate: it is what
+  `v_EMFieldStatistic` has always reported.
+- **The headline rate understates the extractor.** EM reads 51.0% correct, but
+  only 53.9% of instances are attempted at all; on the ones it *does* attempt
+  the machine is right **94.6%** of the time. `Extraction correct %` ÷
+  `Extracted %` is the number to quote when asking "how good is extraction",
+  and the gap between them is the "never even tried" backlog.
+
+**Verified against the hand-built view.** Restricted to the same population
+(`v_EMFieldStatistic` inner-joins `EM_Invoice`; this view left-joins it, so it
+keeps the ~4% of telemetry whose workitem has no invoice row), the two agree
+**exactly on all 21 fields** for both the correctness rate and the confidence.
+That equivalence is the real regression test for the view's arithmetic — it
+needs a live DB, so it is not in `tests/unit/`; re-run it by hand if the view
+changes. The `0110` union was checked the same way and left EM untouched:
+51.026% correct / 10.586% deviation / 53.914% extracted over 17,107 rows, the
+same figures to three decimals as the EM-only view.
+
+Those EM figures are the *whole-table* ones and are what the equivalence check
+compares. Since `0111` the source itself reports EM on its onboarded process
+only (`02_Invoice`, 7,091 rows → 48.26% correct), because `01_Invoice_1` — 59%
+of EM's telemetry — is a legacy process that was never onboarded. Re-run the
+equivalence check against the raw table, not the view, or the populations will
+not line up.
+
+## Source visualizer (`reporting.sources.schema`)
 ## Source visualizer (`reporting.sources.schema.view`)
 
 Clicking a Sources rail card opens a slide-over showing the **database behind
@@ -1075,7 +1243,13 @@ NULL-falls-back-to-English convention `dbo.FieldLabels` uses in
 locale's label, while the AI catalogs deliberately keep the English `Label` for
 prompt-grounding stability. Migration `0017` seeds a worked example, `doc_count`
 (a `count` over the docprocessing source); migration `0039` adds **`page_count`**
-("Pages processed", `SUM` over `pagecount`, `SortOrder` 30). For `sum`/`avg`
+("Pages processed", `SUM` over `pagecount`, `SortOrder` 30). Both are
+**disabled** now — `doc_count` by `0102`/`0103`, `page_count` by `0104` — so the
+Document Processing category answers one question consistently: was this counted
+on the day it was *imported* or the day it was *exported*. All five remaining
+measures are date-anchored, which also means `anchorMismatch` can no longer grey
+out a chip *within* that source; `pages_imported` / `pages_exported` give the
+same page numbers with a stated date. For `sum`/`avg`
 metrics the docprocessing query builder projects the base field as
 `TRY_CAST(<col> AS float)` per UNION-ALL subquery — the stat columns are
 varchar, so non-numeric cells become NULL and drop out of the aggregate instead

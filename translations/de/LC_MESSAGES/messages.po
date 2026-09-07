@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-07 08:35+0200\n"
+"POT-Creation-Date: 2026-09-07 10:01+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -100,7 +100,6 @@ msgstr ""
 msgid "A denser Dashboard"
 msgstr "Ein dichteres Dashboard"
 
-
 #: nx_lib/whats_new.py:92
 msgid ""
 "The Dashboard reads like a console now. Each KPI shows how it moved since"
@@ -109,8 +108,12 @@ msgid ""
 "traces the last 14, 30 or 90 days per process. The Recent Validations "
 "column is gone — the workitems page is where workitems live."
 msgstr ""
-"Das Dashboard liest sich jetzt wie eine Konsole. Jede Kennzahl zeigt ihre Veränderung seit gestern und eine Sparkline über sieben Tage, das Durchsatz-Diagramm nutzt die volle Breite und enthält die Stundenansicht als Tab, und ein neuer Bereich «Rückstand» zeichnet die letzten 14, 30 oder 90 Tage pro Prozess nach. Die Spalte «Letzte Validierungen» ist weg — Workitems gehören auf die Workitems-Seite."
-
+"Das Dashboard liest sich jetzt wie eine Konsole. Jede Kennzahl zeigt ihre"
+" Veränderung seit gestern und eine Sparkline über sieben Tage, das "
+"Durchsatz-Diagramm nutzt die volle Breite und enthält die Stundenansicht "
+"als Tab, und ein neuer Bereich «Rückstand» zeichnet die letzten 14, 30 "
+"oder 90 Tage pro Prozess nach. Die Spalte «Letzte Validierungen» ist weg "
+"— Workitems gehören auf die Workitems-Seite."
 
 #: nx_lib/whats_new.py:104
 msgid "Reporting has a new home screen"
@@ -1196,7 +1199,6 @@ msgstr ""
 "%(n)d Benutzer ausserhalb von %(org)s haben dieses Profil. Zuerst "
 "verschieben."
 
-
 #: nx_lib/views/admin/permissions.py:368
 msgid "Profile saved successfully"
 msgstr "Profil erfolgreich gespeichert"
@@ -1283,7 +1285,6 @@ msgstr "Der Id-Spaltentyp muss ein einfacher SQL-Typname sein."
 #: nx_lib/views/admin/processes.py:212
 msgid "Organization code must be 1-5 letters or digits."
 msgstr "Der Organisationscode muss aus 1-5 Buchstaben oder Ziffern bestehen."
-
 
 #: nx_lib/views/admin/processes.py:236
 msgid "Column type must be a plain SQL type name."
@@ -1379,16 +1380,13 @@ msgstr ""
 "Der Tenant-Code muss aus 2-50 Kleinbuchstaben, Ziffern oder Unterstrichen"
 " bestehen."
 
-
 #: nx_lib/views/admin/tenant_manage.py:74
 msgid "Display name is required (max. 100 characters)."
 msgstr "Anzeigename ist erforderlich (max. 100 Zeichen)."
 
-
 #: nx_lib/views/admin/tenant_manage.py:79
 msgid "Organizations must be a list of organization codes."
 msgstr "Organisationen müssen eine Liste von Organisationscodes sein."
-
 
 #: nx_lib/views/admin/tenant_manage.py:89
 msgid "Page key must be 1-100 lowercase letters, digits, '.', '_' or '-'."
@@ -1396,44 +1394,36 @@ msgstr ""
 "Der Seitenschlüssel muss aus 1-100 Kleinbuchstaben, Ziffern, '.', '_' "
 "oder '-' bestehen."
 
-
 #: nx_lib/views/admin/tenant_manage.py:92
 #: nx_lib/views/admin/tenant_manage.py:355
 msgid "Endpoint is not a mountable page."
 msgstr "Der Endpunkt ist keine einhängbare Seite."
 
-
 #: nx_lib/views/admin/tenant_manage.py:95
 msgid "Label is required (max. 100 characters)."
 msgstr "Bezeichnung ist erforderlich (max. 100 Zeichen)."
-
 
 #: nx_lib/views/admin/tenant_manage.py:98
 msgid "Icon must be a Font Awesome class like fa-chart-line."
 msgstr "Das Icon muss eine Font-Awesome-Klasse wie fa-chart-line sein."
 
-
 #: nx_lib/views/admin/tenant_manage.py:101
 msgid "Active marker may only contain letters, digits, '_' or '-'."
 msgstr "Die Aktiv-Markierung darf nur Buchstaben, Ziffern, '_' oder '-' enthalten."
-
 
 #: nx_lib/views/admin/tenant_manage.py:105
 msgid "Sort order must be a number."
 msgstr "Die Sortierung muss eine Zahl sein."
 
-
 #: nx_lib/views/admin/tenant_manage.py:237
 msgid "Tenant already exists."
 msgstr "Tenant existiert bereits."
-
 
 #: nx_lib/views/admin/tenant_manage.py:240
 #: nx_lib/views/admin/tenant_manage.py:283
 #, python-format
 msgid "%(n)d organization code(s) do not exist."
 msgstr "%(n)d Organisationscode(s) existieren nicht."
-
 
 #: nx_lib/views/admin/tenant_manage.py:253
 #, python-format
@@ -1445,60 +1435,49 @@ msgstr ""
 "tenant.%(code)s.view unter Zugriffskontrolle vergeben, um weitere "
 "Mitarbeitende hineinzulassen."
 
-
 #: nx_lib/views/admin/tenant_manage.py:289
 #: nx_lib/views/admin/tenant_manage.py:330
 #: nx_lib/views/admin/tenant_manage.py:363
 msgid "Tenant not found."
 msgstr "Tenant nicht gefunden."
 
-
 #: nx_lib/views/admin/tenant_manage.py:293
 msgid "Tenant updated."
 msgstr "Tenant aktualisiert."
-
 
 #: nx_lib/views/admin/tenant_manage.py:319
 #, python-format
 msgid "%(n)d organization(s) still belong to this tenant. Move them first."
 msgstr "%(n)d Organisation(en) gehören noch zu diesem Tenant. Zuerst verschieben."
 
-
 #: nx_lib/views/admin/tenant_manage.py:331
 msgid "Tenant deleted."
 msgstr "Tenant gelöscht."
-
 
 #: nx_lib/views/admin/tenant_manage.py:376
 msgid "Page added."
 msgstr "Seite hinzugefügt."
 
-
 #: nx_lib/views/admin/tenant_manage.py:379
 msgid "A page with this key already exists."
 msgstr "Eine Seite mit diesem Schlüssel existiert bereits."
 
-
 #: nx_lib/views/admin/tenant_manage.py:394
 msgid "Status must be 'active' or 'draft'."
 msgstr "Status muss 'active' oder 'draft' sein."
-
 
 #: nx_lib/views/admin/tenant_manage.py:407
 #: nx_lib/views/admin/tenant_manage.py:432
 msgid "Page not found."
 msgstr "Seite nicht gefunden."
 
-
 #: nx_lib/views/admin/tenant_manage.py:408
 msgid "Page updated."
 msgstr "Seite aktualisiert."
 
-
 #: nx_lib/views/admin/tenant_manage.py:433
 msgid "Page removed."
 msgstr "Seite entfernt."
-
 
 #: nx_lib/views/admin/users.py:46
 #, python-format
@@ -1508,7 +1487,6 @@ msgid ""
 msgstr ""
 "Das Profil %(profile)s gehört zur Organisation %(org)s und kann keinem "
 "Benutzer von %(user_org)s zugewiesen werden."
-
 
 #: nx_lib/views/admin/users.py:90 nx_lib/views/admin/users.py:208
 msgid "Unknown access profile."
@@ -2000,11 +1978,9 @@ msgstr "Wartung"
 msgid "Tenants"
 msgstr "Tenants"
 
-
 #: templates/_header.html:278
 msgid "Manage"
 msgstr "Verwalten"
-
 
 #: templates/_header.html:284 templates/admin/admin_overview.html:95
 #: templates/admin/organizations.html:19 templates/admin/tenants_manage.html:38
@@ -2016,11 +1992,9 @@ msgstr "Organisationen"
 msgid "Data Connections"
 msgstr "Datenverbindungen"
 
-
 #: templates/_header.html:297 templates/admin/processes.html:19
 msgid "Process Configurations"
 msgstr "Prozesskonfigurationen"
-
 
 #: templates/_header.html:311
 msgid "Development"
@@ -2034,123 +2008,117 @@ msgstr "API-Dokumentation"
 msgid "Global Dashboard"
 msgstr "Globales Dashboard"
 
-
-#: templates/_header.html:326 templates/generali-dashboard.html:69
-#: templates/generali_additionalservices.html:52
-#: templates/generali_baseservices.html:52 templates/generali_documents.html:45
-#: templates/generali_projectmanagement.html:52 templates/js/_header_js.html:42
-#: templates/reporting.html:79
-msgid "Reporting"
-msgstr "Reporting"
+#: templates/_header.html:326
+msgid "Global Reporting"
+msgstr "Globales Reporting"
 
 #: templates/_header.html:327 templates/workitems_overview.html:62
 msgid "Global Workitems"
 msgstr "Globale Workitems"
 
-
-#: templates/_header.html:436 templates/_header.html:438
+#: templates/_header.html:438 templates/_header.html:440
 #: templates/appearance.html:302 templates/appearance.html:307
 #: templates/js/_header_js.html:13
 msgid "Keep sidebar open"
 msgstr "Seitenleiste geöffnet halten"
 
-#: templates/_header.html:442 templates/js/_header_js.html:56
+#: templates/_header.html:444 templates/js/_header_js.html:56
 msgid "Toggle dark mode"
 msgstr "Dunkelmodus umschalten"
 
-#: templates/_header.html:444
+#: templates/_header.html:446
 msgid "Dark Mode"
 msgstr "Dunkelmodus"
 
-#: templates/_header.html:452 templates/profile.html:44
+#: templates/_header.html:454 templates/profile.html:44
 #: templates/profile.html:123
 msgid "Profile Picture"
 msgstr "Profilbild"
 
-#: templates/_header.html:462
+#: templates/_header.html:464
 msgid "Your profile"
 msgstr "Ihr Profil"
 
-#: templates/_header.html:466 templates/appearance.html:34
+#: templates/_header.html:468 templates/appearance.html:34
 #: templates/js/_header_js.html:57 templates/profile.html:75
 #: templates/profile.html:317
 msgid "Appearance"
 msgstr "Darstellung"
 
-#: templates/_header.html:470 templates/js/_header_js.html:58
+#: templates/_header.html:472 templates/js/_header_js.html:58
 #: templates/whats_new.html:79
 msgid "What's New"
 msgstr "Neuigkeiten"
 
-#: templates/_header.html:475 templates/feedback.html:34
+#: templates/_header.html:477 templates/feedback.html:34
 #: templates/js/_header_js.html:59
 msgid "Feedback"
 msgstr "Feedback"
 
-#: templates/_header.html:482 templates/_header.html:552
-#: templates/_header.html:555
+#: templates/_header.html:484 templates/_header.html:554
+#: templates/_header.html:557
 msgid "Keyboard shortcuts"
 msgstr "Tastenkombinationen"
 
-#: templates/_header.html:486 templates/_small_footer.html:28
+#: templates/_header.html:488 templates/_small_footer.html:28
 #: templates/reporting.html:86
 msgid "Help"
 msgstr "Hilfe"
 
-#: templates/_header.html:492 templates/_header.html:534
+#: templates/_header.html:494 templates/_header.html:536
 msgid "Switch user"
 msgstr "Benutzer wechseln"
 
-#: templates/_header.html:498 templates/js/_header_js.html:60
+#: templates/_header.html:500 templates/js/_header_js.html:60
 #: templates/profile.html:82
 msgid "Sign out"
 msgstr "Abmelden"
 
-#: templates/_header.html:515
+#: templates/_header.html:517
 msgid "Command palette"
 msgstr "Befehlspalette"
 
-#: templates/_header.html:519
+#: templates/_header.html:521
 msgid "Type a command or search..."
 msgstr "Befehl eingeben oder suchen..."
 
-#: templates/_header.html:524
+#: templates/_header.html:526
 msgid "navigate"
 msgstr "navigieren"
 
-#: templates/_header.html:525
+#: templates/_header.html:527
 msgid "open"
 msgstr "öffnen"
 
-#: templates/_header.html:526
+#: templates/_header.html:528
 msgid "close"
 msgstr "schließen"
 
-#: templates/_header.html:538
+#: templates/_header.html:540
 msgid "Switch to user..."
 msgstr "Zu Benutzer wechseln ..."
 
-#: templates/_header.html:559 templates/admin/access_control.html:130
+#: templates/_header.html:561 templates/admin/access_control.html:130
 msgid "Global"
 msgstr "Global"
 
-#: templates/_header.html:561
+#: templates/_header.html:563
 msgid "Open command palette"
 msgstr "Befehlspalette öffnen"
 
-#: templates/_header.html:565
+#: templates/_header.html:567
 msgid "Show this shortcuts overlay"
 msgstr "Diese Übersicht anzeigen"
 
-#: templates/_header.html:569
+#: templates/_header.html:571
 msgid "Close the open dialog or panel"
 msgstr "Das offene Dialogfeld oder Panel schließen"
 
-#: templates/_header.html:574
+#: templates/_header.html:576
 msgid "Document viewer"
 msgstr "Dokumentanzeige"
 
-#: templates/_header.html:576
+#: templates/_header.html:578
 msgid "Previous / next document page"
 msgstr "Vorherige / nächste Dokumentseite"
 
@@ -2215,6 +2183,69 @@ msgstr ""
 "Monat. Zeitpläne laufen in UTC."
 
 #: templates/_reporting_help.html:18
+#, python-format
+msgid ""
+"To see which document fields extraction gets right, pick the “Field "
+"extraction quality” measure “Extraction correct %%” and break down by "
+"“Field”. Sort ascending and the worst field is the top row."
+msgstr ""
+"Um zu sehen, welche Dokumentfelder die Extraktion richtig erkennt, wählen"
+" Sie die Kennzahl „Extraction correct %%“ aus „Field extraction quality“ "
+"und gruppieren Sie nach „Field“. Aufsteigend sortiert steht das "
+"schlechteste Feld in der ersten Zeile."
+
+#: templates/_reporting_help.html:19
+#, python-format
+msgid ""
+"Two traps on that source. Use “Extraction correct %%”, not “Extracted %%”"
+" — the latter only asks whether the machine put anything in the box, and "
+"everything Octo fills automatically comes back fully extracted. And stay "
+"on “Field” rather than “Field (incl. unmapped)” or “Field (Octo raw "
+"name)”: those list all ~630 names Octo emits, 230 of them internal "
+"bookkeeping pinned at the maximum, so the chart is just flat lines along "
+"the top."
+msgstr ""
+"Zwei Fallen bei dieser Quelle. Verwenden Sie „Extraction correct %%“ und "
+"nicht „Extracted %%“ — Letzteres fragt nur, ob die Maschine überhaupt "
+"etwas eingetragen hat, und alles, was Octo automatisch füllt, gilt damit "
+"als vollständig extrahiert. Und bleiben Sie bei „Field“ statt „Field "
+"(incl. unmapped)“ oder „Field (Octo raw name)“: diese listen alle rund "
+"630 von Octo gemeldeten Namen auf, davon 230 interne Verwaltungsfelder, "
+"die konstant am Maximum liegen — das Diagramm zeigt dann nur flache "
+"Linien am oberen Rand."
+
+#: templates/_reporting_help.html:20
+msgid ""
+"That source covers every customer whose process is onboarded in nexora. "
+"Break down by “Customer” to compare them, or filter to one. Field names "
+"are translated to a shared vocabulary first, so whatever each customer "
+"calls its invoice number lands on the same row — that is what makes the "
+"comparison meaningful. “Stream” splits a customer running more than one "
+"document flow. The process list only offers processes nexora has "
+"onboarded; Octo’s own internal process names are not reportable."
+msgstr ""
+"Diese Quelle deckt jeden Kunden ab, dessen Prozess in nexora onboardet "
+"ist. Gruppieren Sie nach „Customer“, um sie zu vergleichen, oder filtern "
+"Sie auf einen einzelnen. Feldnamen werden zuerst in ein gemeinsames "
+"Vokabular übersetzt: Wie auch immer ein Kunde seine Rechnungsnummer "
+"nennt, sie landet in derselben Zeile – genau das macht den Vergleich "
+"aussagekräftig. „Stream“ trennt einen Kunden mit mehr als einem "
+"Dokumentfluss. Die Prozessliste bietet nur Prozesse an, die in nexora "
+"onboardet sind; Octos interne Prozessnamen sind nicht auswertbar."
+
+#: templates/_reporting_help.html:21
+#, python-format
+msgid ""
+"A field whose “Avg. 2nd-candidate confidence %%” sits close to its best-"
+"candidate confidence means the extractor was torn between two readings — "
+"usually more worth fixing than a field that is simply never found."
+msgstr ""
+"Ein Feld, dessen „Avg. 2nd-candidate confidence %%“ nahe bei der "
+"Konfidenz des besten Kandidaten liegt, bedeutet, dass die Extraktion "
+"zwischen zwei Lesarten schwankte — das lohnt sich meist eher zu beheben "
+"als ein Feld, das schlicht nie gefunden wird."
+
+#: templates/_reporting_help.html:22
 msgid ""
 "The chips above a result are editable: the Processes chip and any “is one"
 " of” filter open a checkbox picker — ticking everything removes the "
@@ -2224,7 +2255,7 @@ msgstr ""
 "jeder „ist eines von“-Filter öffnen eine Checkbox-Auswahl — alles anhaken"
 " hebt die Einschränkung auf."
 
-#: templates/_reporting_help.html:19
+#: templates/_reporting_help.html:23
 msgid ""
 "Imports, exports and backlog in one chart: pick “Documents imported”, "
 "“Documents exported” and “Backlog” together, then break down “Over time "
@@ -2235,7 +2266,7 @@ msgstr ""
 "(Datum)“ aufschlüsseln — eine Linie pro Kennzahl auf gemeinsamer "
 "Zeitachse."
 
-#: templates/_reporting_help.html:20
+#: templates/_reporting_help.html:24
 msgid ""
 "Time charts stop at today: the period that contains today is faded/dashed"
 " because it is still filling up, months that haven’t happened aren’t "
@@ -2248,7 +2279,7 @@ msgstr ""
 "ohne Messung ist eine Lücke, keine Null. Das Backlog-Total ist die "
 "neueste Momentaufnahme."
 
-#: templates/_reporting_help.html:21
+#: templates/_reporting_help.html:25
 msgid ""
 "The palette button in the chart toolbar recolours each series and the "
 "title, and puts a series on its own right-hand axis — Backlog starts "
@@ -2261,11 +2292,11 @@ msgstr ""
 "Zehntausenden lesbar bleiben. Die Auswahl wird mit dem Bericht "
 "gespeichert."
 
-#: templates/_reporting_help.html:23
+#: templates/_reporting_help.html:27
 msgid "Checking a number"
 msgstr "Eine Zahl prüfen"
 
-#: templates/_reporting_help.html:25
+#: templates/_reporting_help.html:29
 msgid ""
 "Click a chart bar or a table row to open the documents behind that "
 "number; the “Query” card beside the chart shows exactly how it was "
@@ -2275,7 +2306,7 @@ msgstr ""
 "hinter dieser Zahl zu öffnen; die „Abfrage“-Karte neben dem Diagramm "
 "zeigt genau, wie sie berechnet wurde."
 
-#: templates/_reporting_help.html:26
+#: templates/_reporting_help.html:30
 msgid ""
 "Each measure gets its own total card, named after it — “Total · Documents"
 " imported”, “Total · Documents exported”. There is no combined number: "
@@ -2287,7 +2318,7 @@ msgstr ""
 " Zahl gibt es nicht: dasselbe Dokument kann in beiden gezählt werden, "
 "eine Addition würde also nichts Reales zählen."
 
-#: templates/_reporting_help.html:27
+#: templates/_reporting_help.html:31
 msgid ""
 "The ↑/↓ comparison chips compare a window shifted back by your range’s "
 "length in days — not the previous calendar period. Hover a chip for the "
@@ -2297,7 +2328,7 @@ msgstr ""
 "Zeitraums zurückverschobenen Fenster — nicht mit der vorherigen "
 "Kalenderperiode. Beim Überfahren zeigt der Chip die exakten Daten."
 
-#: templates/_reporting_help.html:28
+#: templates/_reporting_help.html:32
 msgid ""
 "Two people can see different totals on the same report: it always runs "
 "with the viewer’s own data access."
@@ -2305,7 +2336,7 @@ msgstr ""
 "Zwei Personen können im selben Bericht unterschiedliche Summen sehen: Er "
 "läuft immer mit dem Datenzugriff der betrachtenden Person."
 
-#: templates/_reporting_help.html:29
+#: templates/_reporting_help.html:33
 msgid ""
 "Charts cap at 50 axis values and 12 series — past the cap you get a "
 "partial chart or none at all; the table and exports always carry the full"
@@ -2315,11 +2346,11 @@ msgstr ""
 "es ein unvollständiges oder gar kein Diagramm; Tabelle und Exporte "
 "enthalten immer alle Daten."
 
-#: templates/_reporting_help.html:31
+#: templates/_reporting_help.html:35
 msgid "Saving and sharing"
 msgstr "Speichern und Teilen"
 
-#: templates/_reporting_help.html:33
+#: templates/_reporting_help.html:37
 msgid ""
 "Save writes back to the report you have open — the pencil next to the "
 "title renames it in place. A result that is not a saved report yet (a "
@@ -2332,7 +2363,7 @@ msgstr ""
 "Eddard), fragt nach einem Namen und landet unter „Meine Berichte“. Damit "
 "das Original unverändert bleibt, verwenden Sie ⋯ → „Als Kopie speichern“."
 
-#: templates/_reporting_help.html:34
+#: templates/_reporting_help.html:38
 msgid ""
 "A report of yours that you have shared — with everyone or with named "
 "colleagues — is tagged “· shared” on its card. Named shares stay under My"
@@ -2343,7 +2374,7 @@ msgstr ""
 "„· geteilt“ gekennzeichnet. Namentliche Freigaben bleiben unter „Meine "
 "Berichte“; nur „mit allen geteilt“ verschiebt ihn in die Bibliothek."
 
-#: templates/_reporting_help.html:35
+#: templates/_reporting_help.html:39
 msgid ""
 "A scheduled email runs with the report owner’s data access — recipients "
 "see the owner’s numbers, not their own."
@@ -2352,7 +2383,7 @@ msgstr ""
 "bzw. des Berichtsbesitzers — Empfänger sehen deren Zahlen, nicht ihre "
 "eigenen."
 
-#: templates/_reporting_help.html:36
+#: templates/_reporting_help.html:40
 msgid ""
 "Delete a report you own: open its card’s “…” menu under My reports, or "
 "open the report and use ⋯ → Delete report. Shared copies and schedules go"
@@ -2362,7 +2393,7 @@ msgstr ""
 " „Meine Berichte“, oder öffnen Sie den Bericht und nutzen Sie ⋯ → Bericht"
 " löschen. Geteilte Kopien und Zeitpläne werden mit entfernt."
 
-#: templates/_reporting_help.html:37
+#: templates/_reporting_help.html:41
 msgid ""
 "On a dashboard, the “Whole report” tile shows a saved report exactly as "
 "the Simple tab does — totals, chart with its colours, axes and forecast, "
@@ -2375,7 +2406,7 @@ msgstr ""
 "Die anderen Kacheln zeigen je einen Ausschnitt; Farben oder Diagrammtyp "
 "ändern Sie im Bericht selbst."
 
-#: templates/_reporting_help.html:38
+#: templates/_reporting_help.html:42
 msgid ""
 "“Add a card” asks everything in one dialog: which saved report, how to "
 "draw it, its title, and how big — a width in grid columns and a height in"
@@ -2386,7 +2417,7 @@ msgstr ""
 "in Rasterspalten und eine Höhe in Zeilen. Die Karte erscheint sofort mit "
 "ihren Daten."
 
-#: templates/_reporting_help.html:39
+#: templates/_reporting_help.html:43
 msgid ""
 "In edit mode a tile can be dragged anywhere to rearrange it, and resized "
 "by its bottom-right corner grip: width snaps to the 12 grid columns, "
@@ -2397,7 +2428,7 @@ msgstr ""
 "Rasterspalten ein, die Höhe auf ganze Zeilen. „Fertig“ speichert das "
 "Layout."
 
-#: templates/_reporting_help.html:40
+#: templates/_reporting_help.html:44
 msgid ""
 "A dashboard’s library card previews its real layout — one small tile per "
 "card — plus a card count, so you can tell dashboards apart before opening"
@@ -2407,11 +2438,11 @@ msgstr ""
 "Layouts — eine kleine Kachel pro Karte — plus die Kartenanzahl, damit "
 "sich Dashboards vor dem Öffnen unterscheiden lassen."
 
-#: templates/_reporting_help.html:43
+#: templates/_reporting_help.html:47
 msgid "Asking Eddard"
 msgstr "Eddard fragen"
 
-#: templates/_reporting_help.html:45
+#: templates/_reporting_help.html:49
 msgid ""
 "Eddard is the reporting assistant behind the chat panel — the little "
 "black hole in the top bar."
@@ -2419,7 +2450,7 @@ msgstr ""
 "Eddard ist der Reporting-Assistent hinter dem Chat-Fenster — das kleine "
 "schwarze Loch in der oberen Leiste."
 
-#: templates/_reporting_help.html:46
+#: templates/_reporting_help.html:50
 msgid ""
 "Name the measure, the time range and the processes: “invoices by process,"
 " last 3 months” beats “show me invoices”."
@@ -2427,7 +2458,7 @@ msgstr ""
 "Nennen Sie Kennzahl, Zeitraum und Prozesse: „Rechnungen nach Prozess, "
 "letzte 3 Monate“ schlägt „zeig mir Rechnungen“."
 
-#: templates/_reporting_help.html:47
+#: templates/_reporting_help.html:51
 msgid ""
 "Check what Eddard built with “Open in builder” — the filters and process "
 "scope it chose are visible there before you trust the number."
@@ -2436,7 +2467,7 @@ msgstr ""
 " Filter und der Prozessumfang sind dort sichtbar, bevor Sie der Zahl "
 "vertrauen."
 
-#: templates/_reporting_help.html:48
+#: templates/_reporting_help.html:52
 msgid ""
 "Follow-ups work: the chat remembers the conversation, so “now only this "
 "quarter” refines the last answer."
@@ -2444,7 +2475,7 @@ msgstr ""
 "Rückfragen funktionieren: Der Chat merkt sich das Gespräch, „jetzt nur "
 "dieses Quartal“ verfeinert also die letzte Antwort."
 
-#: templates/_reporting_help.html:49
+#: templates/_reporting_help.html:53
 msgid ""
 "When Eddard used tools, unfold “How the agent worked” to see the steps; "
 "if a “Continue” button appears, click it before rephrasing your question."
@@ -2453,7 +2484,7 @@ msgstr ""
 "auf, um die Schritte zu sehen; erscheint ein „Weiter“-Knopf, klicken Sie "
 "ihn, bevor Sie die Frage umformulieren."
 
-#: templates/_reporting_help.html:50
+#: templates/_reporting_help.html:54
 msgid ""
 "The answer-depth control sits at the bottom-left of the composer: Quick "
 "for a fast number, Balanced for everyday questions, Deep when the "
@@ -2463,11 +2494,11 @@ msgstr ""
 "Eingabebereich: Schnell für eine rasche Zahl, Ausgewogen für alltägliche "
 "Fragen, Gründlich, wenn die Frage schwierig ist und Sie warten können."
 
-#: templates/_reporting_help.html:58
+#: templates/_reporting_help.html:62
 msgid "Full guide"
 msgstr "Vollständige Anleitung"
 
-#: templates/_reporting_help.html:59 templates/admin/logs.html:141
+#: templates/_reporting_help.html:63 templates/admin/logs.html:141
 #: templates/js/_reporting_drill_js.html:16
 #: templates/prepared_documents.html:253 templates/prepared_documents.html:265
 #: templates/reporting.html:148 templates/reporting.html:180
@@ -3433,7 +3464,6 @@ msgstr "Akzentfarbe"
 msgid "Your organization's branding sets the accent color."
 msgstr "Das Branding Ihrer Organisation legt die Akzentfarbe fest."
 
-
 #: templates/appearance.html:76
 msgid "Pick a preset or choose any color you like."
 msgstr "Wählen Sie eine Vorgabe oder eine beliebige Farbe."
@@ -3447,11 +3477,9 @@ msgstr ""
 "Vom Branding von %(org)s gesetzt. Ein Administrator ändert sie unter "
 "Organisationen."
 
-
 #: templates/appearance.html:83
 msgid "organization"
 msgstr "Organisation"
-
 
 #: templates/appearance.html:88
 msgid "Classic"
@@ -3720,7 +3748,6 @@ msgstr "Dashboard - nexora"
 msgid "%(tenant)s Dashboard"
 msgstr "%(tenant)s Dashboard"
 
-
 #: templates/dashboard.html:37
 #, python-format
 msgid "Signed in as %(name)s"
@@ -3731,11 +3758,9 @@ msgstr "Angemeldet als %(name)s"
 msgid "last sign-in %(when)s"
 msgstr "letzte Anmeldung %(when)s"
 
-
 #: templates/dashboard.html:43
 msgid "next in"
 msgstr "neu in"
-
 
 #: templates/admin/sessions.html:22 templates/dashboard.html:46
 #: templates/maintenance.html:154
@@ -3755,26 +3780,21 @@ msgstr "Nach Kunde und Prozess filtern"
 msgid "d"
 msgstr "T"
 
-
 #: templates/dashboard.html:76
 msgid "Imported today"
 msgstr "Heute importiert"
-
 
 #: templates/dashboard.html:78
 msgid "Current backlog"
 msgstr "Aktueller Rückstand"
 
-
 #: templates/dashboard.html:79
 msgid "Avg. processing time"
 msgstr "Durchschn. Verarbeitungszeit"
 
-
 #: templates/dashboard.html:95 templates/js/_dashboard_js.html:16
 msgid "Documents processed over time"
 msgstr "Verarbeitete Dokumente im Zeitverlauf"
-
 
 #: templates/dashboard.html:99 templates/js/_reporting_simple_js.html:33
 msgid "Over time"
@@ -3784,7 +3804,6 @@ msgstr "Im Zeitverlauf"
 msgid "Today by hour"
 msgstr "Heute nach Stunde"
 
-
 #: templates/dashboard.html:107
 msgid "No documents processed yet today."
 msgstr "Heute noch keine Dokumente verarbeitet."
@@ -3793,11 +3812,9 @@ msgstr "Heute noch keine Dokumente verarbeitet."
 msgid "open items"
 msgstr "offen"
 
-
 #: templates/dashboard.html:118
 msgid "Trend"
 msgstr "Verlauf"
-
 
 #: templates/feedback.html:9
 msgid "Feedback - nexora"
@@ -3928,6 +3945,14 @@ msgstr "Dashboard für die Generali Dokumentenverarbeitung"
 #: templates/js/_header_js.html:39
 msgid "Document List"
 msgstr "Dokumentenliste"
+
+#: templates/generali-dashboard.html:69
+#: templates/generali_additionalservices.html:52
+#: templates/generali_baseservices.html:52 templates/generali_documents.html:45
+#: templates/generali_projectmanagement.html:52 templates/js/_header_js.html:42
+#: templates/reporting.html:79
+msgid "Reporting"
+msgstr "Reporting"
 
 #: templates/generali-dashboard.html:77
 msgid "From"
@@ -5919,16 +5944,13 @@ msgstr "PDF-Datei hier ablegen zum Importieren"
 msgid "%(tenant)s Workitems"
 msgstr "%(tenant)s Workitems"
 
-
 #: templates/workitems_overview.html:60
 msgid "Workitems of this tenant's processes only."
 msgstr "Nur Workitems aus den Prozessen dieses Tenants."
 
-
 #: templates/workitems_overview.html:63
 msgid "Every workitem you may see, across all tenants."
 msgstr "Alle Workitems, die Sie sehen dürfen, über alle Tenants hinweg."
-
 
 #: templates/workitems_overview.html:120
 msgid "Stage"
@@ -6248,13 +6270,11 @@ msgstr "Beschreibung"
 msgid "Global (any organization)"
 msgstr "Global (jede Organisation)"
 
-
 #: templates/admin/access_control.html:232
 msgid "A bound profile can only be assigned to users of that organization."
 msgstr ""
 "Ein gebundenes Profil kann nur Benutzern dieser Organisation zugewiesen "
 "werden."
-
 
 #: templates/admin/access_control.html:233
 msgid "Rank"
@@ -6332,7 +6352,6 @@ msgstr "Organisationen"
 msgid "Organizations and their codes"
 msgstr "Organisationen und ihre Codes"
 
-
 #: templates/admin/admin_overview.html:105
 msgid "Session Monitor"
 msgstr "Sitzungsmonitor"
@@ -6399,7 +6418,6 @@ msgstr "Wird neu gestartet …"
 msgid "Data Connections - nexora"
 msgstr "Datenverbindungen - nexora"
 
-
 #: templates/admin/clients.html:20
 msgid ""
 "Where tenant data lives: DB, SQL dialect and Octo domain per client code "
@@ -6408,11 +6426,9 @@ msgstr ""
 "Wo die Daten eines Mandanten liegen: DB, SQL-Dialekt und Octo-Domain pro "
 "Client-Code -- nicht die Organisation selbst (siehe Organisationen)"
 
-
 #: templates/admin/clients.html:22
 msgid "Add connection"
 msgstr "Verbindung hinzufügen"
-
 
 #: templates/admin/clients.html:33 templates/admin/status.html:58
 msgid "Client registry degraded"
@@ -6719,11 +6735,9 @@ msgstr "Banner löschen"
 msgid "Organizations - nexora"
 msgstr "Organisationen - nexora"
 
-
 #: templates/admin/organizations.html:20
 msgid "Organizations, their codes and tenant"
 msgstr "Organisationen, ihre Codes und Tenant"
-
 
 #: templates/admin/organizations.html:22 templates/js/_header_js.html:27
 msgid "Add organization"
@@ -6737,7 +6751,6 @@ msgstr "Organisationen suchen..."
 #: templates/admin/organizations.html:33
 msgid "Tenant"
 msgstr "Tenant"
-
 
 #: templates/admin/organizations.html:51 templates/admin/organizations.html:65
 msgid "Branding"
@@ -6810,7 +6823,6 @@ msgstr "Kurzbeschreibung"
 msgid "Process Configurations - nexora"
 msgstr "Prozesskonfigurationen - nexora"
 
-
 #: templates/admin/processes.html:20
 msgid ""
 "Process sources and their document-field mappings per client "
@@ -6818,7 +6830,6 @@ msgid ""
 msgstr ""
 "Prozessquellen und ihre Dokumentfeld-Zuordnungen pro Client "
 "(dbo.ProcessSources / dbo.ProcessFieldMappings)"
-
 
 #: templates/admin/processes.html:22
 msgid "Add process source"
@@ -6837,7 +6848,6 @@ msgstr ""
 "&lt;Kunde&gt;.&lt;Prozess&gt; lauten (z. B. privera.02_Posteingang): Die "
 "Berechtigung, die den Zugriff darauf gewährt, wird aus diesen beiden "
 "Teilen abgeleitet; jede andere Form kann daher nie vergeben werden."
-
 
 #: templates/admin/processes.html:34
 msgid ""
@@ -6925,7 +6935,6 @@ msgstr ""
 #: templates/admin/processes.html:162 templates/admin/processes.html:171
 msgid "Unassigned"
 msgstr "Nicht zugewiesen"
-
 
 #: templates/admin/processes.html:178
 msgid "Table Name"
@@ -7197,21 +7206,17 @@ msgstr "Keine Störungen aufgezeichnet."
 msgid "Tenants - nexora"
 msgstr "Tenants - nexora"
 
-
 #: templates/admin/tenants.html:34
 msgid "No users"
 msgstr "Keine Benutzer"
-
 
 #: templates/admin/tenants.html:46
 msgid "No profile bound to this organization"
 msgstr "Kein Profil an diese Organisation gebunden"
 
-
 #: templates/admin/tenants.html:50
 msgid "Global profiles in use:"
 msgstr "Verwendete globale Profile:"
-
 
 #: templates/admin/tenants.html:58
 msgid "Requires admin.clients.view"
@@ -7221,7 +7226,6 @@ msgstr "Benötigt admin.clients.view"
 #, python-format
 msgid "Client %(code)s is missing"
 msgstr "Client %(code)s fehlt"
-
 
 #: templates/admin/tenants.html:90
 #, python-format
@@ -7238,36 +7242,29 @@ msgstr "Benötigt admin.processes.view"
 msgid "Mapping configuration unavailable"
 msgstr "Mapping-Konfiguration nicht verfügbar"
 
-
 #: templates/admin/tenants.html:106
 msgid "No process configuration assigned"
 msgstr "Keine Prozesskonfiguration zugewiesen"
-
 
 #: templates/admin/tenants.html:107
 msgid "Open Process Configurations"
 msgstr "Prozesskonfigurationen öffnen"
 
-
 #: templates/admin/tenants.html:132
 msgid "Access profiles"
 msgstr "Zugriffsprofile"
-
 
 #: templates/admin/tenants.html:136
 msgid "Data connection"
 msgstr "Datenverbindung"
 
-
 #: templates/admin/tenants.html:137
 msgid "No data connection"
 msgstr "Keine Datenverbindung"
 
-
 #: templates/admin/tenants.html:140
 msgid "Process configurations"
 msgstr "Prozesskonfigurationen"
-
 
 #: templates/admin/tenants.html:150
 msgid ""
@@ -7277,11 +7274,9 @@ msgstr ""
 "Jeder Tenant mit seinen Organisationen und pro Organisation deren "
 "Benutzer, Zugriffsprofile, Datenverbindung und Prozesskonfigurationen"
 
-
 #: templates/admin/tenants.html:157
 msgid "Tenant registry unavailable"
 msgstr "Tenant-Registry nicht verfügbar"
-
 
 #: templates/admin/tenants.html:158
 msgid ""
@@ -7292,16 +7287,13 @@ msgstr ""
 "angezeigt -- nur die Organisationen und Verbindungen, die unabhängig "
 "davon existieren. Siehe app.log."
 
-
 #: templates/admin/tenants.html:162
 msgid "Search tenant, organization, user, profile, connection or process..."
 msgstr "Tenant, Organisation, Benutzer, Profil, Verbindung oder Prozess suchen..."
 
-
 #: templates/admin/tenants.html:174
 msgid "Inactive"
 msgstr "Inaktiv"
-
 
 #: templates/admin/tenants.html:175
 #, python-format
@@ -7314,7 +7306,6 @@ msgstr[1] "%(num)d Organisationen"
 msgid "Permission that grants access to this tenant's pages"
 msgstr "Berechtigung, die Zugriff auf die Seiten dieses Tenants gewährt"
 
-
 #: templates/admin/tenants.html:183
 msgid ""
 "No organization belongs to this tenant yet -- assign one on the "
@@ -7323,17 +7314,14 @@ msgstr ""
 "Noch keine Organisation gehört zu diesem Tenant -- auf der Seite "
 "Organisationen zuweisen."
 
-
 #: templates/admin/tenants.html:187 templates/admin/tenants_manage.html:39
 #: templates/admin/tenants_manage.html:55
 msgid "Pages"
 msgstr "Seiten"
 
-
 #: templates/admin/tenants.html:195
 msgid "No pages"
 msgstr "Keine Seiten"
-
 
 #: templates/admin/tenants.html:203
 msgid ""
@@ -7343,46 +7331,37 @@ msgstr ""
 "Noch keine Tenants. Ein Tenant gruppiert Organisationen; heute werden "
 "Tenants per Migration angelegt."
 
-
 #: templates/admin/tenants.html:209
 msgid "Organizations not in a tenant"
 msgstr "Organisationen ohne Tenant"
-
 
 #: templates/admin/tenants.html:218
 msgid "Shared across organizations"
 msgstr "Organisationsübergreifend"
 
-
 #: templates/admin/tenants.html:222
 msgid "Data connections no organization rides"
 msgstr "Datenverbindungen, die keine Organisation nutzt"
-
 
 #: templates/admin/tenants.html:227
 msgid "Process configurations not assigned to an organization"
 msgstr "Keiner Organisation zugewiesene Prozesskonfigurationen"
 
-
 #: templates/admin/tenants.html:236
 msgid "Global access profiles"
 msgstr "Globale Zugriffsprofile"
-
 
 #: templates/admin/tenants.html:237
 msgid "Not bound to an organization -- assignable to any user."
 msgstr "Nicht an eine Organisation gebunden -- jedem Benutzer zuweisbar."
 
-
 #: templates/admin/tenants_manage.html:8
 msgid "Manage Tenants - nexora"
 msgstr "Tenants verwalten - nexora"
 
-
 #: templates/admin/tenants_manage.html:19
 msgid "Manage Tenants"
 msgstr "Tenants verwalten"
-
 
 #: templates/admin/tenants_manage.html:20
 msgid ""
@@ -7390,11 +7369,9 @@ msgid ""
 " pages"
 msgstr "Tenants anlegen, ihre Organisationen festlegen und ihre Seiten einhängen"
 
-
 #: templates/admin/tenants_manage.html:22
 msgid "Add tenant"
 msgstr "Tenant hinzufügen"
-
 
 #: templates/admin/tenants_manage.html:28
 msgid ""
@@ -7408,41 +7385,33 @@ msgstr ""
 "bestehende nexora-Seiten. Generierte list/crud-Seiten und ihre Entitäten "
 "stammen aus Migrationen und werden hier nur angezeigt."
 
-
 #: templates/admin/tenants_manage.html:31
 msgid "Search tenants..."
 msgstr "Tenants durchsuchen..."
-
 
 #: templates/admin/tenants_manage.html:61
 msgid "No tenants yet."
 msgstr "Noch keine Tenants."
 
-
 #: templates/admin/tenants_manage.html:70
 msgid "Pages of"
 msgstr "Seiten von"
-
 
 #: templates/admin/tenants_manage.html:73
 msgid "Key"
 msgstr "Schlüssel"
 
-
 #: templates/admin/tenants_manage.html:86
 msgid "entity"
 msgstr "Entität"
-
 
 #: templates/admin/tenants_manage.html:91
 msgid "Set draft"
 msgstr "Auf Entwurf setzen"
 
-
 #: templates/admin/tenants_manage.html:91
 msgid "Activate"
 msgstr "Aktivieren"
-
 
 #: templates/admin/tenants_manage.html:92
 #: templates/js/_reporting_dashboard_js.html:35
@@ -7454,52 +7423,42 @@ msgstr "Entfernen"
 msgid "No pages yet."
 msgstr "Noch keine Seiten."
 
-
 #: templates/admin/tenants_manage.html:104
 msgid "Mount an existing page"
 msgstr "Bestehende Seite einhängen"
-
 
 #: templates/admin/tenants_manage.html:106
 msgid "key, e.g. dashboard"
 msgstr "Schlüssel, z. B. dashboard"
 
-
 #: templates/admin/tenants_manage.html:108
 msgid "Page..."
 msgstr "Seite..."
-
 
 #: templates/admin/tenants_manage.html:113
 msgid "active_page (optional)"
 msgstr "active_page (optional)"
 
-
 #: templates/admin/tenants_manage.html:130
 msgid "Please confirm"
 msgstr "Bitte bestätigen"
-
 
 #: templates/admin/tenants_manage.html:141
 #: templates/js/admin/_tenants_manage_js.html:46
 msgid "Add a new Tenant"
 msgstr "Neuen Tenant hinzufügen"
 
-
 #: templates/admin/tenants_manage.html:148
 msgid "Tenant Code"
 msgstr "Tenant-Code"
-
 
 #: templates/admin/tenants_manage.html:160
 msgid "Organizations in this tenant"
 msgstr "Organisationen in diesem Tenant"
 
-
 #: templates/admin/tenants_manage.html:166
 msgid "currently in"
 msgstr "derzeit in"
-
 
 #: templates/admin/tenants_manage.html:170
 msgid "Ticking an organization that belongs to another tenant moves it here."
@@ -7507,11 +7466,9 @@ msgstr ""
 "Wird eine Organisation angehakt, die zu einem anderen Tenant gehört, wird"
 " sie hierher verschoben."
 
-
 #: templates/admin/tenants_manage.html:175
 msgid "Save Tenant"
 msgstr "Tenant speichern"
-
 
 #: templates/admin/user_detail.html:8
 msgid "User detail"
@@ -7620,7 +7577,6 @@ msgstr "Organisationsname"
 #: templates/admin/modals/_organizations_modals.html:41
 msgid "Not in a tenant"
 msgstr "Nicht in einem Tenant"
-
 
 #: templates/admin/modals/_organizations_modals.html:53
 msgid "Save Organization"
@@ -7747,45 +7703,37 @@ msgstr "Keine Daten vorhanden"
 msgid "Documents processed"
 msgstr "Verarbeitete Dokumente"
 
-
 #: templates/js/_dashboard_js.html:17
 msgid "Documents processed today, by hour"
 msgstr "Heute verarbeitete Dokumente nach Stunde"
-
 
 #: templates/js/_dashboard_js.html:18
 #, python-brace-format
 msgid "{days} days · peak {peak}"
 msgstr "{days} Tage · Spitze {peak}"
 
-
 #: templates/js/_dashboard_js.html:19
 #, python-brace-format
 msgid "peak {peak} at {hour}"
 msgstr "Spitze {peak} um {hour}"
 
-
 #: templates/js/_dashboard_js.html:20
 msgid "vs. yesterday"
 msgstr "vs. gestern"
-
 
 #: templates/js/_dashboard_js.html:21
 #, python-brace-format
 msgid "Trend, {days} days"
 msgstr "Verlauf, {days} Tage"
 
-
 #: templates/js/_dashboard_js.html:22
 #, python-brace-format
 msgid "{delta} since yesterday"
 msgstr "{delta} seit gestern"
 
-
 #: templates/js/_dashboard_js.html:23
 msgid "Could not refresh the dashboard"
 msgstr "Dashboard konnte nicht aktualisiert werden"
-
 
 #: templates/js/_feedback_js.html:120
 msgid "Sending…"
@@ -9637,7 +9585,6 @@ msgstr "Sitzung konnte nicht beendet werden."
 msgid "Edit Tenant"
 msgstr "Tenant bearbeiten"
 
-
 #: templates/js/admin/_tenants_manage_js.html:141
 msgid ""
 "Delete this tenant and its page descriptors? Organizations must be moved "
@@ -9646,11 +9593,9 @@ msgstr ""
 "Diesen Tenant und seine Seitenbeschreibungen löschen? Organisationen "
 "müssen zuerst verschoben werden."
 
-
 #: templates/js/admin/_tenants_manage_js.html:156
 msgid "Remove this page from the tenant?"
 msgstr "Diese Seite aus dem Tenant entfernen?"
-
 
 #: templates/js/admin/_user_detail_js.html:53
 msgid "User saved."
