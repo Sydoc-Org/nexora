@@ -146,6 +146,23 @@ Work toward the next release.
 
 ### Fixed
 
+- **The reporting KPI tiles said what they compute.** On a report with a date
+  dimension *and* a second breakdown ("Extraction correct % by month / Field":
+  4 periods x 28 fields), three of the four tiles misdescribed themselves.
+  **Buckets** counted result rows, so 112 appeared under "periods in the
+  range" where there were 3 — the row count is now reported as the average's
+  denominator and Buckets counts the leading dimension's distinct values.
+  **Avg per bucket** claimed "total / buckets" while computing the mean of the
+  cells (34.501 / 112 is 0.31, not 54.029); with a breakdown it now reads
+  "Avg per row / mean of N values". The **headline figure** captioned itself
+  "Total ... sum over the period" when it was the server's authoritative
+  `AVG()` over every underlying row — a rate, not a total — and now reads
+  "Overall ... over every matching row". Finally, rows whose leading dimension
+  is NULL are excluded from the band, matching what the chart draws and what
+  `caption_facts` already stated, so Peak no longer labels itself `null` and
+  the tiles agree with the AI caption instead of contradicting it. Both
+  implementations fixed (Simple's `reporting_simple_result.js` and the
+  Advanced grid's mirror); pinned by `tests/unit/test_reporting_kpi_band.py`.
 - **A migration that would have failed on a fresh database.** The permission
   grant in `0107` referenced `dbo.AccessProfilePermission.Effect`, a column
   retired by `0086` — a *lower* number, so on any rebuild or PROD deploy the drop

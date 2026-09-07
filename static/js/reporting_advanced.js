@@ -588,10 +588,22 @@
       if (rows.every(function (r) { return isNumericCell(r[i]); })) { idx = i; break; }
     }
     if (idx === -1) return null;
-    var total = 0;
-    rows.forEach(function (r) { total += Number(r[idx]); });
-    var buckets = rows.length;
-    return { total: total, buckets: buckets, avg: buckets ? total / buckets : 0, idx: idx };
+    // Mirrors Simple's computeKpiBand: NULL-leading-dimension rows are not
+    // periods, and buckets counts that dimension's distinct values rather than
+    // the rows (a second dimension used to multiply it by its own
+    // cardinality). cells is the row count, and what avg divides by.
+    var kept = dims ? rows.filter(function (r) { return r[0] != null; }) : rows;
+    if (!kept.length) return null;
+    var total = 0, cells = 0;
+    var periods = Object.create(null);
+    kept.forEach(function (r) {
+      if (dims) periods[String(r[0])] = 1;
+      total += Number(r[idx]);
+      cells++;
+    });
+    var buckets = dims ? Object.keys(periods).length : cells;
+    return { total: total, buckets: buckets, cells: cells,
+             avg: cells ? total / cells : 0, idx: idx };
   }
 
   // Result-column header for a measure ("Documents imported"), so a KPI says
@@ -699,7 +711,8 @@
       band.appendChild(kpiBlock('reporting-kpi-total-extra', withLabel(I18N.kpiTotal, m.label), m.total));
     });
     band.appendChild(kpiBlock('reporting-kpi-buckets', I18N.kpiBuckets, kpi.buckets));
-    band.appendChild(kpiBlock('reporting-kpi-avg', withLabel(I18N.kpiAvg, primary), kpi.avg));
+    band.appendChild(kpiBlock('reporting-kpi-avg',
+      withLabel(kpi.cells === kpi.buckets ? I18N.kpiAvg : I18N.kpiAvgCell, primary), kpi.avg));
     band.hidden = false;
   }
 

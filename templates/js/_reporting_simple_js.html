@@ -114,11 +114,22 @@
     // snapshot latest row -- "latest snapshot" overclaimed the precision.
     kpiLatestSuffix: {{ _("last bucket")|tojson }},
     kpiSumSub: {{ _("sum over the period")|tojson }},
+    // The headline figure is not always a sum. For an averaging or distinct-
+    // counting metric the server sends ONE authoritative aggregate over every
+    // matching row, so the caption becomes "Overall" and the sub-line says
+    // what it covers -- "Total ... sum over the period" claimed an addition
+    // nobody performed.
+    kpiOverall: {{ _("Overall")|tojson }},
+    kpiExactSub: {{ _("over every matching row")|tojson }},
     kpiBucketsSub: {{ _("periods in the range")|tojson }},
     kpiAvgSub: {{ _("total ÷ buckets")|tojson }},
+    // With a second dimension there are several rows per period, so the
+    // average is over the cells of the breakdown, not over the buckets.
+    kpiAvgCellSub: {{ _("mean of {n} values")|tojson }},
     statGrandTotal: {{ _("grand total")|tojson }},
     kpiBuckets: {{ _("Buckets")|tojson }},
     kpiAvg: {{ _("Avg per bucket")|tojson }},
+    kpiAvgCell: {{ _("Avg per row")|tojson }},
     kpiPeak: {{ _("Peak")|tojson }},
     deltaVs: {{ _("vs")|tojson }},
     tableRowCount: {{ _("{n} rows")|tojson }},

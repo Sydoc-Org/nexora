@@ -296,9 +296,24 @@ could not run otherwise.
   no single number combining them: a document that was imported and later
   exported would be counted twice, so adding the two together would not be a
   count of anything real.
-- Below them, **number of buckets, average per bucket and peak** for the first
+- A measure that is a **rate or an average** (an extraction-correct %, say) is
+  not something you can add up, so its card is headed **`Overall · …`** and
+  says *over every matching row* underneath. That figure is the real overall
+  rate across every document behind the report — not the numbers in the chart
+  added together, which for a percentage would give you something like 4,655%.
+- Below them, **number of buckets, average and peak** for the first
   measure — the card says which one it is describing. A report with no
   breakdown (*just the total*) has no buckets, so these are not shown.
+- **Buckets counts periods, not rows.** If you break down by a date *and*
+  something else — per month *and* per field — each month contributes one row
+  per field, so the table has many more rows than there are months. Buckets
+  still counts the months. The average card then reads **`Avg per row`** and
+  tells you how many values it averaged, because with a breakdown the average
+  is across the cells of the table rather than across the periods.
+- **Rows with no date are left out** of these figures, and the chart leaves
+  them out too. If some of your documents have no export date they cannot sit
+  in any month, so counting them would move every figure without appearing
+  anywhere you can see. Eddard's summary tells you how many were set aside.
 
 **Delta chips (↑ 12%)** appear on those cards when your report uses exactly one
 relative date preset. They compare against the period *immediately before* the

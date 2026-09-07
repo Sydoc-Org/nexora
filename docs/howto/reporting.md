@@ -112,6 +112,27 @@ content area. `templates/js/_reporting_tabs_js.html` is the nav controller
   - **Distribution stats need a distribution.** Buckets / average per bucket /
     peak render only when the definition has at least one dimension — a
     zero-dimension run is a single grand total per metric.
+  - **Every tile says what it computes**, which took fixing. **Buckets** is
+    the *leading* dimension's distinct-value count, not the row count: a
+    report broken down by a second dimension has several rows per period, and
+    counting rows once made 4 periods x 28 fields read as "112 periods in the
+    range". The row count survives as the average's denominator (`kpi.cells`),
+    so **Avg** only claims `total ÷ buckets` when there is one row per period;
+    with a breakdown it renders as **Avg per row · "mean of N values"**. And
+    the headline card is captioned **Overall · "over every matching row"**
+    rather than *Total · "sum over the period"* whenever the figure came from
+    `grandTotals` for a non-additive aggregation — an `AVG()` across every
+    underlying row is a rate, and calling it a total invited the reader to
+    reconcile it against a sum of the grouped cells that it never was.
+  - **NULL in the leading dimension is not a bucket.** Rows with no value
+    there are excluded from the whole band, which is the rule
+    `caption_facts.build_facts` already applies ("Rows with NO &lt;dim&gt; …
+    excluded from everything below") and the rule the chart already draws by.
+    The band used to keep them, so the tiles contradicted both the chart and
+    the AI caption on the same screen, and **Peak** could label itself
+    `null`. `measureTotals`' browser-side fallback sum applies the same
+    filter — if only one of the two dropped those rows, `seriesIsHeadline`
+    would stop matching and the sparkline and delta chip would vanish.
   - **Levels.** When a metric's registry row has **`TotalMode = 'latest'`**,
     its card's caption adds a **"· last bucket &lt;bucket&gt;"** suffix,
     naming the bucket the number actually covers, and the fallback total is
@@ -326,7 +347,7 @@ current value vs. the same stat over `comparison.rows`:
   going up renders the same "up" colour as more of a "more is bad" metric
   going up; the chip never guesses which direction is actually good for a
   given metric, it only ever reports the raw direction.
-- **The Avg-per-bucket chip is suppressed** (Total and Peak still render)
+- **The Avg chip is suppressed** (Total and Peak still render)
   whenever the current and prior periods zero-fill to a **different number of
   buckets** — a day-length shift that isn't aligned to the chart's grain
   (e.g. a calendar-quarter preset against a month grain) can land the prior
