@@ -5,7 +5,8 @@
 
     const S = window.NX_DASH.strings;
     const P = window.API_PREFIX;
-    const SERIES_DASH = [[], [6, 4], [2, 3], [10, 3, 2, 3], [4, 2]];
+    // Every backlog series is a solid line; colour alone tells them apart (owner, 2026-09-07).
+    const SERIES_DASH = [[], [], [], [], []];
 
     let processedChart, hourlyChart, backlogChart;
     let view = 'time';

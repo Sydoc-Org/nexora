@@ -379,7 +379,7 @@
                list/crud pages carry the tenant code in active_page already. #}
             {% macro tenant_page_link(t, p, sub, active_page, tenant_scoped) -%}
             {%- if p.page_type == 'custom' -%}
-            {%- set on = (active_page == p.active and p.active != p.endpoint) or (tenant_scoped == t.code and active_page in (p.endpoint, p.active)) -%}
+            {%- set on = (active_page == p.active) if p.active != p.endpoint else (tenant_scoped == t.code and active_page == p.endpoint) -%}
             {%- set icon = p.icon -%}
             {%- else -%}
             {%- set on = active_page == ('tenant_' ~ t.code ~ '_' ~ p.key) -%}
@@ -414,7 +414,7 @@
                matches exactly, for anyone. Generated list/crud pages carry the
                tenant code in active_page already. #}
             {% set ns = namespace(active=(active_page or '').startswith('tenant_' ~ t.code ~ '_')) %}
-            {% for p in t.pages if p.page_type == 'custom' and ((active_page == p.active and p.active != p.endpoint) or (tenant_scoped == t.code and active_page in (p.endpoint, p.active))) %}
+            {% for p in t.pages if p.page_type == 'custom' and ((active_page == p.active) if p.active != p.endpoint else (tenant_scoped == t.code and active_page == p.endpoint)) %}
             {% set ns.active = true %}
             {% endfor %}
             <div class="sidebar-nav-group" id="tenantNavGroup-{{ t.code }}" data-active="{{ 'true' if ns.active else 'false' }}" data-nx-nav-group="tenant">
