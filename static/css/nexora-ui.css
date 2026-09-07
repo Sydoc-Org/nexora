@@ -150,10 +150,10 @@ body.nx-app {
    (unchecked, checked, indeterminate -- the process-filter dropdown's
    "some but not all selected" rows use indeterminate, see
    _process_multiselect_js.html) explicitly theme-aware instead of trusting
-   the browser. Sizing (h-4/w-4 etc.) is left to each checkbox's own
-   classes -- only chrome (border/background/checkmark) is set here, via
-   background-image so it scales with whatever box size the caller uses
-   instead of assuming one fixed pixel size. */
+   the browser. Sizing stays the caller's call (h-4/w-4, .nx-scope-row's
+   18px, ...) -- this rule only floors it at 16px and draws the chrome
+   (border/background/checkmark) via background-image, so the mark scales
+   with whatever box size the caller picks instead of assuming one. */
 body.nx-app input[type="checkbox"],
 body.nx-app input[type="radio"] {
   appearance: none;
@@ -166,6 +166,17 @@ body.nx-app input[type="radio"] {
   background-size: 68% 68%;
   cursor: pointer;
   transition: background-color 0.12s, border-color 0.12s;
+  /* appearance:none also drops the widget's *intrinsic size*, so any
+     checkbox/radio without its own h-/w- classes collapsed to a 2px speck
+     -- its border and nothing else (reporting's forecast + share controls,
+     the admin clients/tenants modals, user_detail's override radios: 15 of
+     them). Floored with min-*, not width/height, so a caller that sizes
+     itself still wins: Tailwind's h-4/w-4 live in @layer utilities and
+     would lose to this unlayered file.
+     ponytail: floor only -- a control wanting *smaller* than 16px needs its
+     own unlayered rule. */
+  min-width: 16px;
+  min-height: 16px;
 }
 body.nx-app input[type="checkbox"] { border-radius: 4px; }
 body.nx-app input[type="radio"] { border-radius: 50%; }
