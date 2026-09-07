@@ -1993,7 +1993,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
    sparkline on the Simple KPI band. .rs-kpi-value-wrap bundles a value with
    its chip into one flex item so the stats-card row's caption/value
    space-between layout still only sees two top-level children. Chip color
-   is the same green/red the dashboard's .rdb-kpi-trend already uses for
+   is the same green/red the dashboard's KPI cards already use for
    "vs previous period" -- flat (no/negligible change) gets the muted meta
    color instead, since flat isn't bad news. */
 .rs-kpi-value-wrap { display: inline-flex; align-items: baseline; gap: 6px; }
@@ -2510,28 +2510,17 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 }
 .rdb-skeleton--kpi { height: 30px; width: 60%; }
 .rdb-skeleton--chart { height: 190px; width: 100%; }
-.rdb-skeleton--donut { height: 150px; width: 150px; border-radius: 50%; flex: none; }
-.rdb-skeleton--legend { height: 90px; flex: 1; min-width: 100px; }
 .rdb-skeleton--row { height: 14px; width: 100%; margin-bottom: 10px; }
-.rdb-card-body--loading .rdb-donut-wrap { align-items: center; }
 
 /* ---- Error state ------------------------------------------------------- */
 .rdb-card-body--error { display: flex; align-items: center; justify-content: center; min-height: 80px; }
 .rdb-card-error { margin: 0; font: 12.5px var(--nx-font); color: var(--nx-text-meta); text-align: center; }
 
 /* ---- KPI ---------------------------------------------------------------- */
-.rdb-kpi-value {
-  margin: 0; font: 600 30px var(--nx-font); letter-spacing: -1px;
-  font-variant-numeric: tabular-nums; color: var(--nx-text);
-}
 
 /* KPI trend (Task 15/D8): "+x.y% vs previous period", only rendered when a
    comparison is actually possible (see maybeRenderKpiTrend) -- no empty
    placeholder for the "no trend" case, per D8's honest-numbers-or-nothing. */
-.rdb-kpi-trend { margin: 4px 0 0; font: 600 11px var(--nx-font); }
-.rdb-kpi-trend--up { color: var(--nx-success); }
-.rdb-kpi-trend--down { color: var(--nx-danger); }
-.rdb-kpi-trend i { font-size: 9px; }
 
 /* ---- Line / bar (Chart.js canvas) --------------------------------------- */
 .rdb-chart-wrap { position: relative; height: 100%; min-height: 90px; }
@@ -2540,30 +2529,8 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 .rdb-card-note { margin: 0 0 6px; font: 11.5px var(--nx-font); color: var(--nx-text-meta); }
 
 /* ---- Donut: HTML center overlay (not a Chart.js plugin) + DOM legend ---- */
-.rdb-donut-wrap { display: flex; align-items: center; gap: 18px; padding: 8px 0; flex-wrap: wrap; height: 100%; box-sizing: border-box; }
-.rdb-donut-ring { position: relative; width: 150px; height: 150px; flex: none; }
-.rdb-donut-center {
-  position: absolute; inset: 0; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; pointer-events: none;
-}
-.rdb-donut-total-value {
-  font: 600 22px var(--nx-font); letter-spacing: -.5px; color: var(--nx-text);
-  font-variant-numeric: tabular-nums;
-}
-.rdb-donut-total-label { font: 600 9px var(--nx-font); letter-spacing: .8px; text-transform: uppercase; color: var(--nx-text-meta); }
-.rdb-donut-legend { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 120px; }
-.rdb-donut-legend-row { display: flex; align-items: center; gap: 8px; }
-.rdb-donut-swatch { width: 9px; height: 9px; border-radius: 3px; flex: none; }
-.rdb-donut-legend-label { font: 12px var(--nx-font); color: var(--nx-text-sec); flex: 1; min-width: 60px; }
-.rdb-donut-legend-value { font: 600 12px var(--nx-font); color: var(--nx-text-sec); font-variant-numeric: tabular-nums; }
 
 /* ---- Table: 2-col grid rows ---------------------------------------------- */
-.rdb-table-rows { display: grid; grid-template-columns: 1fr auto; border-top: 1px solid var(--nx-divider); }
-.rdb-table-k { padding: 9px 4px; border-bottom: 1px solid var(--nx-divider); font: 12.5px var(--nx-font); color: var(--nx-text-sec); }
-.rdb-table-v {
-  padding: 9px 4px; border-bottom: 1px solid var(--nx-divider); font: 600 12.5px var(--nx-font);
-  color: var(--nx-text); text-align: right; font-variant-numeric: tabular-nums;
-}
 
 /* ============================================================
    Edit mode: drag-to-reorder, corner resize, hover control cluster, add-card
@@ -2616,16 +2583,6 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 .rdb-card-ctrl-btn--danger:hover { background: #fef2f2; color: var(--nx-danger); }
 
 /* ---- Empty-card "configure this card" placeholder ---------------------- */
-.rdb-card-configure {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 8px; width: 100%; min-height: 90px; padding: 12px; box-sizing: border-box;
-  border: 1px dashed var(--nx-border-strong); border-radius: var(--nx-radius-sm);
-  background: transparent; color: var(--nx-text-meta); font: 500 12.5px var(--nx-font);
-  cursor: pointer;
-  transition: border-color var(--nx-dur) var(--nx-ease), color var(--nx-dur) var(--nx-ease);
-}
-.rdb-card-configure:hover { border-color: var(--nx-card-hover-border); color: var(--nx-accent); }
-.rdb-card-configure i { font-size: 14px; }
 .rdb-card-unconfigured { margin: 0; padding: 24px 0; text-align: center; font: 12.5px var(--nx-font); color: var(--nx-text-meta); }
 
 /* ---- Add-card tile (last grid item, edit mode only) --------------------- */
@@ -2699,48 +2656,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   border: 1px solid var(--nx-border); border-radius: var(--nx-radius-sm);
 }
 .rdb-mask-hint { margin: 6px 0 0; font: 11px var(--nx-font); color: var(--nx-text-meta); }
-.rdb-mask-pills { display: flex; gap: 6px; flex-wrap: wrap; }
-.rdb-mask-pill {
-  display: inline-flex; align-items: center; gap: 6px;
-  border: 1px solid var(--nx-border); border-radius: 999px;
-  background: var(--nx-card); color: var(--nx-text-sec); font: 500 12px var(--nx-font);
-  padding: 6px 13px; cursor: pointer;
-  transition: border-color var(--nx-dur) var(--nx-ease), color var(--nx-dur) var(--nx-ease),
-              background-color var(--nx-dur) var(--nx-ease);
-}
-.rdb-mask-pill i { font-size: 10px; color: var(--nx-violet); }
-.rdb-mask-pill:hover { border-color: var(--nx-card-hover-border); color: var(--nx-accent); }
-.rdb-mask-pill[aria-pressed="true"] {
-  border-color: var(--nx-accent); background: var(--nx-accent-tint);
-  color: var(--nx-accent); font-weight: 600;
-}
-.rdb-mask-pill[aria-pressed="true"] i { color: var(--nx-accent); }
-.rdb-mask-input { width: 100%; box-sizing: border-box; }
-.rdb-mask-sizes {
-  display: grid; grid-template-columns: auto 1fr; align-items: center;
-  gap: 8px 12px; margin-top: 12px;
-}
-.rdb-mask-label {
-  display: flex; align-items: baseline; gap: 6px;
-  font: 600 11px var(--nx-font); color: var(--nx-text-meta);
-}
-.rdb-mask-out {
-  font: 600 11px var(--nx-font); color: var(--nx-accent); font-variant-numeric: tabular-nums;
-}
-.rdb-mask-sizes input[type="range"] { width: 100%; accent-color: var(--nx-accent); margin: 0; }
 /* Proportional sketch of the chosen size against the 12-column grid. */
-.rdb-mask-preview {
-  margin-top: 12px; padding: 8px; border-radius: var(--nx-radius-sm);
-  background: var(--nx-alt); border: 1px solid var(--nx-divider);
-}
-.rdb-mask-preview-box {
-  border-radius: 5px; background: var(--nx-accent-tint);
-  border: 1px solid var(--nx-accent); min-height: 17px; box-sizing: border-box;
-  display: flex; align-items: center; justify-content: center; overflow: hidden;
-  font: 600 10.5px var(--nx-font); color: var(--nx-accent);
-  font-variant-numeric: tabular-nums; white-space: nowrap;
-  transition: width var(--nx-dur) var(--nx-ease), height var(--nx-dur) var(--nx-ease);
-}
 
 /* ---- Export menu (D9 -- #rdbExport, card-title list) -------------------- */
 .rdb-export-menu {
@@ -2758,7 +2674,6 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 /* ---- Drill-through affordance (Task 15) --------------------------------- */
 .rdb-card[data-type="line"] canvas,
 .rdb-card[data-type="bar"] canvas { cursor: pointer; }
-.rdb-table-rows { cursor: pointer; }
 
 /* ============================================================
    DARK MODE -- Indigo Studio redesign (Task 16)
@@ -2833,13 +2748,10 @@ html.dark .rdb-add-filter:hover { border-color: var(--nx-accent); }
 html.dark .rdb-card-grip { color: var(--nx-text-meta); }
 html.dark .rdb-card--dragging { background: var(--nx-accent-soft); }
 html.dark .rdb-card--resizing { box-shadow: 0 0 0 3px color-mix(in srgb, var(--nx-accent) 28%, transparent); }
-html.dark .rdb-mask-pill:hover { border-color: var(--nx-accent); }
-html.dark .rdb-mask-pill[aria-pressed="true"] { background: var(--nx-accent-soft); }
 html.dark .rdb-report-item[aria-pressed="true"] { background: var(--nx-accent-soft); }
 html.dark .rdb-card-ctrl-btn:hover { border-color: var(--nx-accent); }
 html.dark .rdb-card-ctrl-btn--danger { border-color: rgba(248, 113, 113, .4); color: var(--nx-danger); }
 html.dark .rdb-card-ctrl-btn--danger:hover { background: rgba(248, 113, 113, .15); color: var(--nx-danger); }
-html.dark .rdb-card-configure:hover { border-color: var(--nx-accent); }
 html.dark .rdb-add-tile:hover { background: var(--nx-accent-soft); }
 
 /* Colours & axes popover (Simple tab chart toolbar) */
@@ -2906,3 +2818,30 @@ html.dark .rdb-add-tile:hover { background: var(--nx-accent-soft); }
 .rdb-report-tablebar { display: flex; justify-content: flex-end; margin-top: 10px; }
 .rdb-report-table.reporting-table-wrap { min-height: 0; max-height: 420px; overflow: auto; margin-top: 8px; }
 @media (max-width: 900px) { .rdb-report { grid-template-columns: 1fr; } }
+
+/* Dashboard add-card overlay: the picked report renders whole, every piece
+   carries an "Add to dashboard" button. Cards then show ONE piece
+   (.rdb-report--kpi/--chart/--table on the card body). */
+.rdb-modal--pick { max-width: 1100px; width: 94vw; max-height: 92vh; }
+.rdb-modal--pick .rdb-modal-body { padding: 8px 18px 18px; }
+.rdb-pick-host .rs-kpi-total-card, .rdb-pick-host .rs-kpi-stats-card,
+.rdb-pick-host .rdb-report-chartcard { position: relative; }
+.rdb-pick-btn {
+  position: absolute; top: 8px; right: 8px; z-index: 2;
+  display: inline-flex; align-items: center; gap: 5px;
+  border: 1px solid var(--nx-accent); border-radius: 999px;
+  background: var(--nx-card); color: var(--nx-accent);
+  font: 600 11px var(--nx-font); padding: 4px 10px; cursor: pointer; font-family: inherit;
+  opacity: 0; transition: opacity .12s;
+}
+.rdb-pick-host .rs-kpi-total-card:hover .rdb-pick-btn, .rdb-pick-host .rs-kpi-stats-card:hover .rdb-pick-btn,
+.rdb-pick-host .rdb-report-chartcard:hover .rdb-pick-btn, .rdb-pick-btn:focus-visible,
+.rdb-pick-btn.is-added, .rdb-report-tablebar .rdb-pick-btn { opacity: 1; }
+.rdb-pick-btn:hover { background: var(--nx-accent-tint); }
+.rdb-pick-btn.is-added { border-color: var(--nx-success); color: var(--nx-success); }
+.rdb-report-tablebar .rdb-pick-btn { position: static; }
+.rdb-report--kpi .rdb-report, .rdb-report--chart .rdb-report, .rdb-report--table .rdb-report { grid-template-columns: 1fr; }
+.rdb-report--kpi .rdb-report-kpis .reporting-ledger-kpi-value { font-size: 30px; }
+.rdb-report--table .rdb-report-table.reporting-table-wrap { margin-top: 0; max-height: none; }
+.rdb-report--chart .rdb-report-chartcard { min-height: 0; }
+.rdb-report--chart .rdb-report-chart { height: calc(100% - 4px); min-height: 160px; }

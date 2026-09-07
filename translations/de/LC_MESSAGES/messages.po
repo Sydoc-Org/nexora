@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-07 13:27+0200\n"
+"POT-Creation-Date: 2026-09-07 14:32+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -766,7 +766,7 @@ msgstr "Ein unerwarteter Fehler ist aufgetreten"
 msgid "Backlog"
 msgstr "Rückstand"
 
-#: nx_lib/views/dashboard.py:941 templates/js/_reporting_dashboard_js.html:32
+#: nx_lib/views/dashboard.py:941
 msgid "Other"
 msgstr "Sonstige"
 
@@ -2436,29 +2436,20 @@ msgstr ""
 
 #: templates/_reporting_help.html:45
 msgid ""
-"On a dashboard, the “Whole report” tile shows a saved report exactly as "
-"the Simple tab does — totals, chart with its colours, axes and forecast, "
-"and the table behind “Show table”. The other tiles show one piece each; "
-"change colours or the chart type in the report itself."
+"Dashboard cards are pieces of your saved reports: Add a card, pick a "
+"report and it opens in full — hover a KPI tile or the chart, or use the "
+"table’s button, to put that piece on the dashboard, or take the whole "
+"report. Cards follow the report: change colours, chart type or filters in"
+" the report itself."
 msgstr ""
-"Auf einem Dashboard zeigt die Kachel „Ganzer Bericht“ einen gespeicherten"
-" Bericht genau wie der Tab „Einfach“ — Summen, Diagramm mit seinen "
-"Farben, Achsen und Prognose sowie die Tabelle hinter „Tabelle anzeigen“. "
-"Die anderen Kacheln zeigen je einen Ausschnitt; Farben oder Diagrammtyp "
-"ändern Sie im Bericht selbst."
+"Dashboard-Karten sind Teile Ihrer gespeicherten Berichte: „Karte "
+"hinzufügen“, einen Bericht wählen, und er öffnet sich vollständig — eine "
+"KPI-Kachel oder das Diagramm überfahren oder den Knopf der Tabelle "
+"nutzen, um dieses Teil auf das Dashboard zu legen, oder den ganzen "
+"Bericht übernehmen. Karten folgen dem Bericht: Farben, Diagrammtyp oder "
+"Filter im Bericht selbst ändern."
 
 #: templates/_reporting_help.html:46
-msgid ""
-"“Add a card” asks everything in one dialog: which saved report, how to "
-"draw it, its title, and how big — a width in grid columns and a height in"
-" rows. The tile lands showing its data straight away."
-msgstr ""
-"„Karte hinzufügen“ fragt alles in einem Dialog ab: welcher gespeicherte "
-"Bericht, wie er dargestellt wird, sein Titel und wie gross — eine Breite "
-"in Rasterspalten und eine Höhe in Zeilen. Die Karte erscheint sofort mit "
-"ihren Daten."
-
-#: templates/_reporting_help.html:47
 msgid ""
 "In edit mode a tile can be dragged anywhere to rearrange it, and resized "
 "by its bottom-right corner grip: width snaps to the 12 grid columns, "
@@ -2469,7 +2460,7 @@ msgstr ""
 "Rasterspalten ein, die Höhe auf ganze Zeilen. „Fertig“ speichert das "
 "Layout."
 
-#: templates/_reporting_help.html:48
+#: templates/_reporting_help.html:47
 msgid ""
 "A dashboard’s library card previews its real layout — one small tile per "
 "card — plus a card count, so you can tell dashboards apart before opening"
@@ -2479,11 +2470,11 @@ msgstr ""
 "Layouts — eine kleine Kachel pro Karte — plus die Kartenanzahl, damit "
 "sich Dashboards vor dem Öffnen unterscheiden lassen."
 
-#: templates/_reporting_help.html:51
+#: templates/_reporting_help.html:50
 msgid "Asking Eddard"
 msgstr "Eddard fragen"
 
-#: templates/_reporting_help.html:53
+#: templates/_reporting_help.html:52
 msgid ""
 "Eddard is the reporting assistant behind the chat panel — the little "
 "black hole in the top bar."
@@ -2491,7 +2482,7 @@ msgstr ""
 "Eddard ist der Reporting-Assistent hinter dem Chat-Fenster — das kleine "
 "schwarze Loch in der oberen Leiste."
 
-#: templates/_reporting_help.html:54
+#: templates/_reporting_help.html:53
 msgid ""
 "Name the measure, the time range and the processes: “invoices by process,"
 " last 3 months” beats “show me invoices”."
@@ -2499,7 +2490,7 @@ msgstr ""
 "Nennen Sie Kennzahl, Zeitraum und Prozesse: „Rechnungen nach Prozess, "
 "letzte 3 Monate“ schlägt „zeig mir Rechnungen“."
 
-#: templates/_reporting_help.html:55
+#: templates/_reporting_help.html:54
 msgid ""
 "Check what Eddard built with “Open in builder” — the filters and process "
 "scope it chose are visible there before you trust the number."
@@ -2508,7 +2499,7 @@ msgstr ""
 " Filter und der Prozessumfang sind dort sichtbar, bevor Sie der Zahl "
 "vertrauen."
 
-#: templates/_reporting_help.html:56
+#: templates/_reporting_help.html:55
 msgid ""
 "Follow-ups work: the chat remembers the conversation, so “now only this "
 "quarter” refines the last answer."
@@ -2516,7 +2507,7 @@ msgstr ""
 "Rückfragen funktionieren: Der Chat merkt sich das Gespräch, „jetzt nur "
 "dieses Quartal“ verfeinert also die letzte Antwort."
 
-#: templates/_reporting_help.html:57
+#: templates/_reporting_help.html:56
 msgid ""
 "When Eddard used tools, unfold “How the agent worked” to see the steps; "
 "if a “Continue” button appears, click it before rephrasing your question."
@@ -2525,7 +2516,7 @@ msgstr ""
 "auf, um die Schritte zu sehen; erscheint ein „Weiter“-Knopf, klicken Sie "
 "ihn, bevor Sie die Frage umformulieren."
 
-#: templates/_reporting_help.html:58
+#: templates/_reporting_help.html:57
 msgid ""
 "The answer-depth control sits at the bottom-left of the composer: Quick "
 "for a fast number, Balanced for everyday questions, Deep when the "
@@ -2535,11 +2526,11 @@ msgstr ""
 "Eingabebereich: Schnell für eine rasche Zahl, Ausgewogen für alltägliche "
 "Fragen, Gründlich, wenn die Frage schwierig ist und Sie warten können."
 
-#: templates/_reporting_help.html:66
+#: templates/_reporting_help.html:65
 msgid "Full guide"
 msgstr "Vollständige Anleitung"
 
-#: templates/_reporting_help.html:67 templates/admin/logs.html:141
+#: templates/_reporting_help.html:66 templates/admin/logs.html:141
 #: templates/js/_reporting_drill_js.html:16
 #: templates/prepared_documents.html:253 templates/prepared_documents.html:265
 #: templates/reporting.html:148 templates/reporting.html:180
@@ -2861,13 +2852,12 @@ msgstr "Abfrage"
 msgid "Copy"
 msgstr "Kopieren"
 
-#: templates/_reporting_simple.html:296
-#: templates/js/_reporting_dashboard_js.html:39 templates/reporting.html:378
+#: templates/_reporting_simple.html:296 templates/reporting.html:378
 msgid "Table"
 msgstr "Tabelle"
 
 #: templates/_reporting_simple.html:297
-#: templates/js/_reporting_dashboard_js.html:65
+#: templates/js/_reporting_dashboard_js.html:50
 #: templates/js/_reporting_simple_js.html:31
 msgid "Show table"
 msgstr "Tabelle anzeigen"
@@ -4040,7 +4030,6 @@ msgstr "Tägliches Verarbeitungsvolumen"
 
 #: templates/generali-dashboard.html:144 templates/generali_documents.html:36
 #: templates/js/_generali_dashboard_js.html:25
-#: templates/js/_reporting_dashboard_js.html:33
 #: templates/js/_reporting_js.html:50
 #: templates/js/_reporting_simple_js.html:110
 #: templates/js/_reporting_viz_js.html:18 templates/prepared_documents.html:51
@@ -5455,7 +5444,7 @@ msgstr "Speichern unter"
 msgid "Target"
 msgstr "Ziel"
 
-#: templates/js/_reporting_dashboard_js.html:37 templates/reporting.html:425
+#: templates/reporting.html:425
 msgid "Chart"
 msgstr "Diagramm"
 
@@ -7460,7 +7449,7 @@ msgid "Activate"
 msgstr "Aktivieren"
 
 #: templates/admin/tenants_manage.html:92
-#: templates/js/_reporting_dashboard_js.html:35
+#: templates/js/_reporting_dashboard_js.html:34
 #: templates/js/_reporting_js.html:75
 msgid "Remove"
 msgstr "Entfernen"
@@ -7880,7 +7869,7 @@ msgid "No documents found for the selected criteria."
 msgstr "Keine Dokumente für die ausgewählten Kriterien gefunden."
 
 #: templates/js/_generali_documents_js.html:148
-#: templates/js/_reporting_dashboard_js.html:55
+#: templates/js/_reporting_dashboard_js.html:45
 #: templates/js/_reporting_schema_js.html:6 templates/tenant/page.html:98
 msgid "Loading…"
 msgstr "Laden…"
@@ -8274,103 +8263,79 @@ msgid "Could not load this card."
 msgstr "Diese Karte konnte nicht geladen werden."
 
 #: templates/js/_reporting_dashboard_js.html:31
-#: templates/js/_reporting_viz_js.html:5
-msgid "Charting library unavailable."
-msgstr "Diagrammbibliothek nicht verfügbar."
+msgid "The saved report behind this card no longer exists."
+msgstr "Der gespeicherte Bericht hinter dieser Karte existiert nicht mehr."
 
-#: templates/js/_reporting_dashboard_js.html:34
+#: templates/js/_reporting_dashboard_js.html:32
+msgid ""
+"This card comes from an older dashboard version. Remove it and add the "
+"piece again."
+msgstr ""
+"Diese Karte stammt aus einer älteren Dashboard-Version. Entfernen Sie sie"
+" und fügen Sie das Teil erneut hinzu."
+
+#: templates/js/_reporting_dashboard_js.html:33
 msgid "Duplicate"
 msgstr "Duplizieren"
 
-#: templates/js/_reporting_dashboard_js.html:36
+#: templates/js/_reporting_dashboard_js.html:35
 msgid "Add a card"
 msgstr "Karte hinzufügen"
 
-#: templates/js/_reporting_dashboard_js.html:38
-msgid "KPI"
-msgstr "KPI"
+#: templates/js/_reporting_dashboard_js.html:36
+msgid "pick a saved report, then take any piece of it"
+msgstr ""
+"einen gespeicherten Bericht wählen, dann ein beliebiges Teil davon "
+"übernehmen"
 
-#: templates/js/_reporting_dashboard_js.html:40
-msgid "Donut"
-msgstr "Ring"
-
-#: templates/js/_reporting_dashboard_js.html:41
-msgid "Whole report"
-msgstr "Ganzer Bericht"
-
-#: templates/js/_reporting_dashboard_js.html:42
-msgid "pick a saved report, how to show it, and how big"
-msgstr "gespeicherten Bericht, Darstellung und Größe wählen"
-
-#: templates/js/_reporting_dashboard_js.html:43
-msgid "Click to configure this card"
-msgstr "Klicken, um diese Karte zu konfigurieren"
-
-#: templates/js/_reporting_dashboard_js.html:44
-msgid "Choose a saved report"
-msgstr "Gespeicherten Bericht auswählen"
-
-#: templates/js/_reporting_dashboard_js.html:45
+#: templates/js/_reporting_dashboard_js.html:37
 msgid "Add a card to the dashboard"
 msgstr "Karte zum Dashboard hinzufügen"
 
-#: templates/js/_reporting_dashboard_js.html:46
+#: templates/js/_reporting_dashboard_js.html:38
 msgid "Which report?"
 msgstr "Welcher Bericht?"
 
-#: templates/js/_reporting_dashboard_js.html:47
-msgid "Show it as"
-msgstr "Darstellen als"
+#: templates/js/_reporting_dashboard_js.html:39
+msgid ""
+"This is the report as saved. Hover a KPI, the chart or the table and add "
+"it to the dashboard — or take the whole report."
+msgstr ""
+"Das ist der Bericht, wie er gespeichert ist. Fahren Sie über eine KPI, "
+"das Diagramm oder die Tabelle und fügen Sie sie dem Dashboard hinzu — "
+"oder übernehmen Sie den ganzen Bericht."
 
-#: templates/js/_reporting_dashboard_js.html:48
-msgid "Title and size"
-msgstr "Titel und Größe"
+#: templates/js/_reporting_dashboard_js.html:40
+msgid "Add to dashboard"
+msgstr "Zum Dashboard hinzufügen"
 
-#: templates/js/_reporting_dashboard_js.html:49
-msgid "Leave this empty to add a blank card and configure it later."
-msgstr "Leer lassen, um eine leere Karte hinzuzufügen und später zu konfigurieren."
+#: templates/js/_reporting_dashboard_js.html:41
+msgid "Added"
+msgstr "Hinzugefügt"
 
-#: templates/js/_reporting_dashboard_js.html:50
-msgid "Card title"
-msgstr "Kartentitel"
+#: templates/js/_reporting_dashboard_js.html:42
+msgid "Add whole report"
+msgstr "Ganzen Bericht hinzufügen"
 
-#: templates/js/_reporting_dashboard_js.html:51
-msgid "Width"
-msgstr "Breite"
-
-#: templates/js/_reporting_dashboard_js.html:52
-msgid "Height"
-msgstr "Höhe"
-
-#: templates/js/_reporting_dashboard_js.html:53
+#: templates/js/_reporting_dashboard_js.html:43
 msgid "Drag to resize"
 msgstr "Ziehen zum Skalieren"
 
-#: templates/js/_reporting_dashboard_js.html:54
+#: templates/js/_reporting_dashboard_js.html:44
 msgid "No saved reports yet"
 msgstr "Noch keine gespeicherten Berichte"
 
-#: templates/js/_reporting_dashboard_js.html:56
-msgid "vs previous period"
-msgstr "im Vergleich zum Vorzeitraum"
-
-#: templates/js/_reporting_dashboard_js.html:57
+#: templates/js/_reporting_dashboard_js.html:46
 #: templates/js/_reporting_drill_js.html:17
 #: templates/js/_reporting_simple_js.html:23
 msgid "Could not export this report."
 msgstr "Bericht konnte nicht exportiert werden."
 
-#: templates/js/_reporting_dashboard_js.html:58
+#: templates/js/_reporting_dashboard_js.html:47
 msgid "No cards to export yet."
 msgstr "Noch keine Karten zum Exportieren."
 
-#: templates/js/_reporting_dashboard_js.html:62
-#: templates/js/_reporting_simple_js.html:73
-#, python-brace-format
-msgid "Showing the {shown} largest of {n} series."
-msgstr "Die {shown} grössten von {n} Serien werden angezeigt."
-
-#: templates/js/_reporting_dashboard_js.html:66
+#: templates/js/_reporting_dashboard_js.html:51
 #: templates/js/_reporting_simple_js.html:32
 msgid "Hide table"
 msgstr "Tabelle ausblenden"
@@ -8910,6 +8875,11 @@ msgstr ""
 "Zu viele Datenpunkte für ein Diagramm — wählen Sie eine gröbere "
 "Granularität oder einen kürzeren Zeitraum."
 
+#: templates/js/_reporting_simple_js.html:73
+#, python-brace-format
+msgid "Showing the {shown} largest of {n} series."
+msgstr "Die {shown} grössten von {n} Serien werden angezeigt."
+
 #: templates/js/_reporting_simple_js.html:74
 msgid "The chart could not be drawn (chart library failed to load)."
 msgstr ""
@@ -9115,6 +9085,10 @@ msgstr "Quelle"
 #: templates/js/_reporting_tabs_js.html:188
 msgid "sources"
 msgstr "Quellen"
+
+#: templates/js/_reporting_viz_js.html:5
+msgid "Charting library unavailable."
+msgstr "Diagrammbibliothek nicht verfügbar."
 
 #: templates/js/_reporting_viz_js.html:6
 msgid "No data to chart."
@@ -10507,4 +10481,81 @@ msgstr "Bis"
 
 #~ msgid "Processes - nexora"
 #~ msgstr "Prozesse - nexora"
+
+#~ msgid ""
+#~ "On a dashboard, the “Whole report” "
+#~ "tile shows a saved report exactly "
+#~ "as the Simple tab does — totals,"
+#~ " chart with its colours, axes and "
+#~ "forecast, and the table behind “Show "
+#~ "table”. The other tiles show one "
+#~ "piece each; change colours or the "
+#~ "chart type in the report itself."
+#~ msgstr ""
+#~ "Auf einem Dashboard zeigt die Kachel "
+#~ "„Ganzer Bericht“ einen gespeicherten Bericht"
+#~ " genau wie der Tab „Einfach“ — "
+#~ "Summen, Diagramm mit seinen Farben, "
+#~ "Achsen und Prognose sowie die Tabelle"
+#~ " hinter „Tabelle anzeigen“. Die anderen "
+#~ "Kacheln zeigen je einen Ausschnitt; "
+#~ "Farben oder Diagrammtyp ändern Sie im"
+#~ " Bericht selbst."
+
+#~ msgid "KPI"
+#~ msgstr "KPI"
+
+#~ msgid "Donut"
+#~ msgstr "Ring"
+
+#~ msgid "pick a saved report, how to show it, and how big"
+#~ msgstr "gespeicherten Bericht, Darstellung und Größe wählen"
+
+#~ msgid "Click to configure this card"
+#~ msgstr "Klicken, um diese Karte zu konfigurieren"
+
+#~ msgid "Choose a saved report"
+#~ msgstr "Gespeicherten Bericht auswählen"
+
+#~ msgid "Show it as"
+#~ msgstr "Darstellen als"
+
+#~ msgid "Title and size"
+#~ msgstr "Titel und Größe"
+
+#~ msgid "Leave this empty to add a blank card and configure it later."
+#~ msgstr ""
+#~ "Leer lassen, um eine leere Karte "
+#~ "hinzuzufügen und später zu konfigurieren."
+
+#~ msgid "Card title"
+#~ msgstr "Kartentitel"
+
+#~ msgid "Width"
+#~ msgstr "Breite"
+
+#~ msgid "Height"
+#~ msgstr "Höhe"
+
+#~ msgid "vs previous period"
+#~ msgstr "im Vergleich zum Vorzeitraum"
+
+#~ msgid ""
+#~ "“Add a card” asks everything in "
+#~ "one dialog: which saved report, how "
+#~ "to draw it, its title, and how "
+#~ "big — a width in grid columns "
+#~ "and a height in rows. The tile "
+#~ "lands showing its data straight away."
+#~ msgstr ""
+#~ "„Karte hinzufügen“ fragt alles in einem"
+#~ " Dialog ab: welcher gespeicherte Bericht,"
+#~ " wie er dargestellt wird, sein Titel"
+#~ " und wie gross — eine Breite in"
+#~ " Rasterspalten und eine Höhe in "
+#~ "Zeilen. Die Karte erscheint sofort mit"
+#~ " ihren Daten."
+
+#~ msgid "Added to the dashboard"
+#~ msgstr "Zum Dashboard hinzugefügt"
 

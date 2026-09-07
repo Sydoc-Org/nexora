@@ -510,37 +510,33 @@ not the recipients'.
 
 ## Dashboards
 
-**New dashboard** builds a page of live tiles instead of a single report. Each
-tile is its own small report: **KPI** (one number), **line**, **bar**, **donut**
-or **table** — or a **Whole report** tile.
+**New dashboard** builds a page of live cards out of your saved reports. A
+card is a **piece of a report** — one KPI tile, the chart, the table, or the
+whole report — shown exactly as the report itself shows it. Change the report
+and every card built from it follows.
 
-- **Edit / Done** toggles edit mode: drag tiles to rearrange or resize them, add,
-  duplicate or remove them, and set the **global filters**.
-- **Add a card** (header button, or the dashed tile at the end of the grid) opens
-  one dialog that asks everything at once: which of your saved reports to show,
-  how to draw it (KPI / chart / donut / table / whole report), its title, and how
-  big it should be — a width in grid columns and a height in rows, sketched as
-  you move the sliders. The tile lands ready, already showing its data. Leave the
-  report unpicked to drop a blank tile and configure it later.
-- **Moving and resizing.** In edit mode a tile is grabbable anywhere: drag it and
-  the grid reflows live, the dashed outline showing where it will land. Drag the
-  little corner grip at its bottom right to resize — the width snaps to the 12
-  columns of the grid, the height to whole rows (up to 6). Both are saved with
-  the dashboard on **Done**.
-- Global filters apply to every tile *except* tiles that override that field —
+- **Edit / Done** toggles edit mode: drag cards to rearrange or resize them,
+  add, duplicate or remove them, and set the **global filters**.
+- **Add a card** (header button, or the dashed tile at the end of the grid):
+  pick one of your saved reports and it opens in front of you, complete —
+  the KPI band, the chart, the table. Hover a KPI tile or the chart and click
+  **Add to dashboard**; the table has its own button; **Add whole report** in
+  the header takes everything. Take as many pieces as you like, then close.
+  Each card lands at a sensible size, ready to move or resize.
+- **Moving and resizing.** In edit mode a card is grabbable anywhere: drag it
+  and the grid reflows live, the dashed outline showing where it will land.
+  Drag the little corner grip at its bottom right to resize — the width snaps
+  to the 12 columns of the grid, the height to whole rows (up to 6). Both are
+  saved with the dashboard on **Done**.
+- Global filters apply to every card *except* cards that override that field —
   those are marked "This card overrides the global filters".
-- A KPI tile shows a "vs previous period" change when its filters contain
-  exactly one date range that can be shifted back (this month → last month, and
-  so on). Anything more ambiguous shows no trend rather than guessing.
-- Tiles drill through exactly like a normal report — click one and the document
-  drawer opens. (Donut tiles are the exception: their "Other" grouping breaks
-  the mapping.)
-- **Export** is per tile: the header menu lists the tiles, pick one.
-- **Whole report** imports a saved report exactly as the Simple tab shows it:
-  the KPI band with one labelled total per measure, the chart with its colours,
-  right axis and forecast, and the full table behind **Show table** (rows drill
-  through like everywhere else). Global filters still apply. The tile is
-  read-only — change colours, chart type or forecast in the report itself.
+- KPI cards carry the same "vs previous period" chip the report's own KPI band
+  shows.
+- Cards drill through exactly like a normal report — click a chart element or
+  a table row and the document drawer opens.
+- **Export** is per card: the header menu lists the cards, pick one.
+- A card whose report was deleted says so. Cards from dashboards built before
+  this version show a note asking you to remove them and add the piece again.
 
 A dashboard saves, shares and deletes exactly like any other report.
 

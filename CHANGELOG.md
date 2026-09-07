@@ -85,6 +85,15 @@ Work toward the next release.
 
 ### Changed
 
+- **Dashboard cards are pieces of saved reports.** Add a card now opens the
+  picked report in full (rendered by the same code as the Whole report
+  card) with an **Add to dashboard** button on every KPI tile, the chart and
+  the table, plus **Add whole report**. A card stores `{reportId, type,
+  kpiIndex}` and fetches the report's live definition when the dashboard
+  opens, so editing the report updates every card built from it. The
+  dashboard-authored KPI / line / bar / donut / table renderers, the type
+  pills, the size sliders, the blank-card picker and the KPI trend re-run are
+  gone; cards saved by the old version show a remove-and-re-add notice.
 - **Simple wizard breakdown step curated.** Date chips read as their field
   (“Import date”, “Export date”) instead of “Over time (…)”. Document
   processing shows Process, Page Count, Document Type, Document Source and

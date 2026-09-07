@@ -321,8 +321,8 @@ parameter the last-used tab is restored per browser (`localStorage`).
 
 ## Comparison & delta chips
 
-**Simple tab only** (the Advanced KPI band does not have this — see
-**Dashboards → KPI trend** above for the unrelated dashboard-card mechanism).
+**Simple tab only** (the Advanced KPI band does not have this; dashboard KPI
+cards show the same chips because they render the Simple band).
 When the current definition's filters contain **exactly one relative-date
 token filter** (`{"token": "this_month"}` etc. — a literal date-range pair, no
 token filter at all, or more than one token filter, are all ambiguous and get
@@ -470,9 +470,9 @@ A **dashboard** is a saved report whose definition has
 change, no new endpoint, no new permission. It lives entirely in the Simple
 pane (`static/js/reporting_dashboard.js`, exposing
 `window.ReportingDashboard = {openNew, open, close}`) as a fourth pane view
-alongside library/wizard/result, and is built out of multiple **cards**
-(KPI / line / bar / donut / table / report), each running the existing
-curated-source `POST /api/reporting/run` path independently.
+alongside library/wizard/result, and is a grid of **cards**, each showing one
+**piece of a saved report**: a KPI tile, the chart, the table, or the whole
+report.
 
 **Definition shape (`schemaVersion: 1`):**
 
@@ -485,106 +485,74 @@ curated-source `POST /api/reporting/run` path independently.
     { "field": "import_date", "op": "between", "value": { "token": "this_month" } }
   ],
   "cards": [
-    {
-      "id": "n100",
-      "type": "kpi",
-      "span": 3,
-      "title": "Documents this month",
-      "definition": { "source": "docprocessing", "columns": [], "metrics": [{ "metric": "doc_count" }], "filters": [] },
-      "filterOverrides": []
-    }
+    { "id": "n100", "reportId": "42", "type": "kpi", "kpiIndex": 0, "span": 3, "rows": 2,
+      "title": "Documents per month · Total", "filterOverrides": [] },
+    { "id": "n101", "reportId": "42", "type": "chart", "span": 8, "rows": 3,
+      "title": "Documents per month", "filterOverrides": [] }
   ]
 }
 ```
 
-`type` is one of `kpi` / `line` / `bar` / `donut` / `table` / `report`; `span`
-is the card's grid width; `definition` is a normal report-definition fragment
-(same shape as **Report-definition v1 JSON** below) run through the same
-validator and query builder as any other report; `filterOverrides` are
-per-card filters that layer on top of the dashboard's `globalFilters`.
+A card is a **reference**: `reportId` names the saved report, `type` the
+piece — `kpi` (with `kpiIndex`, the tile's position in the report's KPI band:
+one per measure, then Buckets / Avg / Peak), `chart`, `table` or `report`.
+The dashboard stores **no copy of the report definition**: `open()` GETs
+each distinct `reportId` once (`hydrateCards`) and attaches the live
+definition to the card in memory; `save()` strips it again (`persistedDef`).
+Editing the report therefore changes every card built from it. A card whose
+report was deleted says so instead of running. Cards from the pre-reference
+dashboard (a copied `definition` and a draw type of its own, no `reportId`)
+render a "remove and add the piece again" notice and never run.
 
+- **Add card** — Edit mode's Add-card tile/button opens an overlay listing
+  the user's own non-SQL, non-dashboard reports (`GET /api/reporting/reports`,
+  filtered client-side). Picking one renders it **whole** in the overlay via
+  the very same `renderReportCard` a card uses (global filters applied), and
+  every piece carries an *Add to dashboard* button: each KPI tile
+  (`data-testid="rdb-pick-kpi"`, `data-kpi-index`), the chart card
+  (`rdb-pick-chart`), the table (`rdb-pick-table`, shown without its toggle)
+  and *Add whole report* in the overlay header (`rdb-pick-report`). Each click
+  drops a card at its default size (`DEFAULT_SPAN`/`DEFAULT_ROWS`); the
+  overlay stays open for several picks. The overlay's own chart is keyed
+  `__pick` and survives grid re-renders.
+- **One renderer** — `renderReportCard` draws the report exactly as the
+  Simple tab does, through the pure builders on `window.ReportingSimple`
+  (`kpiBandHtml`, `buildChartData`, `chartConfigFor`, `tableHtml`, …): the
+  KPI band with one labelled total per measure (fed by a zero-column
+  aggregate clone, correct for `avg`/`count_distinct`) plus prior-period
+  delta chips (`compare: true`), the chart with the report's saved
+  `chartType`/colours/right axis/forecast, and the full table (behind *Show
+  table* when a chart is drawn). `applyPiece` then hides everything that is
+  not the card's piece and, for `kpi`, keeps only tile `kpiIndex`. Chart and
+  table pieces skip the totals clone and the compare run. There are no
+  dashboard-authored renderers any more.
 - **Access model** — identical to any other saved report: the dashboard row
   lives in `dbo.Reports` like every other `kind`, gated by `Visibility`
   (private/shared) and `dbo.ReportShares` (per-user, optional edit grant).
-  There is no separate dashboard permission or sharing mechanism — Save,
-  Save as, Rename, Delete and the Share dialog all work exactly as
+  Save, Save as, Rename, Delete and the Share dialog work exactly as
   documented in **Save & load** / **Sharing & the shared library** above.
 - **Per-card runs** — each card runs independently against
-  `POST /api/reporting/run` using its **effective filters**: the card's own
-  `definition.filters`, merged with the dashboard's `globalFilters`, merged
-  with the card's `filterOverrides` — keyed by field, later sources winning
-  on a collision. Concretely: a `filterOverrides` entry on a field beats a
-  `globalFilters` entry on the same field, which beats the card's own base
-  `definition.filters` entry on that field; fields that appear in only one
-  source are simply included. This means edits to the global filter bar
-  propagate to every card *except* the fields a card has explicitly
-  overridden (shown with a small "This card overrides the global filters"
-  chip), and a card with no override at all shows "inherits global
-  filters".
+  `POST /api/reporting/run` using its **effective filters**: the report's own
+  `definition.filters`, then the dashboard's `globalFilters`, then the card's
+  `filterOverrides`, concatenated with exact-duplicate de-duping (two
+  different filters on one field both survive as an AND). Edits to the
+  global filter bar propagate to every card; a card with overrides shows a
+  "This card overrides the global filters" chip, one without shows
+  "inherits global filters".
 - **Edit mode** — an Edit/Done toggle exposes drag-to-rearrange (native
-  HTML5 drag-and-drop), add/duplicate/remove-card, and the global-filter
-  popover (field/op/value, from the same run catalog the card definitions
-  use); every change autosaves through the normal report CRUD — `POST
-  /api/reporting/reports` (`api_reports_create`) the first time, `PUT
-  /api/reporting/reports/<id>` (`api_reports_update`) on every save after —
-  there is no separate "dashboard save" endpoint.
-- **KPI trend** — a KPI card shows a "vs previous period" delta only when
-  its **effective filters contain exactly one `between` date-range filter**;
-  the client re-runs the card with that range shifted back one period
-  (`this_month` → `last_month`, `this_quarter` → `last_quarter`, `this_week`
-  → `last_week`, `this_year` → `last_year`) and computes the percentage
-  change. Any other shape (no date filter, a literal date-range pair without
-  a shiftable token, more than one date filter) hides the trend rather than
-  guessing.
-- **Export** is **per-card only, v1** — the dashboard header's Export menu
-  lists every card; picking one POSTs that card's effective definition to
-  the existing `/api/reporting/export` (gated by `reporting.export`, same
-  as everywhere else). A whole-workbook (one sheet per card) export is not
-  built yet.
-- **Two-dimension reports** — a line or bar card whose report has a second
-  dimension ("per month **/ process**") pivots it exactly like the Simple
-  result view: first dimension on the axis, one named, colored series per
-  remaining-dimension combination, legend below the chart. Series are ordered
-  by total descending and capped at 8 (a 190 px card body cannot carry
-  Simple's 12 legibly); when more exist the card says how many it is showing.
-  Donut/table cards have no axis to pivot against, so they name the
-  combination instead — the label joins every dimension ("Jan · Invoice") and
-  each row stays one exact aggregate value. KPI cards never see a breakdown
-  at all: their run clears `definition.columns` (see **KPI trend** above).
-- **Drill-through** works per card exactly as it does on a normal aggregate
-  result (see **Drill-through** below) — clicking a chart element or table
-  row on an eligible card opens the same slide-over drawer, with one chip per
-  dimension (on a pivoted card, the clicked bucket **and** its series); donut
-  cards are excluded from click-drill (their >8-category "Other" rollup breaks
-  the 1:1 index-to-row mapping the drawer needs).
-- **`report` card ("Whole report") — a saved report 1:1** (#178). In Edit
-  mode, the "Whole report" add-pill opens a picker of the current user's own
-  saved non-SQL, non-dashboard reports (`GET /api/reporting/reports`,
-  filtered client-side); picking one copies that report's `definition` and
-  name straight into the card verbatim. Unlike `kpi`/`line`/`bar`/`donut`,
-  this card is not a dashboard-authored chart type — it renders the adopted
-  report exactly as the Simple tab would: the KPI band with one labelled
-  total per measure (fed by a zero-column aggregate clone, correct for every
-  aggregation including `avg`/`count_distinct`, not a client-side sum of
-  already-grouped rows) plus prior-period delta chips — the same band Simple
-  shows, including its `TotalMode='latest'` handling for metrics like
-  `backlog_total` (see **Metrics registry** below) — a chart using the
-  report's own saved `chartType`/colours/right-axis/forecast settings, and
-  the full result table (behind a "Show table" toggle when a chart is drawn,
-  shown directly otherwise) with row drill-through. All of this is drawn
-  through the Simple pane's own pure builders, exposed on
-  `window.ReportingSimple` (`kpiBandHtml`, `buildChartData`,
-  `chartConfigFor`, `tableHtml`, …), so the dashboard card and the Simple
-  result view cannot drift apart. Because it carries the source report's
-  full definition rather than a dashboard-authored one, a `report` card still
-  participates normally in `filterOverrides`/`globalFilters` layering and
-  drill-through like any other card. One real cost worth knowing: the card
-  typically fires two `/api/reporting/run` requests per render — the
-  breakdown run plus a zero-column totals clone (skipped only when the
-  report has zero dimensions, where the breakdown run's own result already
-  is the total) — mirroring what the Simple tab itself does on every visit,
-  so a dashboard with several whole-report cards can be slower to load than
-  one built entirely from `kpi`/`line`/`bar`/`donut` cards.
+  HTML5 drag-and-drop), corner-drag resize (12 columns × up to 6 rows),
+  add/duplicate/remove-card, and the global-filter popover; every change
+  autosaves through the normal report CRUD — `POST /api/reporting/reports`
+  the first time, `PUT /api/reporting/reports/<id>` after.
+- **Export** is **per-card only, v1** — the header's Export menu lists every
+  card; picking one POSTs the card's effective definition to the existing
+  `/api/reporting/export` (gated by `reporting.export`). A whole-workbook
+  export is not built yet.
+- **Drill-through** — chart elements and table rows on a card drill exactly
+  like the Simple result view (same drawer, one chip per dimension).
+- **Cost** — a `report` or `kpi` card fires two `/api/reporting/run` requests
+  (the breakdown run plus the zero-column totals clone, skipped when the
+  report has no dimension); `chart`/`table` cards fire one.
 
 Migration history: the dashboard builder **supersedes**
 `docs/superpowers/plans/2026-07-15-reporting-pin-to-dashboard.md` (a
