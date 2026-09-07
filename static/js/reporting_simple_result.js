@@ -12,6 +12,7 @@
 // functions is actually invoked (a user action), every file has already run.
 (function () {
   window.RS = window.RS || {};
+  RS.el = RS.el || window.NX.el;
   // Defensive fallback (see reporting_simple.js's top-of-file comment for
   // the RS.state/RS.el/RS.esc/RS.api/RS.I18N contract, and
   // reporting_simple_wizard.js's top-of-file comment for why this matters
@@ -410,6 +411,19 @@
     });
   }
   RS.renderKpiBand = renderKpiBand;
+
+  // "Why?" — the Total delta chip opens the contribution drawer with the
+  // definition that produced this band (tokens intact) and its catalog.
+  var band = RS.el('rsKpiBand');
+  if (band) band.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-why]');
+    if (!btn || !window.ReportingContribution) return;
+    var cur = RS.state && RS.state.current;
+    if (!cur || !cur.def) return;
+    var src = (RS.state.sources || []).find(function (s) { return s.id === cur.def.source; });
+    ReportingContribution.open(cur.def, (src && src.fields) || [],
+      { header: cur.name || cur.def.title || '' });
+  });
 
   // Console "Anomalies" card: cheap client-side outlier notes over the rows
   // already rendered — the latest complete bucket's swing per series, plus

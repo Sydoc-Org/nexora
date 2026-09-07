@@ -1214,6 +1214,16 @@
       });
     }
 
+    var kpiHost = q('.rdb-report-kpis');
+    if (kpiHost && !kpiHost._whyWired) {
+      kpiHost._whyWired = true;
+      kpiHost.addEventListener('click', function (e) {
+        if (!e.target.closest('[data-why]') || !window.ReportingContribution) return;
+        var src = catalog && catalog.sources.find(function (s) { return s.id === def.source; });
+        ReportingContribution.open(def, (src && src.fields) || [], { header: card.title || '' });
+      });
+    }
+
     // Chart -- identical config to the Simple result view (saved colours,
     // right axis, forecast tail/band), on the card's own canvas.
     var charted = false;
