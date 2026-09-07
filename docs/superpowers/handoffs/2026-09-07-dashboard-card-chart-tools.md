@@ -50,9 +50,23 @@ swept my first CSS block (`.rdb-card-tools`) into their commit — harmless, it 
 - `messages.pot` + de/fr/it `.po`/`.mo` — full pybabel cycle; also translated the peer's
   "Need exact control the wizard can't give?" tip from `f1ecd04a`, which had no pot entry.
 
+## Addendum (same session, later)
+
+| Commit | What |
+|---|---|
+| `d3e1f060` | Present margins (rule moved into `reporting.css`, out-ranks the full-bleed padding); forecast toggle is `aria-disabled` + toast instead of a dead `disabled` button; whole-report card = KPI strip + full-width chart, `height: auto` |
+| `e0bdda2c` | grid row spans: `grid-auto-rows: minmax(--rdb-row, auto)`, `grid-auto-flow: row dense`, `.rdb-card { grid-row: span --rdb-cardrows }` — short cards stack beside a tall one |
+
+Parked, unstaged in the shared tree because a peer has its own staged hunk in the same file:
+a 4-line CHANGELOG bullet for `e0bdda2c` (patch also in this session's scratchpad). The two
+guide bullets for `d3e1f060` were swept into the peer's staged `reporting-guide.md` — they
+land with the peer's commit. The shared tree does **not import** right now
+(`nx_lib.db` lacks `engine_generali_ro` while a peer is mid-change); `e0bdda2c` was verified
+from a `git archive HEAD` snapshot + the CSS on port 8011.
+
 ## Next steps (ordered)
 
-1. Optional polish: when a forecast legend appears, the floating toolbar overlaps its right
+1. (done in `d3e1f060`/`e0bdda2c`: Present margins, forecast affordance, report-card layout, stacking.) Optional polish: when a forecast legend appears, the floating toolbar overlaps its right
    end on narrow chart cards (`cardtools_edit.png`). A `margin-top` on `.rdb-report-chart` when
    `.rdb-card-tools` is present would fix it, but the chart-piece card's `height: calc(100% - 4px)`
    must then subtract it.
