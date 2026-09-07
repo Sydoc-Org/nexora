@@ -196,14 +196,20 @@
     return { dir: pct > 0 ? 'up' : 'down', pct: Math.abs(pct) };
   }
 
-  function deltaChipHtml(current, prior, priorStart, priorEnd) {
+  function deltaChipHtml(current, prior, priorStart, priorEnd, asButton) {
     if (prior == null || !isFinite(current)) return '';
     var d = computeDelta(current, prior);
     var arrow = d.dir === 'up' ? '↑' : d.dir === 'down' ? '↓' : '—';
     var title = RS.I18N.deltaVs + ' ' + priorStart + ' – ' + priorEnd;
-    return '<span class="rp-delta rp-delta--' + d.dir + '" data-testid="rp-delta"' +
-      ' title="' + RS.esc(title) + '" aria-label="' + RS.esc(title) + '">' +
-      arrow + ' ' + Math.round(d.pct) + '%</span>';
+    var body = arrow + ' ' + Math.round(d.pct) + '%';
+    if (!asButton) {
+      return '<span class="rp-delta rp-delta--' + d.dir + '" data-testid="rp-delta"' +
+        ' title="' + RS.esc(title) + '" aria-label="' + RS.esc(title) + '">' + body + '</span>';
+    }
+    return '<button type="button" class="rp-delta rp-delta--' + d.dir + ' rp-delta--why"' +
+      ' data-testid="rp-delta" data-why="1"' +
+      ' title="' + RS.esc(title + ' · ' + RS.I18N.whyLabel) + '"' +
+      ' aria-label="' + RS.esc(RS.I18N.whyLabel + ' ' + title) + '">' + body + '</button>';
   }
 
   // Inline sparkline (Task 11): a hand-rolled SVG polyline of the metric
@@ -327,7 +333,7 @@
     var totalDelta = '', avgDelta = '', peakDelta = '', deltaNote = '';
     if (priorKpi) {
       deltaNote = RS.I18N.deltaVs + ' ' + comparison.priorStart + ' – ' + comparison.priorEnd;
-      totalDelta = deltaChipHtml(kpi.total, priorKpi.total, comparison.priorStart, comparison.priorEnd);
+      totalDelta = deltaChipHtml(kpi.total, priorKpi.total, comparison.priorStart, comparison.priorEnd, true);
       // Bucket-count mismatch guard: shifted_definition_for_comparison shifts
       // the prior window back by the CURRENT window's length in DAYS, not by
       // an integer number of grain periods -- for a window whose day-length

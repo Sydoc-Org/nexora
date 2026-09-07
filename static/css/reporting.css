@@ -2906,3 +2906,19 @@ html.dark .rdb-add-tile:hover { background: var(--nx-accent-soft); }
 .rdb-report-tablebar { display: flex; justify-content: flex-end; margin-top: 10px; }
 .rdb-report-table.reporting-table-wrap { min-height: 0; max-height: 420px; overflow: auto; margin-top: 8px; }
 @media (max-width: 900px) { .rdb-report { grid-template-columns: 1fr; } }
+
+/* ---- Contribution analysis ("Why did it move?") — the Total delta chip is
+   a button; the drawer body reuses the drill shell (#rdPanel). ---- */
+.rp-delta--why {
+  cursor: pointer;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 0 .45rem;
+  background: transparent;
+  font: inherit;
+  font-size: .72rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+.rp-delta--why:hover,
+.rp-delta--why:focus-visible { background: color-mix(in srgb, currentColor 12%, transparent); outline: none; }
