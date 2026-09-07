@@ -27,10 +27,13 @@ Beta chip, the run's `N rows · M ms` timing badge, a sources sync line,
 content area. `templates/js/_reporting_tabs_js.html` is the nav controller
 (still exported as `window.ReportingTabs` for compat).
 
-- **Workspace nav**: `Library`, `Results`, `Dashboards`, `Scheduled`
-  (perm-gated on `reporting.schedule`), `Advanced`. The first three map into
-  the old Simple pane's internal views (`window.ReportingSimple.navTo`);
-  `Scheduled` and `Advanced` are their own containers. The `?tab=` URL param
+- **Workspace nav**: `Library`, `Results`, `Dashboards`, `Report definitions`,
+  `Scheduled` (perm-gated on `reporting.schedule`), `Advanced`. The first four
+  map into the old Simple pane's internal views
+  (`window.ReportingSimple.navTo`) — `Report definitions` opens the `layouts`
+  view (see **Report layouts** below); `/reporting/definitions` redirects
+  into it (`?tab=definitions`). `Scheduled` and `Advanced` are their own
+  containers. The `?tab=` URL param
   and the `nx.reporting.tab` storage key keep their historical names and now
   carry the screen name (`simple` stays accepted as an alias for `library`);
   `rp:tabshown` still fires with `simple|advanced` for the Simple pane's
@@ -592,12 +595,128 @@ render a "remove and add the piece again" notice and never run.
   (the breakdown run plus the zero-column totals clone, skipped when the
   report has no dimension); `chart`/`table` cards fire one.
 
+The drag/resize grid engine lives in `static/js/reporting_grid.js`
+(`window.ReportingGrid.attach(gridEl, hooks)`), extracted out of this module
+so **Report layouts** (below) can reuse it with zero behaviour change here.
+
 Migration history: the dashboard builder **supersedes**
 `docs/superpowers/plans/2026-07-15-reporting-pin-to-dashboard.md` (a
 different, never-executed design that would have added a `dbo.ReportingPins`
 table and a "pin a report to the dashboard" affordance) — that plan is
 stamped superseded; this multi-card dashboard covers the same underlying
 need ("my saved reports as live tiles") without any new table.
+
+## Report layouts ("Report definitions")
+
+A **layout** (user-facing: **Report definition**) is a saved report whose
+definition has `kind: 'layout'` instead of the usual curated/SQL/dashboard
+shape — same trick as dashboards: no schema change, no new CRUD endpoint. It
+bundles a set of **derived measures** (statistics computed over the run
+result) and a drag-and-drop 12-column **tile grid** that renders them. A
+report picks a layout via `layoutId` (see **Report-definition v1 JSON**
+above); the built-in **Standard** is "no layout" and renders exactly as
+today's fixed KPI band + chart + table.
+
+**Definition shape (`schemaVersion: 1`):**
+
+```json
+{
+  "kind": "layout",
+  "schemaVersion": 1,
+  "title": "Monthly throughput",
+  "measures": [
+    { "id": "m1", "op": "current" },
+    { "id": "m2", "op": "mean" },
+    { "id": "m3", "op": "percentile", "q": 0.9 }
+  ],
+  "tiles": [
+    { "id": "t1", "type": "kpi", "measure": "m1", "sparkline": true, "span": 3, "rows": 2 },
+    { "id": "t2", "type": "chart", "chart": "bar", "span": 9, "rows": 4 },
+    { "id": "t3", "type": "table", "span": 12, "rows": 4 }
+  ]
+}
+```
+
+**Measures.** Each has a stable `id` (referenced by `kpi` tiles), an `op` and,
+for `percentile`, a `q` in (0, 1). All six ops resolve over the first
+declared metric column, or else the first column whose non-null cells are
+all numeric (`nx_lib/reporting/derived.py`, `compute_derived`):
+
+| op | semantics |
+|---|---|
+| `current` | Sum of the measured column; when the report has exactly one date-grain dimension, the latest bucket's value instead |
+| `mean` | Arithmetic mean (`statistics.fmean`) |
+| `minmax` | `{"min", "max"}` — both ends of the range |
+| `range` | `max − min` |
+| `stddev` | Sample standard deviation (`statistics.stdev`); `0.0` with fewer than two values |
+| `percentile` | The `q`-th percentile (linear interpolation) |
+
+A measure resolves to `{"op", "value", "n"}` (`minmax` → `min`/`max` instead
+of `value`) or `{"op", "unavailable": "no_rows" | "no_numeric_column" |
+"too_many_rows"}` — a data problem never raises and never takes the whole run
+down. `too_many_rows` mirrors the KPI band's `MAX_STATS_ROWS` cap. A
+malformed layout (unknown op) raises `ValueError`; callers validate first
+with `schema.validate_layout_definition`.
+
+**Tiles.** `type` is `kpi` (references one `measure` id, optional
+`sparkline` boolean), `chart` (one of `bar`, `stacked_bar`, `line`, `area`,
+`pie`, `doughnut`, `gauge`) or `table`. Every tile has an integer `span`
+(1–12 grid columns) and `rows` (1–8). A layout allows at most 24 measures and
+24 tiles (`LAYOUT_MAX_MEASURES` / `LAYOUT_MAX_TILES` in
+`nx_lib/reporting/schema.py`). `validate_layout_definition` whitelists every
+op, tile type and chart type, and checks that every `kpi` tile's `measure`
+resolves to a declared measure id.
+
+**Ownership.** Layouts are **private** — `_load_owned_layout` in
+`nx_lib/views/reporting/_shared.py` only resolves a `layoutId` against rows
+`OwnerUserID`-owned by the caller; a foreign or missing id resolves to
+`None` regardless of sharing (shares and `Visibility: 'shared'` do not
+count). Deleting a layout leaves every report that references it alone —
+the next run of any of them just gets `layoutFallback: "missing"` and
+renders Standard.
+
+**Validated on save, not just on run.** `POST /api/reporting/reports` and
+`PUT /api/reporting/reports/<id>` run `validate_layout_definition` for
+`kind: 'layout'` definitions and reject a malformed one with 400 — the same
+gap dashboards still have (nothing validates a `kind: 'dashboard'`
+definition server-side).
+
+**Editor preview (`static/js/reporting_layouts.js`).** The Report
+definitions editor lives in the Simple pane's `#rsLayouts` view, built on the
+shared `window.ReportingGrid` drag/resize engine (see the note at the end of
+**Dashboards** above). Because an in-progress layout is not saved yet, the
+editor previews it against a real saved report the user picks from their own
+library (any report that is not `sql`/`dashboard`/`layout`) by POSTing
+`/api/reporting/run` with the draft layout **inlined** as `layout` rather
+than `layoutId` — `_layout_block` accepts either, with `layoutId` taking
+precedence when both are present. Tile rendering (`kpi`/`chart`/`table`,
+shared between this preview and a real report's result view) lives in
+`static/js/reporting_layout_view.js`; chart tiles draw straight from
+`(columns, rows)` with Chart.js — the first column becomes labels, every
+numeric metric column one dataset — rather than reusing `RS.mountChart` /
+`ReportingViz.mountChart`, which are both welded to their own pane's DOM.
+
+**Export.** `nx_lib/reporting/export.py`'s `derived_export_rows` appends a
+two-column **Measures** block (label → value, `minmax` expands to separate
+`min`/`max` rows, an unavailable measure shows `—`) underneath the data table
+in both the Excel and CSV export, whenever the run response carried
+`derived`. The Ask-Eddard assistant sees the same `derived` block because it
+posts the run payload as-is.
+
+**Scheduled mail does not get this (yet).** `runner.py::execute_definition`
+is a separate pipeline from `/api/reporting/run` — it already skips forecast
+too — so a scheduled report that references a layout still mails the
+Standard rendering. Wiring `derived` into scheduled mail is a follow-up, not
+covered here.
+
+**File map:** `nx_lib/reporting/derived.py` (the six ops),
+`nx_lib/reporting/schema.py`'s `validate_layout_definition` (shape/geometry
+whitelist), `nx_lib/views/reporting/_shared.py`'s `_layout_block` /
+`_load_owned_layout` (run-time resolution + ownership),
+`static/js/reporting_grid.js` (shared drag/resize engine),
+`static/js/reporting_layout_view.js` (tile renderer, shared by the editor
+preview and the real result view), `static/js/reporting_layouts.js` (the
+editor itself).
 
 ## What the page does
 
@@ -930,9 +1049,21 @@ This is the shape saved in `dbo.Reports.DefinitionJSON` and sent to
     { "metric": "doc_count" }
   ],
   "forecast": { "enabled": true, "horizon": "auto" },
+  "layoutId": 57,
   "rowLimit": 5000
 }
 ```
+
+**`layoutId` (optional).** A positive integer naming a `kind: 'layout'`
+saved report (see **Report layouts** below) that the *caller* owns — the
+report itself stays a normal curated/SQL definition; `layoutId` only says
+"render my result through this tile grid instead of Standard". The validator
+accepts any positive integer without resolving it (resolution is a run-time
+concern); `/api/reporting/run`'s response then carries `layout` (the
+resolved layout definition) plus `derived` (the computed measures) when the
+id resolves, or a `layoutFallback: "missing" | "invalid"` note instead when
+it does not — the client renders Standard either way. Absent `layoutId`
+never touches this path.
 
 **Metrics (optional, semantic layer — Slice 1).** When `metrics` is present and
 non-empty, the report runs in **aggregate mode**: the selected `columns` become

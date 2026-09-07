@@ -10,6 +10,15 @@ Work toward the next release.
 
 ### Added
 
+- **Report definitions (layouts).** A new *Report definitions* screen in the reporting rail
+  lets a user save named bundles of derived measures — current value, mean, min/max, range,
+  standard deviation, percentile — and a drag-and-drop 12-column tile layout (KPI tiles with
+  optional sparkline, bar / stacked bar / line / area / pie / doughnut / gauge charts, table).
+  Pick one at the top of the wizard or next to Saved reports in Advanced; the report stores
+  `layoutId`, `/api/reporting/run` returns `layout` + `derived`, and the result renders as
+  that tile grid. Exports append a Measures block. Layouts are private per user; a deleted
+  one falls back to Standard. `/reporting/definitions` opens the screen. The dashboard's
+  drag/resize engine moved to `static/js/reporting_grid.js` and is shared.
 - **Live SQL reaches every reporting database, and names them.** The sandbox gained a
   third target — the **Generali** tenant DB (`reporting.sql.target.generali.use`,
   migration `0121`, own `db_datareader` login `DB_REPORTING_GENERALI_RO_*`) — so it

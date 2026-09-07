@@ -525,6 +525,54 @@ not the recipients'.
 
 ---
 
+## Report definitions
+
+A **report definition** is a saved bundle of measures and a tile layout that
+a report can render its result through, instead of the usual chart + table.
+It is the reporting equivalent of a template: build it once, then pick it for
+any report where you want that shape.
+
+**Creating one.** Open **Report definitions** in the left navigation, then
+**New definition**:
+
+- **Add a measure** for each number you want, then pick what it computes (see
+  the six measures below).
+- **Add a tile** — a KPI tile (one measure, optionally with a small
+  sparkline), a chart (bar, stacked bar, line, area, pie, doughnut or gauge)
+  or a table.
+- **Drag** tiles to arrange them and **resize** by their corner grip, the same
+  way a dashboard card works.
+- **Done** saves it.
+
+**The six measures, in plain words:**
+
+| Measure | Shows |
+|---|---|
+| Current | The latest value — for a report broken down by time, the most recent bucket; otherwise the total. |
+| Mean | The average across every bucket. |
+| Min / max | The smallest and largest values seen. |
+| Range | The gap between the smallest and the largest. |
+| Standard deviation | How spread out the values are around the average. |
+| Percentile | The value below which a chosen percentage of the data falls (e.g. the 90th percentile). |
+
+**Using one.** Pick a report definition at the top of the guided builder, or
+next to **Saved reports** in the Advanced builder — do this before you run,
+same as picking a source. Running the report then draws your tiles instead of
+the standard chart and table. Pick **Standard** to go back to the usual view.
+
+**It is private.** A report definition you create is yours alone — sharing a
+report that uses one does not share the definition with the recipient; they
+just see the standard view instead.
+
+**If you delete one**, every report that was using it quietly falls back to
+the standard view next time it runs — nothing else breaks.
+
+**Exporting** a report that uses a definition adds a small **Measures**
+block underneath the data in the Excel/CSV file, listing each measure and its
+value.
+
+---
+
 ## Dashboards
 
 **New dashboard** builds a page of live cards out of your saved reports. A
@@ -614,6 +662,8 @@ A dashboard saves, shares and deletes exactly like any other report.
 | **Scope** | The processes a report is allowed to include. |
 | **Bucket** | One bar/point of the chart — one month, one category, … |
 | **Drill-through** | Clicking a number to see the individual documents behind it. |
+| **Report definition** | A saved bundle of measures and a tile layout a report can render its result through, in place of the standard chart + table. |
+| **Measure (definition)** | One computed number inside a report definition — current, mean, min/max, range, standard deviation or percentile. |
 
 ---
 
