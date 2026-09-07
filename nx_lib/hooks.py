@@ -325,7 +325,7 @@ def _inject_tenant_nav():
     ``nx_lib.views.tenant`` to resolve while ``nx_lib.hooks`` is still mid
     -import."""
     if "userid" not in session:
-        return {"tenant_nav": [], "tenant_scoped": None}
+        return {"tenant_nav": [], "tenant_scoped": None, "tenant_solo": False}
     from .tenant.registry import organization_tenant
     from .views.tenant import visible_tenant_nav
 
@@ -333,9 +333,16 @@ def _inject_tenant_nav():
     # the sidebar shows the tenant group(s) instead of the global workspace
     # links (#257). Users of organizations outside any tenant (sydoc staff)
     # keep the global navigation.
+    nav = visible_tenant_nav()
+    scoped = organization_tenant(session.get("organizationcode"))
+    # A member of exactly one tenant and nothing else: the tenant IS their
+    # portal, so the UI never names it (no sidebar label, no "<Tenant>
+    # Dashboard" heading) -- naming it only leaks an internal concept (#255).
+    # Staff, and members holding grants on other tenants, need the names.
     return {
-        "tenant_nav": visible_tenant_nav(),
-        "tenant_scoped": organization_tenant(session.get("organizationcode")),
+        "tenant_nav": nav,
+        "tenant_scoped": scoped,
+        "tenant_solo": bool(scoped) and len(nav) == 1 and nav[0]["code"] == scoped,
     }
 
 

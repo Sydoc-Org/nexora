@@ -332,7 +332,7 @@
                links would be the same pages twice. Staff and members who also
                see other tenants by grant keep the Global entries; Reporting has
                no tenant page and is always rendered. #}
-            {% set single_tenant = tenant_scoped and tenant_nav|length == 1 and tenant_nav[0].code == tenant_scoped %}
+            {% set single_tenant = tenant_solo %}
             {% for item in nav_items if item.always or not single_tenant %}
             {% if item.perm %}
             <a href="{{ item.url }}"
@@ -392,16 +392,14 @@
                     </a>
             {%- endmacro %}
 
-            {% if tenant_scoped and tenant_nav|length == 1 and tenant_nav[0].code == tenant_scoped %}
+            {% if tenant_solo %}
             {# A user inside exactly one tenant needs no collapsible group for it:
                the tenant's pages ARE their workspace. Render them flat under a
                plain label. Staff, and members who also hold grants on other
-               tenants, keep the collapsible groups below. #}
+               tenants, keep the collapsible groups below.
+               No tenant label: for a member the tenant IS the portal, so naming
+               it adds nothing and leaks an internal concept (#255). #}
             {% set t = tenant_nav[0] %}
-            <div class="sidebar-section-label" data-testid="header-nav-tenant-{{ t.code }}-label">
-                <i class="fas fa-building sidebar-nav-icon"></i>
-                <span class="sidebar-label">{{ t.label }}</span>
-            </div>
             {% for p in t.pages %}{{ tenant_page_link(t, p, false, active_page, tenant_scoped) }}{% endfor %}
             {% else %}
             {% for t in tenant_nav %}

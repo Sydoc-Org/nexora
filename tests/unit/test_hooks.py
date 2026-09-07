@@ -529,7 +529,11 @@ def test_inject_tenant_nav_empty_when_no_session(app):
     registry (has_permission() would read an empty session anyway, but this
     avoids the registry lookup entirely for anonymous requests)."""
     with app.test_request_context("/"):
-        assert _inject_tenant_nav() == {"tenant_nav": [], "tenant_scoped": None}
+        assert _inject_tenant_nav() == {
+            "tenant_nav": [],
+            "tenant_scoped": None,
+            "tenant_solo": False,
+        }
 
 
 def test_inject_tenant_nav_delegates_to_visible_tenant_nav(app, monkeypatch):
@@ -557,6 +561,8 @@ def test_inject_tenant_nav_delegates_to_visible_tenant_nav(app, monkeypatch):
         assert _inject_tenant_nav() == {
             "tenant_nav": [{"code": "ms02", "label": "MS02", "pages": []}],
             "tenant_scoped": "ms02",
+            # member of exactly this one tenant -> the UI never names it (#255)
+            "tenant_solo": True,
         }
         session["organizationcode"] = "SYDC"
         assert _inject_tenant_nav()["tenant_scoped"] is None

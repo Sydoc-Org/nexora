@@ -24,8 +24,12 @@
     <div class="nx-dash-head nx-rise">
       <span class="nx-page-icon"><i class="fas fa-gauge-high"></i></span>
       <div>
-        {% if dashboard_tenant %}
+        {# tenant_solo: a member of just this tenant sees a plain "Dashboard" --
+           for them there is no other one to tell it apart from (#255). #}
+        {% if dashboard_tenant and not tenant_solo %}
         <h1 class="nx-title" data-testid="dashboard-title">{{ _("%(tenant)s Dashboard", tenant=dashboard_tenant.display_name) }}</h1>
+        {% elif dashboard_tenant %}
+        <h1 class="nx-title" data-testid="dashboard-title">{{ _("Dashboard") }}</h1>
         {% else %}
         <h1 class="nx-title" data-testid="dashboard-title">{{ _("Global Dashboard") }}</h1>
         {% endif %}

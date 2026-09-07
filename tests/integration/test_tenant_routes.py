@@ -975,8 +975,8 @@ def test_visible_tenant_nav_custom_page_query_becomes_url_args(app, monkeypatch)
 
 
 def test_header_renders_a_single_tenant_flat_for_its_members(user_client, monkeypatch):
-    """A member of exactly one tenant gets its pages at top level under a
-    plain label -- no collapsible group, no global entries."""
+    """A member of exactly one tenant gets its pages at top level -- no
+    collapsible group, no tenant label, no global entries."""
     acme = _tenant()
     monkeypatch.setattr(tv, "registry", lambda: _fake_registry({TENANT_CODE: acme}))
     monkeypatch.setattr(tv, "pages_for", lambda code: [_page(key="dossiers")])
@@ -994,6 +994,6 @@ def test_header_renders_a_single_tenant_flat_for_its_members(user_client, monkey
 
     assert resp.status_code == 200
     assert b"tenantNavGroup-" not in resp.data
-    assert f'data-testid="header-nav-tenant-{TENANT_CODE}-label"'.encode() in resp.data
+    assert f'data-testid="header-nav-tenant-{TENANT_CODE}-label"'.encode() not in resp.data
     assert f'data-testid="header-nav-tenant-{TENANT_CODE}-dossiers"'.encode() in resp.data
     assert b'data-testid="header-nav-item-' not in resp.data
