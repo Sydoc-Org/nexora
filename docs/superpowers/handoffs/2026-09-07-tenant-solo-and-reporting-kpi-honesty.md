@@ -1,3 +1,7 @@
+> **Superseded the same day** — the newer handoff is
+> [`2026-09-07-wizard-curation-and-dashboard-pieces.md`](2026-09-07-wizard-curation-and-dashboard-pieces.md).
+> Run `/reset-session docs/superpowers/handoffs/2026-09-07-wizard-curation-and-dashboard-pieces.md`.
+
 # Handoff — a tenant's own users stop seeing it named, and the reporting KPI tiles stop lying
 
 **Date:** 2026-09-07 · **Branch:** `refactor/255-admin-nav-tenancy-labels` (main checkout
