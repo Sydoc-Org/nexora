@@ -17,6 +17,7 @@ from ...db import engine_nexora_db
 from ...extensions import limiter
 from ...i18n import get_locale
 from ...reporting.catalog import fetch_docprocessing_catalog
+from ...reporting.derived import compute_derived
 from ...reporting.forecast import compute_forecast
 from ...reporting.query import QueryBuildError
 from ...reporting.sandbox import MAX_SQL_LEN, SqlSandboxError, humanize_sql_error
@@ -41,6 +42,7 @@ from ._shared import (
     _get_effective_source,
     _has_acked,
     _json_safe,
+    _layout_block,
     _metrics_for_source,
     _prepare_run,
     _run_sql,
@@ -218,6 +220,15 @@ def api_run():
             payload["forecast"] = _forecast_for(rd, columns, rows)
         except Exception as e:  # a forecast must never take down the run
             current_app.logger.warning(f"/api/reporting/run forecast skipped: {e}")
+    layout, layout_fallback = _layout_block(rd, session.get("userid"))
+    if layout is not None:
+        payload["layout"] = layout
+        try:
+            payload["derived"] = compute_derived(layout, rd, columns, rows)
+        except Exception as e:  # a measure must never take down the run
+            current_app.logger.warning(f"/api/reporting/run derived skipped: {e}")
+    elif layout_fallback:
+        payload["layoutFallback"] = layout_fallback
     # rd is the original request body (tokens intact) — _prepare_run resolves
     # its own local copy. _resolved_dates_meta needs the tokens to produce labels.
     resolved_dates = _resolved_dates_meta(rd)

@@ -42,7 +42,11 @@ from ...reporting.sandbox import (
     validate_select,
     wrap_with_cap,
 )
-from ...reporting.schema import ReportDefinitionError, validate_report_definition
+from ...reporting.schema import (
+    ReportDefinitionError,
+    validate_layout_definition,
+    validate_report_definition,
+)
 from ...reporting.semantic import resolve_metrics
 from ...reporting.sources import (
     DEFAULT_ROW_LIMIT,
@@ -294,6 +298,50 @@ def _has_acked(userid):
         return cur.fetchone() is not None
     finally:
         conn.close()
+
+
+def _load_owned_layout(layout_id, userid):
+    """The parsed kind:'layout' definition `userid` owns under `layout_id`, else None.
+    Layouts are private (spec D-ownership): shares and Visibility='shared' do not count."""
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT r.DefinitionJSON FROM dbo.Reports r "
+            "WHERE r.ReportID = ? AND r.OwnerUserID = ? "
+            "  AND JSON_VALUE(r.DefinitionJSON, '$.kind') = 'layout'",
+            (layout_id, userid),
+        )
+        row = cur.fetchone()
+    finally:
+        conn.close()
+    if not row:
+        return None
+    try:
+        return json.loads(row[0])
+    except (TypeError, ValueError):
+        return None
+
+
+def _layout_block(rd, userid):
+    """(layout, fallback) for a run request. `layoutId` wins over an inline
+    `layout` (the editor's unsaved-preview path). fallback is 'missing' when the
+    id resolves to nothing the caller owns, 'invalid' when the layout fails
+    validation, None otherwise."""
+    layout_id = rd.get("layoutId")
+    if layout_id is not None:
+        layout = _load_owned_layout(layout_id, userid)
+        if layout is None:
+            return None, "missing"
+    else:
+        layout = rd.get("layout")
+        if layout is None:
+            return None, None
+    try:
+        validate_layout_definition(layout)
+    except ReportDefinitionError:
+        return None, "invalid"
+    return layout, None
 
 
 def _audit_sql(userid, username, target, sql_text, rows_returned, status, duration_ms):
