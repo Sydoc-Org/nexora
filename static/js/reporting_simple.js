@@ -192,6 +192,24 @@
       .filter(Boolean);
   }
 
+  // "Ask Eddard about this report": the button lives beside the insight card
+  // and only exists for a reporting.ai.use holder. null hides it and detaches
+  // the report from the chat; a report shows it and pre-attaches, so opening
+  // the chat by the header button is grounded too.
+  function setAskEddard(report) {
+    var btn = RS.el('rsAskEddard');
+    if (window.ReportingChat && ReportingChat.setReport) ReportingChat.setReport(report);
+    if (!btn) return;
+    btn.hidden = !report;
+    if (report && !btn._wired) {
+      btn._wired = true;
+      btn.addEventListener('click', function () {
+        if (window.ReportingChat) ReportingChat.askAbout(RS.state.askEddardReport);
+      });
+    }
+    RS.state.askEddardReport = report;
+  }
+
   function fireCaption(boxId, columns, rows, title, dateLabel, notes, levelFields) {
     var box = RS.el(boxId);
     if (!box) return;
@@ -285,6 +303,7 @@
     RS.el('rsRunLoading').hidden = false;
     RS.el('rsDrillHint').hidden = true;
     RS.el('rsKpiBand').hidden = true;
+    setAskEddard(null);
     // A prior run's caption sentence must never linger over the new run's
     // (still-loading, possibly failed or empty) result — hidden here just
     // like every other result element above, cleared again by fireCaption()
@@ -433,6 +452,8 @@
     // without another (slow, lookback-widened) server run.
     RS.state.lastRun = { def: def, columns: columns, rows: rows, hasMetrics: hasMetrics,
                       dims: dims, forecast: res.data.forecast || null };
+    setAskEddard({ title: cur.name || def.title || '', definition: def,
+                   columns: columns, rows: rows.slice(0, 5000) });
     var charted = (hasMetrics && dims)
       ? !!RS.mountChart(def, columns, rows, res.data.forecast || null) : false;
     syncForecastCtl(def, res.data.forecast || null, charted);

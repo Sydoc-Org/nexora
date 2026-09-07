@@ -10,6 +10,13 @@ Work toward the next release.
 
 ### Added
 
+- **Ask Eddard about this report.** A button beside the *Eddard insight* card on the
+  Results tab opens the chat with the report on screen attached: its definition
+  (source, grouping, measures with their registry descriptions, filters) and, for a
+  `reporting.ai.explain.use` holder, the same fact sheet the auto-caption uses. "Tell
+  me what I am seeing" or "what are Cases" is answered from that context without
+  tool calls; the header Eddard button is grounded the same way while a result is
+  on screen. `POST /api/reporting/ai/agent` takes the optional `report` object.
 - **Conditional measures.** `ReportingMetrics.FilterJson` (there since 0017, never read)
   now turns a measure into `COUNT/SUM(CASE WHEN <cond> THEN … END)`: a JSON list of
   `{field, op, value}` clauses, fields whitelisted against the source catalog, values

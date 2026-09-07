@@ -558,6 +558,85 @@ def ask(
 # model saw the NULL-date bucket plus 2020 and called it "a clear outlier".
 CAPTION_MAX_ROWS = 5000
 
+# "Ask Eddard about this report": bound on the grounding block that describes
+# the report the user is looking at (definition summary + fact sheet).
+REPORT_CONTEXT_MAX_CHARS = 6000
+
+
+def report_context_text(report, *, metrics, source_label, include_rows):
+    """Grounding text for the report currently on the user's screen.
+
+    `report` is the client payload {title, definition, columns, rows}. The
+    definition summary (source, grouping, measures with their registry
+    descriptions, filters) is schema-level and always included; the fact sheet
+    over the rows is data egress and only included when `include_rows` (the
+    caller holds reporting.ai.explain.use). Rows never reach the model raw --
+    caption_facts.build_facts reduces them, same as the auto-caption. Returns
+    "" for anything that is not a usable report object.
+    """
+    if not isinstance(report, dict):
+        return ""
+    definition = report.get("definition")
+    if not isinstance(definition, dict):
+        return ""
+    lines = ["The user is currently looking at this report:"]
+    title = str(report.get("title") or definition.get("title") or "").strip()
+    if title:
+        lines.append(f"Title: {title[:200]}")
+    if source_label:
+        lines.append(f"Source: {source_label} (id {definition.get('source')})")
+    cols = [c for c in definition.get("columns") or [] if isinstance(c, dict) and c.get("field")]
+    if cols:
+        lines.append(
+            "Grouped by: "
+            + ", ".join(
+                f"{c['field']}" + (f" (per {c['grain']})" if c.get("grain") else "") for c in cols
+            )
+        )
+    mets = [m.get("metric") for m in definition.get("metrics") or [] if isinstance(m, dict)]
+    if mets:
+        parts = []
+        for code in mets:
+            spec = (metrics or {}).get(code) or {}
+            desc = spec.get("description")
+            label = spec.get("label") or code
+            agg = spec.get("aggregation")
+            base = spec.get("base_field")
+            how = f"{agg}" + (f" of {base}" if base else "") if agg else ""
+            parts.append(
+                f"{label} [{code}]" + (f": {how}" if how else "") + (f" -- {desc}" if desc else "")
+            )
+        lines.append("Measures: " + "; ".join(parts))
+    filters = [f for f in definition.get("filters") or [] if isinstance(f, dict) and f.get("field")]
+    if filters:
+        lines.append(
+            "Filters: "
+            + ", ".join(f"{f['field']} {f.get('op')} {f.get('value')!r}" for f in filters)
+        )
+    if include_rows:
+        columns = report.get("columns")
+        rows = report.get("rows")
+        if isinstance(columns, list) and columns and isinstance(rows, list):
+            rows = [
+                list(r) if isinstance(r, list | tuple) else [r] for r in rows[:CAPTION_MAX_ROWS]
+            ]
+            lines.append("What the result shows (fact sheet):")
+            lines.append(build_facts(columns, rows))
+    else:
+        lines.append(
+            "(The result rows are not shared with you; describe the report from its definition.)"
+        )
+    lines.append(
+        'When the question is about this report ("what am I seeing", "what is <measure>", '
+        '"why is X higher"), answer from this block and the source catalog in plain language '
+        "WITHOUT calling tools: three to five sentences, use the measure and column labels "
+        "(never the codes in brackets), lead with what the numbers say. Only build or run "
+        "something new when the user asks for a different report."
+    )
+    text = "\n".join(lines)
+    return text[:REPORT_CONTEXT_MAX_CHARS]
+
+
 _CAPTION_SYSTEM = (
     "You are a concise data analyst for an internal reporting tool. You get a "
     "FACT SHEET computed exactly over the complete result — not the raw table. "

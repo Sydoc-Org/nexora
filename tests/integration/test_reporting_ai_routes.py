@@ -1762,3 +1762,71 @@ def test_ai_agent_continue_attempt_clamped_to_ceiling(user_client):
     data = resp.get_json()
     assert data["continueAttempt"] == MAX_CONTINUE_ATTEMPTS
     assert data["canContinue"] is False  # already at the ceiling
+
+
+def test_ai_agent_report_context_is_grounded_and_rows_need_explain(user_client):
+    """`report` in the body lands in the grounding; the fact sheet rides only on
+    reporting.ai.explain.use, the definition summary always."""
+    report = {
+        "title": "Effort by category",
+        "definition": {
+            "schemaVersion": 1,
+            "visualization": "table",
+            "source": "docprocessing",
+            "columns": [{"field": "processname"}],
+            "metrics": [{"metric": "doc_count"}],
+            "filters": [],
+        },
+        "columns": [
+            {"field": "processname", "header": "Process"},
+            {"field": "doc_count", "header": "Documents"},
+        ],
+        "rows": [["A", 3], ["B", 5]],
+    }
+    for explain in (False, True):
+        with ExitStack() as es:
+            for p in _agent_patches(explain_perm=explain):
+                es.enter_context(p)
+            loop = es.enter_context(
+                patch("nx_lib.views.reporting.ai.ask_agentic", return_value=_agentic_result())
+            )
+            es.enter_context(
+                patch(
+                    "nx_lib.views.reporting.ai._get_effective_source",
+                    return_value={
+                        "id": "docprocessing",
+                        "label": "Document Processing",
+                        "kind": "curated",
+                        "permission": "reporting.source.docprocessing.use",
+                    },
+                )
+            )
+            es.enter_context(
+                patch(
+                    "nx_lib.views.reporting.ai._load_db_metrics",
+                    return_value={
+                        "doc_count": {
+                            "label": "Documents",
+                            "aggregation": "count",
+                            "base_field": None,
+                            "description": "Number of documents",
+                        },
+                    },
+                )
+            )
+            es.enter_context(
+                patch(
+                    "nx_lib.views.reporting.ai._validate_definition_for_user",
+                    return_value=(True, None),
+                )
+            )
+            es.enter_context(patch("nx_lib.views.reporting.ai._audit_ai"))
+            user_client.post(
+                "/api/reporting/ai/agent", json={"question": "what am I seeing", "report": report}
+            )
+        initial = loop.call_args.args[0]
+        assert "currently looking at this report" in initial
+        assert "Title: Effort by category" in initial
+        assert "Documents [doc_count]: count -- Number of documents" in initial
+        assert ("fact sheet" in initial) is explain
+        assert ("Rows: 2" in initial) is explain

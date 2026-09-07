@@ -273,6 +273,13 @@
           <div id="rsCaption" class="rp-caption rc-side-card__body" hidden data-testid="rs-caption"></div>
         </div>
         {% endif %}
+        {% if ai_enabled %}
+        {# "Ask Eddard about this report": opens the chat with the result on
+           screen attached (ReportingChat.askAbout). Shown once a run rendered. #}
+        <button type="button" id="rsAskEddard" class="rc-btn rc-btn--eddard w-full justify-center" hidden
+                data-testid="rs-ask-eddard">
+          {{ eddard.mark(18, cls='ed--calm') }}<span>{{ _("Ask Eddard about this report") }}</span></button>
+        {% endif %}
         {# Anomalies card: computed client-side from the rows already on hand
            (renderAnomalies() in the JS partial) — biggest latest-bucket move
            per series + series peaks. Hidden when nothing stands out. #}

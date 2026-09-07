@@ -1666,6 +1666,15 @@ This runs a **Tier-2 agentic tool-loop** (`nx_lib/reporting/ai.py: ask_agentic`)
 the model calls tools, sees their results, and **self-repairs** until it has a
 validated artifact or hits a hard turn cap.
 
+The body may also carry `report` — `{title, definition, columns, rows}`, the result
+on the Results tab ("Ask Eddard about this report", `ReportingChat.askAbout`). The
+route resolves the definition's source, checks the caller holds its permission, and
+appends `report_context_text()` (nx_lib/reporting/ai.py) to the grounding: the
+definition summary with measure labels + registry descriptions always, the
+`caption_facts` fact sheet over the rows only for a `reporting.ai.explain.use`
+holder (same egress rule as the auto-caption). The block tells the model to answer
+report questions from it without tools.
+
 **Continue past a dead-end (#153).** When the loop stops on `"max_turns"` or
 `"budget"` without a final answer, `canContinue` is `true` (while
 `continueAttempt < MAX_CONTINUE_ATTEMPTS`) and the chat panel renders a

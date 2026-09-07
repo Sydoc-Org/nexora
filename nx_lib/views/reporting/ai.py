@@ -39,6 +39,7 @@ from ...reporting.ai import (
     AiError,
     ask_agentic,
     ask_agentic_iter,
+    report_context_text,
     stage_preview,
 )
 from ...reporting.ai import _make_agent_step as make_agent_step
@@ -68,6 +69,7 @@ from ._shared import (
     _effective_sources,
     _get_effective_source,
     _has_acked,
+    _load_db_metrics,
     _load_field_col_maps,
     _load_process_configs,
     _metrics_for_source,
@@ -794,6 +796,21 @@ def api_ai_agent():
             grounding += (
                 " It is builder-only — answer it with build_definition; run_sql cannot " "reach it."
             )
+    # "Ask Eddard about this report": the Results tab attaches the report on
+    # screen. Definition summary is schema-level; the row fact sheet is data
+    # egress and rides only on reporting.ai.explain.use, like the auto-caption.
+    report = body.get("report")
+    if isinstance(report, dict) and isinstance(report.get("definition"), dict):
+        rep_source = _get_effective_source(str(report["definition"].get("source") or ""))
+        if rep_source is not None and has_permission(rep_source.get("permission", "")):
+            rep_text = report_context_text(
+                report,
+                metrics=_load_db_metrics(),
+                source_label=rep_source.get("label"),
+                include_rows=has_permission("reporting.ai.explain.use"),
+            )
+            if rep_text:
+                grounding += "\n\n" + rep_text
     initial = f"{grounding}\n\nQuestion: {question}"
     system_prompt = _AGENT_SYSTEM + (_AGENT_EXPLAIN_SUFFIX if explain else "")
 
