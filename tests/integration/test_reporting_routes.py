@@ -1949,3 +1949,22 @@ def test_run_with_invalid_inline_layout_falls_back_invalid(admin_client):
         resp = admin_client.post("/api/reporting/run", json=body)
     assert resp.status_code == 200
     assert resp.get_json()["layoutFallback"] == "invalid"
+
+
+def test_export_csv_appends_measures_block_for_layout(admin_client):
+    rid = _create_layout(admin_client)
+    try:
+        body = dict(_FC_DEF, format="csv", layoutId=rid)
+        with (
+            patch(
+                "nx_lib.views.reporting.export._prepare_run",
+                return_value=(_FC_COLS, "SELECT 1", [], None),
+            ),
+            patch("nx_lib.views.reporting.export._execute", return_value=_FC_ROWS),
+        ):
+            resp = admin_client.post("/api/reporting/export", json=body)
+        assert resp.status_code == 200
+        text = resp.data.decode("utf-8-sig")
+        assert "Measures" in text and "\nmean," in text.replace("\r", "")
+    finally:
+        admin_client.delete(f"/api/reporting/reports/{rid}")

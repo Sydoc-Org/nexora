@@ -14,7 +14,8 @@ from flask import Response, current_app, jsonify, request, session
 from flask_babel import gettext as _
 
 from ...extensions import limiter
-from ...reporting.export import rows_to_csv, rows_to_xlsx
+from ...reporting.derived import compute_derived
+from ...reporting.export import derived_export_rows, rows_to_csv, rows_to_xlsx
 from ...reporting.forecast import forecast_export_rows
 from ...reporting.query import QueryBuildError
 from ...reporting.sandbox import SqlSandboxError
@@ -28,6 +29,7 @@ from ._shared import (
     _authorize_sql_target,
     _execute,
     _has_acked,
+    _layout_block,
     _prepare_run,
     _run_sql,
 )
@@ -64,12 +66,14 @@ def _parse_chart_image(value):
     return raw
 
 
-def _serialize_export(columns, rows, title, fmt, chart_png=None, forecast_start=None):
+def _serialize_export(
+    columns, rows, title, fmt, chart_png=None, forecast_start=None, extra_rows=None
+):
     """Build a Flask download Response for `rows` in the requested format."""
     name = _safe_report_name(title)
     if fmt == "csv":
         return Response(
-            rows_to_csv(columns, rows),
+            rows_to_csv(columns, rows, extra_rows=extra_rows),
             mimetype="text/csv; charset=utf-8",
             headers={"Content-Disposition": f'attachment; filename="{name}.csv"'},
         )
@@ -80,6 +84,7 @@ def _serialize_export(columns, rows, title, fmt, chart_png=None, forecast_start=
             title=title or "Report",
             chart_png=chart_png,
             forecast_start=forecast_start,
+            extra_rows=extra_rows,
         ),
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f'attachment; filename="{name}.xlsx"'},
@@ -145,6 +150,14 @@ def api_export():
                 )
         except Exception as e:
             current_app.logger.warning(f"/api/reporting/export forecast skipped: {e}")
+    extra_rows = None
+    layout, _fallback = _layout_block(rd, session.get("userid"))
+    if layout is not None:
+        try:
+            derived = compute_derived(layout, rd, columns, rows)
+            extra_rows = derived_export_rows(layout, derived, header_label=_("Measures"))
+        except Exception as e:
+            current_app.logger.warning(f"/api/reporting/export derived skipped: {e}")
     return _serialize_export(
         columns,
         rows,
@@ -152,6 +165,7 @@ def api_export():
         fmt,
         chart_png=chart_png,
         forecast_start=forecast_start,
+        extra_rows=extra_rows,
     )
 
 
