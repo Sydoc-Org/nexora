@@ -620,6 +620,7 @@
     RS.state.wiz = { measures: [], source: null, breakdowns: [],
                   scopeProcs: [], range: null, dateField: null, _fp: null,
                   fieldScope: null };
+    RS.renderLayoutPick(null);
     RS.setView('wizard');
     RS.el('rsStepScope').hidden = true;
     RS.el('rsStepBreakdown').hidden = true;
@@ -1150,6 +1151,20 @@
   // the selected columns or metric codes; grain only on grainable fields;
   // metric codes from the registry; the between filter always targets the
   // RAW date field (the Spec-1 contract), never the bucketed expression.
+  // "Report definition" picker: Standard (no layoutId) or one of the user's
+  // kind:'layout' saved reports. Rebuilt from RS.state.reports on every open.
+  function renderLayoutPick(selectedId) {
+    var sel = RS.el('rsLayoutPick');
+    if (!sel) return;
+    var mine = (RS.state.reports || []).filter(function (r) { return r.kind === 'layout' && r.owned; });
+    sel.innerHTML = '<option value="">' + RS.esc(RS.I18N.layoutStandard) + '</option>' +
+      mine.map(function (r) {
+        return '<option value="' + r.id + '"' + (String(r.id) === String(selectedId || '') ? ' selected' : '') + '>' + RS.esc(r.name) + '</option>';
+      }).join('');
+    sel.closest('label').hidden = !mine.length;
+  }
+  RS.renderLayoutPick = renderLayoutPick;
+
   function wizardDefinition() {
     var w = RS.state.wiz;
     var columns = [], sort = [], filters = [];
@@ -1199,13 +1214,16 @@
     if (allProcs.length && w.scopeProcs.length && w.scopeProcs.length < allProcs.length) {
       scope.processes = w.scopeProcs.slice();
     }
-    return {
+    var def = {
       schemaVersion: 1, source: w.source.id, visualization: 'table',
       title: title, subtitle: null,
       columns: columns,
       metrics: w.measures.map(function (m) { return { metric: m.code }; }),
       filters: filters, sort: sort, scope: scope, rowLimit: 5000
     };
+    var pick = RS.el('rsLayoutPick');
+    if (pick && pick.value) def.layoutId = Number(pick.value);
+    return def;
   }
 
   // Wizard presets that renderTimeStep offers; other tokens (e.g. last_n_days,
@@ -1303,6 +1321,7 @@
     if (!mapped) return;
     RS.state.wiz = mapped.wiz;
     if (mapped.grain) RS.el('rsGrain').value = mapped.grain;
+    RS.renderLayoutPick(cur.def.layoutId);
     reopenWizard();
   }
   RS.adjustInWizard = adjustInWizard;
