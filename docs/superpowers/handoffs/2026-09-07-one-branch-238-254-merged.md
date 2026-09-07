@@ -1,3 +1,7 @@
+> **SUPERSEDED — same date.** A later handoff continues this work:
+> [`2026-09-07-tenant-solo-and-reporting-kpi-honesty.md`](2026-09-07-tenant-solo-and-reporting-kpi-honesty.md).
+> Read that one instead; it carries the current branch state and next steps.
+
 # Handoff — one branch: #238 permission grid and #254 field quality merged into the tenancy branch
 
 **Date:** 2026-09-07 · **Branch:** `refactor/255-admin-nav-tenancy-labels` (main checkout `C:\dev\nexora`,
