@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-07 08:26+0200\n"
+"POT-Creation-Date: 2026-09-07 13:09+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -4281,71 +4281,93 @@ msgstr ""
 
 #: templates/legal.html:93
 msgid ""
-"To be completed: legal entity, address, and the contact point for data-"
-"protection questions."
+"Sydoc AG is responsible for the account, session and request-log data "
+"described below. For the business documents processed through the "
+"platform, Sydoc acts on behalf of the client organisation whose data it "
+"is, and that organisation decides what happens to it."
 msgstr ""
 
-#: templates/legal.html:95
-msgid "What nexora stores about you"
+#: templates/legal.html:94
+msgid ""
+"To be completed: the full legal entity name, the registered address, and "
+"a named contact or mailbox for data-protection questions. A privacy "
+"notice without a reachable contact does not do its job."
 msgstr ""
 
 #: templates/legal.html:96
+msgid "What nexora stores about you"
+msgstr ""
+
+#: templates/legal.html:97
 msgid ""
 "The following is read from the application and is factually accurate as "
 "of this release:"
 msgstr ""
 
-#: templates/legal.html:98
+#: templates/legal.html:99
 msgid ""
 "Account details: name, username, e-mail address, organisation, language "
 "and interface preferences."
 msgstr ""
 
-#: templates/legal.html:99
+#: templates/legal.html:100
 msgid "Sign-in security: a password hash and, where enabled, a two-factor secret."
 msgstr ""
 
-#: templates/legal.html:100
+#: templates/legal.html:101
 msgid ""
 "Active sessions: a session identifier, your IP address, and the times the"
 " session was created and last used."
 msgstr ""
 
-#: templates/legal.html:101
+#: templates/legal.html:102
 msgid ""
 "Request log: for each page or API call, the time, the path, the method "
 "and the account that made it."
 msgstr ""
 
-#: templates/legal.html:102
+#: templates/legal.html:103
 msgid ""
 "Business documents and their index fields, on behalf of the organisation "
 "whose data is being processed."
 msgstr ""
 
-#: templates/legal.html:105
+#: templates/legal.html:106
 msgid "Why it is stored"
 msgstr ""
 
-#: templates/legal.html:106
+#: templates/legal.html:107
 msgid ""
-"To be completed: the purpose and legal basis for each category above. "
-"Note that the request log and the IP addresses in the session table "
-"currently have no stated purpose or retention period."
+"Account details exist so that access can be granted and so the interface "
+"can be shown in your language. The password hash and the two-factor "
+"secret exist to establish that you are who you say you are. Session "
+"records keep you signed in between requests and let an administrator see "
+"which sessions are currently active. The request log exists so that "
+"faults can be traced and misuse of an account can be detected. Business "
+"documents are processed to deliver the service the client organisation "
+"has contracted for."
 msgstr ""
 
 #: templates/legal.html:108
+msgid ""
+"To be completed: the legal basis for each of those purposes. Note in "
+"particular that the request log and the IP addresses held against "
+"sessions currently have no stated purpose limit and no retention period, "
+"which is the weakest point in this notice."
+msgstr ""
+
+#: templates/legal.html:110
 msgid "How long it is kept"
 msgstr ""
 
-#: templates/legal.html:109
+#: templates/legal.html:111
 msgid ""
 "Nothing in nexora currently has a defined retention period: session rows,"
 " the request log, document data and closed accounts are all kept "
 "indefinitely."
 msgstr ""
 
-#: templates/legal.html:110
+#: templates/legal.html:112
 msgid ""
 "To be completed: a retention period for each category, for the request "
 "log, for document data and for closed accounts. An automatic eight-day "
@@ -4353,88 +4375,207 @@ msgid ""
 "section must not claim it until it is."
 msgstr ""
 
-#: templates/legal.html:112
+#: templates/legal.html:114
 msgid "Who it is shared with"
 msgstr ""
 
-#: templates/legal.html:113
-msgid ""
-"To be completed: sub-processors and hosting, including Microsoft Graph "
-"for mail and any cloud database regions used."
-msgstr ""
-
 #: templates/legal.html:115
-msgid "Your rights"
+msgid ""
+"nexora runs on Sydoc infrastructure. Outbound mail, including scheduled "
+"report delivery, goes through Microsoft Graph. One client runtime is "
+"hosted on Microsoft Azure."
 msgstr ""
 
 #: templates/legal.html:116
 msgid ""
-"To be completed: access, correction, deletion and objection, and how to "
-"exercise them."
+"The reporting assistant sends the structure of the databases it can read,"
+" meaning table and column names and their types, to an external AI "
+"provider in order to translate a question into a query. Result rows are "
+"only sent as well for the small number of accounts that hold both the "
+"data-explanation and the live-query permissions; for everyone else no "
+"business data leaves the platform through the assistant."
 msgstr ""
 
-#: templates/legal.html:118
-msgid "Scope"
+#: templates/legal.html:117
+msgid ""
+"To be completed: name the AI provider actually configured in production "
+"and the region its data is processed in, name the Azure regions in use, "
+"and confirm a data-processing agreement is in place with each. Also cover"
+" the tunnel used to publish the site."
 msgstr ""
 
 #: templates/legal.html:119
+msgid "Your rights"
+msgstr ""
+
+#: templates/legal.html:120
 msgid ""
-"To be completed: who may use nexora, and on whose authority an account is"
-" issued."
+"You can ask what is held about you, ask for it to be corrected, ask for "
+"it to be deleted, and object to how it is used. Where the data belongs to"
+" your employer rather than to Sydoc, the request is passed to them, "
+"because they decide."
 msgstr ""
 
 #: templates/legal.html:121
-msgid "Acceptable use"
+msgid ""
+"You can also complain to the Federal Data Protection and Information "
+"Commissioner."
 msgstr ""
 
 #: templates/legal.html:122
 msgid ""
-"To be completed: permitted use, account sharing, and what happens to an "
-"account on misuse."
+"To be completed: where a request should be sent, how long a response "
+"takes, and how the requester's identity is checked before anything is "
+"disclosed."
 msgstr ""
 
 #: templates/legal.html:124
-msgid "Availability"
+msgid "Scope"
 msgstr ""
 
 #: templates/legal.html:125
 msgid ""
-"To be completed: any uptime commitment, planned maintenance, and how "
-"outages are communicated."
+"nexora is an internal business platform operated by Sydoc AG. It is not a"
+" public service: there is no self-registration, and every account is "
+"created by Sydoc on the instruction of the organisation the account "
+"holder works for."
+msgstr ""
+
+#: templates/legal.html:126
+msgid ""
+"What an account can see is decided by the permissions attached to it. An "
+"account may only be used by the person it was issued to, and only for "
+"that person's work for their organisation."
 msgstr ""
 
 #: templates/legal.html:127
-msgid "Confidentiality"
+msgid ""
+"To be completed: which Sydoc legal entity these terms are entered into "
+"with, and whether they sit underneath a master service agreement that "
+"takes precedence."
 msgstr ""
 
-#: templates/legal.html:128
-msgid ""
-"To be completed: obligations covering the documents and data visible "
-"through the platform."
+#: templates/legal.html:129
+msgid "Acceptable use"
 msgstr ""
 
 #: templates/legal.html:130
-msgid "Liability"
+msgid ""
+"Accounts are personal. Do not share your password, do not let someone "
+"else use your session, and keep your second factor on a device only you "
+"control. Tell Sydoc as soon as you suspect either has been compromised."
 msgstr ""
 
 #: templates/legal.html:131
-msgid "To be completed: limitation of liability."
+msgid ""
+"Do not attempt to reach data your permissions do not grant you, and do "
+"not use automated access except through an API key issued to you for that"
+" purpose. Sydoc may suspend an account that is being misused, or at the "
+"instruction of the organisation the account belongs to."
 msgstr ""
 
-#: templates/legal.html:133
-msgid "Governing law"
+#: templates/legal.html:132
+msgid ""
+"To be completed: whether suspension carries notice, and who inside the "
+"client organisation is entitled to request it."
 msgstr ""
 
 #: templates/legal.html:134
-msgid "To be completed: applicable law and place of jurisdiction."
+msgid "Availability"
+msgstr ""
+
+#: templates/legal.html:135
+msgid ""
+"Planned maintenance is announced in the application beforehand and may "
+"prevent sign-in while it runs. A release normally involves a short "
+"restart of well under a minute."
+msgstr ""
+
+#: templates/legal.html:136
+msgid ""
+"Unplanned outages are picked up by automated monitoring and communicated "
+"to the affected organisations. This page does not itself promise any "
+"level of availability."
 msgstr ""
 
 #: templates/legal.html:137
+msgid ""
+"To be completed: the hours during which the platform is supported, and "
+"whether an availability commitment exists in the underlying contract. Do "
+"not state a figure here that the contract does not support."
+msgstr ""
+
+#: templates/legal.html:139
+msgid "Confidentiality"
+msgstr ""
+
+#: templates/legal.html:140
+msgid ""
+"The documents and index data visible through nexora belong to the "
+"organisation whose business they concern, not to Sydoc and not to the "
+"account holder. Treat everything you can see as confidential."
+msgstr ""
+
+#: templates/legal.html:141
+msgid ""
+"Do not copy, export or forward content beyond what your work requires, "
+"and do not retain it after you no longer need it. These obligations "
+"continue after an account is closed."
+msgstr ""
+
+#: templates/legal.html:142
+msgid ""
+"To be completed: how this relates to the confidentiality terms in the "
+"master agreement and to individual non-disclosure undertakings."
+msgstr ""
+
+#: templates/legal.html:144
+msgid "Liability"
+msgstr ""
+
+#: templates/legal.html:145
+msgid ""
+"Sydoc operates nexora with reasonable care and skill. The platform "
+"presents data drawn from other systems, and decisions taken on the basis "
+"of what it displays remain the responsibility of the organisation taking "
+"them."
+msgstr ""
+
+#: templates/legal.html:146
+msgid ""
+"To be completed, and by a lawyer: the limitation of liability, any cap, "
+"the treatment of indirect and consequential loss, and how all of that "
+"lines up with the master agreement. Nothing should be written in this "
+"section by anyone else."
+msgstr ""
+
+#: templates/legal.html:148
+msgid "Governing law"
+msgstr ""
+
+#: templates/legal.html:149
+msgid ""
+"These terms are governed by Swiss law, and the place of jurisdiction is "
+"the registered seat of Sydoc AG."
+msgstr ""
+
+#: templates/legal.html:150
+msgid ""
+"To be completed: name the city of the registered seat, and confirm that "
+"no client contract assigns jurisdiction elsewhere."
+msgstr ""
+
+#: templates/legal.html:153
 msgid "Changes to this document"
 msgstr ""
 
-#: templates/legal.html:138
-msgid "To be completed: how changes are announced and when they take effect."
+#: templates/legal.html:154
+msgid ""
+"To be completed: how a change to this document is announced, how much "
+"notice a material change gets, and whether continued use counts as "
+"acceptance. Nothing currently announces a change to this page, and the "
+"page shows no date it last changed -- adding one belongs with this "
+"section."
 msgstr ""
 
 #: templates/maintenance.html:6

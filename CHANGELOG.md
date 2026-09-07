@@ -48,6 +48,16 @@ Work toward the next release.
   it -- publishing plausible-sounding legal text would be worse than
   publishing none.
 
+  Both documents now carry drafted prose in every section rather than a bare
+  list of headings, in en/de/fr/it, with a `To be completed` note left wherever
+  the answer is not the author's to give: the controller identity and contact,
+  the legal basis for each purpose, the retention periods, the named
+  sub-processors and their DPAs, the contracting entity, the place of
+  jurisdiction, and -- explicitly reserved for a lawyer -- the limitation of
+  liability. The privacy page discloses that the reporting assistant sends
+  database *structure* to the AI provider, and result rows only for accounts
+  holding both `reporting.ai.explain_data` and `reporting.sql.run`.
+
 ## [3.2.4] - 2026-09-03
 
 ### Added

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-07 08:26+0200\n"
+"POT-Creation-Date: 2026-09-07 13:09+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -4714,17 +4714,32 @@ msgstr "Responsable du traitement"
 
 #: templates/legal.html:93
 msgid ""
-"To be completed: legal entity, address, and the contact point for data-"
-"protection questions."
+"Sydoc AG is responsible for the account, session and request-log data "
+"described below. For the business documents processed through the "
+"platform, Sydoc acts on behalf of the client organisation whose data it "
+"is, and that organisation decides what happens to it."
 msgstr ""
-"À compléter : entité juridique, adresse et point de contact pour les "
-"questions de protection des données."
+"Sydoc AG est responsable des données de compte, de session et du journal "
+"des requêtes décrites ci-dessous. Pour les documents métier traités via "
+"la plateforme, Sydoc agit pour le compte de l'organisation cliente à qui "
+"appartiennent ces données, et c'est elle qui décide de leur utilisation."
 
-#: templates/legal.html:95
+#: templates/legal.html:94
+msgid ""
+"To be completed: the full legal entity name, the registered address, and "
+"a named contact or mailbox for data-protection questions. A privacy "
+"notice without a reachable contact does not do its job."
+msgstr ""
+"À compléter : la raison sociale complète, l'adresse du siège et un "
+"contact nommé ou une boîte aux lettres pour les questions de protection "
+"des données. Une déclaration de confidentialité sans contact joignable ne"
+" remplit pas son rôle."
+
+#: templates/legal.html:96
 msgid "What nexora stores about you"
 msgstr "Ce que nexora enregistre à votre sujet"
 
-#: templates/legal.html:96
+#: templates/legal.html:97
 msgid ""
 "The following is read from the application and is factually accurate as "
 "of this release:"
@@ -4732,7 +4747,7 @@ msgstr ""
 "Les éléments suivants ont été lus dans l'application et sont exacts pour "
 "cette version :"
 
-#: templates/legal.html:98
+#: templates/legal.html:99
 msgid ""
 "Account details: name, username, e-mail address, organisation, language "
 "and interface preferences."
@@ -4740,13 +4755,13 @@ msgstr ""
 "Données de compte : nom, nom d'utilisateur, adresse e-mail, organisation,"
 " langue et préférences d'interface."
 
-#: templates/legal.html:99
+#: templates/legal.html:100
 msgid "Sign-in security: a password hash and, where enabled, a two-factor secret."
 msgstr ""
 "Sécurité de connexion : une empreinte du mot de passe et, si activé, un "
 "secret à deux facteurs."
 
-#: templates/legal.html:100
+#: templates/legal.html:101
 msgid ""
 "Active sessions: a session identifier, your IP address, and the times the"
 " session was created and last used."
@@ -4754,7 +4769,7 @@ msgstr ""
 "Sessions actives : un identifiant de session, votre adresse IP et les "
 "heures de création et de dernière utilisation."
 
-#: templates/legal.html:101
+#: templates/legal.html:102
 msgid ""
 "Request log: for each page or API call, the time, the path, the method "
 "and the account that made it."
@@ -4762,7 +4777,7 @@ msgstr ""
 "Journal des requêtes : pour chaque page ou appel d'API, l'heure, le "
 "chemin, la méthode et le compte à l'origine de l'appel."
 
-#: templates/legal.html:102
+#: templates/legal.html:103
 msgid ""
 "Business documents and their index fields, on behalf of the organisation "
 "whose data is being processed."
@@ -4770,26 +4785,48 @@ msgstr ""
 "Documents métier et leurs champs d'index, pour le compte de "
 "l'organisation dont les données sont traitées."
 
-#: templates/legal.html:105
+#: templates/legal.html:106
 msgid "Why it is stored"
 msgstr "Pourquoi ces données sont conservées"
 
-#: templates/legal.html:106
+#: templates/legal.html:107
 msgid ""
-"To be completed: the purpose and legal basis for each category above. "
-"Note that the request log and the IP addresses in the session table "
-"currently have no stated purpose or retention period."
+"Account details exist so that access can be granted and so the interface "
+"can be shown in your language. The password hash and the two-factor "
+"secret exist to establish that you are who you say you are. Session "
+"records keep you signed in between requests and let an administrator see "
+"which sessions are currently active. The request log exists so that "
+"faults can be traced and misuse of an account can be detected. Business "
+"documents are processed to deliver the service the client organisation "
+"has contracted for."
 msgstr ""
-"À compléter : la finalité et la base légale de chacune des catégories ci-"
-"dessus. À noter : le journal des requêtes et les adresses IP de la table "
-"des sessions n'ont actuellement ni finalité ni durée de conservation "
-"définies."
+"Les données de compte servent à accorder l'accès et à afficher "
+"l'interface dans votre langue. L'empreinte du mot de passe et le secret "
+"du second facteur servent à établir que vous êtes bien la personne "
+"annoncée. Les enregistrements de session vous maintiennent connecté entre"
+" les requêtes et permettent à l'administration de voir quelles sessions "
+"sont actives. Le journal des requêtes sert à retracer les erreurs et à "
+"détecter l'usage abusif d'un compte. Les documents métier sont traités "
+"pour fournir la prestation commandée par l'organisation cliente."
 
 #: templates/legal.html:108
+msgid ""
+"To be completed: the legal basis for each of those purposes. Note in "
+"particular that the request log and the IP addresses held against "
+"sessions currently have no stated purpose limit and no retention period, "
+"which is the weakest point in this notice."
+msgstr ""
+"À compléter : la base légale de chacune de ces finalités. À noter en "
+"particulier que le journal des requêtes et les adresses IP conservées "
+"avec les sessions n'ont actuellement ni limitation de finalité ni durée "
+"de conservation, ce qui constitue le point le plus faible de cette "
+"déclaration."
+
+#: templates/legal.html:110
 msgid "How long it is kept"
 msgstr "Durée de conservation"
 
-#: templates/legal.html:109
+#: templates/legal.html:111
 msgid ""
 "Nothing in nexora currently has a defined retention period: session rows,"
 " the request log, document data and closed accounts are all kept "
@@ -4800,7 +4837,7 @@ msgstr ""
 "données documentaires et les comptes fermés sont tous conservés "
 "indéfiniment."
 
-#: templates/legal.html:110
+#: templates/legal.html:112
 msgid ""
 "To be completed: a retention period for each category, for the request "
 "log, for document data and for closed accounts. An automatic eight-day "
@@ -4813,104 +4850,288 @@ msgstr ""
 "jours est écrite mais pas encore en service ; cette section ne doit pas "
 "l'annoncer avant."
 
-#: templates/legal.html:112
+#: templates/legal.html:114
 msgid "Who it is shared with"
 msgstr "Destinataires des données"
 
-#: templates/legal.html:113
-msgid ""
-"To be completed: sub-processors and hosting, including Microsoft Graph "
-"for mail and any cloud database regions used."
-msgstr ""
-"À compléter : les sous-traitants et l'hébergement, y compris Microsoft "
-"Graph pour le courrier et toutes les régions de bases de données cloud "
-"utilisées."
-
 #: templates/legal.html:115
-msgid "Your rights"
-msgstr "Vos droits"
+msgid ""
+"nexora runs on Sydoc infrastructure. Outbound mail, including scheduled "
+"report delivery, goes through Microsoft Graph. One client runtime is "
+"hosted on Microsoft Azure."
+msgstr ""
+"nexora fonctionne sur l'infrastructure de Sydoc. Les courriers sortants, "
+"y compris l'envoi programmé de rapports, passent par Microsoft Graph. Un "
+"environnement client est hébergé sur Microsoft Azure."
 
 #: templates/legal.html:116
 msgid ""
-"To be completed: access, correction, deletion and objection, and how to "
-"exercise them."
+"The reporting assistant sends the structure of the databases it can read,"
+" meaning table and column names and their types, to an external AI "
+"provider in order to translate a question into a query. Result rows are "
+"only sent as well for the small number of accounts that hold both the "
+"data-explanation and the live-query permissions; for everyone else no "
+"business data leaves the platform through the assistant."
 msgstr ""
-"À compléter : l'accès, la rectification, l'effacement et l'opposition, et"
-" comment les exercer."
+"L'assistant de reporting transmet la structure des bases de données qu'il"
+" peut lire, c'est-à-dire les noms de tables et de colonnes et leurs "
+"types, à un fournisseur d'IA externe afin de traduire une question en "
+"requête. Les lignes de résultat ne sont transmises que pour le petit "
+"nombre de comptes disposant à la fois de l'autorisation d'explication des"
+" données et de celle des requêtes en direct ; pour tous les autres, "
+"aucune donnée métier ne quitte la plateforme via l'assistant."
 
-#: templates/legal.html:118
-msgid "Scope"
-msgstr "Champ d'application"
+#: templates/legal.html:117
+msgid ""
+"To be completed: name the AI provider actually configured in production "
+"and the region its data is processed in, name the Azure regions in use, "
+"and confirm a data-processing agreement is in place with each. Also cover"
+" the tunnel used to publish the site."
+msgstr ""
+"À compléter : nommer le fournisseur d'IA réellement configuré en "
+"production et la région où ses données sont traitées, nommer les régions "
+"Azure utilisées, et confirmer qu'un contrat de sous-traitance est en "
+"place avec chacun. Couvrir également le tunnel utilisé pour publier le "
+"site."
 
 #: templates/legal.html:119
+msgid "Your rights"
+msgstr "Vos droits"
+
+#: templates/legal.html:120
 msgid ""
-"To be completed: who may use nexora, and on whose authority an account is"
-" issued."
+"You can ask what is held about you, ask for it to be corrected, ask for "
+"it to be deleted, and object to how it is used. Where the data belongs to"
+" your employer rather than to Sydoc, the request is passed to them, "
+"because they decide."
 msgstr ""
-"À compléter : qui peut utiliser nexora et sur quelle autorité un compte "
-"est délivré."
+"Vous pouvez demander quelles données vous concernant sont conservées, "
+"demander leur rectification ou leur effacement, et vous opposer à leur "
+"utilisation. Lorsque les données appartiennent à votre employeur et non à"
+" Sydoc, la demande lui est transmise, car c'est lui qui décide."
 
 #: templates/legal.html:121
-msgid "Acceptable use"
-msgstr "Utilisation autorisée"
+msgid ""
+"You can also complain to the Federal Data Protection and Information "
+"Commissioner."
+msgstr ""
+"Vous pouvez également déposer une réclamation auprès du Préposé fédéral à"
+" la protection des données et à la transparence."
 
 #: templates/legal.html:122
 msgid ""
-"To be completed: permitted use, account sharing, and what happens to an "
-"account on misuse."
+"To be completed: where a request should be sent, how long a response "
+"takes, and how the requester's identity is checked before anything is "
+"disclosed."
 msgstr ""
-"À compléter : l'usage autorisé, le partage de compte et les conséquences "
-"d'un usage abusif."
+"À compléter : où adresser une demande, le délai de réponse, et comment "
+"l'identité du demandeur est vérifiée avant toute divulgation."
 
 #: templates/legal.html:124
-msgid "Availability"
-msgstr "Disponibilité"
+msgid "Scope"
+msgstr "Champ d'application"
 
 #: templates/legal.html:125
 msgid ""
-"To be completed: any uptime commitment, planned maintenance, and how "
-"outages are communicated."
+"nexora is an internal business platform operated by Sydoc AG. It is not a"
+" public service: there is no self-registration, and every account is "
+"created by Sydoc on the instruction of the organisation the account "
+"holder works for."
 msgstr ""
-"À compléter : tout engagement de disponibilité, les maintenances "
-"planifiées et la communication des incidents."
+"nexora est une plateforme métier interne exploitée par Sydoc AG. Ce n'est"
+" pas un service public : il n'y a pas d'auto-inscription, et chaque "
+"compte est créé par Sydoc sur instruction de l'organisation pour laquelle"
+" travaille son titulaire."
+
+#: templates/legal.html:126
+msgid ""
+"What an account can see is decided by the permissions attached to it. An "
+"account may only be used by the person it was issued to, and only for "
+"that person's work for their organisation."
+msgstr ""
+"Ce qu'un compte peut voir est déterminé par les autorisations qui lui "
+"sont attachées. Un compte ne peut être utilisé que par la personne à qui "
+"il a été délivré, et uniquement pour son travail au service de son "
+"organisation."
 
 #: templates/legal.html:127
+msgid ""
+"To be completed: which Sydoc legal entity these terms are entered into "
+"with, and whether they sit underneath a master service agreement that "
+"takes precedence."
+msgstr ""
+"À compléter : avec quelle entité juridique de Sydoc ces conditions sont "
+"conclues, et si elles s'inscrivent sous un contrat-cadre qui prévaut."
+
+#: templates/legal.html:129
+msgid "Acceptable use"
+msgstr "Utilisation autorisée"
+
+#: templates/legal.html:130
+msgid ""
+"Accounts are personal. Do not share your password, do not let someone "
+"else use your session, and keep your second factor on a device only you "
+"control. Tell Sydoc as soon as you suspect either has been compromised."
+msgstr ""
+"Les comptes sont personnels. Ne communiquez pas votre mot de passe, ne "
+"laissez personne utiliser votre session, et conservez votre second "
+"facteur sur un appareil que vous seul contrôlez. Signalez-le à Sydoc dès "
+"que vous soupçonnez que l'un des deux a été compromis."
+
+#: templates/legal.html:131
+msgid ""
+"Do not attempt to reach data your permissions do not grant you, and do "
+"not use automated access except through an API key issued to you for that"
+" purpose. Sydoc may suspend an account that is being misused, or at the "
+"instruction of the organisation the account belongs to."
+msgstr ""
+"N'essayez pas d'accéder à des données que vos autorisations ne couvrent "
+"pas, et n'utilisez d'accès automatisé qu'au moyen d'une clé API qui vous "
+"a été délivrée à cette fin. Sydoc peut suspendre un compte qui fait "
+"l'objet d'un usage abusif, ou sur instruction de l'organisation à "
+"laquelle il appartient."
+
+#: templates/legal.html:132
+msgid ""
+"To be completed: whether suspension carries notice, and who inside the "
+"client organisation is entitled to request it."
+msgstr ""
+"À compléter : si la suspension fait l'objet d'un préavis, et qui, au sein"
+" de l'organisation cliente, est habilité à la demander."
+
+#: templates/legal.html:134
+msgid "Availability"
+msgstr "Disponibilité"
+
+#: templates/legal.html:135
+msgid ""
+"Planned maintenance is announced in the application beforehand and may "
+"prevent sign-in while it runs. A release normally involves a short "
+"restart of well under a minute."
+msgstr ""
+"Les maintenances planifiées sont annoncées à l'avance dans l'application "
+"et peuvent empêcher la connexion pendant leur durée. Une mise en "
+"production implique normalement un redémarrage court, nettement inférieur"
+" à une minute."
+
+#: templates/legal.html:136
+msgid ""
+"Unplanned outages are picked up by automated monitoring and communicated "
+"to the affected organisations. This page does not itself promise any "
+"level of availability."
+msgstr ""
+"Les pannes imprévues sont détectées par une surveillance automatique et "
+"communiquées aux organisations concernées. Cette page ne promet en elle-"
+"même aucun niveau de disponibilité."
+
+#: templates/legal.html:137
+msgid ""
+"To be completed: the hours during which the platform is supported, and "
+"whether an availability commitment exists in the underlying contract. Do "
+"not state a figure here that the contract does not support."
+msgstr ""
+"À compléter : les heures pendant lesquelles la plateforme est prise en "
+"charge, et si un engagement de disponibilité figure dans le contrat sous-"
+"jacent. N'indiquez ici aucun chiffre que le contrat ne soutient pas."
+
+#: templates/legal.html:139
 msgid "Confidentiality"
 msgstr "Confidentialité"
 
-#: templates/legal.html:128
+#: templates/legal.html:140
 msgid ""
-"To be completed: obligations covering the documents and data visible "
-"through the platform."
+"The documents and index data visible through nexora belong to the "
+"organisation whose business they concern, not to Sydoc and not to the "
+"account holder. Treat everything you can see as confidential."
 msgstr ""
-"À compléter : les obligations couvrant les documents et les données "
-"visibles via la plateforme."
+"Les documents et les données d'index visibles via nexora appartiennent à "
+"l'organisation dont ils concernent les affaires, non à Sydoc ni au "
+"titulaire du compte. Traitez comme confidentiel tout ce que vous pouvez "
+"voir."
 
-#: templates/legal.html:130
+#: templates/legal.html:141
+msgid ""
+"Do not copy, export or forward content beyond what your work requires, "
+"and do not retain it after you no longer need it. These obligations "
+"continue after an account is closed."
+msgstr ""
+"Ne copiez, n'exportez et ne transmettez aucun contenu au-delà de ce que "
+"votre travail exige, et ne le conservez pas lorsque vous n'en avez plus "
+"besoin. Ces obligations subsistent après la clôture d'un compte."
+
+#: templates/legal.html:142
+msgid ""
+"To be completed: how this relates to the confidentiality terms in the "
+"master agreement and to individual non-disclosure undertakings."
+msgstr ""
+"À compléter : le rapport avec les clauses de confidentialité du contrat-"
+"cadre et avec les engagements de non-divulgation individuels."
+
+#: templates/legal.html:144
 msgid "Liability"
 msgstr "Responsabilité"
 
-#: templates/legal.html:131
-msgid "To be completed: limitation of liability."
-msgstr "À compléter : la limitation de responsabilité."
+#: templates/legal.html:145
+msgid ""
+"Sydoc operates nexora with reasonable care and skill. The platform "
+"presents data drawn from other systems, and decisions taken on the basis "
+"of what it displays remain the responsibility of the organisation taking "
+"them."
+msgstr ""
+"Sydoc exploite nexora avec le soin et la compétence requis. La plateforme"
+" présente des données provenant d'autres systèmes ; les décisions prises "
+"sur la base de cet affichage restent de la responsabilité de "
+"l'organisation qui les prend."
 
-#: templates/legal.html:133
+#: templates/legal.html:146
+msgid ""
+"To be completed, and by a lawyer: the limitation of liability, any cap, "
+"the treatment of indirect and consequential loss, and how all of that "
+"lines up with the master agreement. Nothing should be written in this "
+"section by anyone else."
+msgstr ""
+"À compléter, et par un juriste : la limitation de responsabilité, un "
+"éventuel plafond, le traitement des dommages indirects et consécutifs, et"
+" la cohérence de l'ensemble avec le contrat-cadre. Cette section ne "
+"devrait être rédigée par personne d'autre."
+
+#: templates/legal.html:148
 msgid "Governing law"
 msgstr "Droit applicable"
 
-#: templates/legal.html:134
-msgid "To be completed: applicable law and place of jurisdiction."
-msgstr "À compléter : le droit applicable et le lieu de juridiction."
+#: templates/legal.html:149
+msgid ""
+"These terms are governed by Swiss law, and the place of jurisdiction is "
+"the registered seat of Sydoc AG."
+msgstr ""
+"Ces conditions sont régies par le droit suisse et le for est le siège de "
+"Sydoc AG."
 
-#: templates/legal.html:137
+#: templates/legal.html:150
+msgid ""
+"To be completed: name the city of the registered seat, and confirm that "
+"no client contract assigns jurisdiction elsewhere."
+msgstr ""
+"À compléter : nommer la ville du siège et confirmer qu'aucun contrat "
+"client n'attribue le for ailleurs."
+
+#: templates/legal.html:153
 msgid "Changes to this document"
 msgstr "Modifications de ce document"
 
-#: templates/legal.html:138
-msgid "To be completed: how changes are announced and when they take effect."
+#: templates/legal.html:154
+msgid ""
+"To be completed: how a change to this document is announced, how much "
+"notice a material change gets, and whether continued use counts as "
+"acceptance. Nothing currently announces a change to this page, and the "
+"page shows no date it last changed -- adding one belongs with this "
+"section."
 msgstr ""
-"À compléter : comment les modifications sont annoncées et quand elles "
-"prennent effet."
+"À compléter : comment une modification de ce document est annoncée, le "
+"préavis applicable à une modification substantielle, et si la poursuite "
+"de l'utilisation vaut acceptation. Actuellement, aucune modification de "
+"cette page n'est annoncée et la page n'affiche aucune date de dernière "
+"modification ; l'ajouter relève de cette section."
 
 #: templates/maintenance.html:6
 msgid "Maintenance - nexora"
@@ -10034,45 +10255,68 @@ msgstr "Au"
 #~ "mail and any cloud database regions "
 #~ "used."
 #~ msgstr ""
+#~ "À compléter : les sous-traitants "
+#~ "et l'hébergement, y compris Microsoft "
+#~ "Graph pour le courrier et toutes "
+#~ "les régions de bases de données "
+#~ "cloud utilisées."
 
 #~ msgid ""
 #~ "To be completed: access, correction, "
 #~ "deletion and objection, and how to "
 #~ "exercise them."
 #~ msgstr ""
+#~ "À compléter : l'accès, la rectification,"
+#~ " l'effacement et l'opposition, et comment"
+#~ " les exercer."
 
 #~ msgid ""
 #~ "To be completed: who may use "
 #~ "nexora, and on whose authority an "
 #~ "account is issued."
 #~ msgstr ""
+#~ "À compléter : qui peut utiliser "
+#~ "nexora et sur quelle autorité un "
+#~ "compte est délivré."
 
 #~ msgid ""
 #~ "To be completed: permitted use, account"
 #~ " sharing, and what happens to an "
 #~ "account on misuse."
 #~ msgstr ""
+#~ "À compléter : l'usage autorisé, le "
+#~ "partage de compte et les conséquences"
+#~ " d'un usage abusif."
 
 #~ msgid ""
 #~ "To be completed: any uptime commitment,"
 #~ " planned maintenance, and how outages "
 #~ "are communicated."
 #~ msgstr ""
+#~ "À compléter : tout engagement de "
+#~ "disponibilité, les maintenances planifiées et"
+#~ " la communication des incidents."
 
 #~ msgid ""
 #~ "To be completed: obligations covering "
 #~ "the documents and data visible through"
 #~ " the platform."
 #~ msgstr ""
+#~ "À compléter : les obligations couvrant"
+#~ " les documents et les données "
+#~ "visibles via la plateforme."
 
 #~ msgid "To be completed: limitation of liability."
-#~ msgstr ""
+#~ msgstr "À compléter : la limitation de responsabilité."
 
 #~ msgid "To be completed: applicable law and place of jurisdiction."
-#~ msgstr ""
+#~ msgstr "À compléter : le droit applicable et le lieu de juridiction."
 
 #~ msgid "To be completed: how changes are announced and when they take effect."
 #~ msgstr ""
+#~ "À compléter : comment les modifications"
+#~ " sont annoncées et quand elles "
+#~ "prennent effet."
 
 #~ msgid ""
 #~ "Session rows are removed eight days "
@@ -10084,4 +10328,25 @@ msgstr "Au"
 #~ "supprimés huit jours après la dernière"
 #~ " utilisation. Aucune durée de conservation"
 #~ " n'est définie pour le reste."
+
+#~ msgid ""
+#~ "Changes to this document are announced"
+#~ " in the application. The date it "
+#~ "last changed is shown at the top"
+#~ " of the page."
+#~ msgstr ""
+#~ "Les modifications de ce document sont"
+#~ " annoncées dans l'application. La date "
+#~ "de la dernière modification figure en"
+#~ " haut de la page."
+
+#~ msgid ""
+#~ "To be completed: how much notice a"
+#~ " material change gets, and whether "
+#~ "continued use counts as acceptance."
+#~ msgstr ""
+#~ "À compléter : le préavis applicable "
+#~ "à une modification substantielle, et si"
+#~ " la poursuite de l'utilisation vaut "
+#~ "acceptation."
 

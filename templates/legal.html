@@ -90,7 +90,8 @@
 
         {% if doc == 'privacy' %}
             <h2>{{ _('Who is responsible') }}</h2>
-            <div class="legal-gap">{{ _('To be completed: legal entity, address, and the contact point for data-protection questions.') }}</div>
+            <p>{{ _("Sydoc AG is responsible for the account, session and request-log data described below. For the business documents processed through the platform, Sydoc acts on behalf of the client organisation whose data it is, and that organisation decides what happens to it.") }}</p>
+            <div class="legal-gap">{{ _("To be completed: the full legal entity name, the registered address, and a named contact or mailbox for data-protection questions. A privacy notice without a reachable contact does not do its job.") }}</div>
 
             <h2>{{ _('What nexora stores about you') }}</h2>
             <p>{{ _('The following is read from the application and is factually accurate as of this release:') }}</p>
@@ -103,39 +104,54 @@
             </ul>
 
             <h2>{{ _('Why it is stored') }}</h2>
-            <div class="legal-gap">{{ _('To be completed: the purpose and legal basis for each category above. Note that the request log and the IP addresses in the session table currently have no stated purpose or retention period.') }}</div>
+            <p>{{ _("Account details exist so that access can be granted and so the interface can be shown in your language. The password hash and the two-factor secret exist to establish that you are who you say you are. Session records keep you signed in between requests and let an administrator see which sessions are currently active. The request log exists so that faults can be traced and misuse of an account can be detected. Business documents are processed to deliver the service the client organisation has contracted for.") }}</p>
+            <div class="legal-gap">{{ _("To be completed: the legal basis for each of those purposes. Note in particular that the request log and the IP addresses held against sessions currently have no stated purpose limit and no retention period, which is the weakest point in this notice.") }}</div>
 
             <h2>{{ _('How long it is kept') }}</h2>
             <p>{{ _('Nothing in nexora currently has a defined retention period: session rows, the request log, document data and closed accounts are all kept indefinitely.') }}</p>
             <div class="legal-gap">{{ _('To be completed: a retention period for each category, for the request log, for document data and for closed accounts. An automatic eight-day prune of the session table is written but not yet in service; this section must not claim it until it is.') }}</div>
 
             <h2>{{ _('Who it is shared with') }}</h2>
-            <div class="legal-gap">{{ _('To be completed: sub-processors and hosting, including Microsoft Graph for mail and any cloud database regions used.') }}</div>
+            <p>{{ _("nexora runs on Sydoc infrastructure. Outbound mail, including scheduled report delivery, goes through Microsoft Graph. One client runtime is hosted on Microsoft Azure.") }}</p>
+            <p>{{ _("The reporting assistant sends the structure of the databases it can read, meaning table and column names and their types, to an external AI provider in order to translate a question into a query. Result rows are only sent as well for the small number of accounts that hold both the data-explanation and the live-query permissions; for everyone else no business data leaves the platform through the assistant.") }}</p>
+            <div class="legal-gap">{{ _("To be completed: name the AI provider actually configured in production and the region its data is processed in, name the Azure regions in use, and confirm a data-processing agreement is in place with each. Also cover the tunnel used to publish the site.") }}</div>
 
             <h2>{{ _('Your rights') }}</h2>
-            <div class="legal-gap">{{ _('To be completed: access, correction, deletion and objection, and how to exercise them.') }}</div>
+            <p>{{ _("You can ask what is held about you, ask for it to be corrected, ask for it to be deleted, and object to how it is used. Where the data belongs to your employer rather than to Sydoc, the request is passed to them, because they decide.") }}</p>
+            <p>{{ _("You can also complain to the Federal Data Protection and Information Commissioner.") }}</p>
+            <div class="legal-gap">{{ _("To be completed: where a request should be sent, how long a response takes, and how the requester's identity is checked before anything is disclosed.") }}</div>
         {% else %}
             <h2>{{ _('Scope') }}</h2>
-            <div class="legal-gap">{{ _('To be completed: who may use nexora, and on whose authority an account is issued.') }}</div>
+            <p>{{ _("nexora is an internal business platform operated by Sydoc AG. It is not a public service: there is no self-registration, and every account is created by Sydoc on the instruction of the organisation the account holder works for.") }}</p>
+            <p>{{ _("What an account can see is decided by the permissions attached to it. An account may only be used by the person it was issued to, and only for that person's work for their organisation.") }}</p>
+            <div class="legal-gap">{{ _("To be completed: which Sydoc legal entity these terms are entered into with, and whether they sit underneath a master service agreement that takes precedence.") }}</div>
 
             <h2>{{ _('Acceptable use') }}</h2>
-            <div class="legal-gap">{{ _('To be completed: permitted use, account sharing, and what happens to an account on misuse.') }}</div>
+            <p>{{ _("Accounts are personal. Do not share your password, do not let someone else use your session, and keep your second factor on a device only you control. Tell Sydoc as soon as you suspect either has been compromised.") }}</p>
+            <p>{{ _("Do not attempt to reach data your permissions do not grant you, and do not use automated access except through an API key issued to you for that purpose. Sydoc may suspend an account that is being misused, or at the instruction of the organisation the account belongs to.") }}</p>
+            <div class="legal-gap">{{ _("To be completed: whether suspension carries notice, and who inside the client organisation is entitled to request it.") }}</div>
 
             <h2>{{ _('Availability') }}</h2>
-            <div class="legal-gap">{{ _('To be completed: any uptime commitment, planned maintenance, and how outages are communicated.') }}</div>
+            <p>{{ _("Planned maintenance is announced in the application beforehand and may prevent sign-in while it runs. A release normally involves a short restart of well under a minute.") }}</p>
+            <p>{{ _("Unplanned outages are picked up by automated monitoring and communicated to the affected organisations. This page does not itself promise any level of availability.") }}</p>
+            <div class="legal-gap">{{ _("To be completed: the hours during which the platform is supported, and whether an availability commitment exists in the underlying contract. Do not state a figure here that the contract does not support.") }}</div>
 
             <h2>{{ _('Confidentiality') }}</h2>
-            <div class="legal-gap">{{ _('To be completed: obligations covering the documents and data visible through the platform.') }}</div>
+            <p>{{ _("The documents and index data visible through nexora belong to the organisation whose business they concern, not to Sydoc and not to the account holder. Treat everything you can see as confidential.") }}</p>
+            <p>{{ _("Do not copy, export or forward content beyond what your work requires, and do not retain it after you no longer need it. These obligations continue after an account is closed.") }}</p>
+            <div class="legal-gap">{{ _("To be completed: how this relates to the confidentiality terms in the master agreement and to individual non-disclosure undertakings.") }}</div>
 
             <h2>{{ _('Liability') }}</h2>
-            <div class="legal-gap">{{ _('To be completed: limitation of liability.') }}</div>
+            <p>{{ _("Sydoc operates nexora with reasonable care and skill. The platform presents data drawn from other systems, and decisions taken on the basis of what it displays remain the responsibility of the organisation taking them.") }}</p>
+            <div class="legal-gap">{{ _("To be completed, and by a lawyer: the limitation of liability, any cap, the treatment of indirect and consequential loss, and how all of that lines up with the master agreement. Nothing should be written in this section by anyone else.") }}</div>
 
             <h2>{{ _('Governing law') }}</h2>
-            <div class="legal-gap">{{ _('To be completed: applicable law and place of jurisdiction.') }}</div>
+            <p>{{ _("These terms are governed by Swiss law, and the place of jurisdiction is the registered seat of Sydoc AG.") }}</p>
+            <div class="legal-gap">{{ _("To be completed: name the city of the registered seat, and confirm that no client contract assigns jurisdiction elsewhere.") }}</div>
         {% endif %}
 
         <h2>{{ _('Changes to this document') }}</h2>
-        <div class="legal-gap">{{ _('To be completed: how changes are announced and when they take effect.') }}</div>
+        <div class="legal-gap">{{ _("To be completed: how a change to this document is announced, how much notice a material change gets, and whether continued use counts as acceptance. Nothing currently announces a change to this page, and the page shows no date it last changed -- adding one belongs with this section.") }}</div>
     </div>
 
     {% include '_small_footer.html' %}
