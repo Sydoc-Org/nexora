@@ -8,6 +8,7 @@ weekly card can call it without HTTP.
 """
 
 import copy
+from typing import Any
 
 from .sources import MAX_ROW_LIMIT
 
@@ -52,13 +53,50 @@ def single_dimension_definition(rd, field, metric_code):
     return out
 
 
-def is_ratio_metric(metric_def):  # Task 2
-    raise NotImplementedError
+def is_ratio_metric(metric_def):
+    """True for aggregations whose per-group values do not sum to the total —
+    a 'share of the change' is meaningless for them (avg/min/max/distinct)."""
+    agg = (metric_def or {}).get("aggregation")
+    return agg in RATIO_AGGREGATIONS
 
 
-def contribution_rows(current_rows, prior_rows, *, top=8):  # Task 2
-    raise NotImplementedError
+def _num(v):
+    try:
+        return float(v) if v is not None else 0.0
+    except (TypeError, ValueError):
+        return 0.0
 
 
-def fill_shares(dimensions, total_delta, is_ratio):  # Task 2
-    raise NotImplementedError
+def _label(v):
+    return EMPTY_LABEL if v is None or v == "" else str(v)
+
+
+def contribution_rows(current_rows, prior_rows, *, top=8):
+    """Full outer join of two [value, metric] row lists on value, delta per
+    value, sorted by |delta| desc. Keeps `top` rows and folds the rest into
+    one '(other)' row. `share` is left None — fill_shares sets it once the
+    caller knows the grand totals (D3)."""
+    joined: dict[str, list[float]] = {}
+    for v, m in current_rows or []:
+        joined.setdefault(_label(v), [0.0, 0.0])[0] += _num(m)
+    for v, m in prior_rows or []:
+        joined.setdefault(_label(v), [0.0, 0.0])[1] += _num(m)
+    rows: list[dict[str, Any]] = [
+        {"value": k, "current": c, "prior": p, "delta": c - p, "share": None}
+        for k, (c, p) in joined.items()
+    ]
+    rows.sort(key=lambda r: (-abs(r["delta"]), r["value"]))
+    head, tail = rows[:top], rows[top:]
+    if tail:
+        c = sum(r["current"] for r in tail)
+        p = sum(r["prior"] for r in tail)
+        head.append({"value": OTHER_LABEL, "current": c, "prior": p, "delta": c - p, "share": None})
+    return head
+
+
+def fill_shares(dimensions, total_delta, is_ratio):
+    """share = delta / total_delta, or None for ratio metrics / a zero total."""
+    usable = (not is_ratio) and bool(total_delta)
+    for d in dimensions:
+        for r in d.get("rows", []):
+            r["share"] = (r["delta"] / total_delta) if usable else None
