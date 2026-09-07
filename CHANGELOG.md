@@ -58,6 +58,12 @@ Work toward the next release.
   database *structure* to the AI provider, and result rows only for accounts
   holding both `reporting.ai.explain_data` and `reporting.sql.run`.
 
+  `docs/design/legal-pages-open-questions.md` carries the 12 remaining gaps as
+  questions to put to whoever owns the decision, grouped by whether they are a
+  register lookup, a contract question, a business decision, or a third party
+  that already receives data and needs a DPA. It also lists what was verified
+  off the running system so nobody researches it twice.
+
 ## [3.2.4] - 2026-09-03
 
 ### Added
