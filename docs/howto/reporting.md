@@ -489,10 +489,23 @@ report.
     { "id": "n100", "reportId": "42", "type": "kpi", "kpiIndex": 0, "span": 3, "rows": 2,
       "title": "Documents per month · Total", "filterOverrides": [] },
     { "id": "n101", "reportId": "42", "type": "chart", "span": 8, "rows": 3,
-      "title": "Documents per month", "filterOverrides": [] }
+      "title": "Documents per month", "filterOverrides": [],
+      "viz": { "chartType": "bar", "forecast": { "enabled": true, "horizon": "auto" },
+               "style": { "colors": { "id_count": "#00aa00" }, "rightAxis": ["backlog_total"] } } }
   ]
 }
 ```
+
+`viz` (optional) is the card's own chart tweaks from the edit-mode toolbar
+(`cardToolsHtml`): `chartType` (`'stacked'` allowed — it is mapped to `bar`
+before the definition is POSTed), `forecast` (a forecast block, or `false` to
+switch a report's saved forecast off on this card) and `style` (same shape as
+a report's `style`; the first edit copies the report's saved style onto the
+card). `cardRunDef` layers them over the report's definition, so the run,
+the chart, Export and the change-detection snapshot all see the same thing;
+the saved report is never written. Chart type and colours re-mount the chart
+from the card's last result (`mountCardChart`, no re-run); the forecast
+toggle/horizon re-run the card.
 
 A card is a **reference**: `reportId` names the saved report, `type` the
 piece — `kpi` (with `kpiIndex`, the tile's position in the report's KPI band:
@@ -527,6 +540,11 @@ render a "remove and add the piece again" notice and never run.
   not the card's piece and, for `kpi`, keeps only tile `kpiIndex`. Chart and
   table pieces skip the totals clone and the compare run. There are no
   dashboard-authored renderers any more.
+- **Drag-to-reorder** — HTML5 drag; `moveDragged` splices the card on
+  `dragover` and `reorderGridDom` moves the DOM nodes with a FLIP transform
+  (measure, move, inverse-translate, release under the
+  `.rdb-grid--dragging .rdb-card` transition) so neighbours slide instead of
+  jumping; no re-render, Chart.js canvases survive the drag.
 - **Full-bleed + Present** — `setView('dashboard')` toggles `body.rdb-fullbleed`;
   `reporting-console.css` then hides `.rc-rail`, collapses the body grid to one
   column and lifts the shell's and the dashboard's own max-width, so the

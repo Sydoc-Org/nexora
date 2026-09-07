@@ -541,10 +541,19 @@ and every card built from it follows.
   the header takes everything. Take as many pieces as you like, then close.
   Each card lands at a sensible size, ready to move or resize.
 - **Moving and resizing.** In edit mode a card is grabbable anywhere: drag it
-  and the grid reflows live, the dashed outline showing where it will land.
+  and the grid reflows live — the other cards slide out of the way and the
+  dashed outline shows where it will land.
   Drag the little corner grip at its bottom right to resize — the width snaps
   to the 12 columns of the grid, the height to whole rows (up to 6). Both are
   saved with the dashboard on **Done**.
+- **The Results tab's chart tools, per card.** In edit mode every card that
+  shows a chart carries the same small toolbar the Results tab has: chart
+  type (bar, line, stacked, pie, doughnut), download as image, **Forecast**
+  with its horizon, and **Colours & axes** (a colour per series, left/right
+  axis, reset). Changes apply to *this card only* and are saved with the
+  dashboard on **Done** — the report itself is untouched, so the same report
+  can be a bar chart on one card and a forecast line on another. In view mode
+  the toolbar is hidden.
 - **Global filters are the reports' own filters.** The bar shows one chip per
   field your cards' reports already filter on — *Date · This month*,
   *Processes · All processes*, *Status · open* — with the value the reports

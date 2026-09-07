@@ -1750,3 +1750,162 @@ def test_filter_bar_shows_the_reports_own_filters_and_edits_replace_them(nexora_
     expect(date_chip).to_contain_text("This month")
     assert len(run_calls) == 3
     assert run_calls[-1]["filters"] == dash_definition["cards"][0]["definition"]["filters"]
+
+
+def test_card_chart_tools_tweak_type_forecast_colours_and_persist_on_card(nexora_server, page):
+    """Edit mode gives every chart-bearing card the Results tab's toolbar. Chart
+    type and colours/axes re-mount the chart from the card's last result (no
+    re-run); the forecast toggle re-runs the card with a forecast block. All
+    of it lands on card.viz in the saved dashboard -- the report itself is
+    never written -- and the toolbar is absent in view mode."""
+    _login(page, nexora_server)
+    _stub_gfilter_catalog(page)
+    definition = {
+        "source": "workitems",
+        "metrics": [{"metric": "id_count"}, {"metric": "backlog_total"}],
+        "columns": [{"field": "createdDate", "grain": "month"}],
+        "filters": [],
+        "sort": [],
+        "chartType": "line",
+    }
+    dash = {
+        "kind": "dashboard",
+        "schemaVersion": 1,
+        "title": "e2e card tools",
+        "globalFilters": [],
+        "cards": [
+            {
+                "id": "r1",
+                "type": "report",
+                "span": 12,
+                "title": "Imports vs backlog",
+                "definition": definition,
+                "filterOverrides": [],
+            }
+        ],
+    }
+    _stub_dashboard_report(page, "e2e-dash-tools", dash)
+    put_bodies = []
+
+    def capture_put(route):
+        if route.request.method == "PUT":
+            put_bodies.append(route.request.post_data_json)
+            route.fulfill(
+                status=200, content_type="application/json", body=json.dumps({"ok": True})
+            )
+        else:
+            route.fallback()
+
+    page.route("**/api/reporting/reports/e2e-dash-tools", capture_put)
+
+    posted = []
+
+    def fulfill_run(route):
+        body = route.request.post_data_json or {}
+        posted.append(body)
+        if not body.get("columns"):
+            route.fulfill(
+                status=200,
+                content_type="application/json",
+                body=json.dumps(
+                    {
+                        "columns": [{"field": "id_count"}, {"field": "backlog_total"}],
+                        "rows": [[12, 90]],
+                        "rowCount": 1,
+                    }
+                ),
+            )
+            return
+        payload = {
+            "columns": [
+                {"field": "createdDate", "header": "Month"},
+                {"field": "id_count", "header": "Count"},
+                {"field": "backlog_total", "header": "Backlog"},
+            ],
+            "rows": [["2026-01-01", 5, 100], ["2026-02-01", 7, 90]],
+            "rowCount": 2,
+        }
+        if body.get("forecast"):
+            payload["forecast"] = {
+                "anchor": "2026-02-01",
+                "buckets": ["2026-03-01"],
+                "series": [
+                    {"field": "id_count", "values": [8], "upper": [10], "lower": [6]},
+                    {"field": "backlog_total", "values": [80], "upper": [90], "lower": [70]},
+                ],
+            }
+        route.fulfill(status=200, content_type="application/json", body=json.dumps(payload))
+
+    page.route("**/api/reporting/run", fulfill_run)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-card").filter(has_text="e2e card tools").first.click()
+    expect(page.get_by_test_id("rs-dashboard")).to_be_visible()
+    canvas_sel = '[data-testid="rdb-report-chartcard"] canvas'
+    chart_ready = (
+        "() => { const c = document.querySelector('" + canvas_sel + "');"
+        " return !!(c && window.Chart && Chart.getChart(c)); }"
+    )
+    page.wait_for_function(chart_ready)
+    # View mode: no toolbar.
+    expect(page.get_by_test_id("rdb-card-tools")).to_have_count(0)
+
+    page.get_by_test_id("rdb-edit-toggle").click()
+    page.wait_for_function(chart_ready)
+    tools = page.get_by_test_id("rdb-card-tools")
+    expect(tools).to_be_visible(timeout=15000)
+    expect(tools.get_by_test_id("rdb-chart-line")).to_have_attribute("aria-pressed", "true")
+    # Two measures on one breakdown: pie stays offered, "stacked" is only for
+    # pivoted multi-breakdown series -- same rule as the Results tab.
+    expect(tools.get_by_test_id("rdb-chart-pie")).to_be_visible()
+    expect(tools.get_by_test_id("rdb-chart-stacked")).to_be_hidden()
+
+    def chart_type():
+        return page.evaluate(
+            "() => Chart.getChart(document.querySelector('" + canvas_sel + "')).config.type"
+        )
+
+    runs_before = len(posted)
+    tools.get_by_test_id("rdb-chart-bar").click()
+    expect(tools.get_by_test_id("rdb-chart-bar")).to_have_attribute("aria-pressed", "true")
+    assert chart_type() == "bar"
+    assert len(posted) == runs_before  # chart type is client-side only
+
+    # Forecast: re-runs the card with a forecast block, draws one tail per series.
+    tools.get_by_test_id("rdb-forecast-toggle").click()
+    expect(tools.get_by_test_id("rdb-forecast-toggle")).to_have_attribute("aria-pressed", "true")
+    expect(tools.get_by_test_id("rdb-forecast-horizon")).to_be_visible()
+    fc_runs = [b for b in posted[runs_before:] if b.get("columns") and b.get("forecast")]
+    assert fc_runs and fc_runs[-1]["forecast"] == {"enabled": True, "horizon": "auto"}, posted[
+        runs_before:
+    ]
+    page.wait_for_function(
+        "() => { const ch = Chart.getChart(document.querySelector('" + canvas_sel + "'));"
+        " return ch && ch.data.datasets.some(d => d._forecast); }"
+    )
+
+    # Colours & axes: per-series colour and right-axis pick, client-side only.
+    runs_before = len(posted)
+    tools.get_by_test_id("rdb-style-toggle").click()
+    expect(tools.get_by_test_id("rdb-style-pop")).to_be_visible()
+    expect(tools.get_by_test_id("rdb-style-color")).to_have_count(2)
+    tools.get_by_test_id("rdb-style-color").first.evaluate(
+        "i => { i.value = '#00aa00'; i.dispatchEvent(new Event('input', {bubbles: true})); }"
+    )
+    tools.get_by_test_id("rdb-style-axis-right").nth(1).click()
+    page.wait_for_function(
+        "() => { const ch = Chart.getChart(document.querySelector('" + canvas_sel + "'));"
+        " const real = ch.data.datasets.filter(d => !d._forecast && !d._band);"
+        " return real[0].borderColor === '#00aa00' && real[1].yAxisID === 'y2'; }"
+    )
+    assert len(posted) == runs_before
+
+    # Done -> the tweaks ride on the card, not the report.
+    page.get_by_test_id("rdb-edit-toggle").click()
+    expect(page.get_by_test_id("rdb-card-tools")).to_have_count(0)
+    assert put_bodies, "Done did not save the dashboard"
+    viz = put_bodies[-1]["definition"]["cards"][0]["viz"]
+    assert viz["chartType"] == "bar"
+    assert viz["forecast"] == {"enabled": True, "horizon": "auto"}
+    assert viz["style"]["colors"]["id_count"] == "#00aa00"
+    assert viz["style"]["rightAxis"] == ["backlog_total"]
+    assert "definition" not in put_bodies[-1]["definition"]["cards"][0]

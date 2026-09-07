@@ -68,7 +68,26 @@
     // #rsTableToggle so the two surfaces read identically.
     showTable: {{ _("Show table")|tojson }},
     hideTable: {{ _("Hide table")|tojson }},
-    tableRowCount: {{ _("{n} rows")|tojson }}
+    tableRowCount: {{ _("{n} rows")|tojson }},
+    // Per-card chart tools (edit mode) -- same msgids as the Simple pane's
+    // #rsChartTools so the two toolbars read identically.
+    chartBar: {{ _("Bar chart")|tojson }},
+    chartLine: {{ _("Line chart")|tojson }},
+    chartStacked: {{ _("Stacked bar chart")|tojson }},
+    chartPie: {{ _("Pie chart")|tojson }},
+    chartDoughnut: {{ _("Doughnut chart")|tojson }},
+    chartPng: {{ _("Download chart as image")|tojson }},
+    forecastLabel: {{ _("Forecast")|tojson }},
+    forecastHorizon: {{ _("Forecast horizon")|tojson }},
+    forecastAuto: {{ _("Auto")|tojson }},
+    forecastNeedsShape: {{ _("Forecast requires one date breakdown with a metric.")|tojson }},
+    forecastNeedsLineBar: {{ _("Forecast is only drawn on line and bar charts.")|tojson }},
+    styleToggle: {{ _("Colours & axes")|tojson }},
+    styleReset: {{ _("Reset colours")|tojson }},
+    styleLeftAxis: {{ _("Left axis")|tojson }},
+    styleRightAxis: {{ _("Right axis")|tojson }},
+    axisShortLeft: {{ _("Left")|tojson }},
+    axisShortRight: {{ _("Right")|tojson }}
   };
 </script>
 <script src="{{ static_v('js/reporting_dashboard.js') }}"></script>

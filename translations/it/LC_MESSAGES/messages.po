@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-07 17:10+0200\n"
+"POT-Creation-Date: 2026-09-07 17:33+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -1635,8 +1635,8 @@ msgstr "Impossibile eliminare la metrica"
 #: nx_lib/views/reporting/ai.py:312 nx_lib/views/reporting/ai.py:440
 #: nx_lib/views/reporting/ai.py:621 nx_lib/views/reporting/ai.py:1027
 #: nx_lib/views/reporting/catalog.py:123 nx_lib/views/reporting/export.py:94
-#: nx_lib/views/reporting/export.py:169 nx_lib/views/reporting/run.py:167
-#: nx_lib/views/reporting/run.py:255
+#: nx_lib/views/reporting/export.py:169 nx_lib/views/reporting/run.py:175
+#: nx_lib/views/reporting/run.py:263
 msgid "Invalid JSON body"
 msgstr "Corpo JSON non valido"
 
@@ -1727,7 +1727,7 @@ msgid "Unknown or unsupported source"
 msgstr "Sorgente sconosciuta o non supportata"
 
 #: nx_lib/views/reporting/catalog.py:132 nx_lib/views/reporting/export.py:129
-#: nx_lib/views/reporting/health.py:167 nx_lib/views/reporting/run.py:171
+#: nx_lib/views/reporting/health.py:167 nx_lib/views/reporting/run.py:179
 msgid "Not authorized for this source"
 msgstr "Non autorizzato per questa sorgente"
 
@@ -1747,19 +1747,19 @@ msgstr "Impossibile caricare i valori"
 msgid "Not authorized for live SQL"
 msgstr "Non autorizzato per SQL in tempo reale"
 
-#: nx_lib/views/reporting/export.py:102 nx_lib/views/reporting/run.py:261
+#: nx_lib/views/reporting/export.py:102 nx_lib/views/reporting/run.py:269
 msgid "Acknowledgment required"
 msgstr "Conferma richiesta"
 
-#: nx_lib/views/reporting/export.py:110 nx_lib/views/reporting/run.py:266
+#: nx_lib/views/reporting/export.py:110 nx_lib/views/reporting/run.py:274
 msgid "Not authorized for this SQL target"
 msgstr "Non autorizzato per questa destinazione SQL"
 
-#: nx_lib/views/reporting/export.py:116 nx_lib/views/reporting/run.py:270
+#: nx_lib/views/reporting/export.py:116 nx_lib/views/reporting/run.py:278
 msgid "Invalid SQL request."
 msgstr "Richiesta SQL non valida."
 
-#: nx_lib/views/reporting/export.py:118 nx_lib/views/reporting/run.py:272
+#: nx_lib/views/reporting/export.py:118 nx_lib/views/reporting/run.py:280
 msgid "SQL source is not configured"
 msgstr "La sorgente SQL non è configurata"
 
@@ -1774,7 +1774,7 @@ msgstr "Impossibile esportare la query"
 msgid "Report"
 msgstr "Rapporto"
 
-#: nx_lib/views/reporting/export.py:132 nx_lib/views/reporting/run.py:174
+#: nx_lib/views/reporting/export.py:132 nx_lib/views/reporting/run.py:182
 msgid "This report definition is invalid or outdated."
 msgstr "Questa definizione di report non è valida o è obsoleta."
 
@@ -1845,58 +1845,58 @@ msgstr "Non puoi condividere un report con te stesso"
 msgid "Could not update sharing"
 msgstr "Impossibile aggiornare la condivisione"
 
-#: nx_lib/views/reporting/run.py:178
+#: nx_lib/views/reporting/run.py:186
 msgid "Could not build report"
 msgstr "Impossibile creare il report"
 
-#: nx_lib/views/reporting/run.py:183
+#: nx_lib/views/reporting/run.py:191
 msgid "Could not run report"
 msgstr "Impossibile eseguire il report"
 
-#: nx_lib/views/reporting/run.py:238
+#: nx_lib/views/reporting/run.py:246
 msgid "SQL is required."
 msgstr "L'istruzione SQL è obbligatoria."
 
-#: nx_lib/views/reporting/run.py:239
+#: nx_lib/views/reporting/run.py:247
 #, python-brace-format
 msgid "The SQL exceeds {n} characters."
 msgstr "L'istruzione SQL supera {n} caratteri."
 
-#: nx_lib/views/reporting/run.py:240
+#: nx_lib/views/reporting/run.py:248
 #, python-brace-format
 msgid "Disallowed keyword: {kw}"
 msgstr "Parola chiave non consentita: {kw}"
 
-#: nx_lib/views/reporting/run.py:241
+#: nx_lib/views/reporting/run.py:249
 msgid "The SQL could not be parsed."
 msgstr "Impossibile analizzare l'istruzione SQL."
 
-#: nx_lib/views/reporting/run.py:242
+#: nx_lib/views/reporting/run.py:250
 msgid "Exactly one statement is allowed."
 msgstr "È consentita una sola istruzione."
 
-#: nx_lib/views/reporting/run.py:243
+#: nx_lib/views/reporting/run.py:251
 msgid "Only SELECT / WITH / set operations are allowed."
 msgstr "Sono consentite solo operazioni SELECT / WITH / di insieme."
 
-#: nx_lib/views/reporting/run.py:244
+#: nx_lib/views/reporting/run.py:252
 #, python-brace-format
 msgid "Disallowed construct: {kw}"
 msgstr "Costrutto non consentito: {kw}"
 
-#: nx_lib/views/reporting/run.py:245
+#: nx_lib/views/reporting/run.py:253
 msgid "T-SQL does not support LIMIT — use TOP (n) instead."
 msgstr "T-SQL non supporta LIMIT — usare invece TOP (n)."
 
-#: nx_lib/views/reporting/run.py:259 nx_lib/views/reporting/run.py:303
+#: nx_lib/views/reporting/run.py:267 nx_lib/views/reporting/run.py:311
 msgid "Not authenticated"
 msgstr "Non autenticato"
 
-#: nx_lib/views/reporting/run.py:282 nx_lib/views/reporting/run.py:286
+#: nx_lib/views/reporting/run.py:290 nx_lib/views/reporting/run.py:294
 msgid "Could not run query"
 msgstr "Impossibile eseguire la query"
 
-#: nx_lib/views/reporting/run.py:316
+#: nx_lib/views/reporting/run.py:324
 msgid "Could not record acknowledgment"
 msgstr "Impossibile registrare la conferma"
 
@@ -2302,11 +2302,26 @@ msgstr ""
 "restano leggibili accanto a decine di migliaia. Le scelte vengono salvate"
 " con il report."
 
-#: templates/_reporting_help.html:29
+#: templates/_reporting_help.html:28
+msgid ""
+"Need exact control the wizard can’t give? “Advanced” in the left "
+"navigation opens the three-panel builder, and its SQL tab runs a read-"
+"only query when even that is not enough. A failed query names the reason "
+"from the database, and switching between Table and SQL clears the result "
+"so you never read the other mode’s numbers."
+msgstr ""
+"Serve un controllo preciso che la procedura guidata non offre? «Avanzato»"
+" nella navigazione a sinistra apre il builder a tre pannelli, e la sua "
+"scheda SQL esegue una query in sola lettura quando nemmeno questo basta. "
+"Una query fallita indica il motivo dato dal database, e passando da "
+"Tabella a SQL il risultato viene cancellato, così non leggerai mai i "
+"numeri dell’altra modalità."
+
+#: templates/_reporting_help.html:30
 msgid "Checking a number"
 msgstr "Verificare un numero"
 
-#: templates/_reporting_help.html:31
+#: templates/_reporting_help.html:32
 msgid ""
 "Click a chart bar or a table row to open the documents behind that "
 "number; the “Query” card beside the chart shows exactly how it was "
@@ -2316,7 +2331,7 @@ msgstr ""
 "documenti dietro quel numero; la scheda “Query” accanto al grafico mostra"
 " esattamente come è stato calcolato."
 
-#: templates/_reporting_help.html:32
+#: templates/_reporting_help.html:33
 msgid ""
 "Each measure gets its own total card, named after it — “Total · Documents"
 " imported”, “Total · Documents exported”. There is no combined number: "
@@ -2328,7 +2343,7 @@ msgstr ""
 "numero combinato: lo stesso documento può essere contato in entrambi, "
 "quindi sommarli non conterebbe nulla di reale."
 
-#: templates/_reporting_help.html:33
+#: templates/_reporting_help.html:34
 msgid ""
 "A card headed “Overall” instead of “Total” holds a rate or an average, "
 "which cannot be added up. It is the real figure across every document "
@@ -2338,7 +2353,7 @@ msgstr ""
 "una media, che non si possono sommare. Mostra il valore reale su tutti i "
 "documenti dietro il report — non la somma dei numeri del grafico."
 
-#: templates/_reporting_help.html:34
+#: templates/_reporting_help.html:35
 msgid ""
 "“Buckets” counts periods, not table rows. Break down by month and by "
 "field and each month contributes one row per field, so the average card "
@@ -2349,7 +2364,7 @@ msgstr ""
 "la scheda della media passa quindi a “Media per riga” e indica su quanti "
 "valori è calcolata."
 
-#: templates/_reporting_help.html:35
+#: templates/_reporting_help.html:36
 msgid ""
 "Documents with no date sit in no period, so the stat band and the chart "
 "both leave them out. Eddard’s summary says how many were set aside."
@@ -2358,7 +2373,7 @@ msgstr ""
 "delle statistiche e il grafico li escludono entrambi. Il riepilogo di "
 "Eddard indica quanti sono stati esclusi."
 
-#: templates/_reporting_help.html:36
+#: templates/_reporting_help.html:37
 msgid ""
 "The ↑/↓ comparison chips compare a window shifted back by your range’s "
 "length in days — not the previous calendar period. Hover a chip for the "
@@ -2368,7 +2383,7 @@ msgstr ""
 "della lunghezza in giorni del tuo periodo — non con il periodo di "
 "calendario precedente. Passa sopra un chip per le date esatte."
 
-#: templates/_reporting_help.html:37
+#: templates/_reporting_help.html:38
 msgid ""
 "Two people can see different totals on the same report: it always runs "
 "with the viewer’s own data access."
@@ -2376,7 +2391,7 @@ msgstr ""
 "Due persone possono vedere totali diversi sullo stesso report: viene "
 "sempre eseguito con l'accesso ai dati di chi lo guarda."
 
-#: templates/_reporting_help.html:38
+#: templates/_reporting_help.html:39
 msgid ""
 "Charts cap at 50 axis values and 12 series — past the cap you get a "
 "partial chart or none at all; the table and exports always carry the full"
@@ -2386,11 +2401,11 @@ msgstr ""
 "limite il grafico è parziale o assente; tabella ed export contengono "
 "sempre tutti i dati."
 
-#: templates/_reporting_help.html:40
+#: templates/_reporting_help.html:41
 msgid "Saving and sharing"
 msgstr "Salvare e condividere"
 
-#: templates/_reporting_help.html:42
+#: templates/_reporting_help.html:43
 msgid ""
 "Save writes back to the report you have open — the pencil next to the "
 "title renames it in place. A result that is not a saved report yet (a "
@@ -2403,7 +2418,7 @@ msgstr ""
 "«I miei report». Per lasciare intatto l'originale, usa ⋯ → «Salva come "
 "copia»."
 
-#: templates/_reporting_help.html:43
+#: templates/_reporting_help.html:44
 msgid ""
 "A report of yours that you have shared — with everyone or with named "
 "colleagues — is tagged “· shared” on its card. Named shares stay under My"
@@ -2414,7 +2429,7 @@ msgstr ""
 "condivisioni per nome restano sotto “I miei report”; solo “condiviso con "
 "tutti” lo sposta nella Libreria."
 
-#: templates/_reporting_help.html:44
+#: templates/_reporting_help.html:45
 msgid ""
 "A scheduled email runs with the report owner’s data access — recipients "
 "see the owner’s numbers, not their own."
@@ -2423,7 +2438,7 @@ msgstr ""
 "proprietario del report — i destinatari vedono i suoi numeri, non i "
 "propri."
 
-#: templates/_reporting_help.html:45
+#: templates/_reporting_help.html:46
 msgid ""
 "Delete a report you own: open its card’s “…” menu under My reports, or "
 "open the report and use ⋯ → Delete report. Shared copies and schedules go"
@@ -2433,29 +2448,33 @@ msgstr ""
 "in “I miei report”, oppure apri il report e usa ⋯ → Elimina report. Le "
 "copie condivise e le pianificazioni vengono rimosse con esso."
 
-#: templates/_reporting_help.html:46
+#: templates/_reporting_help.html:47
 msgid ""
 "Dashboard cards are pieces of your saved reports: Add a card, pick a "
 "report and it opens in full — hover a KPI tile or the chart, or use the "
 "table’s button, to put that piece on the dashboard, or take the whole "
-"report. Cards follow the report: change colours, chart type or filters in"
-" the report itself. A dashboard uses the whole window width; “Present” "
-"shows it fullscreen — Esc leaves. The filter bar shows the reports’ own "
-"filters — click a chip to swap “This month” for “Last month” or narrow "
-"the processes, and every card follows; ↺ on the chip goes back."
+"report. Cards follow the report’s data and filters; in edit mode each "
+"chart card has its own toolbar — chart type, forecast, colours & axes — "
+"and those tweaks stay on the card, the report is untouched. A dashboard "
+"uses the whole window width; “Present” shows it fullscreen — Esc leaves. "
+"The filter bar shows the reports’ own filters — click a chip to swap "
+"“This month” for “Last month” or narrow the processes, and every card "
+"follows; ↺ on the chip goes back."
 msgstr ""
 "Le schede della dashboard sono parti dei report salvati: «Aggiungi "
 "scheda», scegli un report e si apre per intero — passa il mouse su una "
 "tessera KPI o sul grafico, oppure usa il pulsante della tabella, per "
 "mettere quella parte sulla dashboard, o prendi l’intero report. Le schede"
-" seguono il report: cambia colori, tipo di grafico o filtri nel report "
-"stesso. Una dashboard usa tutta la larghezza della finestra; «Presenta» "
-"la mostra a schermo intero — Esc per uscire. La barra dei filtri mostra i"
-" filtri dei report stessi — clicca un chip per sostituire «Questo mese» "
-"con «Mese scorso» o restringere i processi, e ogni scheda segue; ↺ sul "
-"chip torna indietro."
+" seguono i dati e i filtri del report; in modalità modifica ogni scheda "
+"grafico ha la propria barra strumenti — tipo di grafico, previsione, "
+"colori & assi — e queste modifiche restano sulla scheda, il report non "
+"viene toccato. Una dashboard usa tutta la larghezza della finestra; "
+"«Presenta» la mostra a schermo intero — Esc per uscire. La barra dei "
+"filtri mostra i filtri dei report stessi — clicca un chip per sostituire "
+"«Questo mese» con «Mese scorso» o restringere i processi, e ogni scheda "
+"segue; ↺ sul chip torna indietro."
 
-#: templates/_reporting_help.html:47
+#: templates/_reporting_help.html:48
 msgid ""
 "In edit mode a tile can be dragged anywhere to rearrange it, and resized "
 "by its bottom-right corner grip: width snaps to the 12 grid columns, "
@@ -2466,7 +2485,7 @@ msgstr ""
 "larghezza scatta sulle 12 colonne della griglia, l’altezza su righe "
 "intere. “Fatto” salva il layout."
 
-#: templates/_reporting_help.html:48
+#: templates/_reporting_help.html:49
 msgid ""
 "A dashboard’s library card previews its real layout — one small tile per "
 "card — plus a card count, so you can tell dashboards apart before opening"
@@ -2476,11 +2495,11 @@ msgstr ""
 " reale — un piccolo riquadro per scheda — più il numero di schede, così "
 "le dashboard si distinguono prima di aprirle."
 
-#: templates/_reporting_help.html:51
+#: templates/_reporting_help.html:52
 msgid "Asking Eddard"
 msgstr "Chiedere a Eddard"
 
-#: templates/_reporting_help.html:53
+#: templates/_reporting_help.html:54
 msgid ""
 "Eddard is the reporting assistant behind the chat panel — the little "
 "black hole in the top bar."
@@ -2488,7 +2507,7 @@ msgstr ""
 "Eddard è l'assistente di reporting dietro il pannello della chat — il "
 "piccolo buco nero nella barra in alto."
 
-#: templates/_reporting_help.html:54
+#: templates/_reporting_help.html:55
 msgid ""
 "Name the measure, the time range and the processes: “invoices by process,"
 " last 3 months” beats “show me invoices”."
@@ -2496,7 +2515,7 @@ msgstr ""
 "Nomina la misura, il periodo e i processi: “fatture per processo, ultimi "
 "3 mesi” batte “mostrami le fatture”."
 
-#: templates/_reporting_help.html:55
+#: templates/_reporting_help.html:56
 msgid ""
 "Check what Eddard built with “Open in builder” — the filters and process "
 "scope it chose are visible there before you trust the number."
@@ -2505,7 +2524,7 @@ msgstr ""
 " l'ambito dei processi scelti sono visibili lì prima di fidarti del "
 "numero."
 
-#: templates/_reporting_help.html:56
+#: templates/_reporting_help.html:57
 msgid ""
 "Follow-ups work: the chat remembers the conversation, so “now only this "
 "quarter” refines the last answer."
@@ -2513,7 +2532,7 @@ msgstr ""
 "I follow-up funzionano: la chat ricorda la conversazione, quindi “ora "
 "solo questo trimestre” affina l'ultima risposta."
 
-#: templates/_reporting_help.html:57
+#: templates/_reporting_help.html:58
 msgid ""
 "When Eddard used tools, unfold “How the agent worked” to see the steps; "
 "if a “Continue” button appears, click it before rephrasing your question."
@@ -2522,7 +2541,7 @@ msgstr ""
 "vedere i passaggi; se compare un pulsante «Continua», cliccalo prima di "
 "riformulare la domanda."
 
-#: templates/_reporting_help.html:58
+#: templates/_reporting_help.html:59
 msgid ""
 "The answer-depth control sits at the bottom-left of the composer: Quick "
 "for a fast number, Balanced for everyday questions, Deep when the "
@@ -2533,11 +2552,11 @@ msgstr ""
 "le domande di ogni giorno, Approfondito quando la domanda è complessa e "
 "puoi attendere."
 
-#: templates/_reporting_help.html:66
+#: templates/_reporting_help.html:67
 msgid "Full guide"
 msgstr "Guida completa"
 
-#: templates/_reporting_help.html:67 templates/admin/logs.html:141
+#: templates/_reporting_help.html:68 templates/admin/logs.html:141
 #: templates/js/_reporting_drill_js.html:16
 #: templates/prepared_documents.html:253 templates/prepared_documents.html:265
 #: templates/reporting.html:147 templates/reporting.html:179
@@ -8597,7 +8616,9 @@ msgstr "Esegui una query per vedere i risultati"
 
 #: templates/js/_reporting_js.html:60
 msgid "Pick a target above, write a read-only SELECT, then press Run."
-msgstr "Scegli una destinazione qui sopra, scrivi un SELECT in sola lettura, quindi premi Esegui."
+msgstr ""
+"Scegli una destinazione qui sopra, scrivi un SELECT in sola lettura, "
+"quindi premi Esegui."
 
 #: templates/js/_reporting_js.html:61
 msgid "Widen the time range or remove a filter, then run again."

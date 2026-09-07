@@ -1514,6 +1514,7 @@ html.dark .reporting-sqlview pre .sql-comment, html.dark .reporting-ai-sql .sql-
   border-radius: 3px;
 }
 .reporting-chat-empty { text-align: center; padding: 20px 8px; color: var(--nx-text-sec); }
+.reporting-chat-empty--attached .rp-chat-starter { display: none; }
 .reporting-chat-empty p { margin: 0 0 12px; font-size: 12px; line-height: 1.5; }
 
 /* Eddard (issue #212): the mascot greeting the empty thread, the small mark in
@@ -2890,7 +2891,7 @@ body.reporting-console .rdb-card .rdb-card-tools, .rdb-card .rdb-card-tools {
   box-shadow: 0 1px 3px rgba(16, 24, 40, .08);
 }
 .rdb-card .rdb-card-tools .reporting-chartbtn { padding: 4px 7px; font-size: 12px; }
-.rdb-card .rdb-style-pop { top: 36px; right: 0; }
+.rdb-card .rdb-style-pop { top: 36px; right: 0; max-height: 260px; overflow: auto; }
 /* Drag-to-reorder: reorderGridDom() plays a FLIP transform per card, so the
    neighbours slide to their new slot instead of jumping. */
 .rdb-grid--dragging .rdb-card { transition: transform .22s var(--nx-ease); }

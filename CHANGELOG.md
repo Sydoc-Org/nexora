@@ -10,6 +10,12 @@ Work toward the next release.
 
 ### Added
 
+- **Dashboard cards carry the Results tab's chart tools.** In edit mode every
+  chart-bearing card has its own toolbar — chart type, download as image,
+  Forecast + horizon, Colours & axes — and the tweaks are saved *on the card*
+  (`card.viz`), never on the report: one saved report can be a bar chart here and
+  a forecast line there. Drag-to-reorder now slides the neighbouring cards into
+  place (FLIP transition) instead of snapping them.
 - **Ask Eddard about this report.** A button beside the *Eddard insight* card on the
   Results tab opens the chat with the report on screen attached: its definition
   (source, grouping, measures with their registry descriptions, filters) and, for a
@@ -219,6 +225,19 @@ Work toward the next release.
 
 ### Fixed
 
+- **Eddard couldn't see an activated forecast.** "Ask Eddard about this report" attached the
+  definition and fact sheet but never the forecast toggle, so a question about the projection
+  got answered as if it weren't there. `report_context_text` now states when forecast is on
+  (with its horizon) and, when the result is shared, that the trailing buckets are the forecast
+  rather than more actuals; `reporting_simple.js` passes the run's forecast block along.
+- **Eddard always announced which report he was reading.** The "Reading: I used the ..."
+  preamble is meant for genuinely ambiguous questions (issue #132); it fired even when a
+  specific report was already attached, where the report is given, not guessed. The
+  report-context grounding now tells the model to skip that preamble for this flow.
+- **Chat starter chips didn't fit the attached report.** The four fixed suggestions
+  ("imported vs exported, last 30 days", etc.) are tuned to the docprocessing source and kept
+  showing next to whatever report "Ask Eddard about this report" attached, even when they made
+  no sense for it. They now hide once a report is attached.
 - **Live SQL said why a query failed.** A failed run showed only "Could not run
   query" — the API had been sending the driver message in `detail` all along and
   `NX.api` threw it away. It now rides on the thrown `Error` as `err.detail` and
