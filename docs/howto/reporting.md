@@ -202,7 +202,7 @@ chart already on screen re-themes on the next render, not live.
     matching the app-wide client.process idiom); the filter value stays the
     bare column value. A second flag `"grantScoped": true` (was seeded by
     migration `0066`) additionally drops every value whose client.process
-    label is **not** in the caller's `reporting.scope.process.*` grants — the
+    label is **not** in the caller's `process.*.view` grants — the
     snapshot collector records every Octo process, but the picker should only
     offer the ones the rest of the app shows. This is UI curation, not a
     security boundary: the run path stays gated by the source-level
@@ -341,7 +341,7 @@ current value vs. the same stat over `comparison.rows`:
   special-cases.
 
 > **Viewer semantics:** a shared library report runs against the *viewer's*
-> grants (`reporting.scope.process.*`, per-source perms) — different users can
+> grants (`process.*.view`, per-source perms) — different users can
 > legitimately see different numbers, or a friendly "you don't have access"
 > message. This is existing run-path behavior, surfaced honestly in the UI.
 
@@ -606,7 +606,7 @@ that client later), a partially-ticked client emits its picked
 `scope.processes`. Server-side, `_effective_scope` narrows the caller's allowed
 set to **(client ∈ `scope.clients`) ∪ (process ∈ `scope.processes`)**; empty
 clients *and* processes means all allowed. The grant set is always the boundary —
-requesting a client/process the user has no `reporting.scope.process.*` grant for
+requesting a client/process the user has no `process.*.view` grant for
 silently excludes it (no data leak). The selection is saved with the report and
 restored on load.
 
@@ -821,7 +821,7 @@ Both serialization paths neutralize spreadsheet formula injection (leading
 | `reporting.view` | Page access — nav entry visible, `/reporting` route allowed. |
 | `reporting.source.docprocessing.use` | Use the Document Processing curated source. |
 | `reporting.export` | Export reports to Excel (`.xlsx`). |
-| `reporting.scope.process.<client>.<process>` | Include a specific client/process in a report's row scope. |
+| `process.<client>.<process>.view` | Include a specific client/process in a report's row scope. |
 | `reporting.sql.run` | Run live read-only SQL in the sandbox against **Statistics** (see below). Grantable; admins seeded. |
 | `reporting.sql.target.octopus.use` | Additionally target the **Octopus** runtime DB in the SQL sandbox. Independent of `reporting.sql.run`; grantable; admins seeded. |
 | `reporting.sources.manage` | Manage the data-source registry at `/reporting/sources` (see below). Admins seeded. |
@@ -834,7 +834,7 @@ Both serialization paths neutralize spreadsheet formula injection (leading
 
 **Scope permissions mirror the dashboard.** Migration
 `0005_seed_reporting_permissions.sql` auto-creates a
-`reporting.scope.process.<client>.<process>` entry for every existing
+`process.<client>.<process>.view` entry for every existing
 `dashboard.filter.process.<client>.<process>` and grants it to the same access
 profiles. A user who can see a process on the dashboard can therefore include it
 in a report without any manual grant work.
@@ -975,7 +975,7 @@ the docprocessing source (see **`DateAnchor`** below) supersedes it, and the
 collector + table it read stay in place. Each source is gated by its own
 permission (`reporting.source.generali_pdqm.use`, `reporting.source.workitems.use`).
 Unlike the docprocessing source, the `table` provider does **not** apply
-`reporting.scope.process.*` row scoping — the source permission is the whole
+`process.*.view` row scoping — the source permission is the whole
 gate, so grant it deliberately. Tune the exposed columns/object at
 `/reporting/sources`.
 

@@ -139,7 +139,8 @@ Rides the existing provider-agnostic reporting-AI plumbing. Three assists, one r
 
 - Creating a tenant auto-provisions `tenant.<code>.view` and `tenant.<code>.edit` in
   `dbo.Permission` (idempotent `WHERE NOT EXISTS`, granted to nobody — the white-label D7 idiom).
-  Granting stays a deliberate act at `/admin/access-control`.
+  Granting stays a deliberate act at `/admin/permissions`. The `tenant.generali.*` codes already
+  exist since #238 renamed the former `generali.*` family into that shape.
 - The sidebar gains one section per tenant the viewer can see, gated through `page_visibility()`.
 - Tenant admin surfaces extend the existing admin center (`/admin/clients` grows tenant rows;
   a new `/admin/tenants/<code>` holds the box editor in sub-project 2).

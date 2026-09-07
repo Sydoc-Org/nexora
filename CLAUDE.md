@@ -71,7 +71,7 @@ Documentation is part of the change, not a follow-up. Add, rename, or remove a C
 One line each; **the full detail lives in `docs/design/architecture-conventions.md`** — read it before changing any of these subsystems.
 
 - **Auth & sessions** — Flask-Session (filesystem in prod, deliberately off locally), CSRF via Flask-WTF, Talisman CSP, bcrypt, TOTP 2FA.
-- **Permissions** — string codes from `dbo.spGetUserPermissions` into `session['permissions']`, refreshed per request via a TTL cache (`nx_lib/user_cache.py`). Guard with `@require_permission('code')`, check with `has_permission(code)`. The external API (`/api/v1/*`) bypasses sessions entirely — per-client keys from `dbo.ApiKeys`, see `docs/howto/external-api.md`.
+- **Permissions** — string codes from `dbo.spGetUserPermissions` into `session['permissions']`, refreshed per request via a TTL cache (`nx_lib/user_cache.py`). Guard with `@require_permission('code')`, check with `has_permission(code)`. Grammar, rank, dynamic families: `docs/design/permissions.md`. The external API (`/api/v1/*`) bypasses sessions entirely — per-client keys from `dbo.ApiKeys`, see `docs/howto/external-api.md`.
 - **UI preferences** — allowlisted JSON in `dbo.Users.ui_prefs` (`nx_lib/ui_prefs.py`), applied pre-paint in `templates/_header.html`, edited on `/appearance`. Never cache them in the session (#155).
 - **Locale** — Flask-Babel, `en`/`de`/`fr`/`it`; session → user DB row → `Accept-Language`.
 - **Response compression** — `nx_lib/compression.py` gzips text responses > 1 KB (stdlib, no `flask-compress`). Covers `/static`. Do **not** suffix the `ETag` — it breaks `If-None-Match`.

@@ -8,7 +8,41 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
+### Added
+
+- **`AccessProfile.Rank` governs which profiles an admin may hand out** (#238,
+  migration `0086`): an actor may assign a profile whose rank is at most their
+  own. Enterprise Admin 100, Global Admin 90, supervisors 50, everyone else 10.
+- **One `process.<client>.<name>.view` scope code per process** (migration
+  `0087`) replaces the three per-process families (`workitems.filter.process.*`,
+  `dashboard.filter.process.*`, `reporting.scope.process.*`); every process
+  allow-list reads it through `process_grants()`.
+- **`admin.permissions.edit`** gates catalogue edits (add, rename, delete a
+  permission code) separately from profile grants.
+- **`nx --doctor` Permissions section** warns about codes the code base
+  references that are missing in `dbo.Permission`, and about profiles left at
+  Rank 0.
+- **Enterprise Admin holds every permission** (migration `0106`) — granted
+  today and kept that way by a trigger on `dbo.Permission`, so a code added
+  later by migration or from the admin grid lands on the profile at once.
+
 ### Changed
+
+- **Permission codes follow one grammar, `<area>.<object>.<action>[.<scope>]`**
+  (#238, migration `0088`). Every code was renamed; the full old → new mapping
+  is Appendix A of `docs/superpowers/specs/2026-09-01-permission-structure-design.md`,
+  the grammar and the rules around it are `docs/design/permissions.md`. Generali
+  codes live under `tenant.generali.*`. Grants rode along on `PermissionID`, so
+  nobody lost or gained access.
+  **Deploy note:** migrations run before the app pool stops, so the old build
+  serves renamed codes for the deploy window and answers 403 — deploy off-hours.
+
+### Removed
+
+- **Profile-level DENY** (446 semantically empty rows), **the ten
+  `admin.assign.user.accessprofile.*` codes** (rank replaces them), **12 orphan
+  codes** (`invoices.*`, `kundenmagazin.*`, two dead admin codes) and **the
+  three per-process permission families** (#238).
 
 - **Repository moved to the `Sydoc-Org` GitHub organization** (from the
   personal `Sydoc-Code` account, 2026-09-03). GitHub redirects the old URL,
