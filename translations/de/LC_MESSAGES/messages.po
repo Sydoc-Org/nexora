@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-07 14:32+0200\n"
+"POT-Creation-Date: 2026-09-07 14:59+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -8340,6 +8340,12 @@ msgstr "Noch keine Karten zum Exportieren."
 msgid "Hide table"
 msgstr "Tabelle ausblenden"
 
+#: templates/js/_reporting_dashboard_js.html:52
+#: templates/js/_reporting_simple_js.html:134
+#, python-brace-format
+msgid "{n} rows"
+msgstr "{n} Zeilen"
+
 #: templates/js/_reporting_drill_js.html:9
 msgid "Rows behind this number"
 msgstr "Zeilen hinter dieser Zahl"
@@ -9020,11 +9026,6 @@ msgstr "Spitzenwert"
 #: templates/js/_reporting_simple_js.html:133
 msgid "vs"
 msgstr "vs."
-
-#: templates/js/_reporting_simple_js.html:134
-#, python-brace-format
-msgid "{n} rows"
-msgstr "{n} Zeilen"
 
 #: templates/js/_reporting_simple_js.html:135
 #, python-brace-format

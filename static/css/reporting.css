@@ -2484,14 +2484,6 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   border-color: var(--nx-card-hover-border); box-shadow: var(--nx-card-hover-shadow);
 }
 
-/* KPI cards get the muted uppercase eyebrow title from the spec; other
-   types keep the default .rdb-card-title look. */
-.rdb-card[data-type="kpi"] .rdb-card-head { margin-bottom: 8px; }
-.rdb-card[data-type="kpi"] .rdb-card-title {
-  font-size: 10.5px; font-weight: 600; letter-spacing: .7px;
-  text-transform: uppercase; color: var(--nx-text-meta);
-}
-
 /* The body takes whatever height the card's row count leaves and scrolls if
    its content wants more -- an explicitly sized card must not be stretched
    open again by a long table. */
@@ -2824,7 +2816,7 @@ html.dark .rdb-add-tile:hover { background: var(--nx-accent-soft); }
    (.rdb-report--kpi/--chart/--table on the card body). */
 .rdb-modal--pick { max-width: 1100px; width: 94vw; max-height: 92vh; }
 .rdb-modal--pick .rdb-modal-body { padding: 8px 18px 18px; }
-.rdb-pick-host .rs-kpi-total-card, .rdb-pick-host .rs-kpi-stats-card,
+.rdb-pick-host .rs-kpi-total-card, .rdb-pick-host .reporting-ledger-kpi,
 .rdb-pick-host .rdb-report-chartcard { position: relative; }
 .rdb-pick-btn {
   position: absolute; top: 8px; right: 8px; z-index: 2;
@@ -2834,14 +2826,13 @@ html.dark .rdb-add-tile:hover { background: var(--nx-accent-soft); }
   font: 600 11px var(--nx-font); padding: 4px 10px; cursor: pointer; font-family: inherit;
   opacity: 0; transition: opacity .12s;
 }
-.rdb-pick-host .rs-kpi-total-card:hover .rdb-pick-btn, .rdb-pick-host .rs-kpi-stats-card:hover .rdb-pick-btn,
+.rdb-pick-host .rs-kpi-total-card:hover .rdb-pick-btn, .rdb-pick-host .reporting-ledger-kpi:hover .rdb-pick-btn,
 .rdb-pick-host .rdb-report-chartcard:hover .rdb-pick-btn, .rdb-pick-btn:focus-visible,
 .rdb-pick-btn.is-added, .rdb-report-tablebar .rdb-pick-btn { opacity: 1; }
 .rdb-pick-btn:hover { background: var(--nx-accent-tint); }
 .rdb-pick-btn.is-added { border-color: var(--nx-success); color: var(--nx-success); }
 .rdb-report-tablebar .rdb-pick-btn { position: static; }
 .rdb-report--kpi .rdb-report, .rdb-report--chart .rdb-report, .rdb-report--table .rdb-report { grid-template-columns: 1fr; }
-.rdb-report--kpi .rdb-report-kpis .reporting-ledger-kpi-value { font-size: 30px; }
 .rdb-report--table .rdb-report-table.reporting-table-wrap { margin-top: 0; max-height: none; }
 .rdb-report--chart .rdb-report-chartcard { min-height: 0; }
 .rdb-report--chart .rdb-report-chart { height: calc(100% - 4px); min-height: 160px; }

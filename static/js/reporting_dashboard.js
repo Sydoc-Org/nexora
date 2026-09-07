@@ -50,7 +50,7 @@
   // predating the `rows` field fall back to the per-type default, sized to the
   // fixed body heights those cards used to have -- so an older dashboard
   // reopens looking as it did before resizing existed.
-  var DEFAULT_ROWS = { kpi: 2, chart: 3, table: 2, report: 4 };
+  var DEFAULT_ROWS = { kpi: 1, chart: 3, table: 2, report: 4 };
   var GRID_COLS = 12, MAX_ROWS = 6;
 
   function clampInt(v, lo, hi, dflt) {
@@ -900,13 +900,23 @@
       var tiles = kpiTiles(body);
       var keep = tiles[clampInt(card.kpiIndex, 0, Math.max(0, tiles.length - 1), 0)];
       tiles.forEach(function (t) { if (t !== keep && t.parentNode) t.parentNode.removeChild(t); });
+      var statsTitle = body.querySelector('.rs-kpi-stats-title');
+      if (statsTitle) statsTitle.hidden = true;   // the card's own caption names the measure
+    }
+    if (piece === 'table') {
+      var cardEl = body.closest('[data-card-id]');
+      var meta = cardEl && cardEl.querySelector('.rdb-card-meta');
+      var n = (cardRunData[card.id] || {}).rows;
+      if (meta && n) meta.textContent = I18N.tableRowCount.replace('{n}', String(n.length));
     }
   }
 
-  // The band's pickable tiles in DOM order: one per measure, then the
-  // Buckets / Avg / Peak stats. kpiIndex on a card is a position in this list.
+  // The band's pickable tiles in DOM order: one per measure, then Buckets,
+  // Avg and Peak each on their own -- the same four tiles the Results tab's
+  // strip shows. kpiIndex on a card is a position in this list.
   function kpiTiles(root) {
-    return Array.prototype.slice.call(root.querySelectorAll('.rs-kpi-total-card, .rs-kpi-stats-card'));
+    return Array.prototype.slice.call(
+      root.querySelectorAll('.rs-kpi-total-card, .rs-kpi-stats-card .reporting-ledger-kpi'));
   }
 
   // The Simple builders stamp their own data-testids (rs-kpi-total,
@@ -1064,6 +1074,7 @@
       '<div class="rdb-card-head">' +
         (state.editing ? '<i class="fas fa-grip-vertical rdb-card-grip" aria-hidden="true"></i>' : '') +
         '<span class="rdb-card-title">' + esc(c.title || '') + '</span>' +
+        '<span class="rdb-card-meta" data-testid="rdb-card-meta"></span>' +
         cardHeadExtrasHtml(c) +
       '</div>' +
       '<div class="' + bodyClass + '" data-testid="rdb-card-body">' +
@@ -1408,8 +1419,8 @@
     var opts = { reportId: r.id, definition: r.definition, title: r.name };
     if (piece === 'kpi') {
       opts.kpiIndex = parseInt(btn.getAttribute('data-kpi-index'), 10) || 0;
-      var tile = btn.closest('.rs-kpi-total-card, .rs-kpi-stats-card');
-      var cap = tile && tile.querySelector('.rs-kpi-stats-title, .reporting-ledger-caption');
+      var tile = btn.closest('.rs-kpi-total-card, .reporting-ledger-kpi');
+      var cap = tile && tile.querySelector('.reporting-ledger-caption');
       if (cap && cap.textContent.trim()) opts.title += ' · ' + cap.textContent.trim();
     }
     addCard(piece, opts);

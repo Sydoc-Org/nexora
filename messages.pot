@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-07 14:32+0200\n"
+"POT-Creation-Date: 2026-09-07 14:59+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -7707,6 +7707,12 @@ msgstr ""
 msgid "Hide table"
 msgstr ""
 
+#: templates/js/_reporting_dashboard_js.html:52
+#: templates/js/_reporting_simple_js.html:134
+#, python-brace-format
+msgid "{n} rows"
+msgstr ""
+
 #: templates/js/_reporting_drill_js.html:9
 msgid "Rows behind this number"
 msgstr ""
@@ -8349,11 +8355,6 @@ msgstr ""
 
 #: templates/js/_reporting_simple_js.html:133
 msgid "vs"
-msgstr ""
-
-#: templates/js/_reporting_simple_js.html:134
-#, python-brace-format
-msgid "{n} rows"
 msgstr ""
 
 #: templates/js/_reporting_simple_js.html:135

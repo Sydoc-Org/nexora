@@ -1487,10 +1487,10 @@ def test_corner_drag_resizes_card_in_grid_steps_and_persists(nexora_server, page
     _add_card_via_mask(page, "kpi", "Documents per month")
     card = page.get_by_test_id("rdb-card")
     expect(card).to_have_count(1)
-    # KPI defaults: 3 columns wide, 2 rows tall (DEFAULT_SPAN / DEFAULT_ROWS).
+    # KPI defaults: 3 columns wide, 1 row tall (DEFAULT_SPAN / DEFAULT_ROWS).
     style = card.get_attribute("style")
     assert "span 3" in style, style
-    assert "--rdb-cardrows:2" in style.replace(" ", ""), style
+    assert "--rdb-cardrows:1" in style.replace(" ", ""), style
 
     # The drag snaps per column/row step, so derive the step from the live grid
     # rather than hard-coding a viewport width.
@@ -1517,7 +1517,7 @@ def test_corner_drag_resizes_card_in_grid_steps_and_persists(nexora_server, page
 
     style = card.get_attribute("style")
     assert "span 6" in style, style  # 3 + 3 columns
-    assert "--rdb-cardrows:4" in style.replace(" ", ""), style  # 2 + 2 rows
+    assert "--rdb-cardrows:3" in style.replace(" ", ""), style  # 1 + 2 rows
 
     # Dragging past the last column clamps at the full 12 rather than
     # overflowing the grid. The taller card can push the handle below the
@@ -1536,7 +1536,7 @@ def test_corner_drag_resizes_card_in_grid_steps_and_persists(nexora_server, page
     assert len(posted) == 1
     saved = posted[0]["definition"]["cards"][0]
     assert saved["span"] == 12
-    assert saved["rows"] == 4
+    assert saved["rows"] == 3
 
 
 def test_add_card_overlay_takes_pieces_of_the_opened_report(nexora_server, page):
