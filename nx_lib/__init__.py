@@ -33,7 +33,7 @@ def create_app():
     # a JS-readable / cross-site-sendable session cookie or accept an unbounded
     # upload body. SECURE stays PROD-only -- dev/INT run plain HTTP and a Secure
     # cookie would never be sent, breaking local login.
-    app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=24)
+    app.config["PERMANENT_SESSION_LIFETIME"] = cfg.SESSION_LIFETIME
     app.config["SESSION_COOKIE_HTTPONLY"] = True
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
     # Cap request bodies so an upload route can't buffer arbitrary memory into a

@@ -7,16 +7,36 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ _('Two-Factor Authentication - nexora') }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    {# Must follow the CDN script -- assigning tailwind.config before it is
+       silently discarded. Without darkMode:'class' every dark: utility
+       follows the OS prefers-color-scheme rather than this page's .dark
+       class, so the footer logo inverts on a light page. #}
+    <script nonce="{{ csp_nonce() }}">
+        tailwind.config = { darkMode: 'class' };
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous">
     <link rel="icon" type="image/x-icon" href="{{ static_v('images/favicon.ico') }}">
     <link rel="stylesheet" href="{{ static_v('css/nexora-ui.css') }}">
     <link rel="stylesheet" href="{{ static_v('css/auth.css') }}">
+    {# The shield gradient, the submit button, the focus rings and the page
+       backdrop all read --nx-accent* from nexora-ui.css / auth.css, but this
+       page never set data-accent, so they stayed on the indigo defaults
+       whatever the user had chosen (#243).
+
+       Included after the stylesheets and before <body> so the tokens are
+       pinned before first paint. The server has no prefs to give here -- the
+       session holds pre_2fa_userid, not userid -- so the block falls through
+       to its localStorage mirror, written by the last signed-in page load in
+       this browser. #}
+    <script nonce="{{ csp_nonce() }}">
+        {% include '_ui_prefs_prepaint.html' %}
+    </script>
 </head>
 
-<body class="bg-white flex flex-col min-h-screen">
+<body class="flex flex-col min-h-screen" style="background: var(--nx-page); color: var(--nx-text);">
 
-    <header class="bg-white shadow-sm">
+    <header class="shadow-sm" style="background: var(--nx-card); border-bottom: 1px solid var(--nx-border);">
         <div class="container mx-auto px-6 py-4">
             <div class="flex items-center justify-between">
                 <div class="flex items-center">
@@ -27,13 +47,13 @@
     </header>
 
     <main class="flex-grow flex items-center justify-center px-4 py-12">
-        <div class="w-full max-w-md bg-white rounded-xl shadow-2xl p-8">
+        <div class="w-full max-w-md rounded-xl shadow-2xl p-8" style="background: var(--nx-card); border: 1px solid var(--nx-border);">
             <div class="text-center mb-8">
                 <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-primary text-white mb-4">
                     <i class="fas fa-shield-alt text-2xl"></i>
                 </div>
-                <h1 class="text-2xl font-bold text-gray-800 mb-2">{{ _('Two-Factor Authentication') }}</h1>
-                <p class="text-gray-600 text-sm">
+                <h1 class="text-2xl font-bold mb-2" style="color: var(--nx-text);">{{ _('Two-Factor Authentication') }}</h1>
+                <p class="text-sm" style="color: var(--nx-text-sec);">
                     {{ _('Please enter the code from your authenticator app to continue.') }}
                 </p>
             </div>
@@ -61,7 +81,8 @@
                            autocomplete="one-time-code"
                            required
                            autofocus
-                           class="w-full px-4 py-3 text-center text-2xl tracking-widest border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition font-mono"
+                           class="w-full px-4 py-3 text-center text-2xl tracking-widest rounded-lg outline-none transition font-mono"
+                           style="background: var(--nx-card); color: var(--nx-text); border: 1px solid var(--nx-border);"
                            placeholder="000 000"
                            data-testid="verify-2fa-code">
                 </div>

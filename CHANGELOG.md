@@ -381,6 +381,60 @@ Work toward the next release.
   `CONTRIBUTING.md` gains "Working in parallel" (the migration-number claim
   rule and the generated-file conflict hotspots) and "Releases".
 
+### Fixed
+
+- **The last eight hardcoded-English strings are out of
+  `static/js/reporting_schema.js`** (#246). Each was the fallback half of
+  `I18N.key || '<English default>'`, kept for the case the shim was missing.
+  They were unreachable -- `templates/js/_reporting_schema_js.html` defines
+  the shim and loads the script back to back, and supplies every key the
+  script reads -- but they were real hardcoded English by the letter of the
+  i18n lint, and were allowlisted rather than fixed when that lint was
+  widened. The literals are now `''`: the `||` guard stays, so a missing
+  shim degrades to a blank label rather than the text "undefined", and the
+  eight `ALLOWED` entries are gone.
+
+  A new test asserts the script and its shim supply exactly the same key
+  set. Without the fallbacks an unsupplied key renders blank -- quieter than
+  a stale English word, but silent -- and nothing previously checked that
+  the two files agreed.
+- **Expired `dbo.ActiveSessions` rows are deleted** (#227). Session expiry was
+  implemented on one half only: the session *files* were pruned on a schedule,
+  the database rows never were, so PROD had accumulated 1,558 rows of which
+  ~93% were expired and the oldest was four months old. An orphaned row cannot
+  authenticate -- its file is gone -- but it still claims to be a session.
+  `ops/cleanup/prune_active_sessions.py` now removes them, with retention
+  derived as `SESSION_LIFETIME + SESSION_ROW_RETENTION_GRACE` (24 h + 7 days)
+  from `nx_lib/config.py` rather than restated, so it cannot drift below the
+  lifetime of a live session and sign someone out. Straight delete, no archive:
+  every reader of the table filters to the last 30 minutes, login history
+  already lives in `dbo.Logs` and `Users.LastLoginAt`, and the one field not
+  duplicated elsewhere is `IPAddress` -- personal data with no retention
+  purpose. `--dry-run` reports without writing.
+- **The 2FA screen works in dark mode** (#243). It never set Tailwind's
+  `darkMode: 'class'`, so every `dark:` utility followed the OS
+  `prefers-color-scheme` instead of the page's own `.dark` class -- the
+  shared footer's `dark:brightness-0 dark:invert` fired on a light page
+  whenever the OS was dark, rendering a white logo on a white background.
+  Its surfaces were also hardcoded (`bg-white`, `text-gray-800`), so the
+  page stayed white even once the pre-paint had set `.dark`; they now read
+  the `--nx-*` tokens, which flip with the theme and need no new CSS.
+  `init_2FA`, `forgot_password` and `reset_password` have the same problem
+  and are tracked in #266.
+
+- **The 2FA screen follows your accent colour** (#243). The shield gradient,
+  the submit button, the focus rings and the page backdrop all read
+  `--nx-accent*`, but `verify_2fa.html` never set `data-accent`, so they sat
+  on the indigo defaults whatever you had chosen. The server cannot help
+  there -- mid-2FA the session holds `pre_2fa_userid`, not `userid`, so prefs
+  are deliberately not loaded -- so the page now reuses the same pre-paint
+  block, which falls through to its `localStorage` mirror from the last
+  signed-in page load. No database read on the login path, nothing about the
+  account rendered into the page, and no stored prefs still means the amber
+  default. The block moved to `templates/_ui_prefs_prepaint.html`, included
+  verbatim by `_header.html`, so two copies of the accent derivation cannot
+  drift apart.
+
 ## [3.2.4] - 2026-09-03
 
 ### Added
