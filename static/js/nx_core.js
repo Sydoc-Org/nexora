@@ -67,7 +67,14 @@
         if (!res.ok) {
             var body = {};
             try { body = await res.json(); } catch (e) { /* non-JSON error body */ }
-            throw new Error(body.error || res.statusText || ('HTTP ' + res.status));
+            var err = new Error(body.error || res.statusText || ('HTTP ' + res.status));
+            // Nexora error bodies carry a second line -- the driver/validator
+            // message behind the generic `error` (e.g. "Invalid object name
+            // 'foo'." behind "Could not run query"). Dropping it left the
+            // reporting SQL sandbox with no way to say WHAT was wrong.
+            err.detail = body.detail || null;
+            err.status = res.status;
+            throw err;
         }
         return res;
     }

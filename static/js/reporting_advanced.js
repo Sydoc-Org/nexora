@@ -906,7 +906,54 @@
     wrap.appendChild(table);
   }
 
+  // Table and SQL mode share one result area, so a mode switch used to leave
+  // the *other* mode's output on screen: the builder's pivot shelf, its AI
+  // caption, its timing badge and -- worst -- its generated SQL in the "Query
+  // sent to the database" panel while the editor above held something else
+  // entirely. Reset to a mode-appropriate empty state instead.
+  function resetResultArea() {
+    var sqlOn = state.mode === 'sql';
+    state.lastResult = null;
+    state.lastDef = null;
+    state._lastSql = null;
+    state._lastSqlPretty = null;
+    state._lastSqlDisplay = null;
+    state._chartMounted = false;
+    state._pivotMounted = false;
+    ['rpViewToggle', 'rpKpiBand', 'rpSqlView', 'rpShowSql', 'rpSqlPeek',
+     'rpCaption', 'rpForecastWrap', 'rpForecastHorizon', 'reportingTiming']
+      .forEach(function (id) {
+        var e = document.getElementById(id);
+        if (e) e.hidden = true;
+      });
+    var cap = document.getElementById('rpCaption');
+    if (cap) cap.textContent = '';
+    document.getElementById('rpChart').innerHTML = '';
+    document.getElementById('rpPivot').innerHTML = '';
+    setView('grid');
+    var wrap = document.getElementById('rpResults');
+    wrap.innerHTML = '';
+    var box = document.createElement('div');
+    box.className = 'nx-empty reporting-empty-state';
+    box.setAttribute('data-testid', 'reporting-empty-state');
+    var art = document.createElement('div');
+    art.className = 'nx-empty__art';
+    art.innerHTML = '<i class="fas ' + (sqlOn ? 'fa-terminal' : 'fa-chart-column') +
+      '" aria-hidden="true"></i>';
+    var t = document.createElement('p');
+    t.className = 'nx-empty__title';
+    t.textContent = sqlOn ? I18N.sqlEmptyTitle : I18N.builderEmptyTitle;
+    var sub = document.createElement('p');
+    sub.className = 'nx-empty__sub';
+    sub.textContent = sqlOn ? I18N.sqlEmptyHint : I18N.builderEmptyHint;
+    box.appendChild(art);
+    box.appendChild(t);
+    box.appendChild(sub);
+    wrap.appendChild(box);
+  }
+
   function setMode(mode) {
+    var changed = state.mode !== mode;
     state.mode = mode;
     var sqlOn = mode === 'sql';
     document.getElementById('rpModeSql').classList.toggle('active', sqlOn);
@@ -918,6 +965,7 @@
     // doesn't collapse into the grid's narrow first track. Table mode restores
     // the 3-column builder layout.
     document.querySelector('.reporting-main').classList.toggle('reporting-main--single', sqlOn);
+    if (changed) resetResultArea();
   }
 
   // toast: shared with nx_core.js (Task 11) -- replaces window.alert for
@@ -925,13 +973,25 @@
   // blocking answer.
   const toast = window.NX.toast;
 
-  function showError(msg) {
+  // `detail` is the driver/validator message the API returns alongside the
+  // generic `error` (NX.api hangs it on the Error). Without it a Live SQL
+  // failure read "Could not run query" and nothing else -- the reason for the
+  // failure ("Invalid object name 'Workitem'.") was thrown away.
+  function showError(msg, detail) {
     var wrap = document.getElementById('rpResults');
     wrap.innerHTML = '';
+    setView('grid');
     var p = document.createElement('p');
     p.className = 'reporting-error';
     p.textContent = msg;
     wrap.appendChild(p);
+    if (detail && detail !== msg) {
+      var d = document.createElement('pre');
+      d.className = 'reporting-error-detail';
+      d.setAttribute('data-testid', 'reporting-error-detail');
+      d.textContent = detail;
+      wrap.appendChild(d);
+    }
     // Same stale-caption guard as resetViews() -- a failed run must not leave
     // the PREVIOUS run's caption sentence sitting above the error message.
     var rpCaptionErrBox = document.getElementById('rpCaption');
@@ -1040,7 +1100,7 @@
         state.sqlSources.forEach(function (s) { s.acknowledged = true; });
         modal.hidden = true;
         cb();
-      }).catch(function (e) { modal.hidden = true; showError(e.message); });
+      }).catch(function (e) { modal.hidden = true; showError(e.message, e.detail); });
     };
   }
 
@@ -1064,7 +1124,7 @@
           state.lastDef = { kind: 'sql' };
           renderResults(data);
         })
-        .catch(function (e) { endRunLoading(); showError(e.message); });
+        .catch(function (e) { endRunLoading(); showError(e.message, e.detail); });
     });
   }
 
@@ -1238,7 +1298,7 @@
         renderResults(data);
         showTiming(data.rowCount, performance.now() - runT0);
       })
-      .catch(function (e) { endRunLoading(); showError(e.message); });
+      .catch(function (e) { endRunLoading(); showError(e.message, e.detail); });
   }
 
   function addFilter() {
@@ -1627,7 +1687,7 @@
         state.currentReportOwned = !!data.owned;
         state.currentReportCanEdit = !!data.canEdit;
       })
-      .catch(function (e) { showError(e.message); });
+      .catch(function (e) { showError(e.message, e.detail); });
   }
 
   function renameSelectedReport() {
