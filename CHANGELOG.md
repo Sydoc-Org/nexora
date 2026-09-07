@@ -41,6 +41,11 @@ Work toward the next release.
 
 ### Fixed
 
+- **Sydoc-tenant users no longer see a Prepared Documents link that always fails.**
+  `0094` copied Mobscn's three tenant pages onto the new `sydoc` tenant, but Prepared
+  Documents is a hard MS02-only route — every non-MS02 client gets `PermissionDenied`
+  regardless of permission grants. Migration `0122` removes the `sydoc` tenant's
+  `prepared` `TenantPages` row.
 - **A wide result no longer widens the whole builder.** `.reporting-results` had
   `min-width: 0` only inside the collapsed-layout media query, so the middle grid
   track grew to its widest child: one `SELECT *` over a `varbinary(max)` column and
