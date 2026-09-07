@@ -191,7 +191,6 @@ EXPECTED_NON_GENERALI_ENDPOINTS = {
     "admin_active_sessions",
     "admin_access_control",
     "get_users_admin_access_control",
-    "get_profile_details",
     "save_access_profile",
     "get_user_overrides",
     "api_admin_user_effective_permissions",
