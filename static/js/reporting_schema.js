@@ -46,10 +46,10 @@
     return '<table class="rc-schema-cols"><tbody>' + t.columns.map(function (c) {
       var badges = '';
       if (c.pk) badges += '<span class="rc-schema-key rc-schema-key--pk" title="' +
-        esc(I18N.primaryKey || 'Primary key') + '"><i class="fas fa-key"></i></span>';
+        esc(I18N.primaryKey || '') + '"><i class="fas fa-key"></i></span>';
       if (c.fk) badges += '<button type="button" class="rc-schema-key rc-schema-key--fk" ' +
         'data-goto="' + esc(c.fk.table) + '" title="' +
-        esc((I18N.references || 'References {t}').replace('{t}', c.fk.table + '.' + c.fk.column)) +
+        esc((I18N.references || '').replace('{t}', c.fk.table + '.' + c.fk.column)) +
         '"><i class="fas fa-link"></i></button>';
       return '<tr><td class="rc-schema-col-name">' + esc(c.name) + badges + '</td>' +
         '<td class="rc-schema-col-type">' + esc(c.type) + '</td>' +
@@ -63,7 +63,7 @@
     var shown = data.tables.filter(matches);
     if (!shown.length) {
       wrap.innerHTML = '<p class="rc-schema-empty">' +
-        esc(I18N.noMatch || 'Nothing matches that.') + '</p>';
+        esc(I18N.noMatch || '') + '</p>';
       return;
     }
     wrap.innerHTML = shown.map(function (t) {
@@ -75,12 +75,12 @@
           '<i class="fas fa-chevron-right rc-schema-caret"></i>' +
           '<span class="rc-schema-item-name">' + esc(key) + '</span>' +
           (t.kind === 'view' ? '<span class="rc-schema-tag">' +
-            esc(I18N.view || 'view') + '</span>' : '') +
+            esc(I18N.view || '') + '</span>' : '') +
           '<span class="rc-schema-item-meta">' +
             (t.rows == null ? '' : '<span>' + esc(num(t.rows)) + ' ' +
-              esc(I18N.rows || 'rows') + '</span>') +
+              esc(I18N.rows || '') + '</span>') +
             '<span>' + esc(String(t.columns.length)) + ' ' +
-              esc(I18N.cols || 'cols') + '</span>' +
+              esc(I18N.cols || '') + '</span>' +
           '</span>' +
         '</button>' +
         (open ? columnRowsHtml(t) : '') + '</div>';
@@ -263,10 +263,10 @@
       var msg = '';
       if (!data.relations.length) {
         msg = data.filter === 'used'
-          ? (I18N.onlyUsed || 'These are the tables this source reads.')
-          : (I18N.noRelations || 'No foreign keys defined — showing the biggest tables.');
+          ? (I18N.onlyUsed || '')
+          : (I18N.noRelations || '');
       } else if (L.capped) {
-        msg = (I18N.erdCapped || 'Showing the {n} most connected tables.').replace('{n}', L.total);
+        msg = (I18N.erdCapped || '').replace('{n}', L.total);
       }
       note.textContent = msg;
       note.hidden = !msg;
@@ -369,10 +369,10 @@
     data = null; laidOut = null; expanded = {}; filter = '';
     var f = el('rcSchemaFilter'); if (f) f.value = '';
     el('rcSchemaTitle').textContent = dbName || '';
-    el('rcSchemaSub').textContent = I18N.loading || 'Loading…';
+    el('rcSchemaSub').textContent = I18N.loading || '';
     el('rcSchemaTables').innerHTML = '';
     setStatus('<span class="rc-schema-spin"><i class="fas fa-circle-notch fa-spin"></i> ' +
-      esc(I18N.loading || 'Loading…') + '</span>');
+      esc(I18N.loading || '') + '</span>');
     showView('list');
     el('rcSchemaBackdrop').hidden = false;
     panel.hidden = false;
@@ -386,21 +386,21 @@
     if (!res || !res.ok || !payload || !payload.tables) {
       el('rcSchemaSub').textContent = '';
       setStatus('<span class="rc-schema-error"><i class="fas fa-triangle-exclamation"></i> ' +
-        esc((payload && payload.error) || I18N.failed || 'Could not read this database.') + '</span>');
+        esc((payload && payload.error) || I18N.failed || '') + '</span>');
       return;
     }
     setStatus('');
     data = payload;
     el('rcSchemaTitle').textContent = payload.db || dbName || '';
     var parts = [
-      (I18N.tablesN || '{n} tables').replace('{n}', num(payload.tables.length)),
-      (I18N.relationsN || '{n} relationships').replace('{n}', num(payload.relations.length))
+      (I18N.tablesN || '').replace('{n}', num(payload.tables.length)),
+      (I18N.relationsN || '').replace('{n}', num(payload.relations.length))
     ];
     if (payload.hidden) {
-      parts.push((I18N.hiddenN || '{n} hidden').replace('{n}', num(payload.hidden)));
+      parts.push((I18N.hiddenN || '').replace('{n}', num(payload.hidden)));
     }
     if (payload.truncated) {
-      parts.push((I18N.truncatedN || '{n} more not shown').replace('{n}', num(payload.truncated)));
+      parts.push((I18N.truncatedN || '').replace('{n}', num(payload.truncated)));
     }
     el('rcSchemaSub').textContent = parts.join(' · ');
     renderList();
