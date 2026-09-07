@@ -212,15 +212,6 @@ def test_definitions_screen_lists_layout_and_edits_persist(nexora_server, page):
     assert any(m["op"] == "stddev" for m in updated["definition"]["measures"])
 
 
-@pytest.mark.skip(
-    reason="Flaky cold-load race: on a fresh navigation straight to "
-    "?tab=definitions (no prior ?tab=library visit), ReportingLayouts.open() "
-    "can run before window.RS.state.reports is populated by the "
-    "fire-and-forget loadLibrary() call, leaving #rlGrid unrendered/hidden "
-    "well past a 15s wait. Root cause not fully isolated -- reproduces "
-    "intermittently, not on every run. Needs an app-level fix (e.g. render "
-    "once rc:libraryloaded fires) rather than a test workaround."
-)
 def test_definitions_redirect_route_opens_the_screen(nexora_server, page):
     _login(page, nexora_server)
     _stub(page, {})
@@ -230,17 +221,20 @@ def test_definitions_redirect_route_opens_the_screen(nexora_server, page):
 
 
 @pytest.mark.skip(
-    reason="Corner-resize interaction doesn't register in this environment: "
-    "the mouse down/move/up sequence on [data-testid=rdb-card-resize] (same "
-    "technique as test_reporting_dashboard.py's passing "
-    "test_corner_drag_resizes_card_in_grid_steps_and_persists, which uses "
-    "the same shared static/js/reporting_grid.js engine) leaves the tile's "
-    "style attribute completely unchanged -- confirmed by dumping the style "
-    "immediately after mouse.up(), before any save/network involvement, "
-    "so this is not a save-timing race. Reproduces on every run, including "
-    "retries. Root cause not isolated; needs follow-up investigation into "
-    "why #rlGrid's pointerdown handler (or its geometry calc) behaves "
-    "differently from #rdbGrid's for this same shared grid engine."
+    reason="Corner-resize interaction doesn't register in this environment. "
+    "Confirmed (2026-09-07) by instrumenting reporting_layouts.js's onResize "
+    "hook with a console.log and running with page.on('console', ...): the "
+    "log never fires during the test's mouse down/move/up sequence on "
+    "[data-testid=rdb-card-resize], so window.ReportingGrid's pointerdown "
+    "handler for #rlGrid is never entering its resize branch at all -- this "
+    "rules out the previously-suspected full-DOM-rebuild-wipes-style theory "
+    "(there's nothing to wipe if onResize/markDirty never run). Root cause is "
+    "further upstream: something about #rlGrid's resize-handle pointerdown "
+    "targeting or geometry calc (see static/js/reporting_grid.js's attach()) "
+    "behaves differently from #rdbGrid's for this same shared grid engine. "
+    "Not touching the shared engine blind (used by the dashboard's passing "
+    "corner-resize e2e too); needs targeted follow-up on reporting_grid.js's "
+    "pointerdown handler registration for #rlGrid specifically."
 )
 def test_editor_drag_reorders_and_corner_resize_persists(nexora_server, page):
     _login(page, nexora_server)

@@ -17,6 +17,16 @@
                 previewId: null, preview: null, saveTimer: null };
   var built = false, grid = null;
 
+  // Cold navigation straight to ?tab=definitions can call open() before the
+  // Simple pane's fire-and-forget loadLibrary() (see reporting_simple_library.js)
+  // has populated window.RS.state.reports -- open()'s layouts()[0] lookup then
+  // finds nothing and the screen is left empty with no later trigger to retry.
+  // Re-run open() once the library resolves, but only if nothing has loaded
+  // yet and the user isn't mid-edit, so this never clobbers real work.
+  document.addEventListener('rs:libraryloaded', function () {
+    if (!state.editing && !state.def) open();
+  });
+
   // window.ReportingSimple is the narrow public export (navTo, chart/table
   // helpers) -- state/reports/loadLibrary live on the internal window.RS
   // namespace shared across the Simple pane's split files.
