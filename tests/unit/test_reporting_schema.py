@@ -6,6 +6,7 @@ from nx_lib.reporting.schema import (
     REPORT_SCHEMA_VERSION,
     ReportDefinitionError,
     coerce_definition,
+    validate_layout_definition,
     validate_report_definition,
     validate_sql_definition,
 )
@@ -840,3 +841,72 @@ def test_style_block_bad_shapes_rejected():
         d["style"] = bad
         with pytest.raises(ReportDefinitionError):
             validate_report_definition(d, CATALOG_FIELDS, FILTERABLE, SORTABLE, max_row_limit=50000)
+
+
+def _layout(**over):
+    base = {
+        "kind": "layout",
+        "schemaVersion": 1,
+        "title": "Ops standard",
+        "measures": [{"id": "m1", "op": "current"}, {"id": "m2", "op": "percentile", "q": 0.95}],
+        "tiles": [
+            {"id": "t1", "type": "kpi", "measure": "m1", "sparkline": True, "span": 3, "rows": 2},
+            {"id": "t2", "type": "chart", "chart": "area", "span": 9, "rows": 4},
+            {"id": "t3", "type": "table", "span": 12, "rows": 4},
+        ],
+    }
+    base.update(over)
+    return base
+
+
+def test_valid_layout_passes():
+    validate_layout_definition(_layout())
+
+
+@pytest.mark.parametrize(
+    "bad, msg",
+    [
+        ({"kind": "dashboard"}, "kind"),
+        ({"schemaVersion": 2}, "schemaVersion"),
+        ({"title": ""}, "title"),
+        ({"measures": [{"id": "m1", "op": "delta"}]}, "op"),
+        ({"measures": [{"id": "m1", "op": "mean"}, {"id": "m1", "op": "mean"}]}, "duplicate"),
+        ({"measures": [{"id": "m1", "op": "percentile", "q": 1.5}]}, "q"),
+        ({"tiles": [{"id": "t1", "type": "gauge", "span": 3, "rows": 2}]}, "type"),
+        (
+            {"tiles": [{"id": "t1", "type": "kpi", "measure": "nope", "span": 3, "rows": 2}]},
+            "measure",
+        ),
+        (
+            {"tiles": [{"id": "t1", "type": "chart", "chart": "radar", "span": 3, "rows": 2}]},
+            "chart",
+        ),
+        ({"tiles": [{"id": "t1", "type": "table", "span": 13, "rows": 2}]}, "span"),
+        ({"tiles": [{"id": "t1", "type": "table", "span": 12, "rows": 0}]}, "rows"),
+        (
+            {
+                "tiles": [
+                    {"id": "t1", "type": "table", "span": 12, "rows": 1},
+                    {"id": "t1", "type": "table", "span": 12, "rows": 1},
+                ]
+            },
+            "duplicate",
+        ),
+    ],
+)
+def test_invalid_layout_rejected(bad, msg):
+    with pytest.raises(ReportDefinitionError) as ei:
+        validate_layout_definition(_layout(**bad))
+    assert msg in str(ei.value)
+
+
+def test_layout_id_accepted_on_report_definition():
+    d = dict(_valid_def(), layoutId=57)
+    validate_report_definition(d, CATALOG_FIELDS, FILTERABLE, SORTABLE, max_row_limit=10000)
+
+
+@pytest.mark.parametrize("bad", ["57", 0, -1, True, 1.5])
+def test_layout_id_must_be_positive_int(bad):
+    d = dict(_valid_def(), layoutId=bad)
+    with pytest.raises(ReportDefinitionError):
+        validate_report_definition(d, CATALOG_FIELDS, FILTERABLE, SORTABLE, max_row_limit=10000)

@@ -44,6 +44,15 @@ SORT_DIRS = {"asc", "desc"}
 # carry one.
 GRAINS = {"day", "week", "month", "quarter", "year"}
 
+# Layouts ("Report definitions" in the UI): a saved report with kind 'layout'
+# — derived measures plus a 12-column tile grid a report can render with.
+LAYOUT_TILE_TYPES = {"kpi", "chart", "table"}
+LAYOUT_CHARTS = {"bar", "stacked_bar", "line", "area", "pie", "doughnut", "gauge"}
+LAYOUT_MAX_TILES = 24
+LAYOUT_MAX_MEASURES = 24
+LAYOUT_GRID_COLS = 12
+LAYOUT_MAX_ROWS = 8
+
 
 class ReportDefinitionError(ValueError):
     """Raised when a report definition does not match the v1 schema."""
@@ -196,6 +205,12 @@ def validate_report_definition(
                 raise ReportDefinitionError(f"duplicate metric: {code!r}")
             seen_metrics.add(code)
 
+    layout_id = rd.get("layoutId")
+    if layout_id is not None and (
+        isinstance(layout_id, bool) or not isinstance(layout_id, int) or layout_id < 1
+    ):
+        raise ReportDefinitionError("layoutId must be a positive integer")
+
     forecast = rd.get("forecast")
     if forecast is not None:
         if not isinstance(forecast, dict):
@@ -244,6 +259,69 @@ def validate_report_definition(
         or row_limit > max_row_limit
     ):
         raise ReportDefinitionError(f"rowLimit must be an int in [1, {max_row_limit}]")
+
+
+def validate_layout_definition(layout):
+    """Validate a kind:'layout' saved definition. Raises ReportDefinitionError.
+
+    Measures reference ops from derived.OPS; tiles reference measures by id.
+    Geometry mirrors the dashboard grid (span 1-12, rows 1-8).
+    """
+    from .derived import OPS  # local import: derived imports stats, never schema
+
+    if not isinstance(layout, dict):
+        raise ReportDefinitionError("layout must be an object")
+    if layout.get("kind") != "layout":
+        raise ReportDefinitionError("kind must be 'layout'")
+    sv = layout.get("schemaVersion")
+    if isinstance(sv, bool) or sv != REPORT_SCHEMA_VERSION:
+        raise ReportDefinitionError(f"schemaVersion must be {REPORT_SCHEMA_VERSION}")
+    title = layout.get("title")
+    if not isinstance(title, str) or not title.strip():
+        raise ReportDefinitionError("title is required")
+
+    measures = layout.get("measures")
+    if not isinstance(measures, list) or len(measures) > LAYOUT_MAX_MEASURES:
+        raise ReportDefinitionError(f"measures must be a list of at most {LAYOUT_MAX_MEASURES}")
+    seen = set()
+    for m in measures:
+        if not isinstance(m, dict) or not isinstance(m.get("id"), str) or not m["id"]:
+            raise ReportDefinitionError("each measure needs a string id")
+        if m["id"] in seen:
+            raise ReportDefinitionError(f"duplicate measure id: {m['id']!r}")
+        seen.add(m["id"])
+        if m.get("op") not in OPS:
+            raise ReportDefinitionError(f"unknown measure op: {m.get('op')!r}")
+        if m["op"] == "percentile":
+            q = m.get("q", 0.5)
+            if isinstance(q, bool) or not isinstance(q, int | float) or not 0 < q < 1:
+                raise ReportDefinitionError("percentile q must be a number in (0, 1)")
+
+    tiles = layout.get("tiles")
+    if not isinstance(tiles, list) or len(tiles) > LAYOUT_MAX_TILES:
+        raise ReportDefinitionError(f"tiles must be a list of at most {LAYOUT_MAX_TILES}")
+    tile_ids = set()
+    for t in tiles:
+        if not isinstance(t, dict) or not isinstance(t.get("id"), str) or not t["id"]:
+            raise ReportDefinitionError("each tile needs a string id")
+        if t["id"] in tile_ids:
+            raise ReportDefinitionError(f"duplicate tile id: {t['id']!r}")
+        tile_ids.add(t["id"])
+        if t.get("type") not in LAYOUT_TILE_TYPES:
+            raise ReportDefinitionError(f"unknown tile type: {t.get('type')!r}")
+        if t["type"] == "kpi" and t.get("measure") not in seen:
+            raise ReportDefinitionError(
+                f"kpi tile references unknown measure: {t.get('measure')!r}"
+            )
+        if t["type"] == "chart" and t.get("chart") not in LAYOUT_CHARTS:
+            raise ReportDefinitionError(f"unknown chart type: {t.get('chart')!r}")
+        span, rows = t.get("span"), t.get("rows")
+        if isinstance(span, bool) or not isinstance(span, int) or not 1 <= span <= LAYOUT_GRID_COLS:
+            raise ReportDefinitionError(f"tile span must be an int in [1, {LAYOUT_GRID_COLS}]")
+        if isinstance(rows, bool) or not isinstance(rows, int) or not 1 <= rows <= LAYOUT_MAX_ROWS:
+            raise ReportDefinitionError(f"tile rows must be an int in [1, {LAYOUT_MAX_ROWS}]")
+        if "sparkline" in t and not isinstance(t["sparkline"], bool):
+            raise ReportDefinitionError("tile sparkline must be a boolean")
 
 
 def coerce_definition(
