@@ -203,3 +203,72 @@ Read off the running system, so they can be stated as fact:
 - #227 — prunes expired `dbo.ActiveSessions` rows; the only retention work
   currently in flight, and it needs a scheduled task on the app host before it
   does anything.
+
+---
+
+## What can live in the contract instead of on the page
+
+Only the client organisations sign a contract; the individual users — their
+staff — sign nothing. That split decides what may be delegated to the contract
+and what has to be on the site regardless, and it is not the same answer for
+the two documents.
+
+There are two different legal relationships here:
+
+- **The contract** is between Sydoc and the client organisation. It can carry
+  anything that is a commercial term between two companies.
+- **The privacy notice** discharges a *duty to inform each individual* whose
+  data is processed. That duty is owed to the person, not to their employer,
+  so a contract the person never sees cannot discharge it.
+
+### Can go in the contract, with the page pointing at it
+
+Almost all of the Terms. If the master agreement already covers these, `/terms`
+can shrink to a short pointer plus the handful of rules a user needs to see:
+
+| Topic | Notes |
+|---|---|
+| Liability, and any cap | Commercial term. Belongs in the contract. |
+| Availability / SLA | Same. The page should not state a figure the contract does not. |
+| Governing law and jurisdiction | Same. |
+| Confidentiality obligations | Contract, plus individual NDAs where they exist. |
+| Scope — who may hold an account | Contract decides; the page describes it. |
+| Suspension rights and notice | Contract decides who may instruct it. |
+| Processor terms, sub-processor consent, audit rights | Belongs in a DPA annexed to the contract. |
+
+### Must be on the page regardless of any contract
+
+The privacy notice cannot be delegated. The information duty runs to each
+individual, and for account, session and request-log data Sydoc is most likely
+the **controller** in its own right — a client's contract cannot discharge
+Sydoc's own duty there.
+
+| Topic | Why it cannot move to the contract |
+|---|---|
+| Controller identity and contact | The person has to be able to find and reach us. |
+| What is stored about them | Owed to the individual, not their employer. |
+| Purposes and legal bases | Same. |
+| Retention periods | Same. |
+| Recipients and sub-processors | Same. |
+| Their rights, and how to exercise them | A right the individual exercises directly. |
+| Right to complain to the FDPIC | Statutory; cannot be contracted away. |
+
+### Needs to be in both, and consistent
+
+These are the ones that bite. If the contract and the notice disagree, the
+disagreement is the finding:
+
+- **Retention periods.** The DPA says what Sydoc must do; the notice tells the
+  individual what happens. Both, and identical.
+- **Sub-processors.** Named in the notice, and consented to in the DPA.
+- **Acceptable use.** The obligation is passed down through the contract, but
+  the user only ever sees the page.
+- **Which entity is controller and which is processor**, per data category.
+
+### What this means for the review
+
+Ask for the master agreement and any DPA to be read against **section 2** of
+this document. The likely outcome is that most of the Terms is already
+answered, and the Privacy Policy is almost entirely not — because it addresses
+someone who never signed anything. If a DPA does not exist yet, that is a
+larger finding than any wording gap on these pages.
