@@ -538,14 +538,26 @@ render a "remove and add the piece again" notice and never run.
   (private/shared) and `dbo.ReportShares` (per-user, optional edit grant).
   Save, Save as, Rename, Delete and the Share dialog work exactly as
   documented in **Save & load** / **Sharing & the shared library** above.
+- **Filter bar = the reports' own filters.** The bar never starts empty:
+  `facets()` collects every field the cards' reports filter on (plus a
+  Processes chip when a card's source has a process registry) and shows one
+  chip per field with the reports' value ("mixed" when reports disagree).
+  Clicking a chip opens a value editor that fits the field — date presets
+  (the relative tokens) or a custom from/to, a checkbox picker for `in` /
+  `not_in` and for Processes (values from the source registry or
+  `POST /api/reporting/field_values`), text otherwise. Applying writes
+  `globalFilters[field]` (or `globalProcesses` for the Processes chip, which
+  `cardRunDef` copies onto every card's `scope.processes`); the chip turns
+  indigo and gains a reset back to the reports' own value. The small "+"
+  keeps the old field/operator/value popover for a field no report uses.
 - **Per-card runs** — each card runs independently against
-  `POST /api/reporting/run` using its **effective filters**: the report's own
-  `definition.filters`, then the dashboard's `globalFilters`, then the card's
-  `filterOverrides`, concatenated with exact-duplicate de-duping (two
-  different filters on one field both survive as an AND). Edits to the
-  global filter bar propagate to every card; a card with overrides shows a
-  "This card overrides the global filters" chip, one without shows
-  "inherits global filters".
+  `POST /api/reporting/run` using its **effective filters**, merged per
+  field with the most specific layer winning: `filterOverrides` beat
+  `globalFilters` beat the report's own `definition.filters` **on the same
+  field**; within a layer every filter survives (a gte + lte range pair stays
+  a pair) and exact duplicates collapse. A card with overrides shows a "This
+  card overrides the global filters" chip, one without shows "inherits
+  global filters".
 - **Edit mode** — an Edit/Done toggle exposes drag-to-rearrange (native
   HTML5 drag-and-drop), corner-drag resize (12 columns × up to 6 rows),
   add/duplicate/remove-card, and the global-filter popover; every change
@@ -1005,7 +1017,12 @@ the date columns `grainable`; `0118` seeds their measures (effort-hour sums,
 entry counts, ISS reports filed — no on-time sum, `SUM` over a `bit` is invalid
 T-SQL, so break the count down by the `OnTime` dimension). The Simple wizard
 lists measures grouped by source, so a source with no `ReportingMetrics` row is
-Advanced-only. `0119` registers the two objects the tenant pages already read —
+Advanced-only. A measure may carry a **condition** (`FilterJson`, a JSON list of
+`{field, op, value}` clauses ANDed; ops `eq/ne/gt/gte/lt/lte/in/not_in/is_null/
+is_not_null`): `semantic.resolve_metrics` whitelists the fields against the catalog
+and `metric_select_expr` emits `AGG(CASE WHEN … THEN … END)` with parameterised
+values, which both builders bind **before** their WHERE params (`0120` seeds
+three Generali examples). Not combinable with date-anchored metrics. `0119` registers the two objects the tenant pages already read —
 **Documents** over `dbo.v_ReportJobJoinDefinitions` (the ReportJob feed with
 lookup labels joined; measures `Documents` / `Cases`) and **CSV Imports** over
 `dbo.CSVImportLog` — relabels ISS to "Reporting", and moves the Generali block

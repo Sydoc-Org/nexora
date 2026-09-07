@@ -2409,14 +2409,27 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 
 /* Global filter chips (indigo, reuses .reporting-drill-chip) + the dashed
    add-filter chip (Task 13). */
-.rdb-gfilter { cursor: pointer; user-select: none; }
+.rdb-gfilter { cursor: pointer; user-select: none; gap: 6px; }
+/* Derived chips (the reports' own values) read neutral; a dashboard value
+   takes the indigo tint and a reset arrow. */
+.rdb-gfilter--derived { background: var(--nx-card); color: var(--nx-text); border-color: var(--nx-border); }
+.rdb-gfilter--derived:hover { border-color: var(--nx-card-hover-border); }
+.rdb-gfilter-name { color: var(--nx-text-meta); font-weight: 500; }
+.rdb-gfilter--active .rdb-gfilter-name { color: inherit; opacity: .75; }
+.rdb-gfilter-val { font-weight: 600; }
+.rdb-gfilter--mixed .rdb-gfilter-val { font-style: italic; font-weight: 500; color: var(--nx-text-meta); }
+.rdb-facet-pop { min-width: 240px; }
+.rdb-facet-values { display: flex; flex-direction: column; gap: 4px; max-height: 260px; overflow: auto; font-size: 12.5px; color: var(--nx-text); }
+.rdb-facet-values label { display: flex; align-items: center; gap: 6px; padding: 2px 0; cursor: pointer; }
+.rdb-facet-range { display: flex; gap: 6px; }
+.rdb-facet-range input { min-width: 0; }
 .rdb-gfilter-x { margin-left: 1px; opacity: .55; cursor: pointer; padding: 1px; }
 .rdb-gfilter-x:hover { opacity: 1; }
 .rdb-add-filter {
-  display: inline-flex; align-items: center; gap: 6px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   border: 1px dashed var(--nx-border-strong); border-radius: 999px;
   background: transparent; color: var(--nx-text-meta);
-  font: 500 12px var(--nx-font); padding: 5px 13px; cursor: pointer;
+  font: 500 12px var(--nx-font); width: 28px; height: 28px; padding: 0; cursor: pointer;
   transition: color var(--nx-dur) var(--nx-ease), border-color var(--nx-dur) var(--nx-ease);
 }
 .rdb-add-filter i { font-size: 9px; }

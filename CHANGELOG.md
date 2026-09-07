@@ -10,6 +10,12 @@ Work toward the next release.
 
 ### Added
 
+- **Conditional measures.** `ReportingMetrics.FilterJson` (there since 0017, never read)
+  now turns a measure into `COUNT/SUM(CASE WHEN <cond> THEN … END)`: a JSON list of
+  `{field, op, value}` clauses, fields whitelisted against the source catalog, values
+  parameterised. Editable as **Condition (JSON)** on `/reporting/metrics`. Migration
+  `0120` seeds the three KPIs the Generali pages computed by hand: *Reports filed on
+  time*, *Documents without post-check*, *Failed runs*.
 - **Generali reporting sources** — migration `0117` registers **Attendance**,
   **Base Services**, **Project Management** and **ISS Reporting** as generic `table`
   sources over the Generali tenant DB (effort hours and KPI filings by category,
@@ -116,7 +122,14 @@ Work toward the next release.
   tile (each of Total / Buckets / Avg / Peak is its own pickable tile), chart
   and table sit flush in the card with a title row and row count. The
   dashboard view is full-bleed — the workspace rail and every width cap step
-  aside — and a **Present** button shows it fullscreen (Esc leaves).
+  aside — and a **Present** button shows it fullscreen (Esc leaves). The
+  **global filter bar shows the reports' own filters** — one chip per field
+  (and Processes), the value the reports use, "mixed" when they disagree;
+  clicking a chip edits it with date presets, a checkbox picker or a text
+  field and the value replaces the reports' own on every card, with a reset
+  per chip. Filter layering is now per field, most specific wins (override
+  > dashboard > report), so a dashboard "last month" no longer ANDs with a
+  report's "this month" into an empty result.
 - **Simple wizard breakdown step curated.** Date chips read as their field
   (“Import date”, “Export date”) instead of “Over time (…)”. Document
   processing shows Process, Page Count, Document Type, Document Source and

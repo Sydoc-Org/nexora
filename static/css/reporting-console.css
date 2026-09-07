@@ -1718,12 +1718,3 @@ body.reporting-console.rdb-fullbleed .reporting-dashboard { max-width: none; pad
 .reporting-dashboard:fullscreen .rdb-add-tile { display: none; }
 .reporting-dashboard:fullscreen #rdbPresent i::before { content: "\f066"; }  /* fa-compress */
 .reporting-dashboard:fullscreen .rdb-grid { --rdb-row: 132px; }
-/* Whole-report card: the chart grows into whatever height the card has
-   instead of stopping at a fixed 320px and leaving air below. */
-body.reporting-console .rdb-card[data-type="report"] .rdb-card-body { display: flex; flex-direction: column; }
-body.reporting-console .rdb-card[data-type="report"] .rdb-report { flex: 1 1 auto; align-items: stretch; min-height: 0; }
-body.reporting-console .rdb-card[data-type="report"] .rdb-report-chartcard { display: flex; flex-direction: column; min-height: 0; }
-body.reporting-console .rdb-card[data-type="report"] .rdb-report-chart { flex: 1 1 auto; height: auto; min-height: 240px; position: relative; }
-body.reporting-console .rdb-card[data-type="report"] .rdb-report-chart canvas {
-  position: absolute; inset: 0; width: 100% !important; height: 100% !important;
-}

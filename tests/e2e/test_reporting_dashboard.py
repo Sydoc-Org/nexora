@@ -1668,3 +1668,85 @@ def test_dashboard_view_is_full_bleed_and_offers_present(nexora_server, page):
     page.get_by_test_id("rdb-back").click()
     expect(page.get_by_test_id("rc-rail")).to_be_visible()
     assert not page.evaluate("document.body.classList.contains('rdb-fullbleed')")
+
+
+def test_filter_bar_shows_the_reports_own_filters_and_edits_replace_them(nexora_server, page):
+    """The bar derives one chip per field the cards' reports filter on, with
+    the reports' value. Picking a date preset writes a dashboard value that
+    REPLACES the report's filter on that field in the posted run (not an AND);
+    the chip turns active and its reset restores the report's own value."""
+    _login(page, nexora_server)
+    dash_definition = {
+        "kind": "dashboard",
+        "schemaVersion": 1,
+        "title": "e2e facet dashboard",
+        "globalFilters": [],
+        "cards": [
+            {
+                "id": "k1",
+                "type": "kpi",
+                "span": 3,
+                "title": "Count",
+                "definition": {
+                    "source": "workitems",
+                    "metrics": [{"field": "id", "agg": "count"}],
+                    "columns": [],
+                    "filters": [
+                        {"field": "createdDate", "op": "between", "value": {"token": "this_month"}},
+                        {"field": "status", "op": "eq", "value": "open"},
+                    ],
+                },
+                "filterOverrides": [],
+            }
+        ],
+    }
+    _stub_dashboard_report(page, "e2e-dash-facets", dash_definition)
+    _stub_gfilter_catalog(page)
+    run_calls = []
+
+    def fulfill_run(route):
+        run_calls.append(route.request.post_data_json or {})
+        route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {"columns": [{"field": "id", "header": "Count"}], "rows": [[7]], "rowCount": 1}
+            ),
+        )
+
+    page.route("**/api/reporting/run", fulfill_run)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-card").first.click()
+    expect(page.get_by_test_id("rs-dashboard")).to_be_visible()
+    expect(page.get_by_test_id("rdb-rs-kpi-total")).to_contain_text("7")
+
+    # Derived chips: the report's own values, neutral (not active).
+    date_chip = page.locator('[data-testid="rdb-gfilter"][data-field="createdDate"]')
+    status_chip = page.locator('[data-testid="rdb-gfilter"][data-field="status"]')
+    expect(date_chip).to_contain_text("This month")
+    expect(status_chip).to_contain_text("open")
+    expect(page.get_by_test_id("rdb-gfilter-remove")).to_have_count(0)
+    assert len(run_calls) == 1
+
+    # Edit the date chip: preset -> Last month.
+    date_chip.click()
+    pop = page.locator("#rdbFilterPop")
+    expect(pop).to_be_visible()
+    pop.get_by_test_id("rdb-facet-preset").select_option("last_month")
+    pop.get_by_test_id("rdb-facet-apply").click()
+    expect(pop).to_be_hidden()
+    expect(date_chip).to_contain_text("Last month")
+    expect(date_chip.get_by_test_id("rdb-gfilter-remove")).to_have_count(1)
+    expect(page.get_by_test_id("rdb-rs-kpi-total")).to_contain_text("7")
+    assert len(run_calls) == 2
+    # The dashboard value REPLACED the report's date filter; status untouched.
+    assert run_calls[-1]["filters"] == [
+        {"field": "status", "op": "eq", "value": "open"},
+        {"field": "createdDate", "op": "between", "value": {"token": "last_month"}},
+    ]
+
+    # Reset restores the report's own filter and re-runs.
+    date_chip.get_by_test_id("rdb-gfilter-remove").click()
+    expect(date_chip).to_contain_text("This month")
+    assert len(run_calls) == 3
+    assert run_calls[-1]["filters"] == dash_definition["cards"][0]["definition"]["filters"]

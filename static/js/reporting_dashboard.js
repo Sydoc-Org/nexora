@@ -393,32 +393,33 @@
     el('rdbEditToggle').textContent = state.editing ? I18N.done : I18N.edit;
   }
 
-  // ---- D4 filter merge -------------------------------------------------
-  // card.definition.filters (base) + state.def.globalFilters (dashboard-
-  // wide) + card.filterOverrides (per-card), concatenated in that order.
-  // De-duping is by EXACT duplicate only (same field+op+value) -- two
-  // DIFFERENT filters on the same field (e.g. a "date >= X" + "date <= Y"
-  // range pair split across gte/lte) both survive as an AND. Previously
-  // this keyed by field with last-write-wins (`byField[f.field] = f`),
-  // which silently dropped the earlier of two same-field filters and
-  // widened the card's query (Task 61). Exact semantics Tasks 13 (override
-  // editing UI) and 15 (KPI trend/drill) build on -- keep this shape if
-  // it's ever extended.
+  // ---- Filter merge --------------------------------------------------------
+  // Three layers, most specific wins PER FIELD: a card's filterOverrides
+  // replace the dashboard's globalFilters on that field, which replace the
+  // report's own definition.filters on that field. Within one layer every
+  // filter survives (a gte + lte range pair is two filters on one field), so
+  // "this month" on the bar does not AND itself onto the report's "last
+  // quarter" -- it takes the field over. Exact duplicates collapse.
   function effectiveFilters(card) {
-    var result = [];
-    var seen = {};
-    function apply(list) {
-      (list || []).forEach(function (f) {
-        if (!f || f.field == null) return;
+    var layers = [
+      (card.definition && card.definition.filters) || [],
+      (state.def && state.def.globalFilters) || [],
+      card.filterOverrides || []
+    ];
+    var owner = {};   // field -> index of the most specific layer that filters it
+    layers.forEach(function (list, i) {
+      list.forEach(function (f) { if (f && f.field != null) owner[f.field] = i; });
+    });
+    var result = [], seen = {};
+    layers.forEach(function (list, i) {
+      list.forEach(function (f) {
+        if (!f || f.field == null || owner[f.field] !== i) return;
         var key = f.field + '|' + f.op + '|' + JSON.stringify(f.value);
         if (seen[key]) return;
         seen[key] = true;
         result.push(f);
       });
-    }
-    apply(card.definition && card.definition.filters);
-    apply(state.def && state.def.globalFilters);
-    apply(card.filterOverrides);
+    });
     return result;
   }
 
@@ -477,13 +478,6 @@
   // builder's filter row (_reporting_js.html): grainable OR a "date"-ish type.
   function isDateFieldMeta(meta) {
     return !!(meta && (meta.grainable || /date/i.test(meta.type || '')));
-  }
-
-  function filterChipLabel(f) {
-    var meta = fieldMetaByKey(f.field);
-    var parts = [(meta && meta.label) || f.field, OP_LABELS[f.op] || f.op];
-    if (f.value != null && f.value !== '') parts.push(String(f.value));
-    return parts.join(' ');
   }
 
   // ---- Global filter popover (D11 -- field/op/value, self-contained) -----
@@ -592,7 +586,7 @@
       applyBtn.textContent = I18N.apply;
       applyBtn.addEventListener('click', function () {
         var isNullOp = opSel.value === 'is_null' || opSel.value === 'is_not_null';
-        applyGlobalFilter(index, fieldSel.value, opSel.value, isNullOp ? null : valInput.value);
+        applyFacet(fieldSel.value, { field: fieldSel.value, op: opSel.value, value: isNullOp ? null : valInput.value });
       });
       actions.appendChild(cancelBtn);
       actions.appendChild(applyBtn);
@@ -618,35 +612,32 @@
   function snapshotEffectiveByCard() {
     var map = {};
     ((state.def && state.def.cards) || []).forEach(function (c) {
-      map[c.id] = JSON.stringify(effectiveFilters(c));
+      map[c.id] = JSON.stringify(cardRunDef(c, effectiveFilters(c)));
     });
     return map;
   }
 
   function rerunCardsWhereChanged(before) {
     ((state.def && state.def.cards) || []).forEach(function (c) {
-      if (JSON.stringify(effectiveFilters(c)) !== before[c.id]) renderCard(c);
+      if (JSON.stringify(cardRunDef(c, effectiveFilters(c))) !== before[c.id]) renderCard(c);
     });
   }
 
-  function applyGlobalFilter(index, field, op, value) {
+  // Set (or replace) the dashboard's filter on one field, then re-run only
+  // the cards whose effective query changed.
+  function applyFacet(field, f) {
     var before = snapshotEffectiveByCard();
-    state.def.globalFilters = state.def.globalFilters || [];
-    var f = { field: field, op: op, value: value };
-    if (index == null || index < 0) {
-      state.def.globalFilters.push(f);
-    } else {
-      state.def.globalFilters[index] = f;
-    }
+    state.def.globalFilters = (state.def.globalFilters || []).filter(function (g) { return g.field !== field; });
+    if (f) state.def.globalFilters.push(f);
     state.dirty = true;
     closeFilterPopover();
     renderFilterBar();
     rerunCardsWhereChanged(before);
   }
 
-  function removeGlobalFilter(index) {
+  function applyProcesses(picked) {
     var before = snapshotEffectiveByCard();
-    state.def.globalFilters.splice(index, 1);
+    state.def.globalProcesses = picked && picked.length ? picked.slice() : null;
     state.dirty = true;
     closeFilterPopover();
     renderFilterBar();
@@ -664,35 +655,297 @@
     renderCard(card);
   }
 
+  // ---- Filter bar: the reports' own filters, one chip per field ------------
+  // The bar does not start empty. Every field the cards' reports already
+  // filter on gets a chip showing the reports' value; clicking it edits the
+  // value with a control that fits the field (date presets, a checkbox
+  // picker for value lists, text otherwise) and that becomes the dashboard's
+  // value for the field on every card. A chip carrying a dashboard value is
+  // tinted and offers a reset back to the reports' own. Reports that disagree
+  // on a field read "mixed" until one value is picked. Processes (report
+  // scope, not a filter) get the same treatment.
+  var PROCESSES = '__processes';
+
+  var TOKEN_LABELS = {
+    today: I18N.tokenToday, yesterday: I18N.tokenYesterday,
+    this_week: I18N.thisWeek, last_week: I18N.lastWeek,
+    this_month: I18N.thisMonth, last_month: I18N.lastMonth,
+    this_quarter: I18N.thisQuarter, last_quarter: I18N.lastQuarter,
+    last_3_months: I18N.last3Months, this_year: I18N.thisYear, last_year: I18N.lastYear
+  };
+  function isTokenValue(v) {
+    return !!v && typeof v === 'object' && !Array.isArray(v) && typeof v.token === 'string';
+  }
+
+  function definedCards() {
+    return ((state.def && state.def.cards) || []).filter(function (c) { return c.definition; });
+  }
+
+  // Processes every card's source offers (the picker's choices) and the
+  // processes the reports themselves narrow to ([] = all of them).
+  function processFacetData() {
+    var all = [], reportPicked = [], anyNarrowed = false;
+    definedCards().forEach(function (c) {
+      var src = catalog.sources.find(function (s) { return s.id === c.definition.source; });
+      ((src && src.processes) || []).forEach(function (p) { if (all.indexOf(p) === -1) all.push(p); });
+      var picked = (c.definition.scope && c.definition.scope.processes) || [];
+      if (picked.length) anyNarrowed = true;
+      picked.forEach(function (p) { if (reportPicked.indexOf(p) === -1) reportPicked.push(p); });
+    });
+    return { all: all, reportPicked: anyNarrowed ? reportPicked : [] };
+  }
+
+  function facets() {
+    var byField = {}, order = [];
+    definedCards().forEach(function (c) {
+      (c.definition.filters || []).forEach(function (f) {
+        if (!f || f.field == null) return;
+        var e = byField[f.field];
+        if (!e) { e = byField[f.field] = { field: f.field, values: [], global: null }; order.push(e); }
+        var j = f.op + '|' + JSON.stringify(f.value);
+        if (!e.values.some(function (v) { return v.json === j; })) e.values.push({ op: f.op, value: f.value, json: j });
+      });
+    });
+    ((state.def && state.def.globalFilters) || []).forEach(function (f) {
+      var e = byField[f.field];
+      if (!e) { e = byField[f.field] = { field: f.field, values: [], global: null }; order.push(e); }
+      e.global = f;
+    });
+    var procs = processFacetData();
+    if (procs.all.length) {
+      order.unshift({ field: PROCESSES, values: [], global: null, procs: procs });
+    }
+    return order;
+  }
+
+  function valueLabel(op, v) {
+    if (isTokenValue(v)) return TOKEN_LABELS[v.token] || v.token;
+    if (op === 'is_null' || op === 'is_not_null') return OP_LABELS[op];
+    if (Array.isArray(v)) {
+      if (op === 'between') return v.join(' → ');
+      var shown = v.slice(0, 3).join(', ');
+      return v.length > 3 ? shown + ' +' + (v.length - 3) : shown;
+    }
+    var opl = (op && op !== 'eq') ? (OP_LABELS[op] || op) + ' ' : '';
+    return opl + (v === null || v === undefined ? '' : String(v));
+  }
+
+  function facetLabel(fc) {
+    if (fc.field === PROCESSES) {
+      var gp = state.def && state.def.globalProcesses;
+      var picked = (gp && gp.length) ? gp : fc.procs.reportPicked;
+      return { name: I18N.processes, value: picked.length ? valueLabel('in', picked) : I18N.allProcesses,
+               mixed: false, active: !!(gp && gp.length) };
+    }
+    var meta = fieldMetaByKey(fc.field);
+    var name = (meta && meta.label) || fc.field;
+    if (fc.global) return { name: name, value: valueLabel(fc.global.op, fc.global.value), mixed: false, active: true };
+    if (fc.values.length === 1) return { name: name, value: valueLabel(fc.values[0].op, fc.values[0].value), mixed: false, active: false };
+    return { name: name, value: I18N.mixed, mixed: true, active: false };
+  }
+
+  function isDateFacet(fc) {
+    if (isDateFieldMeta(fieldMetaByKey(fc.field))) return true;
+    var probe = fc.global || fc.values[0];
+    return !!(probe && (isTokenValue(probe.value) || probe.op === 'between'));
+  }
+
+  function isListFacet(fc) {
+    var probe = fc.global || fc.values[0];
+    return !!(probe && (probe.op === 'in' || probe.op === 'not_in'));
+  }
+
+  // ---- Facet editor: one popover, three shapes ------------------------------
+  async function openFacetEditor(anchorEl, fc) {
+    await ensureCatalog();
+    var values = null, labels = {};
+    if (fc.field === PROCESSES) {
+      values = fc.procs.all.slice();
+    } else if (isListFacet(fc)) {
+      var host = definedCards().find(function (c) {
+        return (c.definition.filters || []).some(function (f) { return f.field === fc.field; });
+      });
+      if (host) {
+        var src = catalog.sources.find(function (s) { return s.id === host.definition.source; });
+        if (fc.field === 'processname' && src && (src.processes || []).length) {
+          values = src.processes.slice();
+        } else {
+          var res = await api('/api/reporting/field_values', {
+            method: 'POST', body: JSON.stringify({ source: host.definition.source, field: fc.field })
+          });
+          values = (res.ok && res.data && res.data.values) || [];
+          labels = (res.ok && res.data && res.data.labels) || {};
+        }
+      }
+    }
+    // Same deferral as openFilterPopover: land in a fresh task so the click
+    // that opened us has finished bubbling past the outside-click closer.
+    setTimeout(function () {
+      if (!anchorEl.isConnected) return;
+      closeFilterPopover();
+      var pop = document.createElement('div');
+      pop.id = 'rdbFilterPop';
+      pop.className = 'rdb-filter-pop rdb-facet-pop';
+      pop.setAttribute('data-testid', 'rdb-filter-pop');
+      pop.setAttribute('role', 'dialog');
+      var lab = facetLabel(fc);
+      pop.setAttribute('aria-label', lab.name);
+      var head = document.createElement('label');
+      head.textContent = lab.name;
+      pop.appendChild(head);
+
+      var current = fc.field === PROCESSES ? null : (fc.global || fc.values[0] || null);
+      var apply;   // () => void, set per shape below
+
+      if (fc.field === PROCESSES || (values && values.length)) {
+        var selected = fc.field === PROCESSES
+          ? ((state.def.globalProcesses && state.def.globalProcesses.length) ? state.def.globalProcesses : fc.procs.reportPicked)
+          : (current && Array.isArray(current.value) ? current.value : []);
+        selected.forEach(function (v) { if (values.indexOf(v) === -1) values.push(v); });
+        var list = document.createElement('div');
+        list.className = 'rdb-facet-values';
+        list.setAttribute('data-testid', 'rdb-facet-values');
+        var inputs = values.map(function (v) {
+          var l = document.createElement('label');
+          var cb = document.createElement('input');
+          cb.type = 'checkbox'; cb.value = v;
+          cb.checked = fc.field === PROCESSES && !selected.length ? true : selected.indexOf(v) !== -1;
+          l.appendChild(cb);
+          l.appendChild(document.createTextNode(' ' + (labels[v] || v)));
+          list.appendChild(l);
+          return cb;
+        });
+        pop.appendChild(list);
+        apply = function () {
+          var picked = inputs.filter(function (c) { return c.checked; }).map(function (c) { return c.value; });
+          if (fc.field === PROCESSES) { applyProcesses(picked.length === values.length ? null : picked); return; }
+          if (!picked.length) return;   // an empty IN () matches nothing -- keep editing
+          applyFacet(fc.field, { field: fc.field, op: (current && current.op) || 'in', value: picked });
+        };
+      } else if (isDateFacet(fc)) {
+        var preset = document.createElement('select');
+        preset.className = 'reporting-input';
+        preset.setAttribute('data-testid', 'rdb-facet-preset');
+        Object.keys(TOKEN_LABELS).forEach(function (k) {
+          var o = document.createElement('option');
+          o.value = k; o.textContent = TOKEN_LABELS[k];
+          preset.appendChild(o);
+        });
+        var co = document.createElement('option');
+        co.value = ''; co.textContent = I18N.custom;
+        preset.appendChild(co);
+        var range = document.createElement('div');
+        range.className = 'rdb-facet-range';
+        var from = document.createElement('input'); from.type = 'date'; from.className = 'reporting-input';
+        from.setAttribute('data-testid', 'rdb-facet-from');
+        var to = document.createElement('input'); to.type = 'date'; to.className = 'reporting-input';
+        to.setAttribute('data-testid', 'rdb-facet-to');
+        range.appendChild(from); range.appendChild(to);
+        if (current && isTokenValue(current.value) && TOKEN_LABELS[current.value.token]) {
+          preset.value = current.value.token;
+        } else {
+          preset.value = '';
+          if (current && Array.isArray(current.value)) { from.value = String(current.value[0] || '').slice(0, 10); to.value = String(current.value[1] || '').slice(0, 10); }
+        }
+        range.hidden = !!preset.value;
+        preset.addEventListener('change', function () { range.hidden = !!preset.value; });
+        pop.appendChild(preset); pop.appendChild(range);
+        apply = function () {
+          if (preset.value) { applyFacet(fc.field, { field: fc.field, op: 'between', value: { token: preset.value } }); return; }
+          if (!from.value || !to.value) return;
+          applyFacet(fc.field, { field: fc.field, op: 'between', value: [from.value, to.value] });
+        };
+      } else {
+        var input = document.createElement('input');
+        input.className = 'reporting-input';
+        input.setAttribute('data-testid', 'rdb-facet-input');
+        input.value = current && current.value != null && !Array.isArray(current.value) ? String(current.value) : '';
+        pop.appendChild(input);
+        apply = function () {
+          var v = input.value.trim();
+          if (!v) return;
+          applyFacet(fc.field, { field: fc.field, op: (current && current.op) || 'eq', value: v });
+        };
+      }
+
+      var actions = document.createElement('div');
+      actions.className = 'rdb-filter-pop-actions';
+      if (lab.active) {
+        var reset = document.createElement('button');
+        reset.type = 'button';
+        reset.className = 'nx-btn nx-btn--secondary';
+        reset.setAttribute('data-testid', 'rdb-facet-reset');
+        reset.textContent = I18N.resetFilter;
+        reset.addEventListener('click', function () {
+          if (fc.field === PROCESSES) applyProcesses(null); else applyFacet(fc.field, null);
+        });
+        actions.appendChild(reset);
+      }
+      var ok = document.createElement('button');
+      ok.type = 'button';
+      ok.className = 'nx-btn nx-btn--primary';
+      ok.setAttribute('data-testid', 'rdb-facet-apply');
+      ok.textContent = I18N.apply;
+      ok.addEventListener('click', apply);
+      actions.appendChild(ok);
+      pop.appendChild(actions);
+
+      el('rdbFilterBar').appendChild(pop);
+      positionFilterPopover(pop, anchorEl);
+      filterPop.open = true;
+    }, 0);
+  }
+
   function renderFilterBar() {
     closeFilterPopover();
     var chips = el('rdbFilterChips');
     chips.innerHTML = '';
-    var filters = (state.def && state.def.globalFilters) || [];
-    filters.forEach(function (f, i) {
+    // Field labels come from the catalog; first paint may show raw keys,
+    // the catalog's arrival repaints once.
+    if (!catalog.loaded) ensureCatalog().then(function () { if (el('rdbFilterChips')) renderFilterBar(); });
+    facets().forEach(function (fc) {
+      var lab = facetLabel(fc);
       var chipEl = document.createElement('span');
-      chipEl.className = 'reporting-drill-chip reporting-drill-chip--indigo rdb-gfilter';
+      chipEl.className = 'reporting-drill-chip rdb-gfilter ' +
+        (lab.active ? 'reporting-drill-chip--indigo rdb-gfilter--active' : 'rdb-gfilter--derived') +
+        (lab.mixed ? ' rdb-gfilter--mixed' : '');
       chipEl.setAttribute('data-testid', 'rdb-gfilter');
+      chipEl.setAttribute('data-field', fc.field);
       chipEl.tabIndex = 0;
-      var icon = document.createElement('i');
-      icon.className = 'fas fa-filter';
-      icon.setAttribute('aria-hidden', 'true');
-      var label = document.createElement('span');
-      label.textContent = filterChipLabel(f);
-      var x = document.createElement('i');
-      x.className = 'fas fa-xmark rdb-gfilter-x';
-      x.setAttribute('data-testid', 'rdb-gfilter-remove');
-      x.setAttribute('aria-hidden', 'true');
-      x.addEventListener('click', function (e) { e.stopPropagation(); removeGlobalFilter(i); });
-      chipEl.appendChild(icon); chipEl.appendChild(label); chipEl.appendChild(x);
-      chipEl.addEventListener('click', function () { openFilterPopover(chipEl, f, i); });
+      chipEl.setAttribute('role', 'button');
+      var name = document.createElement('span');
+      name.className = 'rdb-gfilter-name';
+      name.textContent = lab.name;
+      var val = document.createElement('span');
+      val.className = 'rdb-gfilter-val';
+      val.textContent = lab.value;
+      chipEl.appendChild(name); chipEl.appendChild(val);
+      if (lab.active) {
+        var x = document.createElement('i');
+        x.className = 'fas fa-rotate-left rdb-gfilter-x';
+        x.setAttribute('data-testid', 'rdb-gfilter-remove');
+        x.setAttribute('title', I18N.resetFilter);
+        x.setAttribute('aria-hidden', 'true');
+        x.addEventListener('click', function (e) {
+          e.stopPropagation();
+          if (fc.field === PROCESSES) applyProcesses(null); else applyFacet(fc.field, null);
+        });
+        chipEl.appendChild(x);
+      }
+      var open = function () { openFacetEditor(chipEl, fc); };
+      chipEl.addEventListener('click', open);
+      chipEl.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
+      });
       chips.appendChild(chipEl);
     });
     var add = document.createElement('button');
     add.type = 'button';
     add.className = 'rdb-add-filter';
     add.setAttribute('data-testid', 'rdb-add-filter');
-    add.innerHTML = '<i class="fas fa-plus" aria-hidden="true"></i>' + esc(I18N.addFilter);
+    add.setAttribute('title', I18N.addFilter);
+    add.setAttribute('aria-label', I18N.addFilter);
+    add.innerHTML = '<i class="fas fa-plus" aria-hidden="true"></i>';
     add.addEventListener('click', function () { openFilterPopover(add, null, -1); });
     chips.appendChild(add);
   }
@@ -981,6 +1234,10 @@
   function cardRunDef(card, filters) {
     var def = Object.assign({}, card.definition || {});
     def.filters = filters;
+    // The Processes chip on the filter bar narrows every card's process scope
+    // (reports keep theirs in scope.processes, not in filters).
+    var gp = state.def && state.def.globalProcesses;
+    if (gp && gp.length) def.scope = Object.assign({}, def.scope || {}, { processes: gp.slice() });
     return def;
   }
 
@@ -1498,8 +1755,7 @@
   async function exportCard(cardId) {
     var card = findCardById(cardId);
     if (!card) return;
-    var def = Object.assign({}, card.definition || {});
-    def.filters = effectiveFilters(card);
+    var def = cardRunDef(card, effectiveFilters(card));
     def.format = 'xlsx';
     var res;
     try {

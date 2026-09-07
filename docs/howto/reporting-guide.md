@@ -540,8 +540,16 @@ and every card built from it follows.
   Drag the little corner grip at its bottom right to resize — the width snaps
   to the 12 columns of the grid, the height to whole rows (up to 6). Both are
   saved with the dashboard on **Done**.
-- Global filters apply to every card *except* cards that override that field —
-  those are marked "This card overrides the global filters".
+- **Global filters are the reports' own filters.** The bar shows one chip per
+  field your cards' reports already filter on — *Date · This month*,
+  *Processes · All processes*, *Status · open* — with the value the reports
+  use ("mixed" if they disagree). Click a chip to change it: a date chip
+  offers the usual presets (this / last month, quarter, year …) or a custom
+  range, a list chip a checkbox picker. The new value replaces the reports'
+  own on every card; the chip turns coloured and its ↺ goes back to what the
+  reports say. The small "+" adds a filter on a field no report uses. A card
+  can still override a field — it shows "This card overrides the global
+  filters".
 - KPI cards carry the same "vs previous period" chip the report's own KPI band
   shows.
 - Cards drill through exactly like a normal report — click a chart element or

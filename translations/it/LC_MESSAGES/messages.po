@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-07 15:09+0200\n"
+"POT-Creation-Date: 2026-09-07 15:43+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -1575,18 +1575,27 @@ msgstr "aggregation deve essere uno dei seguenti valori: "
 msgid "baseField is required unless aggregation is 'count'"
 msgstr "baseField è obbligatorio a meno che aggregation non sia 'count'"
 
-#: nx_lib/views/reporting/admin_registry.py:165
+#: nx_lib/views/reporting/admin_registry.py:113
+msgid "filter must be valid JSON"
+msgstr "la condizione deve essere JSON valido"
+
+#: nx_lib/views/reporting/admin_registry.py:117
+#, python-brace-format
+msgid "filter must be a list of {field, op, value} clauses"
+msgstr "la condizione deve essere un elenco di clausole {field, op, value}"
+
+#: nx_lib/views/reporting/admin_registry.py:186
 msgid "Could not list sources"
 msgstr "Impossibile elencare le sorgenti"
 
-#: nx_lib/views/reporting/admin_registry.py:196
+#: nx_lib/views/reporting/admin_registry.py:217
 msgid "Could not save source (code already exists?)"
 msgstr "Impossibile salvare la sorgente (codice già esistente?)"
 
-#: nx_lib/views/reporting/admin_registry.py:221
-#: nx_lib/views/reporting/admin_registry.py:240
-#: nx_lib/views/reporting/admin_registry.py:347
-#: nx_lib/views/reporting/admin_registry.py:366
+#: nx_lib/views/reporting/admin_registry.py:242
+#: nx_lib/views/reporting/admin_registry.py:261
+#: nx_lib/views/reporting/admin_registry.py:369
+#: nx_lib/views/reporting/admin_registry.py:388
 #: nx_lib/views/reporting/reports.py:194 nx_lib/views/reporting/reports.py:271
 #: nx_lib/views/reporting/reports.py:293 nx_lib/views/reporting/reports.py:369
 #: nx_lib/views/reporting/reports.py:379 nx_lib/views/reporting/reports.py:429
@@ -1599,27 +1608,27 @@ msgstr "Impossibile salvare la sorgente (codice già esistente?)"
 msgid "Not found"
 msgstr "Non trovato"
 
-#: nx_lib/views/reporting/admin_registry.py:226
+#: nx_lib/views/reporting/admin_registry.py:247
 msgid "Could not update source"
 msgstr "Impossibile aggiornare la sorgente"
 
-#: nx_lib/views/reporting/admin_registry.py:245
+#: nx_lib/views/reporting/admin_registry.py:266
 msgid "Could not delete source"
 msgstr "Impossibile eliminare la sorgente"
 
-#: nx_lib/views/reporting/admin_registry.py:290
+#: nx_lib/views/reporting/admin_registry.py:312
 msgid "Could not list metrics"
 msgstr "Impossibile elencare le metriche"
 
-#: nx_lib/views/reporting/admin_registry.py:322
+#: nx_lib/views/reporting/admin_registry.py:344
 msgid "Could not save metric (code already exists?)"
 msgstr "Impossibile salvare la metrica (codice già esistente?)"
 
-#: nx_lib/views/reporting/admin_registry.py:352
+#: nx_lib/views/reporting/admin_registry.py:374
 msgid "Could not update metric"
 msgstr "Impossibile aggiornare la metrica"
 
-#: nx_lib/views/reporting/admin_registry.py:371
+#: nx_lib/views/reporting/admin_registry.py:393
 msgid "Could not delete metric"
 msgstr "Impossibile eliminare la metrica"
 
@@ -2420,7 +2429,9 @@ msgid ""
 "table’s button, to put that piece on the dashboard, or take the whole "
 "report. Cards follow the report: change colours, chart type or filters in"
 " the report itself. A dashboard uses the whole window width; “Present” "
-"shows it fullscreen — Esc leaves."
+"shows it fullscreen — Esc leaves. The filter bar shows the reports’ own "
+"filters — click a chip to swap “This month” for “Last month” or narrow "
+"the processes, and every card follows; ↺ on the chip goes back."
 msgstr ""
 "Le schede della dashboard sono parti dei report salvati: «Aggiungi "
 "scheda», scegli un report e si apre per intero — passa il mouse su una "
@@ -2428,7 +2439,10 @@ msgstr ""
 "mettere quella parte sulla dashboard, o prendi l’intero report. Le schede"
 " seguono il report: cambia colori, tipo di grafico o filtri nel report "
 "stesso. Una dashboard usa tutta la larghezza della finestra; «Presenta» "
-"la mostra a schermo intero — Esc per uscire."
+"la mostra a schermo intero — Esc per uscire. La barra dei filtri mostra i"
+" filtri dei report stessi — clicca un chip per sostituire «Questo mese» "
+"con «Mese scorso» o restringere i processi, e ogni scheda segue; ↺ sul "
+"chip torna indietro."
 
 #: templates/_reporting_help.html:46
 msgid ""
@@ -2684,7 +2698,7 @@ msgstr "Finora"
 
 #: templates/_reporting_simple.html:147 templates/appearance.html:37
 #: templates/js/_reporting_js.html:59
-#: templates/js/_reporting_metrics_js.html:132
+#: templates/js/_reporting_metrics_js.html:134
 #: templates/js/_reporting_sources_js.html:102
 msgid "Saved"
 msgstr "Salvato"
@@ -2729,7 +2743,7 @@ msgstr "Esporta"
 #: templates/generali_projectmanagement.html:259
 #: templates/generali_reporting.html:316
 #: templates/js/_generali_reporting_js.html:37 templates/reporting.html:402
-#: templates/reporting.html:602 templates/reporting_metrics.html:77
+#: templates/reporting.html:602 templates/reporting_metrics.html:78
 #: templates/reporting_sources.html:88 templates/tenant/page.html:134
 msgid "Save"
 msgstr "Salva"
@@ -2837,7 +2851,7 @@ msgid "Table"
 msgstr "Tabella"
 
 #: templates/_reporting_simple.html:297
-#: templates/js/_reporting_dashboard_js.html:53
+#: templates/js/_reporting_dashboard_js.html:69
 #: templates/js/_reporting_simple_js.html:31
 msgid "Show table"
 msgstr "Mostra tabella"
@@ -3138,7 +3152,7 @@ msgstr "Campi della risposta"
 
 #: templates/api_docs.html:230 templates/api_docs.html:271
 #: templates/api_docs.html:303 templates/api_docs.html:446
-#: templates/js/_reporting_dashboard_js.html:22
+#: templates/js/_reporting_dashboard_js.html:38
 msgid "Field"
 msgstr "Campo"
 
@@ -4313,7 +4327,7 @@ msgstr "Sforzo (ore)"
 #: templates/generali_projectmanagement.html:280
 #: templates/generali_reporting.html:229 templates/generali_reporting.html:312
 #: templates/generali_reporting.html:337
-#: templates/js/_reporting_dashboard_js.html:26 templates/reporting.html:491
+#: templates/js/_reporting_dashboard_js.html:42 templates/reporting.html:491
 #: templates/reporting.html:588 templates/reporting.html:601
 #: templates/tenant/page.html:133 templates/workitems_overview.html:511
 #: templates/workitems_overview.html:607
@@ -5057,7 +5071,7 @@ msgstr "Preparato da"
 msgid "Per page"
 msgstr "Per pagina"
 
-#: templates/js/_reporting_dashboard_js.html:25
+#: templates/js/_reporting_dashboard_js.html:41
 #: templates/js/_reporting_simple_js.html:60
 #: templates/js/admin/_logs_js.html:169 templates/prepared_documents.html:149
 msgid "Apply"
@@ -5351,11 +5365,13 @@ msgstr ""
 msgid "Source"
 msgstr "Origine"
 
+#: templates/js/_reporting_dashboard_js.html:19
 #: templates/js/_reporting_simple_js.html:50
 #: templates/js/_reporting_simple_js.html:137 templates/reporting.html:362
 msgid "Processes"
 msgstr "Processi"
 
+#: templates/js/_reporting_dashboard_js.html:20
 #: templates/js/_reporting_js.html:20 templates/js/_reporting_simple_js.html:69
 #: templates/reporting.html:365
 msgid "All processes"
@@ -5449,7 +5465,7 @@ msgstr "Query inviata al database"
 msgid "Metrics"
 msgstr "Metriche"
 
-#: templates/js/_reporting_metrics_js.html:100 templates/reporting.html:468
+#: templates/js/_reporting_metrics_js.html:101 templates/reporting.html:468
 #: templates/reporting_metrics.html:50
 msgid "Add metric"
 msgstr "Aggiungi metrica"
@@ -5466,7 +5482,7 @@ msgstr "Colonne"
 msgid "Filters"
 msgstr "Filtri"
 
-#: templates/js/_reporting_dashboard_js.html:19 templates/reporting.html:473
+#: templates/js/_reporting_dashboard_js.html:35 templates/reporting.html:473
 #: templates/workitems_overview.html:331
 msgid "Add filter"
 msgstr "Aggiungi filtro"
@@ -5481,7 +5497,7 @@ msgstr "Aggiungi ordinamento"
 
 #: templates/js/_reporting_scheduled_js.html:18 templates/reporting.html:476
 #: templates/reporting.html:542 templates/reporting.html:581
-#: templates/reporting_metrics.html:67
+#: templates/reporting_metrics.html:68
 msgid "Format"
 msgstr "Formato"
 
@@ -5756,7 +5772,7 @@ msgstr "Aggregazione"
 msgid "Base field"
 msgstr "Campo di base"
 
-#: templates/reporting_metrics.html:43 templates/reporting_metrics.html:74
+#: templates/reporting_metrics.html:43 templates/reporting_metrics.html:75
 #: templates/reporting_sources.html:54 templates/reporting_sources.html:77
 msgid "Enabled"
 msgstr "Abilitato"
@@ -5777,11 +5793,15 @@ msgstr "Etichetta francese"
 msgid "Italian label"
 msgstr "Etichetta italiana"
 
-#: templates/reporting_metrics.html:73 templates/reporting_sources.html:76
+#: templates/reporting_metrics.html:67
+msgid "Condition (JSON)"
+msgstr "Condizione (JSON)"
+
+#: templates/reporting_metrics.html:74 templates/reporting_sources.html:76
 msgid "Sort order"
 msgstr "Ordinamento"
 
-#: templates/reporting_metrics.html:78 templates/reporting_sources.html:89
+#: templates/reporting_metrics.html:79 templates/reporting_sources.html:89
 msgid "Clear form"
 msgstr "Svuota modulo"
 
@@ -5976,24 +5996,28 @@ msgstr "Tutti gli stati"
 msgid "Date Range"
 msgstr "Intervallo di date"
 
+#: templates/js/_reporting_dashboard_js.html:23
 #: templates/js/_reporting_simple_js.html:46
 #: templates/workitems_overview.html:170
 msgid "Custom"
 msgstr "Personalizzato"
 
 #: templates/admin/logs.html:28 templates/admin/status.html:202
+#: templates/js/_reporting_dashboard_js.html:24
 #: templates/js/_reporting_drill_js.html:26 templates/js/_reporting_js.html:6
 #: templates/js/_reporting_simple_js.html:52
 #: templates/workitems_overview.html:171
 msgid "Today"
 msgstr "Oggi"
 
+#: templates/js/_reporting_dashboard_js.html:25
 #: templates/js/_reporting_drill_js.html:26 templates/js/_reporting_js.html:7
 #: templates/js/_reporting_simple_js.html:53
 #: templates/workitems_overview.html:172
 msgid "Yesterday"
 msgstr "Ieri"
 
+#: templates/js/_reporting_dashboard_js.html:26
 #: templates/js/_reporting_drill_js.html:27 templates/js/_reporting_js.html:8
 #: templates/js/_reporting_simple_js.html:54
 #: templates/workitems_overview.html:173
@@ -6004,6 +6028,7 @@ msgstr "Questa settimana"
 msgid "Last 7 days"
 msgstr "Ultimi 7 giorni"
 
+#: templates/js/_reporting_dashboard_js.html:28
 #: templates/js/_reporting_drill_js.html:28 templates/js/_reporting_js.html:10
 #: templates/js/_reporting_simple_js.html:38
 #: templates/workitems_overview.html:175
@@ -6019,14 +6044,14 @@ msgstr "Ricerca per valore di documento"
 msgid "All fields"
 msgstr "Tutti i campi"
 
-#: templates/js/_reporting_dashboard_js.html:27
+#: templates/js/_reporting_dashboard_js.html:43
 #: templates/js/_reporting_js.html:42
 #: templates/js/_reporting_simple_js.html:100
 #: templates/workitems_overview.html:239 templates/workitems_overview.html:298
 msgid "contains"
 msgstr "contiene"
 
-#: templates/js/_reporting_dashboard_js.html:28
+#: templates/js/_reporting_dashboard_js.html:44
 #: templates/js/_reporting_js.html:43
 #: templates/js/_reporting_simple_js.html:101
 #: templates/workitems_overview.html:242 templates/workitems_overview.html:301
@@ -7427,7 +7452,7 @@ msgid "Activate"
 msgstr "Attiva"
 
 #: templates/admin/tenants_manage.html:92
-#: templates/js/_reporting_dashboard_js.html:37
+#: templates/js/_reporting_dashboard_js.html:53
 #: templates/js/_reporting_js.html:75
 msgid "Remove"
 msgstr "Rimuovi"
@@ -7847,7 +7872,7 @@ msgid "No documents found for the selected criteria."
 msgstr "Nessun documento trovato per i criteri selezionati."
 
 #: templates/js/_generali_documents_js.html:148
-#: templates/js/_reporting_dashboard_js.html:48
+#: templates/js/_reporting_dashboard_js.html:64
 #: templates/js/_reporting_schema_js.html:6 templates/tenant/page.html:98
 msgid "Loading…"
 msgstr "Caricamento…"
@@ -8210,55 +8235,105 @@ msgid "Global filters"
 msgstr "Filtri globali"
 
 #: templates/js/_reporting_dashboard_js.html:18
-msgid "apply to every card · a card can override them"
-msgstr "si applicano a ogni scheda · una scheda può sovrascriverli"
+msgid "the reports’ own filters — change one and every card follows"
+msgstr "i filtri dei report stessi — cambiane uno e ogni scheda segue"
 
-#: templates/js/_reporting_dashboard_js.html:20
+#: templates/js/_reporting_dashboard_js.html:21
+msgid "mixed"
+msgstr "misto"
+
+#: templates/js/_reporting_dashboard_js.html:22
+msgid "Back to the reports’ own value"
+msgstr "Torna al valore dei report"
+
+#: templates/js/_reporting_dashboard_js.html:27
+#: templates/js/_reporting_drill_js.html:27 templates/js/_reporting_js.html:9
+#: templates/js/_reporting_simple_js.html:55
+msgid "Last week"
+msgstr "Settimana scorsa"
+
+#: templates/js/_reporting_dashboard_js.html:29
+#: templates/js/_reporting_drill_js.html:28 templates/js/_reporting_js.html:11
+#: templates/js/_reporting_simple_js.html:39
+msgid "Last month"
+msgstr "Il mese scorso"
+
+#: templates/js/_reporting_dashboard_js.html:30
+#: templates/js/_reporting_drill_js.html:29 templates/js/_reporting_js.html:12
+#: templates/js/_reporting_simple_js.html:43
+msgid "This quarter"
+msgstr "Questo trimestre"
+
+#: templates/js/_reporting_dashboard_js.html:31
+#: templates/js/_reporting_drill_js.html:29 templates/js/_reporting_js.html:13
+#: templates/js/_reporting_simple_js.html:44
+msgid "Last quarter"
+msgstr "Trimestre scorso"
+
+#: templates/js/_reporting_dashboard_js.html:32
+#: templates/js/_reporting_drill_js.html:30 templates/js/_reporting_js.html:14
+#: templates/js/_reporting_simple_js.html:40
+msgid "Last 3 months"
+msgstr "Ultimi 3 mesi"
+
+#: templates/js/_reporting_dashboard_js.html:33
+#: templates/js/_reporting_drill_js.html:30 templates/js/_reporting_js.html:15
+#: templates/js/_reporting_simple_js.html:41
+msgid "This year"
+msgstr "Quest'anno"
+
+#: templates/js/_reporting_dashboard_js.html:34
+#: templates/js/_reporting_drill_js.html:31 templates/js/_reporting_js.html:16
+#: templates/js/_reporting_simple_js.html:42
+msgid "Last year"
+msgstr "L'anno scorso"
+
+#: templates/js/_reporting_dashboard_js.html:36
 msgid "inherits global filters"
 msgstr "eredita i filtri globali"
 
-#: templates/js/_reporting_dashboard_js.html:21
+#: templates/js/_reporting_dashboard_js.html:37
 msgid "This card overrides the global filters"
 msgstr "Questa scheda sovrascrive i filtri globali"
 
-#: templates/js/_reporting_dashboard_js.html:23
+#: templates/js/_reporting_dashboard_js.html:39
 msgid "Operator"
 msgstr "Operatore"
 
-#: templates/js/_reporting_dashboard_js.html:24
+#: templates/js/_reporting_dashboard_js.html:40
 #: templates/js/_reporting_viz_js.html:13
 msgid "Value"
 msgstr "Valore"
 
-#: templates/js/_reporting_dashboard_js.html:29
+#: templates/js/_reporting_dashboard_js.html:45
 #: templates/js/_reporting_js.html:44
 #: templates/js/_reporting_simple_js.html:102
 msgid "is empty"
 msgstr "è vuoto"
 
-#: templates/js/_reporting_dashboard_js.html:30
+#: templates/js/_reporting_dashboard_js.html:46
 #: templates/js/_reporting_js.html:45
 #: templates/js/_reporting_simple_js.html:103
 msgid "is not empty"
 msgstr "non è vuoto"
 
-#: templates/js/_reporting_dashboard_js.html:31
+#: templates/js/_reporting_dashboard_js.html:47
 msgid "Dashboard saved"
 msgstr "Dashboard salvato"
 
-#: templates/js/_reporting_dashboard_js.html:32
+#: templates/js/_reporting_dashboard_js.html:48
 msgid "Could not save the dashboard"
 msgstr "Impossibile salvare il dashboard"
 
-#: templates/js/_reporting_dashboard_js.html:33
+#: templates/js/_reporting_dashboard_js.html:49
 msgid "Could not load this card."
 msgstr "Impossibile caricare questa scheda."
 
-#: templates/js/_reporting_dashboard_js.html:34
+#: templates/js/_reporting_dashboard_js.html:50
 msgid "The saved report behind this card no longer exists."
 msgstr "Il report salvato dietro questa scheda non esiste più."
 
-#: templates/js/_reporting_dashboard_js.html:35
+#: templates/js/_reporting_dashboard_js.html:51
 msgid ""
 "This card comes from an older dashboard version. Remove it and add the "
 "piece again."
@@ -8266,27 +8341,27 @@ msgstr ""
 "Questa scheda proviene da una versione precedente della dashboard. "
 "Rimuovila e aggiungi di nuovo la parte."
 
-#: templates/js/_reporting_dashboard_js.html:36
+#: templates/js/_reporting_dashboard_js.html:52
 msgid "Duplicate"
 msgstr "Duplica"
 
-#: templates/js/_reporting_dashboard_js.html:38
+#: templates/js/_reporting_dashboard_js.html:54
 msgid "Add a card"
 msgstr "Aggiungi una scheda"
 
-#: templates/js/_reporting_dashboard_js.html:39
+#: templates/js/_reporting_dashboard_js.html:55
 msgid "pick a saved report, then take any piece of it"
 msgstr "scegli un report salvato, poi prendi una parte qualsiasi"
 
-#: templates/js/_reporting_dashboard_js.html:40
+#: templates/js/_reporting_dashboard_js.html:56
 msgid "Add a card to the dashboard"
 msgstr "Aggiungi una scheda alla dashboard"
 
-#: templates/js/_reporting_dashboard_js.html:41
+#: templates/js/_reporting_dashboard_js.html:57
 msgid "Which report?"
 msgstr "Quale report?"
 
-#: templates/js/_reporting_dashboard_js.html:42
+#: templates/js/_reporting_dashboard_js.html:58
 msgid ""
 "This is the report as saved. Hover a KPI, the chart or the table and add "
 "it to the dashboard — or take the whole report."
@@ -8295,42 +8370,42 @@ msgstr ""
 "grafico o sulla tabella e aggiungilo alla dashboard — oppure prendi "
 "l’intero report."
 
-#: templates/js/_reporting_dashboard_js.html:43
+#: templates/js/_reporting_dashboard_js.html:59
 msgid "Add to dashboard"
 msgstr "Aggiungi alla dashboard"
 
-#: templates/js/_reporting_dashboard_js.html:44
+#: templates/js/_reporting_dashboard_js.html:60
 msgid "Added"
 msgstr "Aggiunto"
 
-#: templates/js/_reporting_dashboard_js.html:45
+#: templates/js/_reporting_dashboard_js.html:61
 msgid "Add whole report"
 msgstr "Aggiungi l’intero report"
 
-#: templates/js/_reporting_dashboard_js.html:46
+#: templates/js/_reporting_dashboard_js.html:62
 msgid "Drag to resize"
 msgstr "Trascina per ridimensionare"
 
-#: templates/js/_reporting_dashboard_js.html:47
+#: templates/js/_reporting_dashboard_js.html:63
 msgid "No saved reports yet"
 msgstr "Nessun report salvato ancora"
 
-#: templates/js/_reporting_dashboard_js.html:49
+#: templates/js/_reporting_dashboard_js.html:65
 #: templates/js/_reporting_drill_js.html:17
 #: templates/js/_reporting_simple_js.html:23
 msgid "Could not export this report."
 msgstr "Impossibile esportare questo report."
 
-#: templates/js/_reporting_dashboard_js.html:50
+#: templates/js/_reporting_dashboard_js.html:66
 msgid "No cards to export yet."
 msgstr "Nessuna scheda da esportare ancora."
 
-#: templates/js/_reporting_dashboard_js.html:54
+#: templates/js/_reporting_dashboard_js.html:70
 #: templates/js/_reporting_simple_js.html:32
 msgid "Hide table"
 msgstr "Nascondi tabella"
 
-#: templates/js/_reporting_dashboard_js.html:55
+#: templates/js/_reporting_dashboard_js.html:71
 #: templates/js/_reporting_simple_js.html:134
 #, python-brace-format
 msgid "{n} rows"
@@ -8374,41 +8449,6 @@ msgstr "Fai clic su un workitem per aprirne l'anteprima in sola lettura."
 #: templates/js/_reporting_drill_js.html:19
 msgid "Could not filter this selection — drill cancelled."
 msgstr "Impossibile filtrare questa selezione — drill-through annullato."
-
-#: templates/js/_reporting_drill_js.html:27 templates/js/_reporting_js.html:9
-#: templates/js/_reporting_simple_js.html:55
-msgid "Last week"
-msgstr "Settimana scorsa"
-
-#: templates/js/_reporting_drill_js.html:28 templates/js/_reporting_js.html:11
-#: templates/js/_reporting_simple_js.html:39
-msgid "Last month"
-msgstr "Il mese scorso"
-
-#: templates/js/_reporting_drill_js.html:29 templates/js/_reporting_js.html:12
-#: templates/js/_reporting_simple_js.html:43
-msgid "This quarter"
-msgstr "Questo trimestre"
-
-#: templates/js/_reporting_drill_js.html:29 templates/js/_reporting_js.html:13
-#: templates/js/_reporting_simple_js.html:44
-msgid "Last quarter"
-msgstr "Trimestre scorso"
-
-#: templates/js/_reporting_drill_js.html:30 templates/js/_reporting_js.html:14
-#: templates/js/_reporting_simple_js.html:40
-msgid "Last 3 months"
-msgstr "Ultimi 3 mesi"
-
-#: templates/js/_reporting_drill_js.html:30 templates/js/_reporting_js.html:15
-#: templates/js/_reporting_simple_js.html:41
-msgid "This year"
-msgstr "Quest'anno"
-
-#: templates/js/_reporting_drill_js.html:31 templates/js/_reporting_js.html:16
-#: templates/js/_reporting_simple_js.html:42
-msgid "Last year"
-msgstr "L'anno scorso"
 
 #: templates/js/_reporting_drill_js.html:31
 #: templates/js/_reporting_simple_js.html:56
@@ -10526,4 +10566,7 @@ msgstr "A"
 
 #~ msgid "Added to the dashboard"
 #~ msgstr "Aggiunto alla dashboard"
+
+#~ msgid "apply to every card · a card can override them"
+#~ msgstr "si applicano a ogni scheda · una scheda può sovrascriverli"
 
