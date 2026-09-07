@@ -43,6 +43,29 @@ Work toward the next release.
   already lives in `dbo.Logs` and `Users.LastLoginAt`, and the one field not
   duplicated elsewhere is `IPAddress` -- personal data with no retention
   purpose. `--dry-run` reports without writing.
+- **The 2FA screen works in dark mode** (#243). It never set Tailwind's
+  `darkMode: 'class'`, so every `dark:` utility followed the OS
+  `prefers-color-scheme` instead of the page's own `.dark` class -- the
+  shared footer's `dark:brightness-0 dark:invert` fired on a light page
+  whenever the OS was dark, rendering a white logo on a white background.
+  Its surfaces were also hardcoded (`bg-white`, `text-gray-800`), so the
+  page stayed white even once the pre-paint had set `.dark`; they now read
+  the `--nx-*` tokens, which flip with the theme and need no new CSS.
+  `init_2FA`, `forgot_password` and `reset_password` have the same problem
+  and are tracked in #266.
+
+- **The 2FA screen follows your accent colour** (#243). The shield gradient,
+  the submit button, the focus rings and the page backdrop all read
+  `--nx-accent*`, but `verify_2fa.html` never set `data-accent`, so they sat
+  on the indigo defaults whatever you had chosen. The server cannot help
+  there -- mid-2FA the session holds `pre_2fa_userid`, not `userid`, so prefs
+  are deliberately not loaded -- so the page now reuses the same pre-paint
+  block, which falls through to its `localStorage` mirror from the last
+  signed-in page load. No database read on the login path, nothing about the
+  account rendered into the page, and no stored prefs still means the amber
+  default. The block moved to `templates/_ui_prefs_prepaint.html`, included
+  verbatim by `_header.html`, so two copies of the accent derivation cannot
+  drift apart.
 
 ## [3.2.4] - 2026-09-03
 
@@ -366,6 +389,19 @@ Work toward the next release.
   no-op there.
 
 ### Fixed
+
+- **Checkboxes and radio buttons that did not size themselves rendered as a
+  2px speck.** The shared chrome in `nexora-ui.css` draws its own box with
+  `appearance: none`, which also drops the widget's *intrinsic* size -- so
+  every checkbox and radio without an explicit `h-4 w-4` (or equivalent)
+  collapsed to little more than its own border: 15 of them, across
+  reporting's forecast and share controls, the admin clients / tenants /
+  maintenance modals and `user_detail`'s permission-override radios. The base
+  rule now sets a 16px `min-width`/`min-height` floor, so callers that size
+  themselves still win (the scope picker keeps its 18px boxes, Tailwind's
+  `h-4`/`w-4` stay honoured) while unsized ones stop vanishing. The share
+  modal's local 15px workaround in `reporting-console.css` is gone with it;
+  `.ml-toggle`'s deliberately collapsed switch input opts out.
 
 - **Reporting wizard showed "no measures configured" on PROD for users with an
   ad blocker.** The Simple wizard's metric catalog was served at

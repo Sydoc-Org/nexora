@@ -2582,8 +2582,12 @@ def test_header_prepaint_accent_fallback_source_uses_brand_then_hardcoded():
     """Regression guard for D4 (spec): the *user's own* stored accent must
     still win over the org brand accent, which itself only replaces the
     previously-hardcoded default. Asserted against the template source since
-    exercising the inline pre-paint script needs a JS engine."""
-    with open("templates/_header.html", encoding="utf-8") as f:
+    exercising the inline pre-paint script needs a JS engine.
+
+    The block moved out of _header.html into _ui_prefs_prepaint.html when the
+    2FA page needed it too (#243); _header.html includes it verbatim, so the
+    guarantee is unchanged and only the file to read moved."""
+    with open("templates/_ui_prefs_prepaint.html", encoding="utf-8") as f:
         src = f.read()
     assert "accent:     stored.accent     || (brand.accent_hex ? 'custom' : 'amber')," in src
     assert "accentHex:  stored.accentHex  || brand.accent_hex || '#4f46e5'," in src

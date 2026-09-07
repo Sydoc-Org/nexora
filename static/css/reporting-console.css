@@ -1367,14 +1367,6 @@ body.reporting-console .reporting-modal-box {
   border-radius: calc(var(--nx-radius-scale, 1) * 12px);
   box-shadow: 0 24px 64px rgba(16, 22, 35, 0.25);
 }
-/* Share modal: the design system's appearance:none radios/checkbox leave
-   sizing to the caller — without it they collapse to invisible dots. */
-body.reporting-console .reporting-share-vis input[type="radio"],
-body.reporting-console .reporting-share-canedit input[type="checkbox"] {
-  width: 15px;
-  height: 15px;
-  flex-shrink: 0;
-}
 body.reporting-console .reporting-share-vis label {
   align-items: center;
   font-size: 12.5px;
