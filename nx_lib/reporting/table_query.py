@@ -227,6 +227,7 @@ def build_generic_query(
                 params = params + params
             # raw (grain None) date dimension: every instant is its own
             # bucket, the restriction would be a no-op — skip it.
+        select_params: list = []
         sql = build_aggregate_sql(
             inner_from=inner_from,
             dim_fields=dim_fields,
@@ -234,8 +235,10 @@ def build_generic_query(
             sort=rd.get("sort") or [],
             cap=row_cap,
             dim_exprs=dim_exprs,
+            params_out=select_params,
         )
-        return sql, params
+        # SELECT-list (conditional metric) params bind before the WHERE params.
+        return sql, select_params + params
 
     select_cols = [
         f"{dim_exprs[f]} AS {_quote_ident(f)}" if f in dim_exprs else _quote_ident(f)

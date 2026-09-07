@@ -81,8 +81,74 @@ def resolve_metrics(metric_refs, metric_registry, catalog_fields):
             if base not in catalog_fields:
                 raise MetricResolveError(f"metric base field not in catalog: {base!r}")
         seen.add(code)
-        out.append({"code": code, "aggregation": agg, "base_field": base})
+        resolved = {"code": code, "aggregation": agg, "base_field": base}
+        cond = _resolve_condition(spec.get("filter"), catalog_fields, code)
+        if cond:
+            resolved["filter"] = cond
+        out.append(resolved)
     return out
+
+
+# Conditional metrics: a registry row may carry a condition (dbo.ReportingMetrics
+# .FilterJson, parsed to a list of {field, op, value}) that turns the aggregate
+# into CASE WHEN <cond> THEN <x> END -- "documents where OnTime = 1" as one
+# number instead of a breakdown the reader sums by eye. Fields are whitelisted
+# against the catalog, ops come from this enum, values are always parameters.
+_COND_OPS = {"eq": "=", "ne": "<>", "gt": ">", "gte": ">=", "lt": "<", "lte": "<="}
+_COND_SET_OPS = {"in": "IN", "not_in": "NOT IN"}
+_COND_NULL_OPS = {"is_null": "IS NULL", "is_not_null": "IS NOT NULL"}
+_SCALAR = (str, int, float, bool)
+
+
+def _resolve_condition(filt, catalog_fields, code):
+    if not filt:
+        return None
+    if not isinstance(filt, list):
+        raise MetricResolveError(f"metric {code!r}: filter must be a list of clauses")
+    out = []
+    for cl in filt:
+        if not isinstance(cl, dict):
+            raise MetricResolveError(f"metric {code!r}: filter clause must be an object")
+        field, op, val = cl.get("field"), cl.get("op"), cl.get("value")
+        if not isinstance(field, str) or not _CODE.match(field):
+            raise MetricResolveError(f"metric {code!r}: unsafe filter field {field!r}")
+        if field not in catalog_fields:
+            raise MetricResolveError(f"metric {code!r}: filter field not in catalog: {field!r}")
+        if op in _COND_OPS:
+            if not isinstance(val, _SCALAR):
+                raise MetricResolveError(f"metric {code!r}: {op} needs a scalar value")
+        elif op in _COND_SET_OPS:
+            if not isinstance(val, list) or not val or not all(isinstance(v, _SCALAR) for v in val):
+                raise MetricResolveError(f"metric {code!r}: {op} needs a non-empty list")
+        elif op in _COND_NULL_OPS:
+            val = None
+        else:
+            raise MetricResolveError(f"metric {code!r}: unsupported filter op {op!r}")
+        out.append({"field": field, "op": op, "value": val})
+    return out
+
+
+def condition_fields(resolved_metrics):
+    """Catalog fields a resolved metric list's conditions reference (deduped)."""
+    return list(
+        dict.fromkeys(cl["field"] for m in resolved_metrics or [] for cl in m.get("filter") or [])
+    )
+
+
+def _condition_sql(clauses, col_for_field, params):
+    parts = []
+    for cl in clauses:
+        col = col_for_field(cl["field"])
+        op, val = cl["op"], cl["value"]
+        if op in _COND_OPS:
+            parts.append(f"{col} {_COND_OPS[op]} ?")
+            params.append(val)
+        elif op in _COND_SET_OPS:
+            parts.append(f"{col} {_COND_SET_OPS[op]} ({','.join('?' * len(val))})")
+            params.extend(val)
+        else:
+            parts.append(f"{col} {_COND_NULL_OPS[op]}")
+    return " AND ".join(parts)
 
 
 def drop_columns_shadowing_distinct_metrics(rd, metric_registry):
@@ -114,17 +180,32 @@ _AGG_SQL = {
 _SORT_DIRS = {"asc": "ASC", "desc": "DESC"}
 
 
-def metric_select_expr(resolved, col_for_field):
+def metric_select_expr(resolved, col_for_field, params=None):
     """Build 'AGG(col) AS [code]'. `col_for_field(field)` returns a safe, already
-    bracket-quoted column reference, keeping this provider-agnostic."""
+    bracket-quoted column reference, keeping this provider-agnostic.
+
+    A conditional metric wraps its argument in CASE WHEN <cond> THEN ... END and
+    appends the condition's parameter values to `params` (SELECT-list params
+    precede WHERE params in positional order, so callers prepend them)."""
     code = resolved["code"]
     agg = resolved["aggregation"]
+    cond = resolved.get("filter")
+    if cond:
+        if params is None:
+            raise MetricResolveError(f"metric {code!r}: conditional metric needs a params list")
+        when = _condition_sql(cond, col_for_field, params)
+        arg = "1" if agg == "count" else col_for_field(resolved["base_field"])
+        inner = f"CASE WHEN {when} THEN {arg} END"
+        fn = "COUNT({})" if agg == "count" else _AGG_SQL[agg]
+        return f"{fn.format(inner)} AS [{code}]"
     if agg == "count":
         return f"COUNT(*) AS [{code}]"
     return f"{_AGG_SQL[agg].format(col_for_field(resolved['base_field']))} AS [{code}]"
 
 
-def build_aggregate_sql(*, inner_from, dim_fields, resolved_metrics, sort, cap, dim_exprs=None):
+def build_aggregate_sql(
+    *, inner_from, dim_fields, resolved_metrics, sort, cap, dim_exprs=None, params_out=None
+):
     """Assemble `SELECT TOP(cap) <dims>, <agg exprs> FROM <inner_from>
     GROUP BY <dims> [ORDER BY ...]`.
 
@@ -135,7 +216,9 @@ def build_aggregate_sql(*, inner_from, dim_fields, resolved_metrics, sort, cap, 
     `dim_exprs` optionally maps a dim field to a raw SQL expression (e.g. a date-
     grain bucketing expression) to project/group by instead of the bare column;
     the field's alias is preserved either way. Sort may target a dim or a metric
-    code; anything else raises (defence in depth)."""
+    code; anything else raises (defence in depth). Conditional metrics append
+    their SELECT-list parameter values to `params_out` (required when any
+    resolved metric carries a filter)."""
     dim_exprs = dim_exprs or {}
 
     def bracket(field):
@@ -147,7 +230,7 @@ def build_aggregate_sql(*, inner_from, dim_fields, resolved_metrics, sort, cap, 
     dim_select = ", ".join(
         f"{dim_expr(d)} AS {bracket(d)}" if d in dim_exprs else bracket(d) for d in dim_fields
     )
-    metric_exprs = ", ".join(metric_select_expr(m, bracket) for m in resolved_metrics)
+    metric_exprs = ", ".join(metric_select_expr(m, bracket, params_out) for m in resolved_metrics)
     select_list = ", ".join(p for p in (dim_select, metric_exprs) if p)
     sql = f"SELECT TOP ({int(cap)}) {select_list} FROM {inner_from}"
     if dim_fields:

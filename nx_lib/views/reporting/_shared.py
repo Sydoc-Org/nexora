@@ -176,12 +176,22 @@ def _load_db_metrics():
         cur.execute(
             "SELECT Code, SourceId, Label, GermanLabel, FrenchLabel, ItalianLabel, "
             "Aggregation, BaseField, Description, Format, Enabled, SortOrder, TotalMode, "
-            "DateAnchor "
+            "DateAnchor, FilterJson "
             "FROM dbo.ReportingMetrics WHERE Enabled = 1"
         )
         out = {}
         for r in cur.fetchall():
+            filt = None
+            if getattr(r, "FilterJson", None):
+                try:
+                    filt = json.loads(r.FilterJson)
+                except ValueError:
+                    # A malformed condition must not silently widen the metric to
+                    # "everything": the resolver rejects a non-list, so the metric
+                    # errors loudly at run time instead.
+                    filt = "malformed"
             out[r.Code] = {
+                "filter": filt,
                 "code": r.Code,
                 "source_id": r.SourceId,
                 "label": r.Label,
@@ -223,6 +233,7 @@ def _metrics_for_source(source_id, locale=None):
             "base_field": m["base_field"],
             "total_mode": m.get("total_mode", "sum"),
             "anchor": m.get("anchor"),
+            "filter": m.get("filter"),
             "label": (m.get(attr) if attr else None) or m["label"],
         }
         for code, m in _load_db_metrics().items()

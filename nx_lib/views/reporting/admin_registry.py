@@ -104,7 +104,27 @@ def _validate_metric_payload(p):
         return _("aggregation must be one of: ") + ", ".join(sorted(AGGREGATIONS))
     if agg != "count" and not (p.get("baseField") or "").strip():
         return _("baseField is required unless aggregation is 'count'")
+    filt = p.get("filter")
+    if filt not in (None, "", []):
+        if isinstance(filt, str):
+            try:
+                filt = json.loads(filt)
+            except ValueError:
+                return _("filter must be valid JSON")
+        if not isinstance(filt, list) or not all(
+            isinstance(c, dict) and c.get("field") and c.get("op") for c in filt
+        ):
+            return _("filter must be a list of {field, op, value} clauses")
     return None
+
+
+def _filter_json(p):
+    filt = p.get("filter")
+    if filt in (None, "", []):
+        return None
+    if isinstance(filt, str):
+        filt = json.loads(filt)
+    return json.dumps(filt, separators=(",", ":"))
 
 
 def _metric_insert_params(p):
@@ -120,6 +140,7 @@ def _metric_insert_params(p):
         p.get("format") or None,
         1 if p.get("enabled", True) else 0,
         int(p.get("sortOrder") or 100),
+        _filter_json(p),
     )
 
 
@@ -265,7 +286,7 @@ def api_admin_metrics_list():
         cur.execute(
             "SELECT MetricID, Code, SourceId, Label, GermanLabel, FrenchLabel, "
             "ItalianLabel, Aggregation, BaseField, Description, Format, Enabled, "
-            "SortOrder FROM dbo.ReportingMetrics ORDER BY SortOrder, Label"
+            "SortOrder, FilterJson FROM dbo.ReportingMetrics ORDER BY SortOrder, Label"
         )
         rows = [
             {
@@ -282,6 +303,7 @@ def api_admin_metrics_list():
                 "format": r.Format,
                 "enabled": bool(r.Enabled),
                 "sortOrder": r.SortOrder,
+                "filter": r.FilterJson,
             }
             for r in cur.fetchall()
         ]
@@ -307,8 +329,8 @@ def api_admin_metrics_create():
         cur.execute(
             "INSERT INTO dbo.ReportingMetrics "
             "(Code, SourceId, Label, GermanLabel, FrenchLabel, ItalianLabel, "
-            "Aggregation, BaseField, Format, Enabled, SortOrder) "
-            "OUTPUT INSERTED.MetricID VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "Aggregation, BaseField, Format, Enabled, SortOrder, FilterJson) "
+            "OUTPUT INSERTED.MetricID VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             _metric_insert_params(p),
         )
         inserted = cur.fetchone()
@@ -338,7 +360,7 @@ def api_admin_metrics_update(metric_id):
         cur.execute(
             "UPDATE dbo.ReportingMetrics SET Code=?, SourceId=?, Label=?, GermanLabel=?, "
             "FrenchLabel=?, ItalianLabel=?, Aggregation=?, BaseField=?, Format=?, "
-            "Enabled=?, SortOrder=?, UpdatedAt=SYSUTCDATETIME() WHERE MetricID=?",
+            "Enabled=?, SortOrder=?, FilterJson=?, UpdatedAt=SYSUTCDATETIME() WHERE MetricID=?",
             params,
         )
         affected = cur.rowcount
