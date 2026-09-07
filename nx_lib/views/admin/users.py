@@ -14,6 +14,7 @@ from ...db import engine_nexora_db
 from ...security import (
     _revoke_session_by_id,
     assignable_profile_ids,
+    group_permissions,
     has_permission,
     page_visibility,
     require_permission,
@@ -294,6 +295,7 @@ def admin_user_detail(user_id):
             organizations=organizations,
             assignable_profiles=assignable_profiles,
             all_permissions=all_permissions,
+            groups=group_permissions(all_permissions),
             can_edit_user=has_permission("admin.users.edit"),
             can_delete_user=has_permission("admin.users.delete"),
             can_edit_overrides=has_permission("admin.users.overrides.edit"),
