@@ -12,11 +12,26 @@ OS env > env-specific file > root .env.
 
 import os
 import warnings
+from datetime import timedelta
 from pathlib import Path
 
 from dotenv import dotenv_values, load_dotenv
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+
+# How long a signed-in session stays valid. Applied to Flask's
+# PERMANENT_SESSION_LIFETIME in create_app(), and read by
+# ops/cleanup/prune_active_sessions.py to derive its retention window. It lives
+# here rather than inline in create_app() so the cleanup cannot fall out of step
+# with it: a cleanup that deletes rows younger than a live session would log
+# people out (#227).
+SESSION_LIFETIME = timedelta(hours=24)
+
+# Grace added on top of SESSION_LIFETIME before an ActiveSessions row is pruned.
+# The row is only ever read within 30 minutes of LastSeenAt (the admin overview
+# count and the live-sessions list both filter to that), so this window is pure
+# slack for clock skew and suspended machines rather than anything functional.
+SESSION_ROW_RETENTION_GRACE = timedelta(days=7)
 
 
 def _load_env_files(repo_root: Path, env_name: str) -> None:
