@@ -22,6 +22,12 @@ Work toward the next release.
 - **`nx --doctor` Permissions section** warns about codes the code base
   references that are missing in `dbo.Permission`, and about profiles left at
   Rank 0.
+- **Admin › Permissions grid** (`/admin/permissions`) replaces the per-profile
+  permission drawer on Access Control and the read-only Permission Matrix page:
+  every access profile against every permission, one checkbox per cell, saved
+  as a diff. Children grey out until their object's `.view` is granted; click a
+  code to see who holds it. Profile rank is edited on Access Control; user
+  overrides on the user detail page use the same area › object grouping.
 - **Enterprise Admin holds every permission** (migration `0106`) — granted
   today and kept that way by a trigger on `dbo.Permission`, so a code added
   later by migration or from the admin grid lands on the profile at once.
@@ -39,6 +45,7 @@ Work toward the next release.
 
 ### Removed
 
+- **`/admin/permission_matrix`** and the Permissions tab on Access Control (both folded into the grid).
 - **Profile-level DENY** (446 semantically empty rows), **the ten
   `admin.assign.user.accessprofile.*` codes** (rank replaces them), **12 orphan
   codes** (`invoices.*`, `kundenmagazin.*`, two dead admin codes) and **the

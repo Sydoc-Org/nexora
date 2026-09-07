@@ -871,3 +871,4 @@ body.admin-page main {
 .perms-grid .perm-delete.is-armed { color: var(--nx-danger, #c0392b); }
 .perm-holders { list-style: none; padding: 0; margin: 0; font-size: 13px; }
 .perm-holders li { padding: 4px 0; border-bottom: 1px solid var(--nx-border); }
+.nx-btn:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }

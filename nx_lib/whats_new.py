@@ -26,6 +26,17 @@ RELEASES: list[dict] = [
         "date": "2026-09-03",
         "entries": [
             {
+                "title": _("One grid for every permission"),
+                "body": _(
+                    "Admin > Permissions shows every access profile against every "
+                    "permission; tick a cell, save, done. Profiles now carry a rank "
+                    "that decides which profiles an admin may hand out."
+                ),
+                "perm": "admin.profiles.view",
+                "endpoint": "admin_permissions",
+                "icon": "table-cells",
+            },
+            {
                 "title": _("Choose how deeply Eddard thinks"),
                 "body": _(
                     "Click into the chat box and pick Quick, Balanced or Deep. "

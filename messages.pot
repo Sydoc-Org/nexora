@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-04 23:46+0200\n"
+"POT-Creation-Date: 2026-09-07 08:01+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -21,62 +21,73 @@ msgstr ""
 msgid "Error fetching activity instance"
 msgstr ""
 
-#: nx_lib/security.py:129
+#: nx_lib/security.py:204
 msgid "Invalid date"
 msgstr ""
 
-#: nx_lib/security.py:131
+#: nx_lib/security.py:206
 msgid "Date is outside the allowed entry window"
 msgstr ""
 
 #: nx_lib/whats_new.py:29
-msgid "Choose how deeply Eddard thinks"
+msgid "One grid for every permission"
 msgstr ""
 
 #: nx_lib/whats_new.py:31
+msgid ""
+"Admin > Permissions shows every access profile against every permission; "
+"tick a cell, save, done. Profiles now carry a rank that decides which "
+"profiles an admin may hand out."
+msgstr ""
+
+#: nx_lib/whats_new.py:40
+msgid "Choose how deeply Eddard thinks"
+msgstr ""
+
+#: nx_lib/whats_new.py:42
 msgid ""
 "Click into the chat box and pick Quick, Balanced or Deep. Quick answers "
 "straightforward counts fast; Deep gives Eddard more room on hard, multi-"
 "source questions. Shown only when the configured model supports it."
 msgstr ""
 
-#: nx_lib/whats_new.py:41
+#: nx_lib/whats_new.py:52
 msgid "Faster pages everywhere"
 msgstr ""
 
-#: nx_lib/whats_new.py:43
+#: nx_lib/whats_new.py:54
 msgid ""
 "The reporting registry, the Generali dashboard filters and the static "
 "assets are now cached, and several heavy pages make one database query "
 "where they used to make one per row."
 msgstr ""
 
-#: nx_lib/whats_new.py:52
+#: nx_lib/whats_new.py:63
 msgid "Generali daily average counts every day"
 msgstr ""
 
-#: nx_lib/whats_new.py:54
+#: nx_lib/whats_new.py:65
 msgid ""
 "The dashboard's daily average now divides by the days in the selected "
 "range, not only by the days that had data, so quiet days no longer "
 "inflate the figure."
 msgstr ""
 
-#: nx_lib/whats_new.py:63
+#: nx_lib/whats_new.py:74
 msgid "Amber is the new default accent"
 msgstr ""
 
-#: nx_lib/whats_new.py:65
+#: nx_lib/whats_new.py:76
 msgid ""
 "New users and anyone who never picked a colour now see Amber instead of "
 "Indigo. Your own choice in Settings is untouched."
 msgstr ""
 
-#: nx_lib/whats_new.py:79
+#: nx_lib/whats_new.py:90
 msgid "Reporting has a new home screen"
 msgstr ""
 
-#: nx_lib/whats_new.py:81
+#: nx_lib/whats_new.py:92
 msgid ""
 "The reporting page is now a workbench: a Library of every report you can "
 "see, a Results screen that brings back your last result without re-"
@@ -84,22 +95,22 @@ msgid ""
 "showing each data source with its live response time."
 msgstr ""
 
-#: nx_lib/whats_new.py:92
+#: nx_lib/whats_new.py:103
 msgid "Look inside a data source"
 msgstr ""
 
-#: nx_lib/whats_new.py:94
+#: nx_lib/whats_new.py:105
 msgid ""
 "Click a card in the Sources rail to see the database behind it: the "
 "tables that source actually reads, their columns and types, and a diagram"
 " of how they connect. Structure only — no data is shown."
 msgstr ""
 
-#: nx_lib/whats_new.py:104
+#: nx_lib/whats_new.py:115
 msgid "Dashboards you can arrange"
 msgstr ""
 
-#: nx_lib/whats_new.py:106
+#: nx_lib/whats_new.py:117
 msgid ""
 "Adding a card asks everything in one dialog — which saved report, how to "
 "draw it, its title and its size. In edit mode drag a tile anywhere and "
@@ -107,22 +118,22 @@ msgid ""
 "report exactly as the Library does."
 msgstr ""
 
-#: nx_lib/whats_new.py:117
+#: nx_lib/whats_new.py:128
 msgid "Meet Eddard"
 msgstr ""
 
-#: nx_lib/whats_new.py:119
+#: nx_lib/whats_new.py:130
 msgid ""
 "The reporting assistant has a name and a face — the little black hole in "
 "the top bar. Ask it a question in plain language and open what it built "
 "in the builder before you trust the number."
 msgstr ""
 
-#: nx_lib/whats_new.py:129
+#: nx_lib/whats_new.py:140
 msgid "Charts in your colours"
 msgstr ""
 
-#: nx_lib/whats_new.py:131
+#: nx_lib/whats_new.py:142
 msgid ""
 "The palette button in the chart toolbar recolours each series and the "
 "title, and can move a series onto its own right-hand axis so a few "
@@ -130,43 +141,43 @@ msgid ""
 "with the report."
 msgstr ""
 
-#: nx_lib/whats_new.py:141
+#: nx_lib/whats_new.py:152
 msgid "Press ? for the shortcuts"
 msgstr ""
 
-#: nx_lib/whats_new.py:143
+#: nx_lib/whats_new.py:154
 msgid ""
 "A cheatsheet of every keyboard shortcut on the page, one keypress away. "
 "Press ? anywhere outside a text box."
 msgstr ""
 
-#: nx_lib/whats_new.py:151
+#: nx_lib/whats_new.py:162
 msgid "Everything loads quicker"
 msgstr ""
 
-#: nx_lib/whats_new.py:153
+#: nx_lib/whats_new.py:164
 msgid ""
 "Pages are compressed in transit, their scripts are cached between visits,"
 " and the reporting page stopped fetching the same lists eight times per "
 "load."
 msgstr ""
 
-#: nx_lib/whats_new.py:162
+#: nx_lib/whats_new.py:173
 msgid "Who can do what, on one page"
 msgstr ""
 
-#: nx_lib/whats_new.py:164
+#: nx_lib/whats_new.py:175
 msgid ""
 "The new permission matrix under Admin shows every access profile against "
 "every permission in a single grid, so a missing grant is something you "
 "can see instead of hunt."
 msgstr ""
 
-#: nx_lib/whats_new.py:179
+#: nx_lib/whats_new.py:190
 msgid "Imports, exports and backlog on one chart"
 msgstr ""
 
-#: nx_lib/whats_new.py:181
+#: nx_lib/whats_new.py:192
 msgid ""
 "Document Processing gained date-anchored measures: pick documents or "
 "pages imported, exported and the backlog together over time and they all "
@@ -174,74 +185,74 @@ msgid ""
 "retired — the new Backlog measure replaces it."
 msgstr ""
 
-#: nx_lib/whats_new.py:192
+#: nx_lib/whats_new.py:203
 msgid "The reporting AI panel gets out of your way"
 msgstr ""
 
-#: nx_lib/whats_new.py:194
+#: nx_lib/whats_new.py:205
 msgid ""
 "The chat panel now floats instead of blocking the page: drag it by its "
 "header, keep working behind it, and select or copy any answer or "
 "generated SQL."
 msgstr ""
 
-#: nx_lib/whats_new.py:203
+#: nx_lib/whats_new.py:214
 msgid "Large workitem searches load faster"
 msgstr ""
 
-#: nx_lib/whats_new.py:205
+#: nx_lib/whats_new.py:216
 msgid ""
 "Big result sets arrive in two phases, so the first rows show up right "
 "away. Typing a partial id now matches by prefix and the closest hits are "
 "ranked first."
 msgstr ""
 
-#: nx_lib/whats_new.py:214
+#: nx_lib/whats_new.py:225
 msgid "Tell us what you think"
 msgstr ""
 
-#: nx_lib/whats_new.py:216
+#: nx_lib/whats_new.py:227
 msgid ""
 "The new Feedback page (profile dropdown → Feedback) sends your praise, "
 "gripes and ideas straight to the nexora team."
 msgstr ""
 
-#: nx_lib/whats_new.py:224
+#: nx_lib/whats_new.py:235
 msgid "Dark mode, polished"
 msgstr ""
 
-#: nx_lib/whats_new.py:226
+#: nx_lib/whats_new.py:237
 msgid ""
 "The light flash on page loads is gone, checkboxes, menus and tables "
 "follow the theme everywhere, and Appearance adds a \"Fireflies\" page "
 "background."
 msgstr ""
 
-#: nx_lib/whats_new.py:241
+#: nx_lib/whats_new.py:252
 msgid "Filters apply instantly"
 msgstr ""
 
-#: nx_lib/whats_new.py:243
+#: nx_lib/whats_new.py:254
 msgid ""
 "The Apply button is gone from the Generali filter bars — changing any "
 "filter or date reloads the list right away."
 msgstr ""
 
-#: nx_lib/whats_new.py:251
+#: nx_lib/whats_new.py:262
 msgid "Type to find a user in the filters"
 msgstr ""
 
-#: nx_lib/whats_new.py:253
+#: nx_lib/whats_new.py:264
 msgid ""
 "The user filter on the Generali pages is now a search box: type a few "
 "letters, pick the name, and the list filters instantly."
 msgstr ""
 
-#: nx_lib/whats_new.py:268
+#: nx_lib/whats_new.py:279
 msgid "Forecast your report trends"
 msgstr ""
 
-#: nx_lib/whats_new.py:270
+#: nx_lib/whats_new.py:281
 msgid ""
 "Reports charted over a single date breakdown (per week, month, …) gain a "
 "Forecast toggle: the chart extends with a dashed prediction line and a "
@@ -249,53 +260,53 @@ msgid ""
 "too."
 msgstr ""
 
-#: nx_lib/whats_new.py:280
+#: nx_lib/whats_new.py:291
 msgid "Compare with the prior period"
 msgstr ""
 
-#: nx_lib/whats_new.py:282
+#: nx_lib/whats_new.py:293
 msgid ""
 "Simple-tab reports with a relative date range now show ↑/↓ change chips "
 "and a small trend sparkline against the equivalent prior period — see at "
 "a glance whether numbers went up or down."
 msgstr ""
 
-#: nx_lib/whats_new.py:292
+#: nx_lib/whats_new.py:303
 msgid "Backlog over time"
 msgstr ""
 
-#: nx_lib/whats_new.py:294
+#: nx_lib/whats_new.py:305
 msgid ""
 "Reporting has a new Backlog measure — track how the open backlog develops"
 " per client or process, week by week."
 msgstr ""
 
-#: nx_lib/whats_new.py:304
+#: nx_lib/whats_new.py:315
 msgid "Chat with the reporting AI"
 msgstr ""
 
-#: nx_lib/whats_new.py:306
+#: nx_lib/whats_new.py:317
 msgid ""
 "The one-shot Ask AI is now a full chat panel on both Reporting tabs — ask"
 " follow-up questions in context, watch live progress while the agent "
 "works, and continue or retry a run that stopped early."
 msgstr ""
 
-#: nx_lib/whats_new.py:316
+#: nx_lib/whats_new.py:327
 msgid "Filter several processes at once"
 msgstr ""
 
-#: nx_lib/whats_new.py:318
+#: nx_lib/whats_new.py:329
 msgid ""
 "The process filter on Dashboard and Workitems is now a multi-select — "
 "combine two or three processes in one view."
 msgstr ""
 
-#: nx_lib/whats_new.py:326
+#: nx_lib/whats_new.py:337
 msgid "Smarter document value search"
 msgstr ""
 
-#: nx_lib/whats_new.py:328
+#: nx_lib/whats_new.py:339
 msgid ""
 "Search workitems by document value without picking a field first — "
 "matches are found across every field you may see. Each search row now has"
@@ -303,41 +314,41 @@ msgid ""
 "with AND/OR."
 msgstr ""
 
-#: nx_lib/whats_new.py:338
+#: nx_lib/whats_new.py:349
 msgid "Date-range presets"
 msgstr ""
 
-#: nx_lib/whats_new.py:340
+#: nx_lib/whats_new.py:351
 msgid ""
 "Today, Yesterday, This week, Last 7 days, This month — one click in the "
 "Workitems advanced filter instead of typing dates."
 msgstr ""
 
-#: nx_lib/whats_new.py:348
+#: nx_lib/whats_new.py:359
 msgid "Filter workitems by stage"
 msgstr ""
 
-#: nx_lib/whats_new.py:350
+#: nx_lib/whats_new.py:361
 msgid ""
 "A new Stage filter (Import, Extraction, Validation, Delivery) narrows the"
 " list to workitems currently in that step."
 msgstr ""
 
-#: nx_lib/whats_new.py:358
+#: nx_lib/whats_new.py:369
 msgid "See deleted workitems"
 msgstr ""
 
-#: nx_lib/whats_new.py:360
+#: nx_lib/whats_new.py:371
 msgid ""
 "The status filter gains a Deleted option — workitems that were deleted, "
 "previously hidden entirely, can now be shown on demand, badged red."
 msgstr ""
 
-#: nx_lib/whats_new.py:369
+#: nx_lib/whats_new.py:380
 msgid "Make nexora look your way"
 msgstr ""
 
-#: nx_lib/whats_new.py:371
+#: nx_lib/whats_new.py:382
 msgid ""
 "The new Appearance page has a live preview and more choices: light, dark "
 "or system theme, custom accent color, font size, corner style, high "
@@ -345,11 +356,11 @@ msgid ""
 "settings follow your account on every device."
 msgstr ""
 
-#: nx_lib/whats_new.py:382
+#: nx_lib/whats_new.py:393
 msgid "API documentation in the app"
 msgstr ""
 
-#: nx_lib/whats_new.py:384
+#: nx_lib/whats_new.py:395
 msgid ""
 "The external API is now documented on the new API Documentation page — "
 "authentication, endpoints and copyable examples included. Every endpoint "
@@ -357,65 +368,65 @@ msgid ""
 "integrate without touching production."
 msgstr ""
 
-#: nx_lib/whats_new.py:394
+#: nx_lib/whats_new.py:405
 msgid "System status at a glance for admins"
 msgstr ""
 
-#: nx_lib/whats_new.py:396
+#: nx_lib/whats_new.py:407
 msgid ""
 "The new Status page shows each component's health, a 30-day uptime strip "
 "and the incident history — checked every few minutes by the outage "
 "monitor, with a clear warning if the data ever goes stale."
 msgstr ""
 
-#: nx_lib/whats_new.py:406
+#: nx_lib/whats_new.py:417
 msgid "Chat, notifications and workitem tags retired"
 msgstr ""
 
-#: nx_lib/whats_new.py:408
+#: nx_lib/whats_new.py:419
 msgid ""
 "The chat page, the notification bell, and workitem tags, priority, "
 "assignment and comments have been removed to keep nexora focused on "
 "document processing. Existing data is preserved."
 msgstr ""
 
-#: nx_lib/whats_new.py:424
+#: nx_lib/whats_new.py:435
 msgid "Build multi-card dashboards"
 msgstr ""
 
-#: nx_lib/whats_new.py:426
+#: nx_lib/whats_new.py:437
 msgid ""
 "Save several reports as one dashboard: combine KPI, chart and table "
 "cards, drag to rearrange, set global filters with per-card overrides, and"
 " export or drill through from any card."
 msgstr ""
 
-#: nx_lib/whats_new.py:435
+#: nx_lib/whats_new.py:446
 msgid "Drill through to the documents"
 msgstr ""
 
-#: nx_lib/whats_new.py:437
+#: nx_lib/whats_new.py:448
 msgid ""
 "Click a chart element or result row in Reporting to open the underlying "
 "document rows, with workitem links and export."
 msgstr ""
 
-#: nx_lib/whats_new.py:445
+#: nx_lib/whats_new.py:456
 msgid "Combine measures in one report"
 msgstr ""
 
-#: nx_lib/whats_new.py:447
+#: nx_lib/whats_new.py:458
 msgid ""
 "The guided report builder now takes several measures at once (from the "
 "same source) and has its own process step, with coverage badges showing "
 "which processes provide each field."
 msgstr ""
 
-#: nx_lib/whats_new.py:456
+#: nx_lib/whats_new.py:467
 msgid "Machine-to-machine API"
 msgstr ""
 
-#: nx_lib/whats_new.py:458
+#: nx_lib/whats_new.py:469
 msgid ""
 "External clients can fetch KPI numbers — like today's imported and "
 "processed counts — over the new authenticated /api/v1 interface."
@@ -563,32 +574,32 @@ msgstr ""
 msgid "Unexpected error occurred"
 msgstr ""
 
-#: nx_lib/views/admin/permissions.py:245 nx_lib/views/admin/permissions.py:578
-#: nx_lib/views/admin/permissions.py:620 nx_lib/views/admin/permissions.py:665
-#: nx_lib/views/admin/permissions.py:704 nx_lib/views/admin/permissions.py:743
-#: nx_lib/views/admin/permissions.py:775 nx_lib/views/dashboard.py:463
+#: nx_lib/views/admin/permissions.py:240 nx_lib/views/admin/permissions.py:539
+#: nx_lib/views/admin/permissions.py:581 nx_lib/views/admin/permissions.py:626
+#: nx_lib/views/admin/permissions.py:665 nx_lib/views/admin/permissions.py:704
+#: nx_lib/views/admin/permissions.py:736 nx_lib/views/dashboard.py:463
 #: nx_lib/views/dashboard.py:549 nx_lib/views/dashboard.py:597
 #: nx_lib/views/dashboard.py:668 nx_lib/views/workitems.py:387
 #: nx_lib/views/workitems.py:1094 nx_lib/views/workitems.py:1096
-#: nx_lib/views/workitems.py:1191 nx_lib/views/workitems.py:1303
+#: nx_lib/views/workitems.py:1189 nx_lib/views/workitems.py:1301
 msgid "Not authorized"
 msgstr ""
 
 #: nx_lib/views/admin/logs.py:154 nx_lib/views/admin/organizations.py:180
-#: nx_lib/views/admin/permissions.py:609 nx_lib/views/admin/system.py:148
+#: nx_lib/views/admin/permissions.py:570 nx_lib/views/admin/system.py:148
 #: nx_lib/views/admin/system.py:191 nx_lib/views/admin/system.py:234
-#: nx_lib/views/admin/system.py:254 nx_lib/views/admin/users.py:389
-#: nx_lib/views/admin/users.py:541 nx_lib/views/dashboard.py:538
+#: nx_lib/views/admin/system.py:254 nx_lib/views/admin/users.py:391
+#: nx_lib/views/admin/users.py:543 nx_lib/views/dashboard.py:538
 #: nx_lib/views/dashboard.py:586 nx_lib/views/dashboard.py:657
-#: nx_lib/views/dashboard.py:688 nx_lib/views/generali/_crud.py:187
+#: nx_lib/views/dashboard.py:688 nx_lib/views/generali/_crud.py:186
 #: nx_lib/views/generali/attendance.py:98
 #: nx_lib/views/generali/documents.py:288
 #: nx_lib/views/generali/documents.py:327
 #: nx_lib/views/generali/documents.py:503
 #: nx_lib/views/generali/documents.py:537
 #: nx_lib/views/generali/importstatus.py:119 nx_lib/views/generali/pdqm.py:102
-#: nx_lib/views/generali/reporting.py:261
-#: nx_lib/views/generali/reporting.py:324 nx_lib/views/workitems.py:1364
+#: nx_lib/views/generali/reporting.py:260
+#: nx_lib/views/generali/reporting.py:321 nx_lib/views/workitems.py:1362
 msgid "An unexpected error occurred"
 msgstr ""
 
@@ -699,7 +710,7 @@ msgstr ""
 
 #: nx_lib/views/admin/clients.py:154 nx_lib/views/admin/organizations.py:94
 #: nx_lib/views/admin/processes.py:385 nx_lib/views/admin/processes.py:538
-#: nx_lib/views/admin/users.py:131 nx_lib/views/tenant.py:458
+#: nx_lib/views/admin/users.py:132 nx_lib/views/tenant.py:458
 #: nx_lib/views/tenant.py:522 nx_lib/views/tenant.py:567
 #: nx_lib/views/tenant.py:602 nx_lib/views/tenant.py:641
 msgid "An unexpected error occurred."
@@ -786,7 +797,7 @@ msgstr ""
 msgid "Invalid file type. Please upload a valid PDF."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1052 nx_lib/views/workitems.py:1546
+#: nx_lib/views/workitems.py:1052 nx_lib/views/workitems.py:1544
 msgid "This import is only available for the MS02 client."
 msgstr ""
 
@@ -802,63 +813,63 @@ msgstr ""
 msgid "Could not save the prepared documents. Please try again."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1166 nx_lib/views/workitems.py:1199
+#: nx_lib/views/workitems.py:1164 nx_lib/views/workitems.py:1197
 msgid "Workitem not found"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1170 nx_lib/views/workitems.py:1297
+#: nx_lib/views/workitems.py:1168 nx_lib/views/workitems.py:1295
 msgid "Internal Server Error"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1212
+#: nx_lib/views/workitems.py:1210
 msgid "Media index out of bounds"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1240
+#: nx_lib/views/workitems.py:1238
 msgid "Failed to render PDF page"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1273
+#: nx_lib/views/workitems.py:1271
 msgid "Failed to process TIFF image"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1362
+#: nx_lib/views/workitems.py:1360
 msgid "Failed to fetch audit history"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1428
+#: nx_lib/views/workitems.py:1426
 msgid "This page is only available for the MS02 client."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1552
+#: nx_lib/views/workitems.py:1550
 msgid "Could not clear the prepared documents. Please try again."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1613
+#: nx_lib/views/workitems.py:1611
 msgid "Could not load saved views."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1627 nx_lib/views/workitems.py:1630
+#: nx_lib/views/workitems.py:1625 nx_lib/views/workitems.py:1628
 msgid "Invalid view name or filters."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1644 nx_lib/views/workitems.py:1697
+#: nx_lib/views/workitems.py:1642 nx_lib/views/workitems.py:1695
 msgid "View not found."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1659
+#: nx_lib/views/workitems.py:1657
 msgid "Too many saved views — delete one first."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1676
+#: nx_lib/views/workitems.py:1674
 msgid "A view with this name already exists."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1679
+#: nx_lib/views/workitems.py:1677
 msgid "Could not save the view."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1701
+#: nx_lib/views/workitems.py:1699
 msgid "Could not delete the view."
 msgstr ""
 
@@ -916,8 +927,8 @@ msgstr ""
 #: nx_lib/views/admin/organizations.py:153
 #: nx_lib/views/admin/organizations.py:334 nx_lib/views/admin/processes.py:421
 #: nx_lib/views/admin/processes.py:484 nx_lib/views/admin/processes.py:580
-#: nx_lib/views/admin/processes.py:609 nx_lib/views/admin/users.py:218
-#: nx_lib/views/admin/users.py:463
+#: nx_lib/views/admin/processes.py:609 nx_lib/views/admin/users.py:219
+#: nx_lib/views/admin/users.py:465
 msgid "An error occurred."
 msgstr ""
 
@@ -929,7 +940,7 @@ msgstr ""
 msgid "Client deleted successfully."
 msgstr ""
 
-#: nx_lib/views/admin/organizations.py:74 nx_lib/views/admin/users.py:54
+#: nx_lib/views/admin/organizations.py:74 nx_lib/views/admin/users.py:55
 msgid "All fields are required."
 msgstr ""
 
@@ -975,47 +986,55 @@ msgstr ""
 msgid "Branding saved."
 msgstr ""
 
-#: nx_lib/views/admin/permissions.py:288
+#: nx_lib/views/admin/permissions.py:129
+msgid "Invalid payload"
+msgstr ""
+
+#: nx_lib/views/admin/permissions.py:283
 msgid "Could not fetch users"
 msgstr ""
 
-#: nx_lib/views/admin/permissions.py:334
+#: nx_lib/views/admin/permissions.py:300
+msgid "Rank must be a number"
+msgstr ""
+
+#: nx_lib/views/admin/permissions.py:303
 msgid "Name is required"
 msgstr ""
 
-#: nx_lib/views/admin/permissions.py:385
+#: nx_lib/views/admin/permissions.py:346
 msgid "Profile saved successfully"
 msgstr ""
 
-#: nx_lib/views/admin/permissions.py:564
+#: nx_lib/views/admin/permissions.py:525
 msgid "Overrides updated successfully"
 msgstr ""
 
-#: nx_lib/views/admin/permissions.py:629 nx_lib/views/admin/permissions.py:759
-#: nx_lib/views/admin/permissions.py:805
+#: nx_lib/views/admin/permissions.py:590 nx_lib/views/admin/permissions.py:720
+#: nx_lib/views/admin/permissions.py:766
 msgid "Permission not found"
 msgstr ""
 
-#: nx_lib/views/admin/permissions.py:709 nx_lib/views/admin/permissions.py:748
+#: nx_lib/views/admin/permissions.py:670 nx_lib/views/admin/permissions.py:709
 msgid "Code and description are required"
 msgstr ""
 
-#: nx_lib/views/admin/permissions.py:726
+#: nx_lib/views/admin/permissions.py:687
 msgid "Permission created successfully"
 msgstr ""
 
-#: nx_lib/views/admin/permissions.py:761
+#: nx_lib/views/admin/permissions.py:722
 msgid "Permission updated successfully"
 msgstr ""
 
-#: nx_lib/views/admin/permissions.py:798
+#: nx_lib/views/admin/permissions.py:759
 #, python-format
 msgid ""
 "Cannot delete: used in %(p)d profile(s) and %(o)d override(s). Remove all"
 " assignments first."
 msgstr ""
 
-#: nx_lib/views/admin/permissions.py:807
+#: nx_lib/views/admin/permissions.py:768
 msgid "Permission deleted successfully"
 msgstr ""
 
@@ -1131,58 +1150,58 @@ msgstr ""
 msgid "Unknown environment."
 msgstr ""
 
-#: nx_lib/views/admin/users.py:66 nx_lib/views/admin/users.py:181
+#: nx_lib/views/admin/users.py:67 nx_lib/views/admin/users.py:182
 msgid "Unknown access profile."
 msgstr ""
 
-#: nx_lib/views/admin/users.py:76 nx_lib/views/admin/users.py:189
+#: nx_lib/views/admin/users.py:77 nx_lib/views/admin/users.py:190
 msgid "Permission Denied for this action."
 msgstr ""
 
-#: nx_lib/views/admin/users.py:84 nx_lib/views/admin/users.py:197
+#: nx_lib/views/admin/users.py:85 nx_lib/views/admin/users.py:198
 msgid "Unknown organization."
 msgstr ""
 
-#: nx_lib/views/admin/users.py:119
+#: nx_lib/views/admin/users.py:120
 msgid ""
 "User created, but the email could not be sent. Ask them to use 'Forgot "
 "password'."
 msgstr ""
 
-#: nx_lib/views/admin/users.py:124
+#: nx_lib/views/admin/users.py:125
 msgid "User created and email sent."
 msgstr ""
 
-#: nx_lib/views/admin/users.py:126
-#: templates/js/admin/_access_control_js.html:25
+#: nx_lib/views/admin/users.py:127
+#: templates/js/admin/_access_control_js.html:15
 msgid "User created successfully."
 msgstr ""
 
-#: nx_lib/views/admin/users.py:128
+#: nx_lib/views/admin/users.py:129
 msgid "Username or email already exists."
 msgstr ""
 
-#: nx_lib/views/admin/users.py:215
+#: nx_lib/views/admin/users.py:216
 msgid "User updated successfully."
 msgstr ""
 
-#: nx_lib/views/admin/users.py:409
+#: nx_lib/views/admin/users.py:411
 msgid "You cannot delete your own account."
 msgstr ""
 
-#: nx_lib/views/admin/users.py:455
+#: nx_lib/views/admin/users.py:457
 msgid "User not found."
 msgstr ""
 
-#: nx_lib/views/admin/users.py:457
+#: nx_lib/views/admin/users.py:459
 msgid "User deleted successfully."
 msgstr ""
 
-#: nx_lib/views/admin/users.py:586
+#: nx_lib/views/admin/users.py:588
 msgid "Could not fetch logs"
 msgstr ""
 
-#: nx_lib/views/admin/users.py:629
+#: nx_lib/views/admin/users.py:631
 msgid "Could not fetch sessions"
 msgstr ""
 
@@ -1575,8 +1594,8 @@ msgid "Access Control"
 msgstr ""
 
 #: templates/_header.html:224 templates/admin/admin_overview.html:85
-#: templates/admin/permission_matrix.html:21
-msgid "Permission Matrix"
+#: templates/admin/permissions.html:21 templates/admin/user_detail.html:88
+msgid "Permissions"
 msgstr ""
 
 #: templates/_header.html:229 templates/admin/admin_overview.html:95
@@ -1593,7 +1612,7 @@ msgid "Logs"
 msgstr ""
 
 #: templates/_header.html:245 templates/admin/logs.html:66
-#: templates/admin/logs.html:99 templates/admin/user_detail.html:228
+#: templates/admin/logs.html:99 templates/admin/user_detail.html:222
 #: templates/api_docs.html:189 templates/appearance.html:360
 #: templates/generali_importstatus.html:50
 #: templates/generali_importstatus.html:106
@@ -2036,7 +2055,8 @@ msgstr ""
 msgid "Recently updated"
 msgstr ""
 
-#: templates/_reporting_simple.html:31 templates/admin/organizations.html:32
+#: templates/_reporting_simple.html:31 templates/admin/access_control.html:214
+#: templates/admin/organizations.html:32
 msgid "Name"
 msgstr ""
 
@@ -2200,9 +2220,9 @@ msgstr ""
 msgid "Export"
 msgstr ""
 
-#: templates/_reporting_simple.html:177 templates/admin/access_control.html:276
-#: templates/admin/maintenance.html:114 templates/admin/processes.html:189
-#: templates/admin/processes.html:225
+#: templates/_reporting_simple.html:177 templates/admin/access_control.html:229
+#: templates/admin/maintenance.html:114 templates/admin/permissions.html:101
+#: templates/admin/processes.html:189 templates/admin/processes.html:225
 #: templates/generali_additionalservices.html:324
 #: templates/generali_baseservices.html:273 templates/generali_pdqm.html:348
 #: templates/generali_projectmanagement.html:259
@@ -2884,7 +2904,8 @@ msgstr ""
 msgid "Aurora"
 msgstr ""
 
-#: templates/appearance.html:112 templates/reporting.html:424
+#: templates/admin/admin_overview.html:88 templates/appearance.html:112
+#: templates/reporting.html:424
 msgid "Grid"
 msgstr ""
 
@@ -3418,8 +3439,8 @@ msgstr ""
 msgid "Parent Category"
 msgstr ""
 
-#: templates/admin/access_control.html:57
-#: templates/admin/access_control.html:66 templates/admin/logs.html:52
+#: templates/admin/access_control.html:52
+#: templates/admin/access_control.html:61 templates/admin/logs.html:52
 #: templates/admin/logs.html:68 templates/admin/logs.html:76
 #: templates/generali_additionalservices.html:75
 #: templates/generali_additionalservices.html:87
@@ -3451,11 +3472,10 @@ msgstr ""
 msgid "Sub Category"
 msgstr ""
 
-#: templates/admin/access_control.html:64
-#: templates/admin/access_control.html:95
-#: templates/admin/access_control.html:211 templates/admin/logs.html:74
+#: templates/admin/access_control.html:59
+#: templates/admin/access_control.html:90
+#: templates/admin/access_control.html:175 templates/admin/logs.html:74
 #: templates/admin/modals/_user_modals.html:61
-#: templates/admin/permission_matrix.html:56
 #: templates/admin/user_detail.html:65
 #: templates/generali_additionalservices.html:95
 #: templates/generali_baseservices.html:83 templates/generali_pdqm.html:103
@@ -3471,9 +3491,8 @@ msgstr ""
 msgid "All Organizations"
 msgstr ""
 
-#: templates/admin/access_control.html:93 templates/admin/logs.html:97
-#: templates/admin/logs.html:129 templates/admin/permission_matrix.html:55
-#: templates/generali_additionalservices.html:107
+#: templates/admin/access_control.html:88 templates/admin/logs.html:97
+#: templates/admin/logs.html:129 templates/generali_additionalservices.html:107
 #: templates/generali_additionalservices.html:151
 #: templates/generali_additionalservices.html:211
 #: templates/generali_baseservices.html:95
@@ -3484,7 +3503,6 @@ msgstr ""
 #: templates/generali_projectmanagement.html:124
 #: templates/generali_projectmanagement.html:172
 #: templates/generali_reporting.html:104 templates/generali_reporting.html:155
-#: templates/js/admin/_access_control_js.html:35
 msgid "User"
 msgstr ""
 
@@ -3513,8 +3531,7 @@ msgstr ""
 msgid "Recorded At"
 msgstr ""
 
-#: templates/admin/access_control.html:97
-#: templates/admin/access_control.html:129 templates/admin/clients.html:57
+#: templates/admin/access_control.html:92 templates/admin/clients.html:57
 #: templates/admin/maintenance.html:39 templates/admin/organizations.html:33
 #: templates/admin/processes.html:77 templates/admin/sessions.html:33
 #: templates/generali_additionalservices.html:167
@@ -3587,19 +3604,18 @@ msgstr ""
 msgid "Effort (hours)"
 msgstr ""
 
-#: templates/admin/access_control.html:228
-#: templates/admin/access_control.html:245
-#: templates/admin/access_control.html:275
-#: templates/admin/access_control.html:394 templates/admin/clients.html:101
+#: templates/admin/access_control.html:192
+#: templates/admin/access_control.html:228 templates/admin/clients.html:101
 #: templates/admin/clients.html:176 templates/admin/maintenance.html:113
 #: templates/admin/maintenance.html:129
 #: templates/admin/modals/_organizations_modals.html:13
 #: templates/admin/modals/_organizations_modals.html:40
 #: templates/admin/modals/_user_modals.html:13
 #: templates/admin/modals/_user_modals.html:80
-#: templates/admin/organizations.html:90 templates/admin/processes.html:122
-#: templates/admin/processes.html:188 templates/admin/processes.html:224
-#: templates/admin/user_detail.html:78 templates/admin/user_detail.html:282
+#: templates/admin/organizations.html:90 templates/admin/permissions.html:100
+#: templates/admin/processes.html:122 templates/admin/processes.html:188
+#: templates/admin/processes.html:224 templates/admin/user_detail.html:78
+#: templates/admin/user_detail.html:276
 #: templates/generali_additionalservices.html:261
 #: templates/generali_additionalservices.html:320
 #: templates/generali_additionalservices.html:345
@@ -3647,10 +3663,10 @@ msgstr ""
 msgid "This action cannot be undone."
 msgstr ""
 
-#: templates/admin/access_control.html:246 templates/admin/clients.html:81
-#: templates/admin/maintenance.html:130 templates/admin/organizations.html:45
+#: templates/admin/clients.html:81 templates/admin/maintenance.html:130
+#: templates/admin/organizations.html:45 templates/admin/permissions.html:57
 #: templates/admin/processes.html:65 templates/admin/processes.html:88
-#: templates/admin/user_detail.html:285
+#: templates/admin/user_detail.html:279
 #: templates/generali_additionalservices.html:349
 #: templates/generali_baseservices.html:298 templates/generali_pdqm.html:373
 #: templates/generali_projectmanagement.html:284
@@ -3667,7 +3683,6 @@ msgstr ""
 #: templates/js/_reporting_metrics_js.html:52
 #: templates/js/_reporting_sources_js.html:40
 #: templates/js/_tenant_page_js.html:30
-#: templates/js/admin/_access_control_js.html:29
 #: templates/js/admin/_maintenance_js.html:132
 #: templates/js/admin/_organizations_js.html:80
 #: templates/js/admin/_user_management_js.html:79 templates/reporting.html:390
@@ -4143,7 +4158,7 @@ msgstr ""
 msgid "Login - nexora"
 msgstr ""
 
-#: templates/admin/access_control.html:189 templates/admin/logs.html:44
+#: templates/admin/access_control.html:153 templates/admin/logs.html:44
 #: templates/admin/modals/_user_modals.html:32 templates/admin/sessions.html:29
 #: templates/admin/user_detail.html:37 templates/index.html:98
 #: templates/profile.html:137
@@ -4154,7 +4169,7 @@ msgstr ""
 msgid "Your Username"
 msgstr ""
 
-#: templates/admin/access_control.html:224
+#: templates/admin/access_control.html:188
 #: templates/admin/modals/_user_modals.html:71 templates/index.html:109
 #: templates/profile.html:65 templates/set_password.html:106
 msgid "Password"
@@ -4305,9 +4320,8 @@ msgstr ""
 msgid "Any"
 msgstr ""
 
-#: templates/admin/clients.html:65
-#: templates/js/admin/_access_control_js.html:31
-#: templates/prepared_documents.html:94 templates/prepared_documents.html:109
+#: templates/admin/clients.html:65 templates/prepared_documents.html:94
+#: templates/prepared_documents.html:109
 msgid "Yes"
 msgstr ""
 
@@ -4324,8 +4338,7 @@ msgstr ""
 msgid "Group by"
 msgstr ""
 
-#: templates/admin/access_control.html:333 templates/admin/user_detail.html:156
-#: templates/prepared_documents.html:123
+#: templates/admin/user_detail.html:156 templates/prepared_documents.html:123
 msgid "None"
 msgstr ""
 
@@ -4363,14 +4376,14 @@ msgstr ""
 msgid "No prepared documents yet. Upload an Excel to get started."
 msgstr ""
 
-#: templates/admin/logs.html:108 templates/admin/user_detail.html:238
+#: templates/admin/logs.html:108 templates/admin/user_detail.html:232
 #: templates/js/_generali_documents_js.html:274
 #: templates/js/_workitems_overview_js.html:31
 #: templates/prepared_documents.html:234 templates/tenant/page.html:100
 msgid "Previous"
 msgstr ""
 
-#: templates/admin/logs.html:109 templates/admin/user_detail.html:239
+#: templates/admin/logs.html:109 templates/admin/user_detail.html:233
 #: templates/js/_generali_documents_js.html:278
 #: templates/js/_generali_reporting_js.html:18
 #: templates/js/_workitems_overview_js.html:32
@@ -4424,8 +4437,7 @@ msgstr ""
 msgid "Settings sections"
 msgstr ""
 
-#: templates/admin/access_control.html:55 templates/admin/user_detail.html:29
-#: templates/js/admin/_access_control_js.html:36
+#: templates/admin/access_control.html:50 templates/admin/user_detail.html:29
 #: templates/js/admin/_user_detail_js.html:335 templates/profile.html:60
 msgid "Profile"
 msgstr ""
@@ -4450,13 +4462,14 @@ msgstr ""
 msgid "Your username cannot be changed."
 msgstr ""
 
-#: templates/admin/access_control.html:193
+#: templates/admin/access_control.html:157
 #: templates/admin/modals/_user_modals.html:39
 #: templates/admin/user_detail.html:41 templates/profile.html:143
 msgid "Full name"
 msgstr ""
 
-#: templates/admin/user_detail.html:80 templates/profile.html:157
+#: templates/admin/permissions.html:31 templates/admin/user_detail.html:80
+#: templates/profile.html:157
 msgid "Save changes"
 msgstr ""
 
@@ -4623,9 +4636,7 @@ msgstr ""
 msgid "Reports run automatically and get delivered to your inbox or team."
 msgstr ""
 
-#: templates/admin/permission_matrix.html:57
-#: templates/admin/user_detail.html:124
-#: templates/js/admin/_access_control_js.html:37 templates/reporting.html:359
+#: templates/admin/user_detail.html:124 templates/reporting.html:359
 #: templates/reporting_metrics.html:41 templates/reporting_metrics.html:53
 msgid "Source"
 msgstr ""
@@ -4995,10 +5006,10 @@ msgstr ""
 msgid "Registered metrics"
 msgstr ""
 
-#: templates/admin/access_control.html:125 templates/admin/clients.html:51
-#: templates/admin/organizations.html:31 templates/reporting_metrics.html:41
-#: templates/reporting_metrics.html:52 templates/reporting_sources.html:41
-#: templates/reporting_sources.html:52 templates/reporting_sources.html:63
+#: templates/admin/clients.html:51 templates/admin/organizations.html:31
+#: templates/reporting_metrics.html:41 templates/reporting_metrics.html:52
+#: templates/reporting_sources.html:41 templates/reporting_sources.html:52
+#: templates/reporting_sources.html:63
 msgid "Code"
 msgstr ""
 
@@ -5070,7 +5081,7 @@ msgstr ""
 msgid "Kind"
 msgstr ""
 
-#: templates/admin/access_control.html:332 templates/admin/user_detail.html:123
+#: templates/admin/permissions.html:39 templates/admin/user_detail.html:123
 #: templates/admin/user_detail.html:155 templates/reporting_sources.html:42
 #: templates/reporting_sources.html:53 templates/reporting_sources.html:67
 msgid "Permission"
@@ -5412,154 +5423,108 @@ msgid "Access Control - nexora"
 msgstr ""
 
 #: templates/admin/access_control.html:20
-#: templates/admin/admin_overview.html:80
-msgid "Users, permissions and access profiles"
+msgid "Users and access profiles"
 msgstr ""
 
 #: templates/admin/access_control.html:29
 msgid "Users"
 msgstr ""
 
-#: templates/admin/access_control.html:34 templates/admin/user_detail.html:88
-msgid "Permissions"
-msgstr ""
-
-#: templates/admin/access_control.html:39
+#: templates/admin/access_control.html:34
 msgid "Access Profiles"
 msgstr ""
 
-#: templates/admin/access_control.html:49
+#: templates/admin/access_control.html:44
 msgid "Search"
 msgstr ""
 
-#: templates/admin/access_control.html:51
+#: templates/admin/access_control.html:46
 msgid "Name, email..."
 msgstr ""
 
-#: templates/admin/access_control.html:75
+#: templates/admin/access_control.html:70
 msgid "Clear filters"
 msgstr ""
 
-#: templates/admin/access_control.html:82
-#: templates/admin/access_control.html:180
+#: templates/admin/access_control.html:77
+#: templates/admin/access_control.html:144
 msgid "Add User"
 msgstr ""
 
-#: templates/admin/access_control.html:94
-#: templates/admin/access_control.html:203
+#: templates/admin/access_control.html:89
+#: templates/admin/access_control.html:167
 #: templates/admin/modals/_user_modals.html:51
 msgid "Access Profile"
 msgstr ""
 
-#: templates/admin/access_control.html:96
-#: templates/admin/access_control.html:128 templates/admin/user_detail.html:98
+#: templates/admin/access_control.html:91 templates/admin/user_detail.html:98
 msgid "Overrides"
 msgstr ""
 
-#: templates/admin/access_control.html:101
-#: templates/admin/access_control.html:133 templates/admin/logs.html:106
+#: templates/admin/access_control.html:96 templates/admin/logs.html:106
 #: templates/admin/sessions.html:36 templates/admin/user_detail.html:128
-#: templates/admin/user_detail.html:232
-#: templates/js/admin/_access_control_js.html:30
-#: templates/js/admin/_permission_matrix_js.html:43
-#: templates/js/admin/_permission_matrix_js.html:70
-#: templates/js/admin/_sessions_js.html:37
+#: templates/admin/user_detail.html:226 templates/js/admin/_sessions_js.html:37
 #: templates/js/admin/_user_detail_js.html:443
 #: templates/js/admin/_user_detail_js.html:556
 msgid "Loading..."
 msgstr ""
 
-#: templates/admin/access_control.html:112
-msgid "Search permissions..."
-msgstr ""
-
-#: templates/admin/access_control.html:116
-#: templates/admin/access_control.html:258
-#: templates/js/admin/_access_control_js.html:40
-msgid "Add Permission"
-msgstr ""
-
-#: templates/admin/access_control.html:126
-#: templates/admin/access_control.html:270
-#: templates/admin/access_control.html:308
-msgid "Description"
-msgstr ""
-
-#: templates/admin/access_control.html:127
-msgid "In Profiles"
-msgstr ""
-
-#: templates/admin/access_control.html:142
+#: templates/admin/access_control.html:105
 msgid "profiles"
 msgstr ""
 
-#: templates/admin/access_control.html:145
+#: templates/admin/access_control.html:108
+#: templates/admin/access_control.html:206
 msgid "Add Profile"
 msgstr ""
 
-#: templates/admin/access_control.html:158 templates/admin/clients.html:80
-#: templates/admin/organizations.html:41 templates/admin/processes.html:63
-#: templates/admin/processes.html:87
+#: templates/admin/access_control.html:121 templates/admin/clients.html:80
+#: templates/admin/organizations.html:41 templates/admin/permissions.html:56
+#: templates/admin/processes.html:63 templates/admin/processes.html:87
 #: templates/js/_reporting_dashboard_js.html:7
 #: templates/js/_reporting_metrics_js.html:48
 #: templates/js/_reporting_sources_js.html:36
 #: templates/js/_tenant_page_js.html:29
-#: templates/js/admin/_access_control_js.html:28
 #: templates/js/admin/_maintenance_js.html:126
 #: templates/js/admin/_organizations_js.html:78
 #: templates/js/admin/_user_management_js.html:78
 msgid "Edit"
 msgstr ""
 
-#: templates/admin/access_control.html:165
+#: templates/admin/access_control.html:128 templates/admin/permissions.html:40
 msgid "user(s)"
 msgstr ""
 
-#: templates/admin/access_control.html:198
+#: templates/admin/access_control.html:129 templates/admin/permissions.html:40
+msgid "rank"
+msgstr ""
+
+#: templates/admin/access_control.html:162
 #: templates/admin/modals/_user_modals.html:45
 #: templates/admin/user_detail.html:45
 msgid "Email"
 msgstr ""
 
-#: templates/admin/access_control.html:221
+#: templates/admin/access_control.html:185
 msgid "Email the user a link to set their own password"
 msgstr ""
 
-#: templates/admin/access_control.html:229
+#: templates/admin/access_control.html:193
 msgid "Create"
 msgstr ""
 
-#: templates/admin/access_control.html:242
-msgid "Confirm Delete"
+#: templates/admin/access_control.html:218 templates/admin/permissions.html:95
+msgid "Description"
 msgstr ""
 
-#: templates/admin/access_control.html:266
-msgid "Permission Code"
+#: templates/admin/access_control.html:222
+msgid "Rank"
 msgstr ""
 
-#: templates/admin/access_control.html:271
-msgid "Short description"
-msgstr ""
-
-#: templates/admin/access_control.html:304
-msgid "Profile Name"
-msgstr ""
-
-#: templates/admin/access_control.html:320 templates/admin/user_detail.html:115
-#: templates/admin/user_detail.html:148
-msgid "Filter permissions..."
-msgstr ""
-
-#: templates/admin/access_control.html:334 templates/admin/user_detail.html:157
-msgid "Deny"
-msgstr ""
-
-#: templates/admin/access_control.html:335 templates/admin/user_detail.html:158
-msgid "Allow"
-msgstr ""
-
-#: templates/admin/access_control.html:395
-msgid "Save Changes"
+#: templates/admin/access_control.html:224
+msgid ""
+"An admin may hand out profiles ranked at or below their own. Grants live "
+"on the Permissions page."
 msgstr ""
 
 #: templates/admin/admin_overview.html:8
@@ -5603,21 +5568,19 @@ msgid "Database health"
 msgstr ""
 
 #: templates/admin/admin_overview.html:79
-#: templates/js/admin/_access_control_js.html:15
 msgid "users"
 msgstr ""
 
-#: templates/admin/admin_overview.html:88
-msgid "Matrix"
+#: templates/admin/admin_overview.html:80
+msgid "Users, permissions and access profiles"
 msgstr ""
 
 #: templates/admin/admin_overview.html:89
-#: templates/js/_reporting_schema_js.html:11
-msgid "view"
+msgid "edit"
 msgstr ""
 
 #: templates/admin/admin_overview.html:90
-msgid "Who can see what, filterable both ways"
+msgid "Every profile against every permission. Tick, save, done."
 msgstr ""
 
 #: templates/admin/admin_overview.html:99
@@ -5874,13 +5837,13 @@ msgid "End date"
 msgstr ""
 
 #: templates/admin/logs.html:96 templates/admin/logs.html:131
-#: templates/admin/user_detail.html:226
+#: templates/admin/user_detail.html:220
 #: templates/js/_reporting_simple_js.html:132
 msgid "Time"
 msgstr ""
 
 #: templates/admin/logs.html:98 templates/admin/logs.html:130
-#: templates/admin/user_detail.html:227
+#: templates/admin/user_detail.html:221
 msgid "Action"
 msgstr ""
 
@@ -6030,38 +5993,33 @@ msgstr ""
 msgid "Save branding"
 msgstr ""
 
-#: templates/admin/permission_matrix.html:8
-msgid "Permission Matrix - nexora"
+#: templates/admin/permissions.html:8
+msgid "Permissions - nexora"
 msgstr ""
 
-#: templates/admin/permission_matrix.html:22
-msgid ""
-"Who can do what — read-only. Granting and revoking stays on Access "
-"Control."
+#: templates/admin/permissions.html:22
+msgid "Which access profile holds which permission. Tick, save, done."
 msgstr ""
 
-#: templates/admin/permission_matrix.html:30
-msgid "By permission"
+#: templates/admin/permissions.html:28
+msgid "Filter by code or description…"
 msgstr ""
 
-#: templates/admin/permission_matrix.html:35
-msgid "By user"
+#: templates/admin/permissions.html:32
+msgid "Add permission"
 msgstr ""
 
-#: templates/admin/permission_matrix.html:45
-msgid "Type a permission code…"
+#: templates/admin/permissions.html:83
+#: templates/js/admin/_permissions_js.html:13
+msgid "Add Permission"
 msgstr ""
 
-#: templates/admin/permission_matrix.html:61
-msgid "Pick a permission above to see who holds it."
+#: templates/admin/permissions.html:91
+msgid "Permission Code"
 msgstr ""
 
-#: templates/admin/permission_matrix.html:72
-msgid "Type a user name…"
-msgstr ""
-
-#: templates/admin/permission_matrix.html:80
-msgid "Pick a user above to see their effective permissions."
+#: templates/admin/permissions.html:96
+msgid "Short description"
 msgstr ""
 
 #: templates/admin/processes.html:8
@@ -6422,7 +6380,6 @@ msgid "No profile"
 msgstr ""
 
 #: templates/admin/user_detail.html:49
-#: templates/js/admin/_permission_matrix_js.html:10
 msgid "Access profile"
 msgstr ""
 
@@ -6444,46 +6401,58 @@ msgid ""
 "user overrides."
 msgstr ""
 
+#: templates/admin/user_detail.html:115 templates/admin/user_detail.html:148
+msgid "Filter permissions..."
+msgstr ""
+
 #: templates/admin/user_detail.html:138
 msgid ""
 "Override the access profile on a per-permission basis. Leave as None to "
 "inherit from the profile."
 msgstr ""
 
-#: templates/admin/user_detail.html:200
+#: templates/admin/user_detail.html:157
+msgid "Deny"
+msgstr ""
+
+#: templates/admin/user_detail.html:158
+msgid "Allow"
+msgstr ""
+
+#: templates/admin/user_detail.html:194
 msgid "Save overrides"
 msgstr ""
 
-#: templates/admin/user_detail.html:211
+#: templates/admin/user_detail.html:205
 msgid "Activity"
 msgstr ""
 
-#: templates/admin/user_detail.html:213
+#: templates/admin/user_detail.html:207
 msgid "Recent actions by this user — last 7 days."
 msgstr ""
 
-#: templates/admin/user_detail.html:218
+#: templates/admin/user_detail.html:212
 msgid "View all in logs"
 msgstr ""
 
-#: templates/admin/user_detail.html:250
+#: templates/admin/user_detail.html:244
 msgid "Danger zone"
 msgstr ""
 
-#: templates/admin/user_detail.html:252
+#: templates/admin/user_detail.html:246
 msgid "Deleting this user is irreversible. Their access is revoked immediately."
 msgstr ""
 
-#: templates/admin/user_detail.html:260
+#: templates/admin/user_detail.html:254
 msgid "Sign out everywhere"
 msgstr ""
 
 #: templates/admin/modals/_user_modals.html:6
-#: templates/admin/user_detail.html:266
+#: templates/admin/user_detail.html:260
 msgid "Delete user"
 msgstr ""
 
-#: templates/admin/user_detail.html:277
+#: templates/admin/user_detail.html:271
 msgid "Delete user?"
 msgstr ""
 
@@ -6956,7 +6925,7 @@ msgid "Hide query"
 msgstr ""
 
 #: templates/js/_reporting_ai_js.html:43
-#: templates/js/admin/_access_control_js.html:19
+#: templates/js/admin/_access_control_js.html:9
 #: templates/js/admin/_user_detail_js.html:62
 #: templates/js/admin/_user_detail_js.html:166
 #: templates/js/admin/_user_detail_js.html:288
@@ -7503,6 +7472,10 @@ msgstr ""
 
 #: templates/js/_reporting_schema_js.html:10
 msgid "cols"
+msgstr ""
+
+#: templates/js/_reporting_schema_js.html:11
+msgid "view"
 msgstr ""
 
 #: templates/js/_reporting_schema_js.html:12
@@ -8145,70 +8118,34 @@ msgid "No Profile"
 msgstr ""
 
 #: templates/js/admin/_access_control_js.html:7
-msgid "allowed"
-msgstr ""
-
-#: templates/js/admin/_access_control_js.html:8
-msgid "denied"
-msgstr ""
-
-#: templates/js/admin/_access_control_js.html:9
 msgid "Create New Access Profile"
 msgstr ""
 
-#: templates/js/admin/_access_control_js.html:10
-msgid "will affect 0 users (new profile)"
-msgstr ""
-
-#: templates/js/admin/_access_control_js.html:11
+#: templates/js/admin/_access_control_js.html:8
 msgid "Edit Profile:"
 msgstr ""
 
-#: templates/js/admin/_access_control_js.html:12
-msgid "Adjust permissions assigned to this profile"
-msgstr ""
-
-#: templates/js/admin/_access_control_js.html:13
-msgid "will affect"
-msgstr ""
-
-#: templates/js/admin/_access_control_js.html:14
-msgid "user"
-msgstr ""
-
-#: templates/js/admin/_access_control_js.html:16
-msgid "Overrides for"
-msgstr ""
-
-#: templates/js/admin/_access_control_js.html:17
-msgid "Overrides take priority over the user's access profile"
-msgstr ""
-
-#: templates/js/admin/_access_control_js.html:18
-msgid "will affect 1 user:"
-msgstr ""
-
-#: templates/js/admin/_access_control_js.html:20
+#: templates/js/admin/_access_control_js.html:10
 msgid "Error loading data."
 msgstr ""
 
-#: templates/js/admin/_access_control_js.html:21
+#: templates/js/admin/_access_control_js.html:11
 msgid "No users found."
 msgstr ""
 
-#: templates/js/admin/_access_control_js.html:22
+#: templates/js/admin/_access_control_js.html:12
 msgid "overrides"
 msgstr ""
 
-#: templates/js/admin/_access_control_js.html:23
+#: templates/js/admin/_access_control_js.html:13
 msgid "default"
 msgstr ""
 
-#: templates/js/admin/_access_control_js.html:24
+#: templates/js/admin/_access_control_js.html:14
 msgid "You do not have permission to create users."
 msgstr ""
 
-#: templates/js/admin/_access_control_js.html:26
+#: templates/js/admin/_access_control_js.html:16
 #: templates/js/admin/_clients_js.html:112
 #: templates/js/admin/_clients_js.html:166
 #: templates/js/admin/_organizations_js.html:124
@@ -8218,83 +8155,6 @@ msgstr ""
 #: templates/js/admin/_user_management_js.html:123
 #: templates/js/admin/_user_management_js.html:173
 msgid "Error:"
-msgstr ""
-
-#: templates/js/admin/_access_control_js.html:27
-msgid "No permissions found."
-msgstr ""
-
-#: templates/js/admin/_access_control_js.html:32
-#: templates/js/admin/_user_detail_js.html:396
-msgid "Denied"
-msgstr ""
-
-#: templates/js/admin/_access_control_js.html:33
-msgid "Users with this permission"
-msgstr ""
-
-#: templates/js/admin/_access_control_js.html:34
-msgid "explicitly denied"
-msgstr ""
-
-#: templates/js/admin/_access_control_js.html:38
-msgid "Has Permission"
-msgstr ""
-
-#: templates/js/admin/_access_control_js.html:39
-msgid "No users have this permission assigned."
-msgstr ""
-
-#: templates/js/admin/_access_control_js.html:41
-msgid "Edit Permission"
-msgstr ""
-
-#: templates/js/admin/_access_control_js.html:42
-msgid "Code and description are required."
-msgstr ""
-
-#: templates/js/admin/_access_control_js.html:43
-msgid "Are you sure you want to delete"
-msgstr ""
-
-#: templates/js/admin/_access_control_js.html:44
-msgid "Override Allow"
-msgstr ""
-
-#: templates/js/admin/_access_control_js.html:45
-msgid "Override Deny"
-msgstr ""
-
-#: templates/js/admin/_access_control_js.html:46
-msgid "Profile Allow"
-msgstr ""
-
-#: templates/js/admin/_access_control_js.html:47
-msgid "Profile Deny"
-msgstr ""
-
-#: templates/js/admin/_access_control_js.html:48
-msgid "No assignment"
-msgstr ""
-
-#: templates/js/admin/_access_control_js.html:49
-msgid "Cannot activate"
-msgstr ""
-
-#: templates/js/admin/_access_control_js.html:50
-msgid "Enable at least one process filter first."
-msgstr ""
-
-#: templates/js/admin/_access_control_js.html:51
-msgid "Auto-enabled"
-msgstr ""
-
-#: templates/js/admin/_access_control_js.html:52
-msgid "Auto-denied"
-msgstr ""
-
-#: templates/js/admin/_access_control_js.html:53
-msgid "Requires view permission"
 msgstr ""
 
 #: templates/js/admin/_clients_js.html:51
@@ -8415,32 +8275,41 @@ msgid ""
 "undone."
 msgstr ""
 
-#: templates/js/admin/_permission_matrix_js.html:9
-msgid "User override"
+#: templates/js/admin/_permissions_js.html:7
+#, python-brace-format
+msgid "{n} unsaved change(s)"
 msgstr ""
 
-#: templates/js/admin/_permission_matrix_js.html:48
-msgid "No one holds this permission."
+#: templates/js/admin/_permissions_js.html:8
+msgid "Grants saved"
 msgstr ""
 
-#: templates/js/admin/_permission_matrix_js.html:56
-msgid "Manage"
+#: templates/js/admin/_permissions_js.html:9
+msgid "Could not save grants"
 msgstr ""
 
-#: templates/js/admin/_permission_matrix_js.html:60
-msgid "Could not load holders."
+#: templates/js/admin/_permissions_js.html:10
+msgid "Requires the .view permission of this object"
 msgstr ""
 
-#: templates/js/admin/_permission_matrix_js.html:75
-msgid "This user holds no permissions."
+#: templates/js/admin/_permissions_js.html:11
+msgid "Held by"
 msgstr ""
 
-#: templates/js/admin/_permission_matrix_js.html:100
-msgid "Manage overrides"
+#: templates/js/admin/_permissions_js.html:12
+msgid "Nobody holds this permission"
 msgstr ""
 
-#: templates/js/admin/_permission_matrix_js.html:102
-msgid "Could not load permissions."
+#: templates/js/admin/_permissions_js.html:14
+msgid "Edit Permission"
+msgstr ""
+
+#: templates/js/admin/_permissions_js.html:15
+msgid "Code and description are required."
+msgstr ""
+
+#: templates/js/admin/_permissions_js.html:16
+msgid "Click again to delete"
 msgstr ""
 
 #: templates/js/admin/_processes_js.html:93
@@ -8568,6 +8437,10 @@ msgstr ""
 
 #: templates/js/admin/_user_detail_js.html:338
 msgid "Profile · Deny"
+msgstr ""
+
+#: templates/js/admin/_user_detail_js.html:396
+msgid "Denied"
 msgstr ""
 
 #: templates/js/admin/_user_detail_js.html:460
