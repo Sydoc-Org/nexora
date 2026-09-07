@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-04 10:53+0200\n"
+"POT-Creation-Date: 2026-09-07 08:26+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -4671,119 +4671,233 @@ msgstr "Conferma la nuova password"
 msgid "Confirm your new password"
 msgstr "Conferma la tua nuova password"
 
-#: templates/legal.html:58
+#: templates/legal.html:74
 msgid "Back to nexora"
 msgstr "Torna a nexora"
 
-#: templates/legal.html:62
+#: templates/legal.html:78
 msgid "Sydoc AG"
 msgstr "Sydoc AG"
 
-#: templates/legal.html:70
+#: templates/legal.html:86
 msgid "Draft — not yet in force."
 msgstr "Bozza – non ancora in vigore."
 
-#: templates/legal.html:71
+#: templates/legal.html:87
 msgid ""
 "This page is a skeleton prepared for legal review. The factual sections "
 "describing what the system stores were read from the application itself "
 "and are accurate; the wording, the legal bases, the retention periods and"
 " the contact details still have to be written and approved before this is"
 " published."
-msgstr "Questa pagina è una struttura predisposta per la revisione legale. Le sezioni che descrivono ciò che il sistema memorizza sono state lette direttamente dall'applicazione e sono corrette; formulazione, basi giuridiche, periodi di conservazione e recapiti devono ancora essere redatti e approvati prima della pubblicazione."
+msgstr ""
+"Questa pagina è una struttura predisposta per la revisione legale. Le "
+"sezioni che descrivono ciò che il sistema memorizza sono state lette "
+"direttamente dall'applicazione e sono corrette; formulazione, basi "
+"giuridiche, periodi di conservazione e recapiti devono ancora essere "
+"redatti e approvati prima della pubblicazione."
 
-#: templates/legal.html:76
+#: templates/legal.html:92
 msgid "Who is responsible"
 msgstr "Titolare del trattamento"
 
-#: templates/legal.html:79
+#: templates/legal.html:93
+msgid ""
+"To be completed: legal entity, address, and the contact point for data-"
+"protection questions."
+msgstr ""
+"Da completare: entità giuridica, indirizzo e punto di contatto per le "
+"questioni di protezione dei dati."
+
+#: templates/legal.html:95
 msgid "What nexora stores about you"
 msgstr "Che cosa nexora memorizza su di lei"
 
-#: templates/legal.html:80
+#: templates/legal.html:96
 msgid ""
 "The following is read from the application and is factually accurate as "
 "of this release:"
-msgstr "Quanto segue è stato letto dall'applicazione ed è corretto per questa versione:"
+msgstr ""
+"Quanto segue è stato letto dall'applicazione ed è corretto per questa "
+"versione:"
 
-#: templates/legal.html:82
+#: templates/legal.html:98
 msgid ""
 "Account details: name, username, e-mail address, organisation, language "
 "and interface preferences."
-msgstr "Dati dell'account: nome, nome utente, indirizzo e-mail, organizzazione, lingua e preferenze dell'interfaccia."
+msgstr ""
+"Dati dell'account: nome, nome utente, indirizzo e-mail, organizzazione, "
+"lingua e preferenze dell'interfaccia."
 
-#: templates/legal.html:83
+#: templates/legal.html:99
 msgid "Sign-in security: a password hash and, where enabled, a two-factor secret."
-msgstr "Sicurezza di accesso: un hash della password e, se attivo, un segreto a due fattori."
+msgstr ""
+"Sicurezza di accesso: un hash della password e, se attivo, un segreto a "
+"due fattori."
 
-#: templates/legal.html:84
+#: templates/legal.html:100
 msgid ""
 "Active sessions: a session identifier, your IP address, and the times the"
-" session was created and last used. These rows are deleted automatically "
-"eight days after last use."
-msgstr "Sessioni attive: un identificativo di sessione, il suo indirizzo IP e gli orari di creazione e di ultimo utilizzo. Questi record vengono eliminati automaticamente otto giorni dopo l'ultimo utilizzo."
+" session was created and last used."
+msgstr ""
+"Sessioni attive: un identificativo di sessione, il suo indirizzo IP e gli"
+" orari di creazione e di ultimo utilizzo."
 
-#: templates/legal.html:85
+#: templates/legal.html:101
 msgid ""
 "Request log: for each page or API call, the time, the path, the method "
 "and the account that made it."
-msgstr "Registro delle richieste: per ogni pagina o chiamata API, l'orario, il percorso, il metodo e l'account che l'ha effettuata."
+msgstr ""
+"Registro delle richieste: per ogni pagina o chiamata API, l'orario, il "
+"percorso, il metodo e l'account che l'ha effettuata."
 
-#: templates/legal.html:86
+#: templates/legal.html:102
 msgid ""
 "Business documents and their index fields, on behalf of the organisation "
 "whose data is being processed."
-msgstr "Documenti aziendali e relativi campi indice, per conto dell'organizzazione i cui dati sono trattati."
+msgstr ""
+"Documenti aziendali e relativi campi indice, per conto "
+"dell'organizzazione i cui dati sono trattati."
 
-#: templates/legal.html:89
+#: templates/legal.html:105
 msgid "Why it is stored"
 msgstr "Perché viene memorizzato"
 
-#: templates/legal.html:92
+#: templates/legal.html:106
+msgid ""
+"To be completed: the purpose and legal basis for each category above. "
+"Note that the request log and the IP addresses in the session table "
+"currently have no stated purpose or retention period."
+msgstr ""
+"Da completare: la finalità e la base giuridica per ciascuna delle "
+"categorie sopra elencate. Da notare: il registro delle richieste e gli "
+"indirizzi IP nella tabella delle sessioni non hanno attualmente né una "
+"finalità né un periodo di conservazione dichiarati."
+
+#: templates/legal.html:108
 msgid "How long it is kept"
 msgstr "Per quanto tempo viene conservato"
 
-#: templates/legal.html:93
+#: templates/legal.html:109
 msgid ""
-"Session rows are removed eight days after last use. Everything else "
-"currently has no defined retention period."
-msgstr "I record di sessione vengono rimossi otto giorni dopo l'ultimo utilizzo. Per tutto il resto non è attualmente definito alcun periodo di conservazione."
+"Nothing in nexora currently has a defined retention period: session rows,"
+" the request log, document data and closed accounts are all kept "
+"indefinitely."
+msgstr ""
+"Attualmente nessun dato in nexora ha un periodo di conservazione "
+"definito: i record di sessione, il registro delle richieste, i dati dei "
+"documenti e gli account chiusi vengono conservati a tempo indeterminato."
 
-#: templates/legal.html:96
+#: templates/legal.html:110
+msgid ""
+"To be completed: a retention period for each category, for the request "
+"log, for document data and for closed accounts. An automatic eight-day "
+"prune of the session table is written but not yet in service; this "
+"section must not claim it until it is."
+msgstr ""
+"Da completare: un periodo di conservazione per ciascuna categoria, per il"
+" registro delle richieste, per i dati dei documenti e per gli account "
+"chiusi. Una cancellazione automatica della tabella delle sessioni dopo "
+"otto giorni è già scritta ma non ancora in funzione; questa sezione non "
+"deve annunciarla prima."
+
+#: templates/legal.html:112
 msgid "Who it is shared with"
 msgstr "A chi vengono comunicati i dati"
 
-#: templates/legal.html:99
+#: templates/legal.html:113
+msgid ""
+"To be completed: sub-processors and hosting, including Microsoft Graph "
+"for mail and any cloud database regions used."
+msgstr ""
+"Da completare: i sub-responsabili e l'hosting, compresi Microsoft Graph "
+"per la posta e tutte le regioni di database cloud utilizzate."
+
+#: templates/legal.html:115
 msgid "Your rights"
 msgstr "I suoi diritti"
 
-#: templates/legal.html:102
+#: templates/legal.html:116
+msgid ""
+"To be completed: access, correction, deletion and objection, and how to "
+"exercise them."
+msgstr ""
+"Da completare: accesso, rettifica, cancellazione e opposizione, e come "
+"esercitarli."
+
+#: templates/legal.html:118
 msgid "Scope"
 msgstr "Ambito di applicazione"
 
-#: templates/legal.html:105
+#: templates/legal.html:119
+msgid ""
+"To be completed: who may use nexora, and on whose authority an account is"
+" issued."
+msgstr ""
+"Da completare: chi può utilizzare nexora e in base a quale autorità viene"
+" rilasciato un account."
+
+#: templates/legal.html:121
 msgid "Acceptable use"
 msgstr "Uso consentito"
 
-#: templates/legal.html:108
+#: templates/legal.html:122
+msgid ""
+"To be completed: permitted use, account sharing, and what happens to an "
+"account on misuse."
+msgstr ""
+"Da completare: uso consentito, condivisione dell'account e conseguenze di"
+" un uso improprio."
+
+#: templates/legal.html:124
 msgid "Availability"
 msgstr "Disponibilità"
 
-#: templates/legal.html:111
+#: templates/legal.html:125
+msgid ""
+"To be completed: any uptime commitment, planned maintenance, and how "
+"outages are communicated."
+msgstr ""
+"Da completare: eventuali impegni di disponibilità, la manutenzione "
+"pianificata e la comunicazione dei disservizi."
+
+#: templates/legal.html:127
 msgid "Confidentiality"
 msgstr "Riservatezza"
 
-#: templates/legal.html:114
+#: templates/legal.html:128
+msgid ""
+"To be completed: obligations covering the documents and data visible "
+"through the platform."
+msgstr ""
+"Da completare: gli obblighi relativi ai documenti e ai dati visibili "
+"tramite la piattaforma."
+
+#: templates/legal.html:130
 msgid "Liability"
 msgstr "Responsabilità"
 
-#: templates/legal.html:117
+#: templates/legal.html:131
+msgid "To be completed: limitation of liability."
+msgstr "Da completare: la limitazione di responsabilità."
+
+#: templates/legal.html:133
 msgid "Governing law"
 msgstr "Legge applicabile"
 
-#: templates/legal.html:121
+#: templates/legal.html:134
+msgid "To be completed: applicable law and place of jurisdiction."
+msgstr "Da completare: il diritto applicabile e il foro competente."
+
+#: templates/legal.html:137
 msgid "Changes to this document"
 msgstr "Modifiche al presente documento"
+
+#: templates/legal.html:138
+msgid "To be completed: how changes are announced and when they take effect."
+msgstr ""
+"Da completare: come vengono comunicate le modifiche e quando entrano in "
+"vigore."
 
 #: templates/maintenance.html:6
 msgid "Maintenance - nexora"
@@ -9922,4 +10036,15 @@ msgstr "A"
 
 #~ msgid "To be completed: how changes are announced and when they take effect."
 #~ msgstr ""
+
+#~ msgid ""
+#~ "Session rows are removed eight days "
+#~ "after last use. Everything else "
+#~ "currently has no defined retention "
+#~ "period."
+#~ msgstr ""
+#~ "I record di sessione vengono rimossi "
+#~ "otto giorni dopo l'ultimo utilizzo. Per"
+#~ " tutto il resto non è attualmente "
+#~ "definito alcun periodo di conservazione."
 

@@ -90,52 +90,52 @@
 
         {% if doc == 'privacy' %}
             <h2>{{ _('Who is responsible') }}</h2>
-            <div class="legal-gap">To be completed: legal entity, address, and the contact point for data-protection questions.</div>
+            <div class="legal-gap">{{ _('To be completed: legal entity, address, and the contact point for data-protection questions.') }}</div>
 
             <h2>{{ _('What nexora stores about you') }}</h2>
             <p>{{ _('The following is read from the application and is factually accurate as of this release:') }}</p>
             <ul>
                 <li>{{ _('Account details: name, username, e-mail address, organisation, language and interface preferences.') }}</li>
                 <li>{{ _('Sign-in security: a password hash and, where enabled, a two-factor secret.') }}</li>
-                <li>{{ _('Active sessions: a session identifier, your IP address, and the times the session was created and last used. These rows are deleted automatically eight days after last use.') }}</li>
+                <li>{{ _('Active sessions: a session identifier, your IP address, and the times the session was created and last used.') }}</li>
                 <li>{{ _('Request log: for each page or API call, the time, the path, the method and the account that made it.') }}</li>
                 <li>{{ _('Business documents and their index fields, on behalf of the organisation whose data is being processed.') }}</li>
             </ul>
 
             <h2>{{ _('Why it is stored') }}</h2>
-            <div class="legal-gap">To be completed: the purpose and legal basis for each category above. Note that the request log and the IP addresses in the session table currently have no stated purpose or retention period.</div>
+            <div class="legal-gap">{{ _('To be completed: the purpose and legal basis for each category above. Note that the request log and the IP addresses in the session table currently have no stated purpose or retention period.') }}</div>
 
             <h2>{{ _('How long it is kept') }}</h2>
-            <p>{{ _('Session rows are removed eight days after last use. Everything else currently has no defined retention period.') }}</p>
-            <div class="legal-gap">To be completed: a retention period for the request log, for document data, and for closed accounts.</div>
+            <p>{{ _('Nothing in nexora currently has a defined retention period: session rows, the request log, document data and closed accounts are all kept indefinitely.') }}</p>
+            <div class="legal-gap">{{ _('To be completed: a retention period for each category, for the request log, for document data and for closed accounts. An automatic eight-day prune of the session table is written but not yet in service; this section must not claim it until it is.') }}</div>
 
             <h2>{{ _('Who it is shared with') }}</h2>
-            <div class="legal-gap">To be completed: sub-processors and hosting, including Microsoft Graph for mail and any cloud database regions used.</div>
+            <div class="legal-gap">{{ _('To be completed: sub-processors and hosting, including Microsoft Graph for mail and any cloud database regions used.') }}</div>
 
             <h2>{{ _('Your rights') }}</h2>
-            <div class="legal-gap">To be completed: access, correction, deletion and objection, and how to exercise them.</div>
+            <div class="legal-gap">{{ _('To be completed: access, correction, deletion and objection, and how to exercise them.') }}</div>
         {% else %}
             <h2>{{ _('Scope') }}</h2>
-            <div class="legal-gap">To be completed: who may use nexora, and on whose authority an account is issued.</div>
+            <div class="legal-gap">{{ _('To be completed: who may use nexora, and on whose authority an account is issued.') }}</div>
 
             <h2>{{ _('Acceptable use') }}</h2>
-            <div class="legal-gap">To be completed: permitted use, account sharing, and what happens to an account on misuse.</div>
+            <div class="legal-gap">{{ _('To be completed: permitted use, account sharing, and what happens to an account on misuse.') }}</div>
 
             <h2>{{ _('Availability') }}</h2>
-            <div class="legal-gap">To be completed: any uptime commitment, planned maintenance, and how outages are communicated.</div>
+            <div class="legal-gap">{{ _('To be completed: any uptime commitment, planned maintenance, and how outages are communicated.') }}</div>
 
             <h2>{{ _('Confidentiality') }}</h2>
-            <div class="legal-gap">To be completed: obligations covering the documents and data visible through the platform.</div>
+            <div class="legal-gap">{{ _('To be completed: obligations covering the documents and data visible through the platform.') }}</div>
 
             <h2>{{ _('Liability') }}</h2>
-            <div class="legal-gap">To be completed: limitation of liability.</div>
+            <div class="legal-gap">{{ _('To be completed: limitation of liability.') }}</div>
 
             <h2>{{ _('Governing law') }}</h2>
-            <div class="legal-gap">To be completed: applicable law and place of jurisdiction.</div>
+            <div class="legal-gap">{{ _('To be completed: applicable law and place of jurisdiction.') }}</div>
         {% endif %}
 
         <h2>{{ _('Changes to this document') }}</h2>
-        <div class="legal-gap">To be completed: how changes are announced and when they take effect.</div>
+        <div class="legal-gap">{{ _('To be completed: how changes are announced and when they take effect.') }}</div>
     </div>
 
     {% include '_small_footer.html' %}

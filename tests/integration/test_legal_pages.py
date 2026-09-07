@@ -42,8 +42,17 @@ def test_privacy_lists_what_is_actually_stored(client):
     this list does not, the policy becomes wrong rather than merely vague."""
     body = client.get("/privacy").get_data(as_text=True)
     assert "Active sessions" in body
-    assert "eight days" in body, "session retention no longer stated"
     assert "Request log" in body
+
+
+def test_privacy_does_not_claim_a_retention_it_does_not_have(client):
+    """The page used to state that session rows are deleted after eight days.
+    Nothing deletes them: the prune is #227, still an open PR, and even merged
+    it needs a scheduled task on the host. A draft may be vague; it may not be
+    wrong, and the banner above vouches for the factual sections."""
+    body = client.get("/privacy").get_data(as_text=True)
+    assert "eight days" not in body, "retention claimed before it is in service"
+    assert "no defined retention period" in body or "kept indefinitely" in body
 
 
 def test_login_page_links_to_both(client):

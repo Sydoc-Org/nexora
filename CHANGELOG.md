@@ -41,9 +41,12 @@ Work toward the next release.
   bases, retention periods and contact details are marked as outstanding.
   What *is* written is factual and was read from the application: the
   privacy page lists the account fields, the session row (identifier, IP,
-  timestamps, deleted after eight days per #227) and the per-request log.
-  Filling in the rest needs someone qualified to write it -- publishing
-  plausible-sounding legal text would be worse than publishing none.
+  timestamps) and the per-request log. Retention is stated as what it is
+  today -- undefined for every category -- because the eight-day session
+  prune (#227) is written but not yet in service, and a draft may be vague
+  without being wrong. Filling in the rest needs someone qualified to write
+  it -- publishing plausible-sounding legal text would be worse than
+  publishing none.
 
 ## [3.2.4] - 2026-09-03
 
