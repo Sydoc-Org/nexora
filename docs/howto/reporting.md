@@ -990,8 +990,14 @@ sources: **Generali — PDQM Report** (`generali_pdqm` over `dbo.PDQMReport`) an
 with a `backlog_total` metric, migrations `0053`–`0056`/`0065`/`0066`/`0068`),
 was **retired by migration `0069`**: the date-anchored **Backlog** measure on
 the docprocessing source (see **`DateAnchor`** below) supersedes it, and the
-collector + table it read stay in place. Each source is gated by its own
-permission (`reporting.source.generali_pdqm.use`, `reporting.source.workitems.use`).
+collector + table it read stay in place. Migration `0117` adds four more Generali `table` sources over the tenant's fact
+tables: **Attendance** (`generali_attendance`), **Base Services**
+(`generali_baseservices`), **Project Management** (`generali_projects`) and **ISS
+Reporting** (`generali_iss`) — effort hours and KPI filings by category and date,
+the date columns `grainable`. The tenant's lookup tables carry no measures and
+are not registered. Each source is gated by its own
+permission (`reporting.source.<code>.use`, e.g. `reporting.source.generali_pdqm.use`,
+`reporting.source.workitems.use`).
 Unlike the docprocessing source, the `table` provider does **not** apply
 `process.*.view` row scoping — the source permission is the whole
 gate, so grant it deliberately. Tune the exposed columns/object at

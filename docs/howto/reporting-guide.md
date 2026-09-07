@@ -131,6 +131,10 @@ The page is a small workspace with a fixed navigation on the left:
 
 Under the navigation, the **Sources** list shows each data source you can
 report on, with a green dot and its current response time.
+Which sources you see depends on your permissions. Generali users typically get
+the tenant's own tables here — **Attendance**, **Base Services**, **Project
+Management**, **ISS Reporting** and **PDQM Report** — each a flat table of
+effort hours or KPI filings by category and date, so "over time" breakdowns work.
 
 **Click a source card** to look inside the database behind it (needs the
 "browse source structure" permission — see [For administrators](#for-administrators-internal)):

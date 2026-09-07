@@ -10,6 +10,12 @@ Work toward the next release.
 
 ### Added
 
+- **Generali reporting sources** — migration `0117` registers **Attendance**,
+  **Base Services**, **Project Management** and **ISS Reporting** as generic `table`
+  sources over the Generali tenant DB (effort hours and KPI filings by category,
+  date columns grainable for "over time" breakdowns). One `reporting.source.<code>.use`
+  permission each; only Enterprise Admin holds them until granted. No code — the
+  column catalog in `ColumnsJSON` is the whole config a custom tenant needs.
 - **Architecture diagram** — `docs/nexora-architecture.drawio`, four pages: system
   overview, request lifecycle, multi-source workitems, tenancy & permissions. Pointer
   added to `docs/design/architecture-conventions.md`.
@@ -165,6 +171,9 @@ Work toward the next release.
   permanently at 100%.
 
 ### Fixed
+
+- `POST /api/reporting/run` answered 500 instead of 400 when a `columns` entry
+  was a bare string rather than `{field}` (the error message itself crashed).
 
 - **The reporting KPI tiles said what they compute.** On a report with a date
   dimension *and* a second breakdown ("Extraction correct % by month / Field":
