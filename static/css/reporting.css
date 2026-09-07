@@ -961,6 +961,10 @@ body.nx-app {
   letter-spacing: .06em; color: var(--nx-text-meta); margin: 12px 0 2px;
 }
 .rs-choice-group-label:first-child { margin-top: 0; }
+.rs-choice-group-sublabel {
+  text-transform: none; letter-spacing: 0; font-weight: 600; font-size: 11.5px;
+  color: var(--nx-text-sec); margin-top: 6px;
+}
 .reporting-simple-inline { display: inline-flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 13px; font-weight: 600; color: var(--nx-text-sec); }
 .reporting-simple-scopestep { margin-bottom: 10px; font-size: 14px; border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 8px); background: var(--nx-card); max-width: 520px; max-height: 260px; overflow: auto; padding: 10px 12px; }
 .reporting-simple-scopestep label { display: block; padding: 3px 0; }

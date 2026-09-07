@@ -666,10 +666,12 @@
     var w = RS.state.wiz;
     if (!Array.isArray(w.measures)) w.measures = [];
     var bySource = RS.state.metricsBySource || {};
-    var visible = Object.keys(bySource).filter(function (sid) {
-      return (RS.state.sources || []).some(function (s) { return s.id === sid; });
-    });
+    // Walk sources in registry order (sortOrder) so a tenant's block stays
+    // together; only sources that carry measures are visible.
+    var visible = (RS.state.sources || []).filter(function (s) { return bySource[s.id]; })
+      .map(function (s) { return s.id; });
     var multi = visible.length > 1;
+    var lastGroup = null;
     visible.forEach(function (sid) {
       var src = RS.state.sources.find(function (s) { return s.id === sid; });
       var srcProcs = src.processes || [];
@@ -692,7 +694,21 @@
       // caption is dropped and the chips read as one plain list.
       // Sources without metrics never appear; admins grow the wizard's reach
       // by adding rows in the metrics registry, zero code change.
-      if (multi) list.appendChild(groupLabel(src.label));
+      // "Tenant — Thing" labels share one heading per tenant with a sub-label
+      // per source, so five Generali sources read as one Generali passage.
+      if (multi) {
+        var parts = src.label.split(' — ');
+        if (parts.length > 1) {
+          if (parts[0] !== lastGroup) list.appendChild(groupLabel(parts[0]));
+          var sub = groupLabel(parts.slice(1).join(' — '));
+          sub.className += ' rs-choice-group-sublabel';
+          list.appendChild(sub);
+          lastGroup = parts[0];
+        } else {
+          list.appendChild(groupLabel(src.label));
+          lastGroup = null;
+        }
+      }
       offered.forEach(function (o) {
         var m = o.m;
         var fld = o.fld;

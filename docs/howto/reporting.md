@@ -1005,8 +1005,14 @@ the date columns `grainable`; `0118` seeds their measures (effort-hour sums,
 entry counts, ISS reports filed — no on-time sum, `SUM` over a `bit` is invalid
 T-SQL, so break the count down by the `OnTime` dimension). The Simple wizard
 lists measures grouped by source, so a source with no `ReportingMetrics` row is
-Advanced-only. The tenant's lookup tables carry no measures and are not
-registered. Each source is gated by its own
+Advanced-only. `0119` registers the two objects the tenant pages already read —
+**Documents** over `dbo.v_ReportJobJoinDefinitions` (the ReportJob feed with
+lookup labels joined; measures `Documents` / `Cases`) and **CSV Imports** over
+`dbo.CSVImportLog` — relabels ISS to "Reporting", and moves the Generali block
+to `SortOrder` 200+ so platform sources lead. The wizard's measure step walks
+sources in `SortOrder` and splits a `Tenant — Thing` label at the em dash: one
+uppercase heading per tenant, a `.rs-choice-group-sublabel` per source. The
+tenant's lookup tables carry no measures and are not registered. Each source is gated by its own
 permission (`reporting.source.<code>.use`, e.g. `reporting.source.generali_pdqm.use`,
 `reporting.source.workitems.use`).
 Unlike the docprocessing source, the `table` provider does **not** apply

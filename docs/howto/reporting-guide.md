@@ -132,11 +132,13 @@ The page is a small workspace with a fixed navigation on the left:
 Under the navigation, the **Sources** list shows each data source you can
 report on, with a green dot and its current response time.
 Which sources you see depends on your permissions. Generali users typically get
-the tenant's own tables here — **Attendance**, **Base Services**, **Project
-Management**, **ISS Reporting** and **PDQM Report** — each a flat table of
-effort hours or KPI filings by category and date, so "over time" breakdowns work.
-Their measures (Effort hours, Entries, Reports filed) sit at the bottom of the
-Simple wizard's measure list. Clicking a source card in the rail opens its
+the tenant's own tables here — **Documents**, **Attendance**, **Base Services**,
+**Project Management**, **Reporting**, **CSV Imports** and **PDQM Report** — each a
+flat table with dates, so "over time" breakdowns work.
+In the Simple wizard's measure list they form one **Generali** block: Documents
+(the same document feed the Generali dashboard charts — break it down by document
+type, input channel, language, post-check…), Attendance, Base Services, Project
+Management, Reporting and CSV Imports. Clicking a source card in the rail opens its
 database **structure**, not a report — start reports with **New report**.
 
 **Click a source card** to look inside the database behind it (needs the

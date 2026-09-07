@@ -19,6 +19,15 @@ Work toward the next release.
   Migration `0118` gives them Simple-wizard measures: **Effort (hours)** and
   **Entries** per effort table, **Reports filed** for ISS (break down by "On time"
   for the share). Sources without a measure are Advanced-only by design.
+  Migration `0119` adds the two sources behind the Generali dashboard and import
+  status pages: **Documents** over `dbo.v_ReportJobJoinDefinitions` (~870k rows;
+  document type, input channel, communication, direction, recipient, language,
+  status, post-checks, scan date — measures Documents and Cases) and **CSV
+  Imports** over `dbo.CSVImportLog` (import runs, rows inserted/updated). The
+  ISS source is relabelled **Reporting**, and the wizard's measure list groups
+  every `Tenant — Thing` source under one tenant heading with a sub-label each,
+  so Generali reads as one passage: Documents, Attendance, Base Services,
+  Project Management, Reporting, CSV Imports. Platform sources sort first.
 - **Architecture diagram** — `docs/nexora-architecture.drawio`, four pages: system
   overview, request lifecycle, multi-source workitems, tenancy & permissions. Pointer
   added to `docs/design/architecture-conventions.md`.
