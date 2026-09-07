@@ -385,6 +385,7 @@
           <select id="rpSavedReports" data-testid="reporting-saved-reports">
             <option value="">{{ _("Saved reports…") }}</option>
           </select>
+          <select id="rpLayoutPick" class="rc-select" data-testid="reporting-layout-pick"></select>
           <button id="rpLoad" class="reporting-btn nx-btn nx-btn--secondary" data-testid="reporting-load">{{ _("Load") }}</button>
           <span class="reporting-saved-links">
             <button id="rpRename" class="reporting-link nx-btn nx-btn--ghost nx-btn--sm" data-testid="reporting-rename">{{ _("Rename") }}</button>
@@ -437,6 +438,7 @@
         </select>
       </div>
       <div id="rpKpiBand" class="reporting-ledger-kpis" hidden data-testid="reporting-kpi-band"></div>
+      <div id="rpLayoutGrid" class="rdb-grid rl-grid" hidden data-testid="reporting-layout-grid"></div>
       <div id="rpResults" class="reporting-table-wrap" data-testid="reporting-results">
         <div class="nx-empty reporting-empty-state" data-testid="reporting-empty-state">
           <div class="nx-empty__art"><i class="fas fa-chart-column" aria-hidden="true"></i></div>
