@@ -8,6 +8,29 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
+### Fixed
+
+- **The `dbo.ActiveSessions` prune now has a way to be scheduled.** #227
+  shipped `ops/cleanup/prune_active_sessions.py` and a docstring asking someone
+  to register a task by hand; nothing in the repo executed it, so merging and
+  deploying it deleted exactly zero rows.
+  `ops/cleanup/prune-active-sessions-task.xml` is a ready-to-import Task
+  Scheduler definition — daily 03:30, SYSTEM, `ENVIRONMENT=PROD`, output to
+  `var/logs/system/prune_active_sessions.log` — following the pattern
+  `ops/outage-monitor-task.xml` already established:
+
+  ```
+  schtasks /create /xml "D:\sydoc
+exora\ops\cleanup\prune-active-sessions-task.xml" /tn "\sydoc
+exora\Prune Sessions"
+  ```
+
+  Still one manual step on the host — the repo cannot register a task — but a
+  one-command step with the definition under version control, rather than
+  someone's memory of clicking through Task Scheduler. Four tests cover it,
+  including that the file keeps its UTF-16 LE encoding: Task Scheduler refuses
+  UTF-8, and an editor silently "fixing" it is invisible until an import fails.
+
 ### Changed
 
 - **Repository moved to the `Sydoc-Org` GitHub organization** (from the
