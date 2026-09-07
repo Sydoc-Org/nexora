@@ -807,6 +807,7 @@
       document.getElementById('rpResults').hidden = true;
       document.getElementById('rpChart').hidden = true;
       document.getElementById('rpKpiBand').hidden = true;
+      document.getElementById('rpViewToggle').hidden = true;
       return;
     }
     if (lgrid) { lgrid.hidden = true; if (window.ReportingLayoutView) window.ReportingLayoutView.destroy(lgrid); }
@@ -1627,10 +1628,12 @@
         // same contract as the Simple wizard's rsLayoutPick.
         var pick = document.getElementById('rpLayoutPick');
         if (pick) {
+          var pickCurrent = pick.value;
           var layoutsMine = (reports || []).filter(function (r) { return r.kind === 'layout' && r.owned; });
           pick.innerHTML = '<option value="">' + esc(I18N.layoutStandard) + '</option>' +
             layoutsMine.map(function (r) { return '<option value="' + r.id + '">' + esc(r.name) + '</option>'; }).join('');
           pick.hidden = !layoutsMine.length;
+          if (pickCurrent) pick.value = pickCurrent;
         }
         if (mine.length) {
           var g1 = document.createElement('optgroup');

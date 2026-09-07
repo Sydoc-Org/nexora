@@ -204,8 +204,8 @@
       }
       tools += '<button type="button" class="rl-x" data-remove-tile="' + esc(t.id) + '" aria-label="' + esc(I18N.removeTile) + '" data-testid="rl-remove-tile">&times;</button>';
     }
-    return '<div class="rdb-card rl-tile" data-card-id="' + esc(t.id) + '" data-type="' + t.type + '" draggable="' + (state.editing ? 'true' : 'false') + '" ' +
-      'style="' + window.ReportingGrid.geomStyle(t.span, t.rows) + '" data-testid="rl-tile">' +
+    return '<div class="rdb-card rl-tile" data-card-id="' + esc(t.id) + '" data-type="' + esc(t.type) + '" draggable="' + (state.editing ? 'true' : 'false') + '" ' +
+      'style="' + esc(window.ReportingGrid.geomStyle(t.span, t.rows)) + '" data-testid="rl-tile">' +
       '<div class="rdb-card-head"><span class="rdb-card-title">' + head + '</span><span class="rdb-spacer"></span>' + tools + '</div>' +
       '<div class="rdb-card-body" data-tile-body></div>' +
       (state.editing ? '<span class="rdb-card-resize" data-testid="rdb-card-resize" title="' + esc(I18N.resizeTile) + '" aria-hidden="true"></span>' : '') +
