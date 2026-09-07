@@ -31,8 +31,17 @@ USAGE
     python ops/cleanup/prune_active_sessions.py              # delete
 
 ENVIRONMENT selects the target database, exactly as it does for the app
-(ENVIRONMENT=PROD on the scheduled run). Scheduled alongside
-cleanup_expired_sessionFiles.ps1 on the app host.
+(ENVIRONMENT=PROD on the scheduled run).
+
+NOT YET SCHEDULED -- MANUAL DEPLOY STEP
+Merging this changes nothing on its own: no row is deleted until someone
+registers a scheduled task on the app host, next to the existing
+cleanup_expired_sessionFiles.ps1. Until that task exists, do not state the
+retention anywhere user-facing -- the privacy page (#260) made exactly that
+mistake. Same failure mode as env/PROD.env in CLAUDE.md: the repo change
+lands, the server side is hand-work, and forgetting is silent.
+
+    ENVIRONMENT=PROD python ops/cleanup/prune_active_sessions.py --dry-run
 """
 
 import argparse
