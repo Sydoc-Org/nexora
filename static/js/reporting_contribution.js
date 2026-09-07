@@ -91,6 +91,7 @@ window.ReportingContribution = (function () {
   }
 
   function onBodyKey(e) {
+    if (!current) return;
     if (e.key !== 'Enter') return;
     var row = e.target.closest('[data-row]');
     if (row) drill(row);
@@ -102,10 +103,25 @@ window.ReportingContribution = (function () {
     var r = dim.rows[Number(rowEl.getAttribute('data-row'))];
     var value = r.value === '(empty)' ? null : r.value;
     var def = current.definition, fields = current.fields;
+    var clicked = [{ field: dim.field, grain: null, value: value }];
+    // The server picks dimensions by type=="string" without checking
+    // filterable, so a clicked field can be absent from the source's field
+    // list (or explicitly unfilterable). Check before handing the shell
+    // over: ReportingDrill.open would toast and bail internally, but by
+    // then #rdBody would already show contribution content with no owner
+    // left to react to further clicks (onBodyClick/onBodyKey both require
+    // `current`) -- a drawer that looks alive but is inert. Keep `current`
+    // (and the export buttons hidden) so the contribution drawer stays usable.
+    if (!ReportingDrill.buildDrillDefinition(def, fields, clicked)) {
+      window.NX.toast(ReportingDrill.I18N.cannotFilter, true);
+      return;
+    }
     current = null;                          // the drill now owns the shell
+    if (el('rdExportCsv')) el('rdExportCsv').hidden = false;
+    if (el('rdExportXlsx')) el('rdExportXlsx').hidden = false;
     ReportingDrill.open({
       definition: def, fields: fields,
-      clicked: [{ field: dim.field, grain: null, value: value }],
+      clicked: clicked,
       header: dim.label + ' = ' + (value === null ? ReportingDrill.I18N.nullLabel : String(value).slice(0, 60))
     });
   }
@@ -120,6 +136,15 @@ window.ReportingContribution = (function () {
     el('rdSubtitle').textContent = I18N.subtitle;
     el('rdChips').innerHTML = '';
     el('rdNote').textContent = '';
+    // #rdExportCsv/#rdExportXlsx are drill-only actions -- dead here.
+    // Re-shown right before handing the shell over to ReportingDrill.open.
+    if (el('rdExportCsv')) el('rdExportCsv').hidden = true;
+    if (el('rdExportXlsx')) el('rdExportXlsx').hidden = true;
+    // A leftover callout from a previous drill (ReportingDrill.ensureCallout
+    // inserts it lazily and never removes it) doesn't belong in a
+    // contribution drawer; the drill re-inserts its own on its next open().
+    var callout = el('rdCallout');
+    if (callout && callout.parentNode) callout.parentNode.removeChild(callout);
     el('rdBody').innerHTML =
       '<div class="reporting-ai-loading"><span class="reporting-ai-dots" aria-hidden="true">' +
       '<i></i><i></i><i></i></span><span role="status">' + esc(I18N.loading) + '</span></div>';
@@ -130,7 +155,11 @@ window.ReportingContribution = (function () {
     window.NX.apiSafe('/api/reporting/contribution', {
       method: 'POST', body: JSON.stringify(definition)
     }).then(function (r) {
-      if (current !== token) return;
+      // Bail if superseded by a later open() OR if the shared shell was
+      // closed/handed to another owner (backdrop click, Escape, or a drill
+      // hand-over) in the meantime -- those clear `current` and/or hide
+      // #rdPanel without going through this module's own close path.
+      if (current !== token || el('rdPanel').hidden) return;
       if (!r.ok) {
         el('rdBody').innerHTML = '<p class="reporting-drill-note" data-testid="contrib-error">' +
           esc((r.data && r.data.error) || I18N.loadError) + '</p>';
@@ -144,6 +173,15 @@ window.ReportingContribution = (function () {
   el('rdBody').addEventListener('click', onBodyClick);
   el('rdBody').addEventListener('keydown', onBodyKey);
   el('rdClose').addEventListener('click', function () { current = null; });
+  // ReportingDrill.wire() owns #rdBackdrop's click and document Escape --
+  // both close #rdPanel and null the drill's own `current`, but know nothing
+  // about this module's `current`. Mirror both here so a late contribution
+  // response (guarded above by el('rdPanel').hidden) never fires against a
+  // shell the user already dismissed.
+  el('rdBackdrop').addEventListener('click', function () { current = null; });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') current = null;
+  });
 
   return { open: open };
 })();

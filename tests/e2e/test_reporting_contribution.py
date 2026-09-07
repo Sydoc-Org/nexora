@@ -112,6 +112,45 @@ def test_why_chip_opens_contribution_drawer_and_drills(nexora_server, page):
     assert {"field": "doctype", "op": "eq", "value": "Invoice"} in runs[-1]["filters"]
 
 
+def test_declined_drill_leaves_drawer_usable(nexora_server, page):
+    """CONTRIB's first dimension is 'processname', which the stub source's
+    field list (WIZ_STUB_SOURCES: import_date, doctype) doesn't carry -- the
+    server picks contribution dimensions by type=="string" without checking
+    filterable, so this is a real, reachable shape. Clicking one of its rows
+    must decline the drill (toast) without leaving the drawer inert: tabs and
+    the surviving rows must still respond afterwards."""
+    _login(page, nexora_server)
+    _stub_catalogs(page)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+
+    def _contrib(route):
+        route.fulfill(status=200, content_type="application/json", body=json.dumps(CONTRIB))
+
+    def _run(route):
+        route.fulfill(status=200, content_type="application/json", body=json.dumps(RUN))
+
+    page.route("**/api/reporting/contribution", _contrib)
+    page.route("**/api/reporting/run", _run)
+    _run_with_preset(page)
+
+    page.get_by_test_id("rs-kpi-total").get_by_test_id("rp-delta").click()
+    expect(page.get_by_test_id("contrib-tab")).to_have_count(2)
+
+    # First tab ("Process") is the un-drillable "processname" dimension.
+    rows = page.get_by_test_id("contrib-rows").first.get_by_test_id("contrib-row")
+    rows.first.click()
+    expect(page.get_by_test_id("reporting-toast")).to_be_visible()
+
+    # Declined -- the drawer is still the contribution drawer, not handed
+    # over, and still fully interactive: rows are still there...
+    expect(page.get_by_test_id("contrib-rows").first).to_be_visible()
+    expect(rows).to_have_count(3)
+    # ...and a tab click still switches panels.
+    page.get_by_test_id("contrib-tab").nth(1).click()
+    expect(page.get_by_test_id("contrib-rows").nth(1)).to_be_visible()
+    expect(page.get_by_test_id("contrib-rows").first).to_be_hidden()
+
+
 def test_why_chip_shows_server_error(nexora_server, page):
     _login(page, nexora_server)
     _stub_catalogs(page)
