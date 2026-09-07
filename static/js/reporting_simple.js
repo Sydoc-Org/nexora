@@ -51,9 +51,10 @@
     RS.el('rsWizard').hidden = view !== 'wizard';
     RS.el('rsResult').hidden = view !== 'result';
     RS.el('rsDashboard').hidden = view !== 'dashboard';
+    RS.el('rsLayouts').hidden = view !== 'layouts';
     // The dashboard grid takes the whole viewport width: the workspace rail
     // and the shell's max-width step aside while it is open (reporting-console.css).
-    document.body.classList.toggle('rdb-fullbleed', view === 'dashboard');
+    document.body.classList.toggle('rdb-fullbleed', view === 'dashboard' || view === 'layouts');
     if (view !== 'result') {
       // Only the Chart.js instance is torn down; the rest of the result DOM
       // (KPI band, table, caption, chips, query card) stays rendered so the
@@ -93,7 +94,7 @@
       if (restoreResult()) return;
       // Nothing rendered yet this session: open the most recent report so
       // Results never shows an empty RS.state.
-      var r = (RS.state.reports || []).filter(function (x) { return x.kind !== 'dashboard'; })[0];
+      var r = (RS.state.reports || []).filter(function (x) { return x.kind !== 'dashboard' && x.kind !== 'layout'; })[0];
       if (r) RS.openReport(r); else setView('library');
       return;
     }
@@ -103,6 +104,11 @@
       if (d) { RS.openDashboard(d); return; }
       setView('dashboard');
       window.ReportingDashboard.openNew();
+    }
+    if (screen === 'definitions') {
+      if (RS.state.view === 'layouts') return;
+      setView('layouts');
+      if (window.ReportingLayouts) window.ReportingLayouts.open();
     }
   }
 

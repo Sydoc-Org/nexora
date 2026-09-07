@@ -2009,3 +2009,15 @@ def test_export_csv_appends_measures_block_for_layout(admin_client):
         assert "Measures" in text and "\nmean," in text.replace("\r", "")
     finally:
         admin_client.delete(f"/api/reporting/reports/{rid}")
+
+
+def test_reporting_definitions_redirects_into_the_console(admin_client):
+    resp = admin_client.get("/reporting/definitions")
+    assert resp.status_code == 302
+    assert resp.headers["Location"].endswith("/reporting?tab=definitions")
+
+
+def test_reporting_definitions_requires_reporting_view(client):
+    resp = client.get("/reporting/definitions")
+    assert resp.status_code in (302, 401, 403)
+    assert "tab=definitions" not in (resp.headers.get("Location") or "")

@@ -44,7 +44,7 @@
       try {
         var tab = new URLSearchParams(window.location.search).get('tab')
           || localStorage.getItem('nx.reporting.tab') || 'library';
-        var SCREENS = ['library', 'results', 'dashboards', 'scheduled', 'advanced'];
+        var SCREENS = ['library', 'results', 'dashboards', 'definitions', 'scheduled', 'advanced'];
         window.__rpInitialTab = tab === 'simple' ? 'library'
           : (SCREENS.indexOf(tab) !== -1 ? tab : 'library');
         // In-app motion pref (issue #155): the _header.html head script runs
@@ -104,6 +104,8 @@
           <i class="fas fa-chart-line" aria-hidden="true"></i>{{ _("Results") }}</button>
         <button type="button" id="rcNavDashboards" class="rc-nav" data-screen="dashboards" data-testid="rc-nav-dashboards">
           <i class="fas fa-table-cells-large" aria-hidden="true"></i>{{ _("Dashboards") }}<span class="rc-nav-count" id="rcNavDashboardsCount"></span></button>
+        <button type="button" id="rcNavDefinitions" class="rc-nav" data-screen="definitions" data-testid="rc-nav-definitions">
+          <i class="fas fa-sliders" aria-hidden="true"></i>{{ _("Report definitions") }}<span class="rc-nav-count" id="rcNavDefinitionsCount"></span></button>
         {% if has_permission('reporting.schedule') %}
         <button type="button" id="rcNavScheduled" class="rc-nav" data-screen="scheduled" data-testid="rc-nav-scheduled">
           <i class="fas fa-clock-rotate-left" aria-hidden="true"></i>{{ _("Scheduled") }}<span class="rc-nav-count" id="rcNavScheduledCount"></span></button>
