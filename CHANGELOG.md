@@ -10,6 +10,9 @@ Work toward the next release.
 
 ### Added
 
+- **Architecture diagram** — `docs/nexora-architecture.drawio`, four pages: system
+  overview, request lifecycle, multi-source workitems, tenancy & permissions. Pointer
+  added to `docs/design/architecture-conventions.md`.
 - **The Dashboard is a console.** The page loses every card frame: the four
   KPIs are one borderless strip separated by hairlines, each with its
   day-over-day change and a seven-day sparkline; the throughput chart spans
@@ -82,6 +85,15 @@ Work toward the next release.
 
 ### Changed
 
+- **A tenant's own users never see the tenant named** (#255). For a user who
+  belongs to exactly one tenant and holds no grant on another, the tenant *is*
+  the portal, so naming it only exposes an internal concept: the sidebar's
+  plain tenant label is gone and the mounted pages title themselves
+  "Dashboard" / "Workitems" instead of "<Tenant> Dashboard" / "<Tenant>
+  Workitems". Their view is byte-for-byte what it was before the tenant
+  kernel landed. Staff and members with cross-tenant grants keep the names --
+  they have several tenants to tell apart. Driven by one `tenant_solo` flag
+  from `_inject_tenant_nav()`.
 - **Permission codes follow one grammar, `<area>.<object>.<action>[.<scope>]`**
   (#238, migration `0088`). Every code was renamed; the full old → new mapping
   is Appendix A of `docs/superpowers/specs/2026-09-01-permission-structure-design.md`,
