@@ -307,35 +307,32 @@ def save_access_profile():
     try:
         conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
+        # Rank is capped at the acting admin's own rank on create AND update
+        # (spec D5): assignable_profile_ids() treats Rank<=own-Rank as
+        # assignable, so an uncapped update would let an admin lift a
+        # profile -- or their own -- above themselves. An actor without a
+        # profile caps at 0; a lookup problem must not block the save.
+        cursor.execute(
+            """
+            SELECT ISNULL(MAX(me.Rank), 0)
+            FROM dbo.Users u JOIN dbo.AccessProfile me ON me.AccessID = u.accessid
+            WHERE u.userID = ?
+            """,
+            (session.get("userid"),),
+        )
+        rank_row = cursor.fetchone()
+        actor_rank = rank_row[0] if rank_row and rank_row[0] is not None else 0
+        rank = min(rank, actor_rank) if rank else actor_rank
         if access_id:
             cursor.execute(
                 "UPDATE AccessProfile SET Name=?, Description=?, Rank=? WHERE AccessID=?",
                 (name, description, rank, access_id),
             )
         else:
-            # A new profile's Rank must default to the creating actor's own
-            # Rank, not the column's DEFAULT 0 (#238 Phase 1 review finding):
-            # since assignable_profile_ids() treats Rank<=own-Rank as
-            # assignable, a Rank-0 profile would be assignable by every
-            # profiled actor, including one just granted powerful
-            # permissions. Self-limiting per spec D5 -- an actor can never
-            # create a profile ranked above their own. Fails closed to 0
-            # only if the actor genuinely has no profile of their own; a
-            # lookup problem here must not block profile creation.
-            cursor.execute(
-                """
-                SELECT ISNULL(MAX(me.Rank), 0)
-                FROM dbo.Users u JOIN dbo.AccessProfile me ON me.AccessID = u.accessid
-                WHERE u.userID = ?
-                """,
-                (session.get("userid"),),
-            )
-            rank_row = cursor.fetchone()
-            creator_rank = rank_row[0] if rank_row and rank_row[0] is not None else 0
             cursor.execute(
                 "INSERT INTO AccessProfile (Name, Description, Rank) "
                 "OUTPUT INSERTED.AccessID VALUES (?, ?, ?)",
-                (name, description, min(rank, creator_rank) if rank else creator_rank),
+                (name, description, rank),
             )
             inserted = cursor.fetchone()
             assert inserted is not None  # INSERT ... OUTPUT always returns the new row
