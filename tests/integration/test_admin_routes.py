@@ -2391,63 +2391,38 @@ def test_get_users_admin_access_control(admin_client, admin_all_perms):
     assert resp.status_code in (200, 500)
 
 
-def test_get_profile_details_seeded_id(admin_client, admin_all_perms, db_conn):
-    from sqlalchemy import text
-
-    aid = db_conn.execute(
-        text("SELECT AccessID FROM AccessProfile WHERE Name = 'TestAdmin'")
-    ).scalar()
-    resp = admin_client.get(f"/api/admin/access_profile/{aid}/details")
-    assert resp.status_code in (200, 500)
-
-
 def test_save_access_profile_missing_body(admin_client, admin_all_perms):
     resp = admin_client.post("/api/admin/access_profile/save", json={})
     assert resp.status_code in (200, 400, 500)
 
 
-def test_save_access_profile_stores_only_allow_rows(admin_client, admin_all_perms, db_conn):
-    """Profile grants are allow-only rows (#238 Task 4): a 'D' entry in the
-    save payload must simply not be persisted, not stored as a deny row."""
+def test_save_access_profile_updates_rank(admin_client, admin_all_perms, db_conn):
+    """The profile save carries the rank (#238 Task 13); grants moved to the grid."""
     from sqlalchemy import text
 
     access_id = db_conn.execute(
         text("SELECT AccessID FROM dbo.AccessProfile WHERE Name = 'TestNoPerm'")
     ).scalar()
-    api_docs, jd = (
-        row[0]
-        for row in db_conn.execute(
-            text(
-                "SELECT PermissionID FROM dbo.Permission WHERE Code IN "
-                "('jd.view', 'api.docs.view') ORDER BY Code"
-            )
-        ).fetchall()
+    resp = admin_client.post(
+        "/api/admin/access_profile/save",
+        json={
+            "accessId": access_id,
+            "name": "TestNoPerm",
+            "description": "Test no-permission profile",
+            "rank": 5,
+        },
     )
-    try:
-        resp = admin_client.post(
-            "/api/admin/access_profile/save",
-            json={
-                "accessId": access_id,
-                "name": "TestNoPerm",
-                "description": "Test no-permission profile",
-                "permissions": [
-                    {"PermissionID": jd, "Effect": "A"},
-                    {"PermissionID": api_docs, "Effect": "D"},
-                ],
-            },
-        )
-        assert resp.status_code == 200
-        remaining = db_conn.execute(
-            text("SELECT PermissionID FROM dbo.AccessProfilePermission WHERE AccessID = :aid"),
-            {"aid": access_id},
-        ).fetchall()
-        assert [row[0] for row in remaining] == [jd]
-    finally:
+    assert resp.status_code == 200
+    assert (
         db_conn.execute(
-            text("DELETE FROM dbo.AccessProfilePermission WHERE AccessID = :aid"),
-            {"aid": access_id},
-        )
-        db_conn.commit()
+            text("SELECT Rank FROM dbo.AccessProfile WHERE AccessID = :a"), {"a": access_id}
+        ).scalar()
+        == 5
+    )
+    db_conn.execute(
+        text("UPDATE dbo.AccessProfile SET Rank = 0 WHERE AccessID = :a"), {"a": access_id}
+    )
+    db_conn.commit()
 
 
 def test_save_access_profile_new_profile_inherits_creator_rank(

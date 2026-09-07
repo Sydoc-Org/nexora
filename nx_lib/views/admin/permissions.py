@@ -26,32 +26,13 @@ def admin_access_control():
         cursor = conn.cursor()
 
         cursor.execute("""
-            SELECT ap.AccessID, ap.Name, ap.Description, COUNT(u.userID) AS UserCount
+            SELECT ap.AccessID, ap.Name, ap.Description, ap.Rank, COUNT(u.userID) AS UserCount
             FROM AccessProfile ap
             LEFT JOIN Users u ON u.accessID = ap.AccessID
-            GROUP BY ap.AccessID, ap.Name, ap.Description
-            ORDER BY ap.Name
+            GROUP BY ap.AccessID, ap.Name, ap.Description, ap.Rank
+            ORDER BY ap.Rank DESC, ap.Name
         """)
         profiles = [
-            dict(zip([column[0] for column in cursor.description], row, strict=False))
-            for row in cursor.fetchall()
-        ]
-
-        cursor.execute("""
-            SELECT PermissionID, Code, Description FROM Permission
-            ORDER BY
-                LEFT(Code, LEN(Code) - CHARINDEX('.', REVERSE(Code))),
-                CASE
-                    WHEN Code LIKE '%.view'    THEN 1
-                    WHEN Code LIKE '%.add'     THEN 2
-                    WHEN Code LIKE '%.add.%'   THEN 3
-                    WHEN Code LIKE '%.edit%'   THEN 4
-                    WHEN Code LIKE '%.delete%' THEN 5
-                    ELSE 6
-                END,
-                Code
-        """)
-        all_permissions = [
             dict(zip([column[0] for column in cursor.description], row, strict=False))
             for row in cursor.fetchall()
         ]
@@ -79,7 +60,6 @@ def admin_access_control():
         return render_template(
             "admin/access_control.html",
             profiles=profiles,
-            all_permissions=all_permissions,
             organizations=organizations,
             assignable_profiles=assignable_profiles,
             can_edit_accessprofile=has_permission("admin.profiles.edit"),
@@ -308,42 +288,16 @@ def get_users_admin_access_control():
             conn.close()
 
 
-@require_permission("admin.profiles.view")
-def get_profile_details(access_id):
-    conn = None
-    cursor = None
-    try:
-        conn = engine_nexora_db.raw_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            SELECT PermissionID, 'A' AS Effect
-            FROM AccessProfilePermission
-            WHERE AccessID = ?
-            """,
-            (access_id,),
-        )
-        assigned_perms = [
-            dict(zip([column[0] for column in cursor.description], row, strict=False))
-            for row in cursor.fetchall()
-        ]
-        return jsonify({"success": True, "permissions": assigned_perms})
-    except Exception as e:
-        return jsonify({"success": False, "message": str(e)}), 500
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
-
-
 @require_permission("admin.profiles.edit")
 def save_access_profile():
     data = request.get_json()
     access_id = data.get("accessId")
     name = data.get("name")
     description = data.get("description")
-    permissions = data.get("permissions")
+    try:
+        rank = int(data.get("rank") or 0)
+    except (TypeError, ValueError):
+        return jsonify({"success": False, "message": _("Rank must be a number")}), 400
 
     if not name:
         return jsonify({"success": False, "message": _("Name is required")}), 400
@@ -355,10 +309,9 @@ def save_access_profile():
         cursor = conn.cursor()
         if access_id:
             cursor.execute(
-                "UPDATE AccessProfile SET Name=?, Description=? WHERE AccessID=?",
-                (name, description, access_id),
+                "UPDATE AccessProfile SET Name=?, Description=?, Rank=? WHERE AccessID=?",
+                (name, description, rank, access_id),
             )
-            cursor.execute("DELETE FROM AccessProfilePermission WHERE AccessID=?", (access_id,))
         else:
             # A new profile's Rank must default to the creating actor's own
             # Rank, not the column's DEFAULT 0 (#238 Phase 1 review finding):
@@ -382,19 +335,12 @@ def save_access_profile():
             cursor.execute(
                 "INSERT INTO AccessProfile (Name, Description, Rank) "
                 "OUTPUT INSERTED.AccessID VALUES (?, ?, ?)",
-                (name, description, creator_rank),
+                (name, description, min(rank, creator_rank) if rank else creator_rank),
             )
             inserted = cursor.fetchone()
             assert inserted is not None  # INSERT ... OUTPUT always returns the new row
             access_id = inserted[0]
 
-        if permissions:
-            params = [(access_id, p["PermissionID"]) for p in permissions if p.get("Effect") == "A"]
-            if params:
-                cursor.executemany(
-                    "INSERT INTO AccessProfilePermission (AccessID, PermissionID) VALUES (?, ?)",
-                    params,
-                )
         conn.commit()
         session["permissions"] = load_permissions_for_user(session["userid"])
         return jsonify({"success": True, "message": _("Profile saved successfully")})
@@ -852,12 +798,6 @@ def register_routes(app):
         "/api/admin/users",
         endpoint="get_users_admin_access_control",
         view_func=get_users_admin_access_control,
-    )
-    app.add_url_rule(
-        "/api/admin/access_profile/<int:access_id>/details",
-        endpoint="get_profile_details",
-        view_func=get_profile_details,
-        methods=["GET"],
     )
     app.add_url_rule(
         "/api/admin/access_profile/save",
