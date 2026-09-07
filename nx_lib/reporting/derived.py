@@ -17,9 +17,9 @@ OPS plus a test.
 import re
 import statistics
 
+from .stats import MAX_STATS_ROWS as MAX_ROWS
 from .stats import _percentile
 
-MAX_ROWS = 100_000  # same ceiling as stats.MAX_STATS_ROWS
 METRIC_COLUMN_UNAVAILABLE = "no_numeric_column"
 _DATE_FIELD = re.compile(r"date", re.I)
 
@@ -32,6 +32,22 @@ def _is_num(v):
     return isinstance(v, int | float) and not isinstance(v, bool)
 
 
+def _to_num(v):
+    """Coerce a raw DB cell to float, or None when it isn't numeric.
+
+    Raw pyodbc rows can carry decimal.Decimal (SUM/AVG over a decimal/money
+    column) — isinstance(v, int | float) rejects that, so coerce via a
+    try/except instead (same pattern as forecast.py). bool is excluded
+    explicitly: it's int-coercible but must never count as numeric.
+    """
+    if isinstance(v, bool):
+        return None
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return None
+
+
 def _metric_column_index(rd, columns, rows):
     """Index of the column to measure: the first declared metric, else the
     first column whose non-null cells are all numeric. None when nothing fits."""
@@ -42,13 +58,18 @@ def _metric_column_index(rd, columns, rows):
             return names.index(code)
     for i in range(len(names)):
         cells = [r[i] for r in rows if r[i] is not None]
-        if cells and all(_is_num(v) for v in cells):
+        if cells and all(_to_num(v) is not None for v in cells):
             return i
     return None
 
 
 def _numbers(rows, idx):
-    return [float(r[idx]) for r in rows if _is_num(r[idx])]
+    out = []
+    for r in rows:
+        n = _to_num(r[idx])
+        if n is not None:
+            out.append(n)
+    return out
 
 
 def _single_date_dimension(rd):

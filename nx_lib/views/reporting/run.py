@@ -220,7 +220,11 @@ def api_run():
             payload["forecast"] = _forecast_for(rd, columns, rows)
         except Exception as e:  # a forecast must never take down the run
             current_app.logger.warning(f"/api/reporting/run forecast skipped: {e}")
-    layout, layout_fallback = _layout_block(rd, session.get("userid"))
+    try:
+        layout, layout_fallback = _layout_block(rd, session.get("userid"))
+    except Exception as e:  # a layout problem must never take down the run
+        current_app.logger.warning(f"/api/reporting/run layout skipped: {e}")
+        layout, layout_fallback = None, None
     if layout is not None:
         payload["layout"] = layout
         try:

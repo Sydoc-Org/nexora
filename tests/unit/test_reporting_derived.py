@@ -86,6 +86,16 @@ def test_null_and_non_numeric_cells_are_dropped_not_fatal():
     assert out["m"] == {"op": "mean", "value": 20.0, "n": 2}
 
 
+def test_decimal_cells_are_treated_as_numeric():
+    """Raw pyodbc rows can carry decimal.Decimal (SUM/AVG over a decimal/money
+    column) — it must not be filtered out as non-numeric."""
+    import decimal
+
+    rows = [["2026-01-01", decimal.Decimal("10.5")], ["2026-01-02", decimal.Decimal("20.5")]]
+    out = compute_derived(_layout({"id": "m", "op": "mean"}), RD, COLS, rows)
+    assert out["m"] == {"op": "mean", "value": 15.5, "n": 2}
+
+
 def test_single_row_stddev_is_zero():
     out = compute_derived(_layout({"id": "s", "op": "stddev"}), RD, COLS, ROWS[:1])
     assert out["s"] == {"op": "stddev", "value": 0.0, "n": 1}

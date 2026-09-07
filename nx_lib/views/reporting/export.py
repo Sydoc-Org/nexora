@@ -139,6 +139,11 @@ def api_export():
     except Exception as e:
         current_app.logger.error(f"/api/reporting/export error: {e}")
         return jsonify({"error": _("Could not export report")}), 500
+    # Snapshot the actual-only columns/rows before any forecast reassignment
+    # below, so the layout's Measures block is computed over the same input
+    # /api/reporting/run would use — not the forecast-augmented rows (which
+    # append predicted rows + a __forecast marker column for the data table).
+    measure_columns, measure_rows = columns, rows
     forecast_start = None
     fc_req = rd.get("forecast")
     if isinstance(fc_req, dict) and fc_req.get("enabled"):
@@ -151,13 +156,19 @@ def api_export():
         except Exception as e:
             current_app.logger.warning(f"/api/reporting/export forecast skipped: {e}")
     extra_rows = None
-    layout, _fallback = _layout_block(rd, session.get("userid"))
+    try:
+        layout, fallback = _layout_block(rd, session.get("userid"))
+    except Exception as e:
+        current_app.logger.warning(f"/api/reporting/export layout skipped: {e}")
+        layout, fallback = None, None
     if layout is not None:
         try:
-            derived = compute_derived(layout, rd, columns, rows)
+            derived = compute_derived(layout, rd, measure_columns, measure_rows)
             extra_rows = derived_export_rows(layout, derived, header_label=_("Measures"))
         except Exception as e:
             current_app.logger.warning(f"/api/reporting/export derived skipped: {e}")
+    elif fallback:
+        current_app.logger.info(f"/api/reporting/export layout fallback: {fallback}")
     return _serialize_export(
         columns,
         rows,
