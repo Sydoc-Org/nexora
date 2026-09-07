@@ -1,235 +1,639 @@
-<mxfile host="app.diagrams.net" type="device">
+<mxfile host="Electron" pages="4">
   <diagram name="1 System overview" id="1_System_overview">
-    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2060" pageHeight="1180" math="0" shadow="0">
+    <mxGraphModel dx="1119" dy="701" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2060" pageHeight="1180" math="0" shadow="0">
       <root>
-        <mxCell id="0"/>
-        <mxCell id="1" parent="0"/>
-        <mxCell id="t1" value="Nexora — system overview" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontStyle=1;fontSize=20;" vertex="1" parent="1"><mxGeometry x="40" y="20" width="600" height="30" as="geometry"/></mxCell>
-        <mxCell id="t1b" value="Flask / Python 3 WSGI app on Windows+IIS. One waitress process. Multi-DB, multi-tenant." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontStyle=1;fontSize=11;" vertex="1" parent="1"><mxGeometry x="40" y="50" width="900" height="24" as="geometry"/></mxCell>
-        <mxCell id="g_cli" value="Clients" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;dashed=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1"><mxGeometry x="40" y="110" width="240" height="300" as="geometry"/></mxCell>
-        <mxCell id="browser" value="Browser&lt;br&gt;(staff + customer users)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1"><mxGeometry x="60" y="150" width="200" height="60" as="geometry"/></mxCell>
-        <mxCell id="apiclient" value="Machine client&lt;br&gt;Bearer key (dbo.ApiKeys)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1"><mxGeometry x="60" y="230" width="200" height="60" as="geometry"/></mxCell>
-        <mxCell id="sched" value="Task Scheduler&lt;br&gt;ops/outage_monitor.py" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1"><mxGeometry x="60" y="310" width="200" height="60" as="geometry"/></mxCell>
-        <mxCell id="g_host" value="Hosting (PROD: D:\sydoc\nexora)" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;dashed=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1"><mxGeometry x="330" y="110" width="270" height="300" as="geometry"/></mxCell>
-        <mxCell id="iis" value="IIS&lt;br&gt;HttpPlatformHandler" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1"><mxGeometry x="350" y="150" width="230" height="55" as="geometry"/></mxCell>
-        <mxCell id="waitress" value="waitress — 32 threads&lt;br&gt;single process" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1"><mxGeometry x="350" y="225" width="230" height="55" as="geometry"/></mxCell>
-        <mxCell id="ngrok" value="ngrok tunnel (SYAPP01)&lt;br&gt;Cloudflare Tunnel prepared" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1"><mxGeometry x="350" y="300" width="230" height="55" as="geometry"/></mxCell>
-        <mxCell id="g_app" value="nx_main:app  →  nx_lib.create_app()" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;dashed=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1"><mxGeometry x="650" y="110" width="620" height="640" as="geometry"/></mxCell>
-        <mxCell id="prefix" value="PrefixMiddleware&lt;br&gt;PROD only: /nexora" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1"><mxGeometry x="670" y="150" width="180" height="50" as="geometry"/></mxCell>
-        <mxCell id="talisman" value="Talisman CSP + HSTS&lt;br&gt;PROD only" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1"><mxGeometry x="870" y="150" width="180" height="50" as="geometry"/></mxCell>
-        <mxCell id="sessionmw" value="Flask-Session (filesystem)&lt;br&gt;PROD only; CSRF via Flask-WTF" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1"><mxGeometry x="1070" y="150" width="180" height="50" as="geometry"/></mxCell>
-        <mxCell id="hooks" value="nx_lib/hooks.py — before/after_request&lt;br&gt;session · permissions · locale · ui_prefs · maintenance · CSV log" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1"><mxGeometry x="670" y="225" width="580" height="50" as="geometry"/></mxCell>
-        <mxCell id="compress" value="nx_lib/compression.py — gzip text &amp;gt; 1 KB (incl. /static). Never suffix the ETag." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1"><mxGeometry x="670" y="290" width="580" height="40" as="geometry"/></mxCell>
-        <mxCell id="g_views" value="nx_lib/views/ — routes via add_url_rule()" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;dashed=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1"><mxGeometry x="670" y="350" width="580" height="190" as="geometry"/></mxCell>
-        <mxCell id="v_core" value="core" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1"><mxGeometry x="690" y="385" width="175" height="30" as="geometry"/></mxCell>
-        <mxCell id="v_auth" value="auth" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1"><mxGeometry x="880" y="385" width="175" height="30" as="geometry"/></mxCell>
-        <mxCell id="v_profile" value="profile" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1"><mxGeometry x="1070" y="385" width="175" height="30" as="geometry"/></mxCell>
-        <mxCell id="v_dash" value="dashboard" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1"><mxGeometry x="690" y="425" width="175" height="30" as="geometry"/></mxCell>
-        <mxCell id="v_admin" value="admin/ (pkg)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1"><mxGeometry x="880" y="425" width="175" height="30" as="geometry"/></mxCell>
-        <mxCell id="v_rep" value="reporting/ (pkg)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1"><mxGeometry x="1070" y="425" width="175" height="30" as="geometry"/></mxCell>
-        <mxCell id="v_wi" value="workitems" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1"><mxGeometry x="690" y="465" width="175" height="30" as="geometry"/></mxCell>
-        <mxCell id="v_gen" value="generali/ (pkg)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1"><mxGeometry x="880" y="465" width="175" height="30" as="geometry"/></mxCell>
-        <mxCell id="v_tenant" value="tenant  /t/&amp;lt;code&amp;gt;/&amp;lt;page&amp;gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1"><mxGeometry x="1070" y="465" width="175" height="30" as="geometry"/></mxCell>
-        <mxCell id="v_api" value="api_external  /api/v1/*" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1"><mxGeometry x="690" y="505" width="175" height="30" as="geometry"/></mxCell>
-        <mxCell id="g_lib" value="nx_lib/ — Flask-free logic &amp;amp; helpers" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;dashed=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=12;" vertex="1" parent="1"><mxGeometry x="670" y="560" width="580" height="170" as="geometry"/></mxCell>
-        <mxCell id="l0" value="security  @require_permission" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=9;" vertex="1" parent="1"><mxGeometry x="690" y="595" width="175" height="32" as="geometry"/></mxCell>
-        <mxCell id="l1" value="user_cache  TTL perms" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=9;" vertex="1" parent="1"><mxGeometry x="880" y="595" width="175" height="32" as="geometry"/></mxCell>
-        <mxCell id="l2" value="clients  CLIENTS registry" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=9;" vertex="1" parent="1"><mxGeometry x="1070" y="595" width="175" height="32" as="geometry"/></mxCell>
-        <mxCell id="l3" value="workitem_sources  adapters" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=9;" vertex="1" parent="1"><mxGeometry x="690" y="637" width="175" height="32" as="geometry"/></mxCell>
-        <mxCell id="l4" value="mapping_config  registry" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=9;" vertex="1" parent="1"><mxGeometry x="880" y="637" width="175" height="32" as="geometry"/></mxCell>
-        <mxCell id="l5" value="workitems/  fields·sensitivity" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=9;" vertex="1" parent="1"><mxGeometry x="1070" y="637" width="175" height="32" as="geometry"/></mxCell>
-        <mxCell id="l6" value="octo  media/documents" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=9;" vertex="1" parent="1"><mxGeometry x="690" y="679" width="175" height="32" as="geometry"/></mxCell>
-        <mxCell id="l7" value="ui_prefs · i18n · branding" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=9;" vertex="1" parent="1"><mxGeometry x="880" y="679" width="175" height="32" as="geometry"/></mxCell>
-        <mxCell id="l8" value="status · outage · maintenance" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=9;" vertex="1" parent="1"><mxGeometry x="1070" y="679" width="175" height="32" as="geometry"/></mxCell>
-        <mxCell id="g_tpl" value="templates/ + static/" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;dashed=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1"><mxGeometry x="650" y="780" width="620" height="130" as="geometry"/></mxCell>
-        <mxCell id="jinja" value="Jinja2 templates/&lt;br&gt;_header.html · handlers/ · admin/ · js/" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1"><mxGeometry x="670" y="815" width="280" height="55" as="geometry"/></mxCell>
-        <mxCell id="staticjs" value="static/js/nx_core.js → window.NX, API_PREFIX&lt;br&gt;static_v() cache-buster" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1"><mxGeometry x="970" y="815" width="280" height="55" as="geometry"/></mxCell>
-        <mxCell id="g_db" value="Databases — SQLAlchemy + pyodbc (nx_lib/db.py). Unset env vars → engine None → feature degrades." style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;dashed=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1"><mxGeometry x="1320" y="110" width="320" height="640" as="geometry"/></mxCell>
-        <mxCell id="d_nx" value="NexoraDB&lt;br&gt;users · perms · tenants&lt;br&gt;config · reports" style="whiteSpace=wrap;html=1;shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#ffcc99;strokeColor=#d79b00;fontSize=9;" vertex="1" parent="1"><mxGeometry x="1350" y="150" width="260" height="55" as="geometry"/></mxCell>
-        <mxCell id="d_octo" value="OctoDB&lt;br&gt;Octo runtime" style="whiteSpace=wrap;html=1;shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#ffcc99;strokeColor=#d79b00;fontSize=9;" vertex="1" parent="1"><mxGeometry x="1350" y="215" width="260" height="55" as="geometry"/></mxCell>
-        <mxCell id="d_stats" value="StatisticsDB" style="whiteSpace=wrap;html=1;shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#ffcc99;strokeColor=#d79b00;fontSize=9;" vertex="1" parent="1"><mxGeometry x="1350" y="280" width="260" height="55" as="geometry"/></mxCell>
-        <mxCell id="d_gen" value="GeneraliDB&lt;br&gt;tenant pages" style="whiteSpace=wrap;html=1;shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#ffcc99;strokeColor=#d79b00;fontSize=9;" vertex="1" parent="1"><mxGeometry x="1350" y="345" width="260" height="55" as="geometry"/></mxCell>
-        <mxCell id="d_sro" value="statistics_ro&lt;br&gt;reporting sandbox" style="whiteSpace=wrap;html=1;shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#ffcc99;strokeColor=#d79b00;fontSize=9;" vertex="1" parent="1"><mxGeometry x="1350" y="410" width="260" height="55" as="geometry"/></mxCell>
-        <mxCell id="d_oro" value="octo_ro&lt;br&gt;sandbox target" style="whiteSpace=wrap;html=1;shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#ffcc99;strokeColor=#d79b00;fontSize=9;" vertex="1" parent="1"><mxGeometry x="1350" y="475" width="260" height="55" as="geometry"/></mxCell>
-        <mxCell id="d_ms02" value="MS02 Postgres&lt;br&gt;Octo schema (PG)" style="whiteSpace=wrap;html=1;shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#ffcc99;strokeColor=#d79b00;fontSize=9;" vertex="1" parent="1"><mxGeometry x="1350" y="540" width="260" height="55" as="geometry"/></mxCell>
-        <mxCell id="d_ms02s" value="MS02 stats PG&lt;br&gt;columnar statistik" style="whiteSpace=wrap;html=1;shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#ffcc99;strokeColor=#d79b00;fontSize=9;" vertex="1" parent="1"><mxGeometry x="1350" y="605" width="260" height="55" as="geometry"/></mxCell>
-        <mxCell id="d_ms02d" value="MS02 docfields PG&lt;br&gt;None ⇒ fail closed" style="whiteSpace=wrap;html=1;shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#ffcc99;strokeColor=#d79b00;fontSize=9;" vertex="1" parent="1"><mxGeometry x="1350" y="670" width="260" height="55" as="geometry"/></mxCell>
-        <mxCell id="g_ext" value="External services" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;dashed=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1"><mxGeometry x="40" y="700" width="560" height="350" as="geometry"/></mxCell>
-        <mxCell id="graph" value="Microsoft Graph&lt;br&gt;mail / identity" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1"><mxGeometry x="60" y="740" width="520" height="50" as="geometry"/></mxCell>
-        <mxCell id="octosvc" value="Octo runtime services&lt;br&gt;document media hosts" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1"><mxGeometry x="60" y="800" width="520" height="50" as="geometry"/></mxCell>
-        <mxCell id="ai" value="Azure OpenAI (sydoc-ai-services)&lt;br&gt;reporting AI assistant" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1"><mxGeometry x="60" y="860" width="520" height="50" as="geometry"/></mxCell>
-        <mxCell id="smtp" value="SMTP&lt;br&gt;scheduled report delivery" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1"><mxGeometry x="60" y="920" width="520" height="50" as="geometry"/></mxCell>
-        <mxCell id="confl" value="Confluence (read-only mirror)&lt;br&gt;pushed from docs/ on push to main" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1"><mxGeometry x="60" y="980" width="520" height="50" as="geometry"/></mxCell>
-        <mxCell id="g_ops" value="Ops artefacts on disk" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;dashed=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=12;" vertex="1" parent="1"><mxGeometry x="650" y="940" width="620" height="130" as="geometry"/></mxCell>
-        <mxCell id="logs" value="var/logs/user/*.csv — one row per non-static request" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=10;" vertex="1" parent="1"><mxGeometry x="670" y="975" width="580" height="40" as="geometry"/></mxCell>
-        <mxCell id="logs2" value="var/logs/system/app.log + waitress-stdout*" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=10;" vertex="1" parent="1"><mxGeometry x="670" y="1020" width="580" height="40" as="geometry"/></mxCell>
-        <mxCell id="n_dep" value="&lt;b&gt;Deploy&lt;/b&gt;&lt;br&gt;deploy.yml robocopy /MIR → D:\sydoc\nexora.&lt;br&gt;Runtime needs only nx_main.py, nx_lib/, templates/,&lt;br&gt;static/, translations/, web.config.&lt;br&gt;New top-level path the app does not need? add /XF or /XD.&lt;br&gt;&lt;br&gt;&lt;b&gt;Migrations&lt;/b&gt; apply to PROD &lt;i&gt;before&lt;/i&gt; the pool stops.&lt;br&gt;&lt;b&gt;env/*.env&lt;/b&gt; is gitignored → never deployed; run scripts/env-sync.py." style="shape=note;whiteSpace=wrap;html=1;size=14;verticalAlign=top;align=left;fontSize=10;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1"><mxGeometry x="1680" y="110" width="340" height="230" as="geometry"/></mxCell>
-        <mxCell id="n_static" value="&lt;b&gt;web.config path=&quot;*&quot;&lt;/b&gt;&lt;br&gt;waitress serves /static, &lt;b&gt;not&lt;/b&gt; IIS — so a static asset is gzipped and cache-busted by the app, not by the web server." style="shape=note;whiteSpace=wrap;html=1;size=14;verticalAlign=top;align=left;fontSize=10;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1"><mxGeometry x="40" y="460" width="560" height="90" as="geometry"/></mxCell>
-        <mxCell id="e_1 s1" value="HTTPS" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;entryX=0;entryY=0.3;entryDx=0;entryDy=0;" edge="1" parent="1" source="browser" target="iis"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="e_1 s2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;entryX=0;entryY=0.7;entryDx=0;entryDy=0;" edge="1" parent="1" source="apiclient" target="iis"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="e_1 s3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="ngrok" target="iis"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="e_1 s4" value="HttpPlatform" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="iis" target="waitress"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="e_1 s5" value="WSGI" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="waitress" target="prefix"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="e_1 s6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="prefix" target="hooks"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="e_1 s7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="hooks" target="g_views"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="e_1 s8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="g_views" target="g_lib"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="e_1 s9" value="render" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="g_lib" target="g_tpl"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="e_1 s10" value="one CSV row per request" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="g_tpl" target="g_ops"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="e_1 s11" value="engines" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="g_lib" target="g_db"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="e_1 s12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;dashed=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.2;entryDx=0;entryDy=0;" edge="1" parent="1" source="g_lib" target="g_ext"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="n_ops" value="&lt;b&gt;Outage detection&lt;/b&gt;&lt;br&gt;ops/outage_monitor.py on Task Scheduler writes&lt;br&gt;dbo.StatusSamples / StatusIncidents; pure logic in&lt;br&gt;nx_lib/outage.py. See docs/howto/outage-monitor.md." style="shape=note;whiteSpace=wrap;html=1;size=14;verticalAlign=top;align=left;fontSize=10;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1"><mxGeometry x="40" y="580" width="560" height="90" as="geometry"/></mxCell>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="t1" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontStyle=1;fontSize=20;" value="Nexora — system overview" vertex="1">
+          <mxGeometry height="30" width="600" x="40" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="t1b" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontStyle=1;fontSize=11;" value="Flask / Python 3 WSGI app on Windows+IIS. One waitress process. Multi-DB, multi-tenant." vertex="1">
+          <mxGeometry height="24" width="900" x="40" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="g_cli" parent="1" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;dashed=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" value="Clients" vertex="1">
+          <mxGeometry height="300" width="240" x="40" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="browser" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" value="Browser&lt;br&gt;(staff + customer users)" vertex="1">
+          <mxGeometry height="60" width="200" x="60" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="apiclient" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" value="Machine client&lt;br&gt;Bearer key (dbo.ApiKeys)" vertex="1">
+          <mxGeometry height="60" width="200" x="60" y="230" as="geometry" />
+        </mxCell>
+        <mxCell id="sched" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" value="Task Scheduler&lt;br&gt;ops/outage_monitor.py" vertex="1">
+          <mxGeometry height="60" width="200" x="60" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="g_host" parent="1" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;dashed=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" value="Hosting (PROD: D:\sydoc\nexora)" vertex="1">
+          <mxGeometry height="300" width="270" x="330" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="iis" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" value="IIS&lt;br&gt;HttpPlatformHandler" vertex="1">
+          <mxGeometry height="55" width="230" x="350" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="waitress" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" value="waitress — 32 threads&lt;br&gt;single process" vertex="1">
+          <mxGeometry height="55" width="230" x="350" y="225" as="geometry" />
+        </mxCell>
+        <mxCell id="ngrok" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" value="ngrok tunnel (SYAPP01)&lt;br&gt;Cloudflare Tunnel prepared" vertex="1">
+          <mxGeometry height="55" width="230" x="350" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="g_app" parent="1" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;dashed=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" value="nx_main:app  →  nx_lib.create_app()" vertex="1">
+          <mxGeometry height="640" width="620" x="650" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="prefix" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" value="PrefixMiddleware&lt;br&gt;PROD only: /nexora" vertex="1">
+          <mxGeometry height="50" width="180" x="670" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="talisman" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" value="Talisman CSP + HSTS&lt;br&gt;PROD only" vertex="1">
+          <mxGeometry height="50" width="180" x="870" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="sessionmw" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" value="Flask-Session (filesystem)&lt;br&gt;PROD only; CSRF via Flask-WTF" vertex="1">
+          <mxGeometry height="50" width="180" x="1070" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="hooks" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" value="nx_lib/hooks.py — before/after_request&lt;br&gt;session · permissions · locale · ui_prefs · maintenance · CSV log" vertex="1">
+          <mxGeometry height="50" width="580" x="670" y="225" as="geometry" />
+        </mxCell>
+        <mxCell id="compress" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" value="nx_lib/compression.py — gzip text &amp;gt; 1 KB (incl. /static). Never suffix the ETag." vertex="1">
+          <mxGeometry height="40" width="580" x="670" y="290" as="geometry" />
+        </mxCell>
+        <mxCell id="g_views" parent="1" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;dashed=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" value="nx_lib/views/ — routes via add_url_rule()" vertex="1">
+          <mxGeometry height="190" width="580" x="670" y="350" as="geometry" />
+        </mxCell>
+        <mxCell id="v_core" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" value="core" vertex="1">
+          <mxGeometry height="30" width="175" x="690" y="385" as="geometry" />
+        </mxCell>
+        <mxCell id="v_auth" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" value="auth" vertex="1">
+          <mxGeometry height="30" width="175" x="880" y="385" as="geometry" />
+        </mxCell>
+        <mxCell id="v_profile" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" value="profile" vertex="1">
+          <mxGeometry height="30" width="175" x="1070" y="385" as="geometry" />
+        </mxCell>
+        <mxCell id="v_dash" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" value="dashboard" vertex="1">
+          <mxGeometry height="30" width="175" x="690" y="425" as="geometry" />
+        </mxCell>
+        <mxCell id="v_admin" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" value="admin/ (pkg)" vertex="1">
+          <mxGeometry height="30" width="175" x="880" y="425" as="geometry" />
+        </mxCell>
+        <mxCell id="v_rep" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" value="reporting/ (pkg)" vertex="1">
+          <mxGeometry height="30" width="175" x="1070" y="425" as="geometry" />
+        </mxCell>
+        <mxCell id="v_wi" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" value="workitems" vertex="1">
+          <mxGeometry height="30" width="175" x="690" y="465" as="geometry" />
+        </mxCell>
+        <mxCell id="v_gen" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" value="generali/ (pkg)" vertex="1">
+          <mxGeometry height="30" width="175" x="880" y="465" as="geometry" />
+        </mxCell>
+        <mxCell id="v_tenant" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" value="tenant  /t/&amp;lt;code&amp;gt;/&amp;lt;page&amp;gt;" vertex="1">
+          <mxGeometry height="30" width="175" x="1070" y="465" as="geometry" />
+        </mxCell>
+        <mxCell id="v_api" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" value="api_external  /api/v1/*" vertex="1">
+          <mxGeometry height="30" width="175" x="690" y="505" as="geometry" />
+        </mxCell>
+        <mxCell id="g_lib" parent="1" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;dashed=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=12;" value="nx_lib/ — Flask-free logic &amp;amp; helpers" vertex="1">
+          <mxGeometry height="170" width="580" x="670" y="560" as="geometry" />
+        </mxCell>
+        <mxCell id="l0" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=9;" value="security  @require_permission" vertex="1">
+          <mxGeometry height="32" width="175" x="690" y="595" as="geometry" />
+        </mxCell>
+        <mxCell id="l1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=9;" value="user_cache  TTL perms" vertex="1">
+          <mxGeometry height="32" width="175" x="880" y="595" as="geometry" />
+        </mxCell>
+        <mxCell id="l2" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=9;" value="clients  CLIENTS registry" vertex="1">
+          <mxGeometry height="32" width="175" x="1070" y="595" as="geometry" />
+        </mxCell>
+        <mxCell id="l3" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=9;" value="workitem_sources  adapters" vertex="1">
+          <mxGeometry height="32" width="175" x="690" y="637" as="geometry" />
+        </mxCell>
+        <mxCell id="l4" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=9;" value="mapping_config  registry" vertex="1">
+          <mxGeometry height="32" width="175" x="880" y="637" as="geometry" />
+        </mxCell>
+        <mxCell id="l5" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=9;" value="workitems/  fields·sensitivity" vertex="1">
+          <mxGeometry height="32" width="175" x="1070" y="637" as="geometry" />
+        </mxCell>
+        <mxCell id="l6" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=9;" value="octo  media/documents" vertex="1">
+          <mxGeometry height="32" width="175" x="690" y="679" as="geometry" />
+        </mxCell>
+        <mxCell id="l7" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=9;" value="ui_prefs · i18n · branding" vertex="1">
+          <mxGeometry height="32" width="175" x="880" y="679" as="geometry" />
+        </mxCell>
+        <mxCell id="l8" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=9;" value="status · outage · maintenance" vertex="1">
+          <mxGeometry height="32" width="175" x="1070" y="679" as="geometry" />
+        </mxCell>
+        <mxCell id="g_tpl" parent="1" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;dashed=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" value="templates/ + static/" vertex="1">
+          <mxGeometry height="130" width="620" x="650" y="780" as="geometry" />
+        </mxCell>
+        <mxCell id="jinja" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" value="Jinja2 templates/&lt;br&gt;_header.html · handlers/ · admin/ · js/" vertex="1">
+          <mxGeometry height="55" width="280" x="670" y="815" as="geometry" />
+        </mxCell>
+        <mxCell id="staticjs" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" value="static/js/nx_core.js → window.NX, API_PREFIX&lt;br&gt;static_v() cache-buster" vertex="1">
+          <mxGeometry height="55" width="280" x="970" y="815" as="geometry" />
+        </mxCell>
+        <mxCell id="g_db" parent="1" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;dashed=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" value="Databases — SQLAlchemy + pyodbc (nx_lib/db.py). Unset env vars → engine None → feature degrades." vertex="1">
+          <mxGeometry height="640" width="320" x="1320" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="d_nx" parent="1" style="whiteSpace=wrap;html=1;shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#ffcc99;strokeColor=#d79b00;fontSize=9;" value="NexoraDB&lt;br&gt;users · perms · tenants&lt;br&gt;config · reports" vertex="1">
+          <mxGeometry height="55" width="260" x="1350" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="d_octo" parent="1" style="whiteSpace=wrap;html=1;shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#ffcc99;strokeColor=#d79b00;fontSize=9;" value="OctoDB&lt;br&gt;Octo runtime" vertex="1">
+          <mxGeometry height="55" width="260" x="1350" y="215" as="geometry" />
+        </mxCell>
+        <mxCell id="d_stats" parent="1" style="whiteSpace=wrap;html=1;shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#ffcc99;strokeColor=#d79b00;fontSize=9;" value="StatisticsDB" vertex="1">
+          <mxGeometry height="55" width="260" x="1350" y="280" as="geometry" />
+        </mxCell>
+        <mxCell id="d_gen" parent="1" style="whiteSpace=wrap;html=1;shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#ffcc99;strokeColor=#d79b00;fontSize=9;" value="GeneraliDB&lt;br&gt;tenant pages" vertex="1">
+          <mxGeometry height="55" width="260" x="1350" y="345" as="geometry" />
+        </mxCell>
+        <mxCell id="d_sro" parent="1" style="whiteSpace=wrap;html=1;shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#ffcc99;strokeColor=#d79b00;fontSize=9;" value="statistics_ro&lt;br&gt;reporting sandbox" vertex="1">
+          <mxGeometry height="55" width="260" x="1350" y="410" as="geometry" />
+        </mxCell>
+        <mxCell id="d_oro" parent="1" style="whiteSpace=wrap;html=1;shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#ffcc99;strokeColor=#d79b00;fontSize=9;" value="octo_ro&lt;br&gt;sandbox target" vertex="1">
+          <mxGeometry height="55" width="260" x="1350" y="475" as="geometry" />
+        </mxCell>
+        <mxCell id="d_ms02" parent="1" style="whiteSpace=wrap;html=1;shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#ffcc99;strokeColor=#d79b00;fontSize=9;" value="MS02 Postgres&lt;br&gt;Octo schema (PG)" vertex="1">
+          <mxGeometry height="55" width="260" x="1350" y="540" as="geometry" />
+        </mxCell>
+        <mxCell id="d_ms02s" parent="1" style="whiteSpace=wrap;html=1;shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#ffcc99;strokeColor=#d79b00;fontSize=9;" value="MS02 stats PG&lt;br&gt;columnar statistik" vertex="1">
+          <mxGeometry height="55" width="260" x="1350" y="605" as="geometry" />
+        </mxCell>
+        <mxCell id="d_ms02d" parent="1" style="whiteSpace=wrap;html=1;shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#ffcc99;strokeColor=#d79b00;fontSize=9;" value="MS02 docfields PG&lt;br&gt;None ⇒ fail closed" vertex="1">
+          <mxGeometry height="55" width="260" x="1350" y="670" as="geometry" />
+        </mxCell>
+        <mxCell id="g_ext" parent="1" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;dashed=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" value="External services" vertex="1">
+          <mxGeometry height="350" width="560" x="40" y="700" as="geometry" />
+        </mxCell>
+        <mxCell id="graph" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" value="Microsoft Graph&lt;br&gt;mail / identity" vertex="1">
+          <mxGeometry height="50" width="520" x="60" y="740" as="geometry" />
+        </mxCell>
+        <mxCell id="octosvc" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" value="Octo runtime services&lt;br&gt;document media hosts" vertex="1">
+          <mxGeometry height="50" width="520" x="60" y="800" as="geometry" />
+        </mxCell>
+        <mxCell id="ai" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" value="Azure OpenAI (sydoc-ai-services)&lt;br&gt;reporting AI assistant" vertex="1">
+          <mxGeometry height="50" width="520" x="60" y="860" as="geometry" />
+        </mxCell>
+        <mxCell id="smtp" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" value="SMTP&lt;br&gt;scheduled report delivery" vertex="1">
+          <mxGeometry height="50" width="520" x="60" y="920" as="geometry" />
+        </mxCell>
+        <mxCell id="confl" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" value="Confluence (read-only mirror)&lt;br&gt;pushed from docs/ on push to main" vertex="1">
+          <mxGeometry height="50" width="520" x="60" y="980" as="geometry" />
+        </mxCell>
+        <mxCell id="g_ops" parent="1" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;dashed=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=12;" value="Ops artefacts on disk" vertex="1">
+          <mxGeometry height="130" width="620" x="650" y="940" as="geometry" />
+        </mxCell>
+        <mxCell id="logs" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=10;" value="var/logs/user/*.csv — one row per non-static request" vertex="1">
+          <mxGeometry height="40" width="580" x="670" y="975" as="geometry" />
+        </mxCell>
+        <mxCell id="logs2" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=10;" value="var/logs/system/app.log + waitress-stdout*" vertex="1">
+          <mxGeometry height="40" width="580" x="670" y="1020" as="geometry" />
+        </mxCell>
+        <mxCell id="n_dep" parent="1" style="shape=note;whiteSpace=wrap;html=1;size=14;verticalAlign=top;align=left;fontSize=10;fillColor=#ffffff;strokeColor=#666666;" value="&lt;b&gt;Deploy&lt;/b&gt;&lt;br&gt;deploy.yml robocopy /MIR → D:\sydoc\nexora.&lt;br&gt;Runtime needs only nx_main.py, nx_lib/, templates/,&lt;br&gt;static/, translations/, web.config.&lt;br&gt;New top-level path the app does not need? add /XF or /XD.&lt;br&gt;&lt;br&gt;&lt;b&gt;Migrations&lt;/b&gt; apply to PROD &lt;i&gt;before&lt;/i&gt; the pool stops.&lt;br&gt;&lt;b&gt;env/*.env&lt;/b&gt; is gitignored → never deployed; run scripts/env-sync.py." vertex="1">
+          <mxGeometry height="230" width="340" x="1680" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="n_static" parent="1" style="shape=note;whiteSpace=wrap;html=1;size=14;verticalAlign=top;align=left;fontSize=10;fillColor=#ffffff;strokeColor=#666666;" value="&lt;b&gt;web.config path=&quot;*&quot;&lt;/b&gt;&lt;br&gt;waitress serves /static, &lt;b&gt;not&lt;/b&gt; IIS — so a static asset is gzipped and cache-busted by the app, not by the web server." vertex="1">
+          <mxGeometry height="90" width="560" x="40" y="460" as="geometry" />
+        </mxCell>
+        <mxCell id="e_1 s1" edge="1" parent="1" source="browser" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;entryX=0;entryY=0.3;entryDx=0;entryDy=0;" target="iis" value="HTTPS">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_1 s2" edge="1" parent="1" source="apiclient" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;entryX=0;entryY=0.7;entryDx=0;entryDy=0;" target="iis" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_1 s3" edge="1" parent="1" source="ngrok" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="iis" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_1 s4" edge="1" parent="1" source="iis" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" target="waitress" value="HttpPlatform">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_1 s5" edge="1" parent="1" source="waitress" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" target="prefix" value="WSGI">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_1 s6" edge="1" parent="1" source="prefix" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" target="hooks" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_1 s7" edge="1" parent="1" source="hooks" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" target="g_views" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_1 s8" edge="1" parent="1" source="g_views" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" target="g_lib" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_1 s9" edge="1" parent="1" source="g_lib" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" target="g_tpl" value="render">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_1 s10" edge="1" parent="1" source="g_tpl" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" target="g_ops" value="one CSV row per request">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_1 s11" edge="1" parent="1" source="g_lib" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="g_db" value="engines">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_1 s12" edge="1" parent="1" source="g_lib" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;dashed=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.2;entryDx=0;entryDy=0;" target="g_ext" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="n_ops" parent="1" style="shape=note;whiteSpace=wrap;html=1;size=14;verticalAlign=top;align=left;fontSize=10;fillColor=#ffffff;strokeColor=#666666;" value="&lt;b&gt;Outage detection&lt;/b&gt;&lt;br&gt;ops/outage_monitor.py on Task Scheduler writes&lt;br&gt;dbo.StatusSamples / StatusIncidents; pure logic in&lt;br&gt;nx_lib/outage.py. See docs/howto/outage-monitor.md." vertex="1">
+          <mxGeometry height="90" width="560" x="40" y="580" as="geometry" />
+        </mxCell>
       </root>
     </mxGraphModel>
   </diagram>
   <diagram name="2 Request lifecycle" id="2_Request_lifecycle">
     <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1500" pageHeight="1500" math="0" shadow="0">
       <root>
-        <mxCell id="0"/>
-        <mxCell id="1" parent="0"/>
-        <mxCell id="t2" value="Request lifecycle — one non-static request" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontStyle=1;fontSize=20;" vertex="1" parent="1"><mxGeometry x="40" y="20" width="800" height="30" as="geometry"/></mxCell>
-        <mxCell id="r_req" value="Browser request" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1"><mxGeometry x="420" y="80" width="300" height="45" as="geometry"/></mxCell>
-        <mxCell id="r_prefix" value="PrefixMiddleware — strip /nexora  (PROD only)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1"><mxGeometry x="380" y="155" width="380" height="40" as="geometry"/></mxCell>
-        <mxCell id="r_route" value="Flask URL map → endpoint" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1"><mxGeometry x="380" y="225" width="380" height="40" as="geometry"/></mxCell>
-        <mxCell id="r_api" value="/api/v1/* — sessions bypassed entirely&lt;br&gt;Bearer key ← dbo.ApiKeys, per-client scope" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1"><mxGeometry x="860" y="190" width="340" height="60" as="geometry"/></mxCell>
-        <mxCell id="e_2 r1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="r_prefix" target="r_route"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="e_2 r2" value="external API" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="r_route" target="r_api"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="r_apitest" value="/api/test/v1/* — mirror of every endpoint" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1"><mxGeometry x="860" y="265" width="340" height="35" as="geometry"/></mxCell>
-        <mxCell id="e_2 r3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;dashed=1;" edge="1" parent="1" source="r_api" target="r_apitest"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="g_before" value="before_request chain — nx_lib/hooks.py, in registration order" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;dashed=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1"><mxGeometry x="300" y="305" width="540" height="340" as="geometry"/></mxCell>
-        <mxCell id="h1" value="_start_timer" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1"><mxGeometry x="320" y="340" width="500" height="34" as="geometry"/></mxCell>
-        <mxCell id="h2" value="_enforce_active_session&lt;br&gt;dbo.ActiveSessions · 24 h lifetime" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1"><mxGeometry x="320" y="382" width="500" height="50" as="geometry"/></mxCell>
-        <mxCell id="h3" value="_reload_user_permissions&lt;br&gt;TTL cache (user_cache) → session[&#x27;permissions&#x27;]" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1"><mxGeometry x="320" y="440" width="500" height="50" as="geometry"/></mxCell>
-        <mxCell id="h4" value="_load_user_locale&lt;br&gt;session → Users row → Accept-Language" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1"><mxGeometry x="320" y="498" width="500" height="50" as="geometry"/></mxCell>
-        <mxCell id="h5" value="_load_user_ui_prefs&lt;br&gt;allowlisted JSON from dbo.Users.ui_prefs" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1"><mxGeometry x="320" y="556" width="500" height="50" as="geometry"/></mxCell>
-        <mxCell id="h6" value="_enforce_maintenance_lockout" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1"><mxGeometry x="320" y="614" width="500" height="34" as="geometry"/></mxCell>
-        <mxCell id="e_2 r4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="h1" target="h2"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="e_2 r5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="h2" target="h3"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="e_2 r6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="h3" target="h4"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="e_2 r7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="h4" target="h5"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="e_2 r8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="h5" target="h6"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="e_2 r9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="r_route" target="h1"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="sp" value="dbo.spGetUserPermissions(@UserID)&lt;br&gt;override D → override A → profile grant → deny" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1"><mxGeometry x="880" y="405" width="360" height="60" as="geometry"/></mxCell>
-        <mxCell id="e_2 r10" value="on cache miss" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;dashed=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="h3" target="sp"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="r_perm" value="@require_permission(&#x27;code&#x27;)  /  has_permission(code)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;" vertex="1" parent="1"><mxGeometry x="340" y="675" width="460" height="45" as="geometry"/></mxCell>
-        <mxCell id="r_403" value="PermissionDenied → templates/handlers/403.html" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1"><mxGeometry x="880" y="675" width="360" height="45" as="geometry"/></mxCell>
-        <mxCell id="e_2 r11" value="denied" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="r_perm" target="r_403"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="e_2 r12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="h6" target="r_perm"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="r_handler" value="Route handler in nx_lib/views/…" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1"><mxGeometry x="340" y="750" width="460" height="40" as="geometry"/></mxCell>
-        <mxCell id="e_2 r13" value="granted" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="r_perm" target="r_handler"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="r_db" value="nx_lib/db.py engines → SQL Server / Postgres" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;" vertex="1" parent="1"><mxGeometry x="340" y="820" width="460" height="40" as="geometry"/></mxCell>
-        <mxCell id="r_dbicon" value="9 engines" style="whiteSpace=wrap;html=1;shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#ffcc99;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1"><mxGeometry x="880" y="805" width="140" height="70" as="geometry"/></mxCell>
-        <mxCell id="e_2 r14" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="r_handler" target="r_db"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="e_2 r15" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;dashed=1;" edge="1" parent="1" source="r_db" target="r_dbicon"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="r_render" value="render_template — Jinja2 + static_v() + csp_nonce()" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1"><mxGeometry x="340" y="890" width="460" height="40" as="geometry"/></mxCell>
-        <mxCell id="e_2 r16" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="r_db" target="r_render"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="g_after" value="after_request — Flask runs these in REVERSE registration order" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;dashed=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1"><mxGeometry x="300" y="970" width="540" height="210" as="geometry"/></mxCell>
-        <mxCell id="a1" value="_log_every_request → var/logs/user/*.csv" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1"><mxGeometry x="320" y="1005" width="500" height="32" as="geometry"/></mxCell>
-        <mxCell id="a2" value="_invalidate_user_cache" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1"><mxGeometry x="320" y="1041" width="500" height="32" as="geometry"/></mxCell>
-        <mxCell id="a3" value="_baseline_security_headers  X-Frame-Options · nosniff" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1"><mxGeometry x="320" y="1077" width="500" height="32" as="geometry"/></mxCell>
-        <mxCell id="a4" value="_static_cache_control  (endpoint == &#x27;static&#x27; only)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1"><mxGeometry x="320" y="1113" width="500" height="32" as="geometry"/></mxCell>
-        <mxCell id="a5" value="compression — gzip if text and &amp;gt; 1 KB   ← runs LAST" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1"><mxGeometry x="320" y="1149" width="500" height="32" as="geometry"/></mxCell>
-        <mxCell id="e_2 r17" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="a1" target="a2"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="e_2 r18" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="a2" target="a3"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="e_2 r19" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="a3" target="a4"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="e_2 r20" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="a4" target="a5"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="e_2 r21" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="r_render" target="a1"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="r_resp" value="Response" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1"><mxGeometry x="420" y="1210" width="300" height="45" as="geometry"/></mxCell>
-        <mxCell id="e_2 r22" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="a5" target="r_resp"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="n_prefix" value="&lt;b&gt;PROD URL prefix&lt;/b&gt;&lt;br&gt;url_for() is prefix-correct.&lt;br&gt;Hand-built URLs in JS must go through&lt;br&gt;window.API_PREFIX or they 404 on PROD.&lt;br&gt;Enforced by tests/unit/test_template_url_prefix.py." style="shape=note;whiteSpace=wrap;html=1;size=14;verticalAlign=top;align=left;fontSize=10;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1"><mxGeometry x="1280" y="620" width="360" height="120" as="geometry"/></mxCell>
-        <mxCell id="n_csp" value="&lt;b&gt;CSP is PROD-only.&lt;/b&gt; An inline onclick= works on INT and is&lt;br&gt;silently refused on PROD. Inline &amp;lt;script nonce=&quot;{{ csp_nonce() }}&quot;&amp;gt;&lt;br&gt;carries Jinja data only; behaviour lives in static/js/." style="shape=note;whiteSpace=wrap;html=1;size=14;verticalAlign=top;align=left;fontSize=10;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1"><mxGeometry x="1280" y="780" width="400" height="110" as="geometry"/></mxCell>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="t2" value="Request lifecycle — one non-static request" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontStyle=1;fontSize=20;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="800" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="r_req" value="Browser request" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="420" y="80" width="300" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="r_prefix" value="PrefixMiddleware — strip /nexora  (PROD only)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="380" y="155" width="380" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r_route" value="Flask URL map → endpoint" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="380" y="225" width="380" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r_api" value="/api/v1/* — sessions bypassed entirely&lt;br&gt;Bearer key ← dbo.ApiKeys, per-client scope" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="860" y="190" width="340" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e_2 r1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="r_prefix" target="r_route">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_2 r2" value="external API" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="r_route" target="r_api">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r_apitest" value="/api/test/v1/* — mirror of every endpoint" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="860" y="265" width="340" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="e_2 r3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;dashed=1;" edge="1" parent="1" source="r_api" target="r_apitest">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="g_before" value="before_request chain — nx_lib/hooks.py, in registration order" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;dashed=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="300" y="305" width="540" height="340" as="geometry" />
+        </mxCell>
+        <mxCell id="h1" value="_start_timer" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="320" y="340" width="500" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="h2" value="_enforce_active_session&lt;br&gt;dbo.ActiveSessions · 24 h lifetime" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="320" y="382" width="500" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="h3" value="_reload_user_permissions&lt;br&gt;TTL cache (user_cache) → session[&#39;permissions&#39;]" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="320" y="440" width="500" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="h4" value="_load_user_locale&lt;br&gt;session → Users row → Accept-Language" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="320" y="498" width="500" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="h5" value="_load_user_ui_prefs&lt;br&gt;allowlisted JSON from dbo.Users.ui_prefs" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="320" y="556" width="500" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="h6" value="_enforce_maintenance_lockout" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="320" y="614" width="500" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="e_2 r4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="h1" target="h2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_2 r5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="h2" target="h3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_2 r6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="h3" target="h4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_2 r7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="h4" target="h5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_2 r8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="h5" target="h6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_2 r9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="r_route" target="h1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="sp" value="dbo.spGetUserPermissions(@UserID)&lt;br&gt;override D → override A → profile grant → deny" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="880" y="405" width="360" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e_2 r10" value="on cache miss" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;dashed=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="h3" target="sp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r_perm" value="@require_permission(&#39;code&#39;)  /  has_permission(code)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="340" y="675" width="460" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="r_403" value="PermissionDenied → templates/handlers/403.html" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="880" y="675" width="360" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="e_2 r11" value="denied" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="r_perm" target="r_403">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_2 r12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="h6" target="r_perm">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r_handler" value="Route handler in nx_lib/views/…" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="340" y="750" width="460" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="e_2 r13" value="granted" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="r_perm" target="r_handler">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r_db" value="nx_lib/db.py engines → SQL Server / Postgres" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="340" y="820" width="460" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r_dbicon" value="9 engines" style="whiteSpace=wrap;html=1;shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#ffcc99;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="880" y="805" width="140" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="e_2 r14" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="r_handler" target="r_db">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_2 r15" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;dashed=1;" edge="1" parent="1" source="r_db" target="r_dbicon">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r_render" value="render_template — Jinja2 + static_v() + csp_nonce()" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="340" y="890" width="460" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="e_2 r16" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="r_db" target="r_render">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="g_after" value="after_request — Flask runs these in REVERSE registration order" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;dashed=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="300" y="970" width="540" height="210" as="geometry" />
+        </mxCell>
+        <mxCell id="a1" value="_log_every_request → var/logs/user/*.csv" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="320" y="1005" width="500" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="a2" value="_invalidate_user_cache" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="320" y="1041" width="500" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="a3" value="_baseline_security_headers  X-Frame-Options · nosniff" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="320" y="1077" width="500" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="a4" value="_static_cache_control  (endpoint == &#39;static&#39; only)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="320" y="1113" width="500" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="a5" value="compression — gzip if text and &amp;gt; 1 KB   ← runs LAST" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="320" y="1149" width="500" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="e_2 r17" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="a1" target="a2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_2 r18" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="a2" target="a3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_2 r19" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="a3" target="a4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_2 r20" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="a4" target="a5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_2 r21" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="r_render" target="a1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r_resp" value="Response" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="420" y="1210" width="300" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="e_2 r22" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="a5" target="r_resp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="n_prefix" value="&lt;b&gt;PROD URL prefix&lt;/b&gt;&lt;br&gt;url_for() is prefix-correct.&lt;br&gt;Hand-built URLs in JS must go through&lt;br&gt;window.API_PREFIX or they 404 on PROD.&lt;br&gt;Enforced by tests/unit/test_template_url_prefix.py." style="shape=note;whiteSpace=wrap;html=1;size=14;verticalAlign=top;align=left;fontSize=10;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="620" width="360" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="n_csp" value="&lt;b&gt;CSP is PROD-only.&lt;/b&gt; An inline onclick= works on INT and is&lt;br&gt;silently refused on PROD. Inline &amp;lt;script nonce=&quot;{{ csp_nonce() }}&quot;&amp;gt;&lt;br&gt;carries Jinja data only; behaviour lives in static/js/." style="shape=note;whiteSpace=wrap;html=1;size=14;verticalAlign=top;align=left;fontSize=10;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="780" width="400" height="110" as="geometry" />
+        </mxCell>
       </root>
     </mxGraphModel>
   </diagram>
   <diagram name="3 Multi-source workitems" id="3_Multi-source_workitems">
     <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1620" pageHeight="1150" math="0" shadow="0">
       <root>
-        <mxCell id="0"/>
-        <mxCell id="1" parent="0"/>
-        <mxCell id="t3" value="Multi-source workitems (MS02) — routing, mapping, fail-closed search" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontStyle=1;fontSize=20;" vertex="1" parent="1"><mxGeometry x="40" y="20" width="1000" height="30" as="geometry"/></mxCell>
-        <mxCell id="t3b" value="Workitem identity is compound: (client, id). Ids collide across clients — 1216 exists in both Octo and MS02 on INT." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontStyle=1;fontSize=11;" vertex="1" parent="1"><mxGeometry x="40" y="52" width="1100" height="24" as="geometry"/></mxCell>
-        <mxCell id="w_req" value="Request  /workitems/&amp;lt;id&amp;gt;?client=&amp;lt;code&amp;gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1"><mxGeometry x="40" y="110" width="320" height="50" as="geometry"/></mxCell>
-        <mxCell id="w_resolve" value="workitem_sources.get_source_for_workitem(id, client_hint)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1"><mxGeometry x="40" y="200" width="320" height="55" as="geometry"/></mxCell>
-        <mxCell id="e_3 m1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="w_req" target="w_resolve"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="g_probe" value="probe-then-cache routing" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;dashed=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1"><mxGeometry x="420" y="110" width="420" height="290" as="geometry"/></mxCell>
-        <mxCell id="w_cache" value="_cache_lookup → dbo.WorkitemSourceCache" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1"><mxGeometry x="440" y="150" width="380" height="40" as="geometry"/></mxCell>
-        <mxCell id="w_claim" value="_resolve_source_claimers — ask each active source&lt;br&gt;has_workitem(id); ambiguity resolved by client hint" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1"><mxGeometry x="440" y="210" width="380" height="55" as="geometry"/></mxCell>
-        <mxCell id="w_store" value="_cache_store(id, client_code)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1"><mxGeometry x="440" y="285" width="380" height="35" as="geometry"/></mxCell>
-        <mxCell id="w_merge" value="fetch_merged_page / merge_sorted_rows&lt;br&gt;list pages merge across sources, sorted" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1"><mxGeometry x="440" y="335" width="380" height="50" as="geometry"/></mxCell>
-        <mxCell id="e_3 m2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="w_resolve" target="w_cache"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="e_3 m3" value="miss" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="w_cache" target="w_claim"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="e_3 m4" value="hit" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="w_claim" target="w_store"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="g_src" value="adapters — one per client" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;dashed=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1"><mxGeometry x="900" y="110" width="420" height="290" as="geometry"/></mxCell>
-        <mxCell id="w_sql" value="SqlServerSource&lt;br&gt;default client · Octo schema on SQL Server" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1"><mxGeometry x="920" y="150" width="380" height="55" as="geometry"/></mxCell>
-        <mxCell id="w_pg" value="PostgresSource(client_code=&#x27;ms02&#x27;)&lt;br&gt;same Octo schema, PG dialect" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1"><mxGeometry x="920" y="220" width="380" height="55" as="geometry"/></mxCell>
-        <mxCell id="w_ident" value="PG identifiers are PascalCase and must stay quoted:&lt;br&gt;public.&quot;DossierStatistik&quot;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=9;" vertex="1" parent="1"><mxGeometry x="920" y="290" width="380" height="50" as="geometry"/></mxCell>
-        <mxCell id="e_3 m5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="w_claim" target="w_sql"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="e_3 m6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="w_claim" target="w_pg"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="w_octodb" value="OctoDB&lt;br&gt;(SQL Server)" style="whiteSpace=wrap;html=1;shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#ffcc99;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1"><mxGeometry x="1400" y="145" width="180" height="65" as="geometry"/></mxCell>
-        <mxCell id="w_ms02" value="MS02 Postgres&lt;br&gt;(Azure)" style="whiteSpace=wrap;html=1;shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#ffcc99;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1"><mxGeometry x="1400" y="225" width="180" height="65" as="geometry"/></mxCell>
-        <mxCell id="e_3 m7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="w_sql" target="w_octodb"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="e_3 m8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="w_pg" target="w_ms02"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="g_reg" value="registries — both DB-backed and cached" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;dashed=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=12;" vertex="1" parent="1"><mxGeometry x="40" y="450" width="800" height="260" as="geometry"/></mxCell>
-        <mxCell id="w_clients" value="nx_lib/clients.py — CLIENTS&lt;br&gt;from dbo.Clients; per-client engines + Octo creds&lt;br&gt;REGISTRY_DEGRADED_REASON when a row cannot resolve" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=10;" vertex="1" parent="1"><mxGeometry x="60" y="490" width="370" height="75" as="geometry"/></mxCell>
-        <mxCell id="w_map" value="nx_lib/mapping_config.py — registry()&lt;br&gt;dbo.ProcessSources · ProcessFieldMappings&lt;br&gt;FieldLabels · FieldAliases   (migration 0074)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=10;" vertex="1" parent="1"><mxGeometry x="450" y="490" width="370" height="75" as="geometry"/></mxCell>
-        <mxCell id="w_mapapi" value="sources_for(client, processes) · mappings_for()&lt;br&gt;valid_field_keys() · sensitive_field_keys() · labels()&lt;br&gt;invalidate_mapping_config() clears the cache" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=9;" vertex="1" parent="1"><mxGeometry x="450" y="585" width="370" height="75" as="geometry"/></mxCell>
-        <mxCell id="e_3 m9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="w_map" target="w_mapapi"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="w_decap" value="Decapitated by 0075: SearchConfig · StatConfig&lt;br&gt;IndexFieldMappings · Search_Field_Labels" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=9;" vertex="1" parent="1"><mxGeometry x="60" y="585" width="370" height="55" as="geometry"/></mxCell>
-        <mxCell id="g_stat" value="statistics — routed per client" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;dashed=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1"><mxGeometry x="900" y="450" width="680" height="130" as="geometry"/></mxCell>
-        <mxCell id="w_statsql" value="SQL Server clients: EAV index tables" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1"><mxGeometry x="920" y="490" width="320" height="45" as="geometry"/></mxCell>
-        <mxCell id="w_statpg" value="MS02: wide COLUMNAR tables&lt;br&gt;public.&quot;DossierStatistik&quot; — not an EAV index" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1"><mxGeometry x="1250" y="490" width="310" height="55" as="geometry"/></mxCell>
-        <mxCell id="g_doc" value="doc-field search" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;dashed=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;" vertex="1" parent="1"><mxGeometry x="900" y="610" width="680" height="200" as="geometry"/></mxCell>
-        <mxCell id="w_doc" value="resolve_ms02_docfield_ids(engine, pairs)&lt;br&gt;_ms02_columnar_sql() builds the wide-table predicate" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1"><mxGeometry x="920" y="650" width="640" height="55" as="geometry"/></mxCell>
-        <mxCell id="w_fail" value="engine_ms02_docfields_pg is None  ⇒  FAILS CLOSED&lt;br&gt;unresolved allow-set = set() → zero rows, never unconstrained" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1"><mxGeometry x="920" y="720" width="640" height="55" as="geometry"/></mxCell>
-        <mxCell id="e_3 m10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="w_doc" target="w_fail"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="w_docdb" value="MS02 docfields PG" style="whiteSpace=wrap;html=1;shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#ffcc99;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1"><mxGeometry x="1400" y="850" width="180" height="60" as="geometry"/></mxCell>
-        <mxCell id="e_3 m11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;dashed=1;" edge="1" parent="1" source="w_doc" target="w_docdb"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="g_perm" value="permission gate" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;dashed=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1"><mxGeometry x="40" y="760" width="800" height="150" as="geometry"/></mxCell>
-        <mxCell id="w_perm" value="process.&amp;lt;client&amp;gt;.&amp;lt;process&amp;gt;.filter.process.&amp;lt;name&amp;gt;&lt;br&gt;MS02 codes need the .filter.process. segment" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1"><mxGeometry x="60" y="800" width="370" height="55" as="geometry"/></mxCell>
-        <mxCell id="w_sens" value="nx_lib/workitems/sensitivity.py — redaction driven by&lt;br&gt;FieldLabels.IsSensitive; None ⇒ fails closed" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1"><mxGeometry x="450" y="800" width="370" height="55" as="geometry"/></mxCell>
-        <mxCell id="n_wi" value="&lt;b&gt;Consequences of compound identity&lt;/b&gt;&lt;br&gt;• Detail routes take ?client=&amp;lt;code&amp;gt;.&lt;br&gt;• Per-workitem caches key on (client, id).&lt;br&gt;• Front-end element ids include the client.&lt;br&gt;• NexoraDB workitem metadata is still client-less.&lt;br&gt;&lt;br&gt;&lt;b&gt;Media host DNS:&lt;/b&gt; a no-dot Octo media host is rewritten&lt;br&gt;to the gateway FQDN — not MS02-only.&lt;br&gt;&lt;br&gt;Full detail: docs/design/ms02-multisource.md" style="shape=note;whiteSpace=wrap;html=1;size=14;verticalAlign=top;align=left;fontSize=10;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1"><mxGeometry x="40" y="950" width="800" height="170" as="geometry"/></mxCell>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="t3" value="Multi-source workitems (MS02) — routing, mapping, fail-closed search" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontStyle=1;fontSize=20;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1000" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="t3b" value="Workitem identity is compound: (client, id). Ids collide across clients — 1216 exists in both Octo and MS02 on INT." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="52" width="1100" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="w_req" value="Request  /workitems/&amp;lt;id&amp;gt;?client=&amp;lt;code&amp;gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="110" width="320" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="w_resolve" value="workitem_sources.get_source_for_workitem(id, client_hint)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="200" width="320" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="e_3 m1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="w_req" target="w_resolve">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="g_probe" value="probe-then-cache routing" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;dashed=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="420" y="110" width="420" height="290" as="geometry" />
+        </mxCell>
+        <mxCell id="w_cache" value="_cache_lookup → dbo.WorkitemSourceCache" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="440" y="150" width="380" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="w_claim" value="_resolve_source_claimers — ask each active source&lt;br&gt;has_workitem(id); ambiguity resolved by client hint" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="440" y="210" width="380" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="w_store" value="_cache_store(id, client_code)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="440" y="285" width="380" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="w_merge" value="fetch_merged_page / merge_sorted_rows&lt;br&gt;list pages merge across sources, sorted" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="440" y="335" width="380" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e_3 m2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="w_resolve" target="w_cache">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_3 m3" value="miss" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="w_cache" target="w_claim">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_3 m4" value="hit" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="w_claim" target="w_store">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="g_src" value="adapters — one per client" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;dashed=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="900" y="110" width="420" height="290" as="geometry" />
+        </mxCell>
+        <mxCell id="w_sql" value="SqlServerSource&lt;br&gt;default client · Octo schema on SQL Server" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="920" y="150" width="380" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="w_pg" value="PostgresSource(client_code=&#39;ms02&#39;)&lt;br&gt;same Octo schema, PG dialect" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="920" y="220" width="380" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="w_ident" value="PG identifiers are PascalCase and must stay quoted:&lt;br&gt;public.&quot;DossierStatistik&quot;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="920" y="290" width="380" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e_3 m5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="w_claim" target="w_sql">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_3 m6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="w_claim" target="w_pg">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="w_octodb" value="OctoDB&lt;br&gt;(SQL Server)" style="whiteSpace=wrap;html=1;shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#ffcc99;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1400" y="145" width="180" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="w_ms02" value="MS02 Postgres&lt;br&gt;(Azure)" style="whiteSpace=wrap;html=1;shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#ffcc99;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1400" y="225" width="180" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="e_3 m7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="w_sql" target="w_octodb">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_3 m8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="w_pg" target="w_ms02">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="g_reg" value="registries — both DB-backed and cached" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;dashed=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="450" width="800" height="260" as="geometry" />
+        </mxCell>
+        <mxCell id="w_clients" value="nx_lib/clients.py — CLIENTS&lt;br&gt;from dbo.Clients; per-client engines + Octo creds&lt;br&gt;REGISTRY_DEGRADED_REASON when a row cannot resolve" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="490" width="370" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="w_map" value="nx_lib/mapping_config.py — registry()&lt;br&gt;dbo.ProcessSources · ProcessFieldMappings&lt;br&gt;FieldLabels · FieldAliases   (migration 0074)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="450" y="490" width="370" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="w_mapapi" value="sources_for(client, processes) · mappings_for()&lt;br&gt;valid_field_keys() · sensitive_field_keys() · labels()&lt;br&gt;invalidate_mapping_config() clears the cache" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="450" y="585" width="370" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="e_3 m9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="w_map" target="w_mapapi">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="w_decap" value="Decapitated by 0075: SearchConfig · StatConfig&lt;br&gt;IndexFieldMappings · Search_Field_Labels" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="60" y="585" width="370" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="g_stat" value="statistics — routed per client" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;dashed=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="900" y="450" width="680" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="w_statsql" value="SQL Server clients: EAV index tables" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="920" y="490" width="320" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="w_statpg" value="MS02: wide COLUMNAR tables&lt;br&gt;public.&quot;DossierStatistik&quot; — not an EAV index" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="490" width="310" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="g_doc" value="doc-field search" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;dashed=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="900" y="610" width="680" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="w_doc" value="resolve_ms02_docfield_ids(engine, pairs)&lt;br&gt;_ms02_columnar_sql() builds the wide-table predicate" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="920" y="650" width="640" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="w_fail" value="engine_ms02_docfields_pg is None  ⇒  FAILS CLOSED&lt;br&gt;unresolved allow-set = set() → zero rows, never unconstrained" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="920" y="720" width="640" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="e_3 m10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="w_doc" target="w_fail">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="w_docdb" value="MS02 docfields PG" style="whiteSpace=wrap;html=1;shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#ffcc99;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1400" y="850" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e_3 m11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;dashed=1;" edge="1" parent="1" source="w_doc" target="w_docdb">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="g_perm" value="permission gate" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;dashed=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="760" width="800" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="w_perm" value="process.&amp;lt;client&amp;gt;.&amp;lt;process&amp;gt;.filter.process.&amp;lt;name&amp;gt;&lt;br&gt;MS02 codes need the .filter.process. segment" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="800" width="370" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="w_sens" value="nx_lib/workitems/sensitivity.py — redaction driven by&lt;br&gt;FieldLabels.IsSensitive; None ⇒ fails closed" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="450" y="800" width="370" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="n_wi" value="&lt;b&gt;Consequences of compound identity&lt;/b&gt;&lt;br&gt;• Detail routes take ?client=&amp;lt;code&amp;gt;.&lt;br&gt;• Per-workitem caches key on (client, id).&lt;br&gt;• Front-end element ids include the client.&lt;br&gt;• NexoraDB workitem metadata is still client-less.&lt;br&gt;&lt;br&gt;&lt;b&gt;Media host DNS:&lt;/b&gt; a no-dot Octo media host is rewritten&lt;br&gt;to the gateway FQDN — not MS02-only.&lt;br&gt;&lt;br&gt;Full detail: docs/design/ms02-multisource.md" style="shape=note;whiteSpace=wrap;html=1;size=14;verticalAlign=top;align=left;fontSize=10;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="950" width="800" height="170" as="geometry" />
+        </mxCell>
       </root>
     </mxGraphModel>
   </diagram>
   <diagram name="4 Tenancy and permissions" id="4_Tenancy_and_permissions">
     <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1150" math="0" shadow="0">
       <root>
-        <mxCell id="0"/>
-        <mxCell id="1" parent="0"/>
-        <mxCell id="t4" value="Tenancy &amp;amp; permissions — who sees what" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontStyle=1;fontSize=20;" vertex="1" parent="1"><mxGeometry x="40" y="20" width="800" height="30" as="geometry"/></mxCell>
-        <mxCell id="t4b" value="A Tenant is a portal. An Organization is a customer. Branding belongs to the Organization, not the Tenant." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontStyle=1;fontSize=11;" vertex="1" parent="1"><mxGeometry x="40" y="52" width="1000" height="24" as="geometry"/></mxCell>
-        <mxCell id="tenant" value="Tenant&lt;br&gt;dbo.Tenants — sidebar group + tenant.&amp;lt;code&amp;gt;.* codes" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1"><mxGeometry x="60" y="130" width="300" height="60" as="geometry"/></mxCell>
-        <mxCell id="tpages" value="dbo.TenantPages / TenantEntities / TenantFields&lt;br&gt;generated pages served by&lt;br&gt;views/tenant.py at /t/&amp;lt;code&amp;gt;/&amp;lt;page_key&amp;gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1"><mxGeometry x="420" y="120" width="350" height="75" as="geometry"/></mxCell>
-        <mxCell id="e_4 t1" value="1..n" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="tenant" target="tpages"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="org" value="Organization&lt;br&gt;dbo.Organizations — the customer; owns logo + accent" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1"><mxGeometry x="60" y="250" width="300" height="60" as="geometry"/></mxCell>
-        <mxCell id="e_4 t2" value="0..n orgs" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="tenant" target="org"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="brand" value="nx_lib/branding.py → _inject_brand()" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1"><mxGeometry x="420" y="260" width="300" height="40" as="geometry"/></mxCell>
-        <mxCell id="e_4 t3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;dashed=1;" edge="1" parent="1" source="org" target="brand"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="user" value="User&lt;br&gt;dbo.Users — exactly one Organization, exactly one AccessProfile" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1"><mxGeometry x="60" y="375" width="300" height="65" as="geometry"/></mxCell>
-        <mxCell id="e_4 t4" value="1..n users" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="org" target="user"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="profile" value="AccessProfile&lt;br&gt;dbo.AccessProfile — Rank; may be bound to one Organization&lt;br&gt;(unbound ⇒ global profile)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1"><mxGeometry x="60" y="505" width="300" height="75" as="geometry"/></mxCell>
-        <mxCell id="e_4 t5" value="holds 1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="user" target="profile"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="e_4 t6" value="0..n bound" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="org" target="profile"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="apperm" value="dbo.AccessProfilePermission&lt;br&gt;ALLOW-ONLY rows since migration 0086" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1"><mxGeometry x="420" y="505" width="320" height="60" as="geometry"/></mxCell>
-        <mxCell id="e_4 t7" value="grants" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="profile" target="apperm"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="perm" value="dbo.Permission&lt;br&gt;the code catalogue" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1"><mxGeometry x="800" y="505" width="240" height="60" as="geometry"/></mxCell>
-        <mxCell id="e_4 t8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="apperm" target="perm"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="override" value="dbo.UserPermissionOverride&lt;br&gt;Effect &#x27;A&#x27; allow / &#x27;D&#x27; deny — the ONLY place a deny exists" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1"><mxGeometry x="420" y="375" width="320" height="65" as="geometry"/></mxCell>
-        <mxCell id="e_4 t9" value="0..n" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="user" target="override"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="g_res" value="resolution — dbo.fnUserHasPermission / dbo.spGetUserPermissions agree, in this order" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;dashed=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=12;" vertex="1" parent="1"><mxGeometry x="800" y="620" width="740" height="220" as="geometry"/></mxCell>
-        <mxCell id="res0" value="1.  user override Effect = &#x27;D&#x27;   →  DENIED" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=10;" vertex="1" parent="1"><mxGeometry x="820" y="660" width="700" height="34" as="geometry"/></mxCell>
-        <mxCell id="res1" value="2.  user override Effect = &#x27;A&#x27;   →  granted" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=10;" vertex="1" parent="1"><mxGeometry x="820" y="702" width="700" height="34" as="geometry"/></mxCell>
-        <mxCell id="res2" value="3.  row in AccessProfilePermission for the user&#x27;s profile  →  granted" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=10;" vertex="1" parent="1"><mxGeometry x="820" y="744" width="700" height="34" as="geometry"/></mxCell>
-        <mxCell id="res3" value="4.  otherwise  →  denied" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=10;" vertex="1" parent="1"><mxGeometry x="820" y="786" width="700" height="34" as="geometry"/></mxCell>
-        <mxCell id="cache" value="nx_lib/user_cache.py — TTL cache&lt;br&gt;_reload_user_permissions refreshes session[&#x27;permissions&#x27;] per request" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1"><mxGeometry x="800" y="375" width="400" height="65" as="geometry"/></mxCell>
-        <mxCell id="e_4 t10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="override" target="cache"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="guard" value="@require_permission(&#x27;code&#x27;)  ·  has_permission(&#x27;code&#x27;)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1"><mxGeometry x="1250" y="385" width="290" height="45" as="geometry"/></mxCell>
-        <mxCell id="e_4 t11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="cache" target="guard"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="rank" value="Rank rule (0086): actor may assign profile P iff P.Rank &amp;lt;= actor.profile.Rank&lt;br&gt;Enterprise Admin 100 · Global Admin 90 · Supervisors 50 · everything else 10&lt;br&gt;assignable_profile_ids() in nx_lib/security.py" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1"><mxGeometry x="60" y="640" width="700" height="80" as="geometry"/></mxCell>
-        <mxCell id="e_4 t12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="profile" target="rank"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="ent" value="Enterprise Admin holds EVERY code.&lt;br&gt;Migration 0106 + trigger trPermission_GrantEnterpriseAdmin on dbo.Permission&lt;br&gt;grants any newly added code in the same statement." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1"><mxGeometry x="60" y="750" width="700" height="70" as="geometry"/></mxCell>
-        <mxCell id="n_gram" value="&lt;b&gt;Code grammar&lt;/b&gt;  (PERMISSION_CODE_RE in nx_lib/security.py)&lt;br&gt;&lt;br&gt;&amp;lt;area&amp;gt;[.&amp;lt;object&amp;gt;[.&amp;lt;sub&amp;gt;]].&amp;lt;action&amp;gt;[.&amp;lt;scope&amp;gt;]&lt;br&gt;&lt;br&gt;areas: admin workitems dashboard reporting process tenant api jd&lt;br&gt;&amp;nbsp;&amp;nbsp;(tenant.&amp;lt;code&amp;gt; and process.&amp;lt;client&amp;gt; are two-segment areas)&lt;br&gt;actions: view add edit delete use run export schedule manage bypass import restart&lt;br&gt;scopes: org · all · pastdeadline  — no scope means own records&lt;br&gt;&lt;br&gt;&amp;lt;area&amp;gt;.view is the landing page and gates everything beneath it in the&lt;br&gt;admin grid — a &lt;i&gt;UI convention only&lt;/i&gt;; the server checks each code alone.&lt;br&gt;&lt;br&gt;Renamed by #238, applied by migration 0088. Detail: docs/design/permissions.md" style="shape=note;whiteSpace=wrap;html=1;size=14;verticalAlign=top;align=left;fontSize=10;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1"><mxGeometry x="800" y="130" width="740" height="215" as="geometry"/></mxCell>
-        <mxCell id="n_pref" value="&lt;b&gt;UI preferences&lt;/b&gt; are allowlisted JSON in dbo.Users.ui_prefs&lt;br&gt;(nx_lib/ui_prefs.py), applied pre-paint in templates/_header.html,&lt;br&gt;edited on /appearance. &lt;b&gt;Never cache them in the session&lt;/b&gt; (#155)." style="shape=note;whiteSpace=wrap;html=1;size=14;verticalAlign=top;align=left;fontSize=10;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1"><mxGeometry x="60" y="860" width="700" height="90" as="geometry"/></mxCell>
-        <mxCell id="n_admin" value="&lt;b&gt;Admin surfaces&lt;/b&gt;&lt;br&gt;/admin/tenants/manage · /admin/clients · /admin/processes&lt;br&gt;Onboarding a customer — the ClientCode runtime-source vs&lt;br&gt;Organizations customer split: docs/howto/white-label.md" style="shape=note;whiteSpace=wrap;html=1;size=14;verticalAlign=top;align=left;fontSize=10;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1"><mxGeometry x="800" y="870" width="740" height="90" as="geometry"/></mxCell>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="t4" value="Tenancy &amp;amp; permissions — who sees what" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontStyle=1;fontSize=20;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="800" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="t4b" value="A Tenant is a portal. An Organization is a customer. Branding belongs to the Organization, not the Tenant." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="52" width="1000" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="tenant" value="Tenant&lt;br&gt;dbo.Tenants — sidebar group + tenant.&amp;lt;code&amp;gt;.* codes" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="130" width="300" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="tpages" value="dbo.TenantPages / TenantEntities / TenantFields&lt;br&gt;generated pages served by&lt;br&gt;views/tenant.py at /t/&amp;lt;code&amp;gt;/&amp;lt;page_key&amp;gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="420" y="120" width="350" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="e_4 t1" value="1..n" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="tenant" target="tpages">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="org" value="Organization&lt;br&gt;dbo.Organizations — the customer; owns logo + accent" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="250" width="300" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e_4 t2" value="0..n orgs" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="tenant" target="org">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="brand" value="nx_lib/branding.py → _inject_brand()" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="420" y="260" width="300" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="e_4 t3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;dashed=1;" edge="1" parent="1" source="org" target="brand">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="user" value="User&lt;br&gt;dbo.Users — exactly one Organization, exactly one AccessProfile" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="375" width="300" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="e_4 t4" value="1..n users" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="org" target="user">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="profile" value="AccessProfile&lt;br&gt;dbo.AccessProfile — Rank; may be bound to one Organization&lt;br&gt;(unbound ⇒ global profile)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="505" width="300" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="e_4 t5" value="holds 1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="user" target="profile">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_4 t6" value="0..n bound" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="org" target="profile">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="apperm" value="dbo.AccessProfilePermission&lt;br&gt;ALLOW-ONLY rows since migration 0086" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="420" y="505" width="320" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e_4 t7" value="grants" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="profile" target="apperm">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="perm" value="dbo.Permission&lt;br&gt;the code catalogue" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="800" y="505" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e_4 t8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="apperm" target="perm">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="override" value="dbo.UserPermissionOverride&lt;br&gt;Effect &#39;A&#39; allow / &#39;D&#39; deny — the ONLY place a deny exists" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="420" y="375" width="320" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="e_4 t9" value="0..n" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="user" target="override">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="g_res" value="resolution — dbo.fnUserHasPermission / dbo.spGetUserPermissions agree, in this order" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;dashed=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="800" y="620" width="740" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="res0" value="1.  user override Effect = &#39;D&#39;   →  DENIED" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="820" y="660" width="700" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="res1" value="2.  user override Effect = &#39;A&#39;   →  granted" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="820" y="702" width="700" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="res2" value="3.  row in AccessProfilePermission for the user&#39;s profile  →  granted" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="820" y="744" width="700" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="res3" value="4.  otherwise  →  denied" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="820" y="786" width="700" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="cache" value="nx_lib/user_cache.py — TTL cache&lt;br&gt;_reload_user_permissions refreshes session[&#39;permissions&#39;] per request" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="800" y="375" width="400" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="e_4 t10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="override" target="cache">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="guard" value="@require_permission(&#39;code&#39;)  ·  has_permission(&#39;code&#39;)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="385" width="290" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="e_4 t11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="cache" target="guard">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rank" value="Rank rule (0086): actor may assign profile P iff P.Rank &amp;lt;= actor.profile.Rank&lt;br&gt;Enterprise Admin 100 · Global Admin 90 · Supervisors 50 · everything else 10&lt;br&gt;assignable_profile_ids() in nx_lib/security.py" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="640" width="700" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="e_4 t12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;" edge="1" parent="1" source="profile" target="rank">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ent" value="Enterprise Admin holds EVERY code.&lt;br&gt;Migration 0106 + trigger trPermission_GrantEnterpriseAdmin on dbo.Permission&lt;br&gt;grants any newly added code in the same statement." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="750" width="700" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="n_gram" value="&lt;b&gt;Code grammar&lt;/b&gt;  (PERMISSION_CODE_RE in nx_lib/security.py)&lt;br&gt;&lt;br&gt;&amp;lt;area&amp;gt;[.&amp;lt;object&amp;gt;[.&amp;lt;sub&amp;gt;]].&amp;lt;action&amp;gt;[.&amp;lt;scope&amp;gt;]&lt;br&gt;&lt;br&gt;areas: admin workitems dashboard reporting process tenant api jd&lt;br&gt;&amp;nbsp;&amp;nbsp;(tenant.&amp;lt;code&amp;gt; and process.&amp;lt;client&amp;gt; are two-segment areas)&lt;br&gt;actions: view add edit delete use run export schedule manage bypass import restart&lt;br&gt;scopes: org · all · pastdeadline  — no scope means own records&lt;br&gt;&lt;br&gt;&amp;lt;area&amp;gt;.view is the landing page and gates everything beneath it in the&lt;br&gt;admin grid — a &lt;i&gt;UI convention only&lt;/i&gt;; the server checks each code alone.&lt;br&gt;&lt;br&gt;Renamed by #238, applied by migration 0088. Detail: docs/design/permissions.md" style="shape=note;whiteSpace=wrap;html=1;size=14;verticalAlign=top;align=left;fontSize=10;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="800" y="130" width="740" height="215" as="geometry" />
+        </mxCell>
+        <mxCell id="n_pref" value="&lt;b&gt;UI preferences&lt;/b&gt; are allowlisted JSON in dbo.Users.ui_prefs&lt;br&gt;(nx_lib/ui_prefs.py), applied pre-paint in templates/_header.html,&lt;br&gt;edited on /appearance. &lt;b&gt;Never cache them in the session&lt;/b&gt; (#155)." style="shape=note;whiteSpace=wrap;html=1;size=14;verticalAlign=top;align=left;fontSize=10;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="60" y="860" width="700" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="n_admin" value="&lt;b&gt;Admin surfaces&lt;/b&gt;&lt;br&gt;/admin/tenants/manage · /admin/clients · /admin/processes&lt;br&gt;Onboarding a customer — the ClientCode runtime-source vs&lt;br&gt;Organizations customer split: docs/howto/white-label.md" style="shape=note;whiteSpace=wrap;html=1;size=14;verticalAlign=top;align=left;fontSize=10;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="800" y="870" width="740" height="90" as="geometry" />
+        </mxCell>
       </root>
     </mxGraphModel>
   </diagram>
