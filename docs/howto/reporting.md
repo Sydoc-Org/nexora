@@ -787,6 +787,41 @@ export), wired into `static/js/reporting_simple.js` (Simple: chart
 (Advanced: chart `onElementClick` + grid-row clicks), with drawer markup/CSS
 in `templates/reporting.html` and `static/css/reporting.css`.
 
+### Contribution analysis ("Why did it move?")
+
+When the Simple KPI band shows a **Total** delta chip (see *Comparison & delta
+chips*), the chip is a button. Clicking it POSTs the current definition
+(tokens intact) to `POST /api/reporting/contribution` and opens the drill
+slide-over with one tab per dimension, each listing the values ranked by
+their contribution to the change vs. the same shifted prior window the chip
+used. Dashboard whole-report cards get the same button because they render
+the Simple KPI band.
+
+- **Dimensions** are picked automatically (`pick_dimensions` in
+  `nx_lib/reporting/contribution.py`): `processname` first when the source
+  has it, then string-typed catalog columns in catalog order, never
+  `workitem_id`, never a field an `eq` filter already pins; at most three.
+- **Rows** are the first metric grouped by that one column, run once for the
+  current window and once for the prior one through the ordinary
+  `_prepare_run` path (same grants, source permission and process scope as
+  the report), joined on value, sorted by `|delta|`, top 8 plus `(other)`.
+  `share` is `delta / (currentTotal − priorTotal)`; it is `null` for ratio
+  metrics (`avg`, `min`, `max`, `count_distinct`) and when the total did not
+  change. Header totals come from the zero-column clone (`total_definition`),
+  so they always equal the band's Total.
+- A dimension whose query fails is dropped and listed under `skipped`
+  (footer note "Not shown: …"); the endpoint never 500s because one column
+  is unqueryable. 400 without metrics or without exactly one relative-date
+  token filter; 403 without the source permission.
+- Clicking a row opens the normal drill-through for that value on the
+  current window (`eq`, or `is_null` for "(empty)"); `(other)` is not
+  clickable.
+
+Code: `nx_lib/reporting/contribution.py` (pure), `api_contribution` in
+`nx_lib/views/reporting/run.py`, `static/js/reporting_contribution.js` +
+shim `templates/js/_reporting_contribution_js.html`, wired in
+`static/js/reporting_simple_result.js` and `static/js/reporting_dashboard.js`.
+
 ### Export (Excel / CSV, and what you see)
 
 Pick the format (**Excel** or **CSV**) next to the **Export** button. The Simple

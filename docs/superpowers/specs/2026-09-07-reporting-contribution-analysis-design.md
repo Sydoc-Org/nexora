@@ -73,16 +73,16 @@ Response `200`:
 - `share` is `delta / (currentTotal − priorTotal)`; when the total delta is
   `0` or the metric is a ratio (`isRatio: true`, see §2) every `share` is
   `null` and the UI hides the share column.
-- Totals are computed from the **first** dimension's un-folded rows on the
-  server, not re-queried, so `currentTotal` always equals the KPI band's Total
-  for the same definition. (`_prepare_run` builds the grouped query; the helper
-  sums.)
+- Header totals come from the zero-column clone (`total_definition`, first
+  metric only) run once for the current and once for the prior window, so
+  `currentTotal` always equals the KPI band's Total — exact for `avg`/
+  `count_distinct` too (plan decision D3).
 
 ## 2. Helper — `nx_lib/reporting/contribution.py` (Flask-free)
 
 ```python
 def pick_dimensions(catalog_fields, filters, *, cap=3) -> list[dict]
-def contribution_rows(current_rows, prior_rows, *, field, metric, top=8) -> list[dict]
+def contribution_rows(current_rows, prior_rows, *, top=8) -> list[dict]
 def is_ratio_metric(metric_def) -> bool
 ```
 

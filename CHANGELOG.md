@@ -8,6 +8,14 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
+### Added
+
+- **Reporting explains a change ("Why did it move?").** The Total delta chip on
+  the Simple KPI band (and on dashboard whole-report cards) is now a button.
+  It opens a drawer decomposing the change vs. the prior window by process and
+  the source's categorical columns, ranked by contribution, with click-through
+  to the documents. New `POST /api/reporting/contribution`; no new permission.
+
 ### Changed
 
 - **Repository moved to the `Sydoc-Org` GitHub organization** (from the
