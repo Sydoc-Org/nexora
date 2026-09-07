@@ -166,7 +166,7 @@ RELEASES: list[dict] = [
                     "missing grant is something you can see instead of hunt."
                 ),
                 "perm": "admin.view",
-                "endpoint": "admin_permission_matrix",
+                "endpoint": "admin_permissions",
                 "icon": "table-cells",
             },
         ],

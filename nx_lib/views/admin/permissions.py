@@ -5,9 +5,11 @@ from contextlib import suppress
 from flask import current_app, jsonify, render_template, request, session
 from flask_babel import gettext as _
 
+from ... import user_cache
 from ...db import engine_nexora_db
 from ...security import (
     assignable_profile_ids,
+    group_permissions,
     has_permission,
     load_permissions_for_user,
     page_visibility,
@@ -100,60 +102,73 @@ def admin_access_control():
 
 
 @require_permission("admin.profiles.view")
-def admin_permission_matrix():
-    """Read-only user x permission matrix (#172) -- filterable either
-    direction. Editing stays on access_control / user_detail; this page only
-    links through to them."""
-    conn = None
-    cursor = None
+def admin_permissions_page():
+    """Permissions x profiles grid (#238): rows grouped area -> object, one
+    checkbox per (profile, permission). Saving posts only changed cells."""
+    conn = engine_nexora_db.raw_connection()
     try:
-        conn = engine_nexora_db.raw_connection()
-        cursor = conn.cursor()
-
-        cursor.execute("""
-            SELECT PermissionID, Code, Description FROM Permission
-            ORDER BY
-                LEFT(Code, LEN(Code) - CHARINDEX('.', REVERSE(Code))),
-                CASE
-                    WHEN Code LIKE '%.view'    THEN 1
-                    WHEN Code LIKE '%.add'     THEN 2
-                    WHEN Code LIKE '%.add.%'   THEN 3
-                    WHEN Code LIKE '%.edit%'   THEN 4
-                    WHEN Code LIKE '%.delete%' THEN 5
-                    ELSE 6
-                END,
-                Code
-        """)
-        all_permissions = [
-            dict(zip([column[0] for column in cursor.description], row, strict=False))
-            for row in cursor.fetchall()
+        cur = conn.cursor()
+        cur.execute("SELECT PermissionID, Code, Description FROM dbo.Permission ORDER BY Code")
+        perms = [
+            dict(zip([c[0] for c in cur.description], r, strict=False)) for r in cur.fetchall()
         ]
-
-        cursor.execute("""
-            SELECT u.userID, u.username, u.Fullname, u.organizationCode, o.organization
-            FROM Users u
-            LEFT JOIN Organizations o ON o.organizationcode = u.organizationCode
-            ORDER BY u.Fullname
-        """)
-        all_users = [
-            dict(zip([column[0] for column in cursor.description], row, strict=False))
-            for row in cursor.fetchall()
-        ]
-
-        return render_template(
-            "admin/permission_matrix.html",
-            all_permissions=all_permissions,
-            all_users=all_users,
-            page_visibility=page_visibility(),
+        cur.execute(
+            """SELECT ap.AccessID, ap.Name, ap.Rank, COUNT(u.userID) AS UserCount
+               FROM dbo.AccessProfile ap LEFT JOIN dbo.Users u ON u.accessid = ap.AccessID
+               GROUP BY ap.AccessID, ap.Name, ap.Rank ORDER BY ap.Rank DESC, ap.Name"""
         )
-    except Exception as e:
-        current_app.logger.error(f"Error loading permission matrix: {e}")
-        return render_template("500.html")
+        profiles = [
+            dict(zip([c[0] for c in cur.description], r, strict=False)) for r in cur.fetchall()
+        ]
+        cur.execute("SELECT AccessID, PermissionID FROM dbo.AccessProfilePermission")
+        grants = [[r[0], r[1]] for r in cur.fetchall()]
     finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
+        conn.close()
+    return render_template(
+        "admin/permissions.html",
+        groups=group_permissions(perms),
+        profiles=profiles,
+        grants=grants,
+        can_edit=has_permission("admin.profiles.edit"),
+        can_edit_catalog=has_permission("admin.permissions.edit"),
+        page_visibility=page_visibility(),
+    )
+
+
+@require_permission("admin.profiles.edit")
+def api_admin_profile_grants_save():
+    data = request.get_json(silent=True) or {}
+    changes = data.get("changes")
+    if not isinstance(changes, list) or not all(
+        isinstance(c, dict)
+        and isinstance(c.get("accessId"), int)
+        and isinstance(c.get("permissionId"), int)
+        and isinstance(c.get("granted"), bool)
+        for c in changes
+    ):
+        return jsonify({"success": False, "message": _("Invalid payload")}), 400
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        for c in changes:
+            if c["granted"]:
+                cur.execute(
+                    "INSERT INTO dbo.AccessProfilePermission (AccessID, PermissionID) SELECT ?, ? "
+                    "WHERE NOT EXISTS (SELECT 1 FROM dbo.AccessProfilePermission "
+                    "WHERE AccessID = ? AND PermissionID = ?)",
+                    (c["accessId"], c["permissionId"], c["accessId"], c["permissionId"]),
+                )
+            else:
+                cur.execute(
+                    "DELETE FROM dbo.AccessProfilePermission WHERE AccessID = ? AND PermissionID = ?",
+                    (c["accessId"], c["permissionId"]),
+                )
+        conn.commit()
+    finally:
+        conn.close()
+    user_cache.clear()  # /api/admin/* is outside the hooks' /admin prefix
+    session["permissions"] = load_permissions_for_user(session["userid"])
+    return jsonify({"success": True, "applied": len(changes)})
 
 
 @require_permission("admin.profiles.view")
@@ -698,7 +713,7 @@ def api_admin_user_all_permissions(user_id):
             conn.close()
 
 
-@require_permission("admin.profiles.edit")
+@require_permission("admin.permissions.edit")
 def api_admin_permission_add():
     if "username" not in session:
         return jsonify({"error": _("Not authorized")}), 401
@@ -737,7 +752,7 @@ def api_admin_permission_add():
             conn.close()
 
 
-@require_permission("admin.profiles.edit")
+@require_permission("admin.permissions.edit")
 def api_admin_permission_edit(perm_id):
     if "username" not in session:
         return jsonify({"error": _("Not authorized")}), 401
@@ -769,7 +784,7 @@ def api_admin_permission_edit(perm_id):
             conn.close()
 
 
-@require_permission("admin.profiles.edit")
+@require_permission("admin.permissions.edit")
 def api_admin_permission_delete(perm_id):
     if "username" not in session:
         return jsonify({"error": _("Not authorized")}), 401
@@ -820,9 +835,13 @@ def register_routes(app):
         "/admin/access_control", endpoint="admin_access_control", view_func=admin_access_control
     )
     app.add_url_rule(
-        "/admin/permission_matrix",
-        endpoint="admin_permission_matrix",
-        view_func=admin_permission_matrix,
+        "/admin/permissions", endpoint="admin_permissions", view_func=admin_permissions_page
+    )
+    app.add_url_rule(
+        "/api/admin/profiles/grants",
+        endpoint="api_admin_profile_grants_save",
+        view_func=api_admin_profile_grants_save,
+        methods=["POST"],
     )
     app.add_url_rule(
         "/api/admin/permissions/<int:permission_id>/holders",

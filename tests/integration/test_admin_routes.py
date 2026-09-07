@@ -104,17 +104,60 @@ def test_api_admin_restart_denied_for_remote_caller_without_perm(admin_client, n
     assert resp.status_code == 403
 
 
-# ============================ permission matrix ===============================
+# ============================ permissions grid ================================
 
 
-def test_admin_permission_matrix_view_gated(noperm_client):
-    resp = noperm_client.get("/admin/permission_matrix")
-    assert resp.status_code == 403
+def test_admin_permissions_page_gated(noperm_client):
+    assert noperm_client.get("/admin/permissions").status_code == 403
 
 
-def test_admin_permission_matrix_view_with_perms(admin_client, admin_all_perms):
-    resp = admin_client.get("/admin/permission_matrix")
+def test_admin_permissions_page_renders_grid(admin_client, admin_all_perms):
+    resp = admin_client.get("/admin/permissions")
     assert resp.status_code == 200
+    html = resp.get_data(as_text=True)
+    assert 'data-testid="admin-perms-grid"' in html and "TestNoPerm" in html and "jd.view" in html
+
+
+def _grant_ids(db_conn):
+    from sqlalchemy import text
+
+    access_id = db_conn.execute(
+        text("SELECT AccessID FROM dbo.AccessProfile WHERE Name = 'TestNoPerm'")
+    ).scalar()
+    perm_id = db_conn.execute(
+        text("SELECT PermissionID FROM dbo.Permission WHERE Code = 'jd.view'")
+    ).scalar()
+    return access_id, perm_id
+
+
+def _grant_count(db_conn, access_id, perm_id):
+    from sqlalchemy import text
+
+    return db_conn.execute(
+        text(
+            "SELECT COUNT(*) FROM dbo.AccessProfilePermission WHERE AccessID = :a AND PermissionID = :p"
+        ),
+        {"a": access_id, "p": perm_id},
+    ).scalar()
+
+
+def test_profile_grants_save_round_trip(admin_client, admin_all_perms, db_conn):
+    access_id, perm_id = _grant_ids(db_conn)
+    body = {"changes": [{"accessId": access_id, "permissionId": perm_id, "granted": True}]}
+    assert admin_client.post("/api/admin/profiles/grants", json=body).get_json() == {
+        "success": True,
+        "applied": 1,
+    }
+    assert _grant_count(db_conn, access_id, perm_id) == 1
+    body["changes"][0]["granted"] = False
+    assert admin_client.post("/api/admin/profiles/grants", json=body).get_json()["applied"] == 1
+    assert _grant_count(db_conn, access_id, perm_id) == 0
+
+
+def test_profile_grants_save_rejects_bad_body(admin_client, admin_all_perms):
+    assert (
+        admin_client.post("/api/admin/profiles/grants", json={"changes": "nope"}).status_code == 400
+    )
 
 
 def test_api_admin_permission_holders_unknown_returns_404(admin_client, admin_all_perms):
