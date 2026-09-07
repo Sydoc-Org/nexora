@@ -10,6 +10,7 @@ import io
 from datetime import date, datetime, time, timedelta
 from unittest.mock import patch
 
+import pyodbc
 from openpyxl import load_workbook
 
 from nx_lib.db import engine_nexora_db
@@ -1406,6 +1407,32 @@ def test_sql_run_generic_500_detail_is_humanized(admin_client):
     assert "SQLExecDirectW" not in body["detail"]
     assert "[Microsoft]" not in body["detail"]
     assert "Hint:" in body["detail"]
+
+
+def test_sql_run_driver_rejection_is_400_with_reason(admin_client):
+    # A statement the sandbox lets through but the server refuses (unknown
+    # table/column) is bad user input, not a server fault: 400, and the driver
+    # message survives as `detail` so the UI can say what was actually wrong.
+    odbc_text = (
+        "('42S02', \"[42S02] [Microsoft][ODBC SQL Server Driver][SQL Server]"
+        "Invalid object name 'Workitem'. (208) (SQLExecDirectW)\")"
+    )
+    with (
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.run._has_acked", return_value=True),
+        patch("nx_lib.views.reporting.run._authorize_sql_target"),
+        patch(
+            "nx_lib.views.reporting.run._run_sql",
+            side_effect=pyodbc.ProgrammingError(odbc_text),
+        ),
+    ):
+        resp = admin_client.post(
+            "/api/reporting/sql/run", json={"target": "statistics", "sql": "SELECT 1"}
+        )
+    assert resp.status_code == 400
+    body = resp.get_json()
+    assert body["detail"] == "Invalid object name 'Workitem'."
+    assert body["error"] != body["detail"]
 
 
 # --- forecast: definition toggle (issue #168) ---

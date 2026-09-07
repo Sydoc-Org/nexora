@@ -204,8 +204,16 @@
 
 .reporting-filter-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
   margin-bottom: 6px;
+}
+
+/* Three flex:1 controls in the ~212px wells column left the field name
+   truncated to "Worki" and the value box ~60px wide. Give the field its own
+   row and let operator + value share the second one. */
+.reporting-filter-row > select:first-child {
+  flex: 1 0 100%;
 }
 
 .reporting-filter-row select,
@@ -229,6 +237,22 @@
 
 .reporting-table-wrap {
   overflow: auto;
+}
+
+/* Second line of a failed run: the driver/validator message behind the
+   generic error (see showError() in reporting_advanced.js). */
+.reporting-error-detail {
+  margin: 0 auto 20px;
+  max-width: 720px;
+  padding: 8px 10px;
+  border-radius: calc(var(--nx-radius-scale, 1) * 8px);
+  background: rgba(127, 127, 127, .1);
+  color: var(--nx-text-meta);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-x: auto;
+  text-align: left;
 }
 
 .reporting-table {
@@ -2853,3 +2877,20 @@ html.dark .rdb-add-tile:hover { background: var(--nx-accent-soft); }
 .rdb-report--table .rdb-report-table.reporting-table-wrap { margin-top: 0; max-height: none; }
 .rdb-report--chart .rdb-report-chartcard { min-height: 0; }
 .rdb-report--chart .rdb-report-chart { height: calc(100% - 4px); min-height: 160px; }
+
+/* ---- Per-card chart tools (edit mode): the Results tab's toolbar, floated
+   over the card's chart top-right so a chart-piece card keeps its full
+   height (the Console sheet puts the Simple pane's toolbar in flow). The
+   Colours & axes popover reuses .rs-style-pop and hangs off the toolbar. */
+.rdb-report-chartcard { position: relative; }
+body.reporting-console .rdb-card .rdb-card-tools, .rdb-card .rdb-card-tools {
+  position: absolute; top: 6px; right: 6px; margin: 0; z-index: 2; padding: 2px;
+  border-radius: calc(var(--nx-radius-scale, 1) * 8px);
+  background: color-mix(in srgb, var(--nx-card) 88%, transparent);
+  box-shadow: 0 1px 3px rgba(16, 24, 40, .08);
+}
+.rdb-card .rdb-card-tools .reporting-chartbtn { padding: 4px 7px; font-size: 12px; }
+.rdb-card .rdb-style-pop { top: 36px; right: 0; }
+/* Drag-to-reorder: reorderGridDom() plays a FLIP transform per card, so the
+   neighbours slide to their new slot instead of jumping. */
+.rdb-grid--dragging .rdb-card { transition: transform .22s var(--nx-ease); }

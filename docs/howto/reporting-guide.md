@@ -87,6 +87,11 @@ guide as an app page.
   the viewer's own data access.
 - Charts cap at 50 axis values and 12 series — past the cap you get a partial
   chart or none at all; the table and exports always carry the full data.
+- Need exact control the wizard can't give? **Advanced** in the left navigation
+  opens the three-panel builder, and its **SQL** tab runs a read-only query
+  when even that is not enough. A failed query names the reason from the
+  database, and switching between **Table** and **SQL** clears the result so
+  you never read the other mode's numbers.
 
 **Saving and sharing**
 
@@ -637,7 +642,10 @@ chosen target (Statistics, and the Octo runtime database with the extra
 permission). Guard rails: the statement is parsed and rejected unless it is a
 single `SELECT`, it runs on a read-only login, results cap at 50,000 rows,
 statements time out at ~30 seconds, and every run is audited. First use requires
-a one-time acknowledgement.
+a one-time acknowledgement. When a query fails, the reason from the database
+("Invalid object name 'Workitem'.") is shown under the error. Switching between
+**Table** and **SQL** clears the result area, so you never look at the other
+mode's rows or query.
 
 Setup, permission codes, endpoints, database schema and everything else
 technical: [`reporting.md`](reporting.md).

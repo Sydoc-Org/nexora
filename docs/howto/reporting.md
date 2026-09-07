@@ -46,9 +46,10 @@ content area. `templates/js/_reporting_tabs_js.html` is the nav controller
   carries no database attribute because the engines are built from
   `odbc_connect` strings). The admin-only registry link is the gear next to
   the SOURCES label. With `reporting.sources.schema.view` each card becomes a
-  button opening the **source visualizer** (below). The **Advanced** nav entry is currently parked
-  (`hidden` in `reporting.html`) — the pane stays reachable via
-  `?tab=advanced`, Open-in-Advanced and `ReportingTabs.show('advanced')`.
+  button opening the **source visualizer** (below). The **Advanced** nav entry sits
+  last in the Workspace group (it was parked/`hidden` between 2026-08-26 and
+  2026-09-07); the pane is also reachable via `?tab=advanced`,
+  Open-in-Advanced and `ReportingTabs.show('advanced')`.
 - **One fetch per catalog per page load.** The page is five independent IIFEs
   (tabs rail, Simple, Advanced, dashboard builder, drill drawer) that cannot
   read each other's state, and each used to fetch its own copy of the same
@@ -1881,6 +1882,14 @@ against a chosen target database. The **Target** dropdown lists every target the
 caller may reach: **Statistics** always (with `reporting.sql.run`), and
 **Octopus** when the caller also holds `reporting.sql.target.octopus.use`.
 
+**Table and SQL share one result area,** so switching between the two modes
+resets it (`resetResultArea()` in `reporting_advanced.js`): grid/chart/pivot,
+the KPI band, the AI caption, the timing badge and the *Query sent to the
+database* panel are all cleared back to a mode-appropriate empty state. Before
+that, SQL mode inherited the builder's pivot shelf and — worse — showed the
+builder's generated SQL in the query panel while the editor above held
+something else entirely.
+
 ### Access
 
 Gated by the `reporting.sql.run` permission for the Statistics target; the
@@ -1909,11 +1918,17 @@ not shown again on subsequent runs.
 - **Timeout:** a ~30-second statement timeout is enforced server-side.
 - **Audit:** every run (query text, user, row count, duration, status) is
   written to `dbo.ReportingSqlAudit` (NexoraDB).
-- **Error detail:** a query that fails on the target server (not just the
-  sqlglot gate) returns a generic 500 whose `detail` is run through
-  `humanize_sql_error` — ODBC driver-prefix noise is stripped and SQL Server
-  error 1033 (`ORDER BY` in a derived table) gets a plain-language hint —
-  instead of the raw pyodbc exception text.
+- **Error detail:** a query the target server rejects after passing the sqlglot
+  gate (unknown table/column, ambiguous alias, a clause SQL Server won't take
+  there) is bad *user input*, so it comes back **400** with the driver message
+  in `detail`, run through `humanize_sql_error` — ODBC driver-prefix noise
+  stripped, plus a plain-language hint for a few known SQL Server error codes
+  (e.g. 1033, `ORDER BY` in a derived table). It is logged at WARNING, not
+  ERROR, so a typo in the editor doesn't page the app-error dashboards.
+  Connection/timeout failures still surface as 500. The builder renders
+  `detail` as a second line under the generic message (`showError()` in
+  `reporting_advanced.js`); `NX.api` carries it on the thrown `Error` as
+  `err.detail`, so any caller can do the same.
 
 ### Owner setup
 

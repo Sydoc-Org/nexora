@@ -116,6 +116,16 @@ Work toward the next release.
 
 ### Changed
 
+- **Advanced is back in the Reporting rail.** The **Advanced** nav entry (parked
+  `hidden` on 2026-08-26) sits last in the Workspace group again, so the
+  three-panel builder and its Live SQL tab are discoverable instead of only
+  reachable via `?tab=advanced` or *Open in Advanced*.
+- **A rejected Live SQL query is a 400, not a 500.** A statement the sandbox
+  passes but the target server refuses (unknown table/column, ambiguous alias)
+  is bad user input: `POST /api/reporting/sql/run` now answers **400** and logs
+  it at WARNING, so a typo in the SQL editor no longer registers as an
+  application error. Connection and timeout failures stay 500.
+
 - **Dashboard cards are pieces of saved reports.** Add a card now opens the
   picked report in full (rendered by the same code as the Whole report
   card) with an **Add to dashboard** button on every KPI tile, the chart and
@@ -208,6 +218,22 @@ Work toward the next release.
   permanently at 100%.
 
 ### Fixed
+
+- **Live SQL said why a query failed.** A failed run showed only "Could not run
+  query" — the API had been sending the driver message in `detail` all along and
+  `NX.api` threw it away. It now rides on the thrown `Error` as `err.detail` and
+  the builder prints it under the message ("Invalid object name 'Workitem'.").
+  An error raised while the Chart or Pivot view was open is also visible now
+  instead of landing in a hidden container.
+- **Switching Table <-> SQL in Advanced cleared the result area.** The two modes
+  share one result pane, so SQL mode used to inherit the builder's grid, pivot
+  shelf, KPI band, AI caption and timing badge — and showed the *builder's*
+  generated SQL in "Query sent to the database" while the editor above held a
+  different statement entirely. Each mode now starts from its own empty state.
+- **The Advanced filter row fitted its column.** Three `flex: 1` controls in the
+  240px wells panel left the field name clipped to "Worki" and the value box
+  ~60px wide; the field select takes its own row and operator + value share the
+  next one.
 
 - `POST /api/reporting/run` answered 500 instead of 400 when a `columns` entry
   was a bare string rather than `{field}` (the error message itself crashed).
