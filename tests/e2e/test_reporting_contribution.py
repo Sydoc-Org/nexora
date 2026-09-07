@@ -112,6 +112,49 @@ def test_why_chip_opens_contribution_drawer_and_drills(nexora_server, page):
     assert {"field": "doctype", "op": "eq", "value": "Invoice"} in runs[-1]["filters"]
 
 
+def test_close_without_drilling_restores_export_buttons(nexora_server, page):
+    """open() hides #rdExportCsv/#rdExportXlsx (drill-only actions, dead in a
+    contribution drawer); only drill()'s hand-over path used to restore them.
+    Closing via #rdClose without drilling must restore them too, or every
+    later normal drill (opened directly from a chart/table row via
+    ReportingDrill.open, e.g. reporting_simple_result.js) is left with
+    invisible export buttons for the rest of the page session."""
+    _login(page, nexora_server)
+    _stub_catalogs(page)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+
+    page.route(
+        "**/api/reporting/contribution",
+        lambda r: r.fulfill(status=200, content_type="application/json", body=json.dumps(CONTRIB)),
+    )
+    page.route(
+        "**/api/reporting/run",
+        lambda r: r.fulfill(status=200, content_type="application/json", body=json.dumps(RUN)),
+    )
+    _run_with_preset(page)
+
+    page.get_by_test_id("rs-kpi-total").get_by_test_id("rp-delta").click()
+    expect(page.get_by_test_id("contrib-tab")).to_have_count(2)
+    expect(page.locator("#rdExportCsv")).to_be_hidden()
+    page.locator("#rdClose").click()
+    expect(page.locator("#rdPanel")).to_be_hidden()
+
+    # A normal drill (same call a chart/table row click makes elsewhere on
+    # the page) must show the export buttons again, not inherit the
+    # contribution drawer's hidden state.
+    page.evaluate(
+        """() => {
+          ReportingDrill.open({
+            definition: {source: 'stub_src', columns: [{field: 'doctype'}], filters: []},
+            fields: [{field: 'doctype', label: 'Doc type', filterable: true}],
+            clicked: [{field: 'doctype', value: 'Invoice'}],
+            header: 'test'
+          });
+        }"""
+    )
+    expect(page.locator("#rdExportCsv")).to_be_visible()
+
+
 def test_declined_drill_leaves_drawer_usable(nexora_server, page):
     """CONTRIB's first dimension is 'processname', which the stub source's
     field list (WIZ_STUB_SOURCES: import_date, doctype) doesn't carry -- the

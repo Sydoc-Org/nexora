@@ -90,6 +90,19 @@ window.ReportingContribution = (function () {
     drill(row);
   }
 
+  // Called whenever this module gives up the shared #rdPanel shell without
+  // drilling: #rdClose, backdrop click, Escape. Must also run at the start
+  // of drill()'s hand-over -- ReportingDrill.open() never un-hides these
+  // (it doesn't know they exist), so open()'s hide-them-here must always be
+  // paired with exactly one of these paths un-hiding them again, or every
+  // later normal drill (opened directly from a chart/table) is left with
+  // invisible export buttons for the rest of the page session.
+  function release() {
+    current = null;
+    if (el('rdExportCsv')) el('rdExportCsv').hidden = false;
+    if (el('rdExportXlsx')) el('rdExportXlsx').hidden = false;
+  }
+
   function onBodyKey(e) {
     if (!current) return;
     if (e.key !== 'Enter') return;
@@ -116,9 +129,7 @@ window.ReportingContribution = (function () {
       window.NX.toast(ReportingDrill.I18N.cannotFilter, true);
       return;
     }
-    current = null;                          // the drill now owns the shell
-    if (el('rdExportCsv')) el('rdExportCsv').hidden = false;
-    if (el('rdExportXlsx')) el('rdExportXlsx').hidden = false;
+    release();                                // the drill now owns the shell
     ReportingDrill.open({
       definition: def, fields: fields,
       clicked: clicked,
@@ -172,15 +183,16 @@ window.ReportingContribution = (function () {
 
   el('rdBody').addEventListener('click', onBodyClick);
   el('rdBody').addEventListener('keydown', onBodyKey);
-  el('rdClose').addEventListener('click', function () { current = null; });
+  el('rdClose').addEventListener('click', release);
   // ReportingDrill.wire() owns #rdBackdrop's click and document Escape --
   // both close #rdPanel and null the drill's own `current`, but know nothing
   // about this module's `current`. Mirror both here so a late contribution
   // response (guarded above by el('rdPanel').hidden) never fires against a
-  // shell the user already dismissed.
-  el('rdBackdrop').addEventListener('click', function () { current = null; });
+  // shell the user already dismissed, and so the export buttons don't stay
+  // hidden after a non-drill close.
+  el('rdBackdrop').addEventListener('click', release);
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') current = null;
+    if (e.key === 'Escape') release();
   });
 
   return { open: open };
