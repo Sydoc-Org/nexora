@@ -68,18 +68,13 @@ INSERT INTO dbo.Permission (Code, Description) VALUES
     ('workitems.filter.docfields.sensitive.view', 'Workitems: see doc fields flagged sensitive'),  -- migration 0035
     ('workitems.import.run', 'Import workitems'),
     ('workitems.prepared.view', 'Workitems: import an MS02 prepared-documents Excel (PID/Prepared) and display the matched workitems'' audit'),
-    ('invoices.view', 'View invoices'),
-    ('invoices.download', 'Download invoices'),
-    ('invoices.filter.date', 'Filter invoices by date'),
-    ('invoices.filter.status', 'Filter invoices by status'),
-    ('invoices.filter.invoiceid', 'Filter invoices by id'),
     ('jd.view', 'View JD Vance page'),
     ('tenant.generali.baseservices.view', 'View Generali base services'),
     ('api.docs.view', 'View the in-app API documentation page'),  -- migration 0051
     ('admin.status.view', 'View the admin system-status page'),  -- migration 0055
     ('admin.server.restart', 'Restart the dev server from the admin overview (dev-only)'),  -- migration 0059
     ('reporting.view', 'Access the Reporting page'),
-    ('reporting.source.backlog_history', 'Reporting: use the Backlog History source'),  -- migration 0053
+    ('reporting.source.backlog_history.use', 'Reporting: use the Backlog History source'),  -- migration 0053
     ('reporting.source.docprocessing.use', 'Reporting: use the Document Processing source'),
     ('reporting.export', 'Reporting: export reports to Excel'),
     ('reporting.sql.run', 'Reporting: run live read-only SQL (sandboxed)'),
@@ -97,7 +92,6 @@ INSERT INTO dbo.Permission (Code, Description) VALUES
     ('reporting.schedule', 'Reporting: schedule a report to run and be emailed'),
     ('reporting.ai.use', 'Reporting: use the AI assistant (NL questions)'),
     ('reporting.ai.sql.use', 'Reporting: AI may emit live SQL (advanced)'),
-    ('reporting.ai.explain', 'Reporting: see AI explanation on results'),
     -- Mirrors sql/_migrations/NexoraDB/0015_seed_reporting_ai_explain_data.sql
     -- (the data-egress grant for the agentic tool loop / Task 13 captions).
     ('reporting.ai.explain.use', 'Reporting: let the AI assistant run read-only queries and explain the actual result numbers (data egress to the model; needs reporting.sql.run)');

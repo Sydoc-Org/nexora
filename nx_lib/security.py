@@ -5,6 +5,7 @@ The ``PermissionDenied`` exception and ``@require_permission`` /
 them without dragging in the rest of the app.
 """
 
+import re
 from contextlib import suppress
 from datetime import date
 from functools import wraps
@@ -19,6 +20,15 @@ from .db import engine_nexora_db
 class PermissionDenied(HTTPException):
     code = 403
     description = "Forbidden"
+
+
+# <area>[.<object>[.<sub>]].<action>[.<scope>] -- spec #238. External identifiers
+# (process names, reporting source codes) may carry capitals and underscores.
+PERMISSION_CODE_RE = re.compile(
+    r"^[a-z]+(\.[a-z]+)?(\.[A-Za-z0-9_]+)*"
+    r"\.(view|add|edit|delete|use|run|export|schedule|manage|bypass|import|restart)"
+    r"(\.(org|all|pastdeadline))?$"
+)
 
 
 def load_permissions_for_user(user_id):
