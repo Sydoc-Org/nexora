@@ -17,7 +17,10 @@
                 previewId: null, preview: null, saveTimer: null };
   var built = false, grid = null;
 
-  function RS() { return window.ReportingSimple; }
+  // window.ReportingSimple is the narrow public export (navTo, chart/table
+  // helpers) -- state/reports/loadLibrary live on the internal window.RS
+  // namespace shared across the Simple pane's split files.
+  function RS() { return window.RS; }
   function layouts() { return (RS().state.reports || []).filter(function (r) { return r.kind === 'layout' && r.owned; }); }
   function runnable() { return (RS().state.reports || []).filter(function (r) { return r.kind !== 'dashboard' && r.kind !== 'layout' && r.kind !== 'sql'; }); }
 
