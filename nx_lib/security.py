@@ -31,6 +31,71 @@ PERMISSION_CODE_RE = re.compile(
 )
 
 
+_ACTIONS = (
+    "view",
+    "add",
+    "edit",
+    "delete",
+    "use",
+    "run",
+    "import",
+    "export",
+    "schedule",
+    "manage",
+    "bypass",
+    "restart",
+)
+_SCOPES = ("", "org", "all", "pastdeadline")
+_TWO_SEGMENT_AREAS = ("tenant",)
+
+
+def _split_code(code):
+    """-> (area, object_key, action, scope) per the #238 grammar. The object is
+    the first segment after the area; area-level codes (admin.view,
+    reporting.export) have object == area."""
+    parts = code.split(".")
+    n_area = 2 if parts[0] in _TWO_SEGMENT_AREAS and len(parts) > 2 else 1
+    area = ".".join(parts[:n_area])
+    tail = parts[n_area:]
+    scope = tail.pop() if tail and tail[-1] in _SCOPES[1:] else ""
+    action = tail.pop() if tail and tail[-1] in _ACTIONS else ""
+    obj = f"{area}.{tail[0]}" if tail else area
+    return area, obj, action, scope
+
+
+def group_permissions(rows):
+    """Area -> object -> permissions tree for the grid and the user-detail page.
+    Each returned permission is a copy of its row plus ``gate``: the .view code
+    (the object's, else the area's) the UI greys it behind, or None."""
+    codes = {row["Code"] for row in rows}
+    areas: dict[str, dict[str, list]] = {}
+    for row in rows:
+        area, obj, action, scope = _split_code(row["Code"])
+        gate = next(
+            (c for c in (f"{obj}.view", f"{area}.view") if c != row["Code"] and c in codes), None
+        )
+        areas.setdefault(area, {}).setdefault(obj, []).append(
+            ({**row, "gate": gate}, action, scope)
+        )
+    tree = []
+    for area in sorted(areas):
+        objects = []
+        for obj in sorted(areas[area], key=lambda k: (k != area, k)):
+            perms = sorted(
+                areas[area][obj],
+                key=lambda t: (
+                    _ACTIONS.index(t[1]) if t[1] in _ACTIONS else 99,
+                    _SCOPES.index(t[2]),
+                    t[0]["Code"],
+                ),
+            )
+            objects.append(
+                {"key": obj, "label": obj[len(area) + 1 :], "perms": [t[0] for t in perms]}
+            )
+        tree.append({"area": area, "objects": objects})
+    return tree
+
+
 def load_permissions_for_user(user_id):
     conn = engine_nexora_db.raw_connection()
     cur = conn.cursor()

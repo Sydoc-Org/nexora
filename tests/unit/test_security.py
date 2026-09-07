@@ -602,3 +602,34 @@ def test_check_generali_record_org_returns_when_record_not_found(fake_session):
     fake_session["organizationcode"] = "ORG-A"
     cursor = _FakeCursor(None)
     assert _check_generali_record_org(cursor, "SomeTable", "UserID", 1) is None
+
+
+def test_group_permissions_builds_area_object_tree_with_gates():
+    from nx_lib.security import group_permissions
+
+    rows = [
+        {"PermissionID": 1, "Code": "admin.users.edit", "Description": ""},
+        {"PermissionID": 2, "Code": "admin.view", "Description": ""},
+        {"PermissionID": 3, "Code": "admin.users.view", "Description": ""},
+        {"PermissionID": 4, "Code": "tenant.generali.pdqm.edit.all", "Description": ""},
+        {"PermissionID": 5, "Code": "tenant.generali.pdqm.edit.org", "Description": ""},
+        {"PermissionID": 6, "Code": "process.privera.03_Invoice_New.view", "Description": ""},
+        {"PermissionID": 7, "Code": "tenant.generali.view", "Description": ""},
+    ]
+    tree = group_permissions(rows)
+    assert [a["area"] for a in tree] == ["admin", "process", "tenant.generali"]
+    admin = tree[0]["objects"]
+    assert [o["key"] for o in admin] == ["admin", "admin.users"]
+    assert [p["Code"] for p in admin[1]["perms"]] == ["admin.users.view", "admin.users.edit"]
+    assert [p["gate"] for p in admin[1]["perms"]] == ["admin.view", "admin.users.view"]
+    assert admin[0]["perms"][0]["gate"] is None
+    proc = tree[1]["objects"][0]
+    assert proc["label"] == "privera" and proc["perms"][0]["gate"] is None
+    pdqm = tree[2]["objects"][1]
+    assert pdqm["label"] == "pdqm"
+    assert [p["Code"] for p in pdqm["perms"]] == [
+        "tenant.generali.pdqm.edit.org",
+        "tenant.generali.pdqm.edit.all",
+    ]
+    assert pdqm["perms"][0]["gate"] == "tenant.generali.view"
+    assert "gate" not in rows[0]  # input rows untouched
