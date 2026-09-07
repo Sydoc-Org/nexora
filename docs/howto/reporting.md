@@ -994,8 +994,12 @@ collector + table it read stay in place. Migration `0117` adds four more General
 tables: **Attendance** (`generali_attendance`), **Base Services**
 (`generali_baseservices`), **Project Management** (`generali_projects`) and **ISS
 Reporting** (`generali_iss`) — effort hours and KPI filings by category and date,
-the date columns `grainable`. The tenant's lookup tables carry no measures and
-are not registered. Each source is gated by its own
+the date columns `grainable`; `0118` seeds their measures (effort-hour sums,
+entry counts, ISS reports filed — no on-time sum, `SUM` over a `bit` is invalid
+T-SQL, so break the count down by the `OnTime` dimension). The Simple wizard
+lists measures grouped by source, so a source with no `ReportingMetrics` row is
+Advanced-only. The tenant's lookup tables carry no measures and are not
+registered. Each source is gated by its own
 permission (`reporting.source.<code>.use`, e.g. `reporting.source.generali_pdqm.use`,
 `reporting.source.workitems.use`).
 Unlike the docprocessing source, the `table` provider does **not** apply

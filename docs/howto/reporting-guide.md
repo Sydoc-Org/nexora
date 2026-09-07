@@ -135,6 +135,9 @@ Which sources you see depends on your permissions. Generali users typically get
 the tenant's own tables here — **Attendance**, **Base Services**, **Project
 Management**, **ISS Reporting** and **PDQM Report** — each a flat table of
 effort hours or KPI filings by category and date, so "over time" breakdowns work.
+Their measures (Effort hours, Entries, Reports filed) sit at the bottom of the
+Simple wizard's measure list. Clicking a source card in the rail opens its
+database **structure**, not a report — start reports with **New report**.
 
 **Click a source card** to look inside the database behind it (needs the
 "browse source structure" permission — see [For administrators](#for-administrators-internal)):

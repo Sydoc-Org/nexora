@@ -16,6 +16,9 @@ Work toward the next release.
   date columns grainable for "over time" breakdowns). One `reporting.source.<code>.use`
   permission each; only Enterprise Admin holds them until granted. No code — the
   column catalog in `ColumnsJSON` is the whole config a custom tenant needs.
+  Migration `0118` gives them Simple-wizard measures: **Effort (hours)** and
+  **Entries** per effort table, **Reports filed** for ISS (break down by "On time"
+  for the share). Sources without a measure are Advanced-only by design.
 - **Architecture diagram** — `docs/nexora-architecture.drawio`, four pages: system
   overview, request lifecycle, multi-source workitems, tenancy & permissions. Pointer
   added to `docs/design/architecture-conventions.md`.
