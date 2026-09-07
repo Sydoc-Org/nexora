@@ -32,6 +32,14 @@
   var filter = '';
   var laidOut = null;       // memoized diagram layout for `data`
   var pan = { x: 0, y: 0, k: 1 };
+  var currentDb = null;     // real database name of the open panel
+  // Databases the caller may reach with Live SQL, name -> true. Published by
+  // reporting_advanced.js's source load; absent (no SQL permission, or
+  // Advanced not on the page) means no Query buttons are drawn at all.
+  function canQuery(db) {
+    var m = window.ReportingSqlDbs;
+    return !!(db && m && m[String(db).toLowerCase()]);
+  }
 
   // ---------- list view ----------
 
@@ -83,7 +91,15 @@
               esc(I18N.cols || 'cols') + '</span>' +
           '</span>' +
         '</button>' +
-        (open ? columnRowsHtml(t) : '') + '</div>';
+        (open ? columnRowsHtml(t) +
+          (canQuery(currentDb)
+            ? '<div class="rc-schema-item-foot">' +
+              '<button type="button" class="rc-schema-query" data-query="' + esc(key) + '"' +
+              ' data-testid="rc-schema-query">' +
+              '<i class="fas fa-play" aria-hidden="true"></i>' +
+              esc(I18N.queryTop || '') + '</button></div>'
+            : '')
+          : '') + '</div>';
     }).join('');
   }
 
@@ -367,6 +383,7 @@
     var panel = el('rcSchemaPanel');
     if (!panel) return;
     data = null; laidOut = null; expanded = {}; filter = '';
+    currentDb = dbName || null;
     var f = el('rcSchemaFilter'); if (f) f.value = '';
     el('rcSchemaTitle').textContent = dbName || '';
     el('rcSchemaSub').textContent = I18N.loading || 'Loading…';
@@ -391,7 +408,8 @@
     }
     setStatus('');
     data = payload;
-    el('rcSchemaTitle').textContent = payload.db || dbName || '';
+    currentDb = payload.db || dbName || null;
+    el('rcSchemaTitle').textContent = currentDb || '';
     var parts = [
       (I18N.tablesN || '{n} tables').replace('{n}', num(payload.tables.length)),
       (I18N.relationsN || '{n} relationships').replace('{n}', num(payload.relations.length))
@@ -418,6 +436,15 @@
     if (z) {
       var a = z.getAttribute('data-zoom');
       if (a === 'fit') fit(); else zoom(a === 'in' ? 1.25 : 1 / 1.25);
+      return;
+    }
+    var q = t.closest('[data-query]');
+    if (q) {
+      e.stopPropagation();
+      document.dispatchEvent(new CustomEvent('rc:sqlquery', {
+        detail: { db: currentDb, table: q.getAttribute('data-query') }
+      }));
+      close();
       return;
     }
     var goTo = t.closest('[data-goto]');

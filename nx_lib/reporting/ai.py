@@ -613,6 +613,18 @@ def report_context_text(report, *, metrics, source_label, include_rows):
             "Filters: "
             + ", ".join(f"{f['field']} {f.get('op')} {f.get('value')!r}" for f in filters)
         )
+    fc = definition.get("forecast")
+    if isinstance(fc, dict) and fc.get("enabled"):
+        lines.append(f"Forecast: turned ON by the user (horizon {fc.get('horizon') or 'auto'}).")
+        fc_result = report.get("forecast")
+        if isinstance(fc_result, dict):
+            if fc_result.get("unavailable"):
+                lines.append(f"Forecast is unavailable here: {fc_result['unavailable']}.")
+            elif include_rows:
+                lines.append(
+                    "The chart/table already show the projected buckets appended after the "
+                    "real data — describe them as the forecast, not as more actuals."
+                )
     if include_rows:
         columns = report.get("columns")
         rows = report.get("rows")
@@ -631,7 +643,10 @@ def report_context_text(report, *, metrics, source_label, include_rows):
         '"why is X higher"), answer from this block and the source catalog in plain language '
         "WITHOUT calling tools: three to five sentences, use the measure and column labels "
         "(never the codes in brackets), lead with what the numbers say. Only build or run "
-        "something new when the user asks for a different report."
+        "something new when the user asks for a different report. The user is already looking "
+        "at this report, so do not open by naming or describing which report you used (no "
+        '"Reading: ..." preamble) -- that disclosure is only for when you had to pick an '
+        "interpretation yourself; here the report is given, not guessed."
     )
     text = "\n".join(lines)
     return text[:REPORT_CONTEXT_MAX_CHARS]

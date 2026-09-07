@@ -22,10 +22,15 @@ _SOURCES = {
         "engine": "statistics",
         "provider": "docprocessing",
     },
+    # Live-SQL sources. `label` is only the fallback: /api/reporting/sources
+    # returns the target's configured database name as `db` and the UI shows
+    # that instead, so the target picker reads "SYDOC_Statistik" /
+    # "RuntimeDatabase" / "Generali" -- the names on the Sources rail cards --
+    # and stays correct when INT and PROD name their databases differently.
     "sql_statistics": {
         "id": "sql_statistics",
         "kind": "sql",
-        "label": "Live SQL — Statistics",
+        "label": "Statistics",
         "permission": "reporting.sql.run",
         "engine": "statistics_ro",
         "target": "statistics",
@@ -33,10 +38,18 @@ _SOURCES = {
     "sql_octopus": {
         "id": "sql_octopus",
         "kind": "sql",
-        "label": "Live SQL — Octo",
+        "label": "Octo runtime",
         "permission": "reporting.sql.target.octopus.use",
         "engine": "octo_ro",
         "target": "octopus",
+    },
+    "sql_generali": {
+        "id": "sql_generali",
+        "kind": "sql",
+        "label": "Generali",
+        "permission": "reporting.sql.target.generali.use",
+        "engine": "generali_ro",
+        "target": "generali",
     },
 }
 

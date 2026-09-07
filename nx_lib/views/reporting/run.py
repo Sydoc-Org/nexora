@@ -33,6 +33,7 @@ from ...reporting.tokens import (
 )
 from ...security import has_permission, require_permission
 from ._shared import (
+    _SQL_TARGET_DB,
     _SQL_TARGET_ENGINES,
     _SQL_TARGET_PERMISSION,
     _allowed_processes,
@@ -155,8 +156,15 @@ def api_sources():
                 entry["fields"] = table_source_catalog(s.get("columns"))
                 entry["processes"] = []
         elif s["kind"] == "sql":
-            entry["target"] = s.get("target", "statistics")
+            target = s.get("target", "statistics")
+            entry["target"] = target
             entry["acknowledged"] = _has_acked(session.get("userid"))
+            # The database this target really reads, so the target picker can
+            # name it ("RuntimeDatabase") instead of the registry label.
+            entry["db"] = _SQL_TARGET_DB.get(target)
+            # False while the target's read-only login is unprovisioned — the
+            # UI can say so up front instead of only on a 503 from Run.
+            entry["configured"] = _SQL_TARGET_ENGINES.get(target) is not None
         out.append(entry)
     return jsonify(out)
 

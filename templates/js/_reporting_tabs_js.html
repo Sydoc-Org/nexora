@@ -163,15 +163,24 @@
       document.dispatchEvent(new CustomEvent('rc:sourcehealth'));
     }
     // Several sources can sit on the same database (Workitems + Live SQL both
-    // hit RuntimeDatabase) -- one card per distinct database, first wins.
-    var seen = {};
-    var cards = res.filter(function (s) {
+    // hit RuntimeDatabase) -- one card per distinct database. A *reachable*
+    // source wins the slot: otherwise an unprovisioned Live SQL target (its RO
+    // engine is None, so it probes as down) would turn a perfectly healthy
+    // database's card amber just by sorting first.
+    var slot = {};
+    var order = [];
+    res.forEach(function (s) {
       var h = byId && byId[s.id];
       var key = (h && h.db) || s.label;
-      if (seen[key]) return false;
-      seen[key] = true;
-      return true;
+      var ok = !!(h && h.ok);
+      if (!(key in slot)) {
+        slot[key] = { src: s, ok: ok };
+        order.push(key);
+      } else if (ok && !slot[key].ok) {
+        slot[key] = { src: s, ok: ok };
+      }
     });
+    var cards = order.map(function (k) { return slot[k].src; });
     wrap.innerHTML = cards.map(function (s) { return sourceCardHtml(s, byId); }).join('');
     if (window.ReportingSchema && !wrap.dataset.wired) {
       wrap.dataset.wired = '1';

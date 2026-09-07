@@ -1246,10 +1246,25 @@
         state.sqlSources.forEach(function (s) {
           var topt = document.createElement('option');
           topt.value = s.target || 'statistics';
-          topt.textContent = s.label;
+          // Name the real database ("RuntimeDatabase", "SYDOC_Statistik",
+          // "Generali") -- the same names the Sources rail cards show. The
+          // registry label is only the fallback. A target whose read-only
+          // login isn't provisioned yet says so rather than 503-ing on Run.
+          topt.textContent = (s.db || s.label) +
+            (s.configured === false ? ' — ' + I18N.sqlTargetUnconfigured : '');
+          if (s.configured === false) topt.disabled = true;
           tsel.appendChild(topt);
         });
+        var firstOk = state.sqlSources.find(function (s) { return s.configured !== false; });
+        if (firstOk) tsel.value = firstOk.target || 'statistics';
       }
+      // Publish the databases Live SQL can reach so the source visualizer
+      // (static/js/reporting_schema.js) knows whether to offer its per-table
+      // Query button -- it has a database name, not a target id.
+      window.ReportingSqlDbs = {};
+      state.sqlSources.forEach(function (s) {
+        if (s.db && s.configured !== false) window.ReportingSqlDbs[s.db.toLowerCase()] = true;
+      });
       curated.forEach(function (s) {
         var opt = document.createElement('option');
         opt.value = s.id;
@@ -1985,6 +2000,39 @@
   document.getElementById('rpExport').addEventListener('click', exportCurrent);
   document.getElementById('rpModeTable').addEventListener('click', function () { setMode('table'); });
   document.getElementById('rpModeSql').addEventListener('click', function () { setMode('sql'); });
+
+  // "Query" button on a table in the source visualizer (reporting_schema.js):
+  // land in Advanced's SQL mode on the target that reads that database, with
+  // a SELECT TOP (100) for the table already written, and run it. `db` is the
+  // real database name (the visualizer's title / the rail card's data-db) --
+  // matched against the `db` each SQL source reports, so this needs no
+  // knowledge of which target id belongs to which database.
+  document.addEventListener('rc:sqlquery', function (e) {
+    var db = e.detail && e.detail.db;
+    var table = e.detail && e.detail.table;
+    if (!table) return;
+    var src = state.sqlSources.find(function (s) {
+      return s.db && db && s.db.toLowerCase() === String(db).toLowerCase();
+    });
+    if (!src || src.configured === false) {
+      toast(I18N.sqlTargetUnavailable.replace('{db}', db || '?'));
+      return;
+    }
+    if (window.ReportingTabs && window.ReportingTabs.current() !== 'advanced') {
+      window.ReportingTabs.show('advanced');
+    }
+    setMode('sql');
+    document.getElementById('rpSqlTarget').value = src.target || 'statistics';
+    // [schema].[name] both bracketed -- a table called "order" or "user" is
+    // otherwise a syntax error the moment the user presses Run.
+    var parts = String(table).split('.');
+    var qualified = parts.length > 1
+      ? '[' + parts[0] + '].[' + parts.slice(1).join('.') + ']'
+      : '[' + parts[0] + ']';
+    document.getElementById('rpSqlEditor').value = 'SELECT TOP (100) * FROM ' + qualified;
+    document.getElementById('rpTitle').value = table;
+    runSql();
+  });
   document.getElementById('rpAddFilter').addEventListener('click', addFilter);
   document.getElementById('rpAddSort').addEventListener('click', addSort);
   document.getElementById('rpAddMetric').addEventListener('click', addMetric);

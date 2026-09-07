@@ -10,6 +10,16 @@
   font-family: var(--nx-font);
 }
 
+/* Grid items default to min-width: auto, so the middle 1fr track grows to its
+   widest child instead of scrolling it: one `SELECT *` over a varbinary(max)
+   column and the whole builder is wider than the window. The collapsed layout
+   below already did this in its media query -- it is needed at every width. */
+.reporting-fields,
+.reporting-results,
+.reporting-wells {
+  min-width: 0;
+}
+
 .reporting-fields,
 .reporting-wells {
   background: var(--nx-card);
@@ -1514,6 +1524,7 @@ html.dark .reporting-sqlview pre .sql-comment, html.dark .reporting-ai-sql .sql-
   border-radius: 3px;
 }
 .reporting-chat-empty { text-align: center; padding: 20px 8px; color: var(--nx-text-sec); }
+.reporting-chat-empty--attached .rp-chat-starter { display: none; }
 .reporting-chat-empty p { margin: 0 0 12px; font-size: 12px; line-height: 1.5; }
 
 /* Eddard (issue #212): the mascot greeting the empty thread, the small mark in
@@ -2487,12 +2498,21 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 .rdb-grid {
   --rdb-row: 118px; --rdb-gap: 14px;
   display: grid; grid-template-columns: repeat(12, 1fr); gap: var(--rdb-gap);
+  /* Real row tracks: a card SPANS --rdb-cardrows of them (grid-row below), so
+     a 3-row chart beside two 1-row KPIs leaves the KPIs free to stack in the
+     same columns. Dense flow backfills such holes with later short cards.
+     minmax(.., auto) lets a whole-report card (height: auto) grow its last
+     row instead of overflowing it. */
+  grid-auto-rows: minmax(var(--rdb-row), auto); grid-auto-flow: row dense;
 }
 .rdb-card {
   background: var(--nx-card); border: 1px solid var(--nx-border);
   border-radius: var(--nx-radius-lg); padding: 14px 18px; box-sizing: border-box;
   min-width: 0; position: relative;  /* anchors the edit-mode control cluster */
   display: flex; flex-direction: column;
+  grid-row: span var(--rdb-cardrows, 2);
+  /* Definite height (not stretch): a chart canvas inside an auto-sized track
+     has no height to fill and grows the track instead -- the chart-fill trap. */
   height: calc(var(--rdb-cardrows, 2) * var(--rdb-row) +
                (var(--rdb-cardrows, 2) - 1) * var(--rdb-gap));
 }
@@ -2890,7 +2910,28 @@ body.reporting-console .rdb-card .rdb-card-tools, .rdb-card .rdb-card-tools {
   box-shadow: 0 1px 3px rgba(16, 24, 40, .08);
 }
 .rdb-card .rdb-card-tools .reporting-chartbtn { padding: 4px 7px; font-size: 12px; }
-.rdb-card .rdb-style-pop { top: 36px; right: 0; }
+/* Unavailable, not dead: dimmed + not-allowed, and a click explains why (toast). */
+.rdb-card .rdb-card-tools .reporting-chartbtn[aria-disabled="true"] { opacity: .4; cursor: not-allowed; }
+.rdb-card .rdb-style-pop { top: 36px; right: 0; max-height: 260px; overflow: auto; }
 /* Drag-to-reorder: reorderGridDom() plays a FLIP transform per card, so the
    neighbours slide to their new slot instead of jumping. */
 .rdb-grid--dragging .rdb-card { transition: transform .22s var(--nx-ease); }
+
+/* ---- Whole-report card reads like the Results tab ----------------------
+   A report card is a section, not a tile: it grows with its content (no
+   fixed row height, so the KPI strip and the table are never clipped), the
+   KPI tiles run in one strip above the chart exactly like #rsKpiBand, and
+   the chart takes the full width. The pick overlay (no .rdb-card around it)
+   keeps the compact rail + chart layout, which reads well as a builder. */
+.rdb-card[data-type="report"] { height: auto; align-self: start; }
+.rdb-card[data-type="report"] .rdb-report { grid-template-columns: 1fr; gap: 12px; }
+.rdb-card[data-type="report"] .rdb-report-kpis {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px;
+}
+.rdb-card[data-type="report"] .rdb-report-chart { height: 340px; }
+
+/* Present (fullscreen) margins. Lives here, not in reporting-console.css: the
+   full-bleed rule `body.reporting-console.rdb-fullbleed .reporting-dashboard`
+   there sets padding: 4px 0 60px and out-ranked the :fullscreen rule, which
+   left a wall screen border-on-border. */
+body.reporting-console.rdb-fullbleed .reporting-dashboard:fullscreen { padding: 40px max(48px, 3vw) 72px; }

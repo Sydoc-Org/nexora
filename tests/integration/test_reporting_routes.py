@@ -107,6 +107,47 @@ def test_sql_run_octopus_target_without_perm_403(user_client):
     assert resp.status_code in (400, 403)
 
 
+def test_sql_run_generali_target_without_perm_403(user_client):
+    # Same shape as the Octopus target: its own reporting.sql.target.generali.use
+    # grant on top of the base gate (migration 0121).
+    resp = user_client.post(
+        "/api/reporting/sql/run", json={"target": "generali", "sql": "SELECT 1"}
+    )
+    assert resp.status_code in (400, 403)
+
+
+def test_sql_run_nexora_is_not_a_target(admin_client):
+    """NexoraDB holds the password hashes and TOTP secrets -- it must not be
+    reachable from the sandbox at ANY permission level, so an admin asking for
+    it gets the unknown-target 400, not a query."""
+    with (
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.run._has_acked", return_value=True),
+    ):
+        resp = admin_client.post(
+            "/api/reporting/sql/run", json={"target": "nexora", "sql": "SELECT 1"}
+        )
+    assert resp.status_code == 400
+    assert "nexora" not in (resp.get_json().get("detail") or "").split("allowed targets:")[-1]
+
+
+def test_sources_sql_entries_name_their_database(admin_client):
+    """The target picker names the real database, so every sql source carries
+    `db` (from config) and a `configured` flag telling the UI whether that
+    target's read-only login exists yet."""
+    with patch("nx_lib.security.has_permission", return_value=True):
+        resp = admin_client.get("/api/reporting/sources")
+    assert resp.status_code == 200
+    sql = [s for s in resp.get_json() if s.get("kind") == "sql"]
+    assert sql, "no live-SQL sources registered"
+    # Which targets a caller sees depends on their grants (the TEST seed has no
+    # reporting.sql.target.generali.use row), so the registry side is asserted
+    # in tests/unit/test_reporting_sql_targets.py -- here only the shape.
+    for s in sql:
+        assert "db" in s, s
+        assert isinstance(s["configured"], bool), s
+
+
 def test_sql_run_serializes_binary_and_time_cells(user_client):
     """A result row with bytes (varbinary/rowversion) or datetime.time must
     serialize as strings, not crash jsonify with a 500 (regression)."""

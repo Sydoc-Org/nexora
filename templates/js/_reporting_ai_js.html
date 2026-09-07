@@ -596,7 +596,13 @@
   });
 
   // setReport(null) detaches (a new run replaces it, a failed run clears it).
-  function setReport(report) { chat.report = report || null; }
+  // The starter chips are fixed generic questions for the no-report empty
+  // state; once a report is attached they stop making sense (e.g. "imported
+  // vs exported" next to a backlog-only report) so hide them.
+  function setReport(report) {
+    chat.report = report || null;
+    if (emptyEl) emptyEl.classList.toggle("reporting-chat-empty--attached", !!report);
+  }
   // Opens the panel with the report attached and a starter question typed in.
   function askAbout(report, prefill) {
     setReport(report);

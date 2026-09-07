@@ -284,7 +284,10 @@
     // Delegated grid clicks -- cards (and the add-card tile) are rebuilt/
     // replaced on every render, so direct per-element listeners would be
     // lost on re-render.
+    el('rdbGrid').addEventListener('input', handleCardToolInput);
+    el('rdbGrid').addEventListener('change', handleCardToolChange);
     el('rdbGrid').addEventListener('click', function (e) {
+      if (handleCardToolClick(e)) return;
       var filterX = e.target.closest && e.target.closest('[data-testid="rdb-card-filter-remove"]');
       if (filterX) {
         var filterCardEl = filterX.closest('[data-card-id]');
@@ -1074,13 +1077,16 @@
         return String(r[0] == null ? '' : r[0]).slice(0, 10) <= fc.anchor;
       });
     }
-    cardRunData[card.id] = { columns: columns, rows: rows };
+    cardRunData[card.id] = { columns: columns, rows: rows, fc: fc, def: def };
+    var piece = card.type || 'report';
+    var chartPiece = piece === 'report' || piece === 'chart';
     body.innerHTML =
       '<div class="rdb-report" data-testid="rdb-report">' +
         '<div class="rdb-report-side">' +
           '<div class="reporting-ledger-kpis rdb-report-kpis" data-testid="rdb-report-kpis" hidden></div>' +
         '</div>' +
         '<div class="nx-card nx-card--pad rdb-report-chartcard" data-testid="rdb-report-chartcard">' +
+          (state.editing && chartPiece && card.id !== PICK_ID ? cardToolsHtml(card) : '') +
           '<p class="reporting-simple-chartnote rdb-report-note" data-testid="rdb-report-note" hidden></p>' +
           '<div class="rdb-report-chart"><canvas></canvas></div>' +
         '</div>' +
@@ -1097,7 +1103,6 @@
     // summing the grouped rows. Same clone the Simple pane's runCurrent fires.
     // With NO dimension the breakdown run's own first row already IS the
     // total for this shape, so no second request is needed.
-    var piece = card.type || 'report';
     var grandTotals = null;
     if (hasMetrics && dims && piece !== 'chart' && piece !== 'table') {
       var totalDef = JSON.parse(JSON.stringify(def));
@@ -1129,18 +1134,8 @@
     // Chart -- identical config to the Simple result view (saved colours,
     // right axis, forecast tail/band), on the card's own canvas.
     var charted = false;
-    if (piece !== 'kpi' && piece !== 'table' && hasMetrics && dims && rows.length && typeof Chart !== 'undefined') {
-      var built = RS.buildChartData(def, columns, rows, fc);
-      if (built.note) { q('.rdb-report-note').textContent = built.note; q('.rdb-report-note').hidden = false; }
-      if (built.data) {
-        var cfg = RS.chartConfigFor(built.data, built.data.type, def, {
-          onDrill: function (index, datasetIndex) { reportCardChartDrill(card, built.data, index, datasetIndex); }
-        });
-        charts[card.id] = new Chart(q('.rdb-report-chart canvas'), cfg.config);
-        charted = true;
-      } else {
-        q('.rdb-report-chart').hidden = true;
-      }
+    if (chartPiece && hasMetrics && dims && rows.length && typeof Chart !== 'undefined') {
+      charted = mountCardChart(card, body);
     } else {
       q('.rdb-report-chartcard').hidden = true;
     }
@@ -1179,6 +1174,263 @@
       var n = (cardRunData[card.id] || {}).rows;
       if (meta && n) meta.textContent = I18N.tableRowCount.replace('{n}', String(n.length));
     }
+  }
+
+  // ---- Per-card chart tools (edit mode): type, forecast, colours & axes --
+  // The Results tab's toolbar, per card. Chart type and colours re-mount the
+  // chart from the card's last result (no re-run); the forecast toggle needs
+  // the server and re-runs the card. Everything lands on card.viz, which
+  // cardRunDef layers over the report's saved definition.
+  var CHART_TYPES = [
+    ['bar', 'fa-chart-column', 'chartBar'], ['line', 'fa-chart-line', 'chartLine'],
+    ['stacked', 'fa-layer-group', 'chartStacked'], ['pie', 'fa-chart-pie', 'chartPie'],
+    ['doughnut', 'fa-circle-notch', 'chartDoughnut']];
+
+  function cardToolsHtml(card) {
+    var fc = (card.viz && card.viz.forecast !== undefined) ? card.viz.forecast
+           : ((card.definition || {}).forecast || false);
+    var horizon = (fc && fc.horizon) ? String(fc.horizon) : 'auto';
+    return '<div class="reporting-simple-charttools rdb-card-tools" data-testid="rdb-card-tools">' +
+      '<div class="rs-chart-track">' +
+      CHART_TYPES.map(function (t) {
+        return '<button type="button" class="reporting-chartbtn" data-type="' + t[0] + '" title="' + esc(I18N[t[2]]) +
+          '" aria-label="' + esc(I18N[t[2]]) + '" data-testid="rdb-chart-' + t[0] + '">' +
+          '<i class="fas ' + t[1] + '" aria-hidden="true"></i></button>';
+      }).join('') + '</div>' +
+      '<button type="button" class="reporting-chartbtn" data-testid="rdb-chart-png" title="' + esc(I18N.chartPng) +
+        '" aria-label="' + esc(I18N.chartPng) + '"><i class="fas fa-download" aria-hidden="true"></i></button>' +
+      '<button type="button" class="reporting-chartbtn" data-testid="rdb-forecast-toggle" aria-pressed="' + (fc ? 'true' : 'false') +
+        '" title="' + esc(I18N.forecastLabel) + '" aria-label="' + esc(I18N.forecastLabel) + '">' +
+        '<i class="fas fa-arrow-trend-up" aria-hidden="true"></i></button>' +
+      '<select class="rs-forecast-horizon" data-testid="rdb-forecast-horizon" aria-label="' + esc(I18N.forecastHorizon) + '"' +
+        (fc ? '' : ' hidden') + '>' +
+        ['auto', '7', '14', '30'].map(function (h) {
+          return '<option value="' + h + '"' + (h === horizon ? ' selected' : '') + '>' +
+            (h === 'auto' ? esc(I18N.forecastAuto) : '+' + h) + '</option>';
+        }).join('') + '</select>' +
+      '<button type="button" class="reporting-chartbtn" data-testid="rdb-style-toggle" aria-pressed="false" aria-expanded="false" title="' +
+        esc(I18N.styleToggle) + '" aria-label="' + esc(I18N.styleToggle) + '"><i class="fas fa-palette" aria-hidden="true"></i></button>' +
+      '<div class="rs-style-pop rdb-style-pop" data-testid="rdb-style-pop" hidden>' +
+        '<div class="rdb-style-rows"></div>' +
+        '<button type="button" class="reporting-link rs-style-reset" data-testid="rdb-style-reset">' + esc(I18N.styleReset) + '</button>' +
+      '</div>' +
+    '</div>';
+  }
+
+  // Builds (or rebuilds) the card's Chart.js instance from its last result.
+  // Returns false when the result has no chartable shape.
+  function mountCardChart(card, body) {
+    var RS = window.ReportingSimple;
+    var run = cardRunData[card.id];
+    if (!run) return false;
+    destroyCardChart(card.id);
+    var def = cardRunDef(card, effectiveFilters(card));
+    var q = function (sel) { return body.querySelector(sel); };
+    var built = RS.buildChartData(def, run.columns, run.rows, run.fc);
+    var note = q('.rdb-report-note');
+    if (note) { note.textContent = built.note || ''; note.hidden = !built.note; }
+    if (!built.data) { q('.rdb-report-chart').hidden = true; return false; }
+    var type = (card.viz && card.viz.chartType) || built.data.type;
+    var cfg = RS.chartConfigFor(built.data, type, def, {
+      onDrill: function (index, datasetIndex) { reportCardChartDrill(card, built.data, index, datasetIndex); }
+    });
+    run.built = built.data; run.type = cfg.type;
+    q('.rdb-report-chart').hidden = false;
+    charts[card.id] = new Chart(q('.rdb-report-chart canvas'), cfg.config);
+    syncCardTools(card, body, def, cfg);
+    return true;
+  }
+
+  function syncCardTools(card, body, def, cfg) {
+    var RS = window.ReportingSimple;
+    var tools = body.querySelector('[data-testid="rdb-card-tools"]');
+    if (!tools) return;
+    var multi = !!cfg.multi;
+    Array.prototype.forEach.call(tools.querySelectorAll('button[data-type]'), function (b) {
+      var t = b.dataset.type;
+      b.hidden = (t === 'stacked') ? !multi : ((t === 'pie' || t === 'doughnut') && multi);
+      b.classList.toggle('is-selected', t === cfg.type);
+      b.setAttribute('aria-pressed', t === cfg.type ? 'true' : 'false');
+    });
+    var fcBtn = tools.querySelector('[data-testid="rdb-forecast-toggle"]');
+    var eligible = RS.forecastEligible(def);
+    // Not `disabled`: a disabled button swallows the click and the user just
+    // sees "nothing happens". aria-disabled keeps it clickable so the click
+    // can say WHY (toast) -- the hover title alone is invisible on touch.
+    var blocked = !eligible || cfg.circular;
+    fcBtn.setAttribute('aria-disabled', blocked ? 'true' : 'false');
+    fcBtn.title = !eligible ? I18N.forecastNeedsShape : cfg.circular ? I18N.forecastNeedsLineBar : I18N.forecastLabel;
+    var on = !!def.forecast && def.forecast.enabled !== false;
+    fcBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    fcBtn.classList.toggle('is-selected', on);
+    tools.querySelector('[data-testid="rdb-forecast-horizon"]').hidden = !on || blocked;
+    var pop = tools.querySelector('[data-testid="rdb-style-pop"]');
+    if (!pop.hidden) renderCardStyleRows(card, tools, def, cfg);
+  }
+
+  function cardStyle(card) {
+    var viz = card.viz || {};
+    return viz.style || (card.definition && card.definition.style) || {};
+  }
+  // First tweak copies the report's saved style so the card starts from
+  // what the report shows and never mutates the shared definition.
+  function ensureCardStyle(card) {
+    card.viz = card.viz || {};
+    if (!card.viz.style) card.viz.style = JSON.parse(JSON.stringify(cardStyle(card)));
+    return card.viz.style;
+  }
+
+  function renderCardStyleRows(card, tools, def, cfg) {
+    var RS = window.ReportingSimple;
+    var d = cardRunData[card.id].built;
+    var style = cardStyle(card), colors = style.colors || {};
+    var rightKeys = cfg.circular ? [] : RS.rightAxisKeys(d, style);
+    var html = '';
+    d.datasets.forEach(function (ds, i) {
+      var key = RS.seriesKey(ds, !!d.multiSeries);
+      var onRight = rightKeys.indexOf(key) >= 0;
+      html += '<div class="rs-style-row" data-key="' + esc(key) + '">' +
+        '<input type="color" value="' + esc(colors[key] || RS.defaultSeriesColor(d, i)) +
+        '" aria-label="' + esc(ds.label) + '" data-testid="rdb-style-color">' +
+        '<span>' + esc(ds.label) + '</span>' +
+        (!cfg.circular && d.datasets.length > 1
+          ? '<span class="rs-axis-seg" role="group">' +
+            '<button type="button" class="rs-axis-btn" data-axis="left" aria-pressed="' + (!onRight) +
+            '" title="' + esc(I18N.styleLeftAxis) + '" data-testid="rdb-style-axis-left">' + esc(I18N.axisShortLeft) + '</button>' +
+            '<button type="button" class="rs-axis-btn" data-axis="right" aria-pressed="' + onRight +
+            '" title="' + esc(I18N.styleRightAxis) + '" data-testid="rdb-style-axis-right">' + esc(I18N.axisShortRight) + '</button>' +
+            '</span>'
+          : '') +
+        '</div>';
+    });
+    tools.querySelector('.rdb-style-rows').innerHTML = html;
+  }
+
+  // Colour inputs fire `input` continuously while dragging the picker --
+  // one remount per frame per card.
+  var styleRaf = {};
+  function remountCardChart(card, body) {
+    if (styleRaf[card.id]) return;
+    styleRaf[card.id] = requestAnimationFrame(function () {
+      styleRaf[card.id] = 0;
+      mountCardChart(card, body);
+    });
+  }
+
+  function cardAndBody(node) {
+    var cardEl = node.closest && node.closest('[data-card-id]');
+    var card = cardEl && findCardById(cardEl.getAttribute('data-card-id'));
+    return card ? { card: card, cardEl: cardEl, body: cardEl.querySelector('[data-testid="rdb-card-body"]') } : null;
+  }
+
+  // Delegated toolbar clicks (grid-level, cards are rebuilt on every render).
+  // Returns true when the click was a toolbar action.
+  function handleCardToolClick(e) {
+    var tools = e.target.closest && e.target.closest('[data-testid="rdb-card-tools"]');
+    if (!tools || !state.editing) return false;
+    var ctx = cardAndBody(tools);
+    if (!ctx) return true;
+    var card = ctx.card, body = ctx.body;
+    var typeBtn = e.target.closest('button[data-type]');
+    if (typeBtn) {
+      card.viz = card.viz || {};
+      card.viz.chartType = typeBtn.dataset.type;
+      state.dirty = true;
+      mountCardChart(card, body);
+      return true;
+    }
+    if (e.target.closest('[data-testid="rdb-chart-png"]')) {
+      var src = body.querySelector('.rdb-report-chart canvas');
+      if (!src || !charts[card.id]) return true;
+      var c = document.createElement('canvas');
+      c.width = src.width; c.height = src.height;
+      var ctx2 = c.getContext('2d');
+      ctx2.fillStyle = '#fff'; ctx2.fillRect(0, 0, c.width, c.height); ctx2.drawImage(src, 0, 0);
+      var a = document.createElement('a');
+      a.href = c.toDataURL('image/png');
+      a.download = (card.title || 'card') + '-chart.png';
+      a.click();
+      return true;
+    }
+    if (e.target.closest('[data-testid="rdb-forecast-toggle"]')) {
+      var fcBtn = e.target.closest('[data-testid="rdb-forecast-toggle"]');
+      if (fcBtn.getAttribute('aria-disabled') === 'true') { toast(fcBtn.title, true); return true; }
+      var run = cardRunData[card.id] || {};
+      var on = !!(run.def && run.def.forecast && run.def.forecast.enabled !== false);
+      card.viz = card.viz || {};
+      if (on) card.viz.forecast = false;
+      else {
+        var h = tools.querySelector('[data-testid="rdb-forecast-horizon"]').value;
+        card.viz.forecast = { enabled: true, horizon: h === 'auto' ? 'auto' : parseInt(h, 10) };
+      }
+      state.dirty = true;
+      runCard(card, ctx.cardEl);
+      return true;
+    }
+    if (e.target.closest('[data-testid="rdb-style-toggle"]')) {
+      var pop = tools.querySelector('[data-testid="rdb-style-pop"]');
+      var btn = tools.querySelector('[data-testid="rdb-style-toggle"]');
+      pop.hidden = !pop.hidden;
+      btn.setAttribute('aria-expanded', pop.hidden ? 'false' : 'true');
+      btn.setAttribute('aria-pressed', pop.hidden ? 'false' : 'true');
+      btn.classList.toggle('is-selected', !pop.hidden);
+      var run2 = cardRunData[card.id];
+      if (!pop.hidden && run2 && run2.built) {
+        renderCardStyleRows(card, tools, cardRunDef(card, effectiveFilters(card)),
+                            { circular: run2.type === 'pie' || run2.type === 'doughnut' });
+      }
+      return true;
+    }
+    var axisBtn = e.target.closest('.rs-axis-btn');
+    if (axisBtn) {
+      var key = axisBtn.closest('.rs-style-row').dataset.key;
+      var style = ensureCardStyle(card);
+      var keys = window.ReportingSimple.rightAxisKeys(cardRunData[card.id].built, style).slice();
+      var at = keys.indexOf(key);
+      if (axisBtn.dataset.axis === 'right' && at < 0) keys.push(key);
+      if (axisBtn.dataset.axis === 'left' && at >= 0) keys.splice(at, 1);
+      style.rightAxis = keys;
+      state.dirty = true;
+      mountCardChart(card, body);
+      return true;
+    }
+    if (e.target.closest('[data-testid="rdb-style-reset"]')) {
+      card.viz = card.viz || {};
+      card.viz.style = {};   // explicit empty style: the report's saved colours are dropped too
+      state.dirty = true;
+      mountCardChart(card, body);
+      return true;
+    }
+    return true;
+  }
+
+  function handleCardToolInput(e) {
+    var tools = e.target.closest && e.target.closest('[data-testid="rdb-card-tools"]');
+    if (!tools || !state.editing) return;
+    var ctx = cardAndBody(tools);
+    if (!ctx) return;
+    if (e.target.type === 'color') {
+      var row = e.target.closest('.rs-style-row');
+      if (!row) return;
+      var style = ensureCardStyle(ctx.card);
+      style.colors = style.colors || {};
+      style.colors[row.dataset.key] = e.target.value;
+      state.dirty = true;
+      remountCardChart(ctx.card, ctx.body);
+    }
+  }
+
+  function handleCardToolChange(e) {
+    var sel = e.target.closest && e.target.closest('[data-testid="rdb-forecast-horizon"]');
+    if (!sel || !state.editing) return;
+    var ctx = cardAndBody(sel);
+    if (!ctx) return;
+    var card = ctx.card;
+    card.viz = card.viz || {};
+    var h = sel.value;
+    card.viz.forecast = { enabled: true, horizon: h === 'auto' ? 'auto' : parseInt(h, 10) };
+    state.dirty = true;
+    runCard(card, ctx.cardEl);
   }
 
   // The band's pickable tiles in DOM order: one per measure, then Buckets,
@@ -1238,6 +1490,14 @@
     // (reports keep theirs in scope.processes, not in filters).
     var gp = state.def && state.def.globalProcesses;
     if (gp && gp.length) def.scope = Object.assign({}, def.scope || {}, { processes: gp.slice() });
+    // The card's own chart tweaks (edit-mode toolbar) sit on top of the
+    // report: card.viz = { chartType, forecast: {enabled, horizon} | false,
+    // style: {colors, rightAxis} }. The saved report is never touched.
+    var viz = card.viz || {};
+    if (viz.chartType) def.chartType = viz.chartType === 'stacked' ? 'bar' : viz.chartType;
+    if (viz.forecast === false) delete def.forecast;
+    else if (viz.forecast) def.forecast = viz.forecast;
+    if (viz.style) def.style = viz.style;
     return def;
   }
 
@@ -1406,7 +1666,8 @@
   function handleGridDragStart(e) {
     // A corner-resize drag starts with a pointerdown on the same (draggable)
     // card, so never let it turn into an HTML5 reorder drag as well.
-    if (resizing || (e.target.closest && e.target.closest('[data-testid="rdb-card-resize"]'))) {
+    if (resizing || (e.target.closest && (e.target.closest('[data-testid="rdb-card-resize"]') ||
+                                           e.target.closest('[data-testid="rdb-card-tools"]')))) {
       e.preventDefault();
       return;
     }
@@ -1434,12 +1695,29 @@
     moveDragged(id);
   }
 
+  // FLIP: measure every card, move the DOM nodes, measure again, then play
+  // each card from its old spot to its new one so neighbours slide instead
+  // of jumping (the transition lives on .rdb-grid--dragging .rdb-card).
   function reorderGridDom() {
     var grid = el('rdbGrid');
     var addTile = grid.querySelector('[data-testid="rdb-add-tile"]');
+    var nodes = [], before = [];
     (state.def.cards || []).forEach(function (c) {
       var node = findCardEl(c.id);
-      if (node) grid.insertBefore(node, addTile || null);
+      if (!node) return;
+      nodes.push(node); before.push(node.getBoundingClientRect());
+    });
+    nodes.forEach(function (node) { grid.insertBefore(node, addTile || null); });
+    nodes.forEach(function (node, i) {
+      var a = node.getBoundingClientRect();
+      var dx = before[i].left - a.left, dy = before[i].top - a.top;
+      if (!dx && !dy) return;
+      node.style.transition = 'none';
+      node.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+    });
+    // Next frame: drop the inverse transform under the CSS transition.
+    requestAnimationFrame(function () {
+      nodes.forEach(function (node) { node.style.transition = ''; node.style.transform = ''; });
     });
   }
 

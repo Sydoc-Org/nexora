@@ -453,7 +453,8 @@
     RS.state.lastRun = { def: def, columns: columns, rows: rows, hasMetrics: hasMetrics,
                       dims: dims, forecast: res.data.forecast || null };
     setAskEddard({ title: cur.name || def.title || '', definition: def,
-                   columns: columns, rows: rows.slice(0, 5000) });
+                   columns: columns, rows: rows.slice(0, 5000),
+                   forecast: res.data.forecast || null });
     var charted = (hasMetrics && dims)
       ? !!RS.mountChart(def, columns, rows, res.data.forecast || null) : false;
     syncForecastCtl(def, res.data.forecast || null, charted);
@@ -956,7 +957,12 @@
     kpiBandHtml: RS.kpiBandHtml,
     buildChartData: RS.buildChartData,
     chartConfigFor: RS.chartConfigFor,
-    tableHtml: RS.tableHtml
+    tableHtml: RS.tableHtml,
+    // Per-card chart tools on the dashboard reuse the Results tab's rules.
+    forecastEligible: RS.forecastEligible,
+    seriesKey: RS.seriesKey,
+    rightAxisKeys: RS.rightAxisKeys,
+    defaultSeriesColor: defaultSeriesColor
   };
 
   document.addEventListener('rp:tabshown', function (e) {
