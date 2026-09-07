@@ -1,4 +1,4 @@
-# Handoff — dashboard restyle, full-bleed + Present, report-derived filter bar (commit split pending)
+# Handoff — dashboard restyle, full-bleed + Present, report-derived filter bar
 
 **Date:** 2026-09-07 · **Branch:** `refactor/255-admin-nav-tenancy-labels` · nothing pushed ·
 commit-only. **A parallel session commits on this same branch — read Gotchas first.**
@@ -33,11 +33,9 @@ commit-only. **A parallel session commits on this same branch — read Gotchas f
    `nx_lib/views/reporting/ai.py`, `static/js/reporting_simple.js`, `templates/_reporting_simple.html`,
    `templates/js/_reporting_ai_js.html`, `tests/integration/test_reporting_ai_routes.py`) plus the
    owner's drawio files are **not mine and not committed**.
-4. **e2e not fully green yet:** `test_reporting_dashboard.py` ran 17/19 with the new filter bar; the
-   two whole-report failures were caused by the chart-fill CSS from `cf9d933a` (stretched canvas
-   covered the "Show table" link) — that CSS block is **removed** in `93094deb`. The new
-   `test_filter_bar_shows_the_reports_own_filters_and_edits_replace_them` has **not run yet**
-   (shared TEST lock held 17 min by another run).
+4. **Dashboard e2e is 20/20 green** on `7c8c11d2` (run after the split). The earlier two
+   whole-report failures came from the chart-fill CSS of `cf9d933a`; that block is removed in
+   `7c8c11d2`.
 
 ## What the filter-bar commit (`7c8c11d2`) does
 
@@ -54,11 +52,9 @@ commit-only. **A parallel session commits on this same branch — read Gotchas f
 
 ## Next steps (ordered)
 
-1. Run `tests/e2e/test_reporting_dashboard.py` when the TEST lock is free (expect 20/20; the new
-   `test_filter_bar_shows_the_reports_own_filters_and_edits_replace_them` has not run yet).
-2. Optional: re-add a whole-report chart-fill that does not overlay the toggle (the removed block is
+1. Optional: re-add a whole-report chart-fill that does not overlay the toggle (the removed block is
    in `cf9d933a`'s diff; the bug was the absolute canvas inside a flex-grown `.rdb-report-chart`).
-3. Then the unchanged path: merge GRuoss's PRs, fresh TEST seed for the three environmental
+2. Then the unchanged path: merge GRuoss's PRs, fresh TEST seed for the three environmental
    `test_reporting_simple.py` failures, push, one PR.
 
 ## Gotchas & notes
