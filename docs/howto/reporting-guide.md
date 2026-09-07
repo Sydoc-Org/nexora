@@ -177,7 +177,7 @@ deleting anything you saved.
 
    **The imports / exports / backlog view:** pick *Documents imported*,
    *Documents exported* and *Backlog* together (or the *Pages …* variants),
-   break down *Over time (Date)*, and you get one line per measure on a
+   break down by *Date*, and you get one line per measure on a
    shared time axis — imports counted on their import date, exports on their
    export date, backlog as the point-in-time level. These "anchored" measures
    can't be mixed with the plain ones (the incompatible pills grey out).
@@ -190,8 +190,11 @@ deleting anything you saved.
    processes you have access to are offered).
 
 3. **Break it down by…**
-   - *Over time* — pick a **Granularity** (Week / Month / Quarter / Year).
-   - *A category* — e.g. **Process**, Document Source, Document Type, Owner no.
+   - *Time* — a date field such as **Import date** or **Export date**; pick a
+     **Granularity** (Week / Month / Quarter / Year).
+   - *Document fields* — the everyday ones: **Process**, Page Count, Document
+     Type, Document Source, Creditor Name. **Show advanced fields** unfolds the
+     rest (Owner no., Forwarding, raw Octo names, validation statuses …).
    - *None — just the total* — one big number, no chart.
 
    You can pick up to **three** breakdowns. The first one becomes the chart's
@@ -342,7 +345,7 @@ result with several breakdowns) shows no chart at all with a hint to pick a
 coarser granularity or a shorter range. The table and exports always carry the
 full data.
 
-**Show table** reveals the data rows. The **Query** card beside the chart
+The data rows show under the chart; **Hide table** collapses them. The **Query** card beside the chart
 always shows the actual database query behind the number, formatted and
 copyable — useful when you want to prove where a figure came from.
 

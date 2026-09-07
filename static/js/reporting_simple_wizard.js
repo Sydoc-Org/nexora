@@ -42,10 +42,13 @@
   // (each Octo process = an actual client, so this is the per-client
   // breakdown), then the preferred business dimensions; noise hidden;
   // table sources are untouched.
-  var DOCPROC_DIM_ORDER = ['processname', 'docsource', 'doctype', 'forwarding',
-                           'ownernr', 'propertynr', 'registered', 'tenancynr'];
+  var DOCPROC_DIM_ORDER = ['processname', 'pagecount', 'doctype', 'docsource', 'crdname',
+                           'forwarding', 'ownernr', 'propertynr', 'registered', 'tenancynr'];
   var DOCPROC_DIM_HIDE = { bankpk: 1, crdno: 1, docbarcode: 1,
                            docdate: 1, workitem_id: 1 };
+  // Everything else docprocessing exposes folds behind "Show advanced fields".
+  // Table sources flag theirs in ColumnsJSON ("advanced":true) instead.
+  var DOCPROC_DIM_MAIN = { processname: 1, pagecount: 1, doctype: 1, docsource: 1, crdname: 1 };
 
   // One-line transparency note under the title of AI-built reports: the
   // model's own explanation plus the filters/scope it chose, so a wrong guess
@@ -955,7 +958,9 @@
       if (dateFields.length) list.appendChild(groupLabel(RS.I18N.groupTime));
       dateFields.forEach(function (f) {
         var bd = { kind: 'date', field: f };
-        var btn = choiceBtn(RS.I18N.overTime + ' (' + f.label + ')', function () {
+        // Plain field label ("Import date"): the Time caption above already
+        // says these are the over-time breakdowns.
+        var btn = choiceBtn(f.label, function () {
           toggleBreakdown(bd);
         }, isSelected(bd));
         btn.dataset.bdKind = 'date';
@@ -963,11 +968,18 @@
         applyCoverageBadge(btn, f);
         list.appendChild(btn);
       });
-      // No cap: everything the Advanced tab offers is available here — the
-      // coverage sort keeps rarely-provided fields at the bottom, and the
-      // hide-list still filters the noise.
-      if (catFields.length) list.appendChild(groupLabel(RS.I18N.groupFields));
-      catFields.forEach(function (f) {
+      // Rare/diagnostic dimensions fold behind one "Show advanced fields"
+      // chip: docprocessing keeps a fixed main five, table sources mark
+      // theirs with "advanced":true in ColumnsJSON. A selected advanced
+      // field (reopened wizard) keeps the fold open.
+      var isAdv = w.source.id === 'docprocessing'
+        ? function (f) { return !DOCPROC_DIM_MAIN[f.field]; }
+        : function (f) { return !!f.advanced; };
+      var advFields = catFields.filter(isAdv);
+      catFields = catFields.filter(function (f) { return !isAdv(f); });
+      if (advFields.some(function (f) { return isSelected({ kind: 'category', field: f }); })) w.advOpen = true;
+
+      function addCatChip(f) {
         var bd = { kind: 'category', field: f };
         var btn = choiceBtn(f.label, function () {
           toggleBreakdown(bd);
@@ -976,7 +988,25 @@
         btn.dataset.bdField = f.field;
         applyCoverageBadge(btn, f);
         list.appendChild(btn);
-      });
+      }
+      // No cap: everything the Advanced tab offers is available here — the
+      // coverage sort keeps rarely-provided fields at the bottom, and the
+      // hide-list still filters the noise.
+      if (catFields.length) list.appendChild(groupLabel(RS.I18N.groupFields));
+      catFields.forEach(addCatChip);
+      if (advFields.length) {
+        if (w.advOpen) {
+          list.appendChild(groupLabel(RS.I18N.groupAdvanced));
+          advFields.forEach(addCatChip);
+        } else {
+          var advBtn = choiceBtn(RS.I18N.showAdvanced.replace('{n}', String(advFields.length)), function () {
+            w.advOpen = true; renderChipList();
+          }, false);
+          advBtn.classList.add('rs-choice-none');
+          advBtn.dataset.testid = 'rs-breakdown-advanced';
+          list.appendChild(advBtn);
+        }
+      }
       list.appendChild(groupLabel(RS.I18N.groupOr));
       var noneBtn = choiceBtn(RS.I18N.justTotal, function () {
         toggleBreakdown({ kind: 'none' });

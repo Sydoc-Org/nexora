@@ -435,18 +435,13 @@
     syncForecastCtl(def, res.data.forecast || null, charted);
     RS.renderTable(columns, rows, res.data.forecast || null);
     RS.renderAnomalies(def, columns, rows);
-    // Collapse the table behind the toggle only when a chart actually rendered
-    // (or the stat card carries a dimensionless total). When mountChart bails
-    // — three breakdowns, too many points, no Chart.js — the table is the only
-    // surface showing the result AND the only drill-through target left, so it
-    // must be visible immediately.
-    if (hasMetrics && (charted || !dims)) {
-      RS.el('rsTableToggle').hidden = false;
-      RS.el('rsTableToggle').textContent = RS.I18N.showTable;
-      RS.el('rsTableWrap').hidden = true;
-    } else {
-      RS.el('rsTableWrap').hidden = false;   // plain table reports: grid directly
-    }
+    // The table always shows -- the numbers behind a chart are the point,
+    // not a footnote. The toggle only appears when a chart (or a
+    // dimensionless stat card) sits above it, so there is something else
+    // to look at once the table is hidden.
+    RS.el('rsTableWrap').hidden = false;
+    RS.el('rsTableToggle').hidden = !(hasMetrics && (charted || !dims));
+    RS.el('rsTableToggle').textContent = RS.I18N.hideTable;
     writePreviewCache(dims, hasMetrics, rows);
     // Task 13: auto AI caption over the result that just rendered. Placed
     // after the `!rows.length` early return above, so an empty result never

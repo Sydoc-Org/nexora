@@ -85,6 +85,17 @@ Work toward the next release.
 
 ### Changed
 
+- **Simple wizard breakdown step curated.** Date chips read as their field
+  (“Import date”, “Export date”) instead of “Over time (…)”. Document
+  processing shows Process, Page Count, Document Type, Document Source and
+  Creditor Name; a **Show advanced fields** chip unfolds the rest. Table
+  sources flag theirs with `"advanced":true` in `ColumnsJSON`. The Field
+  extraction quality source drops Stream and Workitem from its catalog,
+  labels Customer as **Client**, prefixes Process with its client
+  (`elektromaterial.02_Invoice`) and folds the raw/diagnostic dimensions
+  (migration `0116`). The result table is shown by default under every
+  chart; **Hide table** collapses it.
+
 - **A tenant's own users never see the tenant named** (#255). For a user who
   belongs to exactly one tenant and holds no grant on another, the tenant *is*
   the portal, so naming it only exposes an internal concept: the sidebar's

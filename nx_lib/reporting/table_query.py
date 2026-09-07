@@ -81,6 +81,10 @@ def table_source_catalog(columns):
             # Companion column whose value prefixes this field's distinct values
             # in pickers (e.g. ProcessName labeled "client.process" via ClientName).
             entry["labelWith"] = c["labelWith"]
+        if c.get("advanced"):
+            # The Simple wizard folds these behind "Show advanced fields":
+            # raw/diagnostic dimensions nobody breaks a report down by first.
+            entry["advanced"] = True
         if c.get("grantScoped"):
             # Pickers offer only values whose client.process label is in the
             # caller's process.<client>.<name>.view grants — the snapshot table

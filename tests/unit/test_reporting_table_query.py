@@ -316,3 +316,13 @@ def test_build_distinct_query_label_with_pairs():
             "dbo.BacklogHistory",
             [{"field": "ProcessName", "filterable": True, "labelWith": "Nope"}],
         )
+
+
+def test_table_source_catalog_passes_advanced_flag_through():
+    cols = [
+        {"field": "Field", "type": "string", "advanced": True},
+        {"field": "FieldKey", "type": "string"},
+    ]
+    out = table_source_catalog(cols)
+    assert out[0]["advanced"] is True
+    assert "advanced" not in out[1]

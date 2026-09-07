@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-07 12:58+0200\n"
+"POT-Creation-Date: 2026-09-07 13:27+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -2197,21 +2197,19 @@ msgstr ""
 #: templates/_reporting_help.html:20
 msgid ""
 "That source covers every customer whose process is onboarded in nexora. "
-"Break down by “Customer” to compare them, or filter to one. Field names "
-"are translated to a shared vocabulary first, so whatever each customer "
-"calls its invoice number lands on the same row — that is what makes the "
-"comparison meaningful. “Stream” splits a customer running more than one "
-"document flow. The process list only offers processes nexora has "
+"Break down by “Client” to compare them, or filter to one. Field names are"
+" translated to a shared vocabulary first, so whatever each client calls "
+"its invoice number lands on the same row — that is what makes the "
+"comparison meaningful. The process list only offers processes nexora has "
 "onboarded; Octo’s own internal process names are not reportable."
 msgstr ""
 "Questa origine copre ogni cliente il cui processo è integrato in nexora. "
-"Raggruppate per «Customer» per confrontarli, oppure filtrate su uno solo."
-" I nomi dei campi vengono prima tradotti in un vocabolario comune: "
-"comunque ogni cliente chiami il proprio numero di fattura, finisce nella "
-"stessa riga — è questo che rende il confronto significativo. «Stream» "
-"separa un cliente che gestisce più di un flusso di documenti. L’elenco "
-"dei processi offre solo i processi integrati in nexora; i nomi di "
-"processo interni di Octo non sono analizzabili."
+"Raggruppate per «Client» per confrontarli, oppure filtrate su uno solo. I"
+" nomi dei campi vengono prima tradotti in un vocabolario comune: comunque"
+" ogni cliente chiami il proprio numero di fattura, finisce nella stessa "
+"riga — è questo che rende il confronto significativo. L’elenco dei "
+"processi offre solo i processi integrati in nexora; i nomi di processo "
+"interni di Octo non sono analizzabili."
 
 #: templates/_reporting_help.html:21
 #, python-format
@@ -2238,15 +2236,27 @@ msgstr ""
 #: templates/_reporting_help.html:23
 msgid ""
 "Imports, exports and backlog in one chart: pick “Documents imported”, "
-"“Documents exported” and “Backlog” together, then break down “Over time "
-"(Date)” — one line per measure on a shared time axis."
+"“Documents exported” and “Backlog” together, then break down by “Date” — "
+"one line per measure on a shared time axis."
 msgstr ""
 "Importazioni, esportazioni e backlog in un unico grafico: selezionate "
 "insieme «Documenti importati», «Documenti esportati» e «Backlog», poi "
-"suddividete «Nel tempo (Data)» — una linea per misura su un asse "
-"temporale condiviso."
+"suddividete «Data» — una linea per misura su un asse temporale condiviso."
 
 #: templates/_reporting_help.html:24
+msgid ""
+"The breakdown step shows the everyday fields first; “Show advanced "
+"fields” unfolds the rare and diagnostic ones (raw Octo names, validation "
+"statuses, owner and property numbers). The result table is always shown "
+"under the chart — “Hide table” collapses it."
+msgstr ""
+"Il passaggio di suddivisione mostra prima i campi di uso quotidiano; "
+"«Mostra campi avanzati» espande quelli rari e diagnostici (nomi grezzi "
+"Octo, stati di validazione, numeri di proprietario e immobile). La "
+"tabella dei risultati è sempre visualizzata sotto il grafico — «Nascondi "
+"tabella» la comprime."
+
+#: templates/_reporting_help.html:25
 msgid ""
 "Time charts stop at today: the period that contains today is faded/dashed"
 " because it is still filling up, months that haven’t happened aren’t "
@@ -2259,7 +2269,7 @@ msgstr ""
 " è una lacuna, non uno zero. Il totale del backlog è l’istantanea più "
 "recente."
 
-#: templates/_reporting_help.html:25
+#: templates/_reporting_help.html:26
 msgid ""
 "The palette button in the chart toolbar recolours each series and the "
 "title, and puts a series on its own right-hand axis — Backlog starts "
@@ -2272,11 +2282,11 @@ msgstr ""
 "restano leggibili accanto a decine di migliaia. Le scelte vengono salvate"
 " con il report."
 
-#: templates/_reporting_help.html:27
+#: templates/_reporting_help.html:28
 msgid "Checking a number"
 msgstr "Verificare un numero"
 
-#: templates/_reporting_help.html:29
+#: templates/_reporting_help.html:30
 msgid ""
 "Click a chart bar or a table row to open the documents behind that "
 "number; the “Query” card beside the chart shows exactly how it was "
@@ -2286,7 +2296,7 @@ msgstr ""
 "documenti dietro quel numero; la scheda “Query” accanto al grafico mostra"
 " esattamente come è stato calcolato."
 
-#: templates/_reporting_help.html:30
+#: templates/_reporting_help.html:31
 msgid ""
 "Each measure gets its own total card, named after it — “Total · Documents"
 " imported”, “Total · Documents exported”. There is no combined number: "
@@ -2298,19 +2308,37 @@ msgstr ""
 "numero combinato: lo stesso documento può essere contato in entrambi, "
 "quindi sommarli non conterebbe nulla di reale."
 
-#: templates/_reporting_help.html:31
-msgid "A card headed “Overall” instead of “Total” holds a rate or an average, which cannot be added up. It is the real figure across every document behind the report — not the chart’s numbers summed."
-msgstr "Una scheda intitolata “Complessivo” anziché “Totale” contiene un tasso o una media, che non si possono sommare. Mostra il valore reale su tutti i documenti dietro il report — non la somma dei numeri del grafico."
-
 #: templates/_reporting_help.html:32
-msgid "“Buckets” counts periods, not table rows. Break down by month and by field and each month contributes one row per field, so the average card switches to “Avg per row” and names how many values it averaged."
-msgstr "“Periodi” conta i periodi, non le righe della tabella. Con una suddivisione per mese e per campo ogni mese fornisce una riga per campo: la scheda della media passa quindi a “Media per riga” e indica su quanti valori è calcolata."
+msgid ""
+"A card headed “Overall” instead of “Total” holds a rate or an average, "
+"which cannot be added up. It is the real figure across every document "
+"behind the report — not the chart’s numbers summed."
+msgstr ""
+"Una scheda intitolata “Complessivo” anziché “Totale” contiene un tasso o "
+"una media, che non si possono sommare. Mostra il valore reale su tutti i "
+"documenti dietro il report — non la somma dei numeri del grafico."
 
 #: templates/_reporting_help.html:33
-msgid "Documents with no date sit in no period, so the stat band and the chart both leave them out. Eddard’s summary says how many were set aside."
-msgstr "I documenti senza data non ricadono in alcun periodo, quindi la banda delle statistiche e il grafico li escludono entrambi. Il riepilogo di Eddard indica quanti sono stati esclusi."
+msgid ""
+"“Buckets” counts periods, not table rows. Break down by month and by "
+"field and each month contributes one row per field, so the average card "
+"switches to “Avg per row” and names how many values it averaged."
+msgstr ""
+"“Periodi” conta i periodi, non le righe della tabella. Con una "
+"suddivisione per mese e per campo ogni mese fornisce una riga per campo: "
+"la scheda della media passa quindi a “Media per riga” e indica su quanti "
+"valori è calcolata."
 
 #: templates/_reporting_help.html:34
+msgid ""
+"Documents with no date sit in no period, so the stat band and the chart "
+"both leave them out. Eddard’s summary says how many were set aside."
+msgstr ""
+"I documenti senza data non ricadono in alcun periodo, quindi la banda "
+"delle statistiche e il grafico li escludono entrambi. Il riepilogo di "
+"Eddard indica quanti sono stati esclusi."
+
+#: templates/_reporting_help.html:35
 msgid ""
 "The ↑/↓ comparison chips compare a window shifted back by your range’s "
 "length in days — not the previous calendar period. Hover a chip for the "
@@ -2320,7 +2348,7 @@ msgstr ""
 "della lunghezza in giorni del tuo periodo — non con il periodo di "
 "calendario precedente. Passa sopra un chip per le date esatte."
 
-#: templates/_reporting_help.html:35
+#: templates/_reporting_help.html:36
 msgid ""
 "Two people can see different totals on the same report: it always runs "
 "with the viewer’s own data access."
@@ -2328,7 +2356,7 @@ msgstr ""
 "Due persone possono vedere totali diversi sullo stesso report: viene "
 "sempre eseguito con l'accesso ai dati di chi lo guarda."
 
-#: templates/_reporting_help.html:36
+#: templates/_reporting_help.html:37
 msgid ""
 "Charts cap at 50 axis values and 12 series — past the cap you get a "
 "partial chart or none at all; the table and exports always carry the full"
@@ -2338,11 +2366,11 @@ msgstr ""
 "limite il grafico è parziale o assente; tabella ed export contengono "
 "sempre tutti i dati."
 
-#: templates/_reporting_help.html:38
+#: templates/_reporting_help.html:39
 msgid "Saving and sharing"
 msgstr "Salvare e condividere"
 
-#: templates/_reporting_help.html:40
+#: templates/_reporting_help.html:41
 msgid ""
 "Save writes back to the report you have open — the pencil next to the "
 "title renames it in place. A result that is not a saved report yet (a "
@@ -2355,7 +2383,7 @@ msgstr ""
 "«I miei report». Per lasciare intatto l'originale, usa ⋯ → «Salva come "
 "copia»."
 
-#: templates/_reporting_help.html:41
+#: templates/_reporting_help.html:42
 msgid ""
 "A report of yours that you have shared — with everyone or with named "
 "colleagues — is tagged “· shared” on its card. Named shares stay under My"
@@ -2366,7 +2394,7 @@ msgstr ""
 "condivisioni per nome restano sotto “I miei report”; solo “condiviso con "
 "tutti” lo sposta nella Libreria."
 
-#: templates/_reporting_help.html:42
+#: templates/_reporting_help.html:43
 msgid ""
 "A scheduled email runs with the report owner’s data access — recipients "
 "see the owner’s numbers, not their own."
@@ -2375,7 +2403,7 @@ msgstr ""
 "proprietario del report — i destinatari vedono i suoi numeri, non i "
 "propri."
 
-#: templates/_reporting_help.html:43
+#: templates/_reporting_help.html:44
 msgid ""
 "Delete a report you own: open its card’s “…” menu under My reports, or "
 "open the report and use ⋯ → Delete report. Shared copies and schedules go"
@@ -2385,7 +2413,7 @@ msgstr ""
 "in “I miei report”, oppure apri il report e usa ⋯ → Elimina report. Le "
 "copie condivise e le pianificazioni vengono rimosse con esso."
 
-#: templates/_reporting_help.html:44
+#: templates/_reporting_help.html:45
 msgid ""
 "On a dashboard, the “Whole report” tile shows a saved report exactly as "
 "the Simple tab does — totals, chart with its colours, axes and forecast, "
@@ -2398,7 +2426,7 @@ msgstr ""
 "riquadri mostrano un solo elemento; colori o tipo di grafico si cambiano "
 "nel report stesso."
 
-#: templates/_reporting_help.html:45
+#: templates/_reporting_help.html:46
 msgid ""
 "“Add a card” asks everything in one dialog: which saved report, how to "
 "draw it, its title, and how big — a width in grid columns and a height in"
@@ -2409,7 +2437,7 @@ msgstr ""
 "colonne della griglia e un’altezza in righe. La scheda compare subito con"
 " i suoi dati."
 
-#: templates/_reporting_help.html:46
+#: templates/_reporting_help.html:47
 msgid ""
 "In edit mode a tile can be dragged anywhere to rearrange it, and resized "
 "by its bottom-right corner grip: width snaps to the 12 grid columns, "
@@ -2420,7 +2448,7 @@ msgstr ""
 "larghezza scatta sulle 12 colonne della griglia, l’altezza su righe "
 "intere. “Fatto” salva il layout."
 
-#: templates/_reporting_help.html:47
+#: templates/_reporting_help.html:48
 msgid ""
 "A dashboard’s library card previews its real layout — one small tile per "
 "card — plus a card count, so you can tell dashboards apart before opening"
@@ -2430,11 +2458,11 @@ msgstr ""
 " reale — un piccolo riquadro per scheda — più il numero di schede, così "
 "le dashboard si distinguono prima di aprirle."
 
-#: templates/_reporting_help.html:50
+#: templates/_reporting_help.html:51
 msgid "Asking Eddard"
 msgstr "Chiedere a Eddard"
 
-#: templates/_reporting_help.html:52
+#: templates/_reporting_help.html:53
 msgid ""
 "Eddard is the reporting assistant behind the chat panel — the little "
 "black hole in the top bar."
@@ -2442,7 +2470,7 @@ msgstr ""
 "Eddard è l'assistente di reporting dietro il pannello della chat — il "
 "piccolo buco nero nella barra in alto."
 
-#: templates/_reporting_help.html:53
+#: templates/_reporting_help.html:54
 msgid ""
 "Name the measure, the time range and the processes: “invoices by process,"
 " last 3 months” beats “show me invoices”."
@@ -2450,7 +2478,7 @@ msgstr ""
 "Nomina la misura, il periodo e i processi: “fatture per processo, ultimi "
 "3 mesi” batte “mostrami le fatture”."
 
-#: templates/_reporting_help.html:54
+#: templates/_reporting_help.html:55
 msgid ""
 "Check what Eddard built with “Open in builder” — the filters and process "
 "scope it chose are visible there before you trust the number."
@@ -2459,7 +2487,7 @@ msgstr ""
 " l'ambito dei processi scelti sono visibili lì prima di fidarti del "
 "numero."
 
-#: templates/_reporting_help.html:55
+#: templates/_reporting_help.html:56
 msgid ""
 "Follow-ups work: the chat remembers the conversation, so “now only this "
 "quarter” refines the last answer."
@@ -2467,7 +2495,7 @@ msgstr ""
 "I follow-up funzionano: la chat ricorda la conversazione, quindi “ora "
 "solo questo trimestre” affina l'ultima risposta."
 
-#: templates/_reporting_help.html:56
+#: templates/_reporting_help.html:57
 msgid ""
 "When Eddard used tools, unfold “How the agent worked” to see the steps; "
 "if a “Continue” button appears, click it before rephrasing your question."
@@ -2476,7 +2504,7 @@ msgstr ""
 "vedere i passaggi; se compare un pulsante «Continua», cliccalo prima di "
 "riformulare la domanda."
 
-#: templates/_reporting_help.html:57
+#: templates/_reporting_help.html:58
 msgid ""
 "The answer-depth control sits at the bottom-left of the composer: Quick "
 "for a fast number, Balanced for everyday questions, Deep when the "
@@ -2487,11 +2515,11 @@ msgstr ""
 "le domande di ogni giorno, Approfondito quando la domanda è complessa e "
 "puoi attendere."
 
-#: templates/_reporting_help.html:65
+#: templates/_reporting_help.html:66
 msgid "Full guide"
 msgstr "Guida completa"
 
-#: templates/_reporting_help.html:66 templates/admin/logs.html:141
+#: templates/_reporting_help.html:67 templates/admin/logs.html:141
 #: templates/js/_reporting_drill_js.html:16
 #: templates/prepared_documents.html:253 templates/prepared_documents.html:265
 #: templates/reporting.html:148 templates/reporting.html:180
@@ -2583,32 +2611,32 @@ msgid "Break it down by…"
 msgstr "Suddividi per…"
 
 #: templates/_reporting_simple.html:88
-#: templates/js/_reporting_simple_js.html:62
+#: templates/js/_reporting_simple_js.html:61
 msgid "Granularity"
 msgstr "Granularità"
 
 #: templates/_reporting_simple.html:90 templates/js/_reporting_js.html:22
-#: templates/js/_reporting_simple_js.html:65
+#: templates/js/_reporting_simple_js.html:64
 msgid "Day"
 msgstr "Giorno"
 
 #: templates/_reporting_simple.html:91 templates/js/_reporting_js.html:23
-#: templates/js/_reporting_simple_js.html:66
+#: templates/js/_reporting_simple_js.html:65
 msgid "Week"
 msgstr "Settimana"
 
 #: templates/_reporting_simple.html:92 templates/js/_reporting_js.html:24
-#: templates/js/_reporting_simple_js.html:67
+#: templates/js/_reporting_simple_js.html:66
 msgid "Month"
 msgstr "Mese"
 
 #: templates/_reporting_simple.html:93 templates/js/_reporting_js.html:25
-#: templates/js/_reporting_simple_js.html:68
+#: templates/js/_reporting_simple_js.html:67
 msgid "Quarter"
 msgstr "Trimestre"
 
 #: templates/_reporting_simple.html:94 templates/js/_reporting_js.html:26
-#: templates/js/_reporting_simple_js.html:69
+#: templates/js/_reporting_simple_js.html:68
 msgid "Year"
 msgstr "Anno"
 
@@ -2621,7 +2649,7 @@ msgstr ""
 "serie colorata."
 
 #: templates/_reporting_simple.html:99 templates/dashboard.html:69
-#: templates/js/_reporting_simple_js.html:140
+#: templates/js/_reporting_simple_js.html:139
 msgid "Time range"
 msgstr "Intervallo di tempo"
 
@@ -2657,7 +2685,7 @@ msgid "Show result"
 msgstr "Mostra risultato"
 
 #: templates/_reporting_simple.html:129
-#: templates/js/_reporting_simple_js.html:141
+#: templates/js/_reporting_simple_js.html:140
 msgid "So far"
 msgstr "Finora"
 
@@ -2718,12 +2746,12 @@ msgid "More actions"
 msgstr "Altre azioni"
 
 #: templates/_reporting_simple.html:186
-#: templates/js/_reporting_simple_js.html:94
+#: templates/js/_reporting_simple_js.html:93
 msgid "Open in Advanced"
 msgstr "Apri in Avanzato"
 
 #: templates/_reporting_simple.html:188 templates/js/_reporting_ai_js.html:41
-#: templates/js/_reporting_js.html:46 templates/js/_reporting_simple_js.html:95
+#: templates/js/_reporting_js.html:46 templates/js/_reporting_simple_js.html:94
 #: templates/reporting.html:405
 msgid "Show query"
 msgstr "Mostra query"
@@ -2733,7 +2761,7 @@ msgid "Save as copy"
 msgstr "Salva come copia"
 
 #: templates/_reporting_simple.html:194
-#: templates/js/_reporting_simple_js.html:83
+#: templates/js/_reporting_simple_js.html:82
 msgid "Delete report"
 msgstr "Elimina report"
 
@@ -3794,7 +3822,7 @@ msgstr "Tempo medio di elaborazione"
 msgid "Documents processed over time"
 msgstr "Documenti elaborati nel tempo"
 
-#: templates/dashboard.html:103 templates/js/_reporting_simple_js.html:33
+#: templates/dashboard.html:103
 msgid "Over time"
 msgstr "Nel tempo"
 
@@ -3997,7 +4025,7 @@ msgstr "Volume di elaborazione giornaliero"
 #: templates/js/_generali_dashboard_js.html:25
 #: templates/js/_reporting_dashboard_js.html:33
 #: templates/js/_reporting_js.html:50
-#: templates/js/_reporting_simple_js.html:111
+#: templates/js/_reporting_simple_js.html:110
 #: templates/js/_reporting_viz_js.html:18 templates/prepared_documents.html:51
 #: templates/workitems_overview.html:74
 msgid "Total"
@@ -4446,7 +4474,8 @@ msgstr "Nessun raggruppamento"
 msgid "Search by ID, policy, damage number…"
 msgstr "Cerca per ID, polizza, numero sinistro…"
 
-#: templates/generali_documents.html:204 templates/reporting.html:116
+#: templates/generali_documents.html:204
+#: templates/js/_reporting_simple_js.html:144 templates/reporting.html:116
 #: templates/workitems_overview.html:345
 msgid "Advanced"
 msgstr "Avanzato"
@@ -5038,7 +5067,7 @@ msgid "Per page"
 msgstr "Per pagina"
 
 #: templates/js/_reporting_dashboard_js.html:22
-#: templates/js/_reporting_simple_js.html:61
+#: templates/js/_reporting_simple_js.html:60
 #: templates/js/admin/_logs_js.html:169 templates/prepared_documents.html:149
 msgid "Apply"
 msgstr "Applica"
@@ -5331,12 +5360,12 @@ msgstr ""
 msgid "Source"
 msgstr "Origine"
 
-#: templates/js/_reporting_simple_js.html:51
-#: templates/js/_reporting_simple_js.html:138 templates/reporting.html:362
+#: templates/js/_reporting_simple_js.html:50
+#: templates/js/_reporting_simple_js.html:137 templates/reporting.html:362
 msgid "Processes"
 msgstr "Processi"
 
-#: templates/js/_reporting_js.html:20 templates/js/_reporting_simple_js.html:70
+#: templates/js/_reporting_js.html:20 templates/js/_reporting_simple_js.html:69
 #: templates/reporting.html:365
 msgid "All processes"
 msgstr "Tutti i processi"
@@ -5377,7 +5406,7 @@ msgstr "Carica"
 msgid "Share the selected report you own"
 msgstr "Condividi il report selezionato di tua proprietà"
 
-#: templates/js/_reporting_simple_js.html:89 templates/reporting.html:392
+#: templates/js/_reporting_simple_js.html:88 templates/reporting.html:392
 msgid "Share"
 msgstr "Condividi"
 
@@ -5442,7 +5471,7 @@ msgstr "Con una metrica selezionata, le colonne sopra diventano il raggruppament
 msgid "Columns"
 msgstr "Colonne"
 
-#: templates/js/_reporting_simple_js.html:50 templates/reporting.html:472
+#: templates/js/_reporting_simple_js.html:49 templates/reporting.html:472
 msgid "Filters"
 msgstr "Filtri"
 
@@ -5956,26 +5985,26 @@ msgstr "Tutti gli stati"
 msgid "Date Range"
 msgstr "Intervallo di date"
 
-#: templates/js/_reporting_simple_js.html:47
+#: templates/js/_reporting_simple_js.html:46
 #: templates/workitems_overview.html:170
 msgid "Custom"
 msgstr "Personalizzato"
 
 #: templates/admin/logs.html:28 templates/admin/status.html:202
 #: templates/js/_reporting_drill_js.html:26 templates/js/_reporting_js.html:6
-#: templates/js/_reporting_simple_js.html:53
+#: templates/js/_reporting_simple_js.html:52
 #: templates/workitems_overview.html:171
 msgid "Today"
 msgstr "Oggi"
 
 #: templates/js/_reporting_drill_js.html:26 templates/js/_reporting_js.html:7
-#: templates/js/_reporting_simple_js.html:54
+#: templates/js/_reporting_simple_js.html:53
 #: templates/workitems_overview.html:172
 msgid "Yesterday"
 msgstr "Ieri"
 
 #: templates/js/_reporting_drill_js.html:27 templates/js/_reporting_js.html:8
-#: templates/js/_reporting_simple_js.html:55
+#: templates/js/_reporting_simple_js.html:54
 #: templates/workitems_overview.html:173
 msgid "This week"
 msgstr "Questa settimana"
@@ -5985,7 +6014,7 @@ msgid "Last 7 days"
 msgstr "Ultimi 7 giorni"
 
 #: templates/js/_reporting_drill_js.html:28 templates/js/_reporting_js.html:10
-#: templates/js/_reporting_simple_js.html:39
+#: templates/js/_reporting_simple_js.html:38
 #: templates/workitems_overview.html:175
 msgid "This month"
 msgstr "Questo mese"
@@ -6001,14 +6030,14 @@ msgstr "Tutti i campi"
 
 #: templates/js/_reporting_dashboard_js.html:24
 #: templates/js/_reporting_js.html:42
-#: templates/js/_reporting_simple_js.html:101
+#: templates/js/_reporting_simple_js.html:100
 #: templates/workitems_overview.html:239 templates/workitems_overview.html:298
 msgid "contains"
 msgstr "contiene"
 
 #: templates/js/_reporting_dashboard_js.html:25
 #: templates/js/_reporting_js.html:43
-#: templates/js/_reporting_simple_js.html:102
+#: templates/js/_reporting_simple_js.html:101
 #: templates/workitems_overview.html:242 templates/workitems_overview.html:301
 msgid "starts with"
 msgstr "inizia con"
@@ -6100,7 +6129,7 @@ msgstr "ID Workitem, Stato, Fase, Ultimo movimento"
 msgid "Optional extras"
 msgstr "Extra opzionali"
 
-#: templates/js/_reporting_simple_js.html:144
+#: templates/js/_reporting_simple_js.html:143
 #: templates/workitems_overview.html:552
 msgid "Document fields"
 msgstr ""
@@ -6607,7 +6636,7 @@ msgstr "Data di fine"
 
 #: templates/admin/logs.html:96 templates/admin/logs.html:131
 #: templates/admin/user_detail.html:220
-#: templates/js/_reporting_simple_js.html:143
+#: templates/js/_reporting_simple_js.html:142
 msgid "Time"
 msgstr "Ora"
 
@@ -8076,7 +8105,7 @@ msgid "Insert into SQL editor"
 msgstr "Inserisci nell'editor SQL"
 
 #: templates/js/_reporting_ai_js.html:42 templates/js/_reporting_js.html:47
-#: templates/js/_reporting_simple_js.html:97
+#: templates/js/_reporting_simple_js.html:96
 msgid "Hide query"
 msgstr "Nascondi query"
 
@@ -8110,7 +8139,7 @@ msgid "Show it as a chart"
 msgstr "Mostralo come grafico"
 
 #: templates/js/_reporting_ai_js.html:55
-#: templates/js/_reporting_simple_js.html:58
+#: templates/js/_reporting_simple_js.html:57
 msgid "Asking Eddard…"
 msgstr "Chiedere a Eddard"
 
@@ -8200,13 +8229,13 @@ msgstr "Valore"
 
 #: templates/js/_reporting_dashboard_js.html:26
 #: templates/js/_reporting_js.html:44
-#: templates/js/_reporting_simple_js.html:103
+#: templates/js/_reporting_simple_js.html:102
 msgid "is empty"
 msgstr "è vuoto"
 
 #: templates/js/_reporting_dashboard_js.html:27
 #: templates/js/_reporting_js.html:45
-#: templates/js/_reporting_simple_js.html:104
+#: templates/js/_reporting_simple_js.html:103
 msgid "is not empty"
 msgstr "non è vuoto"
 
@@ -8314,7 +8343,7 @@ msgid "No cards to export yet."
 msgstr "Nessuna scheda da esportare ancora."
 
 #: templates/js/_reporting_dashboard_js.html:62
-#: templates/js/_reporting_simple_js.html:74
+#: templates/js/_reporting_simple_js.html:73
 #, python-brace-format
 msgid "Showing the {shown} largest of {n} series."
 msgstr "Mostrate le {shown} serie più grandi su {n}."
@@ -8364,42 +8393,42 @@ msgid "Could not filter this selection — drill cancelled."
 msgstr "Impossibile filtrare questa selezione — drill-through annullato."
 
 #: templates/js/_reporting_drill_js.html:27 templates/js/_reporting_js.html:9
-#: templates/js/_reporting_simple_js.html:56
+#: templates/js/_reporting_simple_js.html:55
 msgid "Last week"
 msgstr "Settimana scorsa"
 
 #: templates/js/_reporting_drill_js.html:28 templates/js/_reporting_js.html:11
-#: templates/js/_reporting_simple_js.html:40
+#: templates/js/_reporting_simple_js.html:39
 msgid "Last month"
 msgstr "Il mese scorso"
 
 #: templates/js/_reporting_drill_js.html:29 templates/js/_reporting_js.html:12
-#: templates/js/_reporting_simple_js.html:44
+#: templates/js/_reporting_simple_js.html:43
 msgid "This quarter"
 msgstr "Questo trimestre"
 
 #: templates/js/_reporting_drill_js.html:29 templates/js/_reporting_js.html:13
-#: templates/js/_reporting_simple_js.html:45
+#: templates/js/_reporting_simple_js.html:44
 msgid "Last quarter"
 msgstr "Trimestre scorso"
 
 #: templates/js/_reporting_drill_js.html:30 templates/js/_reporting_js.html:14
-#: templates/js/_reporting_simple_js.html:41
+#: templates/js/_reporting_simple_js.html:40
 msgid "Last 3 months"
 msgstr "Ultimi 3 mesi"
 
 #: templates/js/_reporting_drill_js.html:30 templates/js/_reporting_js.html:15
-#: templates/js/_reporting_simple_js.html:42
+#: templates/js/_reporting_simple_js.html:41
 msgid "This year"
 msgstr "Quest'anno"
 
 #: templates/js/_reporting_drill_js.html:31 templates/js/_reporting_js.html:16
-#: templates/js/_reporting_simple_js.html:43
+#: templates/js/_reporting_simple_js.html:42
 msgid "Last year"
 msgstr "L'anno scorso"
 
 #: templates/js/_reporting_drill_js.html:31
-#: templates/js/_reporting_simple_js.html:57
+#: templates/js/_reporting_simple_js.html:56
 #, python-brace-format
 msgid "Last {n} days"
 msgstr "Ultimi {n} giorni"
@@ -8417,7 +8446,7 @@ msgid "Running your report…"
 msgstr "Esecuzione del report in corso…"
 
 #: templates/js/_reporting_js.html:28
-#: templates/js/_reporting_simple_js.html:108
+#: templates/js/_reporting_simple_js.html:107
 #, python-brace-format
 msgid "{rows} rows · {ms} ms"
 msgstr "{rows} righe · {ms} ms"
@@ -8430,25 +8459,24 @@ msgstr "La richiesta non è riuscita"
 msgid "SQL report"
 msgstr "Report SQL"
 
-#: templates/js/_reporting_js.html:39 templates/js/_reporting_simple_js.html:98
+#: templates/js/_reporting_js.html:39 templates/js/_reporting_simple_js.html:97
 msgid "between"
 msgstr "tra"
 
-#: templates/js/_reporting_js.html:40 templates/js/_reporting_simple_js.html:99
+#: templates/js/_reporting_js.html:40 templates/js/_reporting_simple_js.html:98
 msgid "is one of"
 msgstr "è uno di"
 
-#: templates/js/_reporting_js.html:41
-#: templates/js/_reporting_simple_js.html:100
+#: templates/js/_reporting_js.html:41 templates/js/_reporting_simple_js.html:99
 msgid "is not one of"
 msgstr "non è uno di"
 
 #: templates/js/_reporting_js.html:48
-#: templates/js/_reporting_simple_js.html:105
+#: templates/js/_reporting_simple_js.html:104
 msgid "Copied"
 msgstr "Copiato"
 
-#: templates/js/_reporting_js.html:49 templates/js/_reporting_simple_js.html:96
+#: templates/js/_reporting_js.html:49 templates/js/_reporting_simple_js.html:95
 #, python-brace-format
 msgid ""
 "Showing the first {n} rows — narrow the filters or time range to see the "
@@ -8458,22 +8486,22 @@ msgstr ""
 "di tempo per vedere il resto."
 
 #: templates/js/_reporting_js.html:51
-#: templates/js/_reporting_simple_js.html:130
+#: templates/js/_reporting_simple_js.html:129
 msgid "Buckets"
 msgstr "Gruppi"
 
 #: templates/js/_reporting_js.html:52
-#: templates/js/_reporting_simple_js.html:131
+#: templates/js/_reporting_simple_js.html:130
 msgid "Avg per bucket"
 msgstr "Media per gruppo"
 
 #: templates/js/_reporting_js.html:53
-#: templates/js/_reporting_simple_js.html:132
+#: templates/js/_reporting_simple_js.html:131
 msgid "Avg per row"
 msgstr "Media per riga"
 
 #: templates/js/_reporting_js.html:54
-#: templates/js/_reporting_simple_js.html:147
+#: templates/js/_reporting_simple_js.html:148
 msgid "AI"
 msgstr "IA"
 
@@ -8508,7 +8536,7 @@ msgid "Could not load metrics"
 msgstr "Impossibile caricare le metriche"
 
 #: templates/js/_reporting_js.html:66
-#: templates/js/_reporting_simple_js.html:149
+#: templates/js/_reporting_simple_js.html:150
 msgid "shared"
 msgstr "condiviso"
 
@@ -8528,7 +8556,7 @@ msgstr "Rinomina non riuscita"
 msgid "Delete this saved report?"
 msgstr "Eliminare questo report salvato?"
 
-#: templates/js/_reporting_js.html:73 templates/js/_reporting_simple_js.html:93
+#: templates/js/_reporting_js.html:73 templates/js/_reporting_simple_js.html:92
 msgid "Delete failed"
 msgstr "Eliminazione non riuscita"
 
@@ -8774,61 +8802,61 @@ msgstr "Modifiche salvate."
 msgid "{name} (copy)"
 msgstr "{name} (copia)"
 
-#: templates/js/_reporting_simple_js.html:34
+#: templates/js/_reporting_simple_js.html:33
 msgid "None — just the total"
 msgstr "Nessuna — solo il totale"
 
-#: templates/js/_reporting_simple_js.html:35
+#: templates/js/_reporting_simple_js.html:34
 msgid "No measures are configured yet — ask an administrator to add metrics."
 msgstr ""
 "Nessuna misura è ancora configurata — chiedi a un amministratore di "
 "aggiungere le metriche."
 
-#: templates/js/_reporting_simple_js.html:36
+#: templates/js/_reporting_simple_js.html:35
 msgid "This source has no date field — showing all data."
 msgstr "Questa fonte non ha un campo data — vengono mostrati tutti i dati."
 
-#: templates/js/_reporting_simple_js.html:37
+#: templates/js/_reporting_simple_js.html:36
 msgid "per"
 msgstr "per"
 
-#: templates/js/_reporting_simple_js.html:38
+#: templates/js/_reporting_simple_js.html:37
 msgid "by"
 msgstr "per"
 
-#: templates/js/_reporting_simple_js.html:46
+#: templates/js/_reporting_simple_js.html:45
 msgid "All time"
 msgstr "Tutto il periodo"
 
-#: templates/js/_reporting_simple_js.html:48
+#: templates/js/_reporting_simple_js.html:47
 msgid "Eddard could not draft that report — try rephrasing."
 msgstr "Eddard non è riuscito a creare questo report — riformula."
 
-#: templates/js/_reporting_simple_js.html:49
+#: templates/js/_reporting_simple_js.html:48
 msgid "Eddard’s daily limit is reached — try again tomorrow."
 msgstr "Il limite giornaliero di Eddard è raggiunto — riprova domani."
 
-#: templates/js/_reporting_simple_js.html:52
+#: templates/js/_reporting_simple_js.html:51
 msgid "no filters"
 msgstr "nessun filtro"
 
-#: templates/js/_reporting_simple_js.html:59
+#: templates/js/_reporting_simple_js.html:58
 msgid "Drafting your report…"
 msgstr "Creazione del rapporto…"
 
-#: templates/js/_reporting_simple_js.html:60
+#: templates/js/_reporting_simple_js.html:59
 msgid "Checking the result…"
 msgstr "Verifica del risultato…"
 
-#: templates/js/_reporting_simple_js.html:63
+#: templates/js/_reporting_simple_js.html:62
 msgid "Cards"
 msgstr "Schede"
 
-#: templates/js/_reporting_simple_js.html:64
+#: templates/js/_reporting_simple_js.html:63
 msgid "Pick a time breakdown first to choose its granularity."
 msgstr "Scegli prima un raggruppamento temporale per impostarne la granularità."
 
-#: templates/js/_reporting_simple_js.html:71
+#: templates/js/_reporting_simple_js.html:70
 msgid ""
 "No chart — this report is a single total. Adjust it in the wizard and "
 "pick a breakdown to get one."
@@ -8836,12 +8864,12 @@ msgstr ""
 "Nessun grafico — questo report è un totale singolo. Modificalo nel wizard"
 " e scegli un raggruppamento per ottenerne uno."
 
-#: templates/js/_reporting_simple_js.html:72
+#: templates/js/_reporting_simple_js.html:71
 #, python-brace-format
 msgid "Chart shows the first 50 of {n} rows."
 msgstr "Il grafico mostra le prime 50 righe su {n}."
 
-#: templates/js/_reporting_simple_js.html:73
+#: templates/js/_reporting_simple_js.html:72
 msgid ""
 "Too many data points to chart — choose a coarser granularity or a shorter"
 " time range."
@@ -8849,76 +8877,76 @@ msgstr ""
 "Troppi punti dati per un grafico — scegli una granularità più grossolana "
 "o un intervallo di tempo più breve."
 
-#: templates/js/_reporting_simple_js.html:75
+#: templates/js/_reporting_simple_js.html:74
 msgid "The chart could not be drawn (chart library failed to load)."
 msgstr "Impossibile disegnare il grafico (libreria non caricata)."
 
-#: templates/js/_reporting_simple_js.html:76
+#: templates/js/_reporting_simple_js.html:75
 msgid "Right axis"
 msgstr "Asse destro"
 
-#: templates/js/_reporting_simple_js.html:77
+#: templates/js/_reporting_simple_js.html:76
 msgid "Left axis"
 msgstr "Asse sinistro"
 
-#: templates/js/_reporting_simple_js.html:78
+#: templates/js/_reporting_simple_js.html:77
 msgid "Left"
 msgstr "Sinistra"
 
-#: templates/js/_reporting_simple_js.html:79
+#: templates/js/_reporting_simple_js.html:78
 msgid "Right"
 msgstr "Destra"
 
-#: templates/js/_reporting_simple_js.html:80
+#: templates/js/_reporting_simple_js.html:79
 msgid "Forecast is only drawn on line and bar charts."
 msgstr "La previsione viene tracciata solo nei grafici a linee e a barre."
 
-#: templates/js/_reporting_simple_js.html:81
+#: templates/js/_reporting_simple_js.html:80
 msgid "The current period is still running — its last bucket is incomplete."
 msgstr "Il periodo corrente è ancora in corso — l’ultimo intervallo è incompleto."
 
-#: templates/js/_reporting_simple_js.html:82
+#: templates/js/_reporting_simple_js.html:81
 msgid "Gaps are periods without a backlog snapshot."
 msgstr "Le lacune sono periodi senza istantanea del backlog."
 
-#: templates/js/_reporting_simple_js.html:84
+#: templates/js/_reporting_simple_js.html:83
 msgid "Delete dashboard"
 msgstr "Elimina dashboard"
 
-#: templates/js/_reporting_simple_js.html:85
+#: templates/js/_reporting_simple_js.html:84
 msgid "Report actions"
 msgstr "Azioni del report"
 
-#: templates/js/_reporting_simple_js.html:86
+#: templates/js/_reporting_simple_js.html:85
 #, python-brace-format
 msgid "{label} down {pct} vs previous"
 msgstr "{label} in calo del {pct} rispetto al precedente"
 
-#: templates/js/_reporting_simple_js.html:87
+#: templates/js/_reporting_simple_js.html:86
 #, python-brace-format
 msgid "{label} up {pct} vs previous"
 msgstr "{label} in aumento del {pct} rispetto al precedente"
 
-#: templates/js/_reporting_simple_js.html:88
+#: templates/js/_reporting_simple_js.html:87
 #, python-brace-format
 msgid "{label} peak — {bucket}"
 msgstr "{label} picco — {bucket}"
 
-#: templates/js/_reporting_simple_js.html:90
+#: templates/js/_reporting_simple_js.html:89
 msgid "1 report"
 msgstr "1 report"
 
-#: templates/js/_reporting_simple_js.html:91
+#: templates/js/_reporting_simple_js.html:90
 #, python-brace-format
 msgid "{n} reports"
 msgstr "{n} report"
 
-#: templates/js/_reporting_simple_js.html:92
+#: templates/js/_reporting_simple_js.html:91
 #, python-brace-format
 msgid "Delete “{name}”? This cannot be undone."
 msgstr "Eliminare «{name}»? L’operazione non può essere annullata."
 
-#: templates/js/_reporting_simple_js.html:106
+#: templates/js/_reporting_simple_js.html:105
 #, python-brace-format
 msgid ""
 "Only {n} of {m} selected processes provide this field — documents from "
@@ -8928,7 +8956,7 @@ msgstr ""
 "documenti degli altri processi appaiono qui con un valore vuoto. Fornito "
 "da:"
 
-#: templates/js/_reporting_simple_js.html:107
+#: templates/js/_reporting_simple_js.html:106
 #, python-brace-format
 msgid ""
 "Only {n} of {m} processes provide this field — the measure only counts "
@@ -8937,89 +8965,94 @@ msgstr ""
 "Solo {n} su {m} processi forniscono questo campo — la metrica conta solo "
 "i documenti di questi processi:"
 
-#: templates/js/_reporting_simple_js.html:109
+#: templates/js/_reporting_simple_js.html:108
 #, python-brace-format
 msgid "{rows} rows · {ms} ms · {when}"
 msgstr "{rows} righe · {ms} ms · {when}"
 
-#: templates/js/_reporting_simple_js.html:110
+#: templates/js/_reporting_simple_js.html:109
 msgid "run just now"
 msgstr "proprio ora"
 
-#: templates/js/_reporting_simple_js.html:115
+#: templates/js/_reporting_simple_js.html:114
 msgid "last bucket"
 msgstr "ultimo gruppo"
 
-#: templates/js/_reporting_simple_js.html:116
+#: templates/js/_reporting_simple_js.html:115
 msgid "sum over the period"
 msgstr "somma sul periodo"
 
-#: templates/js/_reporting_simple_js.html:122
+#: templates/js/_reporting_simple_js.html:121
 msgid "Overall"
 msgstr "Complessivo"
 
-#: templates/js/_reporting_simple_js.html:123
+#: templates/js/_reporting_simple_js.html:122
 msgid "over every matching row"
 msgstr "su tutte le righe corrispondenti"
 
-#: templates/js/_reporting_simple_js.html:124
+#: templates/js/_reporting_simple_js.html:123
 msgid "periods in the range"
 msgstr "periodi nell'intervallo"
 
-#: templates/js/_reporting_simple_js.html:125
+#: templates/js/_reporting_simple_js.html:124
 msgid "total ÷ buckets"
 msgstr "totale ÷ periodi"
 
-#: templates/js/_reporting_simple_js.html:128
+#: templates/js/_reporting_simple_js.html:127
 #, python-brace-format
 msgid "mean of {n} values"
 msgstr "media di {n} valori"
 
-#: templates/js/_reporting_simple_js.html:129
+#: templates/js/_reporting_simple_js.html:128
 msgid "grand total"
 msgstr "totale complessivo"
 
-#: templates/js/_reporting_simple_js.html:133
+#: templates/js/_reporting_simple_js.html:132
 msgid "Peak"
 msgstr "Picco"
 
-#: templates/js/_reporting_simple_js.html:134
+#: templates/js/_reporting_simple_js.html:133
 msgid "vs"
 msgstr "vs"
 
-#: templates/js/_reporting_simple_js.html:135
+#: templates/js/_reporting_simple_js.html:134
 #, python-brace-format
 msgid "{n} rows"
 msgstr "{n} righe"
 
-#: templates/js/_reporting_simple_js.html:136
+#: templates/js/_reporting_simple_js.html:135
 #, python-brace-format
 msgid "Step {n} of 4"
 msgstr "Passo {n} di 4"
 
-#: templates/js/_reporting_simple_js.html:137
+#: templates/js/_reporting_simple_js.html:136
 msgid "Measure"
 msgstr "Misura"
 
-#: templates/js/_reporting_simple_js.html:139
+#: templates/js/_reporting_simple_js.html:138
 msgid "Breakdown"
 msgstr "Suddivisione"
 
-#: templates/js/_reporting_simple_js.html:142
+#: templates/js/_reporting_simple_js.html:141
 #, python-brace-format
 msgid "{n} of {m} selected"
 msgstr "{n} di {m} selezionati"
 
 #: templates/js/_reporting_simple_js.html:145
+#, python-brace-format
+msgid "Show advanced fields ({n})"
+msgstr "Mostra campi avanzati ({n})"
+
+#: templates/js/_reporting_simple_js.html:146
 msgid "Or"
 msgstr "O"
 
-#: templates/js/_reporting_simple_js.html:146
+#: templates/js/_reporting_simple_js.html:147
 #, python-brace-format
 msgid "{n} of 3 picked"
 msgstr "{n} di 3 selezionati"
 
-#: templates/js/_reporting_simple_js.html:148
+#: templates/js/_reporting_simple_js.html:149
 msgid "Loading values…"
 msgstr "Caricamento valori…"
 

@@ -227,7 +227,12 @@ chart already on screen re-themes on the next render, not live.
     snapshot collector records every Octo process, but the picker should only
     offer the ones the rest of the app shows. This is UI curation, not a
     security boundary: the run path stays gated by the source-level
-    permission alone. A partial pick serializes to a plain `{"op": "in"}`
+    permission alone. A third flag `"advanced": true` (seeded for
+    `field_quality` by migration `0116`) folds the column behind the
+    breakdown step's **Show advanced fields** chip; `docprocessing` has no
+    `ColumnsJSON`, so its fold is the `DOCPROC_DIM_MAIN` allow-list in
+    `static/js/reporting_simple_wizard.js` (Process, Page Count, Document
+    Type, Document Source, Creditor Name stay in front). A partial pick serializes to a plain `{"op": "in"}`
     filter on that field — not `scope.processes` — which the result view
     renders as the **process chip** ("Processes: a, b" — clicking it opens a
     checkbox picker; picking everything removes the filter). All `in`/

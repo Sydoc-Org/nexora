@@ -1876,8 +1876,8 @@ def test_wizard_two_breakdowns(nexora_server, page):
         page.get_by_test_id("rs-breakdown-next").click()
         page.get_by_test_id("rs-wizard-run").click()
         expect(page.get_by_test_id("rs-result")).to_be_visible()
-        # Table is hidden behind the toggle when there are metrics; reveal it.
-        page.get_by_test_id("rs-table-toggle").click()
+        # The table shows by default, even under a chart.
+        expect(page.get_by_test_id("rs-table-toggle")).to_have_text("Hide table")
         headers = page.locator("#rsTableWrap table thead th")
         expect(headers).to_have_count(3)  # dim1, dim2, metric
     finally:
@@ -2687,7 +2687,6 @@ def test_drill_row_opens_panel(nexora_server, page):
         expect(page.get_by_test_id("rs-result")).to_be_visible()
         # Table is hidden behind the toggle when there are metrics; reveal it
         # (same pattern as test_wizard_two_breakdowns).
-        page.get_by_test_id("rs-table-toggle").click()
         page.locator("#rsTableWrap tbody tr").first.click()
         panel = page.get_by_test_id("reporting-drill-panel")
         expect(panel).to_be_visible()
@@ -2827,7 +2826,6 @@ def test_drill_row_opens_panel_with_context_chips(nexora_server, page):
         page.get_by_test_id("rs-breakdown-next").click()
         page.get_by_test_id("rs-wizard-run").click()
         expect(page.get_by_test_id("rs-result")).to_be_visible()
-        page.get_by_test_id("rs-table-toggle").click()
         page.locator("#rsTableWrap tbody tr").first.click()
         panel = page.get_by_test_id("reporting-drill-panel")
         expect(panel).to_be_visible()
@@ -3207,7 +3205,7 @@ DOCPROC_WIZ_FIELDS = [
         "grainable": True,
         "filterable": True,
     },
-    # Second date field: #164 -- both "Over time" chips must be selectable at once.
+    # Second date field: #164 -- both date chips must be selectable at once.
     {
         "field": "export_date",
         "label": "Export date",
@@ -3300,10 +3298,18 @@ def test_wizard_docprocessing_offers_process_breakdown(nexora_server, page):
     # First CATEGORY chip (date chips render before category chips).
     first_cat = bklist.locator('[data-bd-kind="category"]').first
     assert first_cat.get_attribute("data-bd-field") == "processname"
-    # All 13 candidates render (the 12 previously-visible business chips plus
-    # Process): nothing is silently evicted by the cap, noise stays hidden.
-    expect(bklist.locator('[data-bd-kind="category"]')).to_have_count(13)
+    # Main five only (Process, Document Type, Document Source, Creditor Name;
+    # the stub has no pagecount); the other 9 wait behind the advanced fold.
+    expect(bklist.locator('[data-bd-kind="category"]')).to_have_count(4)
     expect(bklist.locator('[data-bd-field="crdname"]')).to_be_visible()
+    expect(bklist.locator('[data-bd-field="forwarding"]')).to_have_count(0)
+    adv = page.get_by_test_id("rs-breakdown-advanced")
+    expect(adv).to_have_text("Show advanced fields (9)")
+    adv.click()
+    expect(bklist.locator('[data-bd-kind="category"]')).to_have_count(13)
+    expect(bklist.locator('[data-bd-field="forwarding"]')).to_be_visible()
+    expect(page.get_by_test_id("rs-breakdown-advanced")).to_have_count(0)
+    # Noise stays hidden on both sides of the fold.
     expect(bklist.locator('[data-bd-field="bankpk"]')).to_have_count(0)
     expect(bklist.locator('[data-bd-field="workitem_id"]')).to_have_count(0)
 
