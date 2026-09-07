@@ -56,14 +56,26 @@ from nx_lib.db import engine_nexora_db
 
 RETENTION = cfg.SESSION_LIFETIME + cfg.SESSION_ROW_RETENTION_GRACE
 
-# Guard rail, not decoration: a threshold at or under SESSION_LIFETIME would
-# delete rows belonging to sessions that are still valid, and _enforce_active_session
-# logs a user out the moment their SID is missing from this table. Anyone
-# shortening the grace to zero should trip this rather than sign people out.
-assert RETENTION > cfg.SESSION_LIFETIME, "retention must exceed the session lifetime"
+# Minutes, not days. DATEADD(day, ...) took int(total_seconds() // 86400), which
+# floored the window: a grace of 23 hours on a 24-hour lifetime collapsed from
+# an intended 47 hours to 24, and a 12-hour lifetime with 6 hours of grace
+# floored to DATEADD(day, 0, GETDATE()) -- i.e. now, deleting every row and
+# signing out every live session. Today's 24h + 7d is exactly 8 days so nothing
+# was lost, but the arithmetic must not depend on that.
+RETENTION_MINUTES = int(RETENTION.total_seconds() // 60)
 
-COUNT_SQL = "SELECT COUNT(*) FROM dbo.ActiveSessions WHERE LastSeenAt < DATEADD(day, ?, GETDATE())"
-DELETE_SQL = "DELETE FROM dbo.ActiveSessions WHERE LastSeenAt < DATEADD(day, ?, GETDATE())"
+# Guard rail, not decoration: a threshold at or under SESSION_LIFETIME deletes
+# rows belonging to sessions that are still valid, and _enforce_active_session
+# logs a user out the moment their SID is missing from this table. Asserted on
+# RETENTION_MINUTES -- the number the query actually uses -- because the old
+# check passed on the un-floored timedelta and so guarded nothing.
+LIFETIME_MINUTES = int(cfg.SESSION_LIFETIME.total_seconds() // 60)
+assert RETENTION_MINUTES > LIFETIME_MINUTES, "retention must exceed the session lifetime"
+
+COUNT_SQL = (
+    "SELECT COUNT(*) FROM dbo.ActiveSessions WHERE LastSeenAt < DATEADD(minute, ?, GETDATE())"
+)
+DELETE_SQL = "DELETE FROM dbo.ActiveSessions WHERE LastSeenAt < DATEADD(minute, ?, GETDATE())"
 
 
 def main() -> int:
@@ -79,14 +91,14 @@ def main() -> int:
         print("NexoraDB engine is not configured (check ENVIRONMENT and env vars).")
         return 2
 
-    days = -int(RETENTION.total_seconds() // 86400)
+    minutes = -RETENTION_MINUTES
     env = os.environ.get("ENVIRONMENT", "(unset)")
-    print(f"[prune-sessions] env={env} retention={RETENTION} (LastSeenAt older than {-days} days)")
+    print(f"[prune-sessions] env={env} retention={RETENTION} (LastSeenAt older than {RETENTION})")
 
     conn = engine_nexora_db.raw_connection()
     try:
         cur = conn.cursor()
-        cur.execute(COUNT_SQL, (days,))
+        cur.execute(COUNT_SQL, (minutes,))
         row = cur.fetchone()
         stale = row[0] if row else 0
 
@@ -102,7 +114,7 @@ def main() -> int:
             print(f"[prune-sessions] nothing to delete ({total} row(s) all within retention).")
             return 0
 
-        cur.execute(DELETE_SQL, (days,))
+        cur.execute(DELETE_SQL, (minutes,))
         conn.commit()
         print(f"[prune-sessions] deleted {stale} of {total} row(s); {total - stale} remain.")
         return 0

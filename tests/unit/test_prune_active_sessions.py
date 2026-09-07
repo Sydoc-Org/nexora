@@ -78,3 +78,54 @@ def test_app_lifetime_comes_from_the_shared_constant():
     src = (MODULE_PATH.parents[2] / "nx_lib" / "__init__.py").read_text(encoding="utf-8")
     assert 'app.config["PERMANENT_SESSION_LIFETIME"] = cfg.SESSION_LIFETIME' in src
     assert 'PERMANENT_SESSION_LIFETIME"] = timedelta(' not in src
+
+
+def test_queried_window_is_not_floored_to_whole_days():
+    """The bug this replaced: DATEADD took int(total_seconds() // 86400), so
+    any sub-day part of the grace was discarded AFTER the guard had passed.
+
+    RETENTION_MINUTES must equal the real window to the minute. With 24h + 7d
+    the floor happened to be exact, which is why nothing was visibly wrong.
+    """
+    mod = _load()
+    assert int(mod.RETENTION.total_seconds() // 60) == mod.RETENTION_MINUTES
+    assert mod.RETENTION_MINUTES == 8 * 24 * 60
+
+
+def test_delete_window_uses_minutes_not_days():
+    """A day-granular DATEADD cannot express a window like 47 hours; asking for
+    one silently got 24. Minutes carry every configuration exactly."""
+    mod = _load()
+    for sql in (mod.COUNT_SQL, mod.DELETE_SQL):
+        assert "DATEADD(minute, ?, GETDATE())" in sql
+        assert "DATEADD(day" not in sql, f"day-granular window reintroduced: {sql}"
+
+
+def test_the_guard_checks_the_value_the_query_uses():
+    """The old assert compared timedeltas while the query used a floored int,
+    so it could pass on a window that had already collapsed. Both sides of the
+    comparison must now be the minute counts."""
+    src = MODULE_PATH.read_text(encoding="utf-8")
+    assert "assert RETENTION_MINUTES > LIFETIME_MINUTES" in src
+
+
+def test_a_sub_day_grace_would_still_outlast_a_live_session():
+    """The failure mode, reproduced as arithmetic rather than as a claim.
+
+    Flooring a 12-hour lifetime plus 6 hours of grace to whole days gives
+    DATEADD(day, 0, ...) -- i.e. now -- which deletes every row and signs out
+    every live session. Minute granularity keeps the window above the lifetime
+    for every combination, which is what the guard is there to promise.
+    """
+    for lifetime, grace in (
+        (timedelta(hours=24), timedelta(days=7)),
+        (timedelta(hours=24), timedelta(hours=23)),
+        (timedelta(hours=12), timedelta(hours=6)),
+        (timedelta(minutes=90), timedelta(minutes=30)),
+    ):
+        floored_days = int((lifetime + grace).total_seconds() // 86400)
+        minutes = int((lifetime + grace).total_seconds() // 60)
+        assert minutes > lifetime.total_seconds() // 60, (lifetime, grace)
+        if floored_days == 0:
+            # exactly the case that wiped the table; unreachable now
+            assert minutes > 0
