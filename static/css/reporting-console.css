@@ -1705,7 +1705,10 @@ body.reporting-console.rdb-fullbleed .reporting-dashboard { max-width: none; pad
   background: var(--nx-page);
   overflow: auto;
   max-width: none;
-  padding: 28px 36px 60px;
+  /* A wall screen wants breathing room at the edges: ~3% of the width as
+     side margin, a little less top, more bottom for the scroll tail. */
+  padding: 40px max(48px, 3vw) 72px;
+  box-sizing: border-box;
 }
 .reporting-dashboard:fullscreen #rdbBack,
 .reporting-dashboard:fullscreen #rdbAddCard,
