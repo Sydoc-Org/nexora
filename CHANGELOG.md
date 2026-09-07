@@ -16,6 +16,17 @@ Work toward the next release.
   (`card.viz`), never on the report: one saved report can be a bar chart here and
   a forecast line there. Drag-to-reorder now slides the neighbouring cards into
   place (FLIP transition) instead of snapping them.
+- **Whole-report dashboard cards read like the Results tab** — KPI strip above a
+  full-width chart, table behind *Show table*, card grows with its content (the
+  fixed row height used to clip the fifth KPI tile and the table toggle).
+
+### Fixed
+
+- **Present mode had no margins.** The full-bleed padding rule out-ranked the
+  fullscreen one, so the dashboard sat border-on-border on a wall screen.
+- **Forecast on a dashboard card "did nothing".** On a report with more than one
+  breakdown the toggle was a dead `disabled` button; it is now dimmed and a click
+  explains the one-date-breakdown rule.
 - **Ask Eddard about this report.** A button beside the *Eddard insight* card on the
   Results tab opens the chat with the report on screen attached: its definition
   (source, grouping, measures with their registry descriptions, filters) and, for a

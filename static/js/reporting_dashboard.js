@@ -1254,12 +1254,16 @@
     });
     var fcBtn = tools.querySelector('[data-testid="rdb-forecast-toggle"]');
     var eligible = RS.forecastEligible(def);
-    fcBtn.disabled = !eligible || cfg.circular;
+    // Not `disabled`: a disabled button swallows the click and the user just
+    // sees "nothing happens". aria-disabled keeps it clickable so the click
+    // can say WHY (toast) -- the hover title alone is invisible on touch.
+    var blocked = !eligible || cfg.circular;
+    fcBtn.setAttribute('aria-disabled', blocked ? 'true' : 'false');
     fcBtn.title = !eligible ? I18N.forecastNeedsShape : cfg.circular ? I18N.forecastNeedsLineBar : I18N.forecastLabel;
     var on = !!def.forecast && def.forecast.enabled !== false;
     fcBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
     fcBtn.classList.toggle('is-selected', on);
-    tools.querySelector('[data-testid="rdb-forecast-horizon"]').hidden = !on || fcBtn.disabled;
+    tools.querySelector('[data-testid="rdb-forecast-horizon"]').hidden = !on || blocked;
     var pop = tools.querySelector('[data-testid="rdb-style-pop"]');
     if (!pop.hidden) renderCardStyleRows(card, tools, def, cfg);
   }
@@ -1349,6 +1353,8 @@
       return true;
     }
     if (e.target.closest('[data-testid="rdb-forecast-toggle"]')) {
+      var fcBtn = e.target.closest('[data-testid="rdb-forecast-toggle"]');
+      if (fcBtn.getAttribute('aria-disabled') === 'true') { toast(fcBtn.title, true); return true; }
       var run = cardRunData[card.id] || {};
       var on = !!(run.def && run.def.forecast && run.def.forecast.enabled !== false);
       card.viz = card.viz || {};
