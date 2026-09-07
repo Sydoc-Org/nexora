@@ -80,8 +80,8 @@
     if (lr.layout && window.ReportingLayoutView) {
       lgrid.hidden = false;
       lgrid.innerHTML = (lr.layout.tiles || []).map(function (t) {
-        return '<div class="rdb-card rl-tile" data-card-id="' + RS.esc(t.id) + '" data-type="' + t.type + '" ' +
-          'style="' + window.ReportingGrid.geomStyle(t.span, t.rows) + '" data-testid="rs-layout-tile">' +
+        return '<div class="rdb-card rl-tile" data-card-id="' + RS.esc(t.id) + '" data-type="' + RS.esc(t.type) + '" ' +
+          'style="' + RS.esc(window.ReportingGrid.geomStyle(t.span, t.rows)) + '" data-testid="rs-layout-tile">' +
           '<div class="rdb-card-body" data-tile-body></div></div>';
       }).join('');
       window.ReportingLayoutView.render(lgrid, { layout: lr.layout, def: cur.def, columns: lr.columns, rows: lr.rows,
@@ -489,8 +489,8 @@
     if (res.data.layout && window.ReportingLayoutView) {
       lgrid.hidden = false;
       lgrid.innerHTML = (res.data.layout.tiles || []).map(function (t) {
-        return '<div class="rdb-card rl-tile" data-card-id="' + RS.esc(t.id) + '" data-type="' + t.type + '" ' +
-          'style="' + window.ReportingGrid.geomStyle(t.span, t.rows) + '" data-testid="rs-layout-tile">' +
+        return '<div class="rdb-card rl-tile" data-card-id="' + RS.esc(t.id) + '" data-type="' + RS.esc(t.type) + '" ' +
+          'style="' + RS.esc(window.ReportingGrid.geomStyle(t.span, t.rows)) + '" data-testid="rs-layout-tile">' +
           '<div class="rdb-card-body" data-tile-body></div></div>';
       }).join('');
       window.ReportingLayoutView.render(lgrid, { layout: res.data.layout, def: def, columns: columns, rows: rows,
