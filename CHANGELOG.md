@@ -10,6 +10,25 @@ Work toward the next release.
 
 ### Added
 
+- **Live SQL reaches every reporting database, and names them.** The sandbox gained a
+  third target — the **Generali** tenant DB (`reporting.sql.target.generali.use`,
+  migration `0121`, own `db_datareader` login `DB_REPORTING_GENERALI_RO_*`) — so it
+  covers every database the Sources rail shows a card for. The **Target** picker now
+  labels the *database* (`SYDOC_Statistik`, `RuntimeDatabase`, `Generali`) instead of
+  a registry label like "Live SQL — Octo": `/api/reporting/sources` returns each SQL
+  source's configured database as `db` plus a `configured` flag, so the names match
+  the rail cards and stay right when INT and PROD name their databases differently.
+  A target whose read-only login isn't provisioned renders disabled with a "not set
+  up yet" suffix rather than only failing on Run, and the picker opens on the first
+  configured one. **NexoraDB is deliberately not a target at any permission level** —
+  it holds the bcrypt password hashes and TOTP secrets.
+- **Query a table straight from its Structure view.** Expanding a table in a source's
+  **Structure** panel shows **Query the first 100 rows** under its column list: it
+  drops you into Advanced's SQL mode on the target that reads that database, with
+  `SELECT TOP (100) * FROM [schema].[table]` written and already run. Only drawn when
+  Live SQL can actually reach that database, so Structure-without-SQL access never
+  sees it.
+
 - **Dashboard cards carry the Results tab's chart tools.** In edit mode every
   chart-bearing card has its own toolbar — chart type, download as image,
   Forecast + horizon, Colours & axes — and the tweaks are saved *on the card*
@@ -21,6 +40,16 @@ Work toward the next release.
   fixed row height used to clip the fifth KPI tile and the table toggle).
 
 ### Fixed
+
+- **A wide result no longer widens the whole builder.** `.reporting-results` had
+  `min-width: 0` only inside the collapsed-layout media query, so the middle grid
+  track grew to its widest child: one `SELECT *` over a `varbinary(max)` column and
+  the toolbar, editor and page all stretched past the window instead of the table
+  scrolling inside its own card.
+- **An unprovisioned SQL target no longer greys out a healthy database's rail card.**
+  The Sources rail keeps one card per distinct database and the first source won the
+  slot; the new Generali SQL target sorted first and probed as down (no RO login),
+  turning a green card amber. A reachable source now wins the slot.
 
 - **Present mode had no margins.** The full-bleed padding rule out-ranked the
   fullscreen one, so the dashboard sat border-on-border on a wall screen.

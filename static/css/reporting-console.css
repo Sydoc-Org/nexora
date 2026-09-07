@@ -1512,6 +1512,21 @@ body.reporting-console .reporting-share-add .reporting-input {
 .rc-schema-key--fk { color: var(--nx-accent); cursor: pointer; }
 .rc-schema-empty { padding: 24px 4px; font-size: 12.5px; color: var(--nx-text-meta); }
 
+/* Per-table quick query: sits under the expanded column list and hands the
+   table to Advanced's SQL mode (rc:sqlquery). Only drawn when Live SQL can
+   actually reach this database -- see canQuery() in reporting_schema.js. */
+.rc-schema-item-foot { margin: 0 0 12px 20px; }
+.rc-schema-query {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border: 1px solid var(--nx-border);
+  border-radius: calc(var(--nx-radius-scale, 1) * 8px);
+  background: var(--nx-card); color: var(--nx-text-sec);
+  font: inherit; font-size: 11.5px; cursor: pointer;
+  transition: background var(--nx-dur) var(--nx-ease), color var(--nx-dur) var(--nx-ease);
+}
+.rc-schema-query i { font-size: 9px; color: var(--nx-accent); }
+.rc-schema-query:hover { background: var(--nx-alt); color: var(--nx-text); }
+
 .rc-schema-diagram { flex: 1; min-width: 0; position: relative; }
 .rc-schema-diagram[hidden] { display: none; }
 .rc-schema-svg { width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }

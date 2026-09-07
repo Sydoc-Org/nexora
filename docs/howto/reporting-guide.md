@@ -92,6 +92,9 @@ guide as an app page.
   when even that is not enough. A failed query names the reason from the
   database, and switching between **Table** and **SQL** clears the result so
   you never read the other mode's numbers.
+- Fastest way to look inside a table: click its source card under **Sources**,
+  expand the table, then **Query the first 100 rows**. The SQL tab opens on the
+  right database with the query written and already run.
 
 **Saving and sharing**
 
@@ -553,7 +556,12 @@ and every card built from it follows.
   axis, reset). Changes apply to *this card only* and are saved with the
   dashboard on **Done** — the report itself is untouched, so the same report
   can be a bar chart on one card and a forecast line on another. In view mode
-  the toolbar is hidden.
+  the toolbar is hidden. Forecast needs a report with exactly one date
+  breakdown (same rule as the Results tab); on other reports the button is
+  greyed out and clicking it tells you why.
+- **A whole-report card looks like the report.** KPI strip on top, full-width
+  chart, table behind *Show table*, and the card grows with its content instead
+  of clipping.
 - **Global filters are the reports' own filters.** The bar shows one chip per
   field your cards' reports already filter on — *Date · This month*,
   *Processes · All processes*, *Status · open* — with the value the reports
@@ -647,9 +655,15 @@ widens *what you see of* a database, never *which* databases you reach.
 
 **Live SQL sandbox** — the **SQL** tab in the Advanced builder, for when the
 builder cannot express the query. It runs a single read-only `SELECT` against a
-chosen target (Statistics, and the Octo runtime database with the extra
-permission). Guard rails: the statement is parsed and rejected unless it is a
-single `SELECT`, it runs on a read-only login, results cap at 50,000 rows,
+chosen database. The **Target** picker names the real databases — the same names
+as the Sources rail cards (`SYDOC_Statistik`, `RuntimeDatabase`, `Generali`) —
+with `SYDOC_Statistik` on the base permission and each other database behind its
+own extra grant. The nexora database itself is not a target: it holds the
+password hashes. A quicker way in: open a source's **Structure**, expand a table,
+and press **Query the first 100 rows** — it drops you into the SQL tab with
+`SELECT TOP (100) * FROM …` already written and run. Guard rails: the statement
+is parsed and rejected unless it is a single `SELECT`, it runs on a read-only
+login, results cap at 50,000 rows,
 statements time out at ~30 seconds, and every run is audited. First use requires
 a one-time acknowledgement. When a query fails, the reason from the database
 ("Invalid object name 'Workitem'.") is shown under the error. Switching between

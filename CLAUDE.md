@@ -31,6 +31,7 @@ SQLAlchemy engines with pyodbc, defined in `nx_lib/db.py`. Credentials come from
 | `engineGeneraliDB` | tenant DB for Generali-branded pages |
 | `engine_statistics_ro` | read-only login for the reporting SQL sandbox (`DB_REPORTING_RO_*`; 503 until set) |
 | `engine_octo_ro` | read-only login for the sandbox's Octo target (`DB_REPORTING_OCTO_RO_*`; 503 until set) |
+| `engine_generali_ro` | read-only login for the sandbox's Generali target (`DB_REPORTING_GENERALI_RO_*`; 503 until set) |
 | `engine_ms02_pg` | MS02 client's Azure Postgres runtime DB (same Octo schema, PG dialect) — `MS02_*` |
 | `engine_ms02_stats_pg` | MS02 dashboard-statistics DB — `MS02_STATS_DB_*` |
 | `engine_ms02_docfields_pg` | MS02 doc-field source DB — `MS02_DOCFIELDS_DB_*`. While `None`, doc-field search **fails closed** for MS02 (zero rows), never unconstrained |

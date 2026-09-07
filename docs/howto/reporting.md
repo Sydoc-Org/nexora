@@ -880,6 +880,7 @@ Both serialization paths neutralize spreadsheet formula injection (leading
 | `process.<client>.<process>.view` | Include a specific client/process in a report's row scope. |
 | `reporting.sql.run` | Run live read-only SQL in the sandbox against **Statistics** (see below). Grantable; admins seeded. |
 | `reporting.sql.target.octopus.use` | Additionally target the **Octopus** runtime DB in the SQL sandbox. Independent of `reporting.sql.run`; grantable; admins seeded. |
+| `reporting.sql.target.generali.use` | Additionally target the **Generali** tenant DB in the SQL sandbox (migration `0121`). Same shape as the Octopus grant; admins seeded. |
 | `reporting.sources.manage` | Manage the data-source registry at `/reporting/sources` (see below). Admins seeded. |
 | `reporting.sources.schema.view` | Open the **source visualizer** on a Sources rail card — the tables, columns and foreign keys of the database behind a source (see below). Still requires that source's own permission. Migration `0079`; admins seeded. |
 | `reporting.metrics.manage` | Manage the canonical-metrics registry at `/reporting/metrics` (see below). Admins seeded. |
@@ -1896,9 +1897,39 @@ See `docs/design/reporting-ai-assistant.md` for the full design spec.
 
 The **SQL** tab in the report builder is a power-user escape hatch for when the
 curated builder does not cover your query. It runs a single read-only `SELECT`
-against a chosen target database. The **Target** dropdown lists every target the
-caller may reach: **Statistics** always (with `reporting.sql.run`), and
-**Octopus** when the caller also holds `reporting.sql.target.octopus.use`.
+against a chosen target database. There is one target per database the Sources
+rail shows a card for:
+
+| Target id | Database (INT) | Needs |
+|---|---|---|
+| `statistics` | `SYDOC_Statistik` | `reporting.sql.run` |
+| `octopus` | `RuntimeDatabase` | `+ reporting.sql.target.octopus.use` |
+| `generali` | `Generali` | `+ reporting.sql.target.generali.use` |
+
+**NexoraDB is deliberately not a target** at any permission level — `dbo.Users`
+holds the bcrypt password hashes and TOTP secrets. Its Sources rail card keeps
+the Structure view; it just gets no query affordance.
+
+The **Target** dropdown names the *database*, not the registry label:
+`/api/reporting/sources` returns each SQL source's configured database as `db`
+(from `_SQL_TARGET_DB` in `_shared.py`, resolved from `cfg.DB_*`) plus a
+`configured` flag, and `loadSources()` prefers `db` over `label` — so the picker
+reads the same names as the rail cards and stays right when INT and PROD name
+their databases differently. A target whose read-only login is unprovisioned
+renders disabled with a "not set up yet" suffix instead of only failing on Run,
+and the picker selects the first *configured* target.
+
+### Query a table from the source visualizer
+
+Expanding a table in a source's **Structure** panel shows a **Query the first
+100 rows** button under its column list. It dispatches `rc:sqlquery`
+`{db, table}`; `reporting_advanced.js` matches `db` against the `db` each SQL
+source reports, switches to Advanced + SQL mode on that target, writes
+`SELECT TOP (100) * FROM [schema].[table]` (both parts bracketed, so a table
+called `order` doesn't blow up) and runs it. The button is only drawn when
+`window.ReportingSqlDbs` — published by Advanced's source load — says Live SQL
+can actually reach that database, so a viewer with Structure access but no SQL
+permission never sees it.
 
 **Table and SQL share one result area,** so switching between the two modes
 resets it (`resetResultArea()` in `reporting_advanced.js`): grid/chart/pivot,
@@ -1910,10 +1941,10 @@ something else entirely.
 
 ### Access
 
-Gated by the `reporting.sql.run` permission for the Statistics target; the
-Octopus target additionally requires `reporting.sql.target.octopus.use` (enforced
-server-side on both run and export). Admins have both seeded; grant them
-per-user via the normal Permissions admin UI on request.
+Gated by the `reporting.sql.run` permission for the Statistics target; every
+other target additionally requires its own `reporting.sql.target.<t>.use` grant
+(enforced server-side on both run and export). Admins have all of them seeded;
+grant them per-user via the normal Permissions admin UI on request.
 
 On first use the user must accept a one-time acknowledgment ("You are about to
 run read-only SQL …"). This is recorded in `dbo.ReportingSqlAck` (NexoraDB) and
@@ -1926,8 +1957,10 @@ not shown again on subsequent runs.
   batches pass the gate.
 - **Read-only login:** queries execute on a dedicated `db_datareader`-only SQL
   login with no write permissions — `engine_statistics_ro` for Statistics,
-  `engine_octo_ro` for Octopus. Each target requires the matching permission
-  before its query runs.
+  `engine_octo_ro` for Octopus, `engine_generali_ro` for Generali. A target
+  never falls back to the app's read-write engine: no RO login means the engine
+  is `None` and the target answers 503. Each target requires the matching
+  permission before its query runs.
 - **Row cap:** results are hard-limited to 50,000 rows. Plain `SELECT`s get a
   SQL-side `SELECT TOP (n) * FROM (…) AS _q` wrap; `WITH`-rooted queries and
   queries ending in a top-level `ORDER BY` run unwrapped (neither is legal
@@ -1957,6 +1990,7 @@ set in both `env/INT.env` and `env/PROD.env`:
 |--------|----------|----------|
 | Statistics | Statistics DB | `DB_REPORTING_RO_USER` / `DB_REPORTING_RO_PWD` |
 | Octopus | Octopus runtime DB | `DB_REPORTING_OCTO_RO_USER` / `DB_REPORTING_OCTO_RO_PWD` |
+| Generali | Generali tenant DB | `DB_REPORTING_GENERALI_RO_USER` / `DB_REPORTING_GENERALI_RO_PWD` |
 
 Until a target's env vars are present, that target's engine stays unconfigured
 and a run against it returns **503 "SQL source is not configured"** (a warning is
@@ -1964,11 +1998,13 @@ logged). The SQL tab itself enables as soon as the caller holds a SQL
 permission, regardless of provisioning; each target only returns data once its
 login is set.
 
-To create both `db_datareader`-only logins in one shot, run
+To create all three `db_datareader`-only logins in one shot, run
 `scripts/provision-reporting-ro-logins.sql` against `DB_SERVER_PRD` in SSMS
 (SQLCMD Mode; edit the database names + passwords at the top first). It is
-idempotent. Then set the four `DB_REPORTING_*_RO_*` vars in `env/INT.env` +
-`env/PROD.env` and restart nexora. These logins also unblock the AI assistant's
+idempotent. Then set the six `DB_REPORTING_*_RO_*` vars in `env/INT.env` +
+`env/PROD.env` and restart nexora. The env files are gitignored, so
+`env/*.env.example` shipping a key changes nothing on the server until someone
+hand-edits it — run `scripts/env-sync.py` to see what is missing where. These logins also unblock the AI assistant's
 live schema grounding and scheduled-report delivery.
 
 ## See also

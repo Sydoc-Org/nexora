@@ -22,9 +22,11 @@ import uuid
 
 from flask import current_app, session
 
+from ... import config as cfg
 from ... import mapping_config
 from ...db import (
     engine_generali_db,
+    engine_generali_ro,
     engine_nexora_db,
     engine_octo_db,
     engine_octo_ro,
@@ -60,15 +62,28 @@ from ...security import has_permission
 _SQL_TARGET_ENGINES = {
     "statistics": engine_statistics_ro,
     "octopus": engine_octo_ro,
+    "generali": engine_generali_ro,
 }
 _SQL_TARGETS = set(_SQL_TARGET_ENGINES)
 
 # Per-target permission. The base reporting.sql.run gate (on the routes) covers
-# the Statistics target; Octopus — the runtime DB — additionally requires its
-# own grant so SQL access and runtime-DB access can be separated.
+# the Statistics target; every other database — the Octo runtime, the Generali
+# tenant DB — additionally requires its own grant, so SQL access and access to
+# a particular database stay separable. NexoraDB is deliberately absent: it
+# holds the password hashes and TOTP secrets, so it is not a query target at
+# any permission level.
 _SQL_TARGET_PERMISSION = {
     "statistics": "reporting.sql.run",
     "octopus": "reporting.sql.target.octopus.use",
+    "generali": "reporting.sql.target.generali.use",
+}
+
+# The database each target actually reads, for the UI's target picker. Resolved
+# from config so INT and PROD each show their own real name.
+_SQL_TARGET_DB = {
+    "statistics": cfg.DB_STATISTICS,
+    "octopus": cfg.DB_OCTO_RUNTIME,
+    "generali": cfg.DB_GENERALI,
 }
 
 
