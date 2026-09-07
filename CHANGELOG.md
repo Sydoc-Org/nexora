@@ -124,7 +124,7 @@ Work toward the next release.
   sidebar group now open `/dashboard?tenant=<code>` and
   `/workitems?tenant=<code>`: the pages narrow your process grants to the
   processes whose organization belongs to that tenant, title themselves
-  "<Tenant> Dashboard" / "<Tenant> Workitems", and light up only that
+  "`<Tenant>` Dashboard" / "`<Tenant>` Workitems", and light up only that
   tenant's entry. A user inside a tenant lands there by default. The scope
   sticks for the session until the global entry clears it, so a page that
   rewrites its own URL (Workitems does) keeps the tenant. Staff who
@@ -217,7 +217,7 @@ Work toward the next release.
   belongs to exactly one tenant and holds no grant on another, the tenant *is*
   the portal, so naming it only exposes an internal concept: the sidebar's
   plain tenant label is gone and the mounted pages title themselves
-  "Dashboard" / "Workitems" instead of "<Tenant> Dashboard" / "<Tenant>
+  "Dashboard" / "Workitems" instead of "`<Tenant>` Dashboard" / "`<Tenant>`
   Workitems". Their view is byte-for-byte what it was before the tenant
   kernel landed. Staff and members with cross-tenant grants keep the names --
   they have several tenants to tell apart. Driven by one `tenant_solo` flag

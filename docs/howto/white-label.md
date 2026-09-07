@@ -45,8 +45,8 @@ Workitems links. Since `0104` sydoc AG (SYDC) is a member of the `sydoc` tenant 
 **A tenant's own users never see it named.** `tenant_solo` (also from `_inject_tenant_nav`) is true
 for a user who belongs to exactly one tenant and holds no grant on another. For them the tenant *is*
 the portal, so the UI never spells it out: the sidebar renders the mounted pages flat with no label,
-and the pages title themselves "Dashboard" / "Workitems" rather than "<Tenant> Dashboard" /
-"<Tenant> Workitems". Staff and cross-tenant members keep the names — they have several tenants to
+and the pages title themselves "Dashboard" / "Workitems" rather than "`<Tenant>` Dashboard" /
+"`<Tenant>` Workitems". Staff and cross-tenant members keep the names — they have several tenants to
 tell apart. Adding a name back to a page a solo member can reach is a regression, not a feature.
 
 **Mounted pages and the tenant dashboard.** A `custom` row in `dbo.TenantPages` carries a
