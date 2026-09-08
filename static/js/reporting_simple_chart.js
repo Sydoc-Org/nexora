@@ -231,7 +231,10 @@
     // Axis ownership cues: each Y axis is titled with its series and, when it
     // carries exactly one series, its ticks take that series' colour.
     var leftSeries = [], rightSeries = [];
-    datasets.forEach(function (ds) { (ds.yAxisID === 'y2' ? rightSeries : leftSeries).push(ds); });
+    datasets.forEach(function (ds) {
+      if (ds._nxAnnotations) return;
+      (ds.yAxisID === 'y2' ? rightSeries : leftSeries).push(ds);
+    });
     function axisTint(list) {
       return (list.length === 1 && typeof list[0].borderColor === 'string') ? list[0].borderColor : undefined;
     }
@@ -289,6 +292,7 @@
     // fractional measure (avg/sum of decimals) keeps Chart.js's normal tick
     // spacing. Mirrors mountChart's allInts guard.
     var allInts = !circular && datasets.every(function (ds) {
+      if (ds._nxAnnotations) return true;
       return (ds.data || []).every(function (v) { return Number.isInteger(v); });
     });
     var config = {
@@ -354,7 +358,7 @@
                    if (d.forecastStart != null && d.forecast && els[0].index >= d.forecastStart) return;
                    var onAnnotate = opts && opts.onAnnotate;
                    if (onAnnotate && (dsHit._nxAnnotations || (evt.native && evt.native.altKey))) {
-                     onAnnotate(els[0].index); return;
+                     onAnnotate(els[0].index, els[0].datasetIndex); return;
                    }
                    if (dsHit._nxAnnotations) return;
                    onDrill(els[0].index, els[0].datasetIndex);

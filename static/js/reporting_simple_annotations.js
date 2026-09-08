@@ -97,8 +97,8 @@
 
   // Chart click-handler hook (chartConfigFor opts.onAnnotate): Alt+click on a
   // bucket, or a click on an existing marker.
-  A.onChartAnnotate = function (index) {
-    if (!canEdit()) { RS.drillFromChart(index, 0); return; }
+  A.onChartAnnotate = function (index, dsIndex) {
+    if (!canEdit()) { RS.drillFromChart(index, dsIndex || 0); return; }
     var c = RS.state.chart, pt = null;
     if (c && c.canvas) {
       var r = c.canvas.getBoundingClientRect();
