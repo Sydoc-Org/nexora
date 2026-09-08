@@ -7,6 +7,19 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Workitems overview: console redesign (part 1)** — the page head, filter
+  row, and Advanced panel now match the borderless/hairline console style
+  shipped for the Dashboard (#299). The Status select is gone; status
+  filtering moved to underline tabs with live per-status counts (new
+  `/api/workitems/status_counts` endpoint). The list gained a table/documents
+  view toggle — the new 5-up document-card grid shares selection with the
+  table — and the table rows themselves are now two-line (workitem id + stage
+  ticks, quiet status dot, relative "last movement" time). The floating
+  selection bar and the footer pagination were restyled to match; the export
+  modal's header/footer went flat. Card thumbnails are a placeholder icon for
+  now, not a live document preview — see the design handoff's open items.
+  The inline detail panel (stepper/fields/confidence/audit/full mode) is
+  unchanged pending part 2.
 - **Private test database per pytest run.** `tests/conftest.py` creates
   `NEXORA_TEST_<user>_<pid>` from `sql/test/schema.sql` + `seed.sql` at session
   start (~1.5 s) and drops it at the end; the e2e server takes a free port. The

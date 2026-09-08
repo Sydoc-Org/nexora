@@ -534,6 +534,33 @@ def api_workitems():
 
 
 @require_permission("workitems.view")
+def api_workitems_status_counts():
+    """Per-status totals for the overview's status tabs (#299): same filters as
+    /api/workitems, status swapped for each bucket, perPage=1 -- only
+    ``pagination.totalItems`` is used, rows are thrown away."""
+    if "username" not in session:
+        return jsonify({"error": "Not authorized"}), 401
+    try:
+        deleted_status_perm = has_permission("workitems.filter.status.view") and has_permission(
+            "workitems.filter.deleted.view"
+        )
+        buckets = ["", "Ready", "In Progress", "Done"]
+        if deleted_status_perm:
+            buckets.append("Deleted")
+        counts = {}
+        for status in buckets:
+            bucket_args = request.args.copy()
+            bucket_args["status"] = status
+            bucket_args["perPage"] = "1"
+            bucket_args["page"] = "1"
+            counts[status or "all"] = _get_workitems_data(bucket_args)["pagination"]["totalItems"]
+        return jsonify(counts)
+    except Exception as e:
+        current_app.logger.error(f"API error in workitems status counts: {e}")
+        return jsonify({"error": "An internal error occurred"}), 500
+
+
+@require_permission("workitems.view")
 def export_workitems_csv():
     """Export workitems as CSV. Supports optional doc fields, audit history, and images."""
     if "username" not in session:
@@ -672,10 +699,9 @@ def export_workitems_csv():
                                 img_bytes = get_media(img_url, domain)
                                 if str(ext).lower() in (".tif", ".tiff"):
                                     with Image.open(io.BytesIO(img_bytes)) as img:
-                                        if img.mode != "RGB":
-                                            img = img.convert("RGB")
+                                        rgb_img = img.convert("RGB") if img.mode != "RGB" else img
                                         buf = io.BytesIO()
-                                        img.save(buf, "JPEG", quality=75)
+                                        rgb_img.save(buf, "JPEG", quality=75)
                                         img_bytes = buf.getvalue()
                                 detail["images"].append(base64.b64encode(img_bytes).decode("utf-8"))
                             except Exception as img_err:
@@ -1254,10 +1280,9 @@ def api_get_media_raw(workitem_id, media_index):
             try:
                 image_stream = io.BytesIO(raw_media_bytes)
                 with Image.open(image_stream) as img:
-                    if img.mode != "RGB":
-                        img = img.convert("RGB")
+                    rgb_img = img.convert("RGB") if img.mode != "RGB" else img
                     buffer = io.BytesIO()
-                    img.save(buffer, format="JPEG", quality=85)
+                    rgb_img.save(buffer, format="JPEG", quality=85)
                     jpeg_bytes = buffer.getvalue()
                     cache.set(_tif_cache_key, jpeg_bytes, timeout=3600)
                     resp = send_file(
@@ -1707,6 +1732,11 @@ def register_routes(app):
         "/api/docfield_values", endpoint="api_docfield_values", view_func=api_docfield_values
     )
     app.add_url_rule("/api/workitems", endpoint="api_workitems", view_func=api_workitems)
+    app.add_url_rule(
+        "/api/workitems/status_counts",
+        endpoint="api_workitems_status_counts",
+        view_func=api_workitems_status_counts,
+    )
     app.add_url_rule(
         "/api/export/workitems/csv", endpoint="export_workitems_csv", view_func=export_workitems_csv
     )
