@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-08 22:06+0200\n"
+"POT-Creation-Date: 2026-09-08 22:48+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -737,9 +737,9 @@ msgstr "Une erreur inattendue s'est produite"
 #: nx_lib/views/admin/permissions.py:758 nx_lib/views/dashboard.py:625
 #: nx_lib/views/dashboard.py:713 nx_lib/views/dashboard.py:789
 #: nx_lib/views/dashboard.py:859 nx_lib/views/dashboard.py:916
-#: nx_lib/views/workitems.py:386 nx_lib/views/workitems.py:1120
-#: nx_lib/views/workitems.py:1122 nx_lib/views/workitems.py:1215
-#: nx_lib/views/workitems.py:1327
+#: nx_lib/views/workitems.py:386 nx_lib/views/workitems.py:1119
+#: nx_lib/views/workitems.py:1121 nx_lib/views/workitems.py:1214
+#: nx_lib/views/workitems.py:1325
 msgid "Not authorized"
 msgstr "Non autorisé"
 
@@ -757,7 +757,7 @@ msgstr "Non autorisé"
 #: nx_lib/views/generali/documents.py:537
 #: nx_lib/views/generali/importstatus.py:119 nx_lib/views/generali/pdqm.py:102
 #: nx_lib/views/generali/reporting.py:260
-#: nx_lib/views/generali/reporting.py:321 nx_lib/views/workitems.py:1388
+#: nx_lib/views/generali/reporting.py:321 nx_lib/views/workitems.py:1386
 msgid "An unexpected error occurred"
 msgstr "Une erreur inattendue s'est produite"
 
@@ -915,23 +915,23 @@ msgstr ""
 "L'export des champs, de l'historique ou des images nécessite de "
 "sélectionner 10 workitems ou moins."
 
-#: nx_lib/views/workitems.py:898
+#: nx_lib/views/workitems.py:897
 msgid "TRUNCATED"
 msgstr "TRONQUÉ"
 
-#: nx_lib/views/workitems.py:899
+#: nx_lib/views/workitems.py:898
 msgid "exported"
 msgstr "exportés"
 
-#: nx_lib/views/workitems.py:899
+#: nx_lib/views/workitems.py:898
 msgid "matching workitems"
 msgstr "workitems correspondants"
 
-#: nx_lib/views/workitems.py:905
+#: nx_lib/views/workitems.py:904
 msgid "EXPORT TIMED OUT"
 msgstr "EXPORT EXPIRÉ"
 
-#: nx_lib/views/workitems.py:906
+#: nx_lib/views/workitems.py:905
 msgid ""
 "no fields or images completed before the time limit; this is not a zero-"
 "result export"
@@ -939,110 +939,110 @@ msgstr ""
 "aucun champ ni image n'a été terminé avant la limite de temps ; il ne "
 "s'agit pas d'un export sans résultat"
 
-#: nx_lib/views/workitems.py:1016 nx_lib/views/workitems.py:1081
+#: nx_lib/views/workitems.py:1015 nx_lib/views/workitems.py:1080
 msgid "No file part in the request."
 msgstr "Aucune partie de fichier dans la requête."
 
-#: nx_lib/views/workitems.py:1023 nx_lib/views/workitems.py:1084
+#: nx_lib/views/workitems.py:1022 nx_lib/views/workitems.py:1083
 msgid "No file selected for uploading."
 msgstr "Aucun fichier sélectionné pour le téléversement."
 
-#: nx_lib/views/workitems.py:1027
+#: nx_lib/views/workitems.py:1026
 msgid "No target process selected."
 msgstr "Aucun processus cible sélectionné."
 
-#: nx_lib/views/workitems.py:1033
+#: nx_lib/views/workitems.py:1032
 msgid "You do not have permission to import to this process."
 msgstr "Vous n'avez pas l'autorisation d'importer dans ce processus."
 
-#: nx_lib/views/workitems.py:1048
+#: nx_lib/views/workitems.py:1047
 #, python-brace-format
 msgid "File '{}' successfully imported into {}."
 msgstr "Fichier '{}' importé avec succès dans {}."
 
-#: nx_lib/views/workitems.py:1053
+#: nx_lib/views/workitems.py:1052
 msgid "An error occurred while saving the file."
 msgstr "Une erreur s'est produite lors de l'enregistrement du fichier."
 
-#: nx_lib/views/workitems.py:1055
+#: nx_lib/views/workitems.py:1054
 msgid "Invalid file type. Please upload a valid PDF."
 msgstr "Type de fichier invalide. Veuillez téléverser un PDF valide."
 
-#: nx_lib/views/workitems.py:1078 nx_lib/views/workitems.py:1569
+#: nx_lib/views/workitems.py:1077 nx_lib/views/workitems.py:1567
 msgid "This import is only available for the MS02 client."
 msgstr "Cet import est uniquement disponible pour le client MS02."
 
-#: nx_lib/views/workitems.py:1088
+#: nx_lib/views/workitems.py:1087
 msgid "Invalid file type. Please upload a valid Excel (.xlsx) file."
 msgstr ""
 "Type de fichier invalide. Veuillez téléverser un fichier Excel valide "
 "(.xlsx)."
 
-#: nx_lib/views/workitems.py:1096
+#: nx_lib/views/workitems.py:1095
 msgid "The Excel file has no usable rows."
 msgstr "Le fichier Excel ne contient aucune ligne exploitable."
 
-#: nx_lib/views/workitems.py:1113
+#: nx_lib/views/workitems.py:1112
 msgid "Could not save the prepared documents. Please try again."
 msgstr "Impossible de sauvegarder les documents préparés. Veuillez réessayer."
 
-#: nx_lib/views/workitems.py:1190 nx_lib/views/workitems.py:1223
+#: nx_lib/views/workitems.py:1189 nx_lib/views/workitems.py:1222
 msgid "Workitem not found"
 msgstr "Workitem introuvable"
 
-#: nx_lib/views/workitems.py:1194 nx_lib/views/workitems.py:1321
+#: nx_lib/views/workitems.py:1193 nx_lib/views/workitems.py:1319
 msgid "Internal Server Error"
 msgstr "Erreur interne du serveur"
 
-#: nx_lib/views/workitems.py:1236
+#: nx_lib/views/workitems.py:1235
 msgid "Media index out of bounds"
 msgstr "Index du média hors limites"
 
-#: nx_lib/views/workitems.py:1264
+#: nx_lib/views/workitems.py:1263
 msgid "Failed to render PDF page"
 msgstr "Échec du rendu de la page PDF"
 
-#: nx_lib/views/workitems.py:1297
+#: nx_lib/views/workitems.py:1295
 msgid "Failed to process TIFF image"
 msgstr "Échec du traitement de l'image TIFF"
 
-#: nx_lib/views/workitems.py:1386
+#: nx_lib/views/workitems.py:1384
 msgid "Failed to fetch audit history"
 msgstr "Échec de la récupération de l'historique d'audit"
 
-#: nx_lib/views/workitems.py:1451
+#: nx_lib/views/workitems.py:1449
 msgid "This page is only available for the MS02 client."
 msgstr "Cette page est uniquement disponible pour le client MS02."
 
-#: nx_lib/views/workitems.py:1575
+#: nx_lib/views/workitems.py:1573
 msgid "Could not clear the prepared documents. Please try again."
 msgstr "Impossible de supprimer les documents préparés. Veuillez réessayer."
 
-#: nx_lib/views/workitems.py:1636
+#: nx_lib/views/workitems.py:1634
 msgid "Could not load saved views."
 msgstr "Impossible de charger les vues enregistrées."
 
-#: nx_lib/views/workitems.py:1650 nx_lib/views/workitems.py:1653
+#: nx_lib/views/workitems.py:1648 nx_lib/views/workitems.py:1651
 msgid "Invalid view name or filters."
 msgstr "Nom de vue ou filtres invalides."
 
-#: nx_lib/views/workitems.py:1667 nx_lib/views/workitems.py:1720
+#: nx_lib/views/workitems.py:1665 nx_lib/views/workitems.py:1718
 msgid "View not found."
 msgstr "Vue introuvable."
 
-#: nx_lib/views/workitems.py:1682
+#: nx_lib/views/workitems.py:1680
 msgid "Too many saved views — delete one first."
 msgstr "Trop de vues enregistrées — supprimez-en d'abord une."
 
-#: nx_lib/views/workitems.py:1699
+#: nx_lib/views/workitems.py:1697
 msgid "A view with this name already exists."
 msgstr "Une vue portant ce nom existe déjà."
 
-#: nx_lib/views/workitems.py:1702
+#: nx_lib/views/workitems.py:1700
 msgid "Could not save the view."
 msgstr "Impossible d'enregistrer la vue."
 
-#: nx_lib/views/workitems.py:1724
+#: nx_lib/views/workitems.py:1722
 msgid "Could not delete the view."
 msgstr "Impossible de supprimer la vue."
 
@@ -3880,7 +3880,7 @@ msgstr "Compact affiche plus de lignes à l'écran."
 msgid "Comfortable"
 msgstr "Confortable"
 
-#: templates/appearance.html:169
+#: templates/appearance.html:169 templates/js/_workitem_detail_panel_js.html:17
 msgid "Compact"
 msgstr "Compact"
 
@@ -5366,7 +5366,7 @@ msgstr "Aperçu du workitem"
 msgid "Show where extracted values were found on the document"
 msgstr "Afficher où les valeurs extraites ont été trouvées dans le document"
 
-#: templates/js/_workitem_detail_panel_js.html:33
+#: templates/js/_workitem_detail_panel_js.html:38
 #: templates/prepared_documents.html:273 templates/reporting.html:294
 #: templates/workitems_overview.html:566
 msgid "Show sources"
@@ -6705,6 +6705,7 @@ msgid "System Logs"
 msgstr "Journaux système"
 
 #: templates/admin/admin_overview.html:118
+#: templates/js/_workitem_detail_panel_js.html:13
 msgid "Audit"
 msgstr "Audit"
 
@@ -8405,7 +8406,7 @@ msgstr "étapes"
 
 #: templates/js/_reporting_ai_js.html:39
 #: templates/js/_reporting_schema_js.html:9
-#: templates/js/_workitem_detail_panel_js.html:20
+#: templates/js/_workitem_detail_panel_js.html:25
 msgid "rows"
 msgstr "lignes"
 
@@ -9788,79 +9789,93 @@ msgstr "Chargement des détails..."
 msgid "Document fields restricted"
 msgstr "Champs du document restreints"
 
-#: templates/js/_workitem_detail_panel_js.html:13
-msgid "History"
-msgstr "Historique"
-
 #: templates/js/_workitem_detail_panel_js.html:14
 msgid "Document Details"
 msgstr "Détails du document"
 
 #: templates/js/_workitem_detail_panel_js.html:15
+msgid "Document"
+msgstr "Document"
+
+#: templates/js/_workitem_detail_panel_js.html:16
+msgid "Full mode"
+msgstr "Mode complet"
+
+#: templates/js/_workitem_detail_panel_js.html:18
+#, python-format
+msgid "Page %(page)s of %(total)s"
+msgstr "Page %(page)s sur %(total)s"
+
+#: templates/js/_workitem_detail_panel_js.html:19
+#, python-format
+msgid "Document · %(n)s pages"
+msgstr "Document · %(n)s pages"
+
+#: templates/js/_workitem_detail_panel_js.html:20
 msgid "Restricted"
 msgstr "Restreint"
 
-#: templates/js/_workitem_detail_panel_js.html:16
+#: templates/js/_workitem_detail_panel_js.html:21
 msgid "No history available for this item"
 msgstr "Aucun historique disponible pour cet élément"
 
-#: templates/js/_workitem_detail_panel_js.html:17
+#: templates/js/_workitem_detail_panel_js.html:22
 msgid "Could not load history"
 msgstr "Impossible de charger l'historique"
 
-#: templates/js/_workitem_detail_panel_js.html:18
+#: templates/js/_workitem_detail_panel_js.html:23
 msgid "Load more"
 msgstr "Charger plus"
 
-#: templates/js/_workitem_detail_panel_js.html:19
+#: templates/js/_workitem_detail_panel_js.html:24
 msgid "row"
 msgstr "ligne"
 
-#: templates/js/_workitem_detail_panel_js.html:21
+#: templates/js/_workitem_detail_panel_js.html:26
 msgid "Extraction confidence"
 msgstr "Confiance d'extraction"
 
-#: templates/js/_workitem_detail_panel_js.html:22
+#: templates/js/_workitem_detail_panel_js.html:27
 msgid "Click to locate on the document"
 msgstr "Cliquer pour localiser sur le document"
 
-#: templates/js/_workitem_detail_panel_js.html:23
+#: templates/js/_workitem_detail_panel_js.html:28
 msgid "no source location"
 msgstr "aucune source localisée"
 
-#: templates/js/_workitem_detail_panel_js.html:24
+#: templates/js/_workitem_detail_panel_js.html:29
 msgid "Media"
 msgstr "Médias"
 
-#: templates/js/_workitem_detail_panel_js.html:25
+#: templates/js/_workitem_detail_panel_js.html:30
 msgid "for workitem "
 msgstr "pour le Workitem "
 
-#: templates/js/_workitem_detail_panel_js.html:26
+#: templates/js/_workitem_detail_panel_js.html:31
 msgid "Failed to load image "
 msgstr "Échec du chargement de l'image "
 
-#: templates/js/_workitem_detail_panel_js.html:27
+#: templates/js/_workitem_detail_panel_js.html:32
 msgid "Checking for media..."
 msgstr "Vérification des médias..."
 
-#: templates/js/_workitem_detail_panel_js.html:28
+#: templates/js/_workitem_detail_panel_js.html:33
 msgid "No additional details found."
 msgstr "Aucun détail supplémentaire trouvé."
 
-#: templates/js/_workitem_detail_panel_js.html:29
+#: templates/js/_workitem_detail_panel_js.html:34
 msgid "No media found for this workitem."
 msgstr "Aucun média trouvé pour ce Workitem."
 
-#: templates/js/_workitem_detail_panel_js.html:30
+#: templates/js/_workitem_detail_panel_js.html:35
 msgid "Could not load media."
 msgstr "Impossible de charger les médias."
 
-#: templates/js/_workitem_detail_panel_js.html:31
+#: templates/js/_workitem_detail_panel_js.html:36
 msgid "In register"
 msgstr "Dans le registre"
 
-#: templates/js/_workitem_detail_panel_js.html:32
+#: templates/js/_workitem_detail_panel_js.html:37
 msgid "Hide sources"
 msgstr "Masquer les sources"
 
@@ -11175,4 +11190,7 @@ msgstr "Au"
 
 #~ msgid "No workitems found"
 #~ msgstr "Aucun Workitem trouvé"
+
+#~ msgid "History"
+#~ msgstr "Historique"
 

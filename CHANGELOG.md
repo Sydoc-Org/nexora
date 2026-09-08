@@ -7,6 +7,16 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Workitems overview: console redesign (part 2)** — the inline detail panel
+  (shared with the reporting drill drawer and prepared_documents' preview
+  modal) restyled to match part 1 (#299). Stage stepper redrawn as accent
+  circles + connectors matching the real 4-stage pipeline; "History" renamed
+  "Audit" with a dot-and-tail newest-first timeline; extracted fields show a
+  confidence bar next to the existing percentage badge; the document column
+  is now a single 172×222 page preview with a thumbnail strip and a "Full
+  mode" toggle showing every page side by side (page thumbnails still load
+  lazily, 7 at a time); "Show sources" moved to the Document details column
+  header and opens the lightbox with source boxes already on.
 - **Workitems overview: console redesign (part 1)** — the page head, filter
   row, and Advanced panel now match the borderless/hairline console style
   shipped for the Dashboard (#299). The Status select is gone; status

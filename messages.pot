@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-08 22:06+0200\n"
+"POT-Creation-Date: 2026-09-08 22:48+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -593,9 +593,9 @@ msgstr ""
 #: nx_lib/views/admin/permissions.py:758 nx_lib/views/dashboard.py:625
 #: nx_lib/views/dashboard.py:713 nx_lib/views/dashboard.py:789
 #: nx_lib/views/dashboard.py:859 nx_lib/views/dashboard.py:916
-#: nx_lib/views/workitems.py:386 nx_lib/views/workitems.py:1120
-#: nx_lib/views/workitems.py:1122 nx_lib/views/workitems.py:1215
-#: nx_lib/views/workitems.py:1327
+#: nx_lib/views/workitems.py:386 nx_lib/views/workitems.py:1119
+#: nx_lib/views/workitems.py:1121 nx_lib/views/workitems.py:1214
+#: nx_lib/views/workitems.py:1325
 msgid "Not authorized"
 msgstr ""
 
@@ -613,7 +613,7 @@ msgstr ""
 #: nx_lib/views/generali/documents.py:537
 #: nx_lib/views/generali/importstatus.py:119 nx_lib/views/generali/pdqm.py:102
 #: nx_lib/views/generali/reporting.py:260
-#: nx_lib/views/generali/reporting.py:321 nx_lib/views/workitems.py:1388
+#: nx_lib/views/generali/reporting.py:321 nx_lib/views/workitems.py:1386
 msgid "An unexpected error occurred"
 msgstr ""
 
@@ -769,130 +769,130 @@ msgid ""
 "workitems."
 msgstr ""
 
-#: nx_lib/views/workitems.py:898
+#: nx_lib/views/workitems.py:897
 msgid "TRUNCATED"
 msgstr ""
 
-#: nx_lib/views/workitems.py:899
+#: nx_lib/views/workitems.py:898
 msgid "exported"
 msgstr ""
 
-#: nx_lib/views/workitems.py:899
+#: nx_lib/views/workitems.py:898
 msgid "matching workitems"
 msgstr ""
 
-#: nx_lib/views/workitems.py:905
+#: nx_lib/views/workitems.py:904
 msgid "EXPORT TIMED OUT"
 msgstr ""
 
-#: nx_lib/views/workitems.py:906
+#: nx_lib/views/workitems.py:905
 msgid ""
 "no fields or images completed before the time limit; this is not a zero-"
 "result export"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1016 nx_lib/views/workitems.py:1081
+#: nx_lib/views/workitems.py:1015 nx_lib/views/workitems.py:1080
 msgid "No file part in the request."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1023 nx_lib/views/workitems.py:1084
+#: nx_lib/views/workitems.py:1022 nx_lib/views/workitems.py:1083
 msgid "No file selected for uploading."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1027
+#: nx_lib/views/workitems.py:1026
 msgid "No target process selected."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1033
+#: nx_lib/views/workitems.py:1032
 msgid "You do not have permission to import to this process."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1048
+#: nx_lib/views/workitems.py:1047
 #, python-brace-format
 msgid "File '{}' successfully imported into {}."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1053
+#: nx_lib/views/workitems.py:1052
 msgid "An error occurred while saving the file."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1055
+#: nx_lib/views/workitems.py:1054
 msgid "Invalid file type. Please upload a valid PDF."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1078 nx_lib/views/workitems.py:1569
+#: nx_lib/views/workitems.py:1077 nx_lib/views/workitems.py:1567
 msgid "This import is only available for the MS02 client."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1088
+#: nx_lib/views/workitems.py:1087
 msgid "Invalid file type. Please upload a valid Excel (.xlsx) file."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1096
+#: nx_lib/views/workitems.py:1095
 msgid "The Excel file has no usable rows."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1113
+#: nx_lib/views/workitems.py:1112
 msgid "Could not save the prepared documents. Please try again."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1190 nx_lib/views/workitems.py:1223
+#: nx_lib/views/workitems.py:1189 nx_lib/views/workitems.py:1222
 msgid "Workitem not found"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1194 nx_lib/views/workitems.py:1321
+#: nx_lib/views/workitems.py:1193 nx_lib/views/workitems.py:1319
 msgid "Internal Server Error"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1236
+#: nx_lib/views/workitems.py:1235
 msgid "Media index out of bounds"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1264
+#: nx_lib/views/workitems.py:1263
 msgid "Failed to render PDF page"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1297
+#: nx_lib/views/workitems.py:1295
 msgid "Failed to process TIFF image"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1386
+#: nx_lib/views/workitems.py:1384
 msgid "Failed to fetch audit history"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1451
+#: nx_lib/views/workitems.py:1449
 msgid "This page is only available for the MS02 client."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1575
+#: nx_lib/views/workitems.py:1573
 msgid "Could not clear the prepared documents. Please try again."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1636
+#: nx_lib/views/workitems.py:1634
 msgid "Could not load saved views."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1650 nx_lib/views/workitems.py:1653
+#: nx_lib/views/workitems.py:1648 nx_lib/views/workitems.py:1651
 msgid "Invalid view name or filters."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1667 nx_lib/views/workitems.py:1720
+#: nx_lib/views/workitems.py:1665 nx_lib/views/workitems.py:1718
 msgid "View not found."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1682
+#: nx_lib/views/workitems.py:1680
 msgid "Too many saved views — delete one first."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1699
+#: nx_lib/views/workitems.py:1697
 msgid "A view with this name already exists."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1702
+#: nx_lib/views/workitems.py:1700
 msgid "Could not save the view."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1724
+#: nx_lib/views/workitems.py:1722
 msgid "Could not delete the view."
 msgstr ""
 
@@ -3373,7 +3373,7 @@ msgstr ""
 msgid "Comfortable"
 msgstr ""
 
-#: templates/appearance.html:169
+#: templates/appearance.html:169 templates/js/_workitem_detail_panel_js.html:17
 msgid "Compact"
 msgstr ""
 
@@ -4827,7 +4827,7 @@ msgstr ""
 msgid "Show where extracted values were found on the document"
 msgstr ""
 
-#: templates/js/_workitem_detail_panel_js.html:33
+#: templates/js/_workitem_detail_panel_js.html:38
 #: templates/prepared_documents.html:273 templates/reporting.html:294
 #: templates/workitems_overview.html:566
 msgid "Show sources"
@@ -6114,6 +6114,7 @@ msgid "System Logs"
 msgstr ""
 
 #: templates/admin/admin_overview.html:118
+#: templates/js/_workitem_detail_panel_js.html:13
 msgid "Audit"
 msgstr ""
 
@@ -7722,7 +7723,7 @@ msgstr ""
 
 #: templates/js/_reporting_ai_js.html:39
 #: templates/js/_reporting_schema_js.html:9
-#: templates/js/_workitem_detail_panel_js.html:20
+#: templates/js/_workitem_detail_panel_js.html:25
 msgid "rows"
 msgstr ""
 
@@ -9053,79 +9054,93 @@ msgstr ""
 msgid "Document fields restricted"
 msgstr ""
 
-#: templates/js/_workitem_detail_panel_js.html:13
-msgid "History"
-msgstr ""
-
 #: templates/js/_workitem_detail_panel_js.html:14
 msgid "Document Details"
 msgstr ""
 
 #: templates/js/_workitem_detail_panel_js.html:15
-msgid "Restricted"
+msgid "Document"
 msgstr ""
 
 #: templates/js/_workitem_detail_panel_js.html:16
-msgid "No history available for this item"
-msgstr ""
-
-#: templates/js/_workitem_detail_panel_js.html:17
-msgid "Could not load history"
+msgid "Full mode"
 msgstr ""
 
 #: templates/js/_workitem_detail_panel_js.html:18
-msgid "Load more"
+#, python-format
+msgid "Page %(page)s of %(total)s"
 msgstr ""
 
 #: templates/js/_workitem_detail_panel_js.html:19
-msgid "row"
+#, python-format
+msgid "Document · %(n)s pages"
+msgstr ""
+
+#: templates/js/_workitem_detail_panel_js.html:20
+msgid "Restricted"
 msgstr ""
 
 #: templates/js/_workitem_detail_panel_js.html:21
-msgid "Extraction confidence"
+msgid "No history available for this item"
 msgstr ""
 
 #: templates/js/_workitem_detail_panel_js.html:22
-msgid "Click to locate on the document"
+msgid "Could not load history"
 msgstr ""
 
 #: templates/js/_workitem_detail_panel_js.html:23
-msgid "no source location"
+msgid "Load more"
 msgstr ""
 
 #: templates/js/_workitem_detail_panel_js.html:24
-msgid "Media"
-msgstr ""
-
-#: templates/js/_workitem_detail_panel_js.html:25
-msgid "for workitem "
+msgid "row"
 msgstr ""
 
 #: templates/js/_workitem_detail_panel_js.html:26
-msgid "Failed to load image "
+msgid "Extraction confidence"
 msgstr ""
 
 #: templates/js/_workitem_detail_panel_js.html:27
-msgid "Checking for media..."
+msgid "Click to locate on the document"
 msgstr ""
 
 #: templates/js/_workitem_detail_panel_js.html:28
-msgid "No additional details found."
+msgid "no source location"
 msgstr ""
 
 #: templates/js/_workitem_detail_panel_js.html:29
-msgid "No media found for this workitem."
+msgid "Media"
 msgstr ""
 
 #: templates/js/_workitem_detail_panel_js.html:30
-msgid "Could not load media."
+msgid "for workitem "
 msgstr ""
 
 #: templates/js/_workitem_detail_panel_js.html:31
-msgid "In register"
+msgid "Failed to load image "
 msgstr ""
 
 #: templates/js/_workitem_detail_panel_js.html:32
+msgid "Checking for media..."
+msgstr ""
+
+#: templates/js/_workitem_detail_panel_js.html:33
+msgid "No additional details found."
+msgstr ""
+
+#: templates/js/_workitem_detail_panel_js.html:34
+msgid "No media found for this workitem."
+msgstr ""
+
+#: templates/js/_workitem_detail_panel_js.html:35
+msgid "Could not load media."
+msgstr ""
+
+#: templates/js/_workitem_detail_panel_js.html:36
+msgid "In register"
+msgstr ""
+
+#: templates/js/_workitem_detail_panel_js.html:37
 msgid "Hide sources"
 msgstr ""
 

@@ -109,6 +109,18 @@
 .src-conf-badge.src-conf-med  { background: rgba(217, 119, 6, 0.16); color: #b45309; }
 .src-conf-badge.src-conf-low  { background: rgba(220, 38, 38, 0.14); color: #b91c1c; }
 
+/* Fill bar shown alongside the badge (#299 console redesign) -- same
+   high/med/low buckets, so it always agrees with the badge/highlight color. */
+.src-conf-bar {
+  display: inline-block; width: 30px; height: 3px; border-radius: 2px;
+  background: var(--nx-border, #e5e7eb); overflow: hidden;
+  vertical-align: middle; margin-left: 0.4rem; flex-shrink: 0;
+}
+.src-conf-bar__fill { display: block; height: 3px; border-radius: 2px; }
+.src-conf-bar__fill.src-conf-high { background: #15803d; }
+.src-conf-bar__fill.src-conf-med  { background: #b45309; }
+.src-conf-bar__fill.src-conf-low  { background: #b91c1c; }
+
 /* ---- Table / line-item cells ----
    A table-cell box is distinguished from a scalar-field box by a DASHED border
    (not a competing colour), so the confidence colour above still reads on the
