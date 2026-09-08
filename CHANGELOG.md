@@ -6,6 +6,15 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **Bucherer & Frigemo reporting sources** — migration `0123` registers
+  **Bucherer — EasyTax** (`dbo.Bucherer_EasyTax` on the Statistics DB, one row
+  per document: measures *Imported documents*, *Exported documents* = rows with
+  an export time, *Pages*) and **Frigemo — Documents** (`dbo.Frigemo`, daily
+  counters summed: imported/exported documents and pages, deleted, invoices).
+  Generic `table` sources, no code; one `reporting.source.<code>.use` permission
+  each, held by Enterprise Admin only until granted.
+
 Work toward the next release.
 
 ### Added

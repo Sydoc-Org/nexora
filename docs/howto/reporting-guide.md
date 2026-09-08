@@ -146,7 +146,9 @@ flat table with dates, so "over time" breakdowns work.
 In the Simple wizard's measure list they form one **Generali** block: Documents
 (the same document feed the Generali dashboard charts — break it down by document
 type, input channel, language, post-check…), Attendance, Base Services, Project
-Management, Reporting and CSV Imports. Clicking a source card in the rail opens its
+Management, Reporting and CSV Imports. Sydoc staff also see **Bucherer — EasyTax**
+(imported and exported documents, pages) and **Frigemo — Documents** (daily
+imported/exported documents and pages, deleted documents, invoices). Clicking a source card in the rail opens its
 database **structure**, not a report — start reports with **New report**.
 
 **Click a source card** to look inside the database behind it (needs the

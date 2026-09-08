@@ -1046,7 +1046,12 @@ three Generali examples). Not combinable with date-anchored metrics. `0119` regi
 **Documents** over `dbo.v_ReportJobJoinDefinitions` (the ReportJob feed with
 lookup labels joined; measures `Documents` / `Cases`) and **CSV Imports** over
 `dbo.CSVImportLog` — relabels ISS to "Reporting", and moves the Generali block
-to `SortOrder` 200+ so platform sources lead. The wizard's measure step walks
+to `SortOrder` 200+ so platform sources lead. `0123` registers two Statistics-DB
+tables the same way: **Bucherer — EasyTax** (`bucherer_easytax` over
+`dbo.Bucherer_EasyTax`, one row per document; *Exported documents* is a
+conditional count over `ExportTime IS NOT NULL`, `Pages` a sum) and **Frigemo —
+Documents** (`frigemo` over `dbo.Frigemo`, one row per day of already-summed
+counters, so every measure is a `sum`; `Date` grainable). `SortOrder` 300/310. The wizard's measure step walks
 sources in `SortOrder` and splits a `Tenant — Thing` label at the em dash: one
 uppercase heading per tenant, a `.rs-choice-group-sublabel` per source. The
 tenant's lookup tables carry no measures and are not registered. Each source is gated by its own
