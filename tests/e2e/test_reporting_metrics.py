@@ -1,6 +1,6 @@
 """E2E for the reporting metrics-registry (semantic layer, Slice 1).
 
-TestAdmin holds reporting.semantic.admin (sql/test/seed.sql grants every
+TestAdmin holds reporting.metrics.manage (sql/test/seed.sql grants every
 permission), so /reporting/metrics renders and a 'count' metric can be
 registered through the form and appears in the registry list. The builder's
 Metrics well is asserted present; an aggregated data run is not checked here

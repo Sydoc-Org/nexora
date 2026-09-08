@@ -12,7 +12,7 @@ from ...db import engine_nexora_db
 from ...security import page_visibility, require_permission
 
 
-@require_permission("admin.view.system.logs")
+@require_permission("admin.logs.view")
 def admin_logs_view():
     organizations = []
     conn = None
@@ -92,7 +92,7 @@ def _build_logs_where_clause():
     return " AND ".join(parts), params
 
 
-@require_permission("admin.view.system.logs")
+@require_permission("admin.logs.view")
 def api_admin_logs_search():
     page = request.args.get("page", 1, type=int)
     per_page = 50
@@ -159,7 +159,7 @@ def api_admin_logs_search():
             conn.close()
 
 
-@require_permission("admin.view.system.logs")
+@require_permission("admin.logs.view")
 def api_admin_logs_export():
     """Stream the filtered log set as CSV. Capped at 50k rows so a wide-open
     filter doesn't yank the whole table."""

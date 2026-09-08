@@ -1577,7 +1577,7 @@ def test_workitem_detail_resolves_via_second_source_when_first_out_of_scope(clie
         seen["domain_hint"] = client_hint
         return "octo.ms02"
 
-    monkeypatch.setattr(ax, "CLIENTS", {"default": object(), "ms02": object()})
+    monkeypatch.setattr(ax, "workitem_clients", lambda: ["default", "ms02"])
     monkeypatch.setattr(ax, "process_pair_for_workitem", _fake_pair)
     monkeypatch.setattr(ax, "get_domain_for_workitem", _fake_domain)
     monkeypatch.setattr(
@@ -1611,7 +1611,7 @@ def test_workitem_detail_prefers_default_source_on_full_collision(client, monkey
         seen["domain_hint"] = client_hint
         return "octo.default"
 
-    monkeypatch.setattr(ax, "CLIENTS", {"default": object(), "ms02": object()})
+    monkeypatch.setattr(ax, "workitem_clients", lambda: ["default", "ms02"])
     monkeypatch.setattr(
         ax, "process_pair_for_workitem", lambda wid, client_hint=None: pairs_by_hint[client_hint]
     )

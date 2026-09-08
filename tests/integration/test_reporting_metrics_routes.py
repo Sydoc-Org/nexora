@@ -1,6 +1,6 @@
 """Integration tests for the reporting metrics registry (semantic layer Slice 1).
 
-Covers the metrics-admin page + CRUD (gated reporting.semantic.admin), the
+Covers the metrics-admin page + CRUD (gated reporting.metrics.manage), the
 builder-facing metrics API, and the metric resolution path through
 /api/reporting/run. TestAdmin holds every permission (seed), so admin_client
 exercises the admin/CRUD routes against the real TEST DB; the run-path tests
@@ -147,7 +147,7 @@ def test_metrics_api_groups_by_accessible_source(admin_client):
     mid = create.get_json()["id"]
     try:
         data = admin_client.get("/api/reporting/measures").get_json()
-        # TestAdmin holds reporting.source.docprocessing, so docprocessing metrics surface.
+        # TestAdmin holds reporting.source.docprocessing.use, so docprocessing metrics surface.
         assert "docprocessing" in data
         entry = next(m for m in data["docprocessing"] if m["code"] == "api_doc_count")
         assert entry["aggregation"] == "count"
@@ -183,7 +183,7 @@ _DOCPROC_SOURCE = {
     "id": "docprocessing",
     "kind": "curated",
     "label": "Document Processing",
-    "permission": "reporting.source.docprocessing",
+    "permission": "reporting.source.docprocessing.use",
     "engine": "statistics",
     "provider": "docprocessing",
 }
@@ -271,7 +271,7 @@ def test_run_zero_dim_metric_returns_single_total_row(admin_client):
             "code": "zd_users",
             "kind": "curated",
             "label": "ZeroDim Users",
-            "permission": "reporting.source.docprocessing",
+            "permission": "reporting.source.docprocessing.use",
             "provider": "table",
             "engine": "nexora",
             "baseObject": "dbo.Users",

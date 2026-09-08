@@ -1,0 +1,54 @@
+<!-- @dsCard group="Components" viewport="700x250" name="Forms — inputs, scope picker, toggles" subtitle="29px control row; accent focus ring" -->
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+<script src="../../_ds_bundle.js" onerror="this.dataset.missing=1"></script>
+<script src="../../ds-fallback.js"></script>
+<style>
+  body { margin: 0; padding: 16px 18px; background: var(--nx-card); }
+  .row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+  .stack { display: flex; flex-direction: column; gap: 12px; }
+  .cap { font-size: 9.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--nx-text-meta); }
+</style>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+
+let Input, Select, Field, Checkbox, Switch, ScopePicker;
+const groups = [{ name: 'Generali', items: [
+  { id: '02', name: '02_Posteingang', count: 612 },
+  { id: '03', name: '03_Invoice_New', count: 341 },
+  { id: '01', name: '01_Scan_Eingang', count: 188 }
+] }];
+function Card() {
+  const [picked, setPicked] = React.useState(['02','03']);
+  const [on, setOn] = React.useState(true);
+  return (
+    <div className="stack">
+      <div className="row" style={{ alignItems: 'flex-end' }}>
+        <Field label="Suche" style={{ width: 220 }}>
+          <Input icon="fas fa-magnifying-glass" placeholder="Dokument-ID, Kunde…" />
+        </Field>
+        <Field label="Typ"><Select options={['Alle Typen','Rechnung','Lieferschein']} /></Field>
+        <Field label="Prozess"><ScopePicker groups={groups} selected={picked} onChange={setPicked} width={230} /></Field>
+      </div>
+      <div className="row" style={{ gap: 18 }}>
+        <Checkbox label="Nur offene" checked />
+        <Checkbox label="Alle Prozesse" indeterminate />
+        <Checkbox label="Deaktiviert" disabled />
+        <Switch checked={on} onChange={() => setOn(!on)} label="Zeitplan aktiv" />
+      </div>
+      <div className="row">
+        <Input placeholder="Ungültig" invalid style={{ width: 180 }} />
+        <Input size="lg" placeholder="33px console" style={{ width: 180 }} />
+      </div>
+    </div>
+  );
+}
+
+nexoraDS('../../').then(function (NS) {
+  ({ Input, Select, Field, Checkbox, Switch, ScopePicker } = NS);
+  ReactDOM.createRoot(document.getElementById('root')).render(<Card />);
+});
+</script>

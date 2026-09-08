@@ -154,11 +154,11 @@ def sync_tenant_reporting_sources():
             )
             skipped += 1
             continue
-        client = CLIENTS.get(t.client_code)
+        client = CLIENTS.get(entity.client_code)
         if client is None:
             current_app.logger.info(
                 f"sync_tenant_reporting_sources: skipping {entity.tenant}/{entity.key} -- "
-                f"no ClientConfig for client_code={t.client_code!r}"
+                f"no ClientConfig for client_code={entity.client_code!r}"
             )
             skipped += 1
             continue

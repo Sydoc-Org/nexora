@@ -313,7 +313,8 @@ def _inject_brand():
 
 def _inject_tenant_nav():
     """Sidebar data source for the per-tenant nav group (Task 6): the
-    registry's tenants the current session holds ``tenant.<code>.view`` for,
+    registry's tenants the current session can view -- its own organization's
+    tenant by membership, any other by a ``tenant.<code>.view`` grant --
     each with its own page list -- ``[]`` when the registry itself is
     unavailable or nobody is logged in. ``visible_tenant_nav()`` lives in
     ``nx_lib/views/tenant.py`` (the tenant kernel's route module, which
@@ -324,10 +325,25 @@ def _inject_tenant_nav():
     ``nx_lib.views.tenant`` to resolve while ``nx_lib.hooks`` is still mid
     -import."""
     if "userid" not in session:
-        return {"tenant_nav": []}
+        return {"tenant_nav": [], "tenant_scoped": None, "tenant_solo": False}
+    from .tenant.registry import organization_tenant
     from .views.tenant import visible_tenant_nav
 
-    return {"tenant_nav": visible_tenant_nav()}
+    # A user whose organization belongs to a tenant lives inside that tenant:
+    # the sidebar shows the tenant group(s) instead of the global workspace
+    # links (#257). Users of organizations outside any tenant (sydoc staff)
+    # keep the global navigation.
+    nav = visible_tenant_nav()
+    scoped = organization_tenant(session.get("organizationcode"))
+    # A member of exactly one tenant and nothing else: the tenant IS their
+    # portal, so the UI never names it (no sidebar label, no "<Tenant>
+    # Dashboard" heading) -- naming it only leaks an internal concept (#255).
+    # Staff, and members holding grants on other tenants, need the names.
+    return {
+        "tenant_nav": nav,
+        "tenant_scoped": scoped,
+        "tenant_solo": bool(scoped) and len(nav) == 1 and nav[0]["code"] == scoped,
+    }
 
 
 def _utility_processor():

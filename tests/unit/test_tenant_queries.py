@@ -25,6 +25,7 @@ def _entity(
         tenant=tenant,
         key=key,
         source_object=source_object,
+        client_code="ms02",
         kind=kind,
         engine_role=engine_role,
         id_column=id_column,

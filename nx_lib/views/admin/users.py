@@ -11,10 +11,17 @@ from flask_babel import gettext as _
 from werkzeug.exceptions import HTTPException
 
 from ...db import engine_nexora_db
-from ...security import _revoke_session_by_id, has_permission, page_visibility, require_permission
+from ...security import (
+    _revoke_session_by_id,
+    assignable_profile_ids,
+    group_permissions,
+    has_permission,
+    page_visibility,
+    require_permission,
+)
 
 
-@require_permission("admin.view.active.sessions")
+@require_permission("admin.sessions.view")
 def admin_sessions_view():
     return render_template(
         "admin/sessions.html",
@@ -24,7 +31,30 @@ def admin_sessions_view():
     )
 
 
-@require_permission("admin.create.user")
+def _profile_org_mismatch(cursor, accessid, organizationcode):
+    """0090: an access profile bound to an organization may only be held by that
+    organization's users; a NULL binding is a global profile. Returns the 400
+    response to send, or None when the pair is allowed."""
+    cursor.execute("SELECT Name, OrganizationCode FROM AccessProfile WHERE AccessID = ?", accessid)
+    row = cursor.fetchone()
+    bound_to = row.OrganizationCode if row else None
+    if bound_to and bound_to != organizationcode:
+        return jsonify(
+            {
+                "success": False,
+                "message": _(
+                    "Profile %(profile)s belongs to organization %(org)s and cannot be "
+                    "assigned to a user of %(user_org)s.",
+                    profile=row.Name,
+                    org=bound_to,
+                    user_org=organizationcode,
+                ),
+            }
+        ), 400
+    return None
+
+
+@require_permission("admin.users.add")
 def admin_add_user():
     from ..auth import _build_reset_email_message, send_reset_email
 
@@ -47,14 +77,6 @@ def admin_add_user():
     if not all([username, password, fullname, email, organization, accessprofile]):
         return jsonify({"success": False, "message": _("All fields are required.")}), 400
 
-    if not has_permission(f"admin.assign.user.accessprofile.{str(accessprofile).lower()}"):
-        current_app.logger.error(
-            "assign-permission denied: profile=%r username=%r",
-            str(accessprofile)[:100],
-            str(username)[:100],
-        )
-        return jsonify({"success": False, "message": _("Permission Denied for this action.")}), 403
-
     hashed_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
     conn = None
@@ -67,6 +89,17 @@ def admin_add_user():
         if accessprofile_row is None:
             return jsonify({"success": False, "message": _("Unknown access profile.")}), 400
         accessid = accessprofile_row[0]
+
+        if accessid not in assignable_profile_ids():
+            current_app.logger.error(
+                "assign-permission denied: profile=%r username=%r",
+                str(accessprofile)[:100],
+                str(username)[:100],
+            )
+            return jsonify(
+                {"success": False, "message": _("Permission Denied for this action.")}
+            ), 403
+
         cursor.execute(
             "select organizationcode from organizations where organization = ?", organization
         )
@@ -74,6 +107,9 @@ def admin_add_user():
         if organization_row is None:
             return jsonify({"success": False, "message": _("Unknown organization.")}), 400
         organizationcode = organization_row[0]
+        denied = _profile_org_mismatch(cursor, accessid, organizationcode)
+        if denied:
+            return denied
         cursor.execute(
             "INSERT INTO Users (username, password, fullname, email, organizationcode, accessid, InitReset) VALUES (?, ?, ?, ?, ?, ?, ?)",
             (
@@ -127,7 +163,7 @@ def admin_add_user():
             conn.close()
 
 
-@require_permission("admin.edit.user")
+@require_permission("admin.users.edit")
 def admin_edit_user(user_id):
     data = request.get_json()
     username = data.get("username")
@@ -166,21 +202,20 @@ def admin_edit_user(user_id):
         if accessprofile is None:
             accessprofile = current_profile
 
-        if accessprofile != current_profile and not has_permission(
-            f"admin.assign.user.accessprofile.{str(accessprofile).lower()}"
-        ):
-            current_app.logger.error(
-                f"User does not have Permission: admin.assign.user.accessprofile.{str(accessprofile).lower()} for {user_id}"
-            )
-            return jsonify(
-                {"success": False, "message": _("Permission Denied for this action.")}
-            ), 403
-
         cursor.execute("select accessid from accessprofile where name = ?", accessprofile)
         accessprofile_row = cursor.fetchone()
         if accessprofile_row is None:
             return jsonify({"success": False, "message": _("Unknown access profile.")}), 400
         accessid = accessprofile_row[0]
+
+        if accessprofile != current_profile and accessid not in assignable_profile_ids():
+            current_app.logger.error(
+                f"User does not have Rank to assign accessprofile {accessprofile!r} for {user_id}"
+            )
+            return jsonify(
+                {"success": False, "message": _("Permission Denied for this action.")}
+            ), 403
+
         cursor.execute(
             "select organizationcode from organizations where organization = ?", organization
         )
@@ -188,6 +223,9 @@ def admin_edit_user(user_id):
         if organization_row is None:
             return jsonify({"success": False, "message": _("Unknown organization.")}), 400
         organizationcode = organization_row[0]
+        denied = _profile_org_mismatch(cursor, accessid, organizationcode)
+        if denied:
+            return denied
 
         if password:
             hashed_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode(
@@ -215,7 +253,7 @@ def admin_edit_user(user_id):
             conn.close()
 
 
-@require_permission("admin.view.accessprofiles.useroverrides")
+@require_permission("admin.profiles.view")
 def admin_user_detail(user_id):
     if "username" not in session:
         return redirect(url_for("login"))
@@ -252,17 +290,15 @@ def admin_user_detail(user_id):
         ]
 
         cursor.execute(
-            "SELECT ap.name profile, ap.accessid accessid FROM AccessProfile ap ORDER BY ap.name"
+            "SELECT ap.name profile, ap.accessid accessid, ap.OrganizationCode organizationcode "
+            "FROM AccessProfile ap ORDER BY ap.name"
         )
         all_ap = [
             dict(zip([c[0] for c in cursor.description], r, strict=False))
             for r in cursor.fetchall()
         ]
-        assignable_profiles = [
-            ap
-            for ap in all_ap
-            if has_permission(f'admin.assign.user.accessprofile.{str(ap["profile"]).lower()}')
-        ]
+        assignable = assignable_profile_ids()
+        assignable_profiles = [ap for ap in all_ap if ap["accessid"] in assignable]
 
         cursor.execute("""
             SELECT PermissionID, Code, Description FROM Permission
@@ -289,9 +325,10 @@ def admin_user_detail(user_id):
             organizations=organizations,
             assignable_profiles=assignable_profiles,
             all_permissions=all_permissions,
-            can_edit_user=has_permission("admin.edit.user"),
-            can_delete_user=has_permission("admin.delete.user"),
-            can_edit_overrides=has_permission("admin.edit.user.override"),
+            groups=group_permissions(all_permissions),
+            can_edit_user=has_permission("admin.users.edit"),
+            can_delete_user=has_permission("admin.users.delete"),
+            can_edit_overrides=has_permission("admin.users.overrides.edit"),
             logged_in_user=session.get("username"),
             userid=session.get("userid"),
             page_visibility=page_visibility(),
@@ -308,7 +345,7 @@ def admin_user_detail(user_id):
             conn.close()
 
 
-@require_permission("admin.view.accessprofiles.useroverrides")
+@require_permission("admin.profiles.view")
 def api_admin_user_activity(user_id):
     """Recent log entries for one user. Last 7 days, paginated, 25 per page."""
     page = request.args.get("page", 1, type=int)
@@ -397,7 +434,7 @@ def api_admin_user_activity(user_id):
                 conn.close()
 
 
-@require_permission("admin.delete.user")
+@require_permission("admin.users.delete")
 def admin_delete_user(user_id):
     current_user = session.get("userid")
     if str(user_id) == current_user:
@@ -465,7 +502,7 @@ def admin_delete_user(user_id):
                 conn.close()
 
 
-@require_permission("admin.edit.user.override")
+@require_permission("admin.users.overrides.edit")
 def admin_revoke_session(session_id):
     try:
         _revoke_session_by_id(session_id)
@@ -475,7 +512,7 @@ def admin_revoke_session(session_id):
         return jsonify({"success": False, "message": str(e)}), 500
 
 
-@require_permission("admin.edit.user.override")
+@require_permission("admin.users.overrides.edit")
 def admin_revoke_all_sessions(user_id):
     sids = []
     conn = None
@@ -510,7 +547,7 @@ def admin_revoke_all_sessions(user_id):
     return jsonify({"success": True, "revoked": revoked})
 
 
-@require_permission("admin.view.users")
+@require_permission("admin.users.view")
 def api_admin_users_list():
     if "username" not in session:
         return jsonify({"error": "Not authorized"}), 401
@@ -541,7 +578,7 @@ def api_admin_users_list():
             conn.close()
 
 
-@require_permission("admin.view.active.sessions")
+@require_permission("admin.sessions.view")
 def admin_recent_logs():
     conn = None
     try:
@@ -584,7 +621,7 @@ def admin_recent_logs():
             conn.close()
 
 
-@require_permission("admin.view.active.sessions")
+@require_permission("admin.sessions.view")
 def admin_active_sessions():
     """Read currently-active sessions from ActiveSessions, joined to Users.
     Filtered to LastSeenAt (bumped on every request by _enforce_active_session)
