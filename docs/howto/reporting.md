@@ -1085,23 +1085,20 @@ source `em_field_quality` → `field_quality`; `0111` narrows it to onboarded
 processes and drops the two count measures. It is a curated `table` source
 gated by `reporting.source.field_quality`.
 
-**Onboarded processes only (`0111`).** The process picker was offering Octo's
-raw `PROCESS` values straight off the telemetry — `BuchererFields`,
-`PriveraPostFields`, `01_Garantiekarten`, `01_Invoice_1` — none of which nexora
-reports on anywhere else. The view now keeps only rows whose process is
+**Onboarded customers only (`0111`, relaxed by `0125`).** The process picker
+was offering Octo's raw `PROCESS` values straight off the telemetry, including
+customers nexora has never onboarded. `0111` kept only rows whose process is
 registered in `dbo.ProcessSources`, matched on **both** the organization and the
-process name. Name alone would be wrong: `02_Invoice` belongs to
-*elektromaterial* **and** to *privera*, so onboarding one would silently admit
-the other — which is why each stream carries its
-`dbo.Organizations.organizationcode` in the CTE. Same data-driven contract as
-`MappedInNexoraPct`: **to bring a process back, add a `dbo.ProcessSources` row,
-don't edit the view.**
+process name; that also hid telemetry of fully onboarded customers
+(ElektroMaterial's legacy `01_Invoice_1`, 59% of EM's rows, and Privera's
+`PriveraPostFields`). Since `0125` the gate is the **organization alone**: a
+customer with any `dbo.ProcessSources` row reports on all of its field telemetry,
+every process. Each stream carries its `dbo.Organizations.organizationcode` in
+the CTE for that compare. Same data-driven contract as `MappedInNexoraPct`:
+**to bring a customer in, add its `dbo.ProcessSources` row, don't edit the view.**
 
-On INT that leaves 57,149 of 69,576 rows and exactly four processes
-(`01_Invoice_SAP`, `02_Invoice`, `02_Posteingang`, `03_Invoice_New`). Bucherer
-and Geberit leave the source entirely — they have no `dbo.Organizations` row at
-all, so they cannot match — and so does Privera's `02_Invoice` stream, which is
-onboarded for EM but not for Privera.
+On INT that leaves 68,716 of 69,576 rows. Bucherer and Geberit leave the source
+entirely — they have no `dbo.Organizations` row at all, so they cannot match.
 
 **One source with a `Customer` dimension, not seven sources.** All seven tables
 are column-identical, and `dbo.FieldAliases` is a *flat, global* map — so
@@ -1113,7 +1110,7 @@ duplicated measure rows to keep in step.
 
 | dimension  | values |
 |---|---|
-| `Customer` | `Compass`, `ElektroMaterial`, `Privera` today — matching `dbo.Organizations.Organization`. Hardcoded as literals in the view *on purpose*: joining `Organizations` would couple it to the tenancy tables being reshaped in #255, to earn a few labels. The union still carries Bucherer and Geberit; the `0111` process filter is what keeps them out until they are onboarded. |
+| `Customer` | `Compass`, `ElektroMaterial`, `Privera` today — matching `dbo.Organizations.Organization`. Hardcoded as literals in the view *on purpose*: joining `Organizations` would couple it to the tenancy tables being reshaped in #255, to earn a few labels. The union still carries Bucherer and Geberit; the `0111`/`0125` organization filter is what keeps them out until they are onboarded. |
 | `Stream`   | one per telemetry table (`em`, `compass`, `priverainvoice2025`, …). Privera has three, of which two survive the process filter. |
 | `Process`  | Octo's own process name, straight off the row. |
 
@@ -1208,9 +1205,9 @@ changes. The `0110` union was checked the same way and left EM untouched:
 same figures to three decimals as the EM-only view.
 
 Those EM figures are the *whole-table* ones and are what the equivalence check
-compares. Since `0111` the source itself reports EM on its onboarded process
-only (`02_Invoice`, 7,091 rows → 48.26% correct), because `01_Invoice_1` — 59%
-of EM's telemetry — is a legacy process that was never onboarded. Re-run the
+compares. Between `0111` and `0125` the source reported EM on its onboarded process
+only (`02_Invoice`, 7,091 rows → 48.26% correct); since `0125` the legacy
+`01_Invoice_1` rows are back and the view matches the whole table for EM. Re-run the
 equivalence check against the raw table, not the view, or the populations will
 not line up.
 

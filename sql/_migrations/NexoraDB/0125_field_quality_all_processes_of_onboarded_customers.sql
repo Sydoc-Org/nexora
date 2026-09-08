@@ -1,75 +1,78 @@
-﻿USE [nexora]
+-- 0125_field_quality_all_processes_of_onboarded_customers.sql
+-- The field-quality source (0110/0111) unions all seven *_Collect_Field_Attributes
+-- tables but 0111 kept only rows whose (organization, process) pair is in
+-- dbo.ProcessSources. That gate dropped telemetry of onboarded customers too:
+-- ElektroMaterial / 01_Invoice_1 (10,016 rows on INT) and Privera /
+-- PriveraPostFields (72). Gate on the organization only from now on -- an
+-- onboarded customer reports on all of its field telemetry. Bucherer and
+-- Geberit (no organization) stay out, unchanged. View body otherwise identical
+-- to 0111. Idempotent (CREATE OR ALTER).
+
 GO
-DROP VIEW [dbo].[vFieldExtractionQuality]
-GO
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER OFF
-GO
-CREATE   VIEW [dbo].[vFieldExtractionQuality] AS
+CREATE OR ALTER VIEW dbo.vFieldExtractionQuality AS
 WITH cfa AS (
     SELECT N'Bucherer' AS Customer, N'bucherer' AS Stream, NULL AS OrgCode,
            WORKITEM_ID, PROCESS, FIELD, [TYPE], VALUE_BEFORE_VALIDATION, [RESULT], [TIME], CONF_BEST_CANDIDATE, CONF_2ND_CANDIDATE, IS_SET_BY_MACHINE, IS_USER_VERIFIED, IS_USER_ENTERED, IS_USER_MODIFIED, VALUE_FROM_CANDIDATE_LIST, VALUE_ORIGIN, HISTORY_SOURCE, STATUS_BEFORE_VALIDATION, STATUS_AFTER_VALIDATION
-    FROM [SYDOC_Statistik].dbo.Bucherer_Collect_Field_Attributes
+    FROM [$(StatisticsDb)].dbo.Bucherer_Collect_Field_Attributes
     UNION ALL
     SELECT N'Compass' AS Customer, N'compass' AS Stream, N'CMPS' AS OrgCode,
            WORKITEM_ID, PROCESS, FIELD, [TYPE], VALUE_BEFORE_VALIDATION, [RESULT], [TIME], CONF_BEST_CANDIDATE, CONF_2ND_CANDIDATE, IS_SET_BY_MACHINE, IS_USER_VERIFIED, IS_USER_ENTERED, IS_USER_MODIFIED, VALUE_FROM_CANDIDATE_LIST, VALUE_ORIGIN, HISTORY_SOURCE, STATUS_BEFORE_VALIDATION, STATUS_AFTER_VALIDATION
-    FROM [SYDOC_Statistik].dbo.Compass_Collect_Field_Attributes
+    FROM [$(StatisticsDb)].dbo.Compass_Collect_Field_Attributes
     UNION ALL
     SELECT N'ElektroMaterial' AS Customer, N'em' AS Stream, N'LKTR' AS OrgCode,
            WORKITEM_ID, PROCESS, FIELD, [TYPE], VALUE_BEFORE_VALIDATION, [RESULT], [TIME], CONF_BEST_CANDIDATE, CONF_2ND_CANDIDATE, IS_SET_BY_MACHINE, IS_USER_VERIFIED, IS_USER_ENTERED, IS_USER_MODIFIED, VALUE_FROM_CANDIDATE_LIST, VALUE_ORIGIN, HISTORY_SOURCE, STATUS_BEFORE_VALIDATION, STATUS_AFTER_VALIDATION
-    FROM [SYDOC_Statistik].dbo.Em_Collect_Field_Attributes
+    FROM [$(StatisticsDb)].dbo.Em_Collect_Field_Attributes
     UNION ALL
     SELECT N'Geberit' AS Customer, N'geberit' AS Stream, NULL AS OrgCode,
            WORKITEM_ID, PROCESS, FIELD, [TYPE], VALUE_BEFORE_VALIDATION, [RESULT], [TIME], CONF_BEST_CANDIDATE, CONF_2ND_CANDIDATE, IS_SET_BY_MACHINE, IS_USER_VERIFIED, IS_USER_ENTERED, IS_USER_MODIFIED, VALUE_FROM_CANDIDATE_LIST, VALUE_ORIGIN, HISTORY_SOURCE, STATUS_BEFORE_VALIDATION, STATUS_AFTER_VALIDATION
-    FROM [SYDOC_Statistik].dbo.Geberit_Collect_Field_Attributes
+    FROM [$(StatisticsDb)].dbo.Geberit_Collect_Field_Attributes
     UNION ALL
     SELECT N'Privera' AS Customer, N'priverainvoice' AS Stream, N'PRVR' AS OrgCode,
            WORKITEM_ID, PROCESS, FIELD, [TYPE], VALUE_BEFORE_VALIDATION, [RESULT], [TIME], CONF_BEST_CANDIDATE, CONF_2ND_CANDIDATE, IS_SET_BY_MACHINE, IS_USER_VERIFIED, IS_USER_ENTERED, IS_USER_MODIFIED, VALUE_FROM_CANDIDATE_LIST, VALUE_ORIGIN, HISTORY_SOURCE, STATUS_BEFORE_VALIDATION, STATUS_AFTER_VALIDATION
-    FROM [SYDOC_Statistik].dbo.PriveraInvoice_Collect_Field_Attributes
+    FROM [$(StatisticsDb)].dbo.PriveraInvoice_Collect_Field_Attributes
     UNION ALL
     SELECT N'Privera' AS Customer, N'priverainvoice2025' AS Stream, N'PRVR' AS OrgCode,
            WORKITEM_ID, PROCESS, FIELD, [TYPE], VALUE_BEFORE_VALIDATION, [RESULT], [TIME], CONF_BEST_CANDIDATE, CONF_2ND_CANDIDATE, IS_SET_BY_MACHINE, IS_USER_VERIFIED, IS_USER_ENTERED, IS_USER_MODIFIED, VALUE_FROM_CANDIDATE_LIST, VALUE_ORIGIN, HISTORY_SOURCE, STATUS_BEFORE_VALIDATION, STATUS_AFTER_VALIDATION
-    FROM [SYDOC_Statistik].dbo.PriveraInvoice2025_Collect_Field_Attributes
+    FROM [$(StatisticsDb)].dbo.PriveraInvoice2025_Collect_Field_Attributes
     UNION ALL
     SELECT N'Privera' AS Customer, N'priverapost' AS Stream, N'PRVR' AS OrgCode,
            WORKITEM_ID, PROCESS, FIELD, [TYPE], VALUE_BEFORE_VALIDATION, [RESULT], [TIME], CONF_BEST_CANDIDATE, CONF_2ND_CANDIDATE, IS_SET_BY_MACHINE, IS_USER_VERIFIED, IS_USER_ENTERED, IS_USER_MODIFIED, VALUE_FROM_CANDIDATE_LIST, VALUE_ORIGIN, HISTORY_SOURCE, STATUS_BEFORE_VALIDATION, STATUS_AFTER_VALIDATION
-    FROM [SYDOC_Statistik].dbo.PriveraPost_Collect_Field_Attributes
+    FROM [$(StatisticsDb)].dbo.PriveraPost_Collect_Field_Attributes
 ),
 dates AS (
     SELECT N'bucherer' AS Stream, CONVERT(nvarchar(50), [Workitem]) COLLATE DATABASE_DEFAULT AS Workitem,
            MIN([ImportDate]) AS ImportDate, MAX([UploadDatetime]) AS ExportDate
-    FROM [SYDOC_Statistik].dbo.Bucherer_Invoice
+    FROM [$(StatisticsDb)].dbo.Bucherer_Invoice
     GROUP BY CONVERT(nvarchar(50), [Workitem]) COLLATE DATABASE_DEFAULT
     UNION ALL
     SELECT N'compass' AS Stream, CONVERT(nvarchar(50), [WorkItem]) COLLATE DATABASE_DEFAULT AS Workitem,
            MIN([ImportDate]) AS ImportDate, MAX([UploadDatetime]) AS ExportDate
-    FROM [SYDOC_Statistik].dbo.Compass_Invoice
+    FROM [$(StatisticsDb)].dbo.Compass_Invoice
     GROUP BY CONVERT(nvarchar(50), [WorkItem]) COLLATE DATABASE_DEFAULT
     UNION ALL
     SELECT N'em' AS Stream, CONVERT(nvarchar(50), [WorkItem]) COLLATE DATABASE_DEFAULT AS Workitem,
            MIN([ImportDatetime]) AS ImportDate, MAX([ExportEM_dt]) AS ExportDate
-    FROM [SYDOC_Statistik].dbo.EM_Invoice
+    FROM [$(StatisticsDb)].dbo.EM_Invoice
     GROUP BY CONVERT(nvarchar(50), [WorkItem]) COLLATE DATABASE_DEFAULT
     UNION ALL
     SELECT N'geberit' AS Stream, CONVERT(nvarchar(50), [WorkItem]) COLLATE DATABASE_DEFAULT AS Workitem,
            MIN([ImportDate]) AS ImportDate, MAX([UploadDatetime]) AS ExportDate
-    FROM [SYDOC_Statistik].dbo.Geberit_Garantiekarten
+    FROM [$(StatisticsDb)].dbo.Geberit_Garantiekarten
     GROUP BY CONVERT(nvarchar(50), [WorkItem]) COLLATE DATABASE_DEFAULT
     UNION ALL
     SELECT N'priverainvoice' AS Stream, CONVERT(nvarchar(50), [WID]) COLLATE DATABASE_DEFAULT AS Workitem,
            MIN([ImportTime]) AS ImportDate, MAX([ExportDate]) AS ExportDate
-    FROM [SYDOC_Statistik].dbo.PriveraInvoice
+    FROM [$(StatisticsDb)].dbo.PriveraInvoice
     GROUP BY CONVERT(nvarchar(50), [WID]) COLLATE DATABASE_DEFAULT
     UNION ALL
     SELECT N'priverainvoice2025' AS Stream, CONVERT(nvarchar(50), [WID]) COLLATE DATABASE_DEFAULT AS Workitem,
            MIN([ImportTime]) AS ImportDate, MAX([ExportDate]) AS ExportDate
-    FROM [SYDOC_Statistik].dbo.PriveraInvoice
+    FROM [$(StatisticsDb)].dbo.PriveraInvoice
     GROUP BY CONVERT(nvarchar(50), [WID]) COLLATE DATABASE_DEFAULT
     UNION ALL
     SELECT N'priverapost' AS Stream, CONVERT(nvarchar(50), [WorkItemID]) COLLATE DATABASE_DEFAULT AS Workitem,
            MIN([ImportDatetime_dt]) AS ImportDate, MAX([ExportDatetime_dt]) AS ExportDate
-    FROM [SYDOC_Statistik].dbo.PriveraPosteingang
+    FROM [$(StatisticsDb)].dbo.PriveraPosteingang
     GROUP BY CONVERT(nvarchar(50), [WorkItemID]) COLLATE DATABASE_DEFAULT
 )
 SELECT
@@ -136,5 +139,4 @@ WHERE EXISTS (
         WHERE ps.ClientCode       = 'default'
           AND ps.OrganizationCode = cfa.OrgCode
       );
-
 GO
