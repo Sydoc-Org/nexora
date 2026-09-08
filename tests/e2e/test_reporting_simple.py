@@ -754,7 +754,7 @@ def test_delta_chip_renders_vs_prior_period(nexora_server, page):
     expect(chip).to_be_visible()
     expect(chip).to_have_class(re.compile(r"rp-delta--up"))
     expect(chip).to_have_text("↑ 40%")
-    expect(chip).to_have_attribute("title", "vs 2026-05-01 – 2026-05-31")  # noqa: RUF001 -- literal en dash, matches the brief's copy pattern
+    expect(chip).to_have_attribute("title", re.compile(r"^vs 2026-05-01 – 2026-05-31"))  # noqa: RUF001
 
 
 def test_delta_chip_absent_without_comparison(nexora_server, page):

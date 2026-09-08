@@ -1,0 +1,18 @@
+<script nonce="{{ csp_nonce() }}">
+  // Jinja-rendered strings for static/js/reporting_contribution.js (#191).
+  window.NX_I18N_REPORTING_CONTRIBUTION = {
+    title: {{ _("Why did it change?")|tojson }},
+    subtitle: {{ _("Contribution to the change vs. the prior period")|tojson }},
+    prior: {{ _("prior")|tojson }},
+    current: {{ _("current")|tojson }},
+    change: {{ _("change")|tojson }},
+    shareOfChange: {{ _("share of change")|tojson }},
+    other: {{ _("(other)")|tojson }},
+    noDimensions: {{ _("This source has no columns to break the change down by.")|tojson }},
+    notShown: {{ _("Not shown: {fields}")|tojson }},
+    loading: {{ _("Working out what changed…")|tojson }},
+    loadError: {{ _("Could not explain this change.")|tojson }},
+    drillHint: {{ _("Click a row to see the documents behind it.")|tojson }}
+  };
+</script>
+<script src="{{ static_v('js/reporting_contribution.js') }}"></script>
