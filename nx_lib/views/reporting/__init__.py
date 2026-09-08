@@ -20,6 +20,7 @@ Routes:
   POST /api/reporting/reports/<id>/shares          owner: set visibility / add share
   DELETE /api/reporting/reports/<id>/shares/<uid>  owner: remove a share
   GET/POST/PUT/DELETE /api/reporting/reports/<id>/schedules[/<sid>]  owner: schedules
+  GET/POST/DELETE /api/reporting/reports/<id>/annotations[/<aid>]  owner/view: annotations
 
 Split into a package (beautify-phase-2a, Tasks 1-3): the shared run/registry
 core (SQL-target constants, source/metric registry, run pipeline, auth/audit)
@@ -41,7 +42,18 @@ re-export rather than any use in this module's own code.
 """
 
 from ...db import engine_statistics_db
-from . import admin_registry, ai, catalog, export, health, pages, reports, run, schedules
+from . import (
+    admin_registry,
+    ai,
+    annotations,
+    catalog,
+    export,
+    health,
+    pages,
+    reports,
+    run,
+    schedules,
+)
 from ._shared import (
     _CURATED_ENGINES,
     _METRIC_LABEL_ATTRS,
@@ -176,4 +188,5 @@ def register_routes(app):
     export.register_routes(app)
     reports.register_routes(app)
     schedules.register_routes(app)
+    annotations.register_routes(app)
     health.register_routes(app)
