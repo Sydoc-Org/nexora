@@ -1648,7 +1648,8 @@ def test_export_forecast_fits_on_widened_history_not_visible_window(admin_client
     assert resp.status_code == 200
     assert mock_widen_prepare.call_count == 1
     widened_rd = mock_widen_prepare.call_args_list[0].args[0]
-    assert widened_rd["filters"][0]["op"] == "between"
+    # Half-open fit window, same shape as api_run's widened rerun.
+    assert [f["op"] for f in widened_rd["filters"]] == ["gte", "lt"]
     assert "compare" not in widened_rd
     text = resp.data.decode("utf-8-sig")
     # horizon 3 (explicit in _FC_WIDE_DEF) -> 3 marker rows; only reachable if
@@ -1862,10 +1863,10 @@ _LAYOUT_OK = {
 
 
 def test_reports_create_layout_is_validated(admin_client):
-    bad = dict(_LAYOUT_OK, measures=[{"id": "m1", "op": "delta"}])
+    bad = dict(_LAYOUT_OK, measures=[{"id": "m1", "op": "nope"}])
     resp = admin_client.post("/api/reporting/reports", json={"name": "L", "definition": bad})
     assert resp.status_code == 400
-    assert "delta" in resp.get_json()["detail"]
+    assert "nope" in resp.get_json()["detail"]
 
 
 def test_reports_create_layout_ok_then_update_is_validated(admin_client):
@@ -1981,7 +1982,7 @@ def test_run_with_inline_layout_previews_without_saving(admin_client):
 
 
 def test_run_with_invalid_inline_layout_falls_back_invalid(admin_client):
-    body = dict(_FC_DEF, layout=dict(_LAYOUT_OK, measures=[{"id": "m1", "op": "delta"}]))
+    body = dict(_FC_DEF, layout=dict(_LAYOUT_OK, measures=[{"id": "m1", "op": "nope"}]))
     with (
         patch(
             "nx_lib.views.reporting.run._prepare_run", return_value=(_FC_COLS, "SELECT 1", [], None)
