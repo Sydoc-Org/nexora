@@ -8,7 +8,7 @@ SOURCE = {
     "code": "contrib_test_src",
     "kind": "curated",
     "label": "Contrib Test Src",
-    "permission": "reporting.source.docprocessing",
+    "permission": "reporting.source.docprocessing.use",
     "provider": "table",
     "engine": "nexora",
     "baseObject": "dbo.Users",
