@@ -2,6 +2,9 @@
   // Jinja-rendered strings for static/js/reporting_simple.js (#191). Babel still
   // extracts from templates/**.html, so only the behaviour moved out.
   window.NX_I18N_REPORTING_SIMPLE = {
+    layoutStandard: {{ _("Standard")|tojson }},
+    layoutPick: {{ _("Report definition")|tojson }},
+    layoutFallback: {{ _("This report’s definition is not available anymore — showing the Standard layout.")|tojson }},
     forecastLabel: {{ _("Forecast")|tojson }},
     forecastNote: {{ _("Dotted line and shaded band are forecast values, not actuals.")|tojson }},
     forecastUnavailable: {{ _("Not enough history to forecast this series.")|tojson }},

@@ -77,6 +77,12 @@ def test_create_app_registers_profile_endpoint():
     assert "profile" in endpoints
 
 
+def test_create_app_registers_reporting_definitions_endpoint():
+    app = create_app()
+    endpoints = {r.endpoint for r in app.url_map.iter_rules()}
+    assert "reporting_definitions" in endpoints
+
+
 def test_create_app_registers_generali_routes():
     app = create_app()
     endpoints = {r.endpoint for r in app.url_map.iter_rules()}

@@ -115,6 +115,10 @@
         <div class="rs-wizard-footer">
           <button id="rsWizardBack" class="nx-btn nx-btn--ghost" data-testid="rs-wizard-back">&larr; {{ _("Back") }}</button>
           <span class="rs-wizard-footer-spacer"></span>
+          <label class="rs-layout-pick" title="{{ _('Report definition') }}">
+            <i class="fas fa-sliders" aria-hidden="true"></i>
+            <select id="rsLayoutPick" class="rc-select" data-testid="rs-layout-pick"></select>
+          </label>
           <span id="rsPickedCount" class="rs-picked-count" data-testid="rs-picked-count"></span>
           <button type="button" id="rsMeasureNext" class="nx-btn nx-btn--primary" hidden data-testid="rs-measure-next">{{ _("Continue") }}</button>
           <button type="button" id="rsScopeNext" class="nx-btn nx-btn--primary" data-testid="rs-scope-next">{{ _("Continue") }}</button>
@@ -221,6 +225,7 @@
       <div id="rsKpiBand" class="reporting-ledger-kpis nx-rise" hidden data-testid="rs-kpi-band"></div>
     </div>
     <div class="rs-result-main">
+      <div id="rsLayoutGrid" class="rdb-grid rl-grid" hidden data-testid="rs-layout-grid"></div>
       <div class="nx-card nx-card--pad reporting-simple-chartcard nx-rise-2" id="rsChartCard" hidden data-testid="rs-chart-card">
         <div class="reporting-simple-charttools" id="rsChartTools" hidden data-testid="rs-chart-tools">
           <span id="rsChartTitle" class="rs-chart-title" data-testid="rs-chart-title"></span>
@@ -316,6 +321,11 @@
      owns rendering its header/filter-bar/grid into this container. #}
   <div id="rsDashboard" class="reporting-dashboard" hidden data-testid="rs-dashboard"
        data-can-export="{{ 1 if has_permission('reporting.export') else 0 }}"></div>
+
+  {# Report-definitions editor (kind:'layout' saved reports). Empty by design:
+     window.ReportingLayouts (js/_reporting_layouts_js.html) renders into it. #}
+  <div id="rsLayouts" class="reporting-layouts" hidden data-testid="rs-layouts"></div>
 </section>
 {% include 'js/_reporting_simple_js.html' %}
 {% include 'js/_reporting_dashboard_js.html' %}
+{% include 'js/_reporting_layouts_js.html' %}

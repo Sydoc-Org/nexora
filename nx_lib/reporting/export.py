@@ -45,7 +45,25 @@ def _safe_cell(v):
     return v
 
 
-def rows_to_xlsx(columns, rows, *, title, chart_png=None, generated_at=None, forecast_start=None):
+def derived_export_rows(layout, derived, *, header_label):
+    """Two-column block for a layout's measures: [[header, ''], [label, value], …]."""
+    out = [[header_label, ""]]
+    for m in layout.get("measures") or []:
+        d = derived.get(m["id"]) or {}
+        label = m["op"] if m["op"] != "percentile" else f"percentile {m.get('q', 0.5)}"
+        if d.get("unavailable") or not d:
+            out.append([label, "—"])
+        elif m["op"] == "minmax":
+            out.append(["min", d.get("min")])
+            out.append(["max", d.get("max")])
+        else:
+            out.append([label, d.get("value")])
+    return out
+
+
+def rows_to_xlsx(
+    columns, rows, *, title, chart_png=None, generated_at=None, forecast_start=None, extra_rows=None
+):
     """Return .xlsx bytes: bold title, meta line, optional chart image, then
     a styled header row and the data.
 
@@ -111,6 +129,14 @@ def rows_to_xlsx(columns, rows, *, title, chart_png=None, generated_at=None, for
             if is_fc:
                 cell.font = fc_font
 
+    if extra_rows:
+        start = header_row + len(row_list) + 2  # one blank row after the data
+        for i, extra in enumerate(extra_rows):
+            for c_off, val in enumerate(extra, start=1):
+                cell = ws.cell(row=start + i, column=c_off, value=_safe_cell(val))
+                if i == 0:
+                    cell.font = header_font
+
     ws.freeze_panes = ws.cell(row=header_row + 1, column=1)
 
     buf = io.BytesIO()
@@ -118,7 +144,7 @@ def rows_to_xlsx(columns, rows, *, title, chart_png=None, generated_at=None, for
     return buf.getvalue()
 
 
-def rows_to_csv(columns, rows):
+def rows_to_csv(columns, rows, *, extra_rows=None):
     """Return UTF-8 (BOM-prefixed) .csv bytes for `rows` with a header row.
 
     columns: [{field, header}] — header falls back to field when None/empty.
@@ -133,4 +159,8 @@ def rows_to_csv(columns, rows):
     writer.writerow([_safe_cell(c.get("header") or c["field"]) for c in columns])
     for row in rows:
         writer.writerow(["" if v is None else _safe_cell(v) for v in row])
+    if extra_rows:
+        writer.writerow([])
+        for extra in extra_rows:
+            writer.writerow([_safe_cell(v) for v in extra])
     return ("﻿" + buf.getvalue()).encode("utf-8")

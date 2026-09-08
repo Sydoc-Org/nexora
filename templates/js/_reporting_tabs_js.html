@@ -13,7 +13,7 @@
 // nx.reporting.tab storage key keep their historical names; 'simple' is an
 // accepted alias for 'library'.
 (function () {
-  var SCREENS = ['library', 'results', 'dashboards', 'scheduled', 'advanced'];
+  var SCREENS = ['library', 'results', 'dashboards', 'definitions', 'scheduled', 'advanced'];
   var csrf = document.querySelector('meta[name="csrf-token"]').content;
   var API_PREFIX = window.API_PREFIX;
   var current = null;
@@ -80,7 +80,7 @@
   document.addEventListener('rs:viewchanged', function (e) {
     if (current === 'scheduled' || current === 'advanced') return;
     var v = e.detail.view;
-    var screen = v === 'result' ? 'results' : v === 'dashboard' ? 'dashboards' : 'library';
+    var screen = v === 'result' ? 'results' : v === 'dashboard' ? 'dashboards' : v === 'layouts' ? 'definitions' : 'library';
     current = screen;
     highlight(screen);
     try { localStorage.setItem('nx.reporting.tab', screen); } catch (e2) {}
@@ -96,9 +96,11 @@
   document.addEventListener('rs:libraryloaded', function (e) {
     var reports = e.detail.reports || [];
     var dash = reports.filter(function (r) { return r.kind === 'dashboard'; }).length;
+    var lay = reports.filter(function (r) { return r.kind === 'layout'; }).length;
     var lib = el('rcNavLibraryCount'), db = el('rcNavDashboardsCount');
-    if (lib) lib.textContent = String(reports.length - dash);
+    if (lib) lib.textContent = String(reports.length - dash - lay);
     if (db) db.textContent = dash ? String(dash) : '';
+    var ld = el('rcNavDefinitionsCount'); if (ld) ld.textContent = String(lay);
   });
   document.addEventListener('rc:schedloaded', function (e) {
     var c = el('rcNavScheduledCount');

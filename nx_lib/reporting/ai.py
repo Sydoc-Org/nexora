@@ -625,6 +625,43 @@ def report_context_text(report, *, metrics, source_label, include_rows):
                     "The chart/table already show the projected buckets appended after the "
                     "real data — describe them as the forecast, not as more actuals."
                 )
+    layout = report.get("layout")
+    if isinstance(layout, dict) and isinstance(layout.get("measures"), list) and layout["measures"]:
+        if include_rows:
+            derived = report.get("derived") if isinstance(report.get("derived"), dict) else {}
+            op_labels = {
+                "current": "current value",
+                "mean": "average",
+                "minmax": "min/max",
+                "range": "range",
+                "stddev": "standard deviation",
+                "percentile": "percentile",
+            }
+            parts = []
+            for m in layout["measures"]:
+                if not isinstance(m, dict) or not m.get("id"):
+                    continue
+                op = m.get("op")
+                op_str = op if isinstance(op, str) else "measure"
+                label = op_labels.get(op_str, op_str)
+                entry = derived.get(m["id"]) if isinstance(derived, dict) else None
+                if not isinstance(entry, dict) or entry.get("unavailable"):
+                    parts.append(f"{label}: —")
+                elif "value" in entry:
+                    parts.append(f"{label}: {entry['value']:g}")
+                elif "min" in entry and "max" in entry:
+                    parts.append(f"{label}: {entry['min']:g}-{entry['max']:g}")
+                else:
+                    parts.append(f"{label}: —")
+            if parts:
+                lines.append(
+                    "Layout measures (this report is shown as a tile layout): " + "; ".join(parts)
+                )
+        else:
+            lines.append(
+                "This report is shown as a tile layout with computed measures; their values "
+                "are not shared with you."
+            )
     if include_rows:
         columns = report.get("columns")
         rows = report.get("rows")

@@ -40,7 +40,7 @@
 
   // ---- State model (D2/D3 -- exact shape, Tasks 12-15 build on this) -------
   var state = { editing: false, dirty: false, reportId: null, canEdit: true,
-                dragId: null, overId: null, seq: 100, def: null };
+                seq: 100, def: null };
 
   var DEFAULT_SPAN = { kpi: 3, chart: 8, table: 6, report: 12 };
 
@@ -54,9 +54,7 @@
   var GRID_COLS = 12, MAX_ROWS = 6;
 
   function clampInt(v, lo, hi, dflt) {
-    var n = parseInt(v, 10);
-    if (!isFinite(n)) n = dflt;
-    return Math.max(lo, Math.min(hi, n));
+    return window.ReportingGrid.clampInt(v, lo, hi, dflt);
   }
 
   function cardSpan(c) {
@@ -68,7 +66,7 @@
   }
 
   function cardGeomStyle(span, rows) {
-    return 'grid-column:span ' + span + ';--rdb-cardrows:' + rows;
+    return window.ReportingGrid.geomStyle(span, rows);
   }
 
   function blankDef() {
@@ -137,7 +135,7 @@
     state.canEdit = true;
     state.editing = true;
     state.dirty = true;   // nothing persisted yet -- first Done must create it
-    state.dragId = null; state.overId = null; state.seq = 100;
+    state.seq = 100;
     render();
   }
 
@@ -169,7 +167,6 @@
     state.canEdit = !!report.canEdit;
     state.editing = false;
     state.dirty = false;
-    state.dragId = null; state.overId = null;
     state.seq = nextSeqFor(state.def.cards);
     await hydrateCards(state.def.cards);
     if (state.def !== report.definition) return;   // another dashboard opened meanwhile
@@ -333,16 +330,22 @@
         return;
       }
     });
-    // Drag-to-reorder (D10, ported 1:1 from the prototype's onDragStart/
-    // onDragOver/onDrop/onDragEnd) -- delegated on the grid since HTML5 DnD
-    // events bubble and cards are rebuilt on every render.
-    // Corner-resize drags (Pointer Events) are delegated on the grid for the
-    // same reason: the handle is rebuilt with its card on every render.
-    el('rdbGrid').addEventListener('pointerdown', handleGridPointerDown);
-    el('rdbGrid').addEventListener('dragstart', handleGridDragStart);
-    el('rdbGrid').addEventListener('dragover', handleGridDragOver);
-    el('rdbGrid').addEventListener('drop', handleGridDrop);
-    el('rdbGrid').addEventListener('dragend', handleGridDragEnd);
+    // Drag-to-reorder + corner resize (D10) -- delegated on the grid via the
+    // shared engine (static/js/reporting_grid.js) since HTML5 DnD events
+    // bubble and cards (and the resize handle) are rebuilt on every render.
+    window.ReportingGrid.attach(el('rdbGrid'), {
+      cols: GRID_COLS, maxRows: MAX_ROWS,
+      isEditing: function () { return state.editing; },
+      items: function () { return (state.def && state.def.cards) || []; },
+      findItem: findCardById,
+      findEl: findCardEl,
+      onReorder: function (from, to) {
+        state.def.cards = window.ReportingGrid.moveIndex(state.def.cards, from, to);
+        state.dirty = true;
+      },
+      onResize: function (card, span, rows) { card.span = span; card.rows = rows; state.dirty = true; },
+      geomStyle: cardGeomStyle
+    });
     // Filter popover / export menu: outside-click / Escape close -- same
     // idiom as the Simple pane's rs-more-menu (hidden flag + outside-click +
     // Escape).
@@ -1190,7 +1193,7 @@
     var fc = (card.viz && card.viz.forecast !== undefined) ? card.viz.forecast
            : ((card.definition || {}).forecast || false);
     var horizon = (fc && fc.horizon) ? String(fc.horizon) : 'auto';
-    return '<div class="reporting-simple-charttools rdb-card-tools" data-testid="rdb-card-tools">' +
+    return '<div class="reporting-simple-charttools rdb-card-tools" data-testid="rdb-card-tools" draggable="false">' +
       '<div class="rs-chart-track">' +
       CHART_TYPES.map(function (t) {
         return '<button type="button" class="reporting-chartbtn" data-type="' + t[0] + '" title="' + esc(I18N[t[2]]) +
@@ -1655,167 +1658,14 @@
     if (state.editing) grid.insertAdjacentHTML('beforeend', addTileHtml());
   }
 
-  // ---- Drag-to-reorder (D10) ---------------------------------------------
-  // Live reorder: the dragged card is spliced to its landing position the
-  // moment the pointer enters a different card, so the grid itself is the
-  // preview -- the dashed .rdb-card--dragging box sits exactly where the card
-  // will end up, and drop() only has to clear the drag state. Cards are moved
-  // by direct DOM insertBefore() (reorderGridDom) rather than a renderGrid()
-  // re-render, so an in-flight drag never tears down/rebuilds Chart.js
-  // canvases or re-fetches every card's data mid-reorder. -----------------
-  function handleGridDragStart(e) {
-    // A corner-resize drag starts with a pointerdown on the same (draggable)
-    // card, so never let it turn into an HTML5 reorder drag as well.
-    if (resizing || (e.target.closest && (e.target.closest('[data-testid="rdb-card-resize"]') ||
-                                           e.target.closest('[data-testid="rdb-card-tools"]')))) {
-      e.preventDefault();
-      return;
-    }
-    var cardEl = e.target.closest && e.target.closest('[data-card-id]');
-    if (!state.editing || !cardEl) return;
-    state.dragId = cardEl.getAttribute('data-card-id');
-    state.overId = null;
-    if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
-    cardEl.classList.add('rdb-card--dragging');
-    el('rdbGrid').classList.add('rdb-grid--dragging');
-  }
-
-  function handleGridDragOver(e) {
-    if (!state.editing || !state.dragId) return;
-    var cardEl = e.target.closest && e.target.closest('[data-card-id]');
-    if (!cardEl) return;
-    e.preventDefault();  // required for drop to fire
-    var id = cardEl.getAttribute('data-card-id');
-    // Hovering the dragged card itself is a no-op that deliberately does NOT
-    // clear overId: right after a live move the pointer sits over the moved
-    // card, and re-entering the same neighbour must not splice it back and
-    // forth (that oscillation is what a drop-only reorder avoids for free).
-    if (id === state.dragId || id === state.overId) return;
-    state.overId = id;
-    moveDragged(id);
-  }
-
-  // FLIP: measure every card, move the DOM nodes, measure again, then play
-  // each card from its old spot to its new one so neighbours slide instead
-  // of jumping (the transition lives on .rdb-grid--dragging .rdb-card).
-  function reorderGridDom() {
-    var grid = el('rdbGrid');
-    var addTile = grid.querySelector('[data-testid="rdb-add-tile"]');
-    var nodes = [], before = [];
-    (state.def.cards || []).forEach(function (c) {
-      var node = findCardEl(c.id);
-      if (!node) return;
-      nodes.push(node); before.push(node.getBoundingClientRect());
-    });
-    nodes.forEach(function (node) { grid.insertBefore(node, addTile || null); });
-    nodes.forEach(function (node, i) {
-      var a = node.getBoundingClientRect();
-      var dx = before[i].left - a.left, dy = before[i].top - a.top;
-      if (!dx && !dy) return;
-      node.style.transition = 'none';
-      node.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
-    });
-    // Next frame: drop the inverse transform under the CSS transition.
-    requestAnimationFrame(function () {
-      nodes.forEach(function (node) { node.style.transition = ''; node.style.transform = ''; });
-    });
-  }
-
-  function moveDragged(toId) {
-    var cards = (state.def && state.def.cards) || [];
-    var fi = cards.findIndex(function (c) { return c.id === state.dragId; });
-    var ti = cards.findIndex(function (c) { return c.id === toId; });
-    if (fi < 0 || ti < 0 || fi === ti) return;
-    // ti is read off the PRE-removal array (the inner splice is evaluated
-    // first), which is what lands a forward drag after the hovered card and a
-    // backward drag before it -- the same index arithmetic the drop-time
-    // reorder used.
-    cards.splice(ti, 0, cards.splice(fi, 1)[0]);
-    state.dirty = true;
-    reorderGridDom();
-  }
-
-  function endDrag() {
-    var dragEl = state.dragId && findCardEl(state.dragId);
-    if (dragEl) dragEl.classList.remove('rdb-card--dragging');
-    var grid = el('rdbGrid');
-    if (grid) grid.classList.remove('rdb-grid--dragging');
-    state.dragId = null; state.overId = null;
-  }
-
-  function handleGridDrop(e) {
-    if (!state.editing || !state.dragId) return;
-    e.preventDefault();  // the reorder already happened on dragover
-    endDrag();
-  }
-
-  function handleGridDragEnd() { endDrag(); }
-
-  // ---- Corner resize (span x rows, Pointer Events) ------------------------
-  // No library: the drag maps pixel delta -> whole grid columns / rows,
-  // writes the new geometry straight onto the element's inline style for live
-  // feedback, and commits it to the card (marking the dashboard dirty) on
-  // release. Nothing re-renders while dragging -- every chart is built
-  // responsive:true/maintainAspectRatio:false, so Chart.js re-fits each one
-  // as its container changes size.
-  // ponytail: a line card's fill gradient is built once from the wrap height
-  // at creation, so a resized line card keeps its original fade until the
-  // card re-runs (Edit -> Done). Rebuild it per resize if that ever shows.
-  var resizing = null;
-
-  function pxVar(name, dflt) {
-    var raw = getComputedStyle(el('rdbGrid')).getPropertyValue(name);
-    var n = parseFloat(raw);
-    return isFinite(n) && n > 0 ? n : dflt;
-  }
-
+  // ---- Drag-to-reorder + corner resize (D10) ------------------------------
+  // The drag-to-reorder and Pointer-Events corner-resize engine lives in the
+  // shared static/js/reporting_grid.js (window.ReportingGrid.attach), wired
+  // up in ensureShell(). This dashboard only keeps the bits the shared engine
+  // doesn't own: the resize-handle markup and the span/rows readers.
   function cardResizeHandleHtml() {
     return '<span class="rdb-card-resize" data-testid="rdb-card-resize" ' +
       'title="' + esc(I18N.resizeCard) + '" aria-hidden="true"></span>';
-  }
-
-  function handleGridPointerDown(e) {
-    var handle = e.target.closest && e.target.closest('[data-testid="rdb-card-resize"]');
-    if (!state.editing || !handle) return;
-    var cardEl = handle.closest('[data-card-id]');
-    var card = cardEl && findCardById(cardEl.getAttribute('data-card-id'));
-    if (!card) return;
-    e.preventDefault();  // suppresses the native drag this pointerdown would start
-    var gap = pxVar('--rdb-gap', 14);
-    var gridW = el('rdbGrid').getBoundingClientRect().width;
-    var span = cardSpan(card), rows = cardRows(card);
-    resizing = { card: card, cardEl: cardEl, x: e.clientX, y: e.clientY,
-                 span: span, rows: rows, nextSpan: span, nextRows: rows,
-                 colStep: (gridW - gap * (GRID_COLS - 1)) / GRID_COLS + gap,
-                 rowStep: pxVar('--rdb-row', 118) + gap };
-    cardEl.classList.add('rdb-card--resizing');
-    window.addEventListener('pointermove', handleResizeMove);
-    window.addEventListener('pointerup', handleResizeEnd);
-  }
-
-  function handleResizeMove(e) {
-    if (!resizing) return;
-    var span = clampInt(resizing.span + Math.round((e.clientX - resizing.x) / resizing.colStep),
-                        1, GRID_COLS, resizing.span);
-    var rows = clampInt(resizing.rows + Math.round((e.clientY - resizing.y) / resizing.rowStep),
-                        1, MAX_ROWS, resizing.rows);
-    if (span === resizing.nextSpan && rows === resizing.nextRows) return;
-    resizing.nextSpan = span;
-    resizing.nextRows = rows;
-    resizing.cardEl.setAttribute('style', cardGeomStyle(span, rows));
-  }
-
-  function handleResizeEnd() {
-    if (!resizing) return;
-    var r = resizing;
-    resizing = null;
-    window.removeEventListener('pointermove', handleResizeMove);
-    window.removeEventListener('pointerup', handleResizeEnd);
-    r.cardEl.classList.remove('rdb-card--resizing');
-    if (r.nextSpan === r.span && r.nextRows === r.rows) return;
-    r.card.span = r.nextSpan;
-    r.card.rows = r.nextRows;
-    state.dirty = true;   // Done autosaves the new geometry like any edit
   }
 
   // ---- Duplicate / remove (D10) ------------------------------------------
@@ -1909,7 +1759,7 @@
     var res = await api('/api/reporting/reports');
     if (!addMask.open) return;   // closed meanwhile
     var reports = (res.ok && Array.isArray(res.data)) ? res.data.filter(function (r) {
-      return r.owned && r.kind !== 'sql' && r.kind !== 'dashboard';
+      return r.owned && r.kind !== 'sql' && r.kind !== 'dashboard' && r.kind !== 'layout';
     }) : [];
     el('rdbMaskBody').innerHTML =
       '<p class="rdb-mask-step">' + esc(I18N.maskStepReport) + '</p>' + maskReportsHtml(reports);

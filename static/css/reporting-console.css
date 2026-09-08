@@ -1712,7 +1712,8 @@ body.reporting-console.rdb-fullbleed .reporting-shell { max-width: none; padding
 body.reporting-console.rdb-fullbleed .rc-body { grid-template-columns: minmax(0, 1fr); }
 body.reporting-console.rdb-fullbleed .rc-rail { display: none; }
 body.reporting-console.rdb-fullbleed .reporting-simple { max-width: none; padding-inline: 0; }
-body.reporting-console.rdb-fullbleed .reporting-dashboard { max-width: none; padding: 4px 0 60px; }
+body.reporting-console.rdb-fullbleed .reporting-dashboard,
+body.reporting-console.rdb-fullbleed .reporting-layouts { max-width: none; padding: 4px 0 60px; }
 
 /* Present: the dashboard element is the fullscreen element. Page background,
    room to breathe, no chrome that only makes sense in the app. */

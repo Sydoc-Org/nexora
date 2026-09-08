@@ -7,6 +7,7 @@ dashboard route tests.
 """
 
 import io
+import json
 from datetime import date, datetime, time, timedelta
 from unittest.mock import patch
 
@@ -1845,3 +1846,178 @@ def test_field_values_without_perm_403(user_client):
         json={"source": "field_values_test_src", "field": "username"},
     )
     assert resp.status_code == 403
+
+
+# --- Task 3: Layout validation on save ---
+
+
+_LAYOUT_OK = {
+    "kind": "layout",
+    "schemaVersion": 1,
+    "title": "Ops standard",
+    "measures": [{"id": "m1", "op": "mean"}],
+    "tiles": [{"id": "t1", "type": "kpi", "measure": "m1", "span": 3, "rows": 2}],
+}
+
+
+def test_reports_create_layout_is_validated(admin_client):
+    bad = dict(_LAYOUT_OK, measures=[{"id": "m1", "op": "delta"}])
+    resp = admin_client.post("/api/reporting/reports", json={"name": "L", "definition": bad})
+    assert resp.status_code == 400
+    assert "delta" in resp.get_json()["detail"]
+
+
+def test_reports_create_layout_ok_then_update_is_validated(admin_client):
+    resp = admin_client.post("/api/reporting/reports", json={"name": "L", "definition": _LAYOUT_OK})
+    assert resp.status_code == 200
+    rid = resp.get_json()["id"]
+    try:
+        bad = dict(_LAYOUT_OK, tiles=[{"id": "t1", "type": "table", "span": 99, "rows": 1}])
+        upd = admin_client.put(
+            f"/api/reporting/reports/{rid}", json={"name": "L", "definition": bad}
+        )
+        assert upd.status_code == 400
+        assert "span" in upd.get_json()["detail"]
+    finally:
+        admin_client.delete(f"/api/reporting/reports/{rid}")
+
+
+def _create_layout(client, layout=_LAYOUT_OK):
+    resp = client.post("/api/reporting/reports", json={"name": "L", "definition": layout})
+    assert resp.status_code == 200
+    return resp.get_json()["id"]
+
+
+def test_run_with_owned_layout_returns_layout_and_derived(admin_client):
+    rid = _create_layout(admin_client)
+    try:
+        body = dict(_FC_DEF, layoutId=rid)
+        with (
+            patch(
+                "nx_lib.views.reporting.run._prepare_run",
+                return_value=(_FC_COLS, "SELECT 1", [], None),
+            ),
+            patch("nx_lib.views.reporting.run._execute", return_value=_FC_ROWS),
+        ):
+            resp = admin_client.post("/api/reporting/run", json=body)
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["layout"]["kind"] == "layout"
+        assert data["derived"]["m1"]["op"] == "mean" and "value" in data["derived"]["m1"]
+        assert "layoutFallback" not in data
+    finally:
+        admin_client.delete(f"/api/reporting/reports/{rid}")
+
+
+def test_run_with_missing_layout_falls_back(admin_client):
+    body = dict(_FC_DEF, layoutId=999_999_999)
+    with (
+        patch(
+            "nx_lib.views.reporting.run._prepare_run", return_value=(_FC_COLS, "SELECT 1", [], None)
+        ),
+        patch("nx_lib.views.reporting.run._execute", return_value=_FC_ROWS),
+    ):
+        resp = admin_client.post("/api/reporting/run", json=body)
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["layoutFallback"] == "missing"
+    assert "layout" not in data and "derived" not in data
+
+
+def test_run_with_foreign_layout_falls_back(admin_client):
+    # admin_client and user_client both derive from tests/conftest.py's single
+    # cached `client` fixture (re-logged-in per derived fixture, last login
+    # wins), so they can't be used as two live sessions in one test; and
+    # user@test.local lacks reporting.view entirely (test_run_invalid_json_
+    # returns_400_or_403 relies on that 403). Instead the layout is created
+    # directly via SQL owned by user@test.local, mirroring
+    # test_shared_report_visible_to_non_owner above, and run as admin (who has
+    # reporting.view but is not the owner).
+    conn = engine_nexora_db.raw_connection()
+    rid = None
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT userID FROM dbo.Users WHERE username = 'user@test.local'")
+        owner = cur.fetchone()[0]
+        cur.execute(
+            "INSERT INTO dbo.Reports (OwnerUserID, Name, DefinitionJSON) "
+            "OUTPUT INSERTED.ReportID VALUES (?, ?, ?)",
+            (owner, "L", json.dumps(_LAYOUT_OK)),
+        )
+        rid = cur.fetchone()[0]
+        conn.commit()
+
+        body = dict(_FC_DEF, layoutId=rid)
+        with (
+            patch(
+                "nx_lib.views.reporting.run._prepare_run",
+                return_value=(_FC_COLS, "SELECT 1", [], None),
+            ),
+            patch("nx_lib.views.reporting.run._execute", return_value=_FC_ROWS),
+        ):
+            resp = admin_client.post("/api/reporting/run", json=body)
+        assert resp.status_code == 200
+        assert resp.get_json()["layoutFallback"] == "missing"
+    finally:
+        if rid is not None:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM dbo.Reports WHERE ReportID = ?", (rid,))
+            conn.commit()
+        conn.close()
+
+
+def test_run_with_inline_layout_previews_without_saving(admin_client):
+    body = dict(_FC_DEF, layout=_LAYOUT_OK)
+    with (
+        patch(
+            "nx_lib.views.reporting.run._prepare_run", return_value=(_FC_COLS, "SELECT 1", [], None)
+        ),
+        patch("nx_lib.views.reporting.run._execute", return_value=_FC_ROWS),
+    ):
+        resp = admin_client.post("/api/reporting/run", json=body)
+    assert resp.status_code == 200
+    assert resp.get_json()["derived"]["m1"]["op"] == "mean"
+
+
+def test_run_with_invalid_inline_layout_falls_back_invalid(admin_client):
+    body = dict(_FC_DEF, layout=dict(_LAYOUT_OK, measures=[{"id": "m1", "op": "delta"}]))
+    with (
+        patch(
+            "nx_lib.views.reporting.run._prepare_run", return_value=(_FC_COLS, "SELECT 1", [], None)
+        ),
+        patch("nx_lib.views.reporting.run._execute", return_value=_FC_ROWS),
+    ):
+        resp = admin_client.post("/api/reporting/run", json=body)
+    assert resp.status_code == 200
+    assert resp.get_json()["layoutFallback"] == "invalid"
+
+
+def test_export_csv_appends_measures_block_for_layout(admin_client):
+    rid = _create_layout(admin_client)
+    try:
+        body = dict(_FC_DEF, format="csv", layoutId=rid)
+        with (
+            patch(
+                "nx_lib.views.reporting.export._prepare_run",
+                return_value=(_FC_COLS, "SELECT 1", [], None),
+            ),
+            patch("nx_lib.views.reporting.export._execute", return_value=_FC_ROWS),
+        ):
+            resp = admin_client.post("/api/reporting/export", json=body)
+        assert resp.status_code == 200
+        text = resp.data.decode("utf-8-sig")
+        assert "Measures" in text and "\nmean," in text.replace("\r", "")
+    finally:
+        admin_client.delete(f"/api/reporting/reports/{rid}")
+
+
+def test_reporting_definitions_redirects_into_the_console(admin_client):
+    resp = admin_client.get("/reporting/definitions")
+    assert resp.status_code == 302
+    assert resp.headers["Location"].endswith("/reporting?tab=definitions")
+
+
+def test_reporting_definitions_requires_reporting_view(client):
+    resp = client.get("/reporting/definitions")
+    assert resp.status_code in (302, 401, 403)
+    assert "tab=definitions" not in (resp.headers.get("Location") or "")
