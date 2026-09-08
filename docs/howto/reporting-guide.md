@@ -234,6 +234,13 @@ deleting anything you saved.
    shows *this* month every time it is opened or emailed — it does not freeze on
    the month you built it in.
 
+   **Filters (optional)** on the same step narrow the report beyond the date
+   range and the process scope: *Add filter*, pick a field, an operator
+   (`=`, `≠`, contains, starts with, `>`, `<`, is empty …) and type a value.
+   Add as many as you need; each one becomes an editable chip above the result,
+   so you can change or drop it there without reopening the wizard. Date fields
+   are not offered here — the time range above already covers them.
+
 Then **Show result**. To change something afterwards, hit **Adjust** — the
 wizard reopens with all your answers still selected. The chips above the
 result are editable too: clicking the **Processes** chip or any *is one of*
@@ -559,28 +566,44 @@ a report can render its result through, instead of the usual chart + table.
 It is the reporting equivalent of a template: build it once, then pick it for
 any report where you want that shape.
 
-**Creating one.** Open **Report definitions** in the left navigation, then
-**New definition**:
+**Creating one.** Open **Report definitions** in the left navigation. The
+screen opens on an **overview** — one card per definition you own, with its
+measures and tile count — plus a **New definition** card. Click a card to open
+it; the **back arrow** returns to the overview, and from there to the Library.
 
 - **Add a measure** for each number you want, then pick what it computes (see
-  the six measures below).
+  the measures below).
 - **Add a tile** — a KPI tile (one measure, optionally with a small
   sparkline), a chart (bar, stacked bar, line, area, pie, doughnut or gauge)
   or a table.
+- **Add a panel** — the result's side cards as tiles: **Eddard insight**,
+  **Ask Eddard**, **Anomalies** and **Query**. A definition owns the whole
+  result: whatever you do not place as a panel is not shown when a report
+  renders through it.
 - **Drag** tiles to arrange them and **resize** by their corner grip, the same
   way a dashboard card works.
+- **Preview with** a saved report to see real numbers while you build. The
+  preview re-runs on every change, so a new measure fills in at once.
 - **Done** saves it.
 
-**The six measures, in plain words:**
+**The measures, in plain words:**
 
 | Measure | Shows |
 |---|---|
 | Current | The latest value — for a report broken down by time, the most recent bucket; otherwise the total. |
+| Total | The sum over every bucket — the standard result's **Total**. |
+| Delta vs previous period | Total now minus the total of the period before (same length, shifted back), with the percent change. Needs a report with exactly one relative date filter, e.g. *This month*. |
+| Buckets | How many periods (rows) the result has. |
+| Avg per bucket | Total divided by buckets. |
 | Mean | The average across every bucket. |
+| Median | The middle value — half the buckets are above it, half below. |
 | Min / max | The smallest and largest values seen. |
 | Range | The gap between the smallest and the largest. |
 | Standard deviation | How spread out the values are around the average. |
 | Percentile | The value below which a chosen percentage of the data falls (e.g. the 90th percentile). |
+
+A chart tile draws a report with **two breakdowns** (e.g. month and customer)
+as one series per second-breakdown value, the same as the standard chart.
 
 **Using one.** Pick a report definition at the top of the guided builder, or
 next to **Saved reports** in the Advanced builder — do this before you run,
@@ -690,7 +713,7 @@ A dashboard saves, shares and deletes exactly like any other report.
 | **Bucket** | One bar/point of the chart — one month, one category, … |
 | **Drill-through** | Clicking a number to see the individual documents behind it. |
 | **Report definition** | A saved bundle of measures and a tile layout a report can render its result through, in place of the standard chart + table. |
-| **Measure (definition)** | One computed number inside a report definition — current, mean, min/max, range, standard deviation or percentile. |
+| **Measure (definition)** | One computed number inside a report definition — current, total, delta vs previous period, buckets, avg per bucket, mean, median, min/max, range, standard deviation or percentile. |
 
 ---
 

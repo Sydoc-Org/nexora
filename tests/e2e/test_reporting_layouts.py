@@ -196,6 +196,9 @@ def test_definitions_screen_lists_layout_and_edits_persist(nexora_server, page):
     expect(page.get_by_test_id("rs-card")).to_have_count(1)
     page.get_by_test_id("rc-nav-definitions").click()
     expect(page.get_by_test_id("rs-layouts")).to_be_visible()
+    # Overview first: one card per owned definition plus the "new" card.
+    expect(page.get_by_test_id("rl-card")).to_have_count(1)
+    page.get_by_test_id("rl-card").click()
     expect(page.get_by_test_id("rl-title")).to_have_text("Ops standard")
     expect(page.get_by_test_id("rl-tile")).to_have_count(4)
 
@@ -210,6 +213,11 @@ def test_definitions_screen_lists_layout_and_edits_persist(nexora_server, page):
     _wait_until(lambda: len(saved.get("updates", [])) > before)
     updated = saved["updates"][-1]
     assert any(m["op"] == "stddev" for m in updated["definition"]["measures"])
+    # Back: editor -> overview -> library.
+    page.get_by_test_id("rl-back").click()
+    expect(page.get_by_test_id("rl-overview")).to_be_visible()
+    page.get_by_test_id("rl-back").click()
+    expect(page.get_by_test_id("rs-library")).to_be_visible()
 
 
 def test_definitions_redirect_route_opens_the_screen(nexora_server, page):
@@ -217,7 +225,7 @@ def test_definitions_redirect_route_opens_the_screen(nexora_server, page):
     _stub(page, {})
     page.goto(f"{nexora_server}/reporting/definitions")
     expect(page).to_have_url(re.compile(r"tab=definitions"))
-    expect(page.get_by_test_id("rl-grid")).to_be_visible(timeout=15000)
+    expect(page.get_by_test_id("rl-overview")).to_be_visible(timeout=15000)
 
 
 @pytest.mark.skip(

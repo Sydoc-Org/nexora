@@ -46,7 +46,9 @@ GRAINS = {"day", "week", "month", "quarter", "year"}
 
 # Layouts ("Report definitions" in the UI): a saved report with kind 'layout'
 # — derived measures plus a 12-column tile grid a report can render with.
-LAYOUT_TILE_TYPES = {"kpi", "chart", "table"}
+LAYOUT_TILE_TYPES = {"kpi", "chart", "table", "panel"}
+# Result side-column pieces a definition can place as tiles (#191 console).
+LAYOUT_PANELS = {"caption", "ask", "anomalies", "sql"}
 LAYOUT_CHARTS = {"bar", "stacked_bar", "line", "area", "pie", "doughnut", "gauge"}
 LAYOUT_MAX_TILES = 24
 LAYOUT_MAX_MEASURES = 24
@@ -327,6 +329,8 @@ def validate_layout_definition(layout):
             )
         if t["type"] == "chart" and t.get("chart") not in LAYOUT_CHARTS:
             raise ReportDefinitionError(f"unknown chart type: {t.get('chart')!r}")
+        if t["type"] == "panel" and t.get("panel") not in LAYOUT_PANELS:
+            raise ReportDefinitionError(f"unknown panel: {t.get('panel')!r}")
         span, rows = t.get("span"), t.get("rows")
         if isinstance(span, bool) or not isinstance(span, int) or not 1 <= span <= LAYOUT_GRID_COLS:
             raise ReportDefinitionError(f"tile span must be an int in [1, {LAYOUT_GRID_COLS}]")

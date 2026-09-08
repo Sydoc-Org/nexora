@@ -869,7 +869,7 @@ def test_valid_layout_passes():
         ({"kind": "dashboard"}, "kind"),
         ({"schemaVersion": 2}, "schemaVersion"),
         ({"title": ""}, "title"),
-        ({"measures": [{"id": "m1", "op": "delta"}]}, "op"),
+        ({"measures": [{"id": "m1", "op": "nope"}]}, "op"),
         ({"measures": [{"id": "m1", "op": "mean"}, {"id": "m1", "op": "mean"}]}, "duplicate"),
         ({"measures": [{"id": "m1", "op": "percentile", "q": 1.5}]}, "q"),
         ({"tiles": [{"id": "t1", "type": "gauge", "span": 3, "rows": 2}]}, "type"),
@@ -926,3 +926,13 @@ def test_layout_id_must_be_positive_int(bad):
     d = dict(_valid_def(), layoutId=bad)
     with pytest.raises(ReportDefinitionError):
         validate_report_definition(d, CATALOG_FIELDS, FILTERABLE, SORTABLE, max_row_limit=10000)
+
+
+def test_layout_panel_tile_needs_known_panel():
+    validate_layout_definition(
+        _layout(tiles=[{"id": "p1", "type": "panel", "panel": "sql", "span": 4, "rows": 3}])
+    )
+    with pytest.raises(ReportDefinitionError):
+        validate_layout_definition(
+            _layout(tiles=[{"id": "p1", "type": "panel", "panel": "nope", "span": 4, "rows": 3}])
+        )

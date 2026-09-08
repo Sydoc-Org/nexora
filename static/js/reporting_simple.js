@@ -70,6 +70,13 @@
   }
   RS.setView = setView;
 
+  // A report definition owns the whole result: the side column (Eddard,
+  // Anomalies, Query) only shows through the definition's panel tiles.
+  function toggleSideColumn(layoutActive) {
+    var side = document.querySelector('#rsResult .rs-result-side');
+    if (side) side.hidden = !!layoutActive;
+  }
+
   // Console "Results" nav: bring back the last rendered result from cache.
   // Returns false when this session has no rendered result yet.
   function restoreResult() {
@@ -85,7 +92,8 @@
           '<div class="rdb-card-body" data-tile-body></div></div>';
       }).join('');
       window.ReportingLayoutView.render(lgrid, { layout: lr.layout, def: cur.def, columns: lr.columns, rows: lr.rows,
-        derived: lr.derived || {}, i18n: window.NX_I18N_REPORTING_LAYOUTS });
+        derived: lr.derived || {}, i18n: window.NX_I18N_REPORTING_LAYOUTS, live: true });
+      toggleSideColumn(true);
       RS.el('rsKpiBand').hidden = true;
       RS.el('rsChartCard').hidden = true;
       RS.el('rsTableCard').hidden = true;
@@ -94,6 +102,7 @@
     }
     lgrid.hidden = true;
     if (window.ReportingLayoutView) window.ReportingLayoutView.destroy(lgrid);
+    toggleSideColumn(false);
     if (lr.hasMetrics && lr.dims) {
       RS.mountChart(cur.def, lr.columns, lr.rows,
         (cur.def.forecast && cur.def.forecast.enabled) ? (lr.forecast || null) : null);
@@ -495,7 +504,9 @@
           '<div class="rdb-card-body" data-tile-body></div></div>';
       }).join('');
       window.ReportingLayoutView.render(lgrid, { layout: res.data.layout, def: def, columns: columns, rows: rows,
-        derived: res.data.derived || {}, i18n: window.NX_I18N_REPORTING_LAYOUTS });
+        derived: res.data.derived || {}, i18n: window.NX_I18N_REPORTING_LAYOUTS, live: true });
+      RS.renderAnomalies(def, columns, rows);   // fills the Anomalies card if a panel tile adopted it
+      toggleSideColumn(true);
       RS.el('rsKpiBand').hidden = true;   // the band host renderKpiBand writes into
       RS.el('rsChartCard').hidden = true;
       RS.el('rsTableCard').hidden = true;
@@ -507,6 +518,7 @@
     }
     lgrid.hidden = true;
     if (window.ReportingLayoutView) window.ReportingLayoutView.destroy(lgrid);
+    toggleSideColumn(false);
     var charted = (hasMetrics && dims)
       ? !!RS.mountChart(def, columns, rows, res.data.forecast || null) : false;
     syncForecastCtl(def, res.data.forecast || null, charted);
@@ -990,6 +1002,7 @@
   // itself -- it announces intent via a custom event instead of reaching
   // into this module's functions (D3).
   document.addEventListener('rs:dashboard-closed', exitToLibrary);
+  document.addEventListener('rs:layouts-closed', exitToLibrary);
 
   RS.el('rsRunAgain').addEventListener('click', function () {
     if (RS.state.current) runCurrent();

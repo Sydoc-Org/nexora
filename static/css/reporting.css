@@ -226,6 +226,12 @@
   flex: 1 0 100%;
 }
 
+.rs-wiz-filters { margin-top: 14px; }
+.rs-wiz-filters h4 { margin-bottom: 6px; }
+/* The wizard step card is wide, so the narrow-well rule above (field name on
+   its own line) is wrong here -- keep field/op/value on one row. */
+.rs-wiz-filters .reporting-filter-row > select:first-child { flex: 1 0 auto; }
+
 .reporting-filter-row select,
 .reporting-filter-row input {
   flex: 1;
@@ -2583,7 +2589,8 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 .rl-previewbar { display: flex; justify-content: flex-end; margin-bottom: 10px; font-size: 12.5px; color: var(--nx-text-meta); }
 .rl-tile .rdb-card-body { display: flex; flex-direction: column; }
 .rl-kpi { display: flex; flex-direction: column; gap: 4px; }
-.rl-kpi-value { font: 600 26px var(--nx-font); letter-spacing: -.5px; color: var(--nx-text); }
+.rl-tile { container-type: inline-size; }
+.rl-kpi-value { font: 600 clamp(15px, 13cqw, 26px) var(--nx-font); letter-spacing: -.5px; color: var(--nx-text); }
 .rl-kpi-sub { font-size: 11px; color: var(--nx-text-meta); }
 .rl-kpi-spark { height: 28px; margin-top: 4px; }
 .rl-chart { position: relative; flex: 1 1 auto; min-height: 120px; }
@@ -2592,6 +2599,16 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 .rl-table table { width: 100%; border-collapse: collapse; }
 .rl-table th, .rl-table td { padding: 4px 8px; border-bottom: 1px solid var(--nx-border); text-align: left; white-space: nowrap; }
 .rl-placeholder { flex: 1; display: grid; place-items: center; color: var(--nx-text-meta); font-size: 12px; }
+.rl-kpi--up .rl-kpi-value { color: var(--nx-success, #15803d); }
+.rl-kpi--down .rl-kpi-value { color: var(--nx-danger, #b91c1c); }
+.rl-tile[data-type="panel"] .rdb-card-body > * { width: 100%; }
+.rl-overview { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.rl-card { display: flex; flex-direction: column; gap: 4px; text-align: left; padding: 14px 16px; border: 1px solid var(--nx-border); border-radius: 12px; background: var(--nx-card); color: var(--nx-text); cursor: pointer; min-height: 96px; }
+.rl-card:hover { border-color: var(--nx-accent); }
+.rl-card--new { justify-content: center; align-items: center; border-style: dashed; color: var(--nx-text-meta); }
+.rl-card-title { font: 600 14px var(--nx-font); }
+.rl-card-meta { font-size: 11.5px; color: var(--nx-text-meta); }
+.rl-card-measures { font-size: 12px; color: var(--nx-text-meta); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ---- KPI ---------------------------------------------------------------- */
 

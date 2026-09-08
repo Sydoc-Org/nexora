@@ -47,6 +47,17 @@ def _preview_summary(defn):
                 s = 6
             mini.append({"t": t, "s": max(1, min(12, s))})
         return {"cards": mini, "cardCount": len(cards)}
+    if defn.get("kind") == "layout":
+        # Definitions overview card: measure ops + tile count.
+        ms_raw, tiles_raw = defn.get("measures"), defn.get("tiles")
+        ms: list = ms_raw if isinstance(ms_raw, list) else []
+        tiles: list = tiles_raw if isinstance(tiles_raw, list) else []
+        return {
+            "measures": [
+                m["op"] for m in ms if isinstance(m, dict) and isinstance(m.get("op"), str)
+            ],
+            "tiles": len(tiles),
+        }
     cols_raw = defn.get("columns")
     cols = cols_raw if isinstance(cols_raw, list) else []
     grain = ""

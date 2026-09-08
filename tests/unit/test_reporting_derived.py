@@ -111,4 +111,33 @@ def test_too_many_rows_reports_unavailable_rows():
 
 def test_unknown_op_raises_value_error():
     with pytest.raises(ValueError):
-        compute_derived(_layout({"id": "m", "op": "delta"}), RD, COLS, ROWS)
+        compute_derived(_layout({"id": "m", "op": "nope"}), RD, COLS, ROWS)
+
+
+def test_total_buckets_avg_bucket_median():
+    out = compute_derived(
+        _layout(
+            {"id": "t", "op": "total"},
+            {"id": "b", "op": "buckets"},
+            {"id": "a", "op": "avg_bucket"},
+            {"id": "md", "op": "median"},
+        ),
+        RD,
+        COLS,
+        ROWS,
+    )
+    assert out["t"]["value"] == 100
+    assert out["b"]["value"] == 4
+    assert out["a"]["value"] == 25
+    assert out["md"]["value"] == 25
+
+
+def test_delta_needs_comparison_rows():
+    out = compute_derived(_layout({"id": "d", "op": "delta"}), RD, COLS, ROWS)
+    assert out["d"] == {"op": "delta", "unavailable": "no_comparison"}
+    prior = [["2025-12-01", 30], ["2025-12-02", 50]]
+    out = compute_derived(
+        _layout({"id": "d", "op": "delta"}), RD, COLS, ROWS, comparison_rows=prior
+    )
+    assert out["d"]["value"] == 20 and out["d"]["prior"] == 80
+    assert math.isclose(out["d"]["pct"], 0.25)

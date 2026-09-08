@@ -7,6 +7,27 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Filters in the Simple wizard** — the Time step gained an optional
+  *Filters* block: `Add filter` builds field/operator/value rows (the same ops
+  the Advanced tab offers, minus the date presets, which the time range above
+  already covers). Each filter lands in the report definition and renders as an
+  editable chip above the result, so it can be adjusted or removed without
+  reopening the wizard, and *Adjust* now maps such reports back into the wizard
+  instead of falling back to Advanced.
+- **Report definitions grow up** — the Definitions screen opens on an overview
+  of your definitions (cards with measures and tile count) with a back arrow
+  to the overview and the Library; five new measures (*Total*, *Delta vs
+  previous period*, *Buckets*, *Avg per bucket*, *Median*) mirror the standard
+  KPI band; the result's side cards (Eddard insight, Ask Eddard, Anomalies,
+  Query) become optional **panel tiles**, so a definition owns the whole result
+  and nothing bleeds in beside it; the editor preview re-runs on every change.
+
+### Fixed
+- **Definition chart tiles said "Not available"** for decimal measures (hours,
+  amounts): the run API serialises them as strings, which the tile renderer
+  rejected. Numeric strings now count, and a report with two breakdowns pivots
+  the second one into series like the standard chart.
+
 - **MediaMarkt scan protocol moves off Excel** — the Sydoc tenant gets a generated
   CRUD page `/t/sydoc/mediamarkt` (migration `0126`) over the new
   `SYDOC_Statistik.dbo.MediaMarkt_Batches` table: one row per scanned batch with

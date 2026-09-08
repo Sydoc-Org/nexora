@@ -9,16 +9,43 @@
   var SERIES = ['--nx-series-1', '--nx-series-2', '--nx-series-3', '--nx-series-4', '--nx-series-5'];
 
   function isNum(v) { return typeof v === 'number' && isFinite(v); }
-  function seriesFor(columns, rows, def) {
-    var labels = rows.map(function (r) { return r[0] == null ? '' : String(r[0]).slice(0, 10); });
-    var datasets = [];
+  // SUM/AVG over a decimal column arrives as a numeric string ("938.4499"):
+  // Flask serialises Decimal that way. Coerce, but never treat '' as 0.
+  function num(v) {
+    if (isNum(v)) return v;
+    if (typeof v === 'string' && v.trim() !== '' && isFinite(Number(v))) return Number(v);
+    return null;
+  }
+  function numericCols(columns, rows) {
+    var out = [];
     for (var i = 1; i < columns.length; i++) {
       var cells = rows.map(function (r) { return r[i]; }).filter(function (v) { return v != null; });
-      if (!cells.length || !cells.every(isNum)) continue;
-      var col = columns[i];
-      datasets.push({ label: col.header || col.field, data: rows.map(function (r) { return isNum(r[i]) ? r[i] : null; }) });
+      if (cells.length && cells.every(function (v) { return num(v) != null; })) out.push(i);
     }
-    return { labels: labels, datasets: datasets };
+    return out;
+  }
+  function seriesFor(columns, rows, def) {
+    var nums = numericCols(columns, rows);
+    var lbl = function (v) { return v == null ? '' : String(v).slice(0, 10); };
+    // Two dimensions + one metric (e.g. month / customer / hours): pivot the
+    // second dimension into one series per value, like the standard chart.
+    if (nums.length === 1 && columns.length >= 3 && nums[0] !== 1) {
+      var idx = nums[0], labels = [], seen = {}, groups = {}, order = [];
+      rows.forEach(function (r) {
+        var x = lbl(r[0]); if (!seen[x]) { seen[x] = true; labels.push(x); }
+        var g = r[1] == null ? '' : String(r[1]);
+        if (!groups[g]) { groups[g] = {}; order.push(g); }
+        groups[g][x] = (groups[g][x] || 0) + (num(r[idx]) || 0);
+      });
+      return { labels: labels, datasets: order.map(function (g) {
+        return { label: g, data: labels.map(function (x) { return x in groups[g] ? groups[g][x] : null; }) };
+      }) };
+    }
+    var labels = rows.map(function (r) { return lbl(r[0]); });
+    return { labels: labels, datasets: nums.map(function (i) {
+      var col = columns[i];
+      return { label: col.header || col.field, data: rows.map(function (r) { return num(r[i]); }) };
+    }) };
   }
   function cssVar(name, dflt) {
     if (typeof getComputedStyle !== 'function') return dflt;
@@ -30,9 +57,23 @@
     if (v == null || !isFinite(v)) return '—';
     return new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(v);
   }
+  var PANEL_IDS = { caption: 'rsCaptionCard', ask: 'rsAskEddard', anomalies: 'rsAnomCard', sql: 'rsSqlView' };
+  var adopted = [];   // [{node, parent, next}] side-column nodes moved into tiles
+  function adopt(node, body) {
+    if (!node.__rlHome) node.__rlHome = { parent: node.parentNode, next: node.nextSibling };
+    body.appendChild(node);
+    adopted.push(node);
+  }
+  function restorePanels() {
+    adopted.splice(0).forEach(function (n) {
+      var h = n.__rlHome; if (!h || !h.parent) return;
+      if (h.next && h.next.parentNode === h.parent) h.parent.insertBefore(n, h.next); else h.parent.appendChild(n);
+    });
+  }
   function destroy(host) {
     (charts.get(host) || []).forEach(function (c) { try { c.destroy(); } catch (e) {} });
     charts.set(host, []);
+    restorePanels();
   }
   function keep(host, chart) { var list = charts.get(host) || []; list.push(chart); charts.set(host, list); }
 
@@ -40,10 +81,16 @@
     var d = (ctx.derived || {})[tile.measure] || {};
     var ms = (ctx.layout.measures || []).find(function (m) { return m.id === tile.measure; }) || {};
     var label = (ctx.i18n && ctx.i18n.op && ctx.i18n.op[ms.op]) || ms.op || '';
-    var value = d.unavailable ? '—' : (ms.op === 'minmax' ? fmt(d.min) + ' – ' + fmt(d.max) : fmt(d.value));
+    var value = d.unavailable ? '—'
+      : ms.op === 'minmax' ? fmt(d.min) + ' – ' + fmt(d.max)
+      : ms.op === 'delta' ? (d.value > 0 ? '+' : '') + fmt(d.value)
+      : fmt(d.value);
     var sub = d.unavailable ? (ctx.i18n ? ctx.i18n.unavailable : d.unavailable)
-      : (ms.op === 'percentile' ? 'p' + Math.round((ms.q || 0.5) * 100) : (d.n != null ? 'n = ' + d.n : ''));
-    return '<div class="rl-kpi" title="' + esc(d.unavailable || '') + '">' +
+      : ms.op === 'percentile' ? 'p' + Math.round((ms.q || 0.5) * 100)
+      : ms.op === 'delta' ? (isNum(d.pct) ? (d.pct > 0 ? '+' : '') + Math.round(d.pct * 100) + ' %' : '')
+      : (d.n != null ? 'n = ' + d.n : '');
+    var tone = ms.op === 'delta' && !d.unavailable && d.value ? (d.value > 0 ? ' rl-kpi--up' : ' rl-kpi--down') : '';
+    return '<div class="rl-kpi' + tone + '" title="' + esc(d.unavailable || '') + '">' +
       '<span class="rl-kpi-label rdb-card-meta">' + esc(label) + '</span>' +
       '<span class="rl-kpi-value" data-testid="rl-kpi-value">' + esc(value) + '</span>' +
       '<span class="rl-kpi-sub">' + esc(sub) + '</span>' +
@@ -111,6 +158,12 @@
       var card = host.querySelector('[data-card-id="' + tile.id + '"]');
       var body = card && card.querySelector('[data-tile-body]');
       if (!body) return;
+      if (tile.type === 'panel') {
+        var live = ctx.live && document.getElementById(PANEL_IDS[tile.panel]);
+        if (live) { adopt(live, body); if (tile.panel === 'sql') live.hidden = !live.querySelector('pre').textContent; }
+        else body.innerHTML = '<div class="rl-placeholder">' + esc((ctx.i18n.panel || {})[tile.panel] || tile.panel) + '</div>';
+        return;
+      }
       if (!hasData && tile.type !== 'kpi') {
         body.innerHTML = '<div class="rl-placeholder">' + esc(tile.type === 'chart' ? (ctx.i18n.chart[tile.chart] || tile.chart) : ctx.i18n.table) + '</div>';
         return;
@@ -128,5 +181,5 @@
     });
   }
 
-  window.ReportingLayoutView = { render: render, seriesFor: seriesFor, destroy: destroy };
+  window.ReportingLayoutView = { render: render, seriesFor: seriesFor, destroy: destroy, num: num };
 }());

@@ -947,6 +947,11 @@ body.reporting-console #rsKpiBand .rs-kpi-value-wrap { align-items: baseline; }
 .rs-result-main:has(> #rsTableCard[hidden]) .rs-chart-body { flex: 1; height: auto; }
 .rs-result-main:has(> #rsChartCard[hidden]) { grid-template-columns: minmax(0, 1fr); }
 .rs-result-main:has(> .rs-result-side:empty) { grid-template-columns: minmax(0, 1fr); }
+/* A report definition renders the whole result as tiles: the side column steps
+   aside (its cards live inside panel tiles) and the tile grid takes the row. */
+.rs-result-side[hidden] { display: none; }
+.rs-result-main:has(> .rs-result-side[hidden]) { grid-template-columns: minmax(0, 1fr); }
+.rs-result-main > #rsLayoutGrid { grid-column: 1 / -1; }
 body.reporting-console .reporting-simple-chartcard {
   display: flex;
   flex-direction: column;

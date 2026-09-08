@@ -96,17 +96,39 @@ def _minmax(nums, ctx):
     return {"min": min(nums), "max": max(nums)}
 
 
+def _delta(nums, ctx):
+    """Total now minus total over the comparison window (the standard band's
+    "vs previous period" chip). Needs the run's comparison rows; without them
+    the measure is unavailable rather than wrong."""
+    prior_rows = ctx.get("comparison_rows")
+    if prior_rows is None:
+        return {"unavailable": NO_COMPARISON_UNAVAILABLE}
+    prior = _numbers(prior_rows, ctx["idx"])
+    cur, prev = sum(nums), sum(prior)
+    out = {"value": cur - prev, "prior": prev}
+    if prev:
+        out["pct"] = (cur - prev) / abs(prev)
+    return out
+
+
+NO_COMPARISON_UNAVAILABLE = "no_comparison"
+
 OPS = {
     "current": _current,
+    "total": lambda nums, ctx: sum(nums),
+    "buckets": lambda nums, ctx: float(len(nums)),
+    "avg_bucket": lambda nums, ctx: sum(nums) / len(nums),
     "mean": lambda nums, ctx: statistics.fmean(nums),
+    "median": lambda nums, ctx: statistics.median(nums),
     "minmax": _minmax,
     "range": lambda nums, ctx: max(nums) - min(nums),
     "stddev": lambda nums, ctx: statistics.stdev(nums) if len(nums) > 1 else 0.0,
     "percentile": lambda nums, ctx: _percentile(sorted(nums), ctx["measure"].get("q", 0.5)),
+    "delta": _delta,
 }
 
 
-def compute_derived(layout, rd, columns, rows):
+def compute_derived(layout, rd, columns, rows, comparison_rows=None):
     measures = layout.get("measures") or []
     for m in measures:
         if m.get("op") not in OPS:
@@ -126,10 +148,15 @@ def compute_derived(layout, rd, columns, rows):
         if not nums:
             out[m["id"]] = {"op": m["op"], "unavailable": METRIC_COLUMN_UNAVAILABLE}
             continue
-        res = OPS[m["op"]](nums, {"rd": rd, "rows": rows, "idx": idx, "measure": m})
+        res = OPS[m["op"]](
+            nums,
+            {"rd": rd, "rows": rows, "idx": idx, "measure": m, "comparison_rows": comparison_rows},
+        )
         entry = {"op": m["op"], "n": len(nums)}
         if isinstance(res, dict):
             entry.update(res)
+            if "unavailable" in res:
+                entry.pop("n", None)
         else:
             entry["value"] = float(res)
         if m["op"] == "percentile":

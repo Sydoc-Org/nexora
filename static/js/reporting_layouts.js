@@ -8,10 +8,11 @@
   var API_PREFIX = window.API_PREFIX;
   var api = window.NX.apiSafe, el = window.NX.el, esc = window.NX.esc, toast = window.NX.toast;
   var I18N = window.NX_I18N_REPORTING_LAYOUTS;
-  var OPS = ['current', 'mean', 'minmax', 'range', 'stddev', 'percentile'];
+  var OPS = ['current', 'total', 'delta', 'buckets', 'avg_bucket', 'mean', 'median', 'minmax', 'range', 'stddev', 'percentile'];
+  var PANELS = ['caption', 'ask', 'anomalies', 'sql'];
   var CHARTS = ['bar', 'stacked_bar', 'line', 'area', 'pie', 'doughnut', 'gauge'];
   var GRID_COLS = 12, MAX_ROWS = 8;
-  var DEFAULT_GEOM = { kpi: [3, 2], chart: [9, 4], table: [12, 4] };
+  var DEFAULT_GEOM = { kpi: [3, 2], chart: [9, 4], table: [12, 4], panel: [4, 3] };
 
   var state = { editing: false, dirty: false, reportId: null, def: null, seq: 100,
                 previewId: null, preview: null, saveTimer: null };
@@ -42,12 +43,23 @@
                      { id: 't3', type: 'table', span: 12, rows: 4 }] };
   }
   function nextId(prefix) { state.seq += 1; return prefix + state.seq; }
-  function markDirty() {
-    state.dirty = true;
-    clearTimeout(state.saveTimer);
-    state.saveTimer = setTimeout(save, 600);   // autosave like the dashboard's Done
-    render();
+  // Continue after the highest numeric id already in use -- counting items
+  // instead collided with an existing id once anything had been removed.
+  function nextSeqFor(def) {
+    var max = 100;
+    (def.tiles || []).concat(def.measures || []).forEach(function (x) {
+      var n = parseInt(String(x.id).replace(/^\D+/, ''), 10);
+      if (n > max) max = n;
+    });
+    return max;
   }
+  // Autosave 600ms after the last edit (like the dashboard's Done) and, when a
+  // preview report is picked, re-run it so new measures/tiles fill in at once.
+  function scheduleSave() {
+    clearTimeout(state.saveTimer);
+    state.saveTimer = setTimeout(function () { save(); if (state.previewId) runPreview(); }, 600);
+  }
+  function markDirty() { state.dirty = true; scheduleSave(); render(); }
 
   // ---- persistence (existing /api/reporting/reports CRUD) -----------------
   async function save() {
@@ -72,10 +84,17 @@
   }
 
   // ---- public entry points ------------------------------------------------
-  function open() {
-    ensureShell();
-    if (!state.def) { var first = layouts()[0]; if (first) { openLayout(first); return; } }
+  function open() { ensureShell(); render(); }
+  function toOverview() {
+    clearTimeout(state.saveTimer);
+    if (state.dirty) save();
+    state.def = null; state.reportId = null; state.editing = false; state.preview = null;
     render();
+  }
+  function back() {
+    if (state.def) { toOverview(); return; }
+    close();
+    document.dispatchEvent(new CustomEvent('rs:layouts-closed'));
   }
   function openNew() {
     ensureShell();
@@ -89,7 +108,7 @@
     var res = await api('/api/reporting/reports/' + report.id);
     if (!res.ok || !res.data) { toast(I18N.saveFailed, 'error'); return; }
     state.reportId = String(report.id); state.def = res.data.definition; state.editing = false; state.dirty = false;
-    state.seq = 100 + (state.def.tiles || []).length + (state.def.measures || []).length;
+    state.seq = nextSeqFor(state.def);
     render();
   }
   function close() { state.editing = false; if (el('rsLayouts')) el('rsLayouts').hidden = true; }
@@ -100,17 +119,19 @@
     built = true;
     el('rsLayouts').innerHTML =
       '<div class="rdb-head rl-head">' +
+        '<button type="button" id="rlBack" class="nx-btn nx-btn--secondary" data-testid="rl-back">' +
+          '<i class="fas fa-arrow-left" aria-hidden="true"></i> <span id="rlBackLabel"></span></button>' +
         '<div class="rdb-titleblock"><div class="rdb-titlerow">' +
           '<h2 class="rdb-title" id="rlTitle" data-testid="rl-title"></h2>' +
           '<input id="rlTitleInput" class="reporting-input rdb-title-input" hidden data-testid="rl-title-input">' +
         '</div><p class="rdb-meta" id="rlMeta"></p></div>' +
         '<span class="rdb-spacer"></span>' +
-        '<select id="rlList" class="rc-select" data-testid="rl-list"></select>' +
         '<button type="button" id="rlNew" class="rc-btn" data-testid="rl-new">' + esc(I18N.newDefinition) + '</button>' +
         '<button type="button" id="rlDelete" class="rc-btn" data-testid="rl-delete">' + esc(I18N.delete_) + '</button>' +
         '<button type="button" id="rlEdit" class="rc-btn rc-btn--primary" data-testid="rl-edit"></button>' +
       '</div>' +
-      '<div class="rl-body">' +
+      '<div id="rlOverview" class="rl-overview" data-testid="rl-overview"></div>' +
+      '<div class="rl-body" id="rlBody">' +
         '<aside class="rl-rail" id="rlRail" data-testid="rl-rail"></aside>' +
         '<div class="rl-main">' +
           '<div class="rl-previewbar"><label>' + esc(I18N.previewWith) + ' <select id="rlPreview" class="rc-select" data-testid="rl-preview"></select></label></div>' +
@@ -120,8 +141,11 @@
     el('rlNew').addEventListener('click', openNew);
     el('rlDelete').addEventListener('click', remove);
     el('rlEdit').addEventListener('click', function () { state.editing = !state.editing; if (!state.editing) save(); render(); });
-    el('rlList').addEventListener('change', function () {
-      var r = layouts().find(function (x) { return String(x.id) === el('rlList').value; });
+    el('rlBack').addEventListener('click', back);
+    el('rlOverview').addEventListener('click', function (e) {
+      var c = e.target.closest('[data-open-layout]'); if (!c) return;
+      if (c.dataset.openLayout === 'new') { openNew(); return; }
+      var r = layouts().find(function (x) { return String(x.id) === c.dataset.openLayout; });
       if (r) openLayout(r);
     });
     el('rlPreview').addEventListener('change', function () { state.previewId = el('rlPreview').value || null; runPreview(); });
@@ -146,7 +170,7 @@
       onResize: function (tile, span, rows) { tile.span = span; tile.rows = rows; markDirty(); }
     });
   }
-  function markDirtyNoRender() { state.dirty = true; clearTimeout(state.saveTimer); state.saveTimer = setTimeout(save, 600); }
+  function markDirtyNoRender() { state.dirty = true; scheduleSave(); }
   function commitTitle() {
     var v = el('rlTitleInput').value.trim();
     el('rlTitleInput').hidden = true; el('rlTitle').hidden = false;
@@ -171,7 +195,13 @@
       }).join('') + '</ul>' +
       '<h4 class="rl-rail-h">' + esc(I18N.tiles) + '</h4>' +
       '<button type="button" class="rl-pal" data-add-tile="chart" data-testid="rl-add-chart"' + (state.editing ? '' : ' disabled') + '>' + esc(I18N.addChart) + '</button>' +
-      '<button type="button" class="rl-pal" data-add-tile="table" data-testid="rl-add-table"' + (state.editing ? '' : ' disabled') + '>' + esc(I18N.addTable) + '</button>';
+      '<button type="button" class="rl-pal" data-add-tile="table" data-testid="rl-add-table"' + (state.editing ? '' : ' disabled') + '>' + esc(I18N.addTable) + '</button>' +
+      '<h4 class="rl-rail-h">' + esc(I18N.panels) + '</h4>' +
+      PANELS.map(function (pn) {
+        var used = (state.def.tiles || []).some(function (t) { return t.type === 'panel' && t.panel === pn; });
+        return '<button type="button" class="rl-pal" data-add-panel="' + pn + '" data-testid="rl-add-panel-' + pn + '"' +
+          (state.editing && !used ? '' : ' disabled') + '>' + esc(I18N.panel[pn]) + '</button>';
+      }).join('');
     return m;
   }
   function onRailClick(e) {
@@ -186,6 +216,9 @@
     } else if (b.dataset.removeMeasure) {
       state.def.measures = state.def.measures.filter(function (x) { return x.id !== b.dataset.removeMeasure; });
       state.def.tiles = state.def.tiles.filter(function (t) { return t.measure !== b.dataset.removeMeasure; });
+      markDirty();
+    } else if (b.dataset.addPanel) {
+      state.def.tiles.push({ id: nextId('t'), type: 'panel', panel: b.dataset.addPanel, span: DEFAULT_GEOM.panel[0], rows: DEFAULT_GEOM.panel[1] });
       markDirty();
     } else if (b.dataset.addTile) {
       var t = { id: nextId('t'), type: b.dataset.addTile, span: DEFAULT_GEOM[b.dataset.addTile][0], rows: DEFAULT_GEOM[b.dataset.addTile][1] };
@@ -205,7 +238,7 @@
   function tileShellHtml(t) {
     var head = t.type === 'kpi'
       ? esc(I18N.op[(state.def.measures.find(function (m) { return m.id === t.measure; }) || {}).op] || '')
-      : t.type === 'chart' ? esc(I18N.chart[t.chart]) : esc(I18N.table);
+      : t.type === 'chart' ? esc(I18N.chart[t.chart]) : t.type === 'panel' ? esc(I18N.panel[t.panel]) : esc(I18N.table);
     var tools = '';
     if (state.editing) {
       if (t.type === 'chart') {
@@ -265,12 +298,19 @@
   }
 
   // ---- render ----------------------------------------------------------------
+  function cardHtml(r) {
+    var sm = r.summary || {};
+    var ms = (sm.measures || []).map(function (op) { return I18N.op[op] || op; });
+    return '<button type="button" class="rl-card" data-open-layout="' + r.id + '" data-testid="rl-card">' +
+      '<span class="rl-card-title">' + esc(r.name) + '</span>' +
+      '<span class="rl-card-meta">' + esc(I18N.cardMeta.replace('{m}', ms.length).replace('{t}', sm.tiles || 0)) + '</span>' +
+      '<span class="rl-card-measures">' + esc(ms.join(' \u00b7 ')) + '</span></button>';
+  }
+  function renderOverview() {
+    el('rlOverview').innerHTML = layouts().map(cardHtml).join('') +
+      '<button type="button" class="rl-card rl-card--new" data-open-layout="new" data-testid="rl-card-new">+ ' + esc(I18N.newDefinition) + '</button>';
+  }
   function renderList() {
-    var list = layouts();
-    el('rlList').innerHTML = list.map(function (r) {
-      return '<option value="' + r.id + '"' + (String(r.id) === state.reportId ? ' selected' : '') + '>' + esc(r.name) + '</option>';
-    }).join('');
-    el('rlList').hidden = !list.length;
     var prev = runnable();
     el('rlPreview').innerHTML = '<option value="">' + esc(prev.length ? '—' : I18N.previewNone) + '</option>' +
       prev.map(function (r) { return '<option value="' + r.id + '"' + (String(r.id) === state.previewId ? ' selected' : '') + '>' + esc(r.name) + '</option>'; }).join('');
@@ -281,10 +321,12 @@
     var has = !!state.def;
     el('rlTitle').textContent = has ? state.def.title : I18N.title;
     el('rlMeta').textContent = has ? I18N.tilesMeta.replace('{n}', String(state.def.tiles.length)) : I18N.intro;
+    el('rlBackLabel').textContent = has ? I18N.title : I18N.library;
     el('rlEdit').textContent = state.editing ? I18N.done : I18N.edit;
-    el('rlEdit').hidden = !has; el('rlDelete').hidden = !has || !state.reportId;
+    el('rlEdit').hidden = !has; el('rlDelete').hidden = !has || !state.reportId; el('rlNew').hidden = has;
+    el('rlOverview').hidden = has; el('rlBody').hidden = !has;
     el('rlRail').innerHTML = has ? railHtml() : '';
-    if (has) renderTiles(); else el('rlGrid').innerHTML = '';
+    if (has) renderTiles(); else { el('rlGrid').innerHTML = ''; renderOverview(); }
   }
 
   window.ReportingLayouts = { open: open, openNew: openNew, openLayout: openLayout, close: close };

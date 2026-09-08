@@ -217,7 +217,17 @@ def api_run():
         "sqlDisplay": inline_sql_params(pretty, params),
         "params": [_json_safe(p) for p in params],
     }
-    if rd.get("compare"):
+    try:
+        layout, layout_fallback = _layout_block(rd, session.get("userid"))
+    except Exception as e:  # a layout problem must never take down the run
+        current_app.logger.warning(f"/api/reporting/run layout skipped: {e}")
+        layout, layout_fallback = None, None
+    # A layout with a "delta" measure needs the prior window even when the
+    # report itself never asked for a comparison.
+    wants_delta = layout is not None and any(
+        m.get("op") == "delta" for m in layout.get("measures") or []
+    )
+    if rd.get("compare") or wants_delta:
         shifted = shifted_definition_for_comparison(rd)
         if shifted is not None:
             shifted_rd, prior_start, prior_end = shifted
@@ -241,15 +251,13 @@ def api_run():
             payload["forecast"] = _forecast_for(rd, columns, rows)
         except Exception as e:  # a forecast must never take down the run
             current_app.logger.warning(f"/api/reporting/run forecast skipped: {e}")
-    try:
-        layout, layout_fallback = _layout_block(rd, session.get("userid"))
-    except Exception as e:  # a layout problem must never take down the run
-        current_app.logger.warning(f"/api/reporting/run layout skipped: {e}")
-        layout, layout_fallback = None, None
     if layout is not None:
         payload["layout"] = layout
         try:
-            payload["derived"] = compute_derived(layout, rd, columns, rows)
+            c_rows = None
+            if payload.get("comparison"):
+                c_rows = [list(r) for r in payload["comparison"]["rows"]]
+            payload["derived"] = compute_derived(layout, rd, columns, rows, comparison_rows=c_rows)
         except Exception as e:  # a measure must never take down the run
             current_app.logger.warning(f"/api/reporting/run derived skipped: {e}")
     elif layout_fallback:

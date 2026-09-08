@@ -23,8 +23,22 @@
     sparkline: {{ _("Sparkline")|tojson }},
     percentileQ: {{ _("Percentile")|tojson }},
     tilesMeta: {{ _("{n} tiles · drag to rearrange · drag a corner to resize")|tojson }},
+    library: {{ _("Library")|tojson }},
+    panels: {{ _("Panels")|tojson }},
+    cardMeta: {{ _("{m} measures · {t} tiles")|tojson }},
+    panel: {
+      caption: {{ _("Eddard insight")|tojson }},
+      ask: {{ _("Ask Eddard")|tojson }},
+      anomalies: {{ _("Anomalies")|tojson }},
+      sql: {{ _("Query")|tojson }}
+    },
     op: {
       current: {{ _("Current value")|tojson }},
+      total: {{ _("Total")|tojson }},
+      delta: {{ _("Delta vs previous period")|tojson }},
+      buckets: {{ _("Buckets")|tojson }},
+      avg_bucket: {{ _("Avg per bucket")|tojson }},
+      median: {{ _("Median")|tojson }},
       mean: {{ _("Mean")|tojson }},
       minmax: {{ _("Min / Max")|tojson }},
       range: {{ _("Range")|tojson }},
