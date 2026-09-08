@@ -85,10 +85,10 @@ def _current(nums, ctx):
         dated = [
             (str(r[0]), r[ctx["idx"]])
             for r in ctx["rows"]
-            if r[0] is not None and _is_num(r[ctx["idx"]])
+            if r[0] is not None and _to_num(r[ctx["idx"]]) is not None
         ]
         if dated:
-            return float(max(dated)[1])
+            return _to_num(max(dated)[1])
     return sum(nums)
 
 

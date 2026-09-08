@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-08 14:33+0200\n"
+"POT-Creation-Date: 2026-09-08 18:59+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -1612,19 +1612,19 @@ msgstr "Impossible d'enregistrer la source (le code existe déjà ?)"
 #: nx_lib/views/reporting/admin_registry.py:261
 #: nx_lib/views/reporting/admin_registry.py:369
 #: nx_lib/views/reporting/admin_registry.py:388
-#: nx_lib/views/reporting/annotations.py:52
-#: nx_lib/views/reporting/annotations.py:78
-#: nx_lib/views/reporting/annotations.py:107
-#: nx_lib/views/reporting/annotations.py:118
+#: nx_lib/views/reporting/annotations.py:54
+#: nx_lib/views/reporting/annotations.py:80
+#: nx_lib/views/reporting/annotations.py:109
+#: nx_lib/views/reporting/annotations.py:120
 #: nx_lib/views/reporting/reports.py:195 nx_lib/views/reporting/reports.py:292
 #: nx_lib/views/reporting/reports.py:314 nx_lib/views/reporting/reports.py:410
 #: nx_lib/views/reporting/reports.py:420 nx_lib/views/reporting/reports.py:470
 #: nx_lib/views/reporting/schedules.py:70
-#: nx_lib/views/reporting/schedules.py:94
-#: nx_lib/views/reporting/schedules.py:143
-#: nx_lib/views/reporting/schedules.py:178
-#: nx_lib/views/reporting/schedules.py:191
-#: nx_lib/views/reporting/schedules.py:202
+#: nx_lib/views/reporting/schedules.py:108
+#: nx_lib/views/reporting/schedules.py:159
+#: nx_lib/views/reporting/schedules.py:194
+#: nx_lib/views/reporting/schedules.py:207
+#: nx_lib/views/reporting/schedules.py:218
 msgid "Not found"
 msgstr "Introuvable"
 
@@ -1652,32 +1652,32 @@ msgstr "Impossible de mettre à jour la métrique"
 msgid "Could not delete metric"
 msgstr "Impossible de supprimer la métrique"
 
-#: nx_lib/views/reporting/ai.py:312 nx_lib/views/reporting/ai.py:440
-#: nx_lib/views/reporting/ai.py:621 nx_lib/views/reporting/ai.py:1027
+#: nx_lib/views/reporting/ai.py:313 nx_lib/views/reporting/ai.py:441
+#: nx_lib/views/reporting/ai.py:640 nx_lib/views/reporting/ai.py:1046
 #: nx_lib/views/reporting/catalog.py:123 nx_lib/views/reporting/export.py:99
 #: nx_lib/views/reporting/export.py:194 nx_lib/views/reporting/run.py:190
 #: nx_lib/views/reporting/run.py:286 nx_lib/views/reporting/run.py:396
 msgid "Invalid JSON body"
 msgstr "Corps JSON invalide"
 
-#: nx_lib/views/reporting/ai.py:315 nx_lib/views/reporting/ai.py:443
-#: nx_lib/views/reporting/ai.py:624
+#: nx_lib/views/reporting/ai.py:316 nx_lib/views/reporting/ai.py:444
+#: nx_lib/views/reporting/ai.py:643
 msgid "A question is required"
 msgstr "Une question est requise"
 
-#: nx_lib/views/reporting/ai.py:318
+#: nx_lib/views/reporting/ai.py:319
 msgid "Not authorized to receive AI-drafted SQL"
 msgstr "Non autorisé à recevoir du SQL rédigé par l'IA"
 
-#: nx_lib/views/reporting/ai.py:322 nx_lib/views/reporting/ai.py:390
-#: nx_lib/views/reporting/ai.py:447 nx_lib/views/reporting/ai.py:536
-#: nx_lib/views/reporting/ai.py:665 nx_lib/views/reporting/ai.py:984
-#: nx_lib/views/reporting/ai.py:1050 nx_lib/views/reporting/ai.py:1107
+#: nx_lib/views/reporting/ai.py:323 nx_lib/views/reporting/ai.py:391
+#: nx_lib/views/reporting/ai.py:448 nx_lib/views/reporting/ai.py:537
+#: nx_lib/views/reporting/ai.py:684 nx_lib/views/reporting/ai.py:1003
+#: nx_lib/views/reporting/ai.py:1069 nx_lib/views/reporting/ai.py:1126
 msgid "The AI assistant is not configured"
 msgstr "L'assistant IA n'est pas configuré"
 
-#: nx_lib/views/reporting/ai.py:350 nx_lib/views/reporting/ai.py:469
-#: nx_lib/views/reporting/ai.py:687 nx_lib/views/reporting/ai.py:1072
+#: nx_lib/views/reporting/ai.py:351 nx_lib/views/reporting/ai.py:470
+#: nx_lib/views/reporting/ai.py:706 nx_lib/views/reporting/ai.py:1091
 #, python-format
 msgid ""
 "You have reached the daily AI request limit (%(limit)s). Please try again"
@@ -1686,26 +1686,26 @@ msgstr ""
 "Vous avez atteint la limite quotidienne de requêtes IA (%(limit)s). "
 "Veuillez réessayer demain."
 
-#: nx_lib/views/reporting/ai.py:407 nx_lib/views/reporting/ai.py:553
-#: nx_lib/views/reporting/ai.py:964 nx_lib/views/reporting/ai.py:988
-#: nx_lib/views/reporting/ai.py:1124
+#: nx_lib/views/reporting/ai.py:408 nx_lib/views/reporting/ai.py:554
+#: nx_lib/views/reporting/ai.py:983 nx_lib/views/reporting/ai.py:1007
+#: nx_lib/views/reporting/ai.py:1143
 msgid "Eddard could not answer right now"
 msgstr "Eddard n'a pas pu répondre pour le moment"
 
-#: nx_lib/views/reporting/ai.py:485 nx_lib/views/reporting/ai.py:488
-#: nx_lib/views/reporting/ai.py:492 nx_lib/views/reporting/ai.py:494
+#: nx_lib/views/reporting/ai.py:486 nx_lib/views/reporting/ai.py:489
+#: nx_lib/views/reporting/ai.py:493 nx_lib/views/reporting/ai.py:495
 msgid "Invalid refine context"
 msgstr "Contexte de raffinement invalide"
 
-#: nx_lib/views/reporting/ai.py:582
+#: nx_lib/views/reporting/ai.py:583
 msgid "Could not build a valid report"
 msgstr "Impossible de créer un rapport valide"
 
-#: nx_lib/views/reporting/ai.py:628
+#: nx_lib/views/reporting/ai.py:647
 msgid "Invalid history"
 msgstr "Historique invalide"
 
-#: nx_lib/views/reporting/ai.py:862
+#: nx_lib/views/reporting/ai.py:881
 msgid ""
 "I couldn't write a summary this time, but I did produce a report draft "
 "and a validated SQL query — use the actions below to open them."
@@ -1714,7 +1714,7 @@ msgstr ""
 "ébauche de rapport et une requête SQL validée — utilisez les actions ci-"
 "dessous pour les ouvrir."
 
-#: nx_lib/views/reporting/ai.py:868
+#: nx_lib/views/reporting/ai.py:887
 msgid ""
 "I couldn't write a summary this time, but I did produce a report draft — "
 "use “Open report” below to run it."
@@ -1723,7 +1723,7 @@ msgstr ""
 "ébauche de rapport — utilisez « Ouvrir le rapport » ci-dessous pour "
 "l'exécuter."
 
-#: nx_lib/views/reporting/ai.py:873
+#: nx_lib/views/reporting/ai.py:892
 msgid ""
 "I couldn't write a summary this time, but I did draft a SQL query — use "
 "the actions below to review it."
@@ -1731,7 +1731,7 @@ msgstr ""
 "Je n'ai pas pu rédiger de résumé cette fois, mais j'ai rédigé une requête"
 " SQL — utilisez les actions ci-dessous pour la vérifier."
 
-#: nx_lib/views/reporting/ai.py:878
+#: nx_lib/views/reporting/ai.py:897
 msgid ""
 "I couldn't complete this request. Please try rephrasing the question or "
 "narrowing it down."
@@ -1739,7 +1739,7 @@ msgstr ""
 "Je n'ai pas pu traiter cette demande. Veuillez reformuler la question ou "
 "la préciser."
 
-#: nx_lib/views/reporting/ai.py:1031 nx_lib/views/reporting/export.py:199
+#: nx_lib/views/reporting/ai.py:1050 nx_lib/views/reporting/export.py:199
 msgid "columns and rows are required"
 msgstr "les colonnes et les lignes sont obligatoires"
 
@@ -1748,22 +1748,26 @@ msgid "Pick a bucket on the chart."
 msgstr "Choisissez une tranche sur le graphique."
 
 #: nx_lib/views/reporting/annotations.py:42
+msgid "This bucket label is too long to annotate."
+msgstr "Ce libellé de tranche est trop long pour être annoté."
+
+#: nx_lib/views/reporting/annotations.py:44
 msgid "Annotation text is required."
 msgstr "Le texte de l'annotation est obligatoire."
 
-#: nx_lib/views/reporting/annotations.py:44
+#: nx_lib/views/reporting/annotations.py:46
 msgid "Annotation text is limited to 500 characters."
 msgstr "Le texte de l'annotation est limité à 500 caractères."
 
-#: nx_lib/views/reporting/annotations.py:68
+#: nx_lib/views/reporting/annotations.py:70
 msgid "Could not list annotations"
 msgstr "Impossible de lister les annotations"
 
-#: nx_lib/views/reporting/annotations.py:97
+#: nx_lib/views/reporting/annotations.py:99
 msgid "Could not save annotation"
 msgstr "Impossible d'enregistrer l'annotation"
 
-#: nx_lib/views/reporting/annotations.py:122
+#: nx_lib/views/reporting/annotations.py:124
 msgid "Could not delete annotation"
 msgstr "Impossible de supprimer l'annotation"
 
@@ -1969,21 +1973,25 @@ msgid "Could not record acknowledgment"
 msgstr "Impossible d'enregistrer la confirmation"
 
 #: nx_lib/views/reporting/schedules.py:84
-#: nx_lib/views/reporting/schedules.py:238
+#: nx_lib/views/reporting/schedules.py:254
 #: templates/js/_reporting_scheduled_js.html:25
 msgid "Could not list schedules"
 msgstr "Impossible de lister les planifications"
 
-#: nx_lib/views/reporting/schedules.py:133
+#: nx_lib/views/reporting/schedules.py:110
+msgid "Dashboards and report definitions cannot be scheduled."
+msgstr "Les tableaux de bord et les définitions de rapport ne peuvent pas être planifiés."
+
+#: nx_lib/views/reporting/schedules.py:149
 #: templates/js/_reporting_scheduled_js.html:26
 msgid "Could not save schedule"
 msgstr "Impossible d'enregistrer la planification"
 
-#: nx_lib/views/reporting/schedules.py:182
+#: nx_lib/views/reporting/schedules.py:198
 msgid "Could not update schedule"
 msgstr "Impossible de mettre à jour la planification"
 
-#: nx_lib/views/reporting/schedules.py:206
+#: nx_lib/views/reporting/schedules.py:222
 msgid "Could not delete schedule"
 msgstr "Impossible de supprimer la planification"
 
