@@ -22,7 +22,7 @@ python -m pytest tests -v
 
 E2E browser tests are automatically retried up to twice on failure (armed in `tests/e2e/conftest.py`); unit and integration tests fail fast with no retries.
 
-The pre-push hook runs the same suite in two tiers on every `git push` — fast (everything except `tests/e2e`) first, then the e2e browser tier only if fast is green. Bypass with `--no-verify` (CI still gates deploy). Docs-only pushes to `main` (`docs/`, `*.md`, `.claude/`) skip the CI pipeline entirely.
+`git push` runs no tests locally any more; the pre-push hook only guards branch names. CI runs the fast tier (everything except `tests/e2e`) on every PR and on `main`, and the e2e browser tier nightly on `main` and on demand (Actions → Deploy → Run workflow), with a 25-minute hard timeout. Docs-only pushes to `main` (`docs/`, `*.md`, `.claude/`) skip the CI pipeline entirely.
 
 ## Deploy
 

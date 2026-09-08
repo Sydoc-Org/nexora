@@ -244,6 +244,13 @@ exora\Prune Sessions"
   to the documents. New `POST /api/reporting/contribution`; no new permission.
 
 ### Changed
+- **Pushing is fast again.** The pre-push hook no longer runs the test suite
+  (it duplicated CI's fast tier against the same shared `NEXORA_TEST`, ~10 min
+  per push and one more contender for the database lock); it only guards branch
+  names now. In CI the e2e browser tier moves off the PR path to a nightly run on
+  `main` (weekdays 03:00 UTC) plus on-demand `workflow_dispatch`, with a
+  25-minute hard timeout so a hung browser can no longer hold the test-DB lock
+  for hours. The fast tier still gates every PR and merge commit.
 
 - **Advanced is back in the Reporting rail.** The **Advanced** nav entry (parked
   `hidden` on 2026-08-26) sits last in the Workspace group again, so the

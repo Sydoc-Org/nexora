@@ -74,7 +74,7 @@ confirming `python -m mypy nx_lib nx_main.py` is still green.
 ## The shared test database
 
 There is exactly one `NEXORA_TEST`, on `INTSQL01`, and CI and every developer's
-local run share it. Both the pre-push gate and CI's `test` job reset it, so two
+local run share it. Both `scripts/test_db_reset.py` and CI's `test` job reset it, so two
 overlapping runs used to corrupt each other: whichever started second re-seeded
 `dbo.Users` under the one already going, and a random login fixture died with
 `KeyError: 'userid'` or a stray 401 — a different test every time, always
@@ -179,9 +179,10 @@ Anything else is refused at push time.
 - **Review is optional, not required.** Once CI is green you may merge your own
   PR. Ask for a look when the change is risky or crosses someone else's area;
   do not sit blocked waiting for one.
-- Pre-push hook runs unit + integration tests (~5 min); the full suite
-  including e2e runs in CI on the **PR**. The post-merge run on `main` that
-  gates `deploy` re-runs only the fast tier — e2e is not repeated
+- No tests run on push. CI runs the fast tier (unit + integration) on the **PR**
+  and again on the merge commit that gates `deploy`. The e2e browser suite runs
+  nightly on `main` and on demand (Actions → Deploy → Run workflow); a red
+  nightly means revert or fix forward the next morning
 - Keep PRs small and focused. The repo prefers many small PRs over one large one.
 - Squash or merge, your call — but delete the branch after merging.
 
