@@ -24,7 +24,7 @@ from ._crud import (
 # ----------------------------- Generali Additional Services -------------------------- #
 
 
-@require_permission("generali.additionalservices.view")
+@require_permission("tenant.generali.attendance.view")
 def generali_additional_services():
     try:
         if "username" not in session:
@@ -35,23 +35,23 @@ def generali_additional_services():
             userid=session.get("userid"),
             page_visibility=page_visibility(),
             organizationcode=session.get("organizationcode"),
-            can_add=has_permission("generali.attendance.add"),
-            can_add_bypass_deadline=has_permission("generali.attendance.add.bypass.deadline"),
-            can_edit=has_permission("generali.attendance.edit.organizational")
-            or has_permission("generali.attendance.edit.transorganizational"),
-            can_edit_transorg=has_permission("generali.attendance.edit.transorganizational"),
-            can_delete=has_permission("generali.attendance.delete.organizational")
-            or has_permission("generali.attendance.delete.transorganizational"),
-            can_delete_transorg=has_permission("generali.attendance.delete.transorganizational"),
-            can_add_for_org=has_permission("generali.attendance.add.organizational"),
-            can_add_transorg=has_permission("generali.attendance.add.transorganizational"),
+            can_add=has_permission("tenant.generali.attendance.add"),
+            can_add_bypass_deadline=has_permission("tenant.generali.attendance.add.pastdeadline"),
+            can_edit=has_permission("tenant.generali.attendance.edit.org")
+            or has_permission("tenant.generali.attendance.edit.all"),
+            can_edit_transorg=has_permission("tenant.generali.attendance.edit.all"),
+            can_delete=has_permission("tenant.generali.attendance.delete.org")
+            or has_permission("tenant.generali.attendance.delete.all"),
+            can_delete_transorg=has_permission("tenant.generali.attendance.delete.all"),
+            can_add_for_org=has_permission("tenant.generali.attendance.add.org"),
+            can_add_transorg=has_permission("tenant.generali.attendance.add.all"),
         )
     except Exception as e:
         current_app.logger.error(f"Error loading Generali Attendance: {e}")
         return render_template("handlers/500.html"), 500
 
 
-@require_permission("generali.additionalservices.view")
+@require_permission("tenant.generali.attendance.view")
 def api_generali_attendance_categories():
     conn = None
     try:
@@ -135,9 +135,7 @@ ATTENDANCE = CrudTable(
     slug="attendance",
     table="[Generali].[dbo].[Attendance]",
     user_column="UserID",
-    perm_prefix="generali.attendance",
-    # the page/read permission is namespaced differently from the action perms
-    view_perm="generali.additionalservices.view",
+    perm_prefix="tenant.generali.attendance",
     api_base="/api/generali/attendance",
     label="Generali Attendance",
     user_lookup_label="attendance",

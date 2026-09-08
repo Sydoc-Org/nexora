@@ -26,7 +26,7 @@ _STATUS_IN_PROGRESS = 1
 
 # Soft-deleted workitems. Hidden from every list unless the caller explicitly
 # filtered FOR them, which the view only allows for holders of
-# workitems.filter.status.deleted (internal-only permission, issue #125).
+# workitems.filter.deleted.view (internal-only permission, issue #125).
 _STATUS_DELETED = 2
 
 
@@ -1573,7 +1573,7 @@ def get_source_for_workitem(workitem_id, client_hint=None, sources=None):
     a fresh set of source instances per probed row. Defaults to a fresh
     ``active_sources()`` call when omitted, unchanged from before.
     """
-    if client_hint and client_hint in CLIENTS:
+    if client_hint and client_hint in CLIENTS and CLIENTS[client_hint].octo_domain:
         return client_hint
 
     cached = _cache_lookup(workitem_id)
@@ -1682,23 +1682,6 @@ def fetch_merged_page(filt, offset, limit):
         _cache_store_many(to_cache)
 
     return page, total, degraded
-
-
-def recent_activity_rows(pairs, activity_ignore_map, top=3):
-    """Top-N most recently modified workitems across all sources, merged.
-    Each row: {id, modifiedat, process, client}.
-
-    ``pairs``: granted [(client, process), ...] -- see WorkitemFilter.
-    client_process_pairs for why this must never be split into independent
-    client/process lists."""
-    out = []
-    for src in active_sources():
-        try:
-            out.extend(src.recent_rows(pairs, activity_ignore_map, top))
-        except Exception as e:
-            current_app.logger.error(f"recent_activity_rows {src.code}: {e}")
-    out.sort(key=lambda r: r["modifiedat"], reverse=True)
-    return out[:top]
 
 
 def total_backlog_count(pairs):

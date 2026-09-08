@@ -50,7 +50,7 @@
 
         <nav class="sidebar-nav">
             {% if page_visibility.adminPagePerm or page_visibility.adminMaintenanceViewPerm or page_visibility.adminStatusPagePerm or page_visibility.adminClientsPagePerm or page_visibility.adminProcessesPagePerm %}
-            {% set admin_active = active_page in ['adminOverview','organizations','admin_access','admin_logs','admin_sessions','admin_user_detail','maintenance','admin_status','clients','processes'] %}
+            {% set admin_active = active_page in ['adminOverview','organizations','admin_access','admin_logs','admin_sessions','admin_user_detail','maintenance','admin_status','clients','processes','admin_tenants','admin_tenants_manage'] %}
             <div class="sidebar-nav-group" id="adminNavGroup" data-active="{{ 'true' if admin_active else 'false' }}">
                 <button class="sidebar-nav-item sidebar-nav-group-header {{ 'sidebar-nav-item--active' if admin_active else '' }}" id="adminNavHeader" type="button" data-testid="header-nav-admin-toggle">
                     <i class="fas fa-shield-halved sidebar-nav-icon"></i>
@@ -68,15 +68,10 @@
                         <i class="fas fa-id-badge sidebar-nav-icon sidebar-subitem-icon"></i>
                         <span class="sidebar-label">{{ _('Access Control') }}</span>
                     </a>
-                    <a href="{{ url_for('admin_permission_matrix') }}"
-                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'admin_permission_matrix' else '' }}" data-testid="header-nav-admin-permission-matrix">
-                        <i class="fas fa-diagram-project sidebar-nav-icon sidebar-subitem-icon"></i>
-                        <span class="sidebar-label">{{ _('Permission Matrix') }}</span>
-                    </a>
-                    <a href="{{ url_for('admin_organizations_view') }}"
-                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'organizations' else '' }}" data-testid="header-nav-admin-organizations">
-                        <i class="fas fa-building sidebar-nav-icon sidebar-subitem-icon"></i>
-                        <span class="sidebar-label">{{ _('Organizations') }}</span>
+                    <a href="{{ url_for('admin_permissions') }}"
+                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'admin_permissions' else '' }}" data-testid="header-nav-admin-permissions">
+                        <i class="fas fa-table-cells sidebar-nav-icon sidebar-subitem-icon"></i>
+                        <span class="sidebar-label">{{ _('Permissions') }}</span>
                     </a>
                     <a href="{{ url_for('admin_sessions_view') }}"
                         class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'admin_sessions' else '' }}" data-testid="header-nav-admin-sessions">
@@ -102,20 +97,54 @@
                         <span class="sidebar-label">{{ _('Maintenance') }}</span>
                     </a>
                     {% endif %}
-                    {% if page_visibility.adminClientsPagePerm %}
-                    <a href="{{ url_for('admin_clients_view') }}"
-                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'clients' else '' }}" data-testid="header-nav-admin-clients">
-                        <i class="fas fa-server sidebar-nav-icon sidebar-subitem-icon"></i>
-                        <span class="sidebar-label">{{ _('Clients') }}</span>
-                    </a>
-                    {% endif %}
-                    {% if page_visibility.adminProcessesPagePerm %}
-                    <a href="{{ url_for('admin_processes_view') }}"
-                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'processes' else '' }}" data-testid="header-nav-admin-processes">
-                        <i class="fas fa-diagram-project sidebar-nav-icon sidebar-subitem-icon"></i>
-                        <span class="sidebar-label">{{ _('Processes') }}</span>
-                    </a>
-                    {% endif %}
+                    {# Tenancy config, collapsed into its own nested group (#255): the three
+                       pages that describe a tenant -- who its users are (Organizations), where its
+                       data lives (Data Connections) and how its document fields map (Process
+                       Configurations). Uses the generic data-nx-nav-group wiring in static/js/header.js
+                       rather than a fourth hardcoded id/class pair; _header.css lifts the
+                       enclosing admin group's max-height while this one is open, which would
+                       otherwise clip it. #}
+                    {% set tenants_active = active_page in ['admin_tenants','admin_tenants_manage','organizations','clients','processes'] %}
+                    <div class="sidebar-nav-group sidebar-nav-group--nested" id="adminTenantsNavGroup" data-active="{{ 'true' if tenants_active else 'false' }}" data-nx-nav-group="tenants">
+                        <button class="sidebar-nav-item sidebar-nav-subitem sidebar-nav-group-header {{ 'sidebar-nav-item--active' if tenants_active else '' }}" id="adminTenantsNavHeader" type="button" data-testid="header-nav-admin-tenants-toggle">
+                            <i class="fas fa-city sidebar-nav-icon sidebar-subitem-icon"></i>
+                            <span class="sidebar-label [flex:1]!">{{ _('Tenants') }}</span>
+                            <i class="fas fa-chevron-right sidebar-label sidebar-generali-chevron"></i>
+                        </button>
+                        <div class="sidebar-nav-subitems">
+                            <a href="{{ url_for('admin_tenants_view') }}"
+                                class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'admin_tenants' else '' }}" data-testid="header-nav-admin-tenants">
+                                <i class="fas fa-sitemap sidebar-nav-icon sidebar-subitem-icon"></i>
+                                <span class="sidebar-label">{{ _('Overview') }}</span>
+                            </a>
+                            {% if page_visibility.adminTenantsPagePerm %}
+                            <a href="{{ url_for('admin_tenants_manage_view') }}"
+                                class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'admin_tenants_manage' else '' }}" data-testid="header-nav-admin-tenants-manage">
+                                <i class="fas fa-sliders sidebar-nav-icon sidebar-subitem-icon"></i>
+                                <span class="sidebar-label">{{ _('Manage') }}</span>
+                            </a>
+                            {% endif %}
+                            <a href="{{ url_for('admin_organizations_view') }}"
+                                class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'organizations' else '' }}" data-testid="header-nav-admin-organizations">
+                                <i class="fas fa-building sidebar-nav-icon sidebar-subitem-icon"></i>
+                                <span class="sidebar-label">{{ _('Organizations') }}</span>
+                            </a>
+                            {% if page_visibility.adminClientsPagePerm %}
+                            <a href="{{ url_for('admin_clients_view') }}"
+                                class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'clients' else '' }}" data-testid="header-nav-admin-clients">
+                                <i class="fas fa-server sidebar-nav-icon sidebar-subitem-icon"></i>
+                                <span class="sidebar-label">{{ _('Data Connections') }}</span>
+                            </a>
+                            {% endif %}
+                            {% if page_visibility.adminProcessesPagePerm %}
+                            <a href="{{ url_for('admin_processes_view') }}"
+                                class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'processes' else '' }}" data-testid="header-nav-admin-processes">
+                                <i class="fas fa-diagram-project sidebar-nav-icon sidebar-subitem-icon"></i>
+                                <span class="sidebar-label">{{ _('Process Configurations') }}</span>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
                 </div>
             </div>
             {% endif %}
@@ -139,12 +168,18 @@
             {% endif %}
 
             {% set nav_items = [
-                {'perm': page_visibility.dashboardPagePerm,  'url': url_for('dashboard'),           'icon': 'fa-gauge-high',          'label': _('Dashboard'),              'active': active_page == 'dashboard'},
-                {'perm': page_visibility.reportingPagePerm, 'url': url_for('reporting'),           'icon': 'fa-chart-column',        'label': _('Reporting'),              'active': active_page == 'reporting'},
-{'perm': page_visibility.workitemsPagePerm, 'url': url_for('workitems_overview'),  'icon': 'fa-layer-group',         'label': _('Workitems'),              'active': active_page == 'workitems_overview'},
+                {'perm': page_visibility.dashboardPagePerm,  'url': url_for('dashboard', tenant=''), 'icon': 'fa-gauge-high',          'label': _('Global Dashboard'),              'active': active_page == 'dashboard'},
+                {'perm': page_visibility.reportingPagePerm, 'url': url_for('reporting'),           'icon': 'fa-chart-column',        'label': _('Global Reporting'),       'active': active_page == 'reporting', 'always': true},
+{'perm': page_visibility.workitemsPagePerm, 'url': url_for('workitems_overview', tenant=''), 'icon': 'fa-layer-group',         'label': _('Global Workitems'),              'active': active_page == 'workitems_overview'},
             ] %}
 
-            {% for item in nav_items %}
+            {# A user inside exactly ONE tenant reaches Dashboard/Workitems through
+               that tenant's mounted pages (rendered flat below), so the global
+               links would be the same pages twice. Staff and members who also
+               see other tenants by grant keep the Global entries; Reporting has
+               no tenant page and is always rendered. #}
+            {% set single_tenant = tenant_solo %}
+            {% for item in nav_items if item.always or not single_tenant %}
             {% if item.perm %}
             <a href="{{ item.url }}"
                 class="sidebar-nav-item {{ 'sidebar-nav-item--active' if item.active else '' }}" data-testid="header-nav-item-{{ loop.index }}">
@@ -154,74 +189,9 @@
             {% endif %}
             {% endfor %}
 
-            {% if page_visibility.generaliPagePerm or page_visibility.generaliDocumentsPerm or page_visibility.generaliReportingPerm or page_visibility.generaliAdditionalServicesPerm or page_visibility.generaliBaseServicesPerm or page_visibility.generaliProjectManagementPerm or page_visibility.generaliPDQMPerm or page_visibility.generaliImportStatusPerm %}
-            {% set generali_active = active_page in ['generali_dashboard', 'generali_documents', 'generali_reporting', 'generali_additionalservices', 'generali_baseservices', 'generali_projectmanagement', 'generali_pdqm', 'generali_importstatus'] %}
-            <div class="sidebar-nav-group" id="generaliNavGroup" data-active="{{ 'true' if generali_active else 'false' }}">
-                <button class="sidebar-nav-item sidebar-nav-group-header {{ 'sidebar-nav-item--active' if generali_active else '' }}" id="generaliNavHeader" data-testid="header-nav-generali-toggle">
-                    <i class="fas fa-building-columns sidebar-nav-icon"></i>
-                    <span class="sidebar-label [flex:1]!">Generali</span>
-                    <i class="fas fa-chevron-right sidebar-label sidebar-generali-chevron"></i>
-                </button>
-                <div class="sidebar-nav-subitems">
-                    {% if page_visibility.generaliPagePerm %}
-                    <a href="{{ url_for('generali_evaluation') }}"
-                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'generali_dashboard' else '' }}" data-testid="header-nav-generali-dashboard">
-                        <i class="fas fa-chart-line sidebar-nav-icon sidebar-subitem-icon"></i>
-                        <span class="sidebar-label">{{ _('Dashboard') }}</span>
-                    </a>
-                    {% endif %}
-                    {% if page_visibility.generaliDocumentsPerm %}
-                    <a href="{{ url_for('generali_documents') }}"
-                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'generali_documents' else '' }}" data-testid="header-nav-generali-documents">
-                        <i class="fas fa-table-list sidebar-nav-icon sidebar-subitem-icon"></i>
-                        <span class="sidebar-label">{{ _('Document List') }}</span>
-                    </a>
-                    {% endif %}
-                    {% if page_visibility.generaliReportingPerm %}
-                    <a href="{{ url_for('generali_reporting') }}"
-                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'generali_reporting' else '' }}" data-testid="header-nav-generali-reporting">
-                        <i class="fas fa-clipboard-list sidebar-nav-icon sidebar-subitem-icon"></i>
-                        <span class="sidebar-label">{{ _('Reporting') }}</span>
-                    </a>
-                    {% endif %}
-                    {% if page_visibility.generaliAdditionalServicesPerm %}
-                    <a href="{{ url_for('generali_additional_services') }}"
-                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'generali_additionalservices' else '' }}" data-testid="header-nav-generali-additional-services">
-                        <i class="fas fa-clock sidebar-nav-icon sidebar-subitem-icon"></i>
-                        <span class="sidebar-label">{{ _('Additional Services') }}</span>
-                    </a>
-                    {% endif %}
-                    {% if page_visibility.generaliBaseServicesPerm %}
-                    <a href="{{ url_for('generali_base_services') }}"
-                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'generali_baseservices' else '' }}" data-testid="header-nav-generali-base-services">
-                        <i class="fas fa-inbox sidebar-nav-icon sidebar-subitem-icon"></i>
-                        <span class="sidebar-label">{{ _('Base Services') }}</span>
-                    </a>
-                    {% endif %}
-                    {% if page_visibility.generaliProjectManagementPerm %}
-                    <a href="{{ url_for('generali_project_management') }}"
-                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'generali_projectmanagement' else '' }}" data-testid="header-nav-generali-project-management">
-                        <i class="fas fa-diagram-project sidebar-nav-icon sidebar-subitem-icon"></i>
-                        <span class="sidebar-label">{{ _('Project Management') }}</span>
-                    </a>
-                    {% endif %}
-                    {% if page_visibility.generaliPDQMPerm %}
-                    <a href="{{ url_for('generali_pdqm') }}"
-                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'generali_pdqm' else '' }}" data-testid="header-nav-generali-pdqm">
-                        <i class="fas fa-file-lines sidebar-nav-icon sidebar-subitem-icon"></i>
-                        <span class="sidebar-label">{{ _('PDQM') }}</span>
-                    </a>
-                    {% endif %}
-                    {% if page_visibility.generaliImportStatusPerm %}
-                    <a href="{{ url_for('generali_import_status') }}"
-                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'generali_importstatus' else '' }}" data-testid="header-nav-generali-import-status">
-                        <i class="fas fa-database sidebar-nav-icon sidebar-subitem-icon"></i>
-                        <span class="sidebar-label">{{ _('Data Import Status') }}</span>
-                    </a>
-                    {% endif %}
-                </div>
-            </div>
-            {% endif %}
+            {# The Generali sidebar group used to be hardcoded here. Since #257
+               (migration 0091) Generali is a tenant, and its pages come from the
+               registry-driven tenant groups below like everyone else's. #}
 
             {# Per-tenant nav groups (tenant kernel, Task 6): one group per
                registry tenant the session holds tenant.<code>.view for
@@ -246,9 +216,49 @@
                can never BuildError here and 500 every page for every
                logged-in user; an unresolvable custom page is simply absent
                from t.pages already. #}
+            {# One link for a tenant page, as a group subitem (sub=true) or a flat
+               top-level entry. Active rule: a page whose LayoutJSON 'active'
+               marker is tenant-specific (the scoped Dashboard/Workitems render
+               active_page = tenant_<code>_<page>, 0097/0098) matches exactly, for
+               anyone; a plain endpoint match only counts inside the user's OWN
+               tenant, since every tenant mounts the same 'dashboard'. Generated
+               list/crud pages carry the tenant code in active_page already. #}
+            {% macro tenant_page_link(t, p, sub, active_page, tenant_scoped) -%}
+            {%- if p.page_type == 'custom' -%}
+            {%- set on = (active_page == p.active) if p.active != p.endpoint else (tenant_scoped == t.code and active_page == p.endpoint) -%}
+            {%- set icon = p.icon -%}
+            {%- else -%}
+            {%- set on = active_page == ('tenant_' ~ t.code ~ '_' ~ p.key) -%}
+            {%- set icon = 'fa-table-list' -%}
+            {%- endif %}
+                    <a href="{{ p.url }}"
+                        class="sidebar-nav-item {{ 'sidebar-nav-subitem' if sub else '' }} {{ 'sidebar-nav-item--active' if on else '' }}" data-testid="header-nav-tenant-{{ t.code }}-{{ p.key }}">
+                        <i class="fas {{ icon }} sidebar-nav-icon {{ 'sidebar-subitem-icon' if sub else '' }}"></i>
+                        <span class="sidebar-label">{{ p.label }}</span>
+                    </a>
+            {%- endmacro %}
+
+            {% if tenant_solo %}
+            {# A user inside exactly one tenant needs no collapsible group for it:
+               the tenant's pages ARE their workspace. Render them flat under a
+               plain label. Staff, and members who also hold grants on other
+               tenants, keep the collapsible groups below.
+               No tenant label: for a member the tenant IS the portal, so naming
+               it adds nothing and leaks an internal concept (#255). #}
+            {% set t = tenant_nav[0] %}
+            {% for p in t.pages %}{{ tenant_page_link(t, p, false, active_page, tenant_scoped) }}{% endfor %}
+            {% else %}
             {% for t in tenant_nav %}
+            {# A mounted custom page reuses a global endpoint (every tenant mounts
+               'dashboard'), so an endpoint match only counts inside the user's
+               OWN tenant group -- otherwise a staffer who sees several groups by
+               grant would light every one of them on /dashboard. A page whose
+               LayoutJSON 'active' marker is tenant-specific (the scoped
+               Dashboard renders active_page = tenant_<code>_dashboard, 0097)
+               matches exactly, for anyone. Generated list/crud pages carry the
+               tenant code in active_page already. #}
             {% set ns = namespace(active=(active_page or '').startswith('tenant_' ~ t.code ~ '_')) %}
-            {% for p in t.pages if p.page_type == 'custom' and active_page == p.endpoint %}
+            {% for p in t.pages if p.page_type == 'custom' and ((active_page == p.active) if p.active != p.endpoint else (tenant_scoped == t.code and active_page == p.endpoint)) %}
             {% set ns.active = true %}
             {% endfor %}
             <div class="sidebar-nav-group" id="tenantNavGroup-{{ t.code }}" data-active="{{ 'true' if ns.active else 'false' }}" data-nx-nav-group="tenant">
@@ -258,24 +268,11 @@
                     <i class="fas fa-chevron-right sidebar-label sidebar-generali-chevron"></i>
                 </button>
                 <div class="sidebar-nav-subitems">
-                    {% for p in t.pages %}
-                    {% if p.page_type == 'custom' %}
-                    <a href="{{ p.url }}"
-                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == p.endpoint else '' }}" data-testid="header-nav-tenant-{{ t.code }}-{{ p.key }}">
-                        <i class="fas fa-arrow-up-right-from-square sidebar-nav-icon sidebar-subitem-icon"></i>
-                        <span class="sidebar-label">{{ p.label }}</span>
-                    </a>
-                    {% else %}
-                    <a href="{{ p.url }}"
-                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == ('tenant_' ~ t.code ~ '_' ~ p.key) else '' }}" data-testid="header-nav-tenant-{{ t.code }}-{{ p.key }}">
-                        <i class="fas fa-table-list sidebar-nav-icon sidebar-subitem-icon"></i>
-                        <span class="sidebar-label">{{ p.label }}</span>
-                    </a>
-                    {% endif %}
-                    {% endfor %}
+                    {% for p in t.pages %}{{ tenant_page_link(t, p, true, active_page, tenant_scoped) }}{% endfor %}
                 </div>
             </div>
             {% endfor %}
+            {% endif %}
         </nav>
 
         <!-- Bottom actions -->
@@ -419,7 +416,7 @@
                     <span><kbd class="cmdk-kbd">Esc</kbd></span>
                 </div>
 
-                {% if active_page in ('workitems_overview', 'reporting', 'prepared_documents') %}
+                {% if active_page in ('workitems_overview', 'reporting', 'prepared_documents') or (active_page or '').endswith('_workitems') %}
                 <div class="shortcuts-section-title">{{ _('Document viewer') }}</div>
                 <div class="shortcuts-row">
                     <span>{{ _('Previous / next document page') }}</span>

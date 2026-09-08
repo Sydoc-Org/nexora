@@ -11,7 +11,7 @@ pages, extracted fields and audit trail.
 
 The gate now resolves the workitem's real (client, process) pair (the same
 namespace the list query authorizes via t_Processes.ClientName / .Name) and
-403s unless the caller holds a workitems.filter.process.<client>.<process>
+403s unless the caller holds a process.<client>.<process>.view
 grant for it. Matching is case-insensitive (mirrors the DB's collation) and
 fails closed when the pair can't be resolved.
 """
@@ -28,9 +28,9 @@ def _grant(monkeypatch, perms):
 
 VIEW_PERMS = [
     "workitems.details.view",
-    "workitems.details.view.images",
-    "workitems.details.view.audit",
-    "workitems.details.view.fields",
+    "workitems.details.images.view",
+    "workitems.details.audit.view",
+    "workitems.details.fields.view",
 ]
 
 
@@ -47,7 +47,7 @@ def test_detail_endpoint_blocks_unentitled_pair(user_client, monkeypatch, url):
     really belongs to (ms02client, procB) -> 403 on every detail endpoint."""
     import nx_lib.views.workitems as wv
 
-    _grant(monkeypatch, [*VIEW_PERMS, "workitems.filter.process.acme.procA"])
+    _grant(monkeypatch, [*VIEW_PERMS, "process.acme.procA.view"])
     monkeypatch.setattr(
         wv, "process_pair_for_workitem", lambda wid, client_hint=None: ("ms02client", "procB")
     )
@@ -70,7 +70,7 @@ def test_detail_endpoint_allows_entitled_pair_case_insensitive(user_client, monk
     Octo fetch itself may 404/500 in CI)."""
     import nx_lib.views.workitems as wv
 
-    _grant(monkeypatch, [*VIEW_PERMS, "workitems.filter.process.acme.procA"])
+    _grant(monkeypatch, [*VIEW_PERMS, "process.acme.procA.view"])
     monkeypatch.setattr(
         wv, "process_pair_for_workitem", lambda wid, client_hint=None: ("ACME", "PROCA")
     )
@@ -96,7 +96,7 @@ def test_detail_endpoint_fails_closed_when_pair_unresolvable(user_client, monkey
     the gate must fail closed (403), never open."""
     import nx_lib.views.workitems as wv
 
-    _grant(monkeypatch, [*VIEW_PERMS, "workitems.filter.process.acme.procA"])
+    _grant(monkeypatch, [*VIEW_PERMS, "process.acme.procA.view"])
     monkeypatch.setattr(wv, "process_pair_for_workitem", lambda wid, client_hint=None: None)
 
     resp = user_client.get(url)

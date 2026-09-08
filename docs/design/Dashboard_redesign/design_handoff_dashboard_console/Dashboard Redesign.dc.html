@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><meta name="design_doc_mode" content="canvas">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<style>
+body{margin:0;background:#eceae5;font-family:'Schibsted Grotesk','Inter',system-ui,sans-serif}
+a{color:#d97706;text-decoration:none}a:hover{color:#b45309}
+.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08)}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}
+.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}
+.dv-tname{font:600 13px/1.2 system-ui,sans-serif;color:#1a1a1a}
+.dv-opts{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px}
+.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}
+.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 system-ui,sans-serif;color:rgba(0,0,0,.55)}
+.dv-card{max-width:100%;background:#f9fafb;border:1px solid rgba(0,0,0,.1);border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden}
+.dv-opt:target .dv-oid{background:#d97706;color:#fff}
+.dv-next{margin:22px 0 0;font:12px/1.5 system-ui,sans-serif;color:rgba(0,0,0,.5)}
+</style></helmet>
+
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Dashboard — Console-Kopf, drei Layouts</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="1a">
+<div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Konsolen-Kopf + KPI-Streifen: nächster Nachbar der heutigen Seite, dichter</div>
+<div class="dv-card" style="width:1180px">
+  <div style="padding:20px 22px 24px;background:#fff">
+    <div style="display:flex;align-items:center;gap:12px">
+      <span style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#d97706 0%,#ea580c 100%);color:#fff;font-size:15px;box-shadow:0 8px 20px -6px rgba(217,119,6,.55);flex-shrink:0"><i class="fas fa-gauge-high"></i></span>
+      <span style="font-size:22px;font-weight:600;letter-spacing:-.5px;color:#1f2937">Dashboard</span>
+      <span style="font-size:11.5px;color:#9ca3af">Ben Streich · letzte Anmeldung 31.08.2026 21:05</span>
+      <span style="flex:1"></span>
+      <span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:#9ca3af;font-variant-numeric:tabular-nums"><span style="width:7px;height:7px;border-radius:99px;background:#059669;display:inline-block"></span>Aktualisiert 06:47:12 · neu in {{ countdown }}s</span>
+      <button style="display:inline-flex;align-items:center;gap:6px;height:31px;padding:0 11px;border-radius:8px;font:600 12.5px 'Schibsted Grotesk',sans-serif;background:#fff;color:#1f2937;border:1px solid #e5e7eb;cursor:pointer" style-hover="border-color:#d1d5db"><i class="fas fa-rotate" style="color:#9ca3af"></i>Aktualisieren</button>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;margin-top:18px;padding-bottom:14px;border-bottom:1px solid #e5e7eb">
+      <span style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#9ca3af;margin-right:2px">Prozess</span>
+      <div style="position:relative;min-width:260px">
+        <button onClick="{{ toggleScope }}" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;height:29px;padding:0 9px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;font:500 12.5px 'Schibsted Grotesk',sans-serif;color:#1f2937;cursor:pointer;box-sizing:border-box" style-hover="border-color:rgba(217,119,6,.35)">
+          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ scopeSummary }}</span>
+          <i class="fas fa-chevron-down" style="font-size:10px;color:#9ca3af"></i>
+        </button>
+        <sc-if value="{{ scopeOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;z-index:20;left:0;right:0;margin-top:4px;padding:4px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;box-shadow:0 8px 24px rgba(16,24,40,.12)">
+            <sc-for list="{{ scopeRows }}" as="r" hint-placeholder-count="5">
+              <label style="display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;font-size:12.5px;cursor:pointer;color:{{ r.color }};font-weight:{{ r.weight }};padding-left:{{ r.indent }}" style-hover="background:#fef7ed">
+                <input type="checkbox" checked="{{ r.checked }}" onChange="{{ r.toggle }}" style="width:15px;height:15px;margin:0;accent-color:#d97706;flex-shrink:0">
+                <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.name }}</span>
+                <span style="flex:1"></span>
+                <span style="font-size:11px;color:#9ca3af;font-variant-numeric:tabular-nums">{{ r.today }}</span>
+              </label>
+            </sc-for>
+          </div>
+        </sc-if>
+      </div>
+      <span style="flex:1"></span>
+      <div style="display:inline-flex;border:1px solid #e5e7eb;border-radius:8px;background:#fff;overflow:hidden;height:29px">
+        <button style="border:none;padding:0 11px;font:600 11.5px 'Schibsted Grotesk',sans-serif;background:#fef3e2;color:#b45309;cursor:pointer">14 T</button>
+        <button style="border:none;border-left:1px solid #e5e7eb;padding:0 11px;font:500 11.5px 'Schibsted Grotesk',sans-serif;background:#fff;color:#9ca3af;cursor:pointer">30 T</button>
+        <button style="border:none;border-left:1px solid #e5e7eb;padding:0 11px;font:500 11.5px 'Schibsted Grotesk',sans-serif;background:#fff;color:#9ca3af;cursor:pointer">90 T</button>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin-top:2px;border-bottom:1px solid #e5e7eb">
+      <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
+        <div style="padding:18px 30px 16px;border-left:1px solid #f3f4f6">
+          <p style="margin:0;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#9ca3af">{{ k.label }}</p>
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-top:12px">
+            <div>
+              <div style="font-family:ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums;font-size:32px;font-weight:600;letter-spacing:-1.4px;line-height:1;color:#1f2937">{{ k.value }}</div>
+              <div style="margin-top:6px;font-size:11px;font-weight:600;color:{{ k.deltaColor }}">{{ k.delta }} <span style="font-weight:400;color:#9ca3af">vs. gestern</span></div>
+            </div>
+            <svg viewBox="0 0 120 36" width="120" height="36" preserveAspectRatio="none" style="flex:none;opacity:.9">
+              <path d="{{ k.areaB }}" fill="{{ k.sparkFill }}"></path>
+              <path d="{{ k.lineB }}" fill="none" stroke="{{ k.sparkStroke }}" stroke-width="1.6" stroke-linejoin="round"></path>
+            </svg>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="padding:16px 0 8px;margin-top:6px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <h3 style="margin:0;font-size:15px;font-weight:700;letter-spacing:-.02em;color:#1f2937">{{ chartTitle }}</h3>
+          <span style="font-size:11px;color:#9ca3af;font-variant-numeric:tabular-nums">{{ chartMeta }}</span>
+          <span style="flex:1"></span>
+          <div style="display:inline-flex;gap:16px">
+            <button onClick="{{ showTime }}" style="border:none;background:transparent;padding:0 0 5px;font:600 12px 'Schibsted Grotesk',sans-serif;cursor:pointer;color:{{ underTimeFg }};border-bottom:2px solid {{ underTimeBorder }}">Zeitverlauf</button>
+            <button onClick="{{ showHour }}" style="border:none;background:transparent;padding:0 0 5px;font:600 12px 'Schibsted Grotesk',sans-serif;cursor:pointer;color:{{ underHourFg }};border-bottom:2px solid {{ underHourBorder }}">Heute nach Stunde</button>
+          </div>
+        </div>
+        <div style="margin-top:14px">{{ mainChart }}</div>
+    </div>
+
+    <div style="padding:18px 0 4px;margin-top:10px;border-top:1px solid #e5e7eb">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+        <h3 style="margin:0;font-size:15px;font-weight:700;letter-spacing:-.02em;color:#1f2937">Rückstand</h3>
+        <span style="font-size:11px;color:#9ca3af;font-variant-numeric:tabular-nums">1,247 offen · +48 seit gestern</span>
+        <span style="flex:1"></span>
+        <div style="display:flex;flex-wrap:wrap;gap:12px">
+          <sc-for list="{{ backlogLegend }}" as="l" hint-placeholder-count="3">
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:#6b7280">
+              <span style="width:16px;height:0;border-top:2.5px {{ l.style }} {{ l.color }}"></span>{{ l.name }}
+              <span style="color:#9ca3af;font-variant-numeric:tabular-nums">{{ l.count }}</span>
+            </span>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="margin-top:8px">
+        <p style="margin:0 0 4px;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#9ca3af">Verlauf 14 Tage</p>
+        {{ backlogTrendWide }}
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="1b">
+<div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Ein Blick: eine Tafel, KPI-Streifen im Kopf des Charts, alles ohne Kartenrahmen</div>
+<div class="dv-card" style="width:1180px">
+  <div style="padding:22px 26px 26px;background:#fff">
+    <div style="display:flex;align-items:center;gap:12px;padding-bottom:16px">
+      <span style="width:4px;height:26px;border-radius:99px;background:linear-gradient(180deg,#d97706,#ea580c)"></span>
+      <span style="font-size:21px;font-weight:700;letter-spacing:-.6px;color:#1f2937">Heute</span>
+      <span style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#9ca3af">01.09.2026 · 06:47</span>
+      <span style="flex:1"></span>
+      <div style="display:inline-flex;align-items:center;gap:7px;height:29px;padding:0 11px;border-radius:99px;background:#f9fafb;border:1px solid #e5e7eb;font-size:11.5px;color:#6b7280">
+        <i class="fas fa-filter" style="font-size:10px;color:#9ca3af"></i>Alle Prozesse
+        <i class="fas fa-chevron-down" style="font-size:9px;color:#9ca3af"></i>
+      </div>
+      <div style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:#9ca3af;font-variant-numeric:tabular-nums"><span style="width:7px;height:7px;border-radius:99px;background:#059669"></span>live · {{ countdown }}s</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb">
+      <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
+        <div style="padding:16px 20px 14px;border-left:1px solid #f3f4f6">
+          <p style="margin:0;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#9ca3af">{{ k.label }}</p>
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-top:10px">
+            <div>
+              <div style="font-family:ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums;font-size:32px;font-weight:600;letter-spacing:-1.4px;line-height:1;color:#1f2937">{{ k.value }}</div>
+              <div style="margin-top:6px;font-size:11px;font-weight:600;color:{{ k.deltaColor }}">{{ k.delta }} <span style="font-weight:400;color:#9ca3af">vs. gestern</span></div>
+            </div>
+            <svg viewBox="0 0 120 36" width="120" height="36" preserveAspectRatio="none" style="flex:none;opacity:.9">
+              <path d="{{ k.areaB }}" fill="{{ k.sparkFill }}"></path>
+              <path d="{{ k.lineB }}" fill="none" stroke="{{ k.sparkStroke }}" stroke-width="1.6" stroke-linejoin="round"></path>
+            </svg>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:10px;margin-top:22px">
+      <h3 style="margin:0;font-size:15px;font-weight:700;letter-spacing:-.02em;color:#1f2937">{{ chartTitle }}</h3>
+      <span style="font-size:11.5px;color:#9ca3af;font-variant-numeric:tabular-nums">{{ chartMeta }}</span>
+      <span style="flex:1"></span>
+      <div style="display:inline-flex;gap:16px">
+        <button onClick="{{ showTime }}" style="border:none;background:transparent;padding:0 0 5px;font:600 12px 'Schibsted Grotesk',sans-serif;cursor:pointer;color:{{ underTimeFg }};border-bottom:2px solid {{ underTimeBorder }}">Zeitverlauf</button>
+        <button onClick="{{ showHour }}" style="border:none;background:transparent;padding:0 0 5px;font:600 12px 'Schibsted Grotesk',sans-serif;cursor:pointer;color:{{ underHourFg }};border-bottom:2px solid {{ underHourBorder }}">Heute nach Stunde</button>
+      </div>
+    </div>
+    <div style="margin-top:12px">{{ mainChartB }}</div>
+
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) 1px minmax(0,1fr);gap:26px;margin-top:24px;padding-top:20px;border-top:1px solid #e5e7eb">
+      <div>
+        <div style="display:flex;align-items:baseline;gap:9px;margin-bottom:12px">
+          <h3 style="margin:0;font-size:13px;font-weight:700;color:#1f2937">Rückstand nach Prozess</h3>
+          <span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#9ca3af">1,247</span>
+        </div>
+        <sc-for list="{{ backlog }}" as="b" hint-placeholder-count="4">
+          <div style="display:flex;align-items:center;gap:12px;padding:7px 0">
+            <span style="width:130px;flex:none;font-size:11.5px;color:#6b7280;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ b.name }}</span>
+            <div style="flex:1;height:8px;border-radius:3px;background:#f3f4f6;overflow:hidden">
+              <div style="height:8px;border-radius:3px;background:{{ b.color }};width:{{ b.pct }}"></div>
+            </div>
+            <span style="width:44px;text-align:right;font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#1f2937">{{ b.count }}</span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="background:#f3f4f6"></div>
+      <div>
+        <div style="display:flex;align-items:baseline;gap:9px;margin-bottom:8px">
+          <h3 style="margin:0;font-size:13px;font-weight:700;color:#1f2937">Letzte Validierungen</h3>
+          <span style="flex:1"></span>
+          <a href="#1b" style="font-size:11px;font-weight:600;color:#d97706">Alle</a>
+        </div>
+        <sc-for list="{{ validations }}" as="v" hint-placeholder-count="4">
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f3f4f6;cursor:pointer">
+            <span style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:600;color:#d97706;flex:none">{{ v.id }}</span>
+            <span style="font-size:11.5px;color:#6b7280;flex:none">{{ v.process }}</span>
+            <span style="flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-family:ui-monospace,Menlo,monospace;font-size:10px;color:#9ca3af">{{ v.chipLine }}</span>
+            <span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;color:#9ca3af;flex:none">{{ v.time }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="1c">
+<div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Statuszeile zuerst: eine Aussage oben, Zahlen als Mosaik, Charts nur als Kontur</div>
+<div class="dv-card" style="width:1180px">
+  <div style="padding:0;background:#f9fafb">
+    <div style="background:#1f2937;padding:20px 26px;display:flex;align-items:center;gap:16px">
+      <span style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#d97706 0%,#ea580c 100%);color:#fff;font-size:14px;flex-shrink:0"><i class="fas fa-gauge-high"></i></span>
+      <div style="min-width:0">
+        <div style="font-size:15px;font-weight:700;color:#fff;letter-spacing:-.2px">Verarbeitung läuft normal</div>
+        <div style="font-size:11.5px;color:#9ca3af;margin-top:2px">1,247 Dokumente im Rückstand · Durchsatz 60 heute · keine Ausfälle</div>
+      </div>
+      <span style="flex:1"></span>
+      <div style="display:inline-flex;align-items:center;gap:7px;font-size:11.5px;color:#9ca3af;font-variant-numeric:tabular-nums"><span style="width:7px;height:7px;border-radius:99px;background:#34d399"></span>06:47:12 · neu in {{ countdown }}s</div>
+      <div style="display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 12px;border-radius:8px;background:rgba(255,255,255,.08);font-size:11.5px;color:#e5e7eb">Alle Prozesse <i class="fas fa-chevron-down" style="font-size:9px;opacity:.7"></i></div>
+    </div>
+
+    <div style="padding:20px 26px 26px">
+      <div style="display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:12px">
+        <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
+          <div style="grid-column:span 3;background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px 12px;position:relative;overflow:hidden">
+            <p style="margin:0;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#9ca3af">{{ k.label }}</p>
+            <div style="display:flex;align-items:baseline;gap:7px;margin-top:9px">
+              <span style="font-family:ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums;font-size:30px;font-weight:600;letter-spacing:-1.2px;line-height:1;color:#1f2937">{{ k.value }}</span>
+              <span style="font-size:11px;font-weight:700;color:{{ k.deltaColor }}">{{ k.delta }}</span>
+            </div>
+            <p style="margin:7px 0 0;font-size:10.5px;color:#9ca3af">{{ k.note }}</p>
+            <svg viewBox="0 0 200 26" width="100%" height="26" preserveAspectRatio="none" style="display:block;margin:8px -16px -12px;width:calc(100% + 32px)">
+              <path d="{{ k.area }}" fill="{{ k.sparkFill }}"></path>
+              <path d="{{ k.line }}" fill="none" stroke="{{ k.sparkStroke }}" stroke-width="1.4"></path>
+            </svg>
+          </div>
+        </sc-for>
+
+        <div style="grid-column:span 8;background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px 18px 10px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <h3 style="margin:0;font-size:13.5px;font-weight:700;color:#1f2937">{{ chartTitle }}</h3>
+            <span style="font-size:11px;color:#9ca3af;font-variant-numeric:tabular-nums">{{ chartMeta }}</span>
+            <span style="flex:1"></span>
+            <button onClick="{{ toggleChart }}" style="display:inline-flex;align-items:center;gap:6px;height:27px;padding:0 10px;border-radius:99px;border:1px solid #e5e7eb;background:#f9fafb;font:600 11.5px 'Schibsted Grotesk',sans-serif;color:#6b7280;cursor:pointer" style-hover="border-color:#d97706;color:#b45309"><i class="fas fa-repeat" style="font-size:10px"></i>{{ toggleLabel }}</button>
+          </div>
+          <div style="margin-top:10px">{{ mainChartC }}</div>
+        </div>
+
+        <div style="grid-column:span 4;background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px 18px">
+          <h3 style="margin:0 0 12px;font-size:13.5px;font-weight:700;color:#1f2937">Rückstand nach Prozess</h3>
+          <sc-for list="{{ backlog }}" as="b" hint-placeholder-count="4">
+            <div style="padding:9px 0;border-bottom:1px solid #f3f4f6">
+              <div style="display:flex;align-items:baseline;gap:8px">
+                <span style="font-size:11.5px;color:#6b7280;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ b.name }}</span>
+                <span style="flex:1"></span>
+                <span style="font-family:ui-monospace,Menlo,monospace;font-size:12.5px;font-weight:600;color:#1f2937">{{ b.count }}</span>
+                <span style="font-size:10.5px;color:#9ca3af;width:34px;text-align:right">{{ b.share }}</span>
+              </div>
+              <div style="height:4px;border-radius:99px;background:#f3f4f6;margin-top:7px;overflow:hidden">
+                <div style="height:4px;border-radius:99px;background:{{ b.color }};width:{{ b.pct }}"></div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="grid-column:span 12;background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px 18px 8px">
+          <div style="display:flex;align-items:baseline;gap:9px;margin-bottom:6px">
+            <h3 style="margin:0;font-size:13.5px;font-weight:700;color:#1f2937">Letzte Validierungen</h3>
+            <span style="font-size:11px;color:#9ca3af">letzte 15 Minuten</span>
+            <span style="flex:1"></span>
+            <a href="#1c" style="font-size:11px;font-weight:600;color:#d97706">Alle Validierungen</a>
+          </div>
+          <sc-for list="{{ validations }}" as="v" hint-placeholder-count="4">
+            <div style="display:grid;grid-template-columns:90px 190px minmax(0,1fr) 60px;align-items:center;gap:14px;padding:9px 0;border-top:1px solid #f3f4f6;cursor:pointer">
+              <span style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:600;color:#d97706">{{ v.id }}</span>
+              <span style="font-size:11.5px;color:#1f2937">{{ v.process }}</span>
+              <span style="display:flex;flex-wrap:wrap;gap:5px">
+                <sc-for list="{{ v.chips }}" as="c" hint-placeholder-count="3">
+                  <span style="font-family:ui-monospace,Menlo,monospace;font-size:9.5px;color:#6b7280;background:#f9fafb;border:1px solid #e5e7eb;border-radius:5px;padding:2px 6px">{{ c }}</span>
+                </sc-for>
+              </span>
+              <span style="font-family:ui-monospace,Menlo,monospace;font-size:10.5px;color:#9ca3af;text-align:right">{{ v.time }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">Weiter: „<a class="dv-oid" href="#1a">1a</a> übernehmen, aber Rückstand nach Prozess in die Seitenspalte" · „<a class="dv-oid" href="#1c">1c</a> ohne dunkle Statuszeile" · „<a class="dv-oid" href="#1b">1b</a> mit Prozess-Chips aus <a class="dv-oid" href="#1a">1a</a>"</p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1300,&quot;height&quot;:1400},&quot;multiProcess&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Berechtigungen&quot;}}">
+const ACCENT = '#d97706', ACCENT2 = '#ea580c', TEAL = '#0d9488', GREEN = '#059669', INDIGO = '#4f46e5';
+
+const PROCS = [
+  { name: '02_Posteingang', today: '318' },
+  { name: '03_Invoice_New', today: '204' },
+  { name: '01_Scan_Eingang', today: '73' }
+];
+const DAILY = [2380,2400,2210,2050,2020,300,0,1919,2470,2500,2430,2180,2100,2050,1450,0,0,320,2650,1180];
+const DAY_LABELS = ['2026-08-18','2026-08-20','2026-08-22','2026-08-24','2026-08-26','2026-08-28','2026-08-30','2026-09-01'];
+const HOURS = ['06:00','07:00','08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00'];
+const HOURLY = [0,8,130,0,0,0,0,0,0,0,0,0];
+
+function pts(vals, w, h, pad, forceMax) {
+  const max = forceMax || Math.max.apply(null, vals) || 1;
+  const step = vals.length > 1 ? w / (vals.length - 1) : w;
+  return vals.map((v, i) => [i * step, h - pad - (v / max) * (h - pad * 2)]);
+}
+function smooth(p) {
+  let d = 'M' + p[0][0].toFixed(1) + ' ' + p[0][1].toFixed(1);
+  for (let i = 1; i < p.length; i++) {
+    const a = p[i - 1], b = p[i], cx = (a[0] + b[0]) / 2;
+    d += ' C' + cx.toFixed(1) + ' ' + a[1].toFixed(1) + ',' + cx.toFixed(1) + ' ' + b[1].toFixed(1) + ',' + b[0].toFixed(1) + ' ' + b[1].toFixed(1);
+  }
+  return d;
+}
+function spark(vals, w, h, stroke) {
+  const p = pts(vals, w, h, 3);
+  const line = smooth(p);
+  return { line: line, area: line + ' L' + w + ' ' + h + ' L0 ' + h + ' Z' };
+}
+
+class Component extends DCLogic {
+  state = { view: 'time', countdown: 27, scopeOpen: false, picked: ['02_Posteingang', '03_Invoice_New', '01_Scan_Eingang'] };
+
+  backlogTrendChart(w, h, series) {
+    const vals = series[0].vals;
+    const labels = ['19.08', '21.08', '23.08', '25.08', '27.08', '29.08', '31.08'];
+    const peak = Math.max.apply(null, series.map(s => Math.max.apply(null, s.vals)));
+    const bmax = Math.ceil(peak / 400) * 400;
+    const geo = s => pts(s.vals, w - 44, h - 22, 8, bmax).map(q => [q[0] + 40, q[1] + 4]);
+    const p = geo(series[0]);
+    const line = smooth(p);
+    const DASH = [null, '6 4', '2 3', '10 3 2 3'];
+    const extra = [];
+    for (let i = 1; i < series.length; i++) {
+      const q = geo(series[i]);
+      extra.push(React.createElement('path', { key: 'e' + i, d: smooth(q), fill: 'none', stroke: series[i].color, strokeWidth: 2, strokeDasharray: DASH[i % 4] || null, strokeLinejoin: 'round', strokeLinecap: 'round' }));
+      q.forEach((pt, j) => extra.push(React.createElement('circle', { key: 'p' + i + '_' + j, cx: pt[0], cy: pt[1], r: 1.6, fill: series[i].color, opacity: 0.55 })));
+      extra.push(React.createElement('circle', { key: 'c' + i, cx: q[q.length - 1][0], cy: q[q.length - 1][1], r: 3.2, fill: '#fff', stroke: series[i].color, strokeWidth: 2 }));
+      extra.push(React.createElement('text', {
+        key: 'v' + i, x: q[q.length - 1][0] - 6, y: q[q.length - 1][1] - 7, textAnchor: 'end',
+        fontSize: 10, fontWeight: 600, fill: series[i].color
+      }, series[i].vals[series[i].vals.length - 1].toLocaleString('en-US')));
+    }
+    const grid = [];
+    for (let i = 0; i < labels.length; i++) {
+      const x = 40 + (w - 44) * (i / (labels.length - 1));
+      grid.push(React.createElement('line', { key: 'vg' + i, x1: x, x2: x, y1: 6, y2: h - 14, stroke: '#f9fafb', strokeWidth: 1 }));
+    }
+    for (let i = 0; i <= 4; i++) {
+      const y = 4 + (h - 22 - 16) * (i / 4) + 8;
+      grid.push(React.createElement('line', { key: 'g' + i, x1: 40, x2: w - 4, y1: y, y2: y, stroke: '#f3f4f6', strokeWidth: 1 }));
+      grid.push(React.createElement('text', { key: 't' + i, x: 33, y: y + 3.5, textAnchor: 'end', fontSize: 9.5, fill: '#9ca3af' }, Math.round(bmax - i * (bmax / 4)).toLocaleString('en-US')));
+    }
+    const lab = labels.map((l, i) => React.createElement('text', {
+      key: 'l' + i, x: 40 + (w - 44) * (i / (labels.length - 1)), y: h - 1,
+      textAnchor: i === 0 ? 'start' : (i === labels.length - 1 ? 'end' : 'middle'), fontSize: 9.5, fill: '#9ca3af'
+    }, l));
+    return React.createElement('svg', { viewBox: '0 0 ' + w + ' ' + h, width: '100%', height: h, style: { display: 'block' } },
+      React.createElement('defs', null,
+        React.createElement('linearGradient', { id: 'nxbl', x1: '0', y1: '0', x2: '0', y2: '1' },
+          React.createElement('stop', { offset: '0%', stopColor: ACCENT, stopOpacity: 0.16 }),
+          React.createElement('stop', { offset: '100%', stopColor: ACCENT, stopOpacity: 0 }))),
+      grid, lab,
+      series.length === 1 ? React.createElement('path', { d: line + ' L' + (w - 4) + ' ' + (h - 18) + ' L40 ' + (h - 18) + ' Z', fill: 'url(#nxbl)' }) : null,
+      React.createElement('path', { d: line, fill: 'none', stroke: series[0].color, strokeWidth: 2.2, strokeLinejoin: 'round', strokeLinecap: 'round' }),
+      p.map((pt, j) => React.createElement('circle', { key: 'p0' + j, cx: pt[0], cy: pt[1], r: 1.6, fill: series[0].color, opacity: 0.55 })),
+      React.createElement('circle', { cx: p[p.length - 1][0], cy: p[p.length - 1][1], r: 3.5, fill: '#fff', stroke: series[0].color, strokeWidth: 2 }),
+      React.createElement('text', {
+        x: p[p.length - 1][0] - 6, y: p[p.length - 1][1] - 7, textAnchor: 'end',
+        fontSize: 10, fontWeight: 600, fill: series[0].color
+      }, series[0].vals[series[0].vals.length - 1].toLocaleString('en-US')),
+      extra
+    );
+  }
+
+  componentDidMount() {
+    this._t = setInterval(() => this.setState(s => ({ countdown: s.countdown > 0 ? s.countdown - 1 : 30 })), 1000);
+  }
+  componentWillUnmount() { clearInterval(this._t); }
+
+  lineChart(w, h, opts) {
+    const o = opts || {};
+    const vals = DAILY;
+    const max = Math.ceil(Math.max.apply(null, vals) / 500) * 500;
+    const p = pts(vals, w - 46, h - 26, 8, max).map(q => [q[0] + 42, q[1] + 6]);
+    const line = smooth(p);
+    const grid = [];
+    for (let i = 0; i <= 4; i++) {
+      const y = 6 + (h - 26 - 16) * (i / 4) + 8;
+      grid.push(React.createElement('line', { key: 'g' + i, x1: 42, x2: w - 4, y1: y, y2: y, stroke: '#f3f4f6', strokeWidth: 1 }));
+      grid.push(React.createElement('text', { key: 't' + i, x: 34, y: y + 3.5, textAnchor: 'end', fontSize: 9.5, fill: '#9ca3af' }, Math.round(max - i * (max / 4)).toLocaleString('en-US')));
+    }
+    const labels = DAY_LABELS.map((l, i) => React.createElement('text', {
+      key: 'l' + i, x: 42 + (w - 46) * (i / (DAY_LABELS.length - 1)), y: h - 2,
+      textAnchor: i === 0 ? 'start' : (i === DAY_LABELS.length - 1 ? 'end' : 'middle'),
+      fontSize: 9.5, fill: '#9ca3af', fontFamily: 'ui-monospace,Menlo,monospace'
+    }, l.slice(5)));
+    return React.createElement('svg', { viewBox: '0 0 ' + w + ' ' + h, width: '100%', height: h, style: { display: 'block' } },
+      React.createElement('defs', null,
+        React.createElement('linearGradient', { id: 'nxfill' + (o.k || ''), x1: '0', y1: '0', x2: '0', y2: '1' },
+          React.createElement('stop', { offset: '0%', stopColor: GREEN, stopOpacity: 0.16 }),
+          React.createElement('stop', { offset: '100%', stopColor: GREEN, stopOpacity: 0 }))),
+      grid, labels,
+      React.createElement('path', { d: line + ' L' + (w - 4) + ' ' + (h - 20) + ' L42 ' + (h - 20) + ' Z', fill: 'url(#nxfill' + (o.k || '') + ')' }),
+      React.createElement('path', { d: line, fill: 'none', stroke: GREEN, strokeWidth: 2, strokeLinejoin: 'round' }),
+      React.createElement('circle', { cx: p[p.length - 1][0], cy: p[p.length - 1][1], r: 3.5, fill: '#fff', stroke: GREEN, strokeWidth: 2 })
+    );
+  }
+
+  barChart(w, h) {
+    const max = Math.ceil(Math.max.apply(null, HOURLY) / 35) * 35, plotH = h - 26, bw = (w - 46) / HOURS.length;
+    const grid = [];
+    for (let i = 0; i <= 4; i++) {
+      const y = 6 + plotH * (i / 4);
+      grid.push(React.createElement('line', { key: 'g' + i, x1: 42, x2: w - 4, y1: y, y2: y, stroke: '#f3f4f6', strokeWidth: 1 }));
+      grid.push(React.createElement('text', { key: 't' + i, x: 34, y: y + 3.5, textAnchor: 'end', fontSize: 9.5, fill: '#9ca3af', }, Math.round(max - i * (max / 4)).toLocaleString('en-US')));
+    }
+    const bars = HOURLY.map((v, i) => {
+      const bh = (v / max) * plotH;
+      return React.createElement('rect', {
+        key: 'b' + i, x: 42 + i * bw + bw * 0.22, y: 6 + plotH - bh,
+        width: bw * 0.56, height: Math.max(bh, v > 0 ? 2 : 0), rx: 3,
+        fill: 'rgba(13,148,136,0.16)', stroke: TEAL, strokeWidth: 1.2
+      });
+    });
+    const labels = HOURS.map((l, i) => React.createElement('text', {
+      key: 'l' + i, x: 42 + i * bw + bw / 2, y: h - 2, textAnchor: 'middle',
+      fontSize: 9.5, fill: '#9ca3af', fontFamily: 'ui-monospace,Menlo,monospace'
+    }, l));
+    return React.createElement('svg', { viewBox: '0 0 ' + w + ' ' + h, width: '100%', height: h, style: { display: 'block' } }, grid, bars, labels);
+  }
+
+  renderVals() {
+    const isTime = this.state.view === 'time';
+    const sTint = 'rgba(217,119,6,0.14)';
+    const kpiDefs = [
+      { label: 'Heute importiert', value: '595', delta: '+12%', up: true, spark: ACCENT, note: 'Ø 14 Tage: 531', icon: 'fas fa-file-arrow-down', series: [420,500,470,520,560,480,595] },
+      { label: 'Heute verarbeitet', value: '60', delta: '−38%', up: false, spark: '#059669', note: 'Tag läuft noch (06:47)', icon: 'fas fa-file-arrow-up', series: [180,220,140,190,160,97,60] },
+      { label: 'Aktueller Rückstand', value: '1,247', delta: '+4%', up: false, spark: ACCENT, note: '+48 seit gestern', icon: 'fas fa-layer-group', series: [980,1020,1110,1080,1150,1199,1247] },
+      { label: 'Durchschn. Verarbeitungszeit', value: '15h', delta: '−1.5h', up: true, spark: GREEN, note: 'Ziel: unter 12h', icon: 'fas fa-stopwatch', series: [19,18.5,17,17.5,16.2,16.5,15] }
+    ];
+    const kpis = kpiDefs.map((k, i) => {
+      const a = spark(k.series, 200, 26), b = spark(k.series, 120, 36);
+      const good = k.up;
+      return {
+        label: k.label, value: k.value, delta: k.delta, note: k.note, icon: k.icon,
+        deltaColor: good ? '#059669' : '#b45309',
+        sparkStroke: k.spark,
+        sparkFill: k.spark === GREEN ? 'rgba(5,150,105,0.12)'
+          : (k.spark === TEAL ? 'rgba(13,148,136,0.12)'
+          : (k.spark === ACCENT2 ? 'rgba(234,88,12,0.13)'
+          : (k.spark === INDIGO ? 'rgba(79,70,229,0.12)' : sTint))),
+        line: a.line, area: a.area, lineB: b.line, areaB: b.area
+      };
+    });
+    const backlog = [
+      { name: '02_Posteingang', count: '612', share: '49%', pct: '49%', color: ACCENT },
+      { name: '03_Invoice_New', count: '341', share: '27%', pct: '27%', color: ACCENT2 },
+      { name: '01_Scan_Eingang', count: '188', share: '15%', pct: '15%', color: '#f59e0b' },
+      { name: '04_Archiv', count: '106', share: '9%', pct: '9%', color: '#d1d5db' }
+    ];
+    const validations = [
+      { id: '1871708', process: '03_Invoice_New', time: '06:47', chips: ['tec: 0', 'doctype: INVOICE', 'client: 1111'] },
+      { id: '1876022', process: '02_Posteingang', time: '06:47', chips: ['docbarcode: 2000985608', 'doctype: 0304c', 'validationuser: DOM\\SIC'] },
+      { id: '1876023', process: '02_Posteingang', time: '06:47', chips: ['doctype: 030%', 'ownernr: 200069732', 'registered: nein'] },
+      { id: '1876024', process: '03_Invoice_New', time: '06:46', chips: ['tec: 0', 'doctype: INVOICE', 'client: 1111'] },
+      { id: '1876031', process: '02_Posteingang', time: '06:45', chips: ['docbarcode: 2000985611', 'doctype: 0304c'] },
+      { id: '1876035', process: '02_Posteingang', time: '06:44', chips: ['doctype: 030%', 'ownernr: 200069740'] },
+      { id: '1876040', process: '01_Scan_Eingang', time: '06:43', chips: ['doctype: SCAN', 'client: 1111'] },
+      { id: '1876044', process: '03_Invoice_New', time: '06:41', chips: ['doctype: INVOICE', 'tec: 0'] },
+      { id: '1876051', process: '02_Posteingang', time: '06:40', chips: ['doctype: 0304c', 'registered: ja'] }
+    ].map(v => {
+      const dt = (v.chips.find(c => c.indexOf('doctype') === 0) || 'doctype: —').split(': ')[1];
+      const rest = v.chips.filter(c => c.indexOf('doctype') !== 0);
+      return Object.assign({}, v, {
+        chipLine: v.chips.join(' · '),
+        doctype: dt,
+        detail: 'ID ' + v.id + (rest.length ? ' · ' + rest.join(' · ') : ''),
+        fields: v.chips.map(c => {
+          const i = c.indexOf(': ');
+          return { key: c.slice(0, i), val: c.slice(i + 2) };
+        })
+      });
+    });
+
+    const multi = this.props.multiProcess ?? true;
+    const BL_SERIES = [
+      { name: '02_Posteingang', color: ACCENT, vals: [402, 556, 448, 624, 512, 668, 470, 602, 706, 520, 638, 724, 536, 612] },
+      { name: '03_Invoice_New', color: '#7c3aed', vals: [206, 318, 244, 372, 262, 348, 232, 396, 288, 246, 402, 296, 234, 341] },
+      { name: '01_Scan_Eingang', color: '#0891b2', vals: [188, 118, 214, 132, 196, 108, 226, 148, 122, 232, 158, 114, 218, 188] },
+      { name: '04_Archiv', color: '#db2777', vals: [56, 118, 72, 142, 84, 58, 132, 76, 156, 92, 62, 138, 80, 106] }
+    ];
+    const TOTAL_SERIES = [{ name: 'Rückstand', color: ACCENT, vals: [852, 1110, 978, 1270, 1054, 1182, 1060, 1222, 1272, 1090, 1260, 1272, 1068, 1247] }];
+    const blSeries = multi ? BL_SERIES : TOTAL_SERIES;
+    const flowRaw = [
+      { day: 'Mo', inn: 620, out: 540 }, { day: 'Di', inn: 705, out: 690 },
+      { day: 'Mi', inn: 480, out: 610 }, { day: 'Do', inn: 660, out: 520 },
+      { day: 'Fr', inn: 595, out: 60 }
+    ];
+    const flowMax = 720;
+    const flow = flowRaw.map(f => ({
+      day: f.day,
+      inPct: Math.round((f.inn / flowMax) * 100) + '%',
+      outPct: Math.round((f.out / flowMax) * 100) + '%',
+      netLabel: (f.inn - f.out > 0 ? '+' : '') + (f.inn - f.out).toLocaleString('en-US')
+    }));
+
+    return {
+      countdown: this.state.countdown,
+      flow: flow,
+      backlogTrend: this.backlogTrendChart(700, 210, blSeries),
+      backlogTrendWide: this.backlogTrendChart(1080, 200, blSeries),
+      ringImport: (2 * Math.PI * 45 * 1).toFixed(1) + ' ' + (2 * Math.PI * 45).toFixed(1),
+      ringDone: (2 * Math.PI * 45 * (60 / 595)).toFixed(1) + ' ' + (2 * Math.PI * 45).toFixed(1),
+      donePct: Math.round((60 / 595) * 100) + '%',
+      backlogLegend: blSeries.map((s, i) => ({
+        name: s.name, color: s.color,
+        style: i === 1 ? 'dashed' : (i === 2 ? 'dotted' : (i === 3 ? 'double' : 'solid')),
+        count: s.vals[s.vals.length - 1].toLocaleString('en-US')
+      })),
+      scopeOpen: this.state.scopeOpen,
+      toggleScope: () => this.setState(s => ({ scopeOpen: !s.scopeOpen })),
+      scopeSummary: this.state.picked.length === PROCS.length
+        ? 'Alle Prozesse' : (this.state.picked.length === 0 ? 'Kein Prozess'
+        : (this.state.picked.length === 1 ? this.state.picked[0] : this.state.picked.length + ' Prozesse')),
+      scopeRows: [{ name: 'Alle Prozesse', today: '595', client: true }].concat(PROCS).map(r => {
+        const isAll = r.client === true;
+        const on = isAll ? this.state.picked.length === PROCS.length : this.state.picked.indexOf(r.name) !== -1;
+        return {
+          name: r.name, today: r.today, checked: on,
+          color: isAll ? '#1f2937' : '#6b7280',
+          weight: isAll ? '600' : '400',
+          indent: isAll ? '8px' : '22px',
+          toggle: () => this.setState(s => ({
+            picked: isAll
+              ? (s.picked.length === PROCS.length ? [] : PROCS.map(p => p.name))
+              : (s.picked.indexOf(r.name) !== -1 ? s.picked.filter(n => n !== r.name) : s.picked.concat([r.name]))
+          }))
+        };
+      }),
+      kpis: kpis, backlog: backlog, validations: validations,
+      chartTitle: isTime ? 'Verarbeitete Dokumente im Zeitverlauf' : 'Heute verarbeitete Dokumente nach Stunde',
+      chartMeta: isTime ? '14 Tage · Spitze 2,650' : 'Spitze 130 um 08:00',
+      showTime: () => this.setState({ view: 'time' }),
+      showHour: () => this.setState({ view: 'hour' }),
+      toggleChart: () => this.setState(s => ({ view: s.view === 'time' ? 'hour' : 'time' })),
+      toggleLabel: isTime ? 'Nach Stunde' : 'Zeitverlauf',
+      tabTimeBg: isTime ? '#fef3e2' : '#fff', tabTimeFg: isTime ? '#b45309' : '#9ca3af',
+      tabHourBg: isTime ? '#fff' : '#fef3e2', tabHourFg: isTime ? '#9ca3af' : '#b45309',
+      underTimeFg: isTime ? '#1f2937' : '#9ca3af', underTimeBorder: isTime ? ACCENT : 'transparent',
+      underHourFg: isTime ? '#9ca3af' : '#1f2937', underHourBorder: isTime ? 'transparent' : ACCENT,
+      mainChart: isTime ? this.lineChart(1136, 290, { k: 'a' }) : this.barChart(1136, 290),
+      mainChartB: isTime ? this.lineChart(1120, 300, { k: 'b' }) : this.barChart(1120, 300),
+      mainChartC: isTime ? this.lineChart(700, 250, { k: 'c' }) : this.barChart(700, 250)
+    };
+  }
+}
+</script>
+</body>
+</html>

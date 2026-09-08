@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="{{ get_locale }}">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    {% include '_theme_prepaint.html' %}
+    <link rel="stylesheet" href="{{ static_v('css/nexora-ui.css') }}">
+    <title>{{ _("Tenants - nexora") }}</title>
+    <link rel="stylesheet" href="{{ static_v('css/admin.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous" />
+</head>
+<body class="nx-app">
+    {% set active_page = 'admin_tenants' %}
+    {% include '_header.html' %}
+    {% import 'admin/_admin_helpers.html' as a %}
+
+    {# Tenant -> Organization -> { Users, Access profiles, Data connection,
+       Process configurations } (#257). Everything is rendered here; the four
+       linked pages own the writes. #}
+
+    {% macro users_list(org) %}
+        {% if org.users %}
+        <ul class="tenant-list" data-testid="admin-tenants-users-{{ org.organizationcode }}">
+            {% for u in org.users %}
+            <li>
+                <i class="fas fa-user tenant-list__icon"></i>
+                <a href="{{ url_for('admin_user_detail', user_id=u.userID) }}">{{ u.fullname or u.username }}</a>
+                {% if u.fullname %}<span class="nx-mono tenant-dim">{{ u.username }}</span>{% endif %}
+                {% if u.profile %}<span class="tenant-chip tenant-chip--mini">{{ u.profile }}</span>{% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="tenant-dim">{{ _('No users') }}</p>
+        {% endif %}
+    {% endmacro %}
+
+    {% macro profiles_box(org) %}
+        {% if org.bound_profiles %}
+        <ul class="tenant-list" data-testid="admin-tenants-profiles-{{ org.organizationcode }}">
+            {% for name in org.bound_profiles %}
+            <li><i class="fas fa-id-badge tenant-list__icon"></i><a href="{{ url_for('admin_access_control') }}">{{ name }}</a></li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="tenant-dim">{{ _('No profile bound to this organization') }}</p>
+        {% endif %}
+        {% set globals_in_use = org.profiles_in_use | rejectattr('name', 'in', org.bound_profiles) | list %}
+        {% if globals_in_use %}
+        <p class="tenant-dim tenant-hint"><i class="fas fa-globe"></i> {{ _('Global profiles in use:') }}
+            {% for pr in globals_in_use %}{{ pr.name }} <span class="nx-mono">×{{ pr.count }}</span>{{ ', ' if not loop.last }}{% endfor %}
+        </p>
+        {% endif %}
+    {% endmacro %}
+
+    {% macro connection_box(client) %}
+        {% if not can_view_clients %}
+        <p class="tenant-dim"><i class="fas fa-lock"></i> {{ _('Requires admin.clients.view') }}</p>
+        {% elif client.missing %}
+        <p class="nx-c-danger"><i class="fas fa-triangle-exclamation"></i> {{ _('Client %(code)s is missing', code=client.ClientCode) }}</p>
+        {% else %}
+        <p class="tenant-col__lead">
+            <a href="{{ url_for('admin_clients_view') }}">{{ client.DisplayName }}</a>
+            <span class="nx-mono tenant-dim">{{ client.ClientCode }}</span>
+        </p>
+        <dl class="tenant-facts">
+            <dt>{{ _('Dialect') }}</dt><dd>{{ client.Dialect }}</dd>
+            <dt>{{ _('Runtime engine') }}</dt><dd><span class="nx-mono">{{ client.RuntimeEngineKey }}</span></dd>
+            <dt>{{ _('Runtime state') }}</dt>
+            <dd data-testid="admin-tenants-loaded-{{ client.ClientCode }}">
+                {% if client.loaded %}
+                <span class="nx-c-sec"><i class="fas fa-circle-check"></i> {{ _('Loaded') }}</span>
+                {% else %}
+                <span class="nx-c-danger"><i class="fas fa-triangle-exclamation"></i> {{ _('Configured, not loaded') }}</span>
+                {% endif %}
+            </dd>
+        </dl>
+        {% endif %}
+    {% endmacro %}
+
+    {% macro sources_list(sources, testid) %}
+        {% if sources %}
+        <ul class="tenant-list" data-testid="{{ testid }}">
+            {% for s in sources %}
+            <li>
+                <i class="fas fa-diagram-project tenant-list__icon"></i>
+                <span class="nx-mono">{{ s.process }}</span>
+                <span class="tenant-dim">
+                    {% if s.table %}<span class="nx-mono">{{ s.table }}</span> ·{% endif %}
+                    {{ ngettext('%(num)d field', '%(num)d fields', s.field_count) }}
+                    {% if s.client %}· <span class="nx-mono">{{ s.client }}</span>{% endif %}
+                </span>
+            </li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    {% endmacro %}
+
+    {% macro processes_box(org) %}
+        {% if not can_view_processes %}
+        <p class="tenant-dim"><i class="fas fa-lock"></i> {{ _('Requires admin.processes.view') }}</p>
+        {% elif not mapping_config_available %}
+        <p class="nx-c-danger"><i class="fas fa-triangle-exclamation"></i> {{ _('Mapping configuration unavailable') }}</p>
+        {% else %}
+        {{ sources_list(org.sources, 'admin-tenants-processes-' ~ org.organizationcode) }}
+        {% if not org.sources %}<p class="tenant-dim">{{ _('No process configuration assigned') }}</p>{% endif %}
+        <p class="tenant-col__foot"><a href="{{ url_for('admin_processes_view') }}">{{ _('Open Process Configurations') }} <i class="fas fa-arrow-right"></i></a></p>
+        {% endif %}
+    {% endmacro %}
+
+    {# One organization = one row of four boxes. #}
+    {% macro org_block(org) %}
+        {% set haystack = [org.organizationcode, org.organization,
+                           org.users | map(attribute='username') | join(' '),
+                           org.users | map(attribute='fullname') | select | join(' '),
+                           org.bound_profiles | join(' '),
+                           org.clients | map(attribute='ClientCode') | join(' '),
+                           org.clients | map(attribute='DisplayName') | select | join(' '),
+                           org.sources | map(attribute='process') | join(' ')] %}
+        <div class="tenant-org" data-search="{{ (haystack | join(' ')) | lower }}" data-testid="admin-tenants-org-{{ org.organizationcode }}">
+            <h3 class="tenant-org__title">
+                <i class="fas fa-building"></i>
+                <a href="{{ url_for('admin_organizations_view') }}#org-{{ org.organizationcode }}">{{ org.organization }}</a>
+                <span class="nx-mono tenant-dim">{{ org.organizationcode }}</span>
+            </h3>
+            <div class="tenant-grid tenant-grid--four">
+                <div class="tenant-col">
+                    <h4 class="nx-meta"><i class="fas fa-users"></i> {{ _('Users') }}</h4>
+                    {{ users_list(org) }}
+                </div>
+                <div class="tenant-col">
+                    <h4 class="nx-meta"><i class="fas fa-id-badge"></i> {{ _('Access profiles') }}</h4>
+                    {{ profiles_box(org) }}
+                </div>
+                <div class="tenant-col" data-testid="admin-tenants-connection-{{ org.organizationcode }}">
+                    <h4 class="nx-meta"><i class="fas fa-server"></i> {{ _('Data connection') }}</h4>
+                    {% for c in org.clients %}{{ connection_box(c) }}{% else %}<p class="tenant-dim">{{ _('No data connection') }}</p>{% endfor %}
+                </div>
+                <div class="tenant-col">
+                    <h4 class="nx-meta"><i class="fas fa-diagram-project"></i> {{ _('Process configurations') }}</h4>
+                    {{ processes_box(org) }}
+                </div>
+            </div>
+        </div>
+    {% endmacro %}
+
+    <main class="nx-main">
+        {{ a.page_header(
+            title=_('Tenants'),
+            subtitle=_('Each tenant with its organizations, and per organization its users, access profiles, data connection and process configurations'),
+            back_url=url_for('admin_dashboard'),
+            icon='fa-city'
+        ) }}
+
+        {% if not tenant_registry_available %}
+        <div class="nx-card nx-bg-lred" style="margin:-8px 0 16px;padding:12px 16px" data-testid="admin-tenants-unavailable">
+            <strong class="nx-c-danger"><i class="fas fa-triangle-exclamation"></i> {{ _("Tenant registry unavailable") }}</strong>
+            <p class="nx-c-sec" style="font-size:0.85rem;margin:4px 0 0">{{ _("dbo.Tenants could not be read, so no tenant is shown below -- only the organizations and connections that exist regardless. Check app.log.") }}</p>
+        </div>
+        {% endif %}
+
+        {{ a.toolbar(search_id='tenantSearchInput', search_placeholder=_('Search tenant, organization, user, profile, connection or process...')) }}
+
+        <div id="tenant-cards">
+            {% for card in tree.tenants %}
+            {% set t = card.tenant %}
+            <section class="nx-card tenant-card" id="tenant-{{ t.code }}" data-search="{{ (t.code ~ ' ' ~ t.display_name) | lower }}" data-testid="admin-tenants-card-{{ t.code }}">
+                <header class="tenant-card__head">
+                    <h2 class="nx-section tenant-card__title">
+                        <i class="fas fa-city"></i> {{ t.display_name }}
+                        <span class="nx-mono tenant-dim">{{ t.code }}</span>
+                    </h2>
+                    <div class="tenant-card__badges">
+                        {{ a.badge(_('Active') if t.active else _('Inactive'), 'green' if t.active else 'gray') }}
+                        <span class="tenant-dim">{{ ngettext('%(num)d organization', '%(num)d organizations', card.organizations | length) }}</span>
+                        <span class="nx-mono tenant-dim" title="{{ _('Permission that grants access to this tenant\'s pages') }}">tenant.{{ t.code }}.view</span>
+                    </div>
+                </header>
+
+                {% for org in card.organizations %}
+                {{ org_block(org) }}
+                {% else %}
+                <p class="tenant-dim" data-testid="admin-tenants-no-orgs-{{ t.code }}">{{ _('No organization belongs to this tenant yet -- assign one on the Organizations page.') }}</p>
+                {% endfor %}
+
+                <div class="tenant-pages" data-testid="admin-tenants-pages-{{ t.code }}">
+                    <h3 class="nx-meta"><i class="fas fa-window-restore"></i> {{ _('Pages') }}</h3>
+                    {% if card.pages %}
+                    <ul class="tenant-chips">
+                        {% for p in card.pages %}
+                        <li><a class="tenant-chip" href="{{ p.url }}">{{ p.label }} <span class="tenant-chip__type">{{ p.page_type }}</span></a></li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="tenant-dim">{{ _('No pages') }}</p>
+                    {% endif %}
+                </div>
+            </section>
+            {% endfor %}
+
+            {% if tenant_registry_available and not tree.tenants %}
+            <div class="nx-card admin-empty" data-testid="admin-tenants-empty">
+                <i class="fas fa-city"></i> &nbsp; {{ _('No tenants yet. A tenant groups organizations; today tenants are created by migration.') }}
+            </div>
+            {% endif %}
+        </div>
+
+        {% if tree.orphan_organizations %}
+        <h2 class="nx-section tenant-orphans__title">{{ _('Organizations not in a tenant') }}</h2>
+        <section class="nx-card tenant-card" data-search="" data-testid="admin-tenants-orphan-organizations">
+            {% for org in tree.orphan_organizations %}
+            {{ org_block(org) }}
+            {% endfor %}
+        </section>
+        {% endif %}
+
+        {% if tree.orphan_clients or tree.global_profiles %}
+        <h2 class="nx-section tenant-orphans__title">{{ _('Shared across organizations') }}</h2>
+        <div class="tenant-grid tenant-grid--orphans">
+            {% if tree.orphan_clients %}
+            <section class="nx-card tenant-card" data-search="{{ (tree.orphan_clients | map(attribute='ClientCode') | join(' ') ~ ' ' ~ (tree.orphan_clients | map(attribute='DisplayName') | join(' '))) | lower }}" data-testid="admin-tenants-orphan-clients">
+                <h3 class="nx-meta"><i class="fas fa-server"></i> {{ _('Data connections no organization rides') }}</h3>
+                {% for client in tree.orphan_clients %}
+                <div class="tenant-orphan" data-search="{{ (client.ClientCode ~ ' ' ~ client.DisplayName) | lower }}" data-testid="admin-tenants-orphan-client-{{ client.ClientCode }}">
+                    {{ connection_box(client) }}
+                    {% if can_view_processes and client.unassigned_sources %}
+                    <h4 class="nx-meta"><i class="fas fa-diagram-project"></i> {{ _('Process configurations not assigned to an organization') }}</h4>
+                    {{ sources_list(client.unassigned_sources, 'admin-tenants-unassigned-' ~ client.ClientCode) }}
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </section>
+            {% endif %}
+            {% if tree.global_profiles %}
+            <section class="nx-card tenant-card" data-search="{{ tree.global_profiles | join(' ') | lower }}" data-testid="admin-tenants-global-profiles">
+                <h3 class="nx-meta"><i class="fas fa-globe"></i> {{ _('Global access profiles') }}</h3>
+                <p class="tenant-dim">{{ _('Not bound to an organization -- assignable to any user.') }}</p>
+                <ul class="tenant-list">
+                    {% for name in tree.global_profiles %}
+                    <li><i class="fas fa-id-badge tenant-list__icon"></i><a href="{{ url_for('admin_access_control') }}">{{ name }}</a></li>
+                    {% endfor %}
+                </ul>
+            </section>
+            {% endif %}
+        </div>
+        {% endif %}
+    </main>
+
+    <script src="{{ static_v('js/admin_tenants.js') }}" nonce="{{ csp_nonce() }}" defer></script>
+</body>
+</html>

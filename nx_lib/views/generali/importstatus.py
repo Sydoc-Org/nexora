@@ -8,7 +8,7 @@ from ...security import page_visibility, require_permission
 # ----------------------------- Generali Import Status ---------------------- #
 
 
-@require_permission("generali.importstatus.view")
+@require_permission("tenant.generali.importstatus.view")
 def generali_import_status():
     try:
         if "username" not in session:
@@ -25,7 +25,7 @@ def generali_import_status():
         return render_template("handlers/500.html"), 500
 
 
-@require_permission("generali.importstatus.view")
+@require_permission("tenant.generali.importstatus.view")
 def api_generali_importstatus_list():
     conn = None
     try:

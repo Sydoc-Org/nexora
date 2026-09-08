@@ -1,0 +1,29 @@
+<!-- @dsCard group="Brand" viewport="700x150" name="Elevation" subtitle="Shadow means floating: menus and modals only" -->
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; padding: 16px 18px; background: var(--nx-card); font-family: var(--nx-font); color: var(--nx-text); }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; }
+  .sw { display: flex; flex-direction: column; gap: 6px; width: 96px; }
+  .chip { height: 44px; border-radius: 8px; border: 1px solid var(--nx-border); }
+  .name { font-size: 10.5px; font-weight: 600; color: var(--nx-text); }
+  .hex { font-family: var(--nx-mono); font-size: 9.5px; color: var(--nx-text-meta); }
+  .cap { font-size: 9.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--nx-text-meta); }
+  table { border-collapse: collapse; font-size: 11.5px; }
+  td { padding: 3px 14px 3px 0; color: var(--nx-text-sec); }
+  td.k { font-family: var(--nx-mono); color: var(--nx-text); }
+</style>
+
+<div class="row" style="align-items:flex-start;gap:20px">
+  <div style="width:200px;background:var(--nx-card);border:1px solid var(--nx-border);border-radius:8px;box-shadow:var(--nx-shadow-menu);padding:5px">
+    <div style="padding:5px 8px;font-size:12.5px;border-radius:6px;background:var(--nx-accent-tint);color:var(--nx-accent-hover)">02_Posteingang</div>
+    <div style="padding:5px 8px;font-size:12.5px;color:var(--nx-text-sec)">03_Invoice_New</div>
+    <div style="padding:5px 8px;font-size:12.5px;color:var(--nx-text-sec)">01_Scan_Eingang</div>
+  </div>
+  <table>
+    <tr><td class="k">--nx-shadow-menu</td><td>Dropdowns, Scope-Menü</td></tr>
+    <tr><td class="k">--nx-shadow-pop</td><td>Modale, Drawer</td></tr>
+    <tr><td class="k">--nx-shadow</td><td>nur Altbestand (Legacy-Karten)</td></tr>
+    <tr><td class="k">none</td><td>alles im Seitenfluss</td></tr>
+  </table>
+</div>

@@ -62,7 +62,7 @@ def _cacheable_response(rv):
     return status < 400
 
 
-@require_permission("generali.dashboard.view")
+@require_permission("tenant.generali.view")
 def generali_evaluation():
     try:
         if "username" not in session:
@@ -78,7 +78,7 @@ def generali_evaluation():
         return render_template("handlers/500.html"), 500
 
 
-@require_permission("generali.documentlist.view")
+@require_permission("tenant.generali.documents.view")
 def generali_documents():
     try:
         if "username" not in session:
@@ -94,7 +94,7 @@ def generali_documents():
         return render_template("handlers/500.html"), 500
 
 
-@require_permission("generali.dashboard.view")
+@require_permission("tenant.generali.view")
 @cache.cached(
     timeout=120,
     key_prefix=_generali_stats_cache_key,  # type: ignore[arg-type]  # callable prefix, stubs say str
@@ -291,7 +291,7 @@ def api_generali_stats():
             conn.close()
 
 
-@require_permission("generali.documentlist.view")
+@require_permission("tenant.generali.documents.view")
 @cache.cached(
     timeout=120,
     key_prefix=_generali_filter_options_cache_key,  # type: ignore[arg-type]  # callable prefix, stubs say str
@@ -330,7 +330,7 @@ def api_generali_filter_options():
             conn.close()
 
 
-@require_permission("generali.documentlist.view")
+@require_permission("tenant.generali.documents.view")
 def api_generali_documents():
     conn = None
     try:
@@ -506,7 +506,7 @@ def api_generali_documents():
             conn.close()
 
 
-@require_permission("generali.documentlist.view")
+@require_permission("tenant.generali.documents.view")
 def api_generali_document_detail(doc_id):
     conn = None
     try:
