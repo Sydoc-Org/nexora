@@ -10,6 +10,20 @@ Work toward the next release.
 
 ### Fixed
 
+- **The outage monitor now caps how much it can mail** (#282). Per-component
+  hysteresis already stopped one incident re-alerting, but nothing limited the
+  total: with a 5-minute poll and 13 probes the worst case was two mails a run,
+  24 an hour, and deploys and maintenance windows trip the HTTP probes every
+  time — so routine work reached the helpdesk as alerts. `nx_lib.outage`
+  gains `mail_budget()`, a rolling cap (default 4 per hour, both configurable)
+  persisted in `var/outage-state.json` alongside the component state, because
+  each monitor run is a fresh process and an in-memory counter would reset
+  every 5 minutes. Suppressed mails are counted and reported in the next one
+  that goes out — silence that cannot be told apart from health would be worse
+  than the spam. The first mail is never suppressed, and `max_per_window=0`
+  disables the cap. Measured on a simulated 3 hours of nine components flapping:
+  **33 mails before, 12 after**.
+
 - **The `dbo.ActiveSessions` prune now has a way to be scheduled.** #227
   shipped `ops/cleanup/prune_active_sessions.py` and a docstring asking someone
   to register a task by hand; nothing in the repo executed it, so merging and
