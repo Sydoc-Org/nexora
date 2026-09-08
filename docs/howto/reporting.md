@@ -1240,7 +1240,7 @@ three Generali examples). Not combinable with date-anchored metrics. `0119` regi
 **Documents** over `dbo.v_ReportJobJoinDefinitions` (the ReportJob feed with
 lookup labels joined; measures `Documents` / `Cases`) and **CSV Imports** over
 `dbo.CSVImportLog` — relabels ISS to "Reporting", and moves the Generali block
-to `SortOrder` 200+ so platform sources lead. `0123` registers two Statistics-DB
+to `SortOrder` 200+ so platform sources lead. `0127` registers two Statistics-DB
 tables the same way: **Bucherer — EasyTax** (`bucherer_easytax` over
 `dbo.Bucherer_EasyTax`, one row per document; *Exported documents* is a
 conditional count over `ExportTime IS NOT NULL`, `Pages` a sum) and **Frigemo —

@@ -1,4 +1,5 @@
--- 0123_seed_bucherer_frigemo_sources.sql
+-- 0127_seed_bucherer_frigemo_sources.sql
+-- (renumbered from 0123 to clear the collision with 0123_report_annotations)
 -- Two Statistics-DB fact tables the collectors already fill but nobody could
 -- report on. Register them through the generic 'table' provider (0117 pattern,
 -- ColumnsJSON is the whole config, no code):

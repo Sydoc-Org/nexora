@@ -23,7 +23,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (organization, process) to organization only, so ElektroMaterial's legacy
   `01_Invoice_1` and Privera's `PriveraPostFields` telemetry count again.
   Bucherer and Geberit stay out until they have an organization.
-- **Bucherer & Frigemo reporting sources** — migration `0123` registers
+- **Bucherer & Frigemo reporting sources** — migration `0127` registers
   **Bucherer — EasyTax** (`dbo.Bucherer_EasyTax` on the Statistics DB, one row
   per document: measures *Imported documents*, *Exported documents* = rows with
   an export time, *Pages*) and **Frigemo — Documents** (`dbo.Frigemo`, daily
