@@ -7,6 +7,17 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **MediaMarkt scan protocol moves off Excel** — the Sydoc tenant gets a generated
+  CRUD page `/t/sydoc/mediamarkt` (migration `0126`) over the new
+  `SYDOC_Statistik.dbo.MediaMarkt_Batches` table: one row per scanned batch with
+  date, batch number, pieces, type K/D/KA, done, correction batches, corrections,
+  corrections received, remarks. The visum is stamped from the login. The 2026
+  workbook is back-filled by `nx-sources/mediamarkt/import_protocol.py`. Same
+  table is the reporting source **MediaMarkt — Batches** with *Pieces scanned* and
+  *Batches* measures (`reporting.source.mediamarkt_batches.use`).
+- **Generated CRUD pages learn two roles** — a `person` field is no longer typed:
+  it is stamped server-side with the current username on every write. A `flag`
+  field renders as a checkbox and stores 0/1.
 - **Field quality covers every process of an onboarded customer** — migration
   `0125` relaxes the `0111` gate on `vFieldExtractionQuality` from
   (organization, process) to organization only, so ElektroMaterial's legacy

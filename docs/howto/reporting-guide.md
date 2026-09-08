@@ -149,7 +149,8 @@ type, input channel, language, post-check…), Attendance, Base Services, Projec
 Management, Reporting and CSV Imports. Sydoc staff also see **Bucherer — EasyTax**
 (imported and exported documents, pages) and **Frigemo — Documents** (daily
 imported/exported documents and pages, deleted documents, invoices) and **Sydoc — Project Hours** (hours booked in
-bpsuite by customer, project package, task and user). Clicking a source card in the rail opens its
+bpsuite by customer, project package, task and user) and **MediaMarkt — Batches**
+(pieces scanned per batch, entered on the Sydoc tenant page). Clicking a source card in the rail opens its
 database **structure**, not a report — start reports with **New report**.
 
 **Click a source card** to look inside the database behind it (needs the

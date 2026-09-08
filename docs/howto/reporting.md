@@ -1054,7 +1054,11 @@ Documents** (`frigemo` over `dbo.Frigemo`, one row per day of already-summed
 counters, so every measure is a `sum`; `Date` grainable). `SortOrder` 300/310. `0124` registers **Sydoc — Project Hours**
 (`bps_projects` over `dbo.BPS_ProjectReport`, the bpsuite Projektbericht export
 loaded by the `nx-sources/bps/bps_project_report.py` collector; measures `Hours`,
-`Bookings`, and `Absence hours` = hours where `Kunde = 'Absences'`). The wizard's measure step walks
+`Bookings`, and `Absence hours` = hours where `Kunde = 'Absences'`). `0126` registers **MediaMarkt — Batches**
+(`mediamarkt_batches` over `SYDOC_Statistik.dbo.MediaMarkt_Batches`, the table behind the
+generated `/t/sydoc/mediamarkt` CRUD page; measures `Pieces scanned` = sum of
+`Pieces`, `Batches` = row count; `ScanDate` grainable, `DocType` K/D/KA and `Visum`
+as dimensions). The wizard's measure step walks
 sources in `SortOrder` and splits a `Tenant — Thing` label at the em dash: one
 uppercase heading per tenant, a `.rs-choice-group-sublabel` per source. The
 tenant's lookup tables carry no measures and are not registered. Each source is gated by its own
