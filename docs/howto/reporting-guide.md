@@ -374,6 +374,14 @@ number. A hint line tells you when this is available.
 - On a distinct-count measure, the drawer says so: you may see more rows than
   the number, because the same value can appear on several rows.
 
+### Pin a note on the chart
+
+If you own the report, **Alt+click** a bar or point (or use **Add annotation**
+under the chart) to pin a short note on that period — "mailroom outage", "new
+client onboarded". It shows as a small triangle at the foot of that bar and in
+the Annotations list below; everyone you share the report with sees it. Delete
+with the `×` on the row. A result you haven't saved yet can't be annotated.
+
 ---
 
 ## Saving, sharing, finding again

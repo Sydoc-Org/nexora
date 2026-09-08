@@ -345,6 +345,31 @@ current value vs. the same stat over `comparison.rows`:
 > legitimately see different numbers, or a friendly "you don't have access"
 > message. This is existing run-path behavior, surfaced honestly in the UI.
 
+## Chart annotations (#284)
+
+A report **owner** can pin a short note on one bucket of the Simple-tab chart —
+"new client onboarded", "mailroom outage" — so the chart explains its own bumps.
+Everyone who can open the report sees the note as an amber triangle at the foot
+of that bucket (hover for the text) and in the **Annotations** list under the
+chart.
+
+- **Add:** Alt+click a bar/point, or **Add annotation** in the list header (then
+  pick the bucket). Plain click still drills through. Unsaved results (wizard,
+  Eddard) have no Add — save first.
+- **Delete:** the `×` on the row (owner only). There is no in-place edit.
+- **Storage:** `dbo.ReportAnnotations` (migration `0123`) — `ReportID`,
+  `BucketKey` (the chart's own label string, `2026-09-01` for a month bucket),
+  `Text` ≤ 500, `CreatedBy`, `CreatedAt`. Cascades with the report.
+- **API:** `GET/POST /api/reporting/reports/<id>/annotations`,
+  `DELETE …/annotations/<aid>` — reads gated by `_can_view_report` (owner,
+  shared, or explicit share), writes by `_is_report_owner`. No permission code.
+- **Render:** `static/js/reporting_simple_annotations.js` feeds
+  `chartConfigFor(..., {annotations})` a bucket→texts map; the marker is a second
+  Chart.js dataset tagged `_nxAnnotations` (skipped by legend and drill). Only
+  the Simple tab draws it — Advanced and dashboard cards don't (yet).
+- **Not verified server-side:** the bucket string is stored as sent; a note on a
+  bucket outside the charted window is simply not drawn.
+
 ## Forecast
 
 Any result shaped like **exactly one date-grained breakdown plus one or more
