@@ -12,7 +12,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   start (~1.5 s) and drops it at the end; the e2e server takes a free port. The
   shared `NEXORA_TEST` and its application lock are only for hand resets now,
   so parallel local runs and CI never wait on each other (#235).
-  `scripts/test_db_reset.py --prune` drops orphans a killed run left behind.
+  `scripts/test_db_reset.py --prune` drops orphans a killed run left behind;
+  CI's "Reset NEXORA_TEST database" step is gone.
   Ops: the TEST login was added to the `dbcreator` server role on INTSQL01.
 - **Filters in the Simple wizard** — the Time step gained an optional
   *Filters* block: `Add filter` builds field/operator/value rows (the same ops

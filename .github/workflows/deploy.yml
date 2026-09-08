@@ -120,9 +120,8 @@ jobs:
             throw "env/TEST.env must contain 'ENVIRONMENT=TEST'. Found: '$envLine'"
           }
 
-      - name: Reset NEXORA_TEST database
-        shell: powershell
-        run: .\scripts\test-db-reset.ps1
+      # No database reset step: pytest creates its own NEXORA_TEST_<user>_<pid>
+      # from sql/test/schema.sql + seed.sql and drops it (tests/conftest.py).
 
       # Two tiers, cheap first: default collection order is alphabetical, so
       # `pytest tests` used to run the 10-minute e2e suite BEFORE unit tests —
