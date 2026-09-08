@@ -34,6 +34,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and nothing bleeds in beside it; the editor preview re-runs on every change.
 
 ### Fixed
+- Migration 0125 (field-quality view) built with the same table-aware dynamic SQL as 0110/0111, so a PROD server without the INT-only Bucherer telemetry table no longer fails the deploy's migration step.
 - **Definition chart tiles said "Not available"** for decimal measures (hours,
   amounts): the run API serialises them as strings, which the tile renderer
   rejected. Numeric strings now count, and a report with two breakdowns pivots
