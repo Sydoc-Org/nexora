@@ -14,6 +14,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   counters summed: imported/exported documents and pages, deleted, invoices).
   Generic `table` sources, no code; one `reporting.source.<code>.use` permission
   each, held by Enterprise Admin only until granted.
+- **Sydoc — Project Hours reporting source** — migration `0124` registers the
+  bpsuite Projektbericht feed (`dbo.BPS_ProjectReport` on the Statistics DB,
+  loaded by `nx-sources/bps/bps_project_report.py`): customer, project package,
+  task, user, date, hours. Measures **Hours**, **Bookings** and **Absence hours**
+  (hours on the `Absences` pseudo-customer). `reporting.source.bps_projects.use`.
 
 Work toward the next release.
 

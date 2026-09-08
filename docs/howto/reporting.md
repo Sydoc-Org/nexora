@@ -1051,7 +1051,10 @@ tables the same way: **Bucherer — EasyTax** (`bucherer_easytax` over
 `dbo.Bucherer_EasyTax`, one row per document; *Exported documents* is a
 conditional count over `ExportTime IS NOT NULL`, `Pages` a sum) and **Frigemo —
 Documents** (`frigemo` over `dbo.Frigemo`, one row per day of already-summed
-counters, so every measure is a `sum`; `Date` grainable). `SortOrder` 300/310. The wizard's measure step walks
+counters, so every measure is a `sum`; `Date` grainable). `SortOrder` 300/310. `0124` registers **Sydoc — Project Hours**
+(`bps_projects` over `dbo.BPS_ProjectReport`, the bpsuite Projektbericht export
+loaded by the `nx-sources/bps/bps_project_report.py` collector; measures `Hours`,
+`Bookings`, and `Absence hours` = hours where `Kunde = 'Absences'`). The wizard's measure step walks
 sources in `SortOrder` and splits a `Tenant — Thing` label at the em dash: one
 uppercase heading per tenant, a `.rs-choice-group-sublabel` per source. The
 tenant's lookup tables carry no measures and are not registered. Each source is gated by its own
