@@ -1,0 +1,33 @@
+/* Spacing, control geometry and radii.
+   The slim layout has one vertical rhythm: 14px between rows inside a screen,
+   18-22px before a new titled section, 44px page inset at the top. */
+:root {
+  --sp-1: 4px;
+  --sp-2: 6px;
+  --sp-3: 8px;
+  --sp-4: 10px;
+  --sp-5: 12px;
+  --sp-6: 14px;   /* row gap — the default */
+  --sp-7: 18px;
+  --sp-8: 22px;
+  --sp-9: 30px;   /* KPI cell side padding */
+  --sp-10: 44px;  /* page top inset */
+
+  --page-inset-x: 40px;
+  --page-inset-y: 44px;
+  --page-max: 1600px;
+  --content-max: 1180px;  /* the width the slim screens were designed at */
+
+  /* Controls: one row height for everything in a filter bar */
+  --ctl-h: 29px;          /* slim rows (dashboard) */
+  --ctl-h-lg: 33px;       /* console rows (reporting) */
+  --ctl-px: 11px;
+
+  --nx-radius-scale: 1;
+  --nx-radius:      calc(var(--nx-radius-scale, 1) * 10px);
+  --nx-radius-sm:   calc(var(--nx-radius-scale, 1) * 7px);
+  --nx-radius-ctl:  calc(var(--nx-radius-scale, 1) * 8px);
+  --nx-radius-lg:   calc(var(--nx-radius-scale, 1) * 12px);
+  --nx-radius-hero: calc(var(--nx-radius-scale, 1) * 16px);
+  --nx-radius-pill: 999px;
+}

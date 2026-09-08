@@ -437,6 +437,65 @@ def _check_migrations() -> list[CheckResult]:
     ]
 
 
+_PERM_LITERAL_RE = (
+    r"""(?:require_permission|has_permission|require_any_permission)\(\s*['"]([^'"]+)['"]"""
+)
+_PERM_DYNAMIC_PREFIXES = ("process.", "reporting.source.", "tenant.")
+
+
+def _check_permissions() -> list[CheckResult]:
+    """Codes the code base references must exist in dbo.Permission; profiles
+    with Rank 0 can be handed out by every admin (#238)."""
+    import re
+
+    lit = re.compile(_PERM_LITERAL_RE)
+    referenced: set[str] = set()
+    for folder, suffix in (("nx_lib", "*.py"), ("templates", "*.html")):
+        for f in (APP_DIR / folder).rglob(suffix):
+            try:
+                referenced.update(lit.findall(f.read_text(encoding="utf-8", errors="ignore")))
+            except OSError:
+                continue
+    referenced = {c for c in referenced if not c.startswith(_PERM_DYNAMIC_PREFIXES)}
+    try:
+        from sqlalchemy import text
+
+        from .db import engine_nexora_db
+
+        if engine_nexora_db is None:
+            return [CheckResult("permission codes", "warn", "skipped (NexoraDB not configured)")]
+        with engine_nexora_db.connect() as conn:
+            in_db = {r[0] for r in conn.execute(text("SELECT Code FROM dbo.Permission"))}
+            rank0 = sorted(
+                r[0]
+                for r in conn.execute(text("SELECT Name FROM dbo.AccessProfile WHERE Rank = 0"))
+            )
+    except Exception:
+        return [CheckResult("permission codes", "warn", "skipped (DB down)")]
+    results: list[CheckResult] = []
+    missing = sorted(referenced - in_db)
+    if missing:
+        results.append(
+            CheckResult(
+                "permission codes",
+                "warn",
+                f"{len(missing)} referenced codes missing in DB: {', '.join(missing[:6])}",
+                hint="add them with a NexoraDB migration (WHERE NOT EXISTS), then grant at /admin/permissions",
+            )
+        )
+    else:
+        results.append(
+            CheckResult("permission codes", "ok", f"all {len(referenced)} referenced codes exist")
+        )
+    if rank0:
+        results.append(
+            CheckResult("profile rank", "warn", f"profiles with Rank 0: {', '.join(rank0)}")
+        )
+    else:
+        results.append(CheckResult("profile rank", "ok", "every profile ranked"))
+    return results
+
+
 def _check_drift() -> list[CheckResult]:
     if not SYNC_SCRIPT.exists():
         return [CheckResult("schema dump", "skip", "sql/sync-from-db.py not found")]
@@ -736,6 +795,7 @@ def run(fast: bool = False, fix: bool = False) -> int:
         ("Filesystem", _check_filesystem()),
         ("Databases", _check_databases()),
         ("Migrations", _check_migrations()),
+        ("Permissions", _check_permissions()),
     ]
 
     if not fast:

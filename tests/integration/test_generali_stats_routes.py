@@ -44,7 +44,7 @@ def _clear_response_cache(app):
 
 
 def test_stats_missing_both_dates_returns_400(user_client, monkeypatch):
-    _grant_perms(monkeypatch, ["generali.dashboard.view"])
+    _grant_perms(monkeypatch, ["tenant.generali.view"])
 
     resp = user_client.get("/api/generali/stats")
 
@@ -55,7 +55,7 @@ def test_stats_missing_both_dates_returns_400(user_client, monkeypatch):
 
 
 def test_stats_missing_end_date_returns_400(user_client, monkeypatch):
-    _grant_perms(monkeypatch, ["generali.dashboard.view"])
+    _grant_perms(monkeypatch, ["tenant.generali.view"])
 
     resp = user_client.get("/api/generali/stats?startDate=2026-01-01T00:00:00")
 
@@ -66,7 +66,7 @@ def test_stats_missing_end_date_returns_400(user_client, monkeypatch):
 
 
 def test_stats_missing_start_date_returns_400(user_client, monkeypatch):
-    _grant_perms(monkeypatch, ["generali.dashboard.view"])
+    _grant_perms(monkeypatch, ["tenant.generali.view"])
 
     resp = user_client.get("/api/generali/stats?endDate=2026-01-31T00:00:00")
 
@@ -128,7 +128,7 @@ class _CountingEngine:
 
 
 def test_stats_second_call_within_ttl_does_not_rehit_db(user_client, monkeypatch):
-    _grant_perms(monkeypatch, ["generali.dashboard.view"])
+    _grant_perms(monkeypatch, ["tenant.generali.view"])
     fake_engine = _CountingEngine()
     monkeypatch.setattr(gv, "engine_generali_db", fake_engine)
 
@@ -148,7 +148,7 @@ def test_stats_second_call_within_ttl_does_not_rehit_db(user_client, monkeypatch
 def test_stats_different_filter_bypasses_cache(user_client, monkeypatch):
     """Per-filter cache key: a different date range must not hit the first
     range's cached entry."""
-    _grant_perms(monkeypatch, ["generali.dashboard.view"])
+    _grant_perms(monkeypatch, ["tenant.generali.view"])
     fake_engine = _CountingEngine()
     monkeypatch.setattr(gv, "engine_generali_db", fake_engine)
 
@@ -163,7 +163,7 @@ def test_stats_different_filter_bypasses_cache(user_client, monkeypatch):
 
 def test_stats_error_response_is_not_cached(user_client, monkeypatch):
     """A missing-date 400 must never be pinned in the 120s cache."""
-    _grant_perms(monkeypatch, ["generali.dashboard.view"])
+    _grant_perms(monkeypatch, ["tenant.generali.view"])
     fake_engine = _CountingEngine()
     monkeypatch.setattr(gv, "engine_generali_db", fake_engine)
 
@@ -182,7 +182,7 @@ def test_stats_error_response_is_not_cached(user_client, monkeypatch):
 
 
 def test_filter_options_second_call_within_ttl_does_not_rehit_db(user_client, monkeypatch):
-    _grant_perms(monkeypatch, ["generali.documentlist.view"])
+    _grant_perms(monkeypatch, ["tenant.generali.documents.view"])
     fake_engine = _CountingEngine()
     monkeypatch.setattr(gv, "engine_generali_db", fake_engine)
 

@@ -9,7 +9,7 @@ from the injected maps/configs; only filter *values* become ? parameters.
 
 import re
 
-from .semantic import build_aggregate_sql
+from .semantic import build_aggregate_sql, condition_fields
 
 _OP_SQL = {
     "eq": "= ?",
@@ -380,6 +380,8 @@ def build_table_query(rd, process_configs, field_col_maps, *, row_cap, resolved_
         raise QueryBuildError("no processes in scope")
 
     anchored = [m for m in (resolved_metrics or []) if m.get("anchor")]
+    if anchored and any(m.get("filter") for m in resolved_metrics):
+        raise QueryBuildError("conditional metrics cannot be combined with date-anchored metrics")
     if anchored:
         if len(anchored) != len(resolved_metrics):
             raise QueryBuildError("anchored and unanchored metrics cannot be combined")
@@ -397,8 +399,11 @@ def build_table_query(rd, process_configs, field_col_maps, *, row_cap, resolved_
 
     metric_base_fields = [m["base_field"] for m in (resolved_metrics or []) if m.get("base_field")]
     # Fields to project in each subquery: the group-by dims plus any metric base
-    # fields (deduped, order-stable). For the row path this is just `columns`.
-    projected_fields = list(dict.fromkeys(columns + metric_base_fields))
+    # fields and conditional-metric fields (deduped, order-stable). For the row
+    # path this is just `columns`.
+    projected_fields = list(
+        dict.fromkeys(columns + metric_base_fields + condition_fields(resolved_metrics))
+    )
 
     # SUM/AVG/MIN/MAX bases are projected as TRY_CAST(col AS float): the
     # doc-extraction stat columns are varchar, and a raw SUM would
@@ -514,14 +519,16 @@ def build_table_query(rd, process_configs, field_col_maps, *, row_cap, resolved_
     inner = " UNION ALL ".join(sub_queries)
 
     if resolved_metrics:
+        select_params: list = []
         sql = build_aggregate_sql(
             inner_from=f"({inner}) t",
             dim_fields=columns,
             resolved_metrics=resolved_metrics,
             sort=sort,
             cap=cap,
+            params_out=select_params,
         )
-        return sql, params
+        return sql, select_params + params
 
     out_cols = ", ".join(f"[{c}]" for c in columns)
     sql = f"SELECT TOP ({cap}) {out_cols} FROM ({inner}) t"

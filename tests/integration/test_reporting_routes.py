@@ -10,6 +10,7 @@ import io
 from datetime import date, datetime, time, timedelta
 from unittest.mock import patch
 
+import pyodbc
 from openpyxl import load_workbook
 
 from nx_lib.db import engine_nexora_db
@@ -38,14 +39,14 @@ def test_reporting_page_renders_chat_panel_when_ai_enabled(admin_client):
 
 def test_reporting_page_caption_slots_need_only_explain_data(admin_client):
     """Regression for the Phase 4 review finding: the caption <div>s must be
-    gated on reporting.ai.explain_data alone (D-CAPTION), not on the
+    gated on reporting.ai.explain.use alone (D-CAPTION), not on the
     ai_explain_enabled AND-combo (which also requires reporting.sql.run --
     that extra requirement is for Surface C's live-SQL tool binding, an
     unrelated concern). A caller with explain_data but NOT sql.run must still
     see both #rpCaption (Advanced) and #rsCaption (Simple)."""
 
     def _perm(code):
-        return code in ("reporting.view", "reporting.ai.explain_data")
+        return code in ("reporting.view", "reporting.ai.explain.use")
 
     with (
         patch("nx_lib.security.has_permission", side_effect=_perm),
@@ -103,6 +104,47 @@ def test_sql_run_octopus_target_without_perm_403(user_client):
     # The base reporting.sql.run gate blocks before the Octopus target check.
     resp = user_client.post("/api/reporting/sql/run", json={"target": "octopus", "sql": "SELECT 1"})
     assert resp.status_code in (400, 403)
+
+
+def test_sql_run_generali_target_without_perm_403(user_client):
+    # Same shape as the Octopus target: its own reporting.sql.target.generali.use
+    # grant on top of the base gate (migration 0121).
+    resp = user_client.post(
+        "/api/reporting/sql/run", json={"target": "generali", "sql": "SELECT 1"}
+    )
+    assert resp.status_code in (400, 403)
+
+
+def test_sql_run_nexora_is_not_a_target(admin_client):
+    """NexoraDB holds the password hashes and TOTP secrets -- it must not be
+    reachable from the sandbox at ANY permission level, so an admin asking for
+    it gets the unknown-target 400, not a query."""
+    with (
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.run._has_acked", return_value=True),
+    ):
+        resp = admin_client.post(
+            "/api/reporting/sql/run", json={"target": "nexora", "sql": "SELECT 1"}
+        )
+    assert resp.status_code == 400
+    assert "nexora" not in (resp.get_json().get("detail") or "").split("allowed targets:")[-1]
+
+
+def test_sources_sql_entries_name_their_database(admin_client):
+    """The target picker names the real database, so every sql source carries
+    `db` (from config) and a `configured` flag telling the UI whether that
+    target's read-only login exists yet."""
+    with patch("nx_lib.security.has_permission", return_value=True):
+        resp = admin_client.get("/api/reporting/sources")
+    assert resp.status_code == 200
+    sql = [s for s in resp.get_json() if s.get("kind") == "sql"]
+    assert sql, "no live-SQL sources registered"
+    # Which targets a caller sees depends on their grants (the TEST seed has no
+    # reporting.sql.target.generali.use row), so the registry side is asserted
+    # in tests/unit/test_reporting_sql_targets.py -- here only the shape.
+    for s in sql:
+        assert "db" in s, s
+        assert isinstance(s["configured"], bool), s
 
 
 def test_sql_run_serializes_binary_and_time_cells(user_client):
@@ -652,7 +694,7 @@ def test_runner_dry_run_processes_due_table_report(admin_client):
             "code": "sched_users",
             "kind": "curated",
             "label": "Sched Users",
-            "permission": "reporting.source.docprocessing",
+            "permission": "reporting.source.docprocessing.use",
             "provider": "table",
             "engine": "nexora",
             "baseObject": "dbo.Users",
@@ -726,7 +768,7 @@ def test_zero_dim_latest_metric_run_constrains_to_latest_bucket(admin_client):
             "code": "latest_test_src",
             "kind": "curated",
             "label": "Latest Test Src",
-            "permission": "reporting.source.docprocessing",
+            "permission": "reporting.source.docprocessing.use",
             "provider": "table",
             "engine": "nexora",
             "baseObject": "dbo.Users",
@@ -807,7 +849,7 @@ def test_runner_alert_skips_mail_and_advances(admin_client):
             "code": "alert_users",
             "kind": "curated",
             "label": "Alert Users",
-            "permission": "reporting.source.docprocessing",
+            "permission": "reporting.source.docprocessing.use",
             "provider": "table",
             "engine": "nexora",
             "baseObject": "dbo.Users",
@@ -989,7 +1031,7 @@ def test_table_source_end_to_end(admin_client):
             "code": "e2e_users",
             "kind": "curated",
             "label": "E2E Users",
-            "permission": "reporting.source.docprocessing",
+            "permission": "reporting.source.docprocessing.use",
             "provider": "table",
             "engine": "nexora",
             "baseObject": "dbo.Users",
@@ -1408,6 +1450,32 @@ def test_sql_run_generic_500_detail_is_humanized(admin_client):
     assert "Hint:" in body["detail"]
 
 
+def test_sql_run_driver_rejection_is_400_with_reason(admin_client):
+    # A statement the sandbox lets through but the server refuses (unknown
+    # table/column) is bad user input, not a server fault: 400, and the driver
+    # message survives as `detail` so the UI can say what was actually wrong.
+    odbc_text = (
+        "('42S02', \"[42S02] [Microsoft][ODBC SQL Server Driver][SQL Server]"
+        "Invalid object name 'Workitem'. (208) (SQLExecDirectW)\")"
+    )
+    with (
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.run._has_acked", return_value=True),
+        patch("nx_lib.views.reporting.run._authorize_sql_target"),
+        patch(
+            "nx_lib.views.reporting.run._run_sql",
+            side_effect=pyodbc.ProgrammingError(odbc_text),
+        ),
+    ):
+        resp = admin_client.post(
+            "/api/reporting/sql/run", json={"target": "statistics", "sql": "SELECT 1"}
+        )
+    assert resp.status_code == 400
+    body = resp.get_json()
+    assert body["detail"] == "Invalid object name 'Workitem'."
+    assert body["error"] != body["detail"]
+
+
 # --- forecast: definition toggle (issue #168) ---
 
 _FC_DEF = {
@@ -1597,7 +1665,7 @@ def test_runner_forecast_export_rows_failure_still_sends_mail(admin_client):
             "code": "sched_fc_users",
             "kind": "curated",
             "label": "Sched Forecast Users",
-            "permission": "reporting.source.docprocessing",
+            "permission": "reporting.source.docprocessing.use",
             "provider": "table",
             "engine": "nexora",
             "baseObject": "dbo.Users",
@@ -1679,7 +1747,7 @@ def test_runner_forecast_export_rows_failure_still_sends_mail(admin_client):
 def _create_field_values_source(admin_client):
     """A 'backlog_history'-shaped table source (#178), created dynamically
     since the TEST NexoraDB fixture doesn't seed the real migration-0053 row.
-    Reuses the already-granted reporting.source.docprocessing permission,
+    Reuses the already-granted reporting.source.docprocessing.use permission,
     same idiom as test_zero_dim_latest_metric_run_constrains_to_latest_bucket."""
     src = admin_client.post(
         "/api/reporting/admin/sources",
@@ -1687,7 +1755,7 @@ def _create_field_values_source(admin_client):
             "code": "field_values_test_src",
             "kind": "curated",
             "label": "Field Values Test Src",
-            "permission": "reporting.source.docprocessing",
+            "permission": "reporting.source.docprocessing.use",
             "provider": "table",
             "engine": "nexora",
             "baseObject": "dbo.Users",

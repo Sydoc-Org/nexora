@@ -23,7 +23,7 @@ from ._crud import (
 # ----------------------------- Generali Base Services ----------------------- #
 
 
-@require_permission("generali.baseservices.view")
+@require_permission("tenant.generali.baseservices.view")
 def generali_base_services():
     try:
         if "username" not in session:
@@ -34,16 +34,16 @@ def generali_base_services():
             userid=session.get("userid"),
             page_visibility=page_visibility(),
             organizationcode=session.get("organizationcode"),
-            can_add=has_permission("generali.baseservices.add"),
-            can_add_bypass_deadline=has_permission("generali.baseservices.add.bypass.deadline"),
-            can_edit=has_permission("generali.baseservices.edit.organizational")
-            or has_permission("generali.baseservices.edit.transorganizational"),
-            can_edit_transorg=has_permission("generali.baseservices.edit.transorganizational"),
-            can_delete=has_permission("generali.baseservices.delete.organizational")
-            or has_permission("generali.baseservices.delete.transorganizational"),
-            can_delete_transorg=has_permission("generali.baseservices.delete.transorganizational"),
-            can_add_for_org=has_permission("generali.baseservices.add.organizational"),
-            can_add_transorg=has_permission("generali.baseservices.add.transorganizational"),
+            can_add=has_permission("tenant.generali.baseservices.add"),
+            can_add_bypass_deadline=has_permission("tenant.generali.baseservices.add.pastdeadline"),
+            can_edit=has_permission("tenant.generali.baseservices.edit.org")
+            or has_permission("tenant.generali.baseservices.edit.all"),
+            can_edit_transorg=has_permission("tenant.generali.baseservices.edit.all"),
+            can_delete=has_permission("tenant.generali.baseservices.delete.org")
+            or has_permission("tenant.generali.baseservices.delete.all"),
+            can_delete_transorg=has_permission("tenant.generali.baseservices.delete.all"),
+            can_add_for_org=has_permission("tenant.generali.baseservices.add.org"),
+            can_add_transorg=has_permission("tenant.generali.baseservices.add.all"),
         )
     except Exception as e:
         current_app.logger.error(f"Error loading Generali Base Services: {e}")
@@ -86,8 +86,7 @@ BASESERVICES = CrudTable(
     slug="baseservices",
     table="[Generali].[dbo].[BaseServices]",
     user_column="UserID",
-    perm_prefix="generali.baseservices",
-    view_perm="generali.baseservices.view",
+    perm_prefix="tenant.generali.baseservices",
     api_base="/api/generali/baseservices",
     label="Generali Base Services",
     user_lookup_label="base services",

@@ -71,9 +71,12 @@ def test_noperm_drops_fully_gated_releases(noperm_client):
 
 
 def test_dashboard_only_user_matches_their_permissions(user_client):
-    """user@test.local holds dashboard.view only — no gated entry qualifies."""
+    """user@test.local holds dashboard.view only -- only entries gated on that qualify."""
     html = user_client.get("/whats_new").data.decode()
-    leaked = [t for t in GATED_TITLES if t in html]
+    dashboard_only = {
+        str(e["title"]) for rel in RELEASES for e in rel["entries"] if e["perm"] == "dashboard.view"
+    }
+    leaked = [t for t in GATED_TITLES if t in html and t not in dashboard_only]
     assert not leaked, f"gated entries leaked to dashboard-only user: {leaked}"
     for title in UNGATED_TITLES:
         assert title in html

@@ -16,14 +16,14 @@
         {% if page_visibility.adminPagePerm %}
         { section: "{{ _('Admin') }}", label: "{{ _('Admin Overview') }}", icon: 'fa-shield-halved', url: "{{ url_for('admin_dashboard') }}" },
         { section: "{{ _('Admin') }}", label: "{{ _('Access Control') }}",   icon: 'fa-id-badge',  url: "{{ url_for('admin_access_control') }}" },
-        { section: "{{ _('Admin') }}", label: "{{ _('Organizations') }}",    icon: 'fa-building',  url: "{{ url_for('admin_organizations_view') }}" },
+        { section: "{{ _('Admin') }}", label: "{{ _('Organizations') }}",     icon: 'fa-building',  url: "{{ url_for('admin_organizations_view') }}" },
         { section: "{{ _('Admin') }}", label: "{{ _('Active Sessions') }}",  icon: 'fa-users',     url: "{{ url_for('admin_sessions_view') }}" },
         { section: "{{ _('Admin') }}", label: "{{ _('System Logs') }}",      icon: 'fa-list-ul',   url: "{{ url_for('admin_logs_view') }}" },
         {% endif %}
-        {% if has_permission('admin.create.user') %}
+        {% if has_permission('admin.users.add') %}
         { section: "{{ _('Admin action') }}", label: "{{ _('Add user') }}",         icon: 'fa-user-plus',   url: "{{ url_for('admin_access_control') }}#add-user" },
         {% endif %}
-        {% if has_permission('admin.add.organization') %}
+        {% if has_permission('admin.organizations.add') %}
         { section: "{{ _('Admin action') }}", label: "{{ _('Add organization') }}", icon: 'fa-circle-plus', url: "{{ url_for('admin_organizations_view') }}#add-org" },
         {% endif %}
         {% if page_visibility.dashboardPagePerm %}

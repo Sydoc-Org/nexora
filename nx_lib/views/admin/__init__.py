@@ -44,7 +44,18 @@ from ...security import (
     page_visibility,
     require_permission,
 )
-from . import clients, logs, organizations, overview, permissions, processes, system, users
+from . import (
+    clients,
+    logs,
+    organizations,
+    overview,
+    permissions,
+    processes,
+    system,
+    tenant_manage,
+    tenants,
+    users,
+)
 from .clients import (
     _CLIENT_CODE_RE,
     _CLIENTS_ALLOWED_DIALECTS,
@@ -78,16 +89,16 @@ from .organizations import (
 from .overview import admin_dashboard
 from .permissions import (
     admin_access_control,
-    admin_permission_matrix,
+    admin_permissions_page,
     api_admin_permission_add,
     api_admin_permission_delete,
     api_admin_permission_edit,
     api_admin_permission_holders,
     api_admin_permission_users,
     api_admin_permissions_list,
+    api_admin_profile_grants_save,
     api_admin_user_all_permissions,
     api_admin_user_effective_permissions,
-    get_profile_details,
     get_user_overrides,
     get_users_admin_access_control,
     save_access_profile,
@@ -98,7 +109,6 @@ from .processes import (
     _FIELD_KEY_RE,
     _IDENT,
     _PROCESS_NAME_RE,
-    _PROCESS_PERMISSION_PREFIX,
     _client_code_exists,
     _client_codes,
     _permission_reduction,
@@ -131,6 +141,8 @@ from .system import (
     api_admin_maintenance_list,
     api_admin_restart,
 )
+from .tenant_manage import admin_tenants_manage_view
+from .tenants import admin_tenants_view
 from .users import (
     admin_active_sessions,
     admin_add_user,
@@ -162,7 +174,6 @@ __all__ = [
     "_MAINTENANCE_BLOCK_CACHE",
     "_ORG_CODE_RE",
     "_PROCESS_NAME_RE",
-    "_PROCESS_PERMISSION_PREFIX",
     "_SECRET_REF_RE",
     "_SWITCHABLE_ENVS",
     "_branding_logo_target",
@@ -200,13 +211,15 @@ __all__ = [
     "admin_logs_view",
     "admin_maintenance_view",
     "admin_organizations_view",
-    "admin_permission_matrix",
+    "admin_permissions_page",
     "admin_processes_view",
     "admin_recent_logs",
     "admin_revoke_all_sessions",
     "admin_revoke_session",
     "admin_sessions_view",
     "admin_status_view",
+    "admin_tenants_manage_view",
+    "admin_tenants_view",
     "admin_user_detail",
     "api_admin_clients_add",
     "api_admin_clients_delete",
@@ -227,6 +240,7 @@ __all__ = [
     "api_admin_permission_edit",
     "api_admin_permission_holders",
     "api_admin_permission_users",
+    "api_admin_profile_grants_save",
     "api_admin_permissions_list",
     "api_admin_process_source_add",
     "api_admin_process_source_delete",
@@ -246,7 +260,6 @@ __all__ = [
     "engine_nexora_db",
     "engine_octo_db",
     "engine_statistics_db",
-    "get_profile_details",
     "get_user_overrides",
     "get_users_admin_access_control",
     "has_permission",
@@ -272,6 +285,8 @@ def register_routes(app):
     organizations.register_routes(app)
     clients.register_routes(app)
     processes.register_routes(app)
+    tenants.register_routes(app)
+    tenant_manage.register_routes(app)
     system.register_routes(app)
     logs.register_routes(app)
     users.register_routes(app)

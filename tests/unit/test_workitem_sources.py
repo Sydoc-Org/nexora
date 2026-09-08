@@ -165,7 +165,7 @@ def test_status_in_progress_filter_covers_all_non_terminal_codes(app):
 def test_deleted_workitems_hidden_unless_explicitly_filtered_for(app):
     """Status 2 (deleted) is hard-excluded from every default list. Asking for it
     by status code -- which the view only maps for holders of
-    workitems.filter.status.deleted -- must DROP that exclusion, otherwise the
+    workitems.filter.deleted.view -- must DROP that exclusion, otherwise the
     two clauses contradict and the filter returns nothing."""
     for src in (SqlServerSource(), PostgresSource(CLIENTS_code="ms02")):
         name = type(src).__name__
@@ -383,18 +383,14 @@ def test_backlog_count_authorizes_granted_pairs_only_not_cross_product(app):
         assert ("B", "P1") not in built_pairs, f"{type(src).__name__} authorizes an ungranted pair"
 
 
-def test_recent_activity_rows_and_total_backlog_count_pass_pairs_through(app, monkeypatch):
-    """The module-level merge/sum wrappers must forward the pairs shape
-    verbatim to each source -- not re-split them back into independent
-    client/process lists."""
+def test_total_backlog_count_passes_pairs_through(app, monkeypatch):
+    """The module-level sum wrapper must forward the pairs shape verbatim to
+    each source -- not re-split it back into independent client/process
+    lists."""
     captured = {}
 
     class Fake:
         code = "default"
-
-        def recent_rows(self, pairs, activity_ignore_map, top=3):
-            captured["recent_rows_pairs"] = pairs
-            return []
 
         def backlog_count(self, pairs):
             captured["backlog_count_pairs"] = pairs
@@ -403,10 +399,8 @@ def test_recent_activity_rows_and_total_backlog_count_pass_pairs_through(app, mo
     monkeypatch.setattr(ws, "active_sources", lambda: [Fake()])
     pairs = [("A", "P1"), ("B", "P2")]
     with app.app_context():
-        ws.recent_activity_rows(pairs, {}, top=3)
         ws.total_backlog_count(pairs)
 
-    assert captured["recent_rows_pairs"] == pairs
     assert captured["backlog_count_pairs"] == pairs
 
 
@@ -912,49 +906,6 @@ def test_postgres_backlog_count(app):
     assert "%s" in executed_sql
     assert '"t_WorkItems"' in executed_sql
     assert "?" not in executed_sql
-
-
-def test_recent_activity_rows_merges_and_caps(app, monkeypatch):
-    class Fake:
-        def __init__(self, code, rows):
-            self.code = code
-            self._rows = rows
-
-        def recent_rows(self, pairs, activity_ignore_map, top=3):
-            return self._rows
-
-    f1 = Fake(
-        "default",
-        [
-            {
-                "id": 1,
-                "modifiedat": datetime(2026, 6, 16, 9, 10),
-                "process": "P",
-                "client": "default",
-            },
-            {
-                "id": 2,
-                "modifiedat": datetime(2026, 6, 16, 9, 30),
-                "process": "P",
-                "client": "default",
-            },
-        ],
-    )
-    f2 = Fake(
-        "ms02",
-        [
-            {
-                "id": 1001,
-                "modifiedat": datetime(2026, 6, 16, 9, 20),
-                "process": "Q",
-                "client": "ms02",
-            },
-        ],
-    )
-    monkeypatch.setattr(ws, "active_sources", lambda: [f1, f2])
-    with app.app_context():
-        out = ws.recent_activity_rows([("C", "P")], {}, top=2)
-    assert [r["id"] for r in out] == [2, 1001]  # newest first, capped to 2
 
 
 def test_total_backlog_count_sums(app, monkeypatch):

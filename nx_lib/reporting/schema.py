@@ -102,7 +102,8 @@ def validate_report_definition(
         raise ReportDefinitionError("at least one column is required")
     for c in columns:
         if not isinstance(c, dict) or c.get("field") not in catalog_fields:
-            raise ReportDefinitionError(f"unknown column field: {c.get('field')!r}")
+            bad = c.get("field") if isinstance(c, dict) else c
+            raise ReportDefinitionError(f"unknown column field: {bad!r}")
         header = c.get("header")
         if header is not None and not isinstance(header, str):
             raise ReportDefinitionError("column header must be a string or null")

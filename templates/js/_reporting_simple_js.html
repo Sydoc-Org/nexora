@@ -30,7 +30,6 @@
     copyOf: {{ _("{name} (copy)")|tojson }},
     showTable: {{ _("Show table")|tojson }},
     hideTable: {{ _("Hide table")|tojson }},
-    overTime: {{ _("Over time")|tojson }},
     justTotal: {{ _("None — just the total")|tojson }},
     noMeasures: {{ _("No measures are configured yet — ask an administrator to add metrics.")|tojson }},
     noDateField: {{ _("This source has no date field — showing all data.")|tojson }},
@@ -114,11 +113,22 @@
     // snapshot latest row -- "latest snapshot" overclaimed the precision.
     kpiLatestSuffix: {{ _("last bucket")|tojson }},
     kpiSumSub: {{ _("sum over the period")|tojson }},
+    // The headline figure is not always a sum. For an averaging or distinct-
+    // counting metric the server sends ONE authoritative aggregate over every
+    // matching row, so the caption becomes "Overall" and the sub-line says
+    // what it covers -- "Total ... sum over the period" claimed an addition
+    // nobody performed.
+    kpiOverall: {{ _("Overall")|tojson }},
+    kpiExactSub: {{ _("over every matching row")|tojson }},
     kpiBucketsSub: {{ _("periods in the range")|tojson }},
     kpiAvgSub: {{ _("total ÷ buckets")|tojson }},
+    // With a second dimension there are several rows per period, so the
+    // average is over the cells of the breakdown, not over the buckets.
+    kpiAvgCellSub: {{ _("mean of {n} values")|tojson }},
     statGrandTotal: {{ _("grand total")|tojson }},
     kpiBuckets: {{ _("Buckets")|tojson }},
     kpiAvg: {{ _("Avg per bucket")|tojson }},
+    kpiAvgCell: {{ _("Avg per row")|tojson }},
     kpiPeak: {{ _("Peak")|tojson }},
     deltaVs: {{ _("vs")|tojson }},
     tableRowCount: {{ _("{n} rows")|tojson }},
@@ -131,6 +141,8 @@
     wizScopeCount: {{ _("{n} of {m} selected")|tojson }},
     groupTime: {{ _("Time")|tojson }},
     groupFields: {{ _("Document fields")|tojson }},
+    groupAdvanced: {{ _("Advanced")|tojson }},
+    showAdvanced: {{ _("Show advanced fields ({n})")|tojson }},
     groupOr: {{ _("Or")|tojson }},
     pickedCount: {{ _("{n} of 3 picked")|tojson }},
     aiChip: {{ _("AI")|tojson }},

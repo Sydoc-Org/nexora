@@ -538,7 +538,11 @@ def test_inject_tenant_nav_empty_when_no_session(app):
     registry (has_permission() would read an empty session anyway, but this
     avoids the registry lookup entirely for anonymous requests)."""
     with app.test_request_context("/"):
-        assert _inject_tenant_nav() == {"tenant_nav": []}
+        assert _inject_tenant_nav() == {
+            "tenant_nav": [],
+            "tenant_scoped": None,
+            "tenant_solo": False,
+        }
 
 
 def test_inject_tenant_nav_delegates_to_visible_tenant_nav(app, monkeypatch):
@@ -549,11 +553,28 @@ def test_inject_tenant_nav_delegates_to_visible_tenant_nav(app, monkeypatch):
         "nx_lib.views.tenant.visible_tenant_nav",
         lambda: [{"code": "ms02", "label": "MS02", "pages": []}],
     )
+    # tenant_scoped: the tenant the session user's organization belongs to
+    # (0090 Organizations.TenantCode) -- None for organizations outside a tenant.
+    # nx_lib.tenant re-exports registry() as a *function*, so the dotted
+    # string form would resolve to that function -- patch the module object.
+    import sys
+
+    monkeypatch.setattr(
+        sys.modules["nx_lib.tenant.registry"],
+        "organization_tenant",
+        lambda org: {"PDBS": "ms02"}.get(org),
+    )
     with app.test_request_context("/"):
         session["userid"] = 1
+        session["organizationcode"] = "PDBS"
         assert _inject_tenant_nav() == {
-            "tenant_nav": [{"code": "ms02", "label": "MS02", "pages": []}]
+            "tenant_nav": [{"code": "ms02", "label": "MS02", "pages": []}],
+            "tenant_scoped": "ms02",
+            # member of exactly this one tenant -> the UI never names it (#255)
+            "tenant_solo": True,
         }
+        session["organizationcode"] = "SYDC"
+        assert _inject_tenant_nav()["tenant_scoped"] is None
 
 
 def test_inject_brand_is_gated_on_a_logged_in_session(app, monkeypatch):

@@ -40,6 +40,7 @@ class ProcessSource:
     workitem_column: str | None
     extra_condition: str | None
     id_column_type: str | None
+    organization: str | None = None  # ProcessSources.OrganizationCode (0090); None = unassigned
 
 
 @dataclass(frozen=True)
@@ -74,7 +75,7 @@ def registry() -> MappingRegistry | None:
         cur.execute(
             "SELECT ClientCode, ProcessName, TableName, TableAlias, JoinCondition, "
             "TimeFilter, SuggestionTimeFilter, ExportColumn, ImportColumn, "
-            "WorkitemColumn, ExtraCondition, IdColumnType FROM ProcessSources"
+            "WorkitemColumn, ExtraCondition, IdColumnType, OrganizationCode FROM ProcessSources"
         )
         sources = {
             (r.ClientCode, r.ProcessName): ProcessSource(
@@ -90,6 +91,7 @@ def registry() -> MappingRegistry | None:
                 workitem_column=r.WorkitemColumn,
                 extra_condition=r.ExtraCondition,
                 id_column_type=r.IdColumnType,
+                organization=r.OrganizationCode,
             )
             for r in cur.fetchall()
         }

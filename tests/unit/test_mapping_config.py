@@ -53,6 +53,7 @@ def _source_row(
         WorkitemColumn=workitem_column,
         ExtraCondition=extra_condition,
         IdColumnType=id_column_type,
+        OrganizationCode=None,  # 0090; the registry reads it, tests here don't group by it
     )
 
 

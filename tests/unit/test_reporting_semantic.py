@@ -220,3 +220,81 @@ def test_resolve_anchored_metric_rejects_non_sum_and_bad_value_field():
         resolve_metrics([{"metric": "bad_agg"}], _ANCHORED_REGISTRY, {"pagecount"})
     with pytest.raises(MetricResolveError):
         resolve_metrics([{"metric": "bad_base"}], _ANCHORED_REGISTRY, {"pagecount"})
+
+
+# ---- conditional metrics (FilterJson) ----
+
+COND_REGISTRY = {
+    "on_time": {
+        "aggregation": "count",
+        "base_field": None,
+        "filter": [{"field": "status", "op": "eq", "value": "ok"}],
+    },
+    "ok_pages": {
+        "aggregation": "sum",
+        "base_field": "pages",
+        "filter": [
+            {"field": "status", "op": "in", "value": ["ok", "late"]},
+            {"field": "doctype", "op": "is_not_null"},
+        ],
+    },
+    "bad_field": {
+        "aggregation": "count",
+        "base_field": None,
+        "filter": [{"field": "nope", "op": "eq", "value": 1}],
+    },
+    "bad_op": {
+        "aggregation": "count",
+        "base_field": None,
+        "filter": [{"field": "status", "op": "like", "value": "x"}],
+    },
+    "malformed": {"aggregation": "count", "base_field": None, "filter": "malformed"},
+}
+
+
+def test_conditional_count_becomes_case_when_with_params():
+    resolved = resolve_metrics([{"metric": "on_time"}], COND_REGISTRY, CATALOG)
+    params = []
+    expr = metric_select_expr(resolved[0], lambda f: f"[{f}]", params)
+    assert expr == "COUNT(CASE WHEN [status] = ? THEN 1 END) AS [on_time]"
+    assert params == ["ok"]
+
+
+def test_conditional_sum_with_in_and_null_clause():
+    resolved = resolve_metrics([{"metric": "ok_pages"}], COND_REGISTRY, CATALOG)
+    params = []
+    expr = metric_select_expr(resolved[0], lambda f: f"[{f}]", params)
+    assert expr == (
+        "SUM(CASE WHEN [status] IN (?,?) AND [doctype] IS NOT NULL THEN [pages] END)"
+        " AS [ok_pages]"
+    )
+    assert params == ["ok", "late"]
+
+
+def test_build_aggregate_sql_collects_condition_params():
+    resolved = resolve_metrics(
+        [{"metric": "on_time"}, {"metric": "doc_count"}], {**REGISTRY, **COND_REGISTRY}, CATALOG
+    )
+    out = []
+    sql = build_aggregate_sql(
+        inner_from="[T]",
+        dim_fields=["doctype"],
+        resolved_metrics=resolved,
+        sort=[],
+        cap=10,
+        params_out=out,
+    )
+    assert "COUNT(CASE WHEN [status] = ? THEN 1 END) AS [on_time], COUNT(*) AS [doc_count]" in sql
+    assert out == ["ok"]
+
+
+def test_conditional_metric_without_params_list_raises():
+    resolved = resolve_metrics([{"metric": "on_time"}], COND_REGISTRY, CATALOG)
+    with pytest.raises(MetricResolveError):
+        metric_select_expr(resolved[0], lambda f: f"[{f}]")
+
+
+@pytest.mark.parametrize("code", ["bad_field", "bad_op", "malformed"])
+def test_conditional_metric_rejects_unsafe_conditions(code):
+    with pytest.raises(MetricResolveError):
+        resolve_metrics([{"metric": code}], COND_REGISTRY, CATALOG)
