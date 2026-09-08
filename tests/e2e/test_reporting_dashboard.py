@@ -300,7 +300,7 @@ def test_global_filter_popover_adds_chip_and_reruns_affected_card(nexora_server,
     expect(page.get_by_test_id("rs-dashboard")).to_be_visible()
     expect(
         page.get_by_test_id("rdb-rs-kpi-total").locator(".reporting-ledger-kpi-value")
-    ).to_have_text("1,204")
+    ).to_have_text(re.compile(r"^1.204$"))  # thousands separator varies by ICU/locale on the runner
     assert len(run_calls) == 1
 
     page.get_by_test_id("rdb-add-filter").click()
@@ -455,7 +455,7 @@ def test_card_override_chip_removal_clears_filter_and_reruns_card(nexora_server,
     expect(page.get_by_test_id("rs-dashboard")).to_be_visible()
     expect(
         page.get_by_test_id("rdb-rs-kpi-total").locator(".reporting-ledger-kpi-value")
-    ).to_have_text("1,204")
+    ).to_have_text(re.compile(r"^1.204$"))  # thousands separator varies by ICU/locale on the runner
     assert run_calls[-1]["filters"] == [{"field": "status", "op": "eq", "value": "Open"}]
 
     override_chip = page.get_by_test_id("rdb-card-filter")

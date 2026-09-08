@@ -3466,6 +3466,9 @@ def test_wizard_chip_coverage_badge(nexora_server, page):
     page.get_by_test_id("rs-measure-next").click()
     page.get_by_test_id("rs-scope-next").click()
     bklist = page.get_by_test_id("rs-breakdown-list")
+    # propertynr isn't in DOCPROC_DIM_MAIN, so it's folded behind "Show
+    # advanced fields" by default (430695a6).
+    page.get_by_test_id("rs-breakdown-advanced").click()
     prop = bklist.locator('[data-bd-field="propertynr"]')
     expect(prop.locator(".reporting-simple-chip-cov")).to_have_text("1/2")
     assert "acme.inv" in prop.get_attribute("title")
@@ -3487,6 +3490,9 @@ def test_wizard_scope_filters_chips_and_prunes_selection(nexora_server, page):
     page.get_by_test_id("rs-measure-next").click()
     page.get_by_test_id("rs-scope-next").click()
     bklist = page.get_by_test_id("rs-breakdown-list")
+    # propertynr isn't in DOCPROC_DIM_MAIN, so it's folded behind "Show
+    # advanced fields" by default (430695a6).
+    page.get_by_test_id("rs-breakdown-advanced").click()
     bklist.locator('[data-bd-field="propertynr"]').click()
     expect(bklist.locator('[data-bd-field="propertynr"]')).to_have_class(
         re.compile(r"\bis-selected\b")
@@ -3846,6 +3852,9 @@ def _walk_three_breakdowns(nexora_server, page, measure_label):
     page.get_by_test_id("rs-measure-list").get_by_text(measure_label).click()
     page.get_by_test_id("rs-measure-next").click()
     bklist = page.get_by_test_id("rs-breakdown-list")
+    # propertynr isn't in DOCPROC_DIM_MAIN, so it's folded behind "Show
+    # advanced fields" by default (430695a6).
+    page.get_by_test_id("rs-breakdown-advanced").click()
     for fld in ("doctype", "docsource", "propertynr"):
         bklist.locator(f'[data-bd-field="{fld}"]').click()
     page.get_by_test_id("rs-breakdown-next").click()
@@ -3870,8 +3879,8 @@ def test_three_breakdowns_chart_composite_series_and_drill(nexora_server, page):
         "})()"
     )
     assert sorted(chart) == [["Mail · P-1", 7], ["Mail · P-2", 3]]
-    # Charted result: table behind the toggle as usual; rows still drill.
-    page.get_by_test_id("rs-table-toggle").click()
+    # Charted result: the table shows by default alongside the chart
+    # (430695a6) -- no toggle needed to reach it; rows still drill.
     page.locator("#rsTableWrap tbody tr").first.click()
     expect(page.get_by_test_id("reporting-drill-panel")).to_be_visible()
 
