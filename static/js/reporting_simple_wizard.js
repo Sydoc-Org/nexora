@@ -619,7 +619,7 @@
     if (!RS.state.metricsBySource) await RS.loadMetricsCatalog();
     RS.state.wiz = { measures: [], source: null, breakdowns: [],
                   scopeProcs: [], range: null, dateField: null, _fp: null,
-                  fieldScope: null };
+                  fieldScope: null, filters: [] };
     RS.renderLayoutPick(null);
     RS.setView('wizard');
     RS.el('rsStepScope').hidden = true;
@@ -1067,8 +1067,101 @@
     return RS.state.wiz._fp;
   }
 
+  // ----- Optional wizard filters (Time step) ----------------------------
+  // Same field/op/value rows as the Advanced tab's filter well, minus the
+  // date-token presets: the Time step already owns the date range, so
+  // grainable date fields are left out of the field list entirely.
+  // ponytail: one plain text value input for every op -- typed editors
+  // (value pickers, date pickers) already exist on the result chips.
+  var WIZ_FILTER_OPS = ['eq', 'ne', 'contains', 'starts_with', 'gt', 'gte',
+                        'lt', 'lte', 'is_null', 'is_not_null'];
+
+  function wizFilterFields() {
+    return ((RS.state.wiz.source && RS.state.wiz.source.fields) || [])
+      .filter(function (f) { return f.filterable && !f.grainable; });
+  }
+
+  function renderWizFilters() {
+    var box = RS.el('rsFilterList');
+    if (!box) return;
+    var w = RS.state.wiz;
+    w.filters = w.filters || [];
+    var fields = wizFilterFields();
+    RS.el('rsAddFilter').hidden = !fields.length;
+    // A source switch can strand a filter on a field this source lacks.
+    w.filters = w.filters.filter(function (f) {
+      return fields.some(function (x) { return x.field === f.field; });
+    });
+    box.innerHTML = '';
+    w.filters.forEach(function (f, i) {
+      var row = document.createElement('div');
+      row.className = 'reporting-filter-row';
+      row.setAttribute('data-testid', 'rs-filter-row');
+
+      var fld = document.createElement('select');
+      fields.forEach(function (x) {
+        var o = document.createElement('option');
+        o.value = x.field; o.textContent = x.label || x.field;
+        fld.appendChild(o);
+      });
+      fld.value = f.field;
+      fld.onchange = function (e) { f.field = e.target.value; renderWizardRail(); };
+
+      var op = document.createElement('select');
+      WIZ_FILTER_OPS.forEach(function (o) {
+        var opt = document.createElement('option');
+        opt.value = o;                        // payload contract: raw op code
+        opt.textContent = OP_LABELS[o] || o;  // label localizes, value doesn't
+        op.appendChild(opt);
+      });
+      op.value = f.op;
+      op.onchange = function (e) { f.op = e.target.value; f.value = ''; renderWizFilters(); };
+
+      var val = document.createElement('input');
+      val.className = 'reporting-input';
+      val.placeholder = RS.I18N.filterValue;
+      val.value = f.value == null ? '' : f.value;
+      val.oninput = function (e) { f.value = e.target.value; };
+      val.hidden = f.op === 'is_null' || f.op === 'is_not_null';
+
+      var rm = document.createElement('button');
+      rm.type = 'button';
+      rm.textContent = '\u00d7';
+      rm.setAttribute('data-testid', 'rs-filter-remove');
+      rm.onclick = function () { w.filters.splice(i, 1); renderWizFilters(); };
+
+      row.appendChild(fld);
+      row.appendChild(op);
+      row.appendChild(val);
+      row.appendChild(rm);
+      box.appendChild(row);
+    });
+    renderWizardRail();
+  }
+
+  function addWizFilter() {
+    var first = wizFilterFields()[0];
+    if (!first) return;
+    RS.state.wiz.filters = RS.state.wiz.filters || [];
+    RS.state.wiz.filters.push({ field: first.field, op: 'eq', value: '' });
+    renderWizFilters();
+  }
+
+  // Filters the definition should carry: half-typed rows are dropped (an
+  // empty value on a value-taking op filters on '' and returns nothing).
+  function wizFiltersForDefinition() {
+    return (RS.state.wiz.filters || []).filter(function (f) {
+      return f.op === 'is_null' || f.op === 'is_not_null' || String(f.value || '') !== '';
+    }).map(function (f) {
+      return (f.op === 'is_null' || f.op === 'is_not_null')
+        ? { field: f.field, op: f.op }
+        : { field: f.field, op: f.op, value: f.value };
+    });
+  }
+
   function renderTimeStep() {
     RS.el('rsStepTime').hidden = false;
+    renderWizFilters();
     RS.el('rsWizardRun').hidden = false;
     RS.el('rsTimeCustom').hidden = !Array.isArray(RS.state.wiz.range);
     // A restored definition's literal range (adjustInWizard) must be visible
@@ -1209,6 +1302,7 @@
         w.fieldScope.picked.length < w.fieldScope.values.length) {
       filters.push({ field: w.fieldScope.field, op: 'in', value: w.fieldScope.picked.slice() });
     }
+    wizFiltersForDefinition().forEach(function (f) { filters.push(f); });
     var scope = { clients: [], processes: [] };
     var allProcs = w.source.processes || [];
     if (allProcs.length && w.scopeProcs.length && w.scopeProcs.length < allProcs.length) {
@@ -1278,29 +1372,40 @@
         rest.push(ft);
       }
     });
-    filters = rest;
-    if (filters.length > 1) return null;
-    var range = null, dateField = null;
-    if (filters.length === 1) {
-      var ft = filters[0];
-      if (ft.op !== 'between') return null;
-      var df = (src.fields || []).find(function (x) {
-        return x.field === ft.field && x.grainable;
-      });
-      if (!df) return null;
-      dateField = ft.field;
-      if (ft.value && ft.value.token) {
-        if (WIZ_TOKENS.indexOf(ft.value.token) === -1) return null;
-        range = { token: ft.value.token };
-      } else if (Array.isArray(ft.value) && ft.value.length === 2) {
-        range = ft.value.slice();
-      } else { return null; }
-    }
+    // One `between` on a grainable field is the Time step; anything else is
+    // an optional wizard filter row -- provided the row editor can render it
+    // (a WIZ_FILTER_OPS op over a scalar value), otherwise the def stays
+    // Advanced-only.
+    var range = null, dateField = null, extra = [], bad = false;
+    rest.forEach(function (ft) {
+      if (!dateField && ft.op === 'between') {
+        var df = (src.fields || []).find(function (x) {
+          return x.field === ft.field && x.grainable;
+        });
+        if (!df) { bad = true; return; }
+        dateField = ft.field;
+        if (ft.value && ft.value.token) {
+          if (WIZ_TOKENS.indexOf(ft.value.token) === -1) { bad = true; return; }
+          range = { token: ft.value.token };
+        } else if (Array.isArray(ft.value) && ft.value.length === 2) {
+          range = ft.value.slice();
+        } else { bad = true; }
+        return;
+      }
+      if (WIZ_FILTER_OPS.indexOf(ft.op) === -1
+          || (ft.value !== null && ft.value !== undefined && typeof ft.value === 'object')) {
+        bad = true; return;
+      }
+      extra.push({ field: ft.field, op: ft.op,
+                   value: ft.value == null ? '' : String(ft.value) });
+    });
+    if (bad) return null;
     var scope = def.scope || {};
     if ((scope.clients || []).length) return null;
     return { wiz: { measures: measures, source: src, breakdowns: breakdowns,
                     scopeProcs: (scope.processes || []).slice(),
                     range: range, dateField: dateField, _fp: null,
+                    filters: extra,
                     fieldScope: fieldScopeFilter
                       ? { field: fieldScopeFilter.field, label: fieldScopeFilter.field,
                           values: fieldScopeFilter.value.slice(), picked: fieldScopeFilter.value.slice() }
@@ -1342,6 +1447,7 @@
     RS.setView('dashboard');
     window.ReportingDashboard.openNew();
   });
+  RS.el('rsAddFilter').addEventListener('click', addWizFilter);
   RS.el('rsMeasureNext').addEventListener('click', function () { renderScopeStep(); });
   RS.el('rsScopeNext').addEventListener('click', function () { renderBreakdownStep(); });
   // Back steps one wizard step backwards (picks are preserved in RS.state.wiz);

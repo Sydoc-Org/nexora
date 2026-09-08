@@ -104,6 +104,15 @@
           <p class="reporting-simple-hint" id="rsAllTimeHint" hidden data-testid="rs-alltime-hint">{{ _("“All time” scans the whole history — pick a shorter range for faster results.") }}</p>
           <label id="rsTimeFieldWrap" class="reporting-simple-inline" hidden>{{ _("Date field") }}
             <select id="rsTimeField" class="reporting-input"></select></label>
+          {# Optional extra filters (same field/op/value shape as the Advanced
+             tab's filter well). They land in the definition, so the result's
+             existing chip row renders them editable/removable. #}
+          <div class="rs-wiz-filters">
+            <h4 class="reporting-simple-h">{{ _("Filters (optional)") }}</h4>
+            <div id="rsFilterList" data-testid="rs-filter-list"></div>
+            <button type="button" id="rsAddFilter" class="reporting-link" data-testid="rs-add-filter">+ {{ _("Add filter") }}</button>
+            <p class="reporting-simple-hint">{{ _("Filters appear as chips on the result — adjust or remove them there without rebuilding the report.") }}</p>
+          </div>
         </div>
         {# Task 6: shared footer for all four steps -- the accordion never
            re-hides an earlier step (see the JS partial), so more than one of
