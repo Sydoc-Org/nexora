@@ -334,7 +334,11 @@
     var totalDelta = '', avgDelta = '', peakDelta = '', deltaNote = '';
     if (priorKpi) {
       deltaNote = RS.I18N.deltaVs + ' ' + comparison.priorStart + ' – ' + comparison.priorEnd;
-      totalDelta = deltaChipHtml(kpi.total, priorKpi.total, comparison.priorStart, comparison.priorEnd, true);
+      // Contribution drawer sums the whole window; for a 'latest' metric the
+      // chip itself is the latest-bucket snapshot (see applyLatestTotal), so
+      // the drawer's sum can't explain it -- keep a plain span there, not a
+      // "Why?" button.
+      totalDelta = deltaChipHtml(kpi.total, priorKpi.total, comparison.priorStart, comparison.priorEnd, metricTotalModeFor(def) !== 'latest');
       // Bucket-count mismatch guard: shifted_definition_for_comparison shifts
       // the prior window back by the CURRENT window's length in DAYS, not by
       // an integer number of grain periods -- for a window whose day-length

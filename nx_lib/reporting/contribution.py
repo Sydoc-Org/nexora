@@ -20,14 +20,17 @@ RATIO_AGGREGATIONS = {"avg", "min", "max", "count_distinct"}
 def pick_dimensions(catalog, filters, *, cap=3):
     """Catalog entries to decompose by: processname first when present, then
     string-typed entries in catalog order; never workitem_id, never a field a
-    single-value `eq` filter already pins. At most `cap` entries."""
+    single-value `eq` filter already pins, never an entry explicitly marked
+    `filterable: False` (its rows can't drill into a filter). At most `cap`
+    entries."""
     pinned = {
         f.get("field") for f in (filters or []) if isinstance(f, dict) and f.get("op") == "eq"
     }
     by_field = {c["field"]: c for c in catalog or []}
     out = []
-    if "processname" in by_field and "processname" not in pinned:
-        out.append(by_field["processname"])
+    proc = by_field.get("processname")
+    if proc and "processname" not in pinned and proc.get("filterable") is not False:
+        out.append(proc)
     for c in catalog or []:
         if len(out) >= cap:
             break
@@ -35,6 +38,8 @@ def pick_dimensions(catalog, filters, *, cap=3):
         if f in ("processname", "workitem_id") or f in pinned:
             continue
         if c.get("type") != "string":
+            continue
+        if c.get("filterable") is False:
             continue
         out.append(c)
     return out[:cap]

@@ -54,6 +54,14 @@ def test_pick_dimensions_without_processname_and_with_cap():
     assert pick_dimensions([_f("n", "number")], []) == []
 
 
+def test_pick_dimensions_skips_non_filterable_entries():
+    cat = [
+        {"field": "locked", "type": "string", "filterable": False},
+        {"field": "open", "type": "string"},
+    ]
+    assert [d["field"] for d in pick_dimensions(cat, [])] == ["open"]
+
+
 def test_single_dimension_definition_is_a_clean_deep_copy():
     rd = {
         "schemaVersion": 1,
