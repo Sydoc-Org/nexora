@@ -85,7 +85,9 @@ Work toward the next release.
   every configured SQL target (Generali included); *current value* layout tiles
   read decimal metrics; the forecast fit window is half-open like the visible one;
   a failing schedule advances to its next slot instead of retrying every tick;
-  dashboards and report definitions can no longer be scheduled (picker + server).
+  dashboards and report definitions can no longer be scheduled (picker + server);
+  "Why did it move?" skips `advanced` columns and dimensions that explain nothing
+  (IDs, file names — one row per value) and probes the next candidate instead.
   Advanced: no stale chart PNG in the next Excel export, no stale KPI band / SQL
   peek left over an error, rename keeps the plain report name, forecast toggles
   can't race a run, SQL-sandbox results get no KPI band, drill export buttons come

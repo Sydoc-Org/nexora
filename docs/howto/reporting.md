@@ -1003,7 +1003,11 @@ the Simple KPI band.
 - **Dimensions** are picked automatically (`pick_dimensions` in
   `nx_lib/reporting/contribution.py`): `processname` first when the source
   has it, then string-typed catalog columns in catalog order, never
-  `workitem_id`, never a field an `eq` filter already pins; at most three.
+  `workitem_id`, never a field an `eq` filter already pins, never an
+  `advanced` column. Candidates are probed in order until three are useful:
+  a dimension with 50+ distinct values whose shown top rows explain ≤ 10 % of
+  the gross movement (an ID, a file name — one row per value) is
+  **degenerate** (`is_degenerate`) and lands in `skipped` instead.
 - **Rows** are the first metric grouped by that one column, run once for the
   current window and once for the prior one through the ordinary
   `_prepare_run` path (same grants, source permission and process scope as
