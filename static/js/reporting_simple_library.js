@@ -437,6 +437,7 @@
       owned: !!res.data.owned, canEdit: !!res.data.canEdit, fromWizard: false,
       origin: 'library'
     };
+    if (RS.annotations) RS.annotations.load(r.id);
     RS.runCurrent();
   }
 
@@ -449,6 +450,7 @@
       def: def, name: name || def.title || '', reportId: null,
       owned: true, canEdit: true, fromWizard: false, origin: 'ai'
     };
+    if (RS.annotations) RS.annotations.load(null);
     RS.runCurrent();
   }
 

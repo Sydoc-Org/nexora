@@ -1375,6 +1375,7 @@
     RS.state.current = { def: def, name: def.title, reportId: null,
                       owned: true, canEdit: true, fromWizard: true,
                       builtBy: 'wizard', origin: 'wizard' };
+    if (RS.annotations) RS.annotations.load(null);
     RS.runCurrent();
   });
 

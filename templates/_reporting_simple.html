@@ -261,6 +261,24 @@
         {# Fixed-position wrapper so Chart.js's responsive resize can't enter
            a grow-forever feedback loop inside the stretched flex card. #}
         <div class="rs-chart-body"><canvas id="rsChartCanvas"></canvas></div>
+        {# Chart annotations (#284): owner-only Add + popover, read-only list
+           for everyone else. Filled by static/js/reporting_simple_annotations.js. #}
+        <div id="rsAnnotations" class="rs-annotations" hidden data-testid="rs-annotations">
+          <div class="rs-annotations-head">
+            <span class="rs-annotations-title">{{ _("Annotations") }}</span>
+            <button type="button" class="reporting-link" id="rsAnnotationAdd" hidden data-testid="rs-annotation-add">{{ _("Add annotation") }}</button>
+          </div>
+          <ul id="rsAnnotationsList" class="rs-annotations-list"></ul>
+        </div>
+        <div id="rsAnnotationPop" class="rs-annotation-pop" hidden role="dialog" aria-labelledby="rsAnnotationBucket" data-testid="rs-annotation-pop">
+          <div class="rs-annotation-pop-bucket" id="rsAnnotationBucket"></div>
+          <select id="rsAnnotationBucketSelect" class="rs-annotation-bucket-select" hidden aria-label="{{ _('Bucket') }}" data-testid="rs-annotation-bucket-select"></select>
+          <input type="text" id="rsAnnotationText" maxlength="500" placeholder="{{ _('What happened here? (e.g. “mailroom outage”)') }}" aria-label="{{ _('Annotation text') }}" data-testid="rs-annotation-text">
+          <div class="rs-annotation-pop-actions">
+            <button type="button" class="reporting-link" id="rsAnnotationCancel" data-testid="rs-annotation-cancel">{{ _("Cancel") }}</button>
+            <button type="button" class="reporting-btn" id="rsAnnotationSave" data-testid="rs-annotation-save">{{ _("Save") }}</button>
+          </div>
+        </div>
       </div>
       <div class="rs-result-side nx-rise-2">
         {# Auto AI caption ("AI insight" card), fired after every successful

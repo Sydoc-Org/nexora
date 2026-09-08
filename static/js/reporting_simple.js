@@ -813,6 +813,7 @@
       cur.reportId = (res.data && res.data.id) || null;
       cur.owned = true;
       cur.canEdit = true;
+      if (RS.annotations) RS.annotations.load(cur.reportId);
     }
     saveAsCopy = false;
     RS.el('rsSaveName').hidden = true;

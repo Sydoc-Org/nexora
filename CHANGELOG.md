@@ -207,6 +207,14 @@ Work toward the next release.
 - **Enterprise Admin holds every permission** (migration `0106`) — granted
   today and kept that way by a trigger on `dbo.Permission`, so a code added
   later by migration or from the admin grid lands on the profile at once.
+
+- **Chart annotations.** The owner of a saved report can Alt+click a bar or
+  point on the Simple-tab chart (or use *Add annotation* under it) to pin a
+  short dated note — "mailroom outage", "new client onboarded". Everyone the
+  report is shared with sees it as a marker on the chart and in a list below.
+  New `dbo.ReportAnnotations` (migration `0123`) and
+  `/api/reporting/reports/<id>/annotations`. Simple tab only for now. #284
+
 ### Fixed
 
 - **The `dbo.ActiveSessions` prune now has a way to be scheduled.** #227
