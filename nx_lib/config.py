@@ -33,6 +33,15 @@ SESSION_LIFETIME = timedelta(hours=24)
 # slack for clock skew and suspended machines rather than anything functional.
 SESSION_ROW_RETENTION_GRACE = timedelta(days=7)
 
+# How long dbo.Logs keeps a request row. Each row carries the IP, the username,
+# the path and the query arguments, so it is personal data and cannot be kept
+# indefinitely (#283); nothing deleted from that table before.
+#
+# Six months, expressed in days on purpose: a calendar month varies in length
+# and this window has to be deterministic, because the same number is quoted in
+# the privacy notice (#260). Read by ops/cleanup/prune_request_log.py.
+REQUEST_LOG_RETENTION = timedelta(days=180)
+
 
 def _load_env_files(repo_root: Path, env_name: str) -> None:
     """Load dotenv files in OS-env > env-specific-file > root-.env order.

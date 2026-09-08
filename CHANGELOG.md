@@ -266,6 +266,59 @@ Work toward the next release.
 
 ### Fixed
 
+- **The outage monitor no longer alarms on planned maintenance** (#281).
+  `nx_lib/hooks.py` marks its maintenance 503 with `X-Nexora-Maintenance: 1`
+  and a `Retry-After` derived from the window's `EndAt`; the HTTP probe reads
+  the marker and returns a third state, *excused*, which freezes the component
+  instead of opening an incident. It does not recover one either — a
+  maintenance page proves nothing about the component behind it, so taking the
+  site down would otherwise close every open incident. The excuse expires after
+  4 hours so a window left open cannot silence the monitor. Previously any
+  window over ~15 minutes was guaranteed to mail the helpdesk: three
+  consecutive HTTP failures open an incident and the 30-minute min-hold keeps
+  it open past the window closing.
+
+- **The outage monitor now caps how much it can mail** (#282). Per-component
+  hysteresis already stopped one incident re-alerting, but nothing limited the
+  total: with a 5-minute poll and 13 probes the worst case was two mails a run,
+  24 an hour, and deploys and maintenance windows trip the HTTP probes every
+  time — so routine work reached the helpdesk as alerts. `nx_lib.outage`
+  gains `mail_budget()`, a rolling cap (default 4 per hour, both configurable)
+  persisted in `var/outage-state.json` alongside the component state, because
+  each monitor run is a fresh process and an in-memory counter would reset
+  every 5 minutes. Suppressed mails are counted and reported in the next one
+  that goes out — silence that cannot be told apart from health would be worse
+  than the spam. The first mail is never suppressed, and `max_per_window=0`
+  disables the cap. Measured on a simulated 3 hours of nine components flapping:
+  **33 mails before, 12 after**.
+
+- **`dbo.Logs` now has a retention period: 180 days** (#283). It held one row
+  per request forever, and each row carries the request IP, the username, the
+  path and the query arguments -- a per-user behavioural trail, and personal
+  data. Nothing deleted from it. `ops/cleanup/prune_request_log.py` enforces
+  `REQUEST_LOG_RETENTION` from `nx_lib/config.py`, registered as a daily
+  03:45 task (offset from the session prune's 03:30 so the two never contend).
+  Six months is expressed as 180 days deliberately: a calendar month varies and
+  the window must be deterministic, because the same figure gets quoted in the
+  privacy notice (#260). Unlike the session prune this deletes in committed
+  batches -- the table is unbounded, and a single statement over millions of
+  rows would hold a long lock on a table the admin log viewer reads.
+  Dry-run on INT: 19,460 of 24,225 rows outside the window.
+
+- **The deploy now registers the scheduled tasks itself** — a new *Register
+  scheduled tasks* step in `deploy.yml` imports `ops/outage-monitor-task.xml`
+  and `ops/cleanup/prune-active-sessions-task.xml` on every push to `main`,
+  idempotently (`schtasks /create ... /f`) and with a `/query` afterwards to
+  verify. Robocopy mirrors a task XML but Windows does not read definitions off
+  disk: the prune's XML sat in `D:\sydoc
+exora\ops\cleanup` for twelve
+  hours while `dbo.ActiveSessions` kept growing, because a task only exists
+  once it is registered. The outage monitor had the same latent gap — it
+  happened to be registered, but a rebuilt SYAPP01 would have lost it silently.
+  The step runs last, after the app pool and tunnels are back up, so a failure
+  is loud without holding the site down. `/f` also means a hand-disabled task
+  returns on the next deploy; to stop a job for good, remove its XML.
+
 - **The `dbo.ActiveSessions` prune now has a way to be scheduled.** #227
   shipped `ops/cleanup/prune_active_sessions.py` and a docstring asking someone
   to register a task by hand; nothing in the repo executed it, so merging and

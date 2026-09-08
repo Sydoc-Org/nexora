@@ -410,3 +410,63 @@ jobs:
               Write-Host "Service '$tunnel' is Running."
             }
           }
+
+      # Scheduled maintenance jobs. Robocopy mirrors the task XMLs but Windows
+      # does not read them off disk -- a task only exists once it is registered,
+      # so before this step every definition needed a human to remember to
+      # import it. #227 shipped the prune that way and it ran zero times: the
+      # XML sat in D:\sydoc\nexora\ops\cleanup for twelve hours while
+      # dbo.ActiveSessions kept growing. The outage monitor had the same latent
+      # gap -- registered today, but a rebuilt SYAPP01 would have lost it
+      # silently, and nobody notices a monitor that stopped watching.
+      #
+      # Runs LAST, after the pool and tunnels are up, because registering a task
+      # has nothing to do with serving requests: a failure here must be loud
+      # without holding the site down. It throws rather than warns, since a
+      # silently unregistered task is the bug being closed.
+      #
+      # /f overwrites an existing task, which makes the step idempotent -- and
+      # also means a task an admin deliberately disabled comes back on the next
+      # deploy. That is the intended direction (the repo is the source of truth
+      # for what should be scheduled); to stop a job for good, remove its XML.
+      - name: Register scheduled tasks
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $tasks = @(
+            @{ Name = '\sydoc\nexora\Outage Monitor'
+               Xml  = 'D:\sydoc\nexora\ops\outage-monitor-task.xml' },
+            @{ Name = '\sydoc\nexora\Prune Sessions'
+               Xml  = 'D:\sydoc\nexora\ops\cleanup\prune-active-sessions-task.xml' },
+            @{ Name = '\sydoc\nexora\Prune Request Log'
+               Xml  = 'D:\sydoc\nexora\ops\cleanup\prune-request-log-task.xml' }
+          )
+
+          $failed = @()
+          foreach ($t in $tasks) {
+            if (-not (Test-Path -LiteralPath $t.Xml)) {
+              $failed += "$($t.Name): definition not found at $($t.Xml)"
+              continue
+            }
+            # schtasks is a native exe: check $LASTEXITCODE, not $?. Do not
+            # redirect its stderr -- in PS 5.1 that turns output into
+            # NativeCommandError records even on a zero exit.
+            schtasks /create /xml $t.Xml /tn $t.Name /f
+            if ($LASTEXITCODE -ne 0) {
+              $failed += "$($t.Name): schtasks /create exited $LASTEXITCODE"
+              continue
+            }
+            # Registering and being registered are different claims; verify.
+            schtasks /query /tn $t.Name /fo LIST | Out-Null
+            if ($LASTEXITCODE -ne 0) {
+              $failed += "$($t.Name): created but /query exited $LASTEXITCODE"
+              continue
+            }
+            Write-Host "Registered scheduled task: $($t.Name)"
+          }
+
+          if ($failed.Count -gt 0) {
+            throw ("scheduled task registration failed -- " + ($failed -join '; '))
+          }
+          Write-Host "All $($tasks.Count) scheduled task(s) registered."
