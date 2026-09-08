@@ -9,7 +9,7 @@ Flask 3 / Python 3.13 / SQL Server / IIS (PROD).
 git clone https://github.com/Sydoc-Org/nexora.git C:\dev\nexora    # not under OneDrive
 cd C:\dev\nexora
 .\bootstrap.ps1
-# follow the printed checklist (edit env\INT.env, reset NEXORA_TEST, etc.)
+# follow the printed checklist (edit env\INT.env, etc.)
 ```
 
 For setup details — what bootstrap does and how to do each step by hand if it fails — see [`CONTRIBUTING.md`](CONTRIBUTING.md).

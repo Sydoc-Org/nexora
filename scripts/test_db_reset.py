@@ -1,17 +1,27 @@
-"""Reset NEXORA_TEST to a known state: wipes it, then applies sql/test/schema.sql
-and sql/test/seed.sql.
+"""Reset a NEXORA_TEST* database to a known state: wipes it, then applies
+sql/test/schema.sql and sql/test/seed.sql.
 
 Uses pyodbc instead of sqlcmd so it runs anywhere pyodbc does (i.e. anywhere
 nexora itself runs) without needing SQL Server Command Line Tools installed.
 
-Reads connection info from env/TEST.env. Idempotent.
+Reads connection info from env/TEST.env; a DB_NEXORA in the process
+environment overrides the file's database name. Idempotent.
+
+pytest does not use the shared NEXORA_TEST any more: tests/conftest.py
+creates a private NEXORA_TEST_<user>_<pid> database per run (create + schema
++ seed is ~1.5 s) and drops it at the end, so parallel runs never meet and
+never wait on each other (#235). This script still resets the shared one for
+hand-driven TEST servers.
 
 Usage:
-    python scripts/test_db_reset.py
+    python scripts/test_db_reset.py           # reset NEXORA_TEST (or $DB_NEXORA)
+    python scripts/test_db_reset.py --prune   # drop per-run DBs older than 3 h
 """
 
 from __future__ import annotations
 
+import getpass
+import os
 import re
 import sys
 from pathlib import Path
@@ -90,8 +100,8 @@ def wipe_database(cursor: pyodbc.Cursor) -> tuple[int, int]:
     guard reads a file, this reads the connection actually about to be emptied."""
     live = cursor.execute("SELECT DB_NAME()").fetchone()
     name = live[0] if live else None
-    if name != "NEXORA_TEST":
-        raise RuntimeError(f"refusing to wipe '{name}': connection is not NEXORA_TEST")
+    if not is_test_db(name):
+        raise RuntimeError(f"refusing to wipe '{name}': not a {TEST_DB_PREFIX}* database")
     counts = cursor.execute(
         "SELECT (SELECT COUNT(*) FROM sys.tables WHERE is_ms_shipped = 0),"
         " (SELECT COUNT(*) FROM sys.objects WHERE type IN ('P','FN','IF','TF','V')"
@@ -139,6 +149,65 @@ def _pick_sqlserver_driver() -> str | None:
     return None
 
 
+# Every database this module will create, wipe or drop carries this prefix --
+# the guard that keeps a mis-set env file from emptying INT or PROD.
+TEST_DB_PREFIX = "NEXORA_TEST"
+# Per-run databases live ~15 min at most (a full e2e run); anything older is an
+# orphan from a killed run.
+PRUNE_AFTER_HOURS = 3
+
+
+def is_test_db(name: str | None) -> bool:
+    return name is not None and name.upper().startswith(TEST_DB_PREFIX)
+
+
+def fresh_db_name() -> str:
+    """NEXORA_TEST_<user>_<pid>: unique per process on one machine, and readable
+    in sys.databases when hunting an orphan."""
+    user = re.sub(r"[^A-Za-z0-9]", "", getpass.getuser()) or "anon"
+    return f"{TEST_DB_PREFIX}_{user}_{os.getpid()}"
+
+
+def create_database(name: str) -> None:
+    if not is_test_db(name):
+        raise RuntimeError(f"refusing to create '{name}': not a {TEST_DB_PREFIX}* name")
+    with connect_test_db("master") as conn:
+        conn.cursor().execute(f"IF DB_ID(?) IS NULL CREATE DATABASE [{name}]", name)
+
+
+def drop_database(name: str) -> None:
+    if not is_test_db(name) or name.upper() == TEST_DB_PREFIX:
+        raise RuntimeError(f"refusing to drop '{name}': only per-run {TEST_DB_PREFIX}_* databases")
+    with connect_test_db("master") as conn:
+        # SINGLE_USER kicks the app's own pooled connections; a plain DROP
+        # would fail with "database in use" while the e2e server winds down.
+        conn.cursor().execute(
+            f"IF DB_ID(?) IS NOT NULL BEGIN "
+            f"ALTER DATABASE [{name}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; "
+            f"DROP DATABASE [{name}]; END",
+            name,
+        )
+
+
+def prune_databases(older_than_hours: float = PRUNE_AFTER_HOURS) -> list[str]:
+    """Drop per-run databases a killed run left behind. Returns their names."""
+    with connect_test_db("master") as conn:
+        rows = (
+            conn.cursor()
+            .execute(
+                "SELECT name FROM sys.databases WHERE name LIKE ? "
+                "AND create_date < DATEADD(minute, ?, SYSDATETIME())",
+                f"{TEST_DB_PREFIX}[_]%",  # [_]: a literal underscore in LIKE
+                -int(older_than_hours * 60),
+            )
+            .fetchall()
+        )
+    names = [r[0] for r in rows]
+    for n in names:
+        drop_database(n)
+    return names
+
+
 class TestDbUnavailableError(RuntimeError):
     """env/TEST.env is missing, misconfigured, or no SQL Server ODBC driver exists.
 
@@ -146,12 +215,13 @@ class TestDbUnavailableError(RuntimeError):
     """
 
 
-def connect_test_db() -> pyodbc.Connection:
-    """Autocommit pyodbc connection to NEXORA_TEST, built from env/TEST.env.
+def connect_test_db(db: str | None = None) -> pyodbc.Connection:
+    """Autocommit pyodbc connection to a NEXORA_TEST* database, built from
+    env/TEST.env. `db` defaults to $DB_NEXORA, then the file's DB_NEXORA;
+    pass "master" to create or drop databases.
 
-    Shared with tests/conftest.py so the suite's shared-database lock (#235)
-    reaches the same server through the same driver selection as the reset --
-    two code paths picking different drivers would contend on nothing.
+    Shared with tests/conftest.py so the suite reaches the same server through
+    the same driver selection as the reset.
     """
     if not TEST_ENV.exists():
         raise TestDbUnavailableError(
@@ -163,7 +233,7 @@ def connect_test_db() -> pyodbc.Connection:
     server = env.get("DB_SERVER_PRD")
     uid = env.get("DB_UID")
     pwd = env.get("DB_PWD")
-    db = env.get("DB_NEXORA")
+    db = db or os.environ.get("DB_NEXORA") or env.get("DB_NEXORA")
 
     missing = [
         k
@@ -173,9 +243,9 @@ def connect_test_db() -> pyodbc.Connection:
     if missing:
         raise TestDbUnavailableError(f"TEST.env is missing: {', '.join(missing)}")
 
-    if db != "NEXORA_TEST":
+    if db != "master" and not is_test_db(db):
         raise TestDbUnavailableError(
-            f"Refusing to run: DB_NEXORA in TEST.env must be 'NEXORA_TEST', got '{db}'."
+            f"Refusing to run: DB_NEXORA must start with '{TEST_DB_PREFIX}', got '{db}'."
         )
 
     # Use the same driver nexora itself uses -- DB_ODBC_DRIVER from the env file,
@@ -198,11 +268,26 @@ def connect_test_db() -> pyodbc.Connection:
     # modern ones -- same conditional as _TLS_SUFFIX in nx_lib/db.py.
     tls = "Encrypt=yes;TrustServerCertificate=yes;" if driver.startswith("ODBC Driver") else ""
     conn_str = f"DRIVER={{{driver}}};SERVER={server};DATABASE={db};UID={uid};PWD={pwd};{tls}"
-    print(f"Using ODBC driver: {driver}")
     return pyodbc.connect(conn_str, autocommit=True)
 
 
+def apply_schema_and_seed(cursor: pyodbc.Cursor) -> None:
+    execute_sql_file(cursor, SCHEMA_SQL)
+    execute_sql_file(cursor, SEED_SQL)
+
+
 def main() -> int:
+    if "--prune" in sys.argv[1:]:
+        try:
+            dropped = prune_databases()
+        except (TestDbUnavailableError, pyodbc.Error) as e:
+            print(str(e), file=sys.stderr)
+            return 1
+        print(
+            f"Dropped {len(dropped)} orphaned per-run test database(s): {', '.join(dropped) or '-'}"
+        )
+        return 0
+
     for path in (SCHEMA_SQL, SEED_SQL):
         if not path.exists():
             print(f"Missing: {path}", file=sys.stderr)
@@ -223,20 +308,18 @@ def main() -> int:
         # from under a running test.
         with db_lock.hold(conn, label="test_db_reset"):
             cursor = conn.cursor()
-            server = cursor.execute("SELECT @@SERVERNAME").fetchval()
+            server, name = cursor.execute("SELECT @@SERVERNAME, DB_NAME()").fetchone()
             tables, progs = wipe_database(cursor)
-            print(f"Wiped NEXORA_TEST on {server} ({tables} tables, {progs} views/procs/functions)")
-            print(f"Applying schema to NEXORA_TEST on {server}...")
-            execute_sql_file(cursor, SCHEMA_SQL)
-            print(f"Applying seed to NEXORA_TEST on {server}...")
-            execute_sql_file(cursor, SEED_SQL)
+            print(f"Wiped {name} on {server} ({tables} tables, {progs} views/procs/functions)")
+            print(f"Applying schema + seed to {name} on {server}...")
+            apply_schema_and_seed(cursor)
     except RuntimeError as e:
         print(str(e), file=sys.stderr)
         return 1
     finally:
         conn.close()
 
-    print("NEXORA_TEST reset complete.")
+    print("Reset complete.")
     return 0
 
 

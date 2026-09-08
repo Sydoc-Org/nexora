@@ -18,7 +18,7 @@ Run the bootstrap script — idempotent, re-runnable, handles every step below:
 .\bootstrap.ps1 -Env STAGING   # if you target staging instead
 ```
 
-Then follow the checklist it prints: edit your `env\*.env` files with real credentials, reset `NEXORA_TEST` via `.\scripts\test-db-reset.ps1`, and start the dev server with `.\bin\nx.ps1 -u`. The `nx` CLI does a lot more than start the server (status, logs, route listing, browser auto-login, `--doctor` preflight, an interactive TUI) — see `docs/howto/nx.md` for the full reference.
+Then follow the checklist it prints: edit your `env\*.env` files with real credentials and start the dev server with `.\bin\nx.ps1 -u`. The `nx` CLI does a lot more than start the server (status, logs, route listing, browser auto-login, `--doctor` preflight, an interactive TUI) — see `docs/howto/nx.md` for the full reference.
 
 ### Manual fallback
 
@@ -71,32 +71,29 @@ module added to that overrides list never leaves it; new modules ship typed.**
 Grow the list by picking an already-clean or small, contract-heavy module,
 annotating it fully, adding its dotted path to the overrides `module` list, and
 confirming `python -m mypy nx_lib nx_main.py` is still green.
-## The shared test database
+## The test database
 
-There is exactly one `NEXORA_TEST`, on `INTSQL01`, and CI and every developer's
-local run share it. Both `scripts/test_db_reset.py` and CI's `test` job reset it, so two
-overlapping runs used to corrupt each other: whichever started second re-seeded
-`dbo.Users` under the one already going, and a random login fixture died with
-`KeyError: 'userid'` or a stray 401 — a different test every time, always
-passing in isolation, never pointing at the real cause (issue #235).
+Every pytest run gets its **own** database: `tests/conftest.py` sets
+`DB_NEXORA=NEXORA_TEST_<user>_<pid>` before `nx_lib` loads, creates it from
+`sql/test/schema.sql` + `seed.sql` in `pytest_sessionstart` (about 1.5 s) and
+drops it in `pytest_sessionfinish`. The e2e server subprocess inherits the name
+and picks a free port. Two runs -- CI, a peer session, a worktree -- never touch
+the same data, so there is nothing to lock and nothing to wait for (issue #235).
 
-Runs now serialise on a SQL Server application lock (`scripts/db_lock.py`).
-Both the reset script and the pytest session take `nexora_test_suite`
-exclusively, so a second run **waits** instead of trampling:
-
-```
-[db-lock] another test run holds nexora_test_suite; waiting up to 20 min (pytest).
-[db-lock] acquired after 47s
-```
-
-That wait is the feature — do not kill it. The lock is `@LockOwner='Session'`,
-so a killed run releases it when SQL Server reaps the session; there is never a
-stale lock to clear by hand.
+- The TEST login holds the `dbcreator` server role on INTSQL01; that is all the
+  create/drop needs.
+- A killed run leaves its database behind; the next run prunes anything older
+  than three hours, or run `python scripts/test_db_reset.py --prune` yourself.
+- `DB_NEXORA=NEXORA_TEST pytest ...` opts back into the shared database (no
+  create, no drop). Reset it first with `scripts/test-db-reset.ps1`, which still
+  serialises on the `nexora_test_suite` application lock (`scripts/db_lock.py`)
+  so two hand resets cannot trample each other.
 
 | Variable | Effect |
 |---|---|
-| `NEXORA_TEST_LOCK_SKIP=1` | Don't lock at all. For when the lock itself is the problem. |
-| `NEXORA_TEST_LOCK_TIMEOUT_MS` | Override the 20-minute wait before giving up. |
+| `DB_NEXORA` | Preset it to skip the per-run database and use that one as-is. |
+| `NEXORA_E2E_PORT` | Pin the e2e server port instead of taking a free one. |
+| `NEXORA_TEST_LOCK_SKIP=1` | Reset script only: don't take the shared-DB lock. |
 
 Skipping means you can corrupt someone else's in-flight run, and they cannot
 tell it was you — so prefer waiting. A run that cannot reach the database
@@ -210,9 +207,8 @@ you are taking in the issue before you write it:
 **Stay out of each other's process.** Long refactors get their own git worktree
 (`git worktree add`) so a `git stash` or a branch switch on one side cannot
 sweep the other's uncommitted files. INT is shared: the pre-commit hook applies
-your migrations to the live INT database the moment you commit, and `NEXORA_TEST`
-serialises on an application lock (see above) — a waiting test run is correct
-behaviour, not a hang.
+your migrations to the live INT database the moment you commit; the test
+database is private per run (see above), so test runs never wait on each other.
 
 ## Releases
 

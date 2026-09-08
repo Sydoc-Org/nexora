@@ -1613,9 +1613,10 @@ def test_run_forecast_fits_on_widened_history_not_visible_window(admin_client):
     assert body["rows"] == _FC_WIDE_VISIBLE_ROWS
     assert mock_prepare.call_count == 2
     widened_rd = mock_prepare.call_args_list[1].args[0]
-    widened_filter = widened_rd["filters"][0]
-    assert widened_filter["op"] == "between"
-    assert isinstance(widened_filter["value"], list) and len(widened_filter["value"]) == 2
+    # Half-open fit window, same shape as resolve_definition_tokens: gte start, lt end+1.
+    ops = [(f["op"], f["value"]) for f in widened_rd["filters"]]
+    assert [op for op, _ in ops] == ["gte", "lt"], ops
+    assert all(isinstance(v, str) for _, v in ops), ops
     assert "compare" not in widened_rd
     fc = body.get("forecast")
     assert fc and fc.get("method") == "trend_seasonal"

@@ -7,6 +7,13 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Private test database per pytest run.** `tests/conftest.py` creates
+  `NEXORA_TEST_<user>_<pid>` from `sql/test/schema.sql` + `seed.sql` at session
+  start (~1.5 s) and drops it at the end; the e2e server takes a free port. The
+  shared `NEXORA_TEST` and its application lock are only for hand resets now,
+  so parallel local runs and CI never wait on each other (#235).
+  `scripts/test_db_reset.py --prune` drops orphans a killed run left behind.
+  Ops: the TEST login was added to the `dbcreator` server role on INTSQL01.
 - **Filters in the Simple wizard** — the Time step gained an optional
   *Filters* block: `Add filter` builds field/operator/value rows (the same ops
   the Advanced tab offers, minus the date presets, which the time range above
