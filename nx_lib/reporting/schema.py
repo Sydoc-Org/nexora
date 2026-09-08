@@ -52,6 +52,12 @@ LAYOUT_MAX_TILES = 24
 LAYOUT_MAX_MEASURES = 24
 LAYOUT_GRID_COLS = 12
 LAYOUT_MAX_ROWS = 8
+# Tile/measure ids are embedded verbatim into `[data-card-id="..."]`-style
+# CSS attribute selectors client-side (reporting_layout_view.js render()) --
+# a `"` or `]` in an id would throw a SyntaxError there and break the whole
+# result view, not just one tile. Constrain to the selector-safe charset
+# nextId() in reporting_layouts.js already generates (t1, m1, ...).
+_LAYOUT_ID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 
 
 class ReportDefinitionError(ValueError):
@@ -287,6 +293,10 @@ def validate_layout_definition(layout):
     for m in measures:
         if not isinstance(m, dict) or not isinstance(m.get("id"), str) or not m["id"]:
             raise ReportDefinitionError("each measure needs a string id")
+        if not _LAYOUT_ID_RE.match(m["id"]):
+            raise ReportDefinitionError(
+                f"measure id must match {_LAYOUT_ID_RE.pattern}: {m['id']!r}"
+            )
         if m["id"] in seen:
             raise ReportDefinitionError(f"duplicate measure id: {m['id']!r}")
         seen.add(m["id"])
@@ -304,6 +314,8 @@ def validate_layout_definition(layout):
     for t in tiles:
         if not isinstance(t, dict) or not isinstance(t.get("id"), str) or not t["id"]:
             raise ReportDefinitionError("each tile needs a string id")
+        if not _LAYOUT_ID_RE.match(t["id"]):
+            raise ReportDefinitionError(f"tile id must match {_LAYOUT_ID_RE.pattern}: {t['id']!r}")
         if t["id"] in tile_ids:
             raise ReportDefinitionError(f"duplicate tile id: {t['id']!r}")
         tile_ids.add(t["id"])

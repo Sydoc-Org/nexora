@@ -479,7 +479,8 @@
                       dims: dims, forecast: res.data.forecast || null };
     setAskEddard({ title: cur.name || def.title || '', definition: def,
                    columns: columns, rows: rows.slice(0, 5000),
-                   forecast: res.data.forecast || null });
+                   forecast: res.data.forecast || null,
+                   layout: res.data.layout || null, derived: res.data.derived || null });
     // Report definition (layout): render the tile grid instead of band+chart+table.
     var lgrid = RS.el('rsLayoutGrid');
     if (res.data.layoutFallback && !fallbackToastFor[cur.reportId || 'new']) {

@@ -1759,7 +1759,7 @@
     var res = await api('/api/reporting/reports');
     if (!addMask.open) return;   // closed meanwhile
     var reports = (res.ok && Array.isArray(res.data)) ? res.data.filter(function (r) {
-      return r.owned && r.kind !== 'sql' && r.kind !== 'dashboard';
+      return r.owned && r.kind !== 'sql' && r.kind !== 'dashboard' && r.kind !== 'layout';
     }) : [];
     el('rdbMaskBody').innerHTML =
       '<p class="rdb-mask-step">' + esc(I18N.maskStepReport) + '</p>' + maskReportsHtml(reports);

@@ -892,6 +892,22 @@ def test_valid_layout_passes():
             },
             "duplicate",
         ),
+        (
+            {"tiles": [{"id": 't1"]', "type": "table", "span": 12, "rows": 1}]},
+            "tile id",
+        ),
+        (
+            {"tiles": [{"id": "t1]", "type": "table", "span": 12, "rows": 1}]},
+            "tile id",
+        ),
+        (
+            {"measures": [{"id": 'm1"]', "op": "mean"}]},
+            "measure id",
+        ),
+        (
+            {"measures": [{"id": "m1]", "op": "mean"}]},
+            "measure id",
+        ),
     ],
 )
 def test_invalid_layout_rejected(bad, msg):
