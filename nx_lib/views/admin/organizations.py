@@ -19,16 +19,20 @@ from ...config import PATHS
 from ...db import engine_nexora_db
 from ...files import is_file_allowed
 from ...security import has_permission, page_visibility, require_permission
+from ...tenant.registry import registry as tenant_registry
 
 
-@require_permission("admin.view.organizations")
+@require_permission("admin.organizations.view")
 def admin_organizations_view():
     conn = None
     cursor = None
     try:
         conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
-        cursor.execute("select organizationcode, organization from organizations")
+        cursor.execute(
+            "SELECT organizationcode, organization, TenantCode AS tenant_code "
+            "FROM organizations ORDER BY organization"
+        )
         organizations = [
             dict(zip([column[0] for column in cursor.description], row, strict=False))
             for row in cursor.fetchall()
@@ -45,10 +49,31 @@ def admin_organizations_view():
             org["brand_accent_hex"] = brand.get("accent_hex")
             org["brand_logo_file"] = brand.get("logo_file")
 
+        # 0090: tenant display names come from the cached registry (None when
+        # dbo.Tenants is unavailable, e.g. on TEST -- the code is shown instead).
+        treg = tenant_registry()
+        for org in organizations:
+            t = (
+                treg.tenants.get(org.get("tenant_code") or "")
+                if treg and org.get("tenant_code")
+                else None
+            )
+            org["tenant_name"] = t.display_name if t else None
+
+        # Picker for the edit modal: an organization belongs to a tenant (or
+        # none). An unreadable registry empties the picker, never fails the page.
+        tenants = [
+            {"code": t.code, "name": t.display_name}
+            for t in sorted(
+                (treg.tenants.values() if treg else []), key=lambda t: t.display_name.lower()
+            )
+        ]
+
         return render_template(
             "admin/organizations.html",
             organizations=organizations,
-            can_edit_branding=has_permission("admin.edit.organization.branding"),
+            tenants=tenants,
+            can_edit_branding=has_permission("admin.organizations.branding.edit"),
             logged_in_user=session.get("username"),
             userid=session.get("userid"),
             page_visibility=page_visibility(),
@@ -63,7 +88,13 @@ def admin_organizations_view():
             conn.close()
 
 
-@require_permission("admin.add.organization")
+def _tenant_code(data):
+    """TenantCode from the modal payload -- an empty pick becomes NULL, i.e. "not
+    in a tenant". Referential validity is FK_Organizations_Tenants' job (0090)."""
+    return (data.get("tenantcode") or "").strip() or None
+
+
+@require_permission("admin.organizations.add")
 def admin_add_organization():
     import re as _re
 
@@ -84,7 +115,10 @@ def admin_add_organization():
     try:
         conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO organizations VALUES(?,?)", (organizationcode, organization))
+        cursor.execute(
+            "INSERT INTO organizations (organizationcode, organization, TenantCode) VALUES (?,?,?)",
+            (organizationcode, organization, _tenant_code(data)),
+        )
         conn.commit()
         return jsonify({"success": True, "message": _("Organization created successfully.")})
     except pyodbc.IntegrityError:
@@ -99,7 +133,7 @@ def admin_add_organization():
             conn.close()
 
 
-@require_permission("admin.edit.organization")
+@require_permission("admin.organizations.edit")
 def admin_edit_organization(organizationcode):
     data = request.get_json()
     organization = data.get("organizationname")
@@ -111,8 +145,8 @@ def admin_edit_organization(organizationcode):
         conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute(
-            "UPDATE organizations SET organization=? WHERE organizationcode=?",
-            (organization, organizationcode),
+            "UPDATE organizations SET organization=?, TenantCode=? WHERE organizationcode=?",
+            (organization, _tenant_code(data), organizationcode),
         )
         conn.commit()
         return jsonify({"success": True, "message": _("Organization updated successfully.")})
@@ -126,7 +160,7 @@ def admin_edit_organization(organizationcode):
             conn.close()
 
 
-@require_permission("admin.delete.organization")
+@require_permission("admin.organizations.delete")
 def admin_delete_organization(organizationcode):
     conn = None
     cursor = None
@@ -158,7 +192,7 @@ def admin_delete_organization(organizationcode):
             conn.close()
 
 
-@require_permission("admin.view.organizations")
+@require_permission("admin.organizations.view")
 def api_admin_organizations_list():
     if "username" not in session:
         return jsonify({"error": "Not authorized"}), 401
@@ -239,7 +273,7 @@ def _org_exists(cursor, organizationcode):
     return cursor.fetchone() is not None
 
 
-@require_permission("admin.edit.organization.branding")
+@require_permission("admin.organizations.branding.edit")
 def api_admin_organization_branding_save(organizationcode):
     """Save an organization's brand name, accent hex and logo (#98 phase 4).
 

@@ -9,6 +9,7 @@ produce the same forecast, #178). Split out of
 package's overall shape.
 """
 
+import pyodbc
 from flask import current_app, jsonify, request, session
 from flask_babel import gettext as _
 
@@ -31,6 +32,7 @@ from ...reporting.tokens import (
 )
 from ...security import has_permission, require_permission
 from ._shared import (
+    _SQL_TARGET_DB,
     _SQL_TARGET_ENGINES,
     _SQL_TARGET_PERMISSION,
     _allowed_processes,
@@ -152,8 +154,15 @@ def api_sources():
                 entry["fields"] = table_source_catalog(s.get("columns"))
                 entry["processes"] = []
         elif s["kind"] == "sql":
-            entry["target"] = s.get("target", "statistics")
+            target = s.get("target", "statistics")
+            entry["target"] = target
             entry["acknowledged"] = _has_acked(session.get("userid"))
+            # The database this target really reads, so the target picker can
+            # name it ("RuntimeDatabase") instead of the registry label.
+            entry["db"] = _SQL_TARGET_DB.get(target)
+            # False while the target's read-only login is unprovisioned — the
+            # UI can say so up front instead of only on a 503 from Run.
+            entry["configured"] = _SQL_TARGET_ENGINES.get(target) is not None
         out.append(entry)
     return jsonify(out)
 
@@ -269,6 +278,16 @@ def api_sql_run():
         return jsonify({"error": _("Invalid SQL request."), "detail": str(e)}), 400
     except RuntimeError:
         return jsonify({"error": _("SQL source is not configured")}), 503
+    except pyodbc.ProgrammingError as e:
+        # The sandbox already proved the statement is a single read-only
+        # SELECT, so anything the driver still rejects at this point (unknown
+        # table/column, ambiguous alias, a clause SQL Server won't take there)
+        # is bad user input, not a server fault -- 400, and logged as a
+        # warning so a typo in the editor stops paging the app-error
+        # dashboards. Connection/timeout failures stay 500 below.
+        detail = humanize_sql_error(str(e))
+        current_app.logger.warning(f"/api/reporting/sql/run rejected: {detail}")
+        return jsonify({"error": _("Could not run query"), "detail": detail}), 400
     except Exception as e:
         current_app.logger.error(f"/api/reporting/sql/run exec error: {e}")
         return jsonify(

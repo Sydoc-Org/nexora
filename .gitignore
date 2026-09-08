@@ -265,3 +265,6 @@ nx_lib/_build.py
 
 # backlog-history collector runtime state (ops/backlog_history/)
 ops/backlog_history/last_ticket.txt
+
+# drawio autosave backups
+.$*.bkp

@@ -3,7 +3,7 @@
 Routes:
   GET  /reporting                     builder page
   GET  /reporting/guide               in-app user guide (docs/howto/reporting-guide.md rendered)
-  GET  /reporting/sources             source-registry admin page (reporting.admin.sources)
+  GET  /reporting/sources             source-registry admin page (reporting.sources.manage)
   GET  /api/reporting/sources         sources + field catalog the caller may use
   GET/POST/PUT/DELETE /api/reporting/admin/sources[/<id>]  registry CRUD (admin)
   POST /api/reporting/run             run a curated report definition -> rows
@@ -46,8 +46,8 @@ from ._shared import (
     _CURATED_ENGINES,
     _METRIC_LABEL_ATTRS,
     _METRICS_CACHE_KEY,
-    _SCOPE_PREFIX,
     _SOURCES_CACHE_KEY,
+    _SQL_TARGET_DB,
     _SQL_TARGET_ENGINES,
     _SQL_TARGET_PERMISSION,
     _SQL_TARGETS,
@@ -151,9 +151,9 @@ __all__ = [
     "_rows_json_safe",
     "_run_sql",
     "_sandbox_error_message",
-    "_SCOPE_PREFIX",
     "_SOURCES_CACHE_KEY",
     "_METRICS_CACHE_KEY",
+    "_SQL_TARGET_DB",
     "_SQL_TARGET_ENGINES",
     "_SQL_TARGET_PERMISSION",
     "_SQL_TARGETS",

@@ -161,7 +161,35 @@ def _sqlcmd_uses_f(exe: str) -> bool:
         return True
 
 
-def _sqlcmd_args(sqlcmd_exe: str, server: str, db: str, uid: str, pwd: str, mig: Path) -> list[str]:
+def sqlcmd_vars(cfg) -> dict[str, str]:
+    """sqlcmd -v variables every migration can reference as $(Name).
+
+    The other databases on the server are named differently per environment
+    (SYDOC_Statistik / sydoc_stat / sydoc_stat_INT), so a migration that has to
+    reach across databases -- a NexoraDB view over the Octo statistics tables,
+    say -- cannot hardcode the name. It writes [$(StatisticsDb)] instead and
+    gets the right one for the environment being migrated. Unset names are
+    omitted: sqlcmd fails loudly on an undefined $(Var), which is the correct
+    outcome for a migration that needs a database this environment lacks.
+    """
+    names = {
+        "NexoraDb": getattr(cfg, "DB_NEXORA", None),
+        "StatisticsDb": getattr(cfg, "DB_STATISTICS", None),
+        "GeneraliDb": getattr(cfg, "DB_GENERALI", None),
+        "OctoDb": getattr(cfg, "DB_OCTO_RUNTIME", None),
+    }
+    return {k: v for k, v in names.items() if v}
+
+
+def _sqlcmd_args(
+    sqlcmd_exe: str,
+    server: str,
+    db: str,
+    uid: str,
+    pwd: str,
+    mig: Path,
+    variables: dict[str, str] | None = None,
+) -> list[str]:
     """Build the sqlcmd argv for one migration file.
 
     ``-f 65001`` (classic sqlcmd only -- see _sqlcmd_uses_f) forces the UTF-8
@@ -182,6 +210,8 @@ def _sqlcmd_args(sqlcmd_exe: str, server: str, db: str, uid: str, pwd: str, mig:
         "-i",
         str(mig),
     ]
+    for name, value in (variables or {}).items():
+        args += ["-v", f"{name}={value}"]
     if _sqlcmd_uses_f(sqlcmd_exe):
         args += ["-f", "65001"]  # UTF-8 in/out so non-ASCII migration text is not corrupted
     args += [
@@ -194,9 +224,17 @@ def _sqlcmd_args(sqlcmd_exe: str, server: str, db: str, uid: str, pwd: str, mig:
     return args
 
 
-def apply_one(sqlcmd_exe: str, server: str, db: str, uid: str, pwd: str, mig: Path) -> None:
+def apply_one(
+    sqlcmd_exe: str,
+    server: str,
+    db: str,
+    uid: str,
+    pwd: str,
+    mig: Path,
+    variables: dict[str, str] | None = None,
+) -> None:
     """Run a migration through sqlcmd. Raises on non-zero exit."""
-    cmd = _sqlcmd_args(sqlcmd_exe, server, db, uid, pwd, mig)
+    cmd = _sqlcmd_args(sqlcmd_exe, server, db, uid, pwd, mig, variables)
     res = subprocess.run(
         cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", check=False
     )
@@ -326,7 +364,15 @@ def run_for_db(args, cfg, db_folder: str, db_name: str, sqlcmd_exe: str) -> tupl
             else:
                 print(f"  -> {f.name}")
                 try:
-                    apply_one(sqlcmd_exe, cfg.DB_SERVER_PRD, db_name, cfg.DB_UID, cfg.DB_PWD, f)
+                    apply_one(
+                        sqlcmd_exe,
+                        cfg.DB_SERVER_PRD,
+                        db_name,
+                        cfg.DB_UID,
+                        cfg.DB_PWD,
+                        f,
+                        sqlcmd_vars(cfg),
+                    )
                 except RuntimeError:
                     sys.stderr.write(
                         f"\nHINT: if {f.name} was already applied manually (e.g. in SSMS), "

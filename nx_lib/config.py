@@ -144,6 +144,11 @@ DB_REPORTING_RO_PWD = os.environ.get("DB_REPORTING_RO_PWD")
 DB_REPORTING_OCTO_RO_USER = os.environ.get("DB_REPORTING_OCTO_RO_USER")
 DB_REPORTING_OCTO_RO_PWD = os.environ.get("DB_REPORTING_OCTO_RO_PWD")
 DB_GENERALI = os.environ.get("DB_GENERALI", "Generali")
+# Third read-only login for the SQL sandbox: db_datareader on the Generali
+# tenant DB only. Same graceful-degrade contract -- unset means that target
+# answers 503 rather than falling back to the app's read-write login.
+DB_REPORTING_GENERALI_RO_USER = os.environ.get("DB_REPORTING_GENERALI_RO_USER")
+DB_REPORTING_GENERALI_RO_PWD = os.environ.get("DB_REPORTING_GENERALI_RO_PWD")
 
 # SQL Server ODBC driver + TLS knobs (#193 finding 16). Defaults preserve
 # today's behavior (legacy unencrypted "{SQL Server}" driver) since flipping

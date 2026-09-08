@@ -29,14 +29,8 @@ from nx_lib.tenant.registry import Tenant, TenantEntity, TenantField
 TENANT_CODE = "acme"
 
 
-def _tenant(client_code=TENANT_CODE, display_name="Acme Co"):
-    return Tenant(
-        code=TENANT_CODE,
-        display_name=display_name,
-        organization_code="ACM",
-        client_code=client_code,
-        active=True,
-    )
+def _tenant(display_name="Acme Co"):
+    return Tenant(code=TENANT_CODE, display_name=display_name, active=True)
 
 
 def _entity(
@@ -44,6 +38,7 @@ def _entity(
     kind="documents",
     engine_role="runtime",
     source_object="dbo.Dossiers",
+    client_code=TENANT_CODE,
     label_en="Dossiers",
     sort_order=150,
 ):
@@ -51,6 +46,7 @@ def _entity(
         tenant=TENANT_CODE,
         key=key,
         source_object=source_object,
+        client_code=client_code,
         kind=kind,
         engine_role=engine_role,
         id_column="Id",

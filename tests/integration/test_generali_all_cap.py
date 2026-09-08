@@ -20,7 +20,7 @@ without needing a live oversized table.
 
 Session permissions are reloaded from the DB on EVERY request by
 nx_lib.hooks._reload_user_permissions (a before_request hook); granting
-generali.baseservices.edit.transorganizational alongside .view keeps
+tenant.generali.baseservices.edit.all alongside .view keeps
 _generali_scope_where's SCOPE clause a no-op (no org filter requested), so the
 WHERE clause under test stays empty and the synthetic total_records/row count
 are exactly what the fake cursor is told to report.
@@ -130,7 +130,7 @@ def _wire(monkeypatch, total_records):
 def _grant_baseservices_view_transorg(monkeypatch):
     _grant_perms(
         monkeypatch,
-        ["generali.baseservices.view", "generali.baseservices.edit.transorganizational"],
+        ["tenant.generali.baseservices.view", "tenant.generali.baseservices.edit.all"],
     )
 
 

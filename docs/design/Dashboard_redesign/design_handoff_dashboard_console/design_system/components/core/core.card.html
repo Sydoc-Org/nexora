@@ -1,0 +1,53 @@
+<!-- @dsCard group="Components" viewport="700x230" name="Core — buttons, labels, page head" subtitle="Flat accent primary, hairline secondary; status labels" -->
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+<script src="../../_ds_bundle.js" onerror="this.dataset.missing=1"></script>
+<script src="../../ds-fallback.js"></script>
+<style>
+  body { margin: 0; padding: 16px 18px; background: var(--nx-card); }
+  .row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+  .stack { display: flex; flex-direction: column; gap: 12px; }
+  .cap { font-size: 9.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--nx-text-meta); }
+</style>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+
+let Button, IconButton, Label, CountPill;
+function Card() {
+  return (
+    <div className="stack">
+      <div className="row">
+        <Button variant="primary">Speichern</Button>
+        <Button icon="fas fa-rotate">Aktualisieren</Button>
+        <Button variant="tint" icon="fas fa-play">Ausführen</Button>
+        <Button variant="ghost">Abbrechen</Button>
+        <Button variant="danger">Löschen</Button>
+        <Button disabled>Deaktiviert</Button>
+      </div>
+      <div className="row">
+        <Button size="sm">27px</Button>
+        <Button size="md">29px slim</Button>
+        <Button size="lg">33px console</Button>
+        <IconButton icon="fas fa-ellipsis-vertical" label="Mehr" />
+        <IconButton icon="fas fa-gear" label="Einstellungen" variant="outline" />
+      </div>
+      <div className="row">
+        <Label tone="green">Verarbeitet</Label>
+        <Label tone="amber">Offen</Label>
+        <Label tone="red">Fehler</Label>
+        <Label tone="blue">Importiert</Label>
+        <Label tone="gray" dot={false}>Archiv</Label>
+        <CountPill label="Offen" value="1,247" />
+      </div>
+    </div>
+  );
+}
+
+nexoraDS('../../').then(function (NS) {
+  ({ Button, IconButton, Label, CountPill } = NS);
+  ReactDOM.createRoot(document.getElementById('root')).render(<Card />);
+});
+</script>

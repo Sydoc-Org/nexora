@@ -26,6 +26,17 @@ RELEASES: list[dict] = [
         "date": "2026-09-03",
         "entries": [
             {
+                "title": _("One grid for every permission"),
+                "body": _(
+                    "Admin > Permissions shows every access profile against every "
+                    "permission; tick a cell, save, done. Profiles now carry a rank "
+                    "that decides which profiles an admin may hand out."
+                ),
+                "perm": "admin.profiles.view",
+                "endpoint": "admin_permissions",
+                "icon": "table-cells",
+            },
+            {
                 "title": _("Choose how deeply Eddard thinks"),
                 "body": _(
                     "Click into the chat box and pick Quick, Balanced or Deep. "
@@ -76,6 +87,20 @@ RELEASES: list[dict] = [
         "date": "2026-08-27",
         "entries": [
             {
+                "title": _("A denser Dashboard"),
+                "body": _(
+                    "The Dashboard reads like a console now. Each KPI shows how "
+                    "it moved since yesterday plus a seven-day sparkline, the "
+                    "throughput chart fills the width and holds the hourly view "
+                    "as a tab, and a new Backlog section traces the last 14, 30 "
+                    "or 90 days per process. The Recent Validations column is "
+                    "gone — the workitems page is where workitems live."
+                ),
+                "perm": "dashboard.view",
+                "endpoint": "dashboard",
+                "icon": "gauge-high",
+            },
+            {
                 "title": _("Reporting has a new home screen"),
                 "body": _(
                     "The reporting page is now a workbench: a Library of every "
@@ -96,7 +121,7 @@ RELEASES: list[dict] = [
                     "columns and types, and a diagram of how they connect. "
                     "Structure only — no data is shown."
                 ),
-                "perm": "reporting.sources.schema",
+                "perm": "reporting.sources.schema.view",
                 "endpoint": "reporting",
                 "icon": "diagram-project",
             },
@@ -166,7 +191,7 @@ RELEASES: list[dict] = [
                     "missing grant is something you can see instead of hunt."
                 ),
                 "perm": "admin.view",
-                "endpoint": "admin_permission_matrix",
+                "endpoint": "admin_permissions",
                 "icon": "table-cells",
             },
         ],
@@ -184,7 +209,7 @@ RELEASES: list[dict] = [
                     "axis. The separate Backlog History source is retired — the "
                     "new Backlog measure replaces it."
                 ),
-                "perm": "reporting.source.docprocessing",
+                "perm": "reporting.source.docprocessing.use",
                 "endpoint": "reporting",
                 "icon": "chart-line",
             },
@@ -243,7 +268,7 @@ RELEASES: list[dict] = [
                     "The Apply button is gone from the Generali filter bars — "
                     "changing any filter or date reloads the list right away."
                 ),
-                "perm": "generali.baseservices.view",
+                "perm": "tenant.generali.baseservices.view",
                 "endpoint": "generali_base_services",
                 "icon": "bolt",
             },
@@ -254,7 +279,7 @@ RELEASES: list[dict] = [
                     "type a few letters, pick the name, and the list filters "
                     "instantly."
                 ),
-                "perm": "generali.baseservices.view",
+                "perm": "tenant.generali.baseservices.view",
                 "endpoint": "generali_base_services",
                 "icon": "magnifying-glass",
             },
@@ -296,7 +321,7 @@ RELEASES: list[dict] = [
                 ),
                 # 0069 retired the standalone backlog source; the Backlog
                 # measure now lives on the docprocessing source.
-                "perm": "reporting.source.docprocessing",
+                "perm": "reporting.source.docprocessing.use",
                 "endpoint": "reporting",
                 "icon": "layer-group",
             },
@@ -330,7 +355,7 @@ RELEASES: list[dict] = [
                     "Each search row now has an operator (contains, =, ≠, starts "
                     "with, ends with) and rows combine with AND/OR."
                 ),
-                "perm": "workitems.filter.documentfields",
+                "perm": "workitems.filter.docfields.view",
                 "endpoint": "workitems_overview",
                 "icon": "magnifying-glass",
             },
@@ -350,7 +375,7 @@ RELEASES: list[dict] = [
                     "A new Stage filter (Import, Extraction, Validation, Delivery) "
                     "narrows the list to workitems currently in that step."
                 ),
-                "perm": "workitems.filter.stage",
+                "perm": "workitems.filter.stage.view",
                 "endpoint": "workitems_overview",
                 "icon": "list-check",
             },
@@ -361,7 +386,7 @@ RELEASES: list[dict] = [
                     "were deleted, previously hidden entirely, can now be shown "
                     "on demand, badged red."
                 ),
-                "perm": "workitems.filter.status.deleted",
+                "perm": "workitems.filter.deleted.view",
                 "endpoint": "workitems_overview",
                 "icon": "trash-can",
             },

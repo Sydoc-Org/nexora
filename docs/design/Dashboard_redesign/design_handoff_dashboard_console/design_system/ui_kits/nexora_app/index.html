@@ -1,0 +1,240 @@
+<!-- @dsCard group="Nexora app" viewport="1180x900" -->
+<!-- @startingPoint section="Screens" subtitle="Reference screen: the slim dashboard built from the kit" viewport="1180x900" -->
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>nexora — reference screen</title>
+<link rel="stylesheet" href="../../styles.css">
+<link rel="icon" href="../../assets/favicon.ico">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+<script src="../../ds-fallback.js"></script>
+<style>
+  html, body { margin: 0; background: var(--nx-page); }
+  #root { min-height: 100vh; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<!-- Sources live next to this file (Charts.jsx, Shell.jsx, DashboardScreen.jsx)
+     and are inlined here so the page opens without a server. -->
+<script type="text/babel" data-presets="react">
+// SVG chart stand-ins for the UI kit. In the app these are Chart.js canvases;
+// the geometry, colours and axis treatment here are the spec they follow.
+function axisTicks(max, steps) {
+  const out = [];
+  for (let i = 0; i <= steps; i++) out.push(Math.round((max / steps) * i));
+  return out;
+}
+
+function LineChart({ series, labels, width = 1136, height = 290, roundTo = 500, everyOther = true }) {
+  const padL = 46, padB = 24, padT = 10;
+  const all = series.reduce((a, s) => a.concat(s.values), []);
+  const max = Math.ceil(Math.max.apply(null, all) / roundTo) * roundTo;
+  const plotW = width - padL, plotH = height - padB - padT;
+  const x = (i, n) => padL + (n > 1 ? (plotW / (n - 1)) * i : 0);
+  const y = (v) => padT + (1 - v / max) * plotH;
+  const ticks = axisTicks(max, 4);
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} width="100%" height={height} preserveAspectRatio="none" style={{ display: 'block' }}>
+      {ticks.map((t, i) => (
+        <g key={i}>
+          <line x1={padL} x2={width} y1={y(t)} y2={y(t)} stroke="var(--nx-divider)" strokeWidth="1" />
+          <text x={padL - 8} y={y(t) + 3.5} textAnchor="end" fontSize="10" fill="var(--nx-text-meta)" fontFamily="var(--nx-mono)">{t.toLocaleString('en-US')}</text>
+        </g>
+      ))}
+      {labels.map((l, i) => (everyOther && i % 2 ? null : (
+        <text key={i} x={x(i, labels.length)} y={height - 6} textAnchor="middle" fontSize="10" fill="var(--nx-text-meta)" fontFamily="var(--nx-mono)">{l}</text>
+      )))}
+      {series.map((s, si) => {
+        const d = s.values.map((v, i) => (i ? 'L' : 'M') + x(i, s.values.length).toFixed(1) + ' ' + y(v).toFixed(1)).join(' ');
+        return (
+          <g key={si}>
+            {series.length === 1 ? <path d={d + ` L${width} ${y(0)} L${padL} ${y(0)} Z`} fill={s.color} fillOpacity="0.10" /> : null}
+            <path d={d} fill="none" stroke={s.color} strokeWidth={series.length === 1 ? 2 : 1.6}
+              strokeDasharray={s.dash === 'dashed' ? '6 4' : s.dash === 'dotted' ? '2 3' : undefined}
+              strokeLinejoin="round" />
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+function BarChart({ values, labels, width = 1136, height = 290, roundTo = 35, color = 'var(--nx-series-1)' }) {
+  const padL = 46, padB = 24, padT = 10;
+  const max = Math.ceil(Math.max.apply(null, values) / roundTo) * roundTo;
+  const plotW = width - padL, plotH = height - padB - padT;
+  const bw = plotW / values.length;
+  const y = (v) => padT + (1 - v / max) * plotH;
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} width="100%" height={height} preserveAspectRatio="none" style={{ display: 'block' }}>
+      {axisTicks(max, 4).map((t, i) => (
+        <g key={i}>
+          <line x1={padL} x2={width} y1={y(t)} y2={y(t)} stroke="var(--nx-divider)" strokeWidth="1" />
+          <text x={padL - 8} y={y(t) + 3.5} textAnchor="end" fontSize="10" fill="var(--nx-text-meta)" fontFamily="var(--nx-mono)">{t}</text>
+        </g>
+      ))}
+      {values.map((v, i) => (
+        <rect key={i} x={padL + i * bw + bw * 0.18} y={y(v)} width={bw * 0.64} height={Math.max(plotH - (y(v) - padT), 1)} fill={color} rx="2" />
+      ))}
+      {labels.map((l, i) => (i % 2 ? null : (
+        <text key={i} x={padL + i * bw + bw / 2} y={height - 6} textAnchor="middle" fontSize="10" fill="var(--nx-text-meta)" fontFamily="var(--nx-mono)">{l}</text>
+      )))}
+    </svg>
+  );
+}
+
+window.NexoraKitCharts = { LineChart, BarChart };
+
+
+// Persistent icon rail + page container. Mirrors _header.html: 64px collapsed
+// rail on white, expanding to 220px, active item marked by a 3px accent bar.
+function Shell({ active, onNavigate, children }) {
+  const [open, setOpen] = React.useState(false);
+  const items = [
+    { id: 'dashboard', icon: 'fas fa-gauge-high', label: 'Dashboard' },
+    { id: 'workitems', icon: 'fas fa-list-check', label: 'Workitems' },
+    { id: 'reporting', icon: 'fas fa-chart-line', label: 'Reporting' },
+    { id: 'documents', icon: 'fas fa-file-lines', label: 'Dokumente' },
+    { id: 'appearance', icon: 'fas fa-sliders', label: 'Darstellung' }
+  ];
+  const railW = open ? 220 : 64;
+  return (
+    <div style={{ minHeight: '100%', background: 'var(--nx-page)' }}>
+      <nav
+        onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}
+        style={{
+          position: 'fixed', left: 0, top: 0, height: '100%', width: railW, zIndex: 40,
+          display: 'flex', flexDirection: 'column', background: 'var(--nx-card)',
+          borderRight: '1px solid var(--nx-divider)', overflow: 'hidden',
+          transition: 'width .28s var(--nx-ease)'
+        }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, height: 64, padding: '0 12px', borderBottom: '1px solid var(--nx-divider)', flexShrink: 0 }}>
+          <img src="../../assets/nexora-logo.gif" alt="nexora" style={{ width: 38, height: 38, flexShrink: 0 }} />
+          <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-.3px', color: 'var(--nx-text)', opacity: open ? 1 : 0, transition: 'opacity .18s', whiteSpace: 'nowrap' }}>nexora</span>
+        </div>
+        <div style={{ flex: 1, padding: '12px 8px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {items.map(it => {
+            const on = it.id === active;
+            return (
+              <button key={it.id} onClick={() => onNavigate && onNavigate(it.id)}
+                style={{
+                  position: 'relative', display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '10px 8px', borderRadius: 'var(--nx-radius-ctl)', border: 'none',
+                  background: on ? 'rgba(0,0,0,.05)' : 'transparent', cursor: 'pointer',
+                  color: on ? 'var(--nx-text)' : 'var(--nx-text-sec)',
+                  fontFamily: 'var(--nx-font)', fontSize: 13, fontWeight: 500, textAlign: 'left', width: '100%'
+                }}>
+                {on ? <span style={{ position: 'absolute', left: -8, top: '50%', transform: 'translateY(-50%)', width: 3, height: 24, borderRadius: '0 2px 2px 0', background: 'var(--nx-brand-grad)' }} /> : null}
+                <i className={it.icon} style={{ width: 16, textAlign: 'center', fontSize: 13 }} />
+                <span style={{ opacity: open ? 1 : 0, transition: 'opacity .18s', whiteSpace: 'nowrap' }}>{it.label}</span>
+              </button>
+            );
+          })}
+        </div>
+        <div style={{ padding: '12px 8px', borderTop: '1px solid var(--nx-divider)', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ width: 26, height: 26, borderRadius: 99, background: 'var(--nx-sunken)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: 'var(--nx-text-sec)', flexShrink: 0 }}>BS</span>
+          <span style={{ fontSize: 12, color: 'var(--nx-text-sec)', opacity: open ? 1 : 0, transition: 'opacity .18s', whiteSpace: 'nowrap' }}>Ben Streich</span>
+        </div>
+      </nav>
+      <main style={{ paddingLeft: 64 }}>
+        <div style={{ maxWidth: 'var(--content-max)', margin: '0 auto', padding: '32px 22px 40px', boxSizing: 'border-box' }}>
+          {children}
+        </div>
+      </main>
+    </div>
+  );
+}
+window.NexoraKitShell = Shell;
+
+
+// The approved slim dashboard (option 1a of the redesign): page head, one
+// filter line, borderless KPI strip, full-width tabbed chart, backlog trend.
+function DashboardScreen({ NS }) {
+  const { PageHead, Button, FilterRow, ScopePicker, SegmentedControl, ChartHeader, UnderlineTabs, KpiStrip, SectionRule, SeriesLegend } = NS;
+  const { LineChart, BarChart } = window.NexoraKitCharts;
+  const [range, setRange] = React.useState('14 T');
+  const [view, setView] = React.useState('time');
+  const [picked, setPicked] = React.useState(['02', '03', '01']);
+  const [countdown, setCountdown] = React.useState(27);
+  React.useEffect(() => {
+    const t = setInterval(() => setCountdown(c => (c <= 1 ? 30 : c - 1)), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const groups = [{ name: 'Generali', items: [
+    { id: '02', name: '02_Posteingang', count: 612 },
+    { id: '03', name: '03_Invoice_New', count: 341 },
+    { id: '01', name: '01_Scan_Eingang', count: 188 },
+    { id: '04', name: '04_Archiv', count: 106 }
+  ] }];
+
+  const days = ['08-18','08-19','08-20','08-21','08-22','08-23','08-24','08-25','08-26','08-27','08-28','08-29','08-30','09-01'];
+  const daily = [1980, 2410, 2650, 1120, 640, 2380, 2510, 2290, 2620, 1080, 590, 2440, 2560, 1870];
+  const hours = ['06','07','08','09','10','11','12','13','14','15','16','17','18','19'];
+  const hourly = [12, 48, 130, 96, 84, 61, 34, 72, 88, 65, 40, 22, 9, 3];
+
+  const backlog = [
+    { name: '02_Posteingang', color: 'var(--nx-series-1)', dash: 'solid', count: 612, values: [402,556,448,624,512,668,470,602,706,520,638,724,536,612] },
+    { name: '03_Invoice_New', color: 'var(--nx-series-2)', dash: 'dashed', count: 341, values: [206,302,244,372,262,348,232,396,288,246,402,296,234,341] },
+    { name: '01_Scan_Eingang', color: 'var(--nx-series-3)', dash: 'dotted', count: 188, values: [176,118,214,132,196,108,226,148,122,232,158,114,218,188] },
+    { name: '04_Archiv', color: 'var(--nx-series-4)', dash: 'solid', count: 106, values: [56,118,72,142,92,66,132,76,156,96,72,138,80,106] }
+  ];
+
+  return (
+    <div>
+      <PageHead icon="fas fa-gauge-high" title="Dashboard"
+        meta="Ben Streich · letzte Anmeldung 31.08.2026 21:05"
+        status={'Aktualisiert 06:47:12 · neu in ' + countdown + 's'}
+        actions={<Button icon="fas fa-rotate">Aktualisieren</Button>} />
+
+      <FilterRow label="Prozess"
+        right={<SegmentedControl options={['14 T','30 T','90 T']} value={range} onChange={setRange} />}>
+        <ScopePicker groups={groups} selected={picked} onChange={setPicked} />
+      </FilterRow>
+
+      <KpiStrip items={[
+        { label: 'Heute importiert', value: '595', delta: '+12%', deltaTone: 'good', spark: [420,500,470,520,560,480,595], sparkColor: 'var(--nx-series-1)' },
+        { label: 'Heute verarbeitet', value: '60', delta: '−38%', deltaTone: 'bad', spark: [180,220,140,190,160,97,60], sparkColor: 'var(--nx-series-5)' },
+        { label: 'Aktueller Rückstand', value: '1,247', delta: '+4%', deltaTone: 'bad', spark: [980,1020,1110,1080,1150,1199,1247], sparkColor: 'var(--nx-series-1)' },
+        { label: 'Ø Verarbeitungszeit', value: '15h', delta: '−1.5h', deltaTone: 'good', spark: [19,18.5,17,17.5,16.2,16.5,15], sparkColor: 'var(--nx-series-5)' }
+      ]} />
+
+      <div style={{ padding: '16px 0 8px', marginTop: 6 }}>
+        <ChartHeader
+          title={view === 'time' ? 'Verarbeitete Dokumente im Zeitverlauf' : 'Heute verarbeitete Dokumente nach Stunde'}
+          meta={view === 'time' ? '14 Tage · Spitze 2,650' : 'Spitze 130 um 08:00'}
+          right={<UnderlineTabs value={view} onChange={setView}
+            tabs={[{ label: 'Zeitverlauf', value: 'time' }, { label: 'Heute nach Stunde', value: 'hour' }]} />} />
+        <div style={{ marginTop: 14 }}>
+          {view === 'time'
+            ? <LineChart labels={days} roundTo={500} series={[{ name: 'Verarbeitet', color: 'var(--nx-series-1)', values: daily }]} />
+            : <BarChart labels={hours} values={hourly} roundTo={35} />}
+        </div>
+      </div>
+
+      <SectionRule title="Rückstand" meta="1,247 offen · +48 seit gestern"
+        eyebrow="Verlauf 14 Tage"
+        right={<SeriesLegend items={backlog.map(b => ({ name: b.name, color: b.color, dash: b.dash, count: b.count }))} />}>
+        <LineChart labels={days} height={200} roundTo={400}
+          series={backlog.map(b => ({ name: b.name, color: b.color, dash: b.dash, values: b.values }))} />
+      </SectionRule>
+    </div>
+  );
+}
+window.NexoraKitDashboard = DashboardScreen;
+
+
+nexoraDS('../../').then(function (NS) {
+  const Shell = window.NexoraKitShell;
+  const Dashboard = window.NexoraKitDashboard;
+  ReactDOM.createRoot(document.getElementById('root')).render(
+    <Shell active="dashboard"><Dashboard NS={NS} /></Shell>
+  );
+});
+</script>
+</body>
+</html>

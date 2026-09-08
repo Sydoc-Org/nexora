@@ -113,7 +113,7 @@ _TREND_ROWS = [
 
 
 def test_average_divides_by_days_in_range_not_days_with_data(user_client, monkeypatch):
-    _grant_perms(monkeypatch, ["generali.dashboard.view"])
+    _grant_perms(monkeypatch, ["tenant.generali.view"])
     _wire(monkeypatch, _KPI_ROW, _TREND_ROWS)
 
     kpis = _get(user_client)["kpis"]
@@ -124,7 +124,7 @@ def test_average_divides_by_days_in_range_not_days_with_data(user_client, monkey
 
 
 def test_coverage_is_reported_alongside_the_average(user_client, monkeypatch):
-    _grant_perms(monkeypatch, ["generali.dashboard.view"])
+    _grant_perms(monkeypatch, ["tenant.generali.view"])
     _wire(monkeypatch, _KPI_ROW, _TREND_ROWS)
 
     kpis = _get(user_client)["kpis"]
@@ -134,7 +134,7 @@ def test_coverage_is_reported_alongside_the_average(user_client, monkeypatch):
 
 
 def test_trend_axis_keeps_the_empty_days(user_client, monkeypatch):
-    _grant_perms(monkeypatch, ["generali.dashboard.view"])
+    _grant_perms(monkeypatch, ["tenant.generali.view"])
     _wire(monkeypatch, _KPI_ROW, _TREND_ROWS)
 
     trend = _get(user_client)["trend"]
@@ -148,7 +148,7 @@ def test_trend_axis_keeps_the_empty_days(user_client, monkeypatch):
 
 
 def test_per_kommunikation_series_is_padded_to_the_same_length(user_client, monkeypatch):
-    _grant_perms(monkeypatch, ["generali.dashboard.view"])
+    _grant_perms(monkeypatch, ["tenant.generali.view"])
     _wire(monkeypatch, _KPI_ROW, _TREND_ROWS)
 
     trend = _get(user_client)["trend"]
@@ -160,7 +160,7 @@ def test_per_kommunikation_series_is_padded_to_the_same_length(user_client, monk
 
 
 def test_complete_range_is_unchanged_by_the_fix(user_client, monkeypatch):
-    _grant_perms(monkeypatch, ["generali.dashboard.view"])
+    _grant_perms(monkeypatch, ["tenant.generali.view"])
     rows = [(date(2026, 7, d), "Brief", 10) for d in range(1, 11)]
     _wire(monkeypatch, (100, 75, 65, 55), rows)
 
@@ -173,7 +173,7 @@ def test_complete_range_is_unchanged_by_the_fix(user_client, monkeypatch):
 
 def test_rows_outside_the_range_are_dropped_not_fatal(user_client, monkeypatch):
     """Labels no longer come from the rows, so membership is not guaranteed."""
-    _grant_perms(monkeypatch, ["generali.dashboard.view"])
+    _grant_perms(monkeypatch, ["tenant.generali.view"])
     rows = [*_TREND_ROWS, (date(2026, 8, 1), "Brief", 999)]
     _wire(monkeypatch, _KPI_ROW, rows)
 

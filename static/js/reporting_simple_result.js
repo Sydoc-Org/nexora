@@ -165,18 +165,35 @@
       if (anyNum && rows.every(function (r) { return r[i] == null || isNumericCell(r[i]); })) { idx = i; break; }
     }
     if (idx === -1) return null;
-    var total = 0, peak = -Infinity, peakRow = rows[0], buckets = 0;
-    rows.forEach(function (r) {
+    // A row with no value in the LEADING dimension is neither a period nor a
+    // category. The chart drops those rows and caption_facts.build_facts
+    // excludes them from every figure it states ("Rows with NO <dim> ...
+    // excluded from everything below"), but the band used to count them -- so
+    // the tiles disagreed with both the chart and the AI caption, and Peak
+    // labelled itself "null". Same rule here, same place in the row.
+    var kept = dims ? rows.filter(function (r) { return r[0] != null; }) : rows;
+    if (!kept.length) return null;
+    var total = 0, peak = -Infinity, peakRow = kept[0], cells = 0;
+    var periods = Object.create(null);
+    kept.forEach(function (r) {
+      if (dims) periods[String(r[0])] = 1;
       if (r[idx] == null) return;
       var v = Number(r[idx]);
       total += v;
-      buckets++;
+      cells++;
       if (v > peak) { peak = v; peakRow = r; }
     });
+    // buckets = the leading dimension's DISTINCT values, which is what the
+    // "periods in the range" caption always claimed. It used to be the row
+    // count, so a breakdown by a second dimension multiplied it by that
+    // dimension's cardinality -- 28 fields x 4 weeks read as "112 periods".
+    // cells is the row count it used to be, and what avg divides by.
+    var buckets = dims ? Object.keys(periods).length : cells;
     var peakLabel = dims ? Array.prototype.slice.call(peakRow, 0, dims).map(function (v) {
       return String(v).replace(/[T ]00:00:00(\.0+)?$/, '');
     }).join(' · ') : '';
-    return { total: total, buckets: buckets, avg: buckets ? total / buckets : 0,
+    return { total: total, buckets: buckets, cells: cells,
+             avg: cells ? total / cells : 0,
              peak: peak, peakLabel: peakLabel, idx: idx };
   }
 
@@ -361,19 +378,31 @@
         '<span class="rs-kpi-stats-title" data-testid="rs-kpi-stats-title">' +
           RS.esc(measureLabel(columns, kpi.idx)) + '</span>' +
         kpiBlock('rs-kpi-buckets', RS.I18N.kpiBuckets, kpi.buckets, '', RS.I18N.kpiBucketsSub) +
-        kpiBlock('rs-kpi-avg', RS.I18N.kpiAvg, kpi.avg, avgDelta, RS.I18N.kpiAvgSub) +
+        // One row per period (no second dimension) means avg IS total/buckets.
+        // With a breakdown it is the mean of the cells, so say that rather
+        // than an arithmetic the reader can't reproduce from the tiles beside
+        // it (34.501 / 112 is 0.31, not 54.029).
+        kpiBlock('rs-kpi-avg',
+          kpi.cells === kpi.buckets ? RS.I18N.kpiAvg : RS.I18N.kpiAvgCell,
+          kpi.avg, avgDelta,
+          kpi.cells === kpi.buckets ? RS.I18N.kpiAvgSub
+            : RS.I18N.kpiAvgCellSub.replace('{n}', kpi.cells)) +
         kpiPeakBlock('rs-kpi-peak', RS.I18N.kpiPeak, kpi.peakLabel, kpi.peak, peakDelta) +
       '</div>') : '';
     return measures.map(function (m, i) {
       var first = i === 0;
+      // A non-additive grand total is neither a "Total" nor a sum: caption and
+      // sub-line both switch rather than overstate what the figure is.
+      var isSum = !m.agg || m.agg === 'sum';
+      var caption = isSum ? RS.I18N.kpiTotal : RS.I18N.kpiOverall;
       // Console card: caption keeps the "Total · <measure>" contract; the
       // explainer (last-bucket note for levels, sum-over-period otherwise)
       // moves to the sub line so every value sits on one baseline.
       return '<div class="rs-kpi-total-card' + (first ? '' : ' rs-kpi-total-card--alt') + '"' +
         ' data-testid="' + (first ? 'rs-kpi-total' : 'rs-kpi-total-extra') + '">' +
         '<span class="reporting-ledger-caption" title="' +
-          RS.esc(RS.I18N.kpiTotal + (m.label ? ' · ' + m.label : '')) + '">' +
-          RS.esc(RS.I18N.kpiTotal) + (m.label ? ' · ' + RS.esc(m.label) : '') +
+          RS.esc(caption + (m.label ? ' · ' + m.label : '')) + '">' +
+          RS.esc(caption) + (m.label ? ' · ' + RS.esc(m.label) : '') +
         '</span>' +
         '<span class="rs-kpi-value-wrap">' +
           '<span class="reporting-ledger-kpi-value" data-count-target="' + Number(m.total) + '">0</span>' +
@@ -382,7 +411,7 @@
         '<span class="reporting-ledger-kpi-sub">' +
           RS.esc(m.latestKey
             ? RS.I18N.kpiLatestSuffix + ' ' + String(m.latestKey).slice(0, 16)
-            : RS.I18N.kpiSumSub) +
+            : isSum ? RS.I18N.kpiSumSub : RS.I18N.kpiExactSub) +
           // The delta chip's "vs <prior range>" was tooltip-only, so the
           // percentage read as a bare number with nothing to compare against.
           (first && seriesIsHeadline && totalDelta ? ' · ' + RS.esc(deltaNote) : '') +
@@ -506,6 +535,17 @@
     return (hit && hit.totalMode) || 'sum';
   }
 
+  // One aggregation per def.metrics entry, mirroring metricTotalModes.
+  // metricAggFor() answers the same question for the FIRST metric only; the
+  // KPI band captions every measure, so it needs the whole list.
+  function metricAggs(def) {
+    var list = (RS.state.metricsBySource || {})[def.source] || [];
+    return (def.metrics || []).map(function (m) {
+      var hit = list.find(function (x) { return x.code === m.metric; });
+      return (hit && hit.aggregation) || '';
+    });
+  }
+
   // One totalMode per def.metrics entry ('sum' | 'latest').
   function metricTotalModes(def) {
     var list = (RS.state.metricsBySource || {})[def.source] || [];
@@ -577,6 +617,11 @@
                       total: kpi.total, latestKey: null }] : [];
     }
     var grand = grandTotals === undefined ? RS.state.grandTotals : grandTotals;
+    var aggs = metricAggs(def);
+    // The band's own figures exclude NULL-leading-dimension rows (see
+    // computeKpiBand); this fallback sum has to agree or seriesIsHeadline
+    // stops matching and the sparkline and delta chip silently vanish.
+    var summable = dims ? rows.filter(function (r) { return r[0] != null; }) : rows;
     return modes.map(function (mode, n) {
       var idx = dims + n;
       var exact = grand && isNumericCell(grand[n]);
@@ -590,13 +635,19 @@
       } else if (latest) {
         total = latest.total;
       } else {
-        rows.forEach(function (r) { if (isNumericCell(r[idx])) total += Number(r[idx]); });
+        summable.forEach(function (r) { if (isNumericCell(r[idx])) total += Number(r[idx]); });
       }
       return {
         idx: idx,
         label: measureLabel(columns, idx),
         total: total,
         latestKey: latest ? latest.key : null,
+        // Only a sum is a "sum over the period". When the figure is the
+        // server's authoritative grand total for an averaging or distinct-
+        // counting metric it is ONE aggregate over every underlying row --
+        // this report's 34.5 is AVG(CorrectPct) across 29,756 rows, not a
+        // total of the 112 grouped cells (whose sum is 6,051).
+        agg: exact ? (aggs[n] || 'sum') : 'sum',
       };
     });
   }

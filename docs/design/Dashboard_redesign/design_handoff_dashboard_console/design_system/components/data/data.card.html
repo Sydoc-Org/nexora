@@ -1,0 +1,51 @@
+<!-- @dsCard group="Components" viewport="700x300" name="Data — KPI strip, sparkline, table" subtitle="Hairline-divided KPIs; frameless dense table" -->
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+<script src="../../_ds_bundle.js" onerror="this.dataset.missing=1"></script>
+<script src="../../ds-fallback.js"></script>
+<style>
+  body { margin: 0; padding: 16px 18px; background: var(--nx-card); }
+  .row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+  .stack { display: flex; flex-direction: column; gap: 12px; }
+  .cap { font-size: 9.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--nx-text-meta); }
+</style>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+
+let KpiStrip, Sparkline, DataTable, Pagination;
+const rows = [
+  { id: 'DOC-882314', client: 'Generali', proc: '02_Posteingang', count: '12', time: '06:41' },
+  { id: 'DOC-882311', client: 'Generali', proc: '03_Invoice_New', count: '4', time: '06:38' },
+  { id: 'DOC-882308', client: 'Swisscom', proc: '01_Scan_Eingang', count: '31', time: '06:35' }
+];
+function Card() {
+  return (
+    <div>
+      <KpiStrip style={{ marginTop: 0 }} items={[
+        { label: 'Heute importiert', value: '595', delta: '+12%', deltaTone: 'good', spark: [420,500,470,520,560,480,595], sparkColor: 'var(--nx-series-1)' },
+        { label: 'Heute verarbeitet', value: '60', delta: '−38%', deltaTone: 'bad', spark: [180,220,140,190,160,97,60], sparkColor: 'var(--nx-series-5)' },
+        { label: 'Aktueller Rückstand', value: '1,247', delta: '+4%', deltaTone: 'bad', spark: [980,1020,1110,1080,1150,1199,1247], sparkColor: 'var(--nx-series-1)' },
+        { label: 'Ø Verarbeitungszeit', value: '15h', delta: '−1.5h', deltaTone: 'good', spark: [19,18.5,17,17.5,16.2,16.5,15], sparkColor: 'var(--nx-series-5)' }
+      ]} />
+      <div style={{ marginTop: 16 }}>
+        <DataTable dense rows={rows} columns={[
+          { key: 'id', header: 'Dokument', mono: true },
+          { key: 'client', header: 'Kunde' },
+          { key: 'proc', header: 'Prozess', muted: true },
+          { key: 'count', header: 'Felder', align: 'right', mono: true },
+          { key: 'time', header: 'Zeit', align: 'right', mono: true, muted: true }
+        ]} onRowClick={() => {}} />
+        <Pagination page={1} pages={25} total="1–3 von 1,247" />
+      </div>
+    </div>
+  );
+}
+
+nexoraDS('../../').then(function (NS) {
+  ({ KpiStrip, Sparkline, DataTable, Pagination } = NS);
+  ReactDOM.createRoot(document.getElementById('root')).render(<Card />);
+});
+</script>

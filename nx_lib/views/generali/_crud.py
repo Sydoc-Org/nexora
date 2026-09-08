@@ -152,8 +152,7 @@ class CrudTable:
     slug: str  # api path + endpoint-name segment, e.g. "baseservices"
     table: str  # fully bracketed SQL table name
     user_column: str  # owner column, e.g. "UserID"
-    perm_prefix: str  # action permission prefix, e.g. "generali.baseservices"
-    view_perm: str  # view permission (differs from perm_prefix for attendance)
+    perm_prefix: str  # permission prefix, e.g. "tenant.generali.baseservices"
     api_base: str  # e.g. "/api/generali/baseservices"
     label: str  # log label, e.g. "Generali Base Services"
     user_lookup_label: str = ""  # label in the list endpoint's warning log
@@ -298,17 +297,17 @@ def _parse_write_body(d, body):
 def _resolve_target_user(d, body):
     """(user_id, error_response) -- who the new record is booked for.
 
-    Defaults to the caller. Booking for someone else needs the organizational
-    or transorganizational add grant, and without the latter the target must
-    sit in the caller's own org.
+    Defaults to the caller. Booking for someone else needs the ``.org`` or
+    ``.all`` add grant, and without the latter the target must sit in the
+    caller's own org.
     """
     caller_id = session.get("userid")
     target_raw = body.get("userId")
     if target_raw is None or str(target_raw) == str(caller_id):
         return caller_id, None
 
-    has_org_perm = has_permission(f"{d.perm_prefix}.add.organizational")
-    has_transorg_perm = has_permission(f"{d.perm_prefix}.add.transorganizational")
+    has_org_perm = has_permission(f"{d.perm_prefix}.add.org")
+    has_transorg_perm = has_permission(f"{d.perm_prefix}.add.all")
     if not has_org_perm and not has_transorg_perm:
         raise PermissionDenied()
     try:
@@ -341,7 +340,7 @@ def _resolve_target_user(d, body):
 def _make_monthreport(d):
     spec = d.monthreport
 
-    @require_permission(d.view_perm)
+    @require_permission(f"{d.perm_prefix}.view")
     def monthreport():
         conn = None
         try:
@@ -356,8 +355,8 @@ def _make_monthreport(d):
             params: list = [str(ctx["first_day"]), str(ctx["last_day"])]
             if (
                 spec.self_restrict
-                and not has_permission(f"{d.perm_prefix}.edit.organizational")
-                and not has_permission(f"{d.perm_prefix}.edit.transorganizational")
+                and not has_permission(f"{d.perm_prefix}.edit.org")
+                and not has_permission(f"{d.perm_prefix}.edit.all")
             ):
                 where_clauses.append(f"{d.user_column} = ?")
                 params.append(session.get("userid"))
@@ -424,15 +423,13 @@ def _make_monthreport(d):
 
 
 def _make_org_users(d):
-    @require_any_permission(
-        f"{d.perm_prefix}.add.organizational", f"{d.perm_prefix}.add.transorganizational"
-    )
+    @require_any_permission(f"{d.perm_prefix}.add.org", f"{d.perm_prefix}.add.all")
     def api_org_users():
         conn = None
         try:
             from . import engine_nexora_db
 
-            transorg = has_permission(f"{d.perm_prefix}.add.transorganizational")
+            transorg = has_permission(f"{d.perm_prefix}.add.all")
             org_code = session.get("organizationcode")
             if not transorg and not org_code:
                 return jsonify({"success": False, "error": "No organization on session"}), 400
@@ -460,7 +457,7 @@ def _make_org_users(d):
 
 
 def _make_organizations(d):
-    @require_permission(d.view_perm)
+    @require_permission(f"{d.perm_prefix}.view")
     def api_organizations():
         conn = None
         try:
@@ -468,8 +465,8 @@ def _make_organizations(d):
 
             restrict_to_self = (
                 d.organizations_restrict
-                and not has_permission(f"{d.perm_prefix}.edit.organizational")
-                and not has_permission(f"{d.perm_prefix}.edit.transorganizational")
+                and not has_permission(f"{d.perm_prefix}.edit.org")
+                and not has_permission(f"{d.perm_prefix}.edit.all")
             )
             conn = engine_generali_db.raw_connection()
             cursor = conn.cursor()
@@ -498,13 +495,13 @@ def _make_organizations(d):
 
 
 def _make_filter_users(d):
-    @require_permission(d.view_perm)
+    @require_permission(f"{d.perm_prefix}.view")
     def api_filter_users():
         try:
             from . import engine_generali_db, engine_nexora_db
 
-            transorg = has_permission(f"{d.perm_prefix}.edit.transorganizational")
-            org_edit = has_permission(f"{d.perm_prefix}.edit.organizational")
+            transorg = has_permission(f"{d.perm_prefix}.edit.all")
+            org_edit = has_permission(f"{d.perm_prefix}.edit.org")
             if not transorg and not org_edit:
                 return jsonify({"success": True, "users": []})
             gen_conn = engine_generali_db.raw_connection()
@@ -585,7 +582,7 @@ def _list_where(d, spec):
 def _make_list(d):
     spec = d.list_spec
 
-    @require_permission(d.view_perm)
+    @require_permission(f"{d.perm_prefix}.view")
     def api_list():
         conn = None
         try:
@@ -682,7 +679,7 @@ def _make_add(d):
             if err:
                 return err
 
-            deadline_err = _check_add_deadline(for_date, f"{d.perm_prefix}.add.bypass.deadline")
+            deadline_err = _check_add_deadline(for_date, f"{d.perm_prefix}.add.pastdeadline")
             if deadline_err:
                 return jsonify({"success": False, "error": deadline_err}), 403
 
@@ -728,9 +725,7 @@ def _make_add(d):
 def _make_edit(d):
     write = d.write
 
-    @require_any_permission(
-        f"{d.perm_prefix}.edit.organizational", f"{d.perm_prefix}.edit.transorganizational"
-    )
+    @require_any_permission(f"{d.perm_prefix}.edit.org", f"{d.perm_prefix}.edit.all")
     def api_edit(record_id):
         conn = None
         try:
@@ -743,7 +738,7 @@ def _make_edit(d):
 
             conn = engine_generali_db.raw_connection()
             cursor = conn.cursor()
-            if not has_permission(f"{d.perm_prefix}.edit.transorganizational"):
+            if not has_permission(f"{d.perm_prefix}.edit.all"):
                 _check_generali_record_org(cursor, d.table, d.user_column, record_id)
             assignments = ", ".join(f"{col} = ?" for col in write.update_order)
             cursor.execute(
@@ -769,9 +764,7 @@ def _make_edit(d):
 
 
 def _make_delete(d):
-    @require_any_permission(
-        f"{d.perm_prefix}.delete.organizational", f"{d.perm_prefix}.delete.transorganizational"
-    )
+    @require_any_permission(f"{d.perm_prefix}.delete.org", f"{d.perm_prefix}.delete.all")
     def api_delete(record_id):
         conn = None
         try:
@@ -779,7 +772,7 @@ def _make_delete(d):
 
             conn = engine_generali_db.raw_connection()
             cursor = conn.cursor()
-            if not has_permission(f"{d.perm_prefix}.delete.transorganizational"):
+            if not has_permission(f"{d.perm_prefix}.delete.all"):
                 _check_generali_record_org(cursor, d.table, d.user_column, record_id)
             cursor.execute(f"DELETE FROM {d.table} WHERE ID = ?", [record_id])
             conn.commit()

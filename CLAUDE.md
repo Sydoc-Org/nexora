@@ -31,6 +31,7 @@ SQLAlchemy engines with pyodbc, defined in `nx_lib/db.py`. Credentials come from
 | `engineGeneraliDB` | tenant DB for Generali-branded pages |
 | `engine_statistics_ro` | read-only login for the reporting SQL sandbox (`DB_REPORTING_RO_*`; 503 until set) |
 | `engine_octo_ro` | read-only login for the sandbox's Octo target (`DB_REPORTING_OCTO_RO_*`; 503 until set) |
+| `engine_generali_ro` | read-only login for the sandbox's Generali target (`DB_REPORTING_GENERALI_RO_*`; 503 until set) |
 | `engine_ms02_pg` | MS02 client's Azure Postgres runtime DB (same Octo schema, PG dialect) — `MS02_*` |
 | `engine_ms02_stats_pg` | MS02 dashboard-statistics DB — `MS02_STATS_DB_*` |
 | `engine_ms02_docfields_pg` | MS02 doc-field source DB — `MS02_DOCFIELDS_DB_*`. While `None`, doc-field search **fails closed** for MS02 (zero rows), never unconstrained |
@@ -39,7 +40,7 @@ SQLAlchemy engines with pyodbc, defined in `nx_lib/db.py`. Credentials come from
 
 **Multi-source workitems (MS02)** live in `nx_lib/workitem_sources.py` (adapters + probe-then-cache routing) and `nx_lib/clients.py` (client registry). Statistics and doc-field search route per-client through `nx_lib/mapping_config.py`'s cached registry over `dbo.ProcessSources`/`ProcessFieldMappings`/`FieldLabels`/`FieldAliases` (migration `0074`; the legacy `SearchConfig`/`StatConfig`/`IndexFieldMappings`/`Search_Field_Labels` tables were decapitated by `0075`); for MS02 both read wide **columnar** statistik tables (e.g. `public."DossierStatistik"`), *not* an EAV index. **Engines, migrations `0023`–`0033`, `0074`–`0075`, resolvers, permission gates, gotchas: `docs/design/ms02-multisource.md`.**
 
-**Onboarding a new client/customer** (the `ClientCode` runtime-source vs. `Organizations` customer split, `dbo.Clients` registry, `/admin/clients` + `/admin/processes` admin pages): `docs/howto/white-label.md`.
+**Onboarding a new client/customer** (the `ClientCode` runtime-source vs. `Organizations` customer split, `dbo.Clients` registry, `/admin/tenants/manage` + `/admin/clients` + `/admin/processes` admin pages): `docs/howto/white-label.md`.
 
 **Schema changes always go through a migration.** DDL under `sql/` mirrors SSMS Object Explorer; the **live INT database is the source of truth** and the per-object files under `sql/<Database>/` are auto-generated — **never hand-edit them**. Only the two app-owned DBs are tracked (`StatisticsDB` and `OctoDB` are vendor/runtime surfaces).
 
@@ -71,7 +72,7 @@ Documentation is part of the change, not a follow-up. Add, rename, or remove a C
 One line each; **the full detail lives in `docs/design/architecture-conventions.md`** — read it before changing any of these subsystems.
 
 - **Auth & sessions** — Flask-Session (filesystem in prod, deliberately off locally), CSRF via Flask-WTF, Talisman CSP, bcrypt, TOTP 2FA.
-- **Permissions** — string codes from `dbo.spGetUserPermissions` into `session['permissions']`, refreshed per request via a TTL cache (`nx_lib/user_cache.py`). Guard with `@require_permission('code')`, check with `has_permission(code)`. The external API (`/api/v1/*`) bypasses sessions entirely — per-client keys from `dbo.ApiKeys`, see `docs/howto/external-api.md`.
+- **Permissions** — string codes from `dbo.spGetUserPermissions` into `session['permissions']`, refreshed per request via a TTL cache (`nx_lib/user_cache.py`). Guard with `@require_permission('code')`, check with `has_permission(code)`. Grammar, rank, dynamic families: `docs/design/permissions.md`. The external API (`/api/v1/*`) bypasses sessions entirely — per-client keys from `dbo.ApiKeys`, see `docs/howto/external-api.md`.
 - **UI preferences** — allowlisted JSON in `dbo.Users.ui_prefs` (`nx_lib/ui_prefs.py`), applied pre-paint in `templates/_header.html`, edited on `/appearance`. Never cache them in the session (#155).
 - **Locale** — Flask-Babel, `en`/`de`/`fr`/`it`; session → user DB row → `Accept-Language`.
 - **Response compression** — `nx_lib/compression.py` gzips text responses > 1 KB (stdlib, no `flask-compress`). Covers `/static`. Do **not** suffix the `ETag` — it breaks `If-None-Match`.
@@ -114,7 +115,7 @@ Because they are gitignored, `deploy.yml` never copies them — **adding a key t
 
 ## Working with Claude Code
 
-Token-efficiency and AI-workflow conventions — subagent/GitNexus exploration, targeted tests, plan-mode for multi-file changes, the verification loop, the session-start budget — live in `docs/howto/claude-workflow.md`. When adding a page/route/permission use the `nexora-feature` skill; `/nx-i18n` and `/nx-migrate` scaffold the translation and migration chores.
+Token-efficiency and AI-workflow conventions — subagent/GitNexus exploration, targeted tests, plan-mode for multi-file changes, the verification loop, the session-start budget — live in `docs/howto/claude-workflow.md`. When adding a page/route/permission use the `nexora-feature` skill; `/nx-i18n` and `/nx-migrate` scaffold the translation and migration chores; `/nx-perm-audit [PROD|INT]` runs the read-only permission-grant anomaly audit (`scripts/perm-audit.py`).
 
 **Session handoff loop:** when a batch of work is done (committed, tests green, nothing queued) or the conversation nears auto-compact, run `/handoff-session-state` **unprompted** — it writes a zero-context handoff, commits it, drops the gitignored `var/handoff-pending` flag, and prompts `/clear`. A SessionStart hook then routes the next session through `/reset-session`.
 

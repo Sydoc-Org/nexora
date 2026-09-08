@@ -1,0 +1,44 @@
+<!-- @dsCard group="Components" viewport="700x260" name="Feedback — flash, empty, skeleton" subtitle="Inline messages; muted empty state" -->
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+<script src="../../_ds_bundle.js" onerror="this.dataset.missing=1"></script>
+<script src="../../ds-fallback.js"></script>
+<style>
+  body { margin: 0; padding: 16px 18px; background: var(--nx-card); }
+  .row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+  .stack { display: flex; flex-direction: column; gap: 12px; }
+  .cap { font-size: 9.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--nx-text-meta); }
+</style>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+
+let Flash, EmptyState, Skeleton;
+function Card() {
+  return (
+    <div className="stack">
+      <Flash tone="success" onDismiss={() => {}}>Einstellungen gespeichert.</Flash>
+      <Flash tone="error">Verbindung zur Statistik-DB fehlgeschlagen.</Flash>
+      <div className="row" style={{ gap: 26 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+          <span className="cap">Laden</span>
+          <Skeleton width={90} height={30} />
+          <Skeleton width={150} />
+          <Skeleton width={120} />
+        </div>
+        <div style={{ flex: 1, borderLeft: '1px solid var(--nx-divider)' }}>
+          <EmptyState icon="fas fa-chart-column" title="Heute noch keine Dokumente verarbeitet."
+            hint="Der Tag läuft noch — die erste Charge wird gegen 08:00 erwartet." />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+nexoraDS('../../').then(function (NS) {
+  ({ Flash, EmptyState, Skeleton } = NS);
+  ReactDOM.createRoot(document.getElementById('root')).render(<Card />);
+});
+</script>

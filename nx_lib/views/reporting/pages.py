@@ -77,14 +77,14 @@ def reporting():
         fullname=session.get("fullname"),
         page_visibility=page_visibility(),
         ai_enabled=has_permission("reporting.ai.use"),
-        ai_caption_enabled=has_permission("reporting.ai.explain_data"),
+        ai_caption_enabled=has_permission("reporting.ai.explain.use"),
         # The composer only offers Quick/Balanced/Deep when the configured
         # model can actually honour it (GPT-5 family, Claude Opus/Sonnet 5).
         ai_effort_enabled=_ai_effort_enabled(),
         ai_effort_default=EFFORT_AGENT,
-        details_images_perm=has_permission("workitems.details.view.images"),
-        details_audit_perm=has_permission("workitems.details.view.audit"),
-        details_fields_perm=has_permission("workitems.details.view.fields"),
+        details_images_perm=has_permission("workitems.details.images.view"),
+        details_audit_perm=has_permission("workitems.details.audit.view"),
+        details_fields_perm=has_permission("workitems.details.fields.view"),
     )
 
 

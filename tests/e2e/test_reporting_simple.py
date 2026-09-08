@@ -369,7 +369,7 @@ def test_wizard_category_breakdown_to_result_cards(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'wiz_users', kind: 'curated', label: 'Wizard Users',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [{field: 'username', label: 'Username', type: 'string',
                        filterable: true, sortable: true}],
@@ -429,7 +429,7 @@ def test_timing_badge_shows_rows_and_elapsed_ms(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'timing_users', kind: 'curated', label: 'Timing Users',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [{field: 'username', label: 'Username', type: 'string',
                        filterable: true, sortable: true}],
@@ -481,7 +481,7 @@ def test_kpi_band_shows_total_buckets_avg(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'kpi_users', kind: 'curated', label: 'KPI Users',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [{field: 'username', label: 'Username', type: 'string',
                        filterable: true, sortable: true}],
@@ -1063,7 +1063,7 @@ def _create_caption_source_and_metric(page, nexora_server):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'caption_users', kind: 'curated', label: 'Caption Users',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [{field: 'username', label: 'Username', type: 'string',
                        filterable: true, sortable: true}],
@@ -1152,7 +1152,7 @@ def test_saved_token_report_shows_resolved_range(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'tok_reports', kind: 'curated', label: 'Token Test Reports',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Reports',
             columns: [
               {field: 'Name', label: 'Name', type: 'string',
@@ -1350,7 +1350,7 @@ def test_wizard_result_shows_chips(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'wiz_chips', kind: 'curated', label: 'Wizard Chips',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [{field: 'username', label: 'Username', type: 'string',
                        filterable: true, sortable: true}],
@@ -1405,7 +1405,7 @@ def test_adjust_wizard_button_round_trip(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'wiz_adjust', kind: 'curated', label: 'Wizard Adjust',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [{field: 'username', label: 'Username', type: 'string',
                        filterable: true, sortable: true}],
@@ -1471,7 +1471,7 @@ def test_total_only_result_explains_missing_chart(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'wiz_total_note', kind: 'curated', label: 'Wizard Total Note',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [{field: 'username', label: 'Username', type: 'string',
                        filterable: true, sortable: true}],
@@ -1522,7 +1522,7 @@ def test_chart_type_switcher(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'wiz_chart_switch', kind: 'curated', label: 'Wizard Chart Switch',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [{field: 'username', label: 'Username', type: 'string',
                        filterable: true, sortable: true}],
@@ -1574,7 +1574,7 @@ def test_saved_report_adjust_in_wizard(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'wiz_saved_adj', kind: 'curated', label: 'Wizard Saved Adjust',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [{field: 'username', label: 'Username', type: 'string',
                        filterable: true, sortable: true}],
@@ -1651,7 +1651,7 @@ def test_show_query_reveals_sql(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'wiz_showsql', kind: 'curated', label: 'Show SQL Test',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [{field: 'username', label: 'Username', type: 'string',
                        filterable: true, sortable: true}],
@@ -1707,7 +1707,7 @@ def test_result_back_returns_to_wizard(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'wiz_back_test', kind: 'curated', label: 'Wizard Back Test',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [{field: 'username', label: 'Username', type: 'string',
                        filterable: true, sortable: true}],
@@ -1850,7 +1850,7 @@ def test_wizard_two_breakdowns(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'wiz_two_bds', kind: 'curated', label: 'Wizard Two Breakdowns',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [
               {field: 'username', label: 'Username', type: 'string',
@@ -1876,8 +1876,8 @@ def test_wizard_two_breakdowns(nexora_server, page):
         page.get_by_test_id("rs-breakdown-next").click()
         page.get_by_test_id("rs-wizard-run").click()
         expect(page.get_by_test_id("rs-result")).to_be_visible()
-        # Table is hidden behind the toggle when there are metrics; reveal it.
-        page.get_by_test_id("rs-table-toggle").click()
+        # The table shows by default, even under a chart.
+        expect(page.get_by_test_id("rs-table-toggle")).to_have_text("Hide table")
         headers = page.locator("#rsTableWrap table thead th")
         expect(headers).to_have_count(3)  # dim1, dim2, metric
     finally:
@@ -1906,7 +1906,7 @@ def test_two_breakdown_chart_has_series(page, nexora_server):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'chart_two_bd', kind: 'curated', label: 'Chart Two Breakdown',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [
               {field: 'username', label: 'Username', type: 'string',
@@ -1974,7 +1974,7 @@ def test_chart_png_download(page, nexora_server):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'chart_png_dl', kind: 'curated', label: 'Chart PNG Download',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [
               {field: 'locale', label: 'Locale', type: 'string',
@@ -2052,7 +2052,7 @@ def test_simple_truncation_note(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'trunc_users', kind: 'curated', label: 'Truncation Users',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [{field: 'username', label: 'Username', type: 'string',
                        filterable: true, sortable: true}],
@@ -2102,7 +2102,7 @@ def test_advanced_truncation_note_renders(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'trunc_adv', kind: 'curated', label: 'Truncation Advanced',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [{field: 'username', label: 'Username', type: 'string',
                        filterable: true, sortable: true}],
@@ -2395,7 +2395,7 @@ def test_wizard_back_steps_back_not_exit(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'back_users', kind: 'curated', label: 'Back Users',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [{field: 'username', label: 'Username', type: 'string',
                        filterable: true, sortable: true}],
@@ -2456,7 +2456,7 @@ def test_run_shows_loading_then_result(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'wiz_runload', kind: 'curated', label: 'Run Load Test',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [{field: 'username', label: 'Username', type: 'string',
                        filterable: true, sortable: true}],
@@ -2526,7 +2526,7 @@ def test_simple_export_csv(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'csv_dl_users', kind: 'curated', label: 'CSV dl Users',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [{field: 'username', label: 'Username', type: 'string',
                        filterable: true, sortable: true}],
@@ -2662,7 +2662,7 @@ def test_drill_row_opens_panel(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'wiz_drill', kind: 'curated', label: 'Wizard Drill',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [{field: 'username', label: 'Username', type: 'string',
                        filterable: true, sortable: true}],
@@ -2687,7 +2687,6 @@ def test_drill_row_opens_panel(nexora_server, page):
         expect(page.get_by_test_id("rs-result")).to_be_visible()
         # Table is hidden behind the toggle when there are metrics; reveal it
         # (same pattern as test_wizard_two_breakdowns).
-        page.get_by_test_id("rs-table-toggle").click()
         page.locator("#rsTableWrap tbody tr").first.click()
         panel = page.get_by_test_id("reporting-drill-panel")
         expect(panel).to_be_visible()
@@ -2732,7 +2731,7 @@ def test_drill_row_null_value_uses_null_label(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'wiz_drill_null', kind: 'curated', label: 'Wizard Drill Null',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [{field: 'username', label: 'Username', type: 'string',
                        filterable: true, sortable: true}],
@@ -2804,7 +2803,7 @@ def test_drill_row_opens_panel_with_context_chips(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'wiz_drill_chips', kind: 'curated', label: 'Wizard Drill Chips',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [{field: 'username', label: 'Username', type: 'string',
                        filterable: true, sortable: true}],
@@ -2827,7 +2826,6 @@ def test_drill_row_opens_panel_with_context_chips(nexora_server, page):
         page.get_by_test_id("rs-breakdown-next").click()
         page.get_by_test_id("rs-wizard-run").click()
         expect(page.get_by_test_id("rs-result")).to_be_visible()
-        page.get_by_test_id("rs-table-toggle").click()
         page.locator("#rsTableWrap tbody tr").first.click()
         panel = page.get_by_test_id("reporting-drill-panel")
         expect(panel).to_be_visible()
@@ -2875,7 +2873,7 @@ def test_advanced_grid_drill_click_through(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'adv_drill_users', kind: 'curated', label: 'Advanced Drill Users',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [{field: 'username', label: 'Username', type: 'string',
                        filterable: true, sortable: true}],
@@ -2942,7 +2940,7 @@ def test_drill_row_opens_workitem_panel(nexora_server, page):
           }).then(r => r.json());
           const src = await post('/api/reporting/admin/sources', {
             code: 'wi_panel_drill', kind: 'curated', label: 'WI Panel Drill',
-            permission: 'reporting.source.docprocessing', provider: 'table',
+            permission: 'reporting.source.docprocessing.use', provider: 'table',
             engine: 'nexora', baseObject: 'dbo.Users',
             columns: [{field: 'username', label: 'Username', type: 'string',
                        filterable: true, sortable: true}],
@@ -3207,7 +3205,7 @@ DOCPROC_WIZ_FIELDS = [
         "grainable": True,
         "filterable": True,
     },
-    # Second date field: #164 -- both "Over time" chips must be selectable at once.
+    # Second date field: #164 -- both date chips must be selectable at once.
     {
         "field": "export_date",
         "label": "Export date",
@@ -3300,10 +3298,18 @@ def test_wizard_docprocessing_offers_process_breakdown(nexora_server, page):
     # First CATEGORY chip (date chips render before category chips).
     first_cat = bklist.locator('[data-bd-kind="category"]').first
     assert first_cat.get_attribute("data-bd-field") == "processname"
-    # All 13 candidates render (the 12 previously-visible business chips plus
-    # Process): nothing is silently evicted by the cap, noise stays hidden.
-    expect(bklist.locator('[data-bd-kind="category"]')).to_have_count(13)
+    # Main five only (Process, Document Type, Document Source, Creditor Name;
+    # the stub has no pagecount); the other 9 wait behind the advanced fold.
+    expect(bklist.locator('[data-bd-kind="category"]')).to_have_count(4)
     expect(bklist.locator('[data-bd-field="crdname"]')).to_be_visible()
+    expect(bklist.locator('[data-bd-field="forwarding"]')).to_have_count(0)
+    adv = page.get_by_test_id("rs-breakdown-advanced")
+    expect(adv).to_have_text("Show advanced fields (9)")
+    adv.click()
+    expect(bklist.locator('[data-bd-kind="category"]')).to_have_count(13)
+    expect(bklist.locator('[data-bd-field="forwarding"]')).to_be_visible()
+    expect(page.get_by_test_id("rs-breakdown-advanced")).to_have_count(0)
+    # Noise stays hidden on both sides of the fold.
     expect(bklist.locator('[data-bd-field="bankpk"]')).to_have_count(0)
     expect(bklist.locator('[data-bd-field="workitem_id"]')).to_have_count(0)
 
@@ -3460,6 +3466,9 @@ def test_wizard_chip_coverage_badge(nexora_server, page):
     page.get_by_test_id("rs-measure-next").click()
     page.get_by_test_id("rs-scope-next").click()
     bklist = page.get_by_test_id("rs-breakdown-list")
+    # propertynr isn't in DOCPROC_DIM_MAIN, so it's folded behind "Show
+    # advanced fields" by default (430695a6).
+    page.get_by_test_id("rs-breakdown-advanced").click()
     prop = bklist.locator('[data-bd-field="propertynr"]')
     expect(prop.locator(".reporting-simple-chip-cov")).to_have_text("1/2")
     assert "acme.inv" in prop.get_attribute("title")
@@ -3481,6 +3490,9 @@ def test_wizard_scope_filters_chips_and_prunes_selection(nexora_server, page):
     page.get_by_test_id("rs-measure-next").click()
     page.get_by_test_id("rs-scope-next").click()
     bklist = page.get_by_test_id("rs-breakdown-list")
+    # propertynr isn't in DOCPROC_DIM_MAIN, so it's folded behind "Show
+    # advanced fields" by default (430695a6).
+    page.get_by_test_id("rs-breakdown-advanced").click()
     bklist.locator('[data-bd-field="propertynr"]').click()
     expect(bklist.locator('[data-bd-field="propertynr"]')).to_have_class(
         re.compile(r"\bis-selected\b")
@@ -3840,6 +3852,9 @@ def _walk_three_breakdowns(nexora_server, page, measure_label):
     page.get_by_test_id("rs-measure-list").get_by_text(measure_label).click()
     page.get_by_test_id("rs-measure-next").click()
     bklist = page.get_by_test_id("rs-breakdown-list")
+    # propertynr isn't in DOCPROC_DIM_MAIN, so it's folded behind "Show
+    # advanced fields" by default (430695a6).
+    page.get_by_test_id("rs-breakdown-advanced").click()
     for fld in ("doctype", "docsource", "propertynr"):
         bklist.locator(f'[data-bd-field="{fld}"]').click()
     page.get_by_test_id("rs-breakdown-next").click()
@@ -3864,8 +3879,8 @@ def test_three_breakdowns_chart_composite_series_and_drill(nexora_server, page):
         "})()"
     )
     assert sorted(chart) == [["Mail · P-1", 7], ["Mail · P-2", 3]]
-    # Charted result: table behind the toggle as usual; rows still drill.
-    page.get_by_test_id("rs-table-toggle").click()
+    # Charted result: the table shows by default alongside the chart
+    # (430695a6) -- no toggle needed to reach it; rows still drill.
     page.locator("#rsTableWrap tbody tr").first.click()
     expect(page.get_by_test_id("reporting-drill-panel")).to_be_visible()
 

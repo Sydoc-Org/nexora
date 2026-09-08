@@ -45,10 +45,11 @@ content area. `templates/js/_reporting_tabs_js.html` is the nav controller
   `SELECT DB_NAME()` per distinct engine, shared across sources; the URL
   carries no database attribute because the engines are built from
   `odbc_connect` strings). The admin-only registry link is the gear next to
-  the SOURCES label. With `reporting.sources.schema` each card becomes a
-  button opening the **source visualizer** (below). The **Advanced** nav entry is currently parked
-  (`hidden` in `reporting.html`) — the pane stays reachable via
-  `?tab=advanced`, Open-in-Advanced and `ReportingTabs.show('advanced')`.
+  the SOURCES label. With `reporting.sources.schema.view` each card becomes a
+  button opening the **source visualizer** (below). The **Advanced** nav entry sits
+  last in the Workspace group (it was parked/`hidden` between 2026-08-26 and
+  2026-09-07); the pane is also reachable via `?tab=advanced`,
+  Open-in-Advanced and `ReportingTabs.show('advanced')`.
 - **One fetch per catalog per page load.** The page is five independent IIFEs
   (tabs rail, Simple, Advanced, dashboard builder, drill drawer) that cannot
   read each other's state, and each used to fetch its own copy of the same
@@ -112,6 +113,27 @@ content area. `templates/js/_reporting_tabs_js.html` is the nav controller
   - **Distribution stats need a distribution.** Buckets / average per bucket /
     peak render only when the definition has at least one dimension — a
     zero-dimension run is a single grand total per metric.
+  - **Every tile says what it computes**, which took fixing. **Buckets** is
+    the *leading* dimension's distinct-value count, not the row count: a
+    report broken down by a second dimension has several rows per period, and
+    counting rows once made 4 periods x 28 fields read as "112 periods in the
+    range". The row count survives as the average's denominator (`kpi.cells`),
+    so **Avg** only claims `total ÷ buckets` when there is one row per period;
+    with a breakdown it renders as **Avg per row · "mean of N values"**. And
+    the headline card is captioned **Overall · "over every matching row"**
+    rather than *Total · "sum over the period"* whenever the figure came from
+    `grandTotals` for a non-additive aggregation — an `AVG()` across every
+    underlying row is a rate, and calling it a total invited the reader to
+    reconcile it against a sum of the grouped cells that it never was.
+  - **NULL in the leading dimension is not a bucket.** Rows with no value
+    there are excluded from the whole band, which is the rule
+    `caption_facts.build_facts` already applies ("Rows with NO &lt;dim&gt; …
+    excluded from everything below") and the rule the chart already draws by.
+    The band used to keep them, so the tiles contradicted both the chart and
+    the AI caption on the same screen, and **Peak** could label itself
+    `null`. `measureTotals`' browser-side fallback sum applies the same
+    filter — if only one of the two dropped those rows, `seriesIsHeadline`
+    would stop matching and the sparkline and delta chip would vanish.
   - **Levels.** When a metric's registry row has **`TotalMode = 'latest'`**,
     its card's caption adds a **"· last bucket &lt;bucket&gt;"** suffix,
     naming the bucket the number actually covers, and the fallback total is
@@ -126,7 +148,7 @@ content area. `templates/js/_reporting_tabs_js.html` is the nav controller
   see **Comparison & delta chips** below for the exact semantics (why it's
   not always "last calendar month", and when the average chip is suppressed).
   An **AI caption** (a 1–2 sentence auto-narration, gated by
-  `reporting.ai.explain_data`) can also appear under the chart — see
+  `reporting.ai.explain.use`) can also appear under the chart — see
   **AI assistant → Auto captions**.
 - **Timing badge** in the masthead — "N rows · M ms", the row count from the
   run response and the elapsed time measured client-side around the fetch;
@@ -202,11 +224,16 @@ chart already on screen re-themes on the next render, not live.
     matching the app-wide client.process idiom); the filter value stays the
     bare column value. A second flag `"grantScoped": true` (was seeded by
     migration `0066`) additionally drops every value whose client.process
-    label is **not** in the caller's `reporting.scope.process.*` grants — the
+    label is **not** in the caller's `process.*.view` grants — the
     snapshot collector records every Octo process, but the picker should only
     offer the ones the rest of the app shows. This is UI curation, not a
     security boundary: the run path stays gated by the source-level
-    permission alone. A partial pick serializes to a plain `{"op": "in"}`
+    permission alone. A third flag `"advanced": true` (seeded for
+    `field_quality` by migration `0116`) folds the column behind the
+    breakdown step's **Show advanced fields** chip; `docprocessing` has no
+    `ColumnsJSON`, so its fold is the `DOCPROC_DIM_MAIN` allow-list in
+    `static/js/reporting_simple_wizard.js` (Process, Page Count, Document
+    Type, Document Source, Creditor Name stay in front). A partial pick serializes to a plain `{"op": "in"}`
     filter on that field — not `scope.processes` — which the result view
     renders as the **process chip** ("Processes: a, b" — clicking it opens a
     checkbox picker; picking everything removes the filter). All `in`/
@@ -295,8 +322,8 @@ parameter the last-used tab is restored per browser (`localStorage`).
 
 ## Comparison & delta chips
 
-**Simple tab only** (the Advanced KPI band does not have this — see
-**Dashboards → KPI trend** above for the unrelated dashboard-card mechanism).
+**Simple tab only** (the Advanced KPI band does not have this; dashboard KPI
+cards show the same chips because they render the Simple band).
 When the current definition's filters contain **exactly one relative-date
 token filter** (`{"token": "this_month"}` etc. — a literal date-range pair, no
 token filter at all, or more than one token filter, are all ambiguous and get
@@ -326,7 +353,7 @@ current value vs. the same stat over `comparison.rows`:
   going up renders the same "up" colour as more of a "more is bad" metric
   going up; the chip never guesses which direction is actually good for a
   given metric, it only ever reports the raw direction.
-- **The Avg-per-bucket chip is suppressed** (Total and Peak still render)
+- **The Avg chip is suppressed** (Total and Peak still render)
   whenever the current and prior periods zero-fill to a **different number of
   buckets** — a day-length shift that isn't aligned to the chart's grain
   (e.g. a calendar-quarter preset against a month grain) can land the prior
@@ -341,7 +368,7 @@ current value vs. the same stat over `comparison.rows`:
   special-cases.
 
 > **Viewer semantics:** a shared library report runs against the *viewer's*
-> grants (`reporting.scope.process.*`, per-source perms) — different users can
+> grants (`process.*.view`, per-source perms) — different users can
 > legitimately see different numbers, or a friendly "you don't have access"
 > message. This is existing run-path behavior, surfaced honestly in the UI.
 
@@ -444,9 +471,9 @@ A **dashboard** is a saved report whose definition has
 change, no new endpoint, no new permission. It lives entirely in the Simple
 pane (`static/js/reporting_dashboard.js`, exposing
 `window.ReportingDashboard = {openNew, open, close}`) as a fourth pane view
-alongside library/wizard/result, and is built out of multiple **cards**
-(KPI / line / bar / donut / table / report), each running the existing
-curated-source `POST /api/reporting/run` path independently.
+alongside library/wizard/result, and is a grid of **cards**, each showing one
+**piece of a saved report**: a KPI tile, the chart, the table, or the whole
+report.
 
 **Definition shape (`schemaVersion: 1`):**
 
@@ -459,106 +486,111 @@ curated-source `POST /api/reporting/run` path independently.
     { "field": "import_date", "op": "between", "value": { "token": "this_month" } }
   ],
   "cards": [
-    {
-      "id": "n100",
-      "type": "kpi",
-      "span": 3,
-      "title": "Documents this month",
-      "definition": { "source": "docprocessing", "columns": [], "metrics": [{ "metric": "doc_count" }], "filters": [] },
-      "filterOverrides": []
-    }
+    { "id": "n100", "reportId": "42", "type": "kpi", "kpiIndex": 0, "span": 3, "rows": 2,
+      "title": "Documents per month · Total", "filterOverrides": [] },
+    { "id": "n101", "reportId": "42", "type": "chart", "span": 8, "rows": 3,
+      "title": "Documents per month", "filterOverrides": [],
+      "viz": { "chartType": "bar", "forecast": { "enabled": true, "horizon": "auto" },
+               "style": { "colors": { "id_count": "#00aa00" }, "rightAxis": ["backlog_total"] } } }
   ]
 }
 ```
 
-`type` is one of `kpi` / `line` / `bar` / `donut` / `table` / `report`; `span`
-is the card's grid width; `definition` is a normal report-definition fragment
-(same shape as **Report-definition v1 JSON** below) run through the same
-validator and query builder as any other report; `filterOverrides` are
-per-card filters that layer on top of the dashboard's `globalFilters`.
+`viz` (optional) is the card's own chart tweaks from the edit-mode toolbar
+(`cardToolsHtml`): `chartType` (`'stacked'` allowed — it is mapped to `bar`
+before the definition is POSTed), `forecast` (a forecast block, or `false` to
+switch a report's saved forecast off on this card) and `style` (same shape as
+a report's `style`; the first edit copies the report's saved style onto the
+card). `cardRunDef` layers them over the report's definition, so the run,
+the chart, Export and the change-detection snapshot all see the same thing;
+the saved report is never written. Chart type and colours re-mount the chart
+from the card's last result (`mountCardChart`, no re-run); the forecast
+toggle/horizon re-run the card.
 
+A card is a **reference**: `reportId` names the saved report, `type` the
+piece — `kpi` (with `kpiIndex`, the tile's position in the report's KPI band:
+one per measure, then Buckets / Avg / Peak), `chart`, `table` or `report`.
+The dashboard stores **no copy of the report definition**: `open()` GETs
+each distinct `reportId` once (`hydrateCards`) and attaches the live
+definition to the card in memory; `save()` strips it again (`persistedDef`).
+Editing the report therefore changes every card built from it. A card whose
+report was deleted says so instead of running. Cards from the pre-reference
+dashboard (a copied `definition` and a draw type of its own, no `reportId`)
+render a "remove and add the piece again" notice and never run.
+
+- **Add card** — Edit mode's Add-card tile/button opens an overlay listing
+  the user's own non-SQL, non-dashboard reports (`GET /api/reporting/reports`,
+  filtered client-side). Picking one renders it **whole** in the overlay via
+  the very same `renderReportCard` a card uses (global filters applied), and
+  every piece carries an *Add to dashboard* button: each KPI tile
+  (`data-testid="rdb-pick-kpi"`, `data-kpi-index`), the chart card
+  (`rdb-pick-chart`), the table (`rdb-pick-table`, shown without its toggle)
+  and *Add whole report* in the overlay header (`rdb-pick-report`). Each click
+  drops a card at its default size (`DEFAULT_SPAN`/`DEFAULT_ROWS`); the
+  overlay stays open for several picks. The overlay's own chart is keyed
+  `__pick` and survives grid re-renders.
+- **One renderer** — `renderReportCard` draws the report exactly as the
+  Simple tab does, through the pure builders on `window.ReportingSimple`
+  (`kpiBandHtml`, `buildChartData`, `chartConfigFor`, `tableHtml`, …): the
+  KPI band with one labelled total per measure (fed by a zero-column
+  aggregate clone, correct for `avg`/`count_distinct`) plus prior-period
+  delta chips (`compare: true`), the chart with the report's saved
+  `chartType`/colours/right axis/forecast, and the full table (behind *Show
+  table* when a chart is drawn). `applyPiece` then hides everything that is
+  not the card's piece and, for `kpi`, keeps only tile `kpiIndex`. Chart and
+  table pieces skip the totals clone and the compare run. There are no
+  dashboard-authored renderers any more.
+- **Drag-to-reorder** — HTML5 drag; `moveDragged` splices the card on
+  `dragover` and `reorderGridDom` moves the DOM nodes with a FLIP transform
+  (measure, move, inverse-translate, release under the
+  `.rdb-grid--dragging .rdb-card` transition) so neighbours slide instead of
+  jumping; no re-render, Chart.js canvases survive the drag.
+- **Full-bleed + Present** — `setView('dashboard')` toggles `body.rdb-fullbleed`;
+  `reporting-console.css` then hides `.rc-rail`, collapses the body grid to one
+  column and lifts the shell's and the dashboard's own max-width, so the
+  12-column grid spans the viewport. **Present** (`#rdbPresent`) calls
+  `requestFullscreen()` on `#rsDashboard` (edit mode ends and autosaves first);
+  `:fullscreen` styles hide the app-only chrome. Hidden when the browser has no
+  Fullscreen API.
 - **Access model** — identical to any other saved report: the dashboard row
   lives in `dbo.Reports` like every other `kind`, gated by `Visibility`
   (private/shared) and `dbo.ReportShares` (per-user, optional edit grant).
-  There is no separate dashboard permission or sharing mechanism — Save,
-  Save as, Rename, Delete and the Share dialog all work exactly as
+  Save, Save as, Rename, Delete and the Share dialog work exactly as
   documented in **Save & load** / **Sharing & the shared library** above.
+- **Filter bar = the reports' own filters.** The bar never starts empty:
+  `facets()` collects every field the cards' reports filter on (plus a
+  Processes chip when a card's source has a process registry) and shows one
+  chip per field with the reports' value ("mixed" when reports disagree).
+  Clicking a chip opens a value editor that fits the field — date presets
+  (the relative tokens) or a custom from/to, a checkbox picker for `in` /
+  `not_in` and for Processes (values from the source registry or
+  `POST /api/reporting/field_values`), text otherwise. Applying writes
+  `globalFilters[field]` (or `globalProcesses` for the Processes chip, which
+  `cardRunDef` copies onto every card's `scope.processes`); the chip turns
+  indigo and gains a reset back to the reports' own value. The small "+"
+  keeps the old field/operator/value popover for a field no report uses.
 - **Per-card runs** — each card runs independently against
-  `POST /api/reporting/run` using its **effective filters**: the card's own
-  `definition.filters`, merged with the dashboard's `globalFilters`, merged
-  with the card's `filterOverrides` — keyed by field, later sources winning
-  on a collision. Concretely: a `filterOverrides` entry on a field beats a
-  `globalFilters` entry on the same field, which beats the card's own base
-  `definition.filters` entry on that field; fields that appear in only one
-  source are simply included. This means edits to the global filter bar
-  propagate to every card *except* the fields a card has explicitly
-  overridden (shown with a small "This card overrides the global filters"
-  chip), and a card with no override at all shows "inherits global
-  filters".
+  `POST /api/reporting/run` using its **effective filters**, merged per
+  field with the most specific layer winning: `filterOverrides` beat
+  `globalFilters` beat the report's own `definition.filters` **on the same
+  field**; within a layer every filter survives (a gte + lte range pair stays
+  a pair) and exact duplicates collapse. A card with overrides shows a "This
+  card overrides the global filters" chip, one without shows "inherits
+  global filters".
 - **Edit mode** — an Edit/Done toggle exposes drag-to-rearrange (native
-  HTML5 drag-and-drop), add/duplicate/remove-card, and the global-filter
-  popover (field/op/value, from the same run catalog the card definitions
-  use); every change autosaves through the normal report CRUD — `POST
-  /api/reporting/reports` (`api_reports_create`) the first time, `PUT
-  /api/reporting/reports/<id>` (`api_reports_update`) on every save after —
-  there is no separate "dashboard save" endpoint.
-- **KPI trend** — a KPI card shows a "vs previous period" delta only when
-  its **effective filters contain exactly one `between` date-range filter**;
-  the client re-runs the card with that range shifted back one period
-  (`this_month` → `last_month`, `this_quarter` → `last_quarter`, `this_week`
-  → `last_week`, `this_year` → `last_year`) and computes the percentage
-  change. Any other shape (no date filter, a literal date-range pair without
-  a shiftable token, more than one date filter) hides the trend rather than
-  guessing.
-- **Export** is **per-card only, v1** — the dashboard header's Export menu
-  lists every card; picking one POSTs that card's effective definition to
-  the existing `/api/reporting/export` (gated by `reporting.export`, same
-  as everywhere else). A whole-workbook (one sheet per card) export is not
-  built yet.
-- **Two-dimension reports** — a line or bar card whose report has a second
-  dimension ("per month **/ process**") pivots it exactly like the Simple
-  result view: first dimension on the axis, one named, colored series per
-  remaining-dimension combination, legend below the chart. Series are ordered
-  by total descending and capped at 8 (a 190 px card body cannot carry
-  Simple's 12 legibly); when more exist the card says how many it is showing.
-  Donut/table cards have no axis to pivot against, so they name the
-  combination instead — the label joins every dimension ("Jan · Invoice") and
-  each row stays one exact aggregate value. KPI cards never see a breakdown
-  at all: their run clears `definition.columns` (see **KPI trend** above).
-- **Drill-through** works per card exactly as it does on a normal aggregate
-  result (see **Drill-through** below) — clicking a chart element or table
-  row on an eligible card opens the same slide-over drawer, with one chip per
-  dimension (on a pivoted card, the clicked bucket **and** its series); donut
-  cards are excluded from click-drill (their >8-category "Other" rollup breaks
-  the 1:1 index-to-row mapping the drawer needs).
-- **`report` card ("Whole report") — a saved report 1:1** (#178). In Edit
-  mode, the "Whole report" add-pill opens a picker of the current user's own
-  saved non-SQL, non-dashboard reports (`GET /api/reporting/reports`,
-  filtered client-side); picking one copies that report's `definition` and
-  name straight into the card verbatim. Unlike `kpi`/`line`/`bar`/`donut`,
-  this card is not a dashboard-authored chart type — it renders the adopted
-  report exactly as the Simple tab would: the KPI band with one labelled
-  total per measure (fed by a zero-column aggregate clone, correct for every
-  aggregation including `avg`/`count_distinct`, not a client-side sum of
-  already-grouped rows) plus prior-period delta chips — the same band Simple
-  shows, including its `TotalMode='latest'` handling for metrics like
-  `backlog_total` (see **Metrics registry** below) — a chart using the
-  report's own saved `chartType`/colours/right-axis/forecast settings, and
-  the full result table (behind a "Show table" toggle when a chart is drawn,
-  shown directly otherwise) with row drill-through. All of this is drawn
-  through the Simple pane's own pure builders, exposed on
-  `window.ReportingSimple` (`kpiBandHtml`, `buildChartData`,
-  `chartConfigFor`, `tableHtml`, …), so the dashboard card and the Simple
-  result view cannot drift apart. Because it carries the source report's
-  full definition rather than a dashboard-authored one, a `report` card still
-  participates normally in `filterOverrides`/`globalFilters` layering and
-  drill-through like any other card. One real cost worth knowing: the card
-  typically fires two `/api/reporting/run` requests per render — the
-  breakdown run plus a zero-column totals clone (skipped only when the
-  report has zero dimensions, where the breakdown run's own result already
-  is the total) — mirroring what the Simple tab itself does on every visit,
-  so a dashboard with several whole-report cards can be slower to load than
-  one built entirely from `kpi`/`line`/`bar`/`donut` cards.
+  HTML5 drag-and-drop), corner-drag resize (12 columns × up to 6 rows),
+  add/duplicate/remove-card, and the global-filter popover; every change
+  autosaves through the normal report CRUD — `POST /api/reporting/reports`
+  the first time, `PUT /api/reporting/reports/<id>` after.
+- **Export** is **per-card only, v1** — the header's Export menu lists every
+  card; picking one POSTs the card's effective definition to the existing
+  `/api/reporting/export` (gated by `reporting.export`). A whole-workbook
+  export is not built yet.
+- **Drill-through** — chart elements and table rows on a card drill exactly
+  like the Simple result view (same drawer, one chip per dimension).
+- **Cost** — a `report` or `kpi` card fires two `/api/reporting/run` requests
+  (the breakdown run plus the zero-column totals clone, skipped when the
+  report has no dimension); `chart`/`table` cards fire one.
 
 Migration history: the dashboard builder **supersedes**
 `docs/superpowers/plans/2026-07-15-reporting-pin-to-dashboard.md` (a
@@ -606,7 +638,7 @@ that client later), a partially-ticked client emits its picked
 `scope.processes`. Server-side, `_effective_scope` narrows the caller's allowed
 set to **(client ∈ `scope.clients`) ∪ (process ∈ `scope.processes`)**; empty
 clients *and* processes means all allowed. The grant set is always the boundary —
-requesting a client/process the user has no `reporting.scope.process.*` grant for
+requesting a client/process the user has no `process.*.view` grant for
 silently excludes it (no data leak). The selection is saved with the report and
 restored on load.
 
@@ -654,9 +686,33 @@ where `doc_count` counts *rows*. The `workitem_count` metric is currently
 **disabled** (see migration `0021`) — all four count variants (`COUNT(*)`,
 `COUNT(WorkitemID)`, `COUNT(DISTINCT WorkItemID)`, `COUNT(Barcode)`) are
 identical on the Statistics tables because there is one row per workitem and no
-NULL workitem ids. The picker therefore offers only `doc_count`. Re-enable the
-metric row in `dbo.ReportingMetrics` if a multi-row-per-workitem source ever
-appears. Rows from a process without a workitem mapping still contribute nothing
+NULL workitem ids. Re-enable the metric row in `dbo.ReportingMetrics` if a
+multi-row-per-workitem source ever appears.
+
+**`doc_count` is disabled too, since migration `0102`/`0103`.** The measure list
+now reads as a clear either/or — a document is counted on the day it was
+*imported* or the day it was *exported*, never on an unanchored "just count the
+rows". `docs_imported` / `docs_exported` say which, and plot on the shared
+`activity_date` axis. Five saved reports were built on `doc_count`, four of them
+named for import or export because they predate the anchored measures, so `0103`
+repoints them first: the metric **and** the date column, filter and sort move
+together, since a definition anchored on `docs_imported` but grouped on
+`import_date` is rejected by `_prepare_run`. The numbers are unchanged — counting
+rows grouped by import month is exactly what `docs_imported` does. Only reports
+whose shape is unambiguous (source `docprocessing`, a metrics array of exactly
+one `doc_count`, every date reference the same field) are touched; anything else
+keeps `doc_count`, stops resolving, and is left for its owner to rebuild rather
+than rewritten by a migration on a guess.
+
+> `0102` shipped this with a broken guard and is superseded by `0103`: T-SQL
+> `LIKE` reads `[` as the start of a character class, so the pattern
+> `'%"metrics": [{"metric": "doc_count"}]%'` matched nothing and the migration
+> disabled the measure without repointing anything. It failed *open* — zero rows,
+> no error. `0103` inspects the metrics array with `JSON_VALUE` instead of
+> pattern-matching JSON as text. **Guard saved-report rewrites with `JSON_VALUE`,
+> not `LIKE`.**
+
+Rows from a process without a workitem mapping still contribute nothing
 to the `workitem_id` column (it projects as NULL), and the `workitem_id`
 dimension/filter field remains fully available.
 
@@ -819,27 +875,28 @@ Both serialization paths neutralize spreadsheet formula injection (leading
 | Code | Grants |
 |------|--------|
 | `reporting.view` | Page access — nav entry visible, `/reporting` route allowed. |
-| `reporting.source.docprocessing` | Use the Document Processing curated source. |
+| `reporting.source.docprocessing.use` | Use the Document Processing curated source. |
 | `reporting.export` | Export reports to Excel (`.xlsx`). |
-| `reporting.scope.process.<client>.<process>` | Include a specific client/process in a report's row scope. |
+| `process.<client>.<process>.view` | Include a specific client/process in a report's row scope. |
 | `reporting.sql.run` | Run live read-only SQL in the sandbox against **Statistics** (see below). Grantable; admins seeded. |
-| `reporting.sql.target.octopus` | Additionally target the **Octopus** runtime DB in the SQL sandbox. Independent of `reporting.sql.run`; grantable; admins seeded. |
-| `reporting.admin.sources` | Manage the data-source registry at `/reporting/sources` (see below). Admins seeded. |
-| `reporting.sources.schema` | Open the **source visualizer** on a Sources rail card — the tables, columns and foreign keys of the database behind a source (see below). Still requires that source's own permission. Migration `0079`; admins seeded. |
-| `reporting.semantic.admin` | Manage the canonical-metrics registry at `/reporting/metrics` (see below). Admins seeded. |
+| `reporting.sql.target.octopus.use` | Additionally target the **Octopus** runtime DB in the SQL sandbox. Independent of `reporting.sql.run`; grantable; admins seeded. |
+| `reporting.sql.target.generali.use` | Additionally target the **Generali** tenant DB in the SQL sandbox (migration `0121`). Same shape as the Octopus grant; admins seeded. |
+| `reporting.sources.manage` | Manage the data-source registry at `/reporting/sources` (see below). Admins seeded. |
+| `reporting.sources.schema.view` | Open the **source visualizer** on a Sources rail card — the tables, columns and foreign keys of the database behind a source (see below). Still requires that source's own permission. Migration `0079`; admins seeded. |
+| `reporting.metrics.manage` | Manage the canonical-metrics registry at `/reporting/metrics` (see below). Admins seeded. |
 | `reporting.schedule` | Schedule a saved report to run and be emailed (see below). Admins seeded. |
 | `reporting.ai.use` | Use the AI assistant (Eddard) — see the chat toggle, ask natural-language questions (see below). Admins seeded. |
-| `reporting.ai.sql` | Receive AI-drafted read-only T-SQL into the SQL editor. Grant alongside `reporting.sql.run`. Admins seeded. |
-| `reporting.ai.explain_data` | Let a result's rows reach the model: gates **auto captions** alone, and — combined with `reporting.sql.run` — the chat agent's `run_sql`/`compute_stats` tools (live-query narration). Grantable; admins seeded (see below). |
+| `reporting.ai.sql.use` | Receive AI-drafted read-only T-SQL into the SQL editor. Grant alongside `reporting.sql.run`. Admins seeded. |
+| `reporting.ai.explain.use` | Let a result's rows reach the model: gates **auto captions** alone, and — combined with `reporting.sql.run` — the chat agent's `run_sql`/`compute_stats` tools (live-query narration). Grantable; admins seeded (see below). |
 
 **Scope permissions mirror the dashboard.** Migration
 `0005_seed_reporting_permissions.sql` auto-creates a
-`reporting.scope.process.<client>.<process>` entry for every existing
+`process.<client>.<process>.view` entry for every existing
 `dashboard.filter.process.<client>.<process>` and grants it to the same access
 profiles. A user who can see a process on the dashboard can therefore include it
 in a report without any manual grant work.
 
-The base permissions (`reporting.view`, `reporting.source.docprocessing`,
+The base permissions (`reporting.view`, `reporting.source.docprocessing.use`,
 `reporting.export`) are seeded to every access profile that already grants
 `admin.view`. Adjust via the normal Permissions admin UI as needed.
 
@@ -940,7 +997,7 @@ label in the results table and in the Excel export; it is never used in SQL.
 The source list is **code defaults overlaid with a DB registry**. Built-in
 sources live in `nx_lib/reporting/sources.py`; rows in `dbo.ReportingSources`
 (migration `0010`) augment or override them at request time via
-`merge_sources(code_sources(), db_rows)`. Admins (`reporting.admin.sources`)
+`merge_sources(code_sources(), db_rows)`. Admins (`reporting.sources.manage`)
 manage the registry at **`/reporting/sources`**: relabel, enable/disable,
 reorder (`SortOrder`), change the required permission, or register a brand-new
 source — no code change for the common cases.
@@ -972,10 +1029,31 @@ sources: **Generali — PDQM Report** (`generali_pdqm` over `dbo.PDQMReport`) an
 with a `backlog_total` metric, migrations `0053`–`0056`/`0065`/`0066`/`0068`),
 was **retired by migration `0069`**: the date-anchored **Backlog** measure on
 the docprocessing source (see **`DateAnchor`** below) supersedes it, and the
-collector + table it read stay in place. Each source is gated by its own
-permission (`reporting.source.generali.pdqm`, `reporting.source.workitems`).
+collector + table it read stay in place. Migration `0117` adds four more Generali `table` sources over the tenant's fact
+tables: **Attendance** (`generali_attendance`), **Base Services**
+(`generali_baseservices`), **Project Management** (`generali_projects`) and **ISS
+Reporting** (`generali_iss`) — effort hours and KPI filings by category and date,
+the date columns `grainable`; `0118` seeds their measures (effort-hour sums,
+entry counts, ISS reports filed — no on-time sum, `SUM` over a `bit` is invalid
+T-SQL, so break the count down by the `OnTime` dimension). The Simple wizard
+lists measures grouped by source, so a source with no `ReportingMetrics` row is
+Advanced-only. A measure may carry a **condition** (`FilterJson`, a JSON list of
+`{field, op, value}` clauses ANDed; ops `eq/ne/gt/gte/lt/lte/in/not_in/is_null/
+is_not_null`): `semantic.resolve_metrics` whitelists the fields against the catalog
+and `metric_select_expr` emits `AGG(CASE WHEN … THEN … END)` with parameterised
+values, which both builders bind **before** their WHERE params (`0120` seeds
+three Generali examples). Not combinable with date-anchored metrics. `0119` registers the two objects the tenant pages already read —
+**Documents** over `dbo.v_ReportJobJoinDefinitions` (the ReportJob feed with
+lookup labels joined; measures `Documents` / `Cases`) and **CSV Imports** over
+`dbo.CSVImportLog` — relabels ISS to "Reporting", and moves the Generali block
+to `SortOrder` 200+ so platform sources lead. The wizard's measure step walks
+sources in `SortOrder` and splits a `Tenant — Thing` label at the em dash: one
+uppercase heading per tenant, a `.rs-choice-group-sublabel` per source. The
+tenant's lookup tables carry no measures and are not registered. Each source is gated by its own
+permission (`reporting.source.<code>.use`, e.g. `reporting.source.generali_pdqm.use`,
+`reporting.source.workitems.use`).
 Unlike the docprocessing source, the `table` provider does **not** apply
-`reporting.scope.process.*` row scoping — the source permission is the whole
+`process.*.view` row scoping — the source permission is the whole
 gate, so grant it deliberately. Tune the exposed columns/object at
 `/reporting/sources`.
 
@@ -985,7 +1063,151 @@ catalog, and a `Permission` — then grant that permission. A `Kind=sql` row add
 SQL-sandbox source over an existing target. Use the code path below only when a
 source needs bespoke query logic the `table` provider can't express.
 
+### Field extraction quality (`field_quality`)
+
+The Octo runtime writes per-field extraction telemetry into the statistics DB —
+one `<Client>_Collect_Field_Attributes` table per client, one row per (workitem,
+document field), carrying what the machine extracted, what the validator ended
+up with, and the extractor's confidence in its best and second-best candidate.
+It had accumulated for years unread (#254).
+
+Migration `0107` registered the **EM** table as the pilot; `0110` unions all
+**seven** tables into `NexoraDB.dbo.vFieldExtractionQuality` and renames the
+source `em_field_quality` → `field_quality`; `0111` narrows it to onboarded
+processes and drops the two count measures. It is a curated `table` source
+gated by `reporting.source.field_quality`.
+
+**Onboarded processes only (`0111`).** The process picker was offering Octo's
+raw `PROCESS` values straight off the telemetry — `BuchererFields`,
+`PriveraPostFields`, `01_Garantiekarten`, `01_Invoice_1` — none of which nexora
+reports on anywhere else. The view now keeps only rows whose process is
+registered in `dbo.ProcessSources`, matched on **both** the organization and the
+process name. Name alone would be wrong: `02_Invoice` belongs to
+*elektromaterial* **and** to *privera*, so onboarding one would silently admit
+the other — which is why each stream carries its
+`dbo.Organizations.organizationcode` in the CTE. Same data-driven contract as
+`MappedInNexoraPct`: **to bring a process back, add a `dbo.ProcessSources` row,
+don't edit the view.**
+
+On INT that leaves 57,149 of 69,576 rows and exactly four processes
+(`01_Invoice_SAP`, `02_Invoice`, `02_Posteingang`, `03_Invoice_New`). Bucherer
+and Geberit leave the source entirely — they have no `dbo.Organizations` row at
+all, so they cannot match — and so does Privera's `02_Invoice` stream, which is
+onboarded for EM but not for Privera.
+
+**One source with a `Customer` dimension, not seven sources.** All seven tables
+are column-identical, and `dbo.FieldAliases` is a *flat, global* map — so
+"Rechnungsnummer" at one customer and "InvoiceNo" at another both land on the
+canonical key `invoicenr`. Unioning is the whole point: it is what lets you rank
+the same field across customers (on INT, `esrreference` reads 77% at Compass and
+44% at EM). Seven sources could not answer that, and would have meant 63
+duplicated measure rows to keep in step.
+
+| dimension  | values |
+|---|---|
+| `Customer` | `Compass`, `ElektroMaterial`, `Privera` today — matching `dbo.Organizations.Organization`. Hardcoded as literals in the view *on purpose*: joining `Organizations` would couple it to the tenancy tables being reshaped in #255, to earn a few labels. The union still carries Bucherer and Geberit; the `0111` process filter is what keeps them out until they are onboarded. |
+| `Stream`   | one per telemetry table (`em`, `compass`, `priverainvoice2025`, …). Privera has three, of which two survive the process filter. |
+| `Process`  | Octo's own process name, straight off the row. |
+
+Four things about that view are load-bearing:
+
+- **Rates are `0`/`100` floats, not `0`/`1` ints.** `semantic.py` emits a bare
+  `AVG(col)`, and T-SQL integer-divides `AVG` over an `int` column — every rate
+  would come back `0` or `1`. As `0`/`100` floats, `AVG()` *is* the percentage.
+- **It reaches across databases via `$(StatisticsDb)`.** The statistics DB is
+  named differently per environment (`SYDOC_Statistik` / `sydoc_stat` /
+  `sydoc_stat_INT`), so the name cannot be hardcoded;
+  `scripts/db-migrate.py` supplies `NexoraDb` / `StatisticsDb` / `GeneraliDb` /
+  `OctoDb` as sqlcmd `-v` variables that any migration may reference as
+  `$(Name)`. Living in NexoraDB is what lets the view join `FieldAliases` and
+  `FieldLabels` to translate Octo's raw field names into nexora's vocabulary.
+- **Each header table is collapsed to one row per workitem before the join.**
+  A few workitems have duplicate header rows (3 of 6786 in `EM_Invoice` on INT);
+  joining raw would double them and quietly inflate every average.
+- **The date join is keyed on `Stream`, never on `Customer`.** Privera has three
+  telemetry tables across *two* header tables, so a workitem id present in both
+  `PriveraInvoice` and `PriveraPosteingang` would match twice under a
+  `Customer` key. Keyed on `Stream` the join is 1:1 by construction.
+  `test_date_join_is_keyed_on_stream_not_customer` guards this; the definitive
+  check is that view rows == base-table rows per stream (69,576 on INT).
+
+**Dates come from `dbo.ProcessSources`** where it documents the process (Compass,
+EM, PriveraPost, PriveraInvoice). Bucherer and Geberit are not in
+`ProcessSources`; their header tables have Compass's column shape, so they use
+the same `ImportDate` / `UploadDatetime` pair. **Every join is `LEFT`** — a
+stream whose header table doesn't line up still reports its quality numbers and
+simply carries no date, dropping out of over-time breakdowns instead of out of
+the source. On INT that matters: `Bucherer_Invoice` matches 0 of its 2 workitems
+and `PriveraInvoice` is a thin 1,051-row sample that covers only 20 of
+`priverainvoice2025`'s 129 workitems. Both are INT being a partial copy, not a
+wrong mapping — PROD's header tables are complete.
+
+Octo emits ~630 distinct "fields" for EM, most of them internal bookkeeping
+(`DocFilename`, `Val_State`, `ImportDatetime`) that it always fills in perfectly,
+so a breakdown by `Field` buries the real invoice fields under hundreds of rows
+reading 100%. Two ways to cut through that, both data-driven where the hand-built
+`v_*FieldStatistic` views in the statistics DB hardcode ~20 field names in a
+`WHERE` clause:
+
+- **Break down by `FieldKey`** — labelled simply **"Field"** since migration
+  `0109`, and first in the catalog. It is `NULL` for an unmapped field, so the
+  ~20 mapped fields each get a row and everything else collapses into one empty
+  bucket. Needs no filter, so the Simple wizard can express it — this is the
+  recommended route and what the user guide teaches. `FieldLabel` ("Field
+  (incl. unmapped)") and `Field` ("Field (Octo raw name)") are the wide
+  variants; `0109` renamed them because `FieldLabel` was called "Field" and
+  falls back to the raw Octo name for the ~611 unmapped fields, so the obvious
+  pick produced 631 series. Against a 12-series chart cap and the **230 fields
+  Octo pins at exactly 100%** (bookkeeping it fills from the batch every time),
+  that rendered twelve flat lines at the top — the cap filled with ties before
+  any real field appeared.
+- **Filter `MappedInNexoraPct` to `100`** in the Advanced builder, which drops
+  the unmapped rows entirely rather than bucketing them.
+
+**Widen the mapped set by adding `dbo.FieldAliases` rows, not by editing the
+view.**
+
+Raw field *values* (`VALUE_BEFORE_VALIDATION` / `VALUE_AFTER_VALIDATION`) and the
+validating user are deliberately not exposed: this source answers "which fields
+extract well", not "what did this invoice say" or "who fixed it".
+
+**What the measures actually mean.** Three traps, all confirmed against INT data
+(migration `0108` puts the same warnings in the measure descriptions):
+
+- **`Deviation %` is not `100 − Extraction correct %`.** 1,317 of EM's 17,107
+  rows (7.7%) deviate while nothing was extracted at all — the machine found no
+  candidate and the validator typed a value in. Across EM the two read 51.0% and
+  10.6%, summing to 61.6%, not 100%. Subtracting one from the other is wrong.
+- **`Extraction correct %` trusts Octo's `RESULT` flag**, not a literal text
+  comparison. The two disagree on 1.7% of rows (150 flagged `Different` while
+  identical, 139 flagged `Equal` while different — most likely formatting
+  normalisation inside Octo). This is deliberate: it is what
+  `v_EMFieldStatistic` has always reported.
+- **The headline rate understates the extractor.** EM reads 51.0% correct, but
+  only 53.9% of instances are attempted at all; on the ones it *does* attempt
+  the machine is right **94.6%** of the time. `Extraction correct %` ÷
+  `Extracted %` is the number to quote when asking "how good is extraction",
+  and the gap between them is the "never even tried" backlog.
+
+**Verified against the hand-built view.** Restricted to the same population
+(`v_EMFieldStatistic` inner-joins `EM_Invoice`; this view left-joins it, so it
+keeps the ~4% of telemetry whose workitem has no invoice row), the two agree
+**exactly on all 21 fields** for both the correctness rate and the confidence.
+That equivalence is the real regression test for the view's arithmetic — it
+needs a live DB, so it is not in `tests/unit/`; re-run it by hand if the view
+changes. The `0110` union was checked the same way and left EM untouched:
+51.026% correct / 10.586% deviation / 53.914% extracted over 17,107 rows, the
+same figures to three decimals as the EM-only view.
+
+Those EM figures are the *whole-table* ones and are what the equivalence check
+compares. Since `0111` the source itself reports EM on its onboarded process
+only (`02_Invoice`, 7,091 rows → 48.26% correct), because `01_Invoice_1` — 59%
+of EM's telemetry — is a legacy process that was never onboarded. Re-run the
+equivalence check against the raw table, not the view, or the populations will
+not line up.
+
 ## Source visualizer (`reporting.sources.schema`)
+## Source visualizer (`reporting.sources.schema.view`)
 
 Clicking a Sources rail card opens a slide-over showing the **database behind
 that source** — a filterable table list and an ER diagram. Structure only: no
@@ -1028,7 +1250,7 @@ registry names plus the 5 field-statistic views over them, and RuntimeDatabase's
 31 into `t_Documents` + its two FK neighbours.
 
 **Two gates, not one.** The route carries `@require_permission(
-"reporting.sources.schema")` *and* re-checks that `source_id` is in the
+"reporting.sources.schema.view")` *and* re-checks that `source_id` is in the
 caller's `accessible()` set (403 otherwise). The grant therefore widens what
 you see *of* a database you already read — it never adds a database.
 
@@ -1060,7 +1282,7 @@ A **metric** is a named, blessed server-side aggregation (an `Aggregation` over 
 `BaseField`) bound to a registered source, so the builder and the AI assistant
 produce the **same numbers** for the same business question. Metrics live in
 `dbo.ReportingMetrics` (migration `0017`) and are curated at **`/reporting/metrics`**
-by admins holding `reporting.semantic.admin`.
+by admins holding `reporting.metrics.manage`.
 
 Each metric has a `Code` (`^[A-Za-z_][A-Za-z0-9_]*$`, referenced from a
 definition's `metrics` list), a `SourceId` (which source it aggregates), a
@@ -1075,7 +1297,13 @@ NULL-falls-back-to-English convention `dbo.FieldLabels` uses in
 locale's label, while the AI catalogs deliberately keep the English `Label` for
 prompt-grounding stability. Migration `0017` seeds a worked example, `doc_count`
 (a `count` over the docprocessing source); migration `0039` adds **`page_count`**
-("Pages processed", `SUM` over `pagecount`, `SortOrder` 30). For `sum`/`avg`
+("Pages processed", `SUM` over `pagecount`, `SortOrder` 30). Both are
+**disabled** now — `doc_count` by `0102`/`0103`, `page_count` by `0104` — so the
+Document Processing category answers one question consistently: was this counted
+on the day it was *imported* or the day it was *exported*. All five remaining
+measures are date-anchored, which also means `anchorMismatch` can no longer grey
+out a chip *within* that source; `pages_imported` / `pages_exported` give the
+same page numbers with a stated date. For `sum`/`avg`
 metrics the docprocessing query builder projects the base field as
 `TRY_CAST(<col> AS float)` per UNION-ALL subquery — the stat columns are
 varchar, so non-numeric cells become NULL and drop out of the aggregate instead
@@ -1380,16 +1608,16 @@ phase-to-label mapping. Each reply renders as:
   alongside the equivalent Simple-side bug, #178 Task 15), **Insert into SQL
   editor** / **Show query**
   (only if the reply carries `sql`, which in turn only happens when the caller
-  holds `reporting.ai.sql` — see **Access** below).
+  holds `reporting.ai.sql.use` — see **Access** below).
 - Three canned **follow-up** suggestion chips ("Only this quarter", "Break down
   by process", "Show it as a chart") that, when clicked, send that exact text as
   the next turn.
 
 **Access:** `reporting.ai.use` to see the toggle/panel at all. Whether a turn
-*can* return SQL depends on `reporting.ai.sql` (gates the agent's `validate_sql`
+*can* return SQL depends on `reporting.ai.sql.use` (gates the agent's `validate_sql`
 tool — without it, no SQL is ever drafted, so the SQL-related chips never
 appear). Whether a turn can narrate **real numbers** from a live query depends
-on `reporting.ai.explain_data` **and** `reporting.sql.run` together — see
+on `reporting.ai.explain.use` **and** `reporting.sql.run` together — see
 **Agent endpoint contract** below.
 
 ### Auto captions
@@ -1426,10 +1654,10 @@ an ascending time series, so the model judged 313 weeks from the NULL-date
 bucket plus 2020 — "a clear outlier of 74,182 pages", "at most 3,712 in the
 latest weeks" (2026-08-25 audit). Unlike the chat panel's schema-only default, this endpoint's whole
 purpose is to send the rows already on screen to the model, so it is gated by
-`reporting.ai.explain_data` **alone** — deliberately **not** also requiring
+`reporting.ai.explain.use` **alone** — deliberately **not** also requiring
 `reporting.sql.run` (there's no live query involved; the rows already left the
 database through the ordinary, already-scoped `/api/reporting/run` call, this
-just narrates them). This makes `reporting.ai.explain_data` control two
+just narrates them). This makes `reporting.ai.explain.use` control two
 distinct things with two distinct blast radii: captions (any accessible
 result's rows, no live SQL) and the chat agent's `run_sql`/`compute_stats`
 tools (arbitrary read-only queries the model itself writes, which additionally
@@ -1457,6 +1685,15 @@ and returns
 This runs a **Tier-2 agentic tool-loop** (`nx_lib/reporting/ai.py: ask_agentic`):
 the model calls tools, sees their results, and **self-repairs** until it has a
 validated artifact or hits a hard turn cap.
+
+The body may also carry `report` — `{title, definition, columns, rows}`, the result
+on the Results tab ("Ask Eddard about this report", `ReportingChat.askAbout`). The
+route resolves the definition's source, checks the caller holds its permission, and
+appends `report_context_text()` (nx_lib/reporting/ai.py) to the grounding: the
+definition summary with measure labels + registry descriptions always, the
+`caption_facts` fact sheet over the rows only for a `reporting.ai.explain.use`
+holder (same egress rule as the auto-caption). The block tells the model to answer
+report questions from it without tools.
 
 **Continue past a dead-end (#153).** When the loop stops on `"max_turns"` or
 `"budget"` without a final answer, `canContinue` is `true` (while
@@ -1494,9 +1731,9 @@ stubbed tests that answer `application/json` keep working unchanged.
 **Tool binding follows permissions:** `build_definition` is always bound
 (data-free — the same whitelist validator `/api/reporting/run` uses).
 `validate_sql` (data-free — a gate check only) is bound only with
-`reporting.ai.sql`. `run_sql` / `run_definition` / `compute_stats`
+`reporting.ai.sql.use`. `run_sql` / `run_definition` / `compute_stats`
 (`nx_lib/reporting/stats.py`) — which feed real result rows back to the model —
-are bound **only** when the caller holds **both** `reporting.ai.explain_data`
+are bound **only** when the caller holds **both** `reporting.ai.explain.use`
 **and** `reporting.sql.run`; otherwise the loop stays fully schema-only
 (question + source catalog + SQL schema in, ok/error-only tool results out,
 never a result row). `run_definition` takes the same v1-definition shape as
@@ -1528,7 +1765,7 @@ trace — sees the actual fix instead of a raw driver message. The system prompt
 also forbids resubmitting SQL that just failed unchanged, pushing the model to
 actually address the error on the next tool call.
 
-> **Data egress (opt-in).** When the caller holds `reporting.ai.explain_data`
+> **Data egress (opt-in).** When the caller holds `reporting.ai.explain.use`
 > **and** `reporting.sql.run`, the loop binds `run_sql`/`compute_stats` so the
 > model runs validated read-only SELECTs and **narrates the actual numbers** —
 > a deliberate **data-egress** path (result rows reach the model). Seeded to
@@ -1542,7 +1779,7 @@ actually address the error on the next tool call.
 `POST /api/reporting/ai/build` (single-draft "build a report", `reporting.ai.use`,
 optionally with `priorQuestion`/`priorDefinition` refine context, audited
 `Surface='definition'`) and `POST /api/reporting/ai/ask` (single-draft "write
-SQL", requires `reporting.ai.sql` in addition to `reporting.ai.use`,
+SQL", requires `reporting.ai.sql.use` in addition to `reporting.ai.use`,
 `{"question"}` → `{"sql", "explanation", "valid", "target", "model"}`, audited
 `Surface='sql'`) still exist as routes — unchanged, still permission-gated,
 still audited — but no template or JS file calls either of them any more; the
@@ -1623,7 +1860,7 @@ persisting it would mean an `aieffort` key in `UI_PREF_CHOICES`
   login, row cap, timeout, audit trail); **Open report** only stages a
   definition for a normal, whitelisted `/api/reporting/run` call. The one path
   where the model itself triggers a read against real data is the opt-in
-  `run_sql`/`compute_stats` tool binding (`reporting.ai.explain_data` +
+  `run_sql`/`compute_stats` tool binding (`reporting.ai.explain.use` +
   `reporting.sql.run`), which still goes through the same sqlglot gate and RO
   login as everything else.
 - **Audit:** every AI interaction (question, model, provider, gate verdict,
@@ -1660,16 +1897,54 @@ See `docs/design/reporting-ai-assistant.md` for the full design spec.
 
 The **SQL** tab in the report builder is a power-user escape hatch for when the
 curated builder does not cover your query. It runs a single read-only `SELECT`
-against a chosen target database. The **Target** dropdown lists every target the
-caller may reach: **Statistics** always (with `reporting.sql.run`), and
-**Octopus** when the caller also holds `reporting.sql.target.octopus`.
+against a chosen target database. There is one target per database the Sources
+rail shows a card for:
+
+| Target id | Database (INT) | Needs |
+|---|---|---|
+| `statistics` | `SYDOC_Statistik` | `reporting.sql.run` |
+| `octopus` | `RuntimeDatabase` | `+ reporting.sql.target.octopus.use` |
+| `generali` | `Generali` | `+ reporting.sql.target.generali.use` |
+
+**NexoraDB is deliberately not a target** at any permission level — `dbo.Users`
+holds the bcrypt password hashes and TOTP secrets. Its Sources rail card keeps
+the Structure view; it just gets no query affordance.
+
+The **Target** dropdown names the *database*, not the registry label:
+`/api/reporting/sources` returns each SQL source's configured database as `db`
+(from `_SQL_TARGET_DB` in `_shared.py`, resolved from `cfg.DB_*`) plus a
+`configured` flag, and `loadSources()` prefers `db` over `label` — so the picker
+reads the same names as the rail cards and stays right when INT and PROD name
+their databases differently. A target whose read-only login is unprovisioned
+renders disabled with a "not set up yet" suffix instead of only failing on Run,
+and the picker selects the first *configured* target.
+
+### Query a table from the source visualizer
+
+Expanding a table in a source's **Structure** panel shows a **Query the first
+100 rows** button under its column list. It dispatches `rc:sqlquery`
+`{db, table}`; `reporting_advanced.js` matches `db` against the `db` each SQL
+source reports, switches to Advanced + SQL mode on that target, writes
+`SELECT TOP (100) * FROM [schema].[table]` (both parts bracketed, so a table
+called `order` doesn't blow up) and runs it. The button is only drawn when
+`window.ReportingSqlDbs` — published by Advanced's source load — says Live SQL
+can actually reach that database, so a viewer with Structure access but no SQL
+permission never sees it.
+
+**Table and SQL share one result area,** so switching between the two modes
+resets it (`resetResultArea()` in `reporting_advanced.js`): grid/chart/pivot,
+the KPI band, the AI caption, the timing badge and the *Query sent to the
+database* panel are all cleared back to a mode-appropriate empty state. Before
+that, SQL mode inherited the builder's pivot shelf and — worse — showed the
+builder's generated SQL in the query panel while the editor above held
+something else entirely.
 
 ### Access
 
-Gated by the `reporting.sql.run` permission for the Statistics target; the
-Octopus target additionally requires `reporting.sql.target.octopus` (enforced
-server-side on both run and export). Admins have both seeded; grant them
-per-user via the normal Permissions admin UI on request.
+Gated by the `reporting.sql.run` permission for the Statistics target; every
+other target additionally requires its own `reporting.sql.target.<t>.use` grant
+(enforced server-side on both run and export). Admins have all of them seeded;
+grant them per-user via the normal Permissions admin UI on request.
 
 On first use the user must accept a one-time acknowledgment ("You are about to
 run read-only SQL …"). This is recorded in `dbo.ReportingSqlAck` (NexoraDB) and
@@ -1682,8 +1957,10 @@ not shown again on subsequent runs.
   batches pass the gate.
 - **Read-only login:** queries execute on a dedicated `db_datareader`-only SQL
   login with no write permissions — `engine_statistics_ro` for Statistics,
-  `engine_octo_ro` for Octopus. Each target requires the matching permission
-  before its query runs.
+  `engine_octo_ro` for Octopus, `engine_generali_ro` for Generali. A target
+  never falls back to the app's read-write engine: no RO login means the engine
+  is `None` and the target answers 503. Each target requires the matching
+  permission before its query runs.
 - **Row cap:** results are hard-limited to 50,000 rows. Plain `SELECT`s get a
   SQL-side `SELECT TOP (n) * FROM (…) AS _q` wrap; `WITH`-rooted queries and
   queries ending in a top-level `ORDER BY` run unwrapped (neither is legal
@@ -1692,11 +1969,17 @@ not shown again on subsequent runs.
 - **Timeout:** a ~30-second statement timeout is enforced server-side.
 - **Audit:** every run (query text, user, row count, duration, status) is
   written to `dbo.ReportingSqlAudit` (NexoraDB).
-- **Error detail:** a query that fails on the target server (not just the
-  sqlglot gate) returns a generic 500 whose `detail` is run through
-  `humanize_sql_error` — ODBC driver-prefix noise is stripped and SQL Server
-  error 1033 (`ORDER BY` in a derived table) gets a plain-language hint —
-  instead of the raw pyodbc exception text.
+- **Error detail:** a query the target server rejects after passing the sqlglot
+  gate (unknown table/column, ambiguous alias, a clause SQL Server won't take
+  there) is bad *user input*, so it comes back **400** with the driver message
+  in `detail`, run through `humanize_sql_error` — ODBC driver-prefix noise
+  stripped, plus a plain-language hint for a few known SQL Server error codes
+  (e.g. 1033, `ORDER BY` in a derived table). It is logged at WARNING, not
+  ERROR, so a typo in the editor doesn't page the app-error dashboards.
+  Connection/timeout failures still surface as 500. The builder renders
+  `detail` as a second line under the generic message (`showError()` in
+  `reporting_advanced.js`); `NX.api` carries it on the thrown `Error` as
+  `err.detail`, so any caller can do the same.
 
 ### Owner setup
 
@@ -1707,6 +1990,7 @@ set in both `env/INT.env` and `env/PROD.env`:
 |--------|----------|----------|
 | Statistics | Statistics DB | `DB_REPORTING_RO_USER` / `DB_REPORTING_RO_PWD` |
 | Octopus | Octopus runtime DB | `DB_REPORTING_OCTO_RO_USER` / `DB_REPORTING_OCTO_RO_PWD` |
+| Generali | Generali tenant DB | `DB_REPORTING_GENERALI_RO_USER` / `DB_REPORTING_GENERALI_RO_PWD` |
 
 Until a target's env vars are present, that target's engine stays unconfigured
 and a run against it returns **503 "SQL source is not configured"** (a warning is
@@ -1714,11 +1998,13 @@ logged). The SQL tab itself enables as soon as the caller holds a SQL
 permission, regardless of provisioning; each target only returns data once its
 login is set.
 
-To create both `db_datareader`-only logins in one shot, run
+To create all three `db_datareader`-only logins in one shot, run
 `scripts/provision-reporting-ro-logins.sql` against `DB_SERVER_PRD` in SSMS
 (SQLCMD Mode; edit the database names + passwords at the top first). It is
-idempotent. Then set the four `DB_REPORTING_*_RO_*` vars in `env/INT.env` +
-`env/PROD.env` and restart nexora. These logins also unblock the AI assistant's
+idempotent. Then set the six `DB_REPORTING_*_RO_*` vars in `env/INT.env` +
+`env/PROD.env` and restart nexora. The env files are gitignored, so
+`env/*.env.example` shipping a key changes nothing on the server until someone
+hand-edits it — run `scripts/env-sync.py` to see what is missing where. These logins also unblock the AI assistant's
 live schema grounding and scheduled-report delivery.
 
 ## See also
@@ -1746,9 +2032,9 @@ live schema grounding and scheduled-report delivery.
 - `sql/_migrations/NexoraDB/0007_seed_reporting_sql_permission.sql` —
   `reporting.sql.run` permission + admin seed.
 - `sql/_migrations/NexoraDB/0008_seed_reporting_sql_octopus_permission.sql` —
-  `reporting.sql.target.octopus` permission + admin seed.
+  `reporting.sql.target.octopus.use` permission + admin seed.
 - `sql/_migrations/NexoraDB/0013_create_reporting_ai_audit.sql` —
-  `dbo.ReportingAiAudit` DDL + `reporting.ai.use` / `reporting.ai.sql` seed.
+  `dbo.ReportingAiAudit` DDL + `reporting.ai.use` / `reporting.ai.sql.use` seed.
 - `docs/design/reporting-ai-assistant.md` — AI assistant design spec.
 - `docs/superpowers/specs/2026-06-02-reporting-foundation-design.md` — full
   design spec (decisions, architecture, endpoint list, security model).
