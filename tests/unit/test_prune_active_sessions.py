@@ -190,3 +190,29 @@ def test_task_runs_often_enough_for_the_retention_window():
     assert (
         int(days.text) * 24 * 60 < mod.RETENTION_MINUTES
     ), "the task runs less often than the retention window"
+
+
+def test_deploy_registers_every_task_definition():
+    """A task XML in the tree that deploy.yml never registers is inert -- which
+    is exactly how the prune shipped and ran zero times. Any definition added
+    later must be wired into the deploy step, so this discovers them rather than
+    listing them."""
+    repo = MODULE_PATH.parents[2]
+    workflow = (repo / ".github" / "workflows" / "deploy.yml").read_text(encoding="utf-8")
+    definitions = sorted(p.name for p in repo.glob("ops/**/*-task.xml"))
+    assert definitions, "no task definitions found -- glob is wrong"
+    unregistered = [name for name in definitions if name not in workflow]
+    assert not unregistered, f"task definitions never registered by deploy.yml: {unregistered}"
+
+
+def test_deploy_registration_is_idempotent_and_verified():
+    """/f so re-running a deploy is safe, and a /query afterwards because
+    'schtasks /create returned 0' and 'the task exists' are different claims."""
+    repo = MODULE_PATH.parents[2]
+    workflow = (repo / ".github" / "workflows" / "deploy.yml").read_text(encoding="utf-8")
+    step = workflow.split("Register scheduled tasks", 1)
+    assert len(step) == 2, "the deploy step is gone"
+    body = step[1]
+    assert "schtasks /create /xml $t.Xml /tn $t.Name /f" in body, "not idempotent"
+    assert "schtasks /query" in body, "registration is claimed but never verified"
+    assert "$LASTEXITCODE" in body, "schtasks is a native exe; $? does not report its failure"
