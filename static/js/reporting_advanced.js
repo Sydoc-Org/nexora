@@ -385,7 +385,7 @@
 
   // ----- Auto AI caption (Task 13) -------------------------------------------
   // Fires on chart mount (below) when the caption slot exists in the DOM --
-  // it only exists when the page was rendered for a reporting.ai.explain_data
+  // it only exists when the page was rendered for a reporting.ai.explain.use
   // holder (Jinja `ai_caption_enabled` gate in reporting.html), so a caller
   // with no permission is a silent no-op. Shimmers while the request is in
   // flight, then shows the caption with its AI chip -- or hides silently on
@@ -438,7 +438,7 @@
     // A prior run's caption only ever fires on chart mount, but it must not
     // linger once a NEW run lands — whether that run's grid has data, is
     // empty, or the user never revisits the Chart view. Guarded: the box
-    // only exists in the DOM for a reporting.ai.explain_data holder.
+    // only exists in the DOM for a reporting.ai.explain.use holder.
     var rpCaptionBox = document.getElementById('rpCaption');
     if (rpCaptionBox) { rpCaptionBox.hidden = true; rpCaptionBox.textContent = ''; }
     setView('grid');
@@ -588,10 +588,22 @@
       if (rows.every(function (r) { return isNumericCell(r[i]); })) { idx = i; break; }
     }
     if (idx === -1) return null;
-    var total = 0;
-    rows.forEach(function (r) { total += Number(r[idx]); });
-    var buckets = rows.length;
-    return { total: total, buckets: buckets, avg: buckets ? total / buckets : 0, idx: idx };
+    // Mirrors Simple's computeKpiBand: NULL-leading-dimension rows are not
+    // periods, and buckets counts that dimension's distinct values rather than
+    // the rows (a second dimension used to multiply it by its own
+    // cardinality). cells is the row count, and what avg divides by.
+    var kept = dims ? rows.filter(function (r) { return r[0] != null; }) : rows;
+    if (!kept.length) return null;
+    var total = 0, cells = 0;
+    var periods = Object.create(null);
+    kept.forEach(function (r) {
+      if (dims) periods[String(r[0])] = 1;
+      total += Number(r[idx]);
+      cells++;
+    });
+    var buckets = dims ? Object.keys(periods).length : cells;
+    return { total: total, buckets: buckets, cells: cells,
+             avg: cells ? total / cells : 0, idx: idx };
   }
 
   // Result-column header for a measure ("Documents imported"), so a KPI says
@@ -699,7 +711,8 @@
       band.appendChild(kpiBlock('reporting-kpi-total-extra', withLabel(I18N.kpiTotal, m.label), m.total));
     });
     band.appendChild(kpiBlock('reporting-kpi-buckets', I18N.kpiBuckets, kpi.buckets));
-    band.appendChild(kpiBlock('reporting-kpi-avg', withLabel(I18N.kpiAvg, primary), kpi.avg));
+    band.appendChild(kpiBlock('reporting-kpi-avg',
+      withLabel(kpi.cells === kpi.buckets ? I18N.kpiAvg : I18N.kpiAvgCell, primary), kpi.avg));
     band.hidden = false;
   }
 
@@ -893,7 +906,54 @@
     wrap.appendChild(table);
   }
 
+  // Table and SQL mode share one result area, so a mode switch used to leave
+  // the *other* mode's output on screen: the builder's pivot shelf, its AI
+  // caption, its timing badge and -- worst -- its generated SQL in the "Query
+  // sent to the database" panel while the editor above held something else
+  // entirely. Reset to a mode-appropriate empty state instead.
+  function resetResultArea() {
+    var sqlOn = state.mode === 'sql';
+    state.lastResult = null;
+    state.lastDef = null;
+    state._lastSql = null;
+    state._lastSqlPretty = null;
+    state._lastSqlDisplay = null;
+    state._chartMounted = false;
+    state._pivotMounted = false;
+    ['rpViewToggle', 'rpKpiBand', 'rpSqlView', 'rpShowSql', 'rpSqlPeek',
+     'rpCaption', 'rpForecastWrap', 'rpForecastHorizon', 'reportingTiming']
+      .forEach(function (id) {
+        var e = document.getElementById(id);
+        if (e) e.hidden = true;
+      });
+    var cap = document.getElementById('rpCaption');
+    if (cap) cap.textContent = '';
+    document.getElementById('rpChart').innerHTML = '';
+    document.getElementById('rpPivot').innerHTML = '';
+    setView('grid');
+    var wrap = document.getElementById('rpResults');
+    wrap.innerHTML = '';
+    var box = document.createElement('div');
+    box.className = 'nx-empty reporting-empty-state';
+    box.setAttribute('data-testid', 'reporting-empty-state');
+    var art = document.createElement('div');
+    art.className = 'nx-empty__art';
+    art.innerHTML = '<i class="fas ' + (sqlOn ? 'fa-terminal' : 'fa-chart-column') +
+      '" aria-hidden="true"></i>';
+    var t = document.createElement('p');
+    t.className = 'nx-empty__title';
+    t.textContent = sqlOn ? I18N.sqlEmptyTitle : I18N.builderEmptyTitle;
+    var sub = document.createElement('p');
+    sub.className = 'nx-empty__sub';
+    sub.textContent = sqlOn ? I18N.sqlEmptyHint : I18N.builderEmptyHint;
+    box.appendChild(art);
+    box.appendChild(t);
+    box.appendChild(sub);
+    wrap.appendChild(box);
+  }
+
   function setMode(mode) {
+    var changed = state.mode !== mode;
     state.mode = mode;
     var sqlOn = mode === 'sql';
     document.getElementById('rpModeSql').classList.toggle('active', sqlOn);
@@ -905,6 +965,7 @@
     // doesn't collapse into the grid's narrow first track. Table mode restores
     // the 3-column builder layout.
     document.querySelector('.reporting-main').classList.toggle('reporting-main--single', sqlOn);
+    if (changed) resetResultArea();
   }
 
   // toast: shared with nx_core.js (Task 11) -- replaces window.alert for
@@ -912,13 +973,25 @@
   // blocking answer.
   const toast = window.NX.toast;
 
-  function showError(msg) {
+  // `detail` is the driver/validator message the API returns alongside the
+  // generic `error` (NX.api hangs it on the Error). Without it a Live SQL
+  // failure read "Could not run query" and nothing else -- the reason for the
+  // failure ("Invalid object name 'Workitem'.") was thrown away.
+  function showError(msg, detail) {
     var wrap = document.getElementById('rpResults');
     wrap.innerHTML = '';
+    setView('grid');
     var p = document.createElement('p');
     p.className = 'reporting-error';
     p.textContent = msg;
     wrap.appendChild(p);
+    if (detail && detail !== msg) {
+      var d = document.createElement('pre');
+      d.className = 'reporting-error-detail';
+      d.setAttribute('data-testid', 'reporting-error-detail');
+      d.textContent = detail;
+      wrap.appendChild(d);
+    }
     // Same stale-caption guard as resetViews() -- a failed run must not leave
     // the PREVIOUS run's caption sentence sitting above the error message.
     var rpCaptionErrBox = document.getElementById('rpCaption');
@@ -947,7 +1020,7 @@
     // (still-loading, possibly failed or empty) result -- hidden here just
     // like Simple's runCurrent() does at run-start, cleared again by
     // fireCaption() once (and if) the new run's chart gets mounted. Guarded:
-    // the box only exists in the DOM for a reporting.ai.explain_data holder.
+    // the box only exists in the DOM for a reporting.ai.explain.use holder.
     var rpCaptionLoadBox = document.getElementById('rpCaption');
     if (rpCaptionLoadBox) { rpCaptionLoadBox.hidden = true; rpCaptionLoadBox.textContent = ''; }
     var box = document.createElement('div');
@@ -1027,7 +1100,7 @@
         state.sqlSources.forEach(function (s) { s.acknowledged = true; });
         modal.hidden = true;
         cb();
-      }).catch(function (e) { modal.hidden = true; showError(e.message); });
+      }).catch(function (e) { modal.hidden = true; showError(e.message, e.detail); });
     };
   }
 
@@ -1051,7 +1124,7 @@
           state.lastDef = { kind: 'sql' };
           renderResults(data);
         })
-        .catch(function (e) { endRunLoading(); showError(e.message); });
+        .catch(function (e) { endRunLoading(); showError(e.message, e.detail); });
     });
   }
 
@@ -1173,10 +1246,25 @@
         state.sqlSources.forEach(function (s) {
           var topt = document.createElement('option');
           topt.value = s.target || 'statistics';
-          topt.textContent = s.label;
+          // Name the real database ("RuntimeDatabase", "SYDOC_Statistik",
+          // "Generali") -- the same names the Sources rail cards show. The
+          // registry label is only the fallback. A target whose read-only
+          // login isn't provisioned yet says so rather than 503-ing on Run.
+          topt.textContent = (s.db || s.label) +
+            (s.configured === false ? ' — ' + I18N.sqlTargetUnconfigured : '');
+          if (s.configured === false) topt.disabled = true;
           tsel.appendChild(topt);
         });
+        var firstOk = state.sqlSources.find(function (s) { return s.configured !== false; });
+        if (firstOk) tsel.value = firstOk.target || 'statistics';
       }
+      // Publish the databases Live SQL can reach so the source visualizer
+      // (static/js/reporting_schema.js) knows whether to offer its per-table
+      // Query button -- it has a database name, not a target id.
+      window.ReportingSqlDbs = {};
+      state.sqlSources.forEach(function (s) {
+        if (s.db && s.configured !== false) window.ReportingSqlDbs[s.db.toLowerCase()] = true;
+      });
       curated.forEach(function (s) {
         var opt = document.createElement('option');
         opt.value = s.id;
@@ -1225,7 +1313,7 @@
         renderResults(data);
         showTiming(data.rowCount, performance.now() - runT0);
       })
-      .catch(function (e) { endRunLoading(); showError(e.message); });
+      .catch(function (e) { endRunLoading(); showError(e.message, e.detail); });
   }
 
   function addFilter() {
@@ -1614,7 +1702,7 @@
         state.currentReportOwned = !!data.owned;
         state.currentReportCanEdit = !!data.canEdit;
       })
-      .catch(function (e) { showError(e.message); });
+      .catch(function (e) { showError(e.message, e.detail); });
   }
 
   function renameSelectedReport() {
@@ -1912,6 +2000,39 @@
   document.getElementById('rpExport').addEventListener('click', exportCurrent);
   document.getElementById('rpModeTable').addEventListener('click', function () { setMode('table'); });
   document.getElementById('rpModeSql').addEventListener('click', function () { setMode('sql'); });
+
+  // "Query" button on a table in the source visualizer (reporting_schema.js):
+  // land in Advanced's SQL mode on the target that reads that database, with
+  // a SELECT TOP (100) for the table already written, and run it. `db` is the
+  // real database name (the visualizer's title / the rail card's data-db) --
+  // matched against the `db` each SQL source reports, so this needs no
+  // knowledge of which target id belongs to which database.
+  document.addEventListener('rc:sqlquery', function (e) {
+    var db = e.detail && e.detail.db;
+    var table = e.detail && e.detail.table;
+    if (!table) return;
+    var src = state.sqlSources.find(function (s) {
+      return s.db && db && s.db.toLowerCase() === String(db).toLowerCase();
+    });
+    if (!src || src.configured === false) {
+      toast(I18N.sqlTargetUnavailable.replace('{db}', db || '?'));
+      return;
+    }
+    if (window.ReportingTabs && window.ReportingTabs.current() !== 'advanced') {
+      window.ReportingTabs.show('advanced');
+    }
+    setMode('sql');
+    document.getElementById('rpSqlTarget').value = src.target || 'statistics';
+    // [schema].[name] both bracketed -- a table called "order" or "user" is
+    // otherwise a syntax error the moment the user presses Run.
+    var parts = String(table).split('.');
+    var qualified = parts.length > 1
+      ? '[' + parts[0] + '].[' + parts.slice(1).join('.') + ']'
+      : '[' + parts[0] + ']';
+    document.getElementById('rpSqlEditor').value = 'SELECT TOP (100) * FROM ' + qualified;
+    document.getElementById('rpTitle').value = table;
+    runSql();
+  });
   document.getElementById('rpAddFilter').addEventListener('click', addFilter);
   document.getElementById('rpAddSort').addEventListener('click', addSort);
   document.getElementById('rpAddMetric').addEventListener('click', addMetric);

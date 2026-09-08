@@ -32,6 +32,7 @@
   });
 
   var I18N = {
+    askAboutPrefill: {{ _("Tell me what I am seeing in this report.")|tojson }},
     noAnswer: {{ _("(no answer)")|tojson }},
     howWorked: {{ _("How the agent worked")|tojson }},
     steps: {{ _("steps")|tojson }},
@@ -64,7 +65,7 @@
     compute_stats: {{ _("Crunching the numbers…")|tojson }}
   };
 
-  var chat = { history: [], busy: false };   // history: [{role, content}]
+  var chat = { history: [], busy: false, report: null };   // history: [{role, content}]
   var tickerEl = null;
   var tickerTextEl = null;
   var tickerStepsEl = null;
@@ -521,6 +522,9 @@
         stream: true,
         // Active source lets the server gate run_sql to sources it can reach.
         source: (document.getElementById("rpSource") || {}).value || null,
+        // The report on the Results tab, when one is attached (setReport):
+        // definition + grid, so "what am I seeing" questions are grounded.
+        report: chat.report || undefined,
         continueAttempt: continueAttempt,
         // null when the picker is absent; the server then uses its own
         // default rather than trusting a level the model cannot honour.
@@ -591,6 +595,19 @@
     btn.addEventListener("click", function () { send(btn.textContent.trim()); });
   });
 
-  window.ReportingChat = { open: openPanel, send: send };
+  // setReport(null) detaches (a new run replaces it, a failed run clears it).
+  // The starter chips are fixed generic questions for the no-report empty
+  // state; once a report is attached they stop making sense (e.g. "imported
+  // vs exported" next to a backlog-only report) so hide them.
+  function setReport(report) {
+    chat.report = report || null;
+    if (emptyEl) emptyEl.classList.toggle("reporting-chat-empty--attached", !!report);
+  }
+  // Opens the panel with the report attached and a starter question typed in.
+  function askAbout(report, prefill) {
+    setReport(report);
+    openPanel(prefill || I18N.askAboutPrefill);
+  }
+  window.ReportingChat = { open: openPanel, send: send, setReport: setReport, askAbout: askAbout };
 })();
 </script>

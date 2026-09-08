@@ -17,7 +17,8 @@
     hiddenN: {{ _("{n} hidden")|tojson }},
     onlyUsed: {{ _("These are the tables this source reads.")|tojson }},
     noRelations: {{ _("No foreign keys defined — showing the biggest tables.")|tojson }},
-    erdCapped: {{ _("Showing the {n} most connected tables.")|tojson }}
+    erdCapped: {{ _("Showing the {n} most connected tables.")|tojson }},
+    queryTop: {{ _("Query the first 100 rows")|tojson }}
   };
 </script>
 <script src="{{ static_v('js/reporting_schema.js') }}"></script>

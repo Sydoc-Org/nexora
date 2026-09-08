@@ -23,7 +23,8 @@
 </head>
 
 <body class="nx-app">
-  {% set active_page = 'workitems_overview' %}
+  {# 0098: the tenant-scoped list marks the tenant's own mounted page active, never the global entry. #}
+  {% set active_page = ('tenant_' ~ tenant_scope.code ~ '_workitems') if tenant_scope else 'workitems_overview' %}
   {% include '_header.html' %}
 
   <div id="dropZoneOverlay"
@@ -54,8 +55,17 @@
         <div class="nx-page-head__title">
           <span class="nx-page-icon"><i class="fas fa-layer-group"></i></span>
           <div>
-            <h1 class="nx-title">{{ _("Workitems overview") }}</h1>
-            <p class="nx-subtitle">{{ _("List of all workitems") }}</p>
+            {# tenant_solo: a member of just this tenant needs neither its name
+               nor an explanation of a scope they can never leave (#255). #}
+            {% if tenant_scope and not tenant_solo %}
+            <h1 class="nx-title" data-testid="workitems-title">{{ _("%(tenant)s Workitems", tenant=tenant_scope.display_name) }}</h1>
+            <p class="nx-subtitle">{{ _("Workitems of this tenant's processes only.") }}</p>
+            {% elif tenant_scope %}
+            <h1 class="nx-title" data-testid="workitems-title">{{ _("Workitems") }}</h1>
+            {% else %}
+            <h1 class="nx-title" data-testid="workitems-title">{{ _("Global Workitems") }}</h1>
+            <p class="nx-subtitle">{{ _("Every workitem you may see, across all tenants.") }}</p>
+            {% endif %}
           </div>
         </div>
       </div>

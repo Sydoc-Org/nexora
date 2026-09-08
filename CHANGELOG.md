@@ -8,6 +8,166 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
+### Added
+
+- **Live SQL reaches every reporting database, and names them.** The sandbox gained a
+  third target — the **Generali** tenant DB (`reporting.sql.target.generali.use`,
+  migration `0121`, own `db_datareader` login `DB_REPORTING_GENERALI_RO_*`) — so it
+  covers every database the Sources rail shows a card for. The **Target** picker now
+  labels the *database* (`SYDOC_Statistik`, `RuntimeDatabase`, `Generali`) instead of
+  a registry label like "Live SQL — Octo": `/api/reporting/sources` returns each SQL
+  source's configured database as `db` plus a `configured` flag, so the names match
+  the rail cards and stay right when INT and PROD name their databases differently.
+  A target whose read-only login isn't provisioned renders disabled with a "not set
+  up yet" suffix rather than only failing on Run, and the picker opens on the first
+  configured one. **NexoraDB is deliberately not a target at any permission level** —
+  it holds the bcrypt password hashes and TOTP secrets.
+- **Query a table straight from its Structure view.** Expanding a table in a source's
+  **Structure** panel shows **Query the first 100 rows** under its column list: it
+  drops you into Advanced's SQL mode on the target that reads that database, with
+  `SELECT TOP (100) * FROM [schema].[table]` written and already run. Only drawn when
+  Live SQL can actually reach that database, so Structure-without-SQL access never
+  sees it.
+
+- **Dashboard cards carry the Results tab's chart tools.** In edit mode every
+  chart-bearing card has its own toolbar — chart type, download as image,
+  Forecast + horizon, Colours & axes — and the tweaks are saved *on the card*
+  (`card.viz`), never on the report: one saved report can be a bar chart here and
+  a forecast line there. Drag-to-reorder now slides the neighbouring cards into
+  place (FLIP transition) instead of snapping them.
+- **Whole-report dashboard cards read like the Results tab** — KPI strip above a
+  full-width chart, table behind *Show table*, card grows with its content (the
+  fixed row height used to clip the fifth KPI tile and the table toggle).
+
+### Fixed
+
+- **Sydoc-tenant users no longer see a Prepared Documents link that always fails.**
+  `0094` copied Mobscn's three tenant pages onto the new `sydoc` tenant, but Prepared
+  Documents is a hard MS02-only route — every non-MS02 client gets `PermissionDenied`
+  regardless of permission grants. Migration `0122` removes the `sydoc` tenant's
+  `prepared` `TenantPages` row.
+- **A wide result no longer widens the whole builder.** `.reporting-results` had
+  `min-width: 0` only inside the collapsed-layout media query, so the middle grid
+  track grew to its widest child: one `SELECT *` over a `varbinary(max)` column and
+  the toolbar, editor and page all stretched past the window instead of the table
+  scrolling inside its own card.
+- **An unprovisioned SQL target no longer greys out a healthy database's rail card.**
+  The Sources rail keeps one card per distinct database and the first source won the
+  slot; the new Generali SQL target sorted first and probed as down (no RO login),
+  turning a green card amber. A reachable source now wins the slot.
+
+- **Short dashboard cards can stack beside a tall one.** Cards used to occupy one
+  auto-sized grid row each, so a KPI next to a 3-row chart pushed the next KPI
+  below the chart. Cards now span real row tracks (`grid-row: span rows`) with
+  dense flow, so two 1-row KPIs sit stacked next to the chart.
+- **Present mode had no margins.** The full-bleed padding rule out-ranked the
+  fullscreen one, so the dashboard sat border-on-border on a wall screen.
+- **Forecast on a dashboard card "did nothing".** On a report with more than one
+  breakdown the toggle was a dead `disabled` button; it is now dimmed and a click
+  explains the one-date-breakdown rule.
+- **Ask Eddard about this report.** A button beside the *Eddard insight* card on the
+  Results tab opens the chat with the report on screen attached: its definition
+  (source, grouping, measures with their registry descriptions, filters) and, for a
+  `reporting.ai.explain.use` holder, the same fact sheet the auto-caption uses. "Tell
+  me what I am seeing" or "what are Cases" is answered from that context without
+  tool calls; the header Eddard button is grounded the same way while a result is
+  on screen. `POST /api/reporting/ai/agent` takes the optional `report` object.
+- **Conditional measures.** `ReportingMetrics.FilterJson` (there since 0017, never read)
+  now turns a measure into `COUNT/SUM(CASE WHEN <cond> THEN … END)`: a JSON list of
+  `{field, op, value}` clauses, fields whitelisted against the source catalog, values
+  parameterised. Editable as **Condition (JSON)** on `/reporting/metrics`. Migration
+  `0120` seeds the three KPIs the Generali pages computed by hand: *Reports filed on
+  time*, *Documents without post-check*, *Failed runs*.
+- **Generali reporting sources** — migration `0117` registers **Attendance**,
+  **Base Services**, **Project Management** and **ISS Reporting** as generic `table`
+  sources over the Generali tenant DB (effort hours and KPI filings by category,
+  date columns grainable for "over time" breakdowns). One `reporting.source.<code>.use`
+  permission each; only Enterprise Admin holds them until granted. No code — the
+  column catalog in `ColumnsJSON` is the whole config a custom tenant needs.
+  Migration `0118` gives them Simple-wizard measures: **Effort (hours)** and
+  **Entries** per effort table, **Reports filed** for ISS (break down by "On time"
+  for the share). Sources without a measure are Advanced-only by design.
+  Migration `0119` adds the two sources behind the Generali dashboard and import
+  status pages: **Documents** over `dbo.v_ReportJobJoinDefinitions` (~870k rows;
+  document type, input channel, communication, direction, recipient, language,
+  status, post-checks, scan date — measures Documents and Cases) and **CSV
+  Imports** over `dbo.CSVImportLog` (import runs, rows inserted/updated). The
+  ISS source is relabelled **Reporting**, and the wizard's measure list groups
+  every `Tenant — Thing` source under one tenant heading with a sub-label each,
+  so Generali reads as one passage: Documents, Attendance, Base Services,
+  Project Management, Reporting, CSV Imports. Platform sources sort first.
+- **Architecture diagram** — `docs/nexora-architecture.drawio`, four pages: system
+  overview, request lifecycle, multi-source workitems, tenancy & permissions. Pointer
+  added to `docs/design/architecture-conventions.md`.
+- **The Dashboard is a console.** The page loses every card frame: the four
+  KPIs are one borderless strip separated by hairlines, each with its
+  day-over-day change and a seven-day sparkline; the throughput chart spans
+  the full content width with underline tabs (**Over time** / **Today by
+  hour** — the separate hourly card is gone); and a new **Backlog** section
+  draws a 14/30/90-day trend line per process from the half-hourly
+  `dbo.BacklogHistory` snapshots. A 14 d / 30 d / 90 d range control drives
+  both charts and sticks for the session. The header carries a live indicator
+  with the last refresh time, a countdown to the next one, and a Refresh
+  button that forces one now.
+- `GET api/dashboard/backlog_trend?range=14|30|90` returns
+  `{labels, series:[{name, values, current}], total, prev_total}` — per-process
+  backlog history, scoped by the active process filter, capped at four named
+  series plus "Other".
+- **`scripts/perm-audit.py` + `/nx-perm-audit [PROD|INT]`**: read-only anomaly audit of
+  the live permission grants: a customer seeing another org's processes or another
+  tenant's pages, profile/org mismatches, customers holding `admin.*`, no-op user
+  overrides, dead codes and empty profiles. Reads effective permissions through
+  `spGetUserPermissions`, so it works on both the legacy catalogue (PROD) and the
+  per-process shape from #238 (INT).
+- **The tenant Dashboard and Workitems pages are the tenant's** (migrations
+  `0097`, `0098`). The Dashboard and Workitems entries inside a tenant's
+  sidebar group now open `/dashboard?tenant=<code>` and
+  `/workitems?tenant=<code>`: the pages narrow your process grants to the
+  processes whose organization belongs to that tenant, title themselves
+  "`<Tenant>` Dashboard" / "`<Tenant>` Workitems", and light up only that
+  tenant's entry. A user inside a tenant lands there by default. The scope
+  sticks for the session until the global entry clears it, so a page that
+  rewrites its own URL (Workitems does) keeps the tenant. Staff who
+  see several groups get the unscoped views under their real names,
+  **Global Dashboard** and **Global Workitems** — every process you may
+  see, across tenants — from the global entries, which are relabelled
+  accordingly. One helper (`process_helpers.granted_processes`) now feeds
+  every process allow-list on both pages, replacing thirteen copies of the
+  grant-parsing block. A custom page's `LayoutJSON` may carry a `query`
+  object of string pairs that becomes the link's query string; mounting
+  `dashboard` or `workitems_overview` from the tenant management page adds
+  it automatically. Prepared Documents is MS02's own register with no
+  process filter and stays as it is. A user inside exactly one tenant sees
+  its pages flat under a plain label instead of a one-item collapsible
+  group; staff and multi-tenant users keep the groups.
+- **`AccessProfile.Rank` governs which profiles an admin may hand out** (#238,
+  migration `0086`): an actor may assign a profile whose rank is at most their
+  own. Enterprise Admin 100, Global Admin 90, supervisors 50, everyone else 10.
+- **One `process.<client>.<name>.view` scope code per process** (migration
+  `0087`) replaces the three per-process families (`workitems.filter.process.*`,
+  `dashboard.filter.process.*`, `reporting.scope.process.*`); every process
+  allow-list reads it through `process_grants()`.
+- **Migrations `0091`, `0092`, `0094`, `0095` run on a post-#238 database.** They
+  were written before `0086` dropped `AccessProfilePermission.Effect` and `0088`
+  renamed the catalogue, and INT applied them first; PROD applies them after, where
+  the old text would not compile. The Effect-dependent statements now sit in
+  `sp_executesql` and the code lookups match both shapes (INT checksums
+  re-blessed, the `0097` precedent). `0115` renames `admin.view/edit.tenants` to
+  `admin.tenants.view/edit` so the two codes `0095` created follow the grammar.
+- **`admin.permissions.edit`** gates catalogue edits (add, rename, delete a
+  permission code) separately from profile grants.
+- **`nx --doctor` Permissions section** warns about codes the code base
+  references that are missing in `dbo.Permission`, and about profiles left at
+  Rank 0.
+- **Admin › Permissions grid** (`/admin/permissions`) replaces the per-profile
+  permission drawer on Access Control and the read-only Permission Matrix page:
+  every access profile against every permission, one checkbox per cell, saved
+  as a diff. Children grey out until their object's `.view` is granted; click a
+  code to see who holds it. Profile rank is edited on Access Control; user
+  overrides on the user detail page use the same area › object grouping.
+- **Enterprise Admin holds every permission** (migration `0106`) — granted
+  today and kept that way by a trigger on `dbo.Permission`, so a code added
+  later by migration or from the admin grid lands on the profile at once.
 ### Fixed
 
 - **The `dbo.ActiveSessions` prune now has a way to be scheduled.** #227
@@ -32,6 +192,198 @@ exora\Prune Sessions"
   UTF-8, and an editor silently "fixing" it is invisible until an import fails.
 
 ### Changed
+
+- **Advanced is back in the Reporting rail.** The **Advanced** nav entry (parked
+  `hidden` on 2026-08-26) sits last in the Workspace group again, so the
+  three-panel builder and its Live SQL tab are discoverable instead of only
+  reachable via `?tab=advanced` or *Open in Advanced*.
+- **A rejected Live SQL query is a 400, not a 500.** A statement the sandbox
+  passes but the target server refuses (unknown table/column, ambiguous alias)
+  is bad user input: `POST /api/reporting/sql/run` now answers **400** and logs
+  it at WARNING, so a typo in the SQL editor no longer registers as an
+  application error. Connection and timeout failures stay 500.
+
+- **Dashboard cards are pieces of saved reports.** Add a card now opens the
+  picked report in full (rendered by the same code as the Whole report
+  card) with an **Add to dashboard** button on every KPI tile, the chart and
+  the table, plus **Add whole report**. A card stores `{reportId, type,
+  kpiIndex}` and fetches the report's live definition when the dashboard
+  opens, so editing the report updates every card built from it. The
+  dashboard-authored KPI / line / bar / donut / table renderers, the type
+  pills, the size sliders, the blank-card picker and the KPI trend re-run are
+  gone; cards saved by the old version show a remove-and-re-add notice.
+  Cards use the Results tab's Console surfaces: a KPI card is the flat KPI
+  tile (each of Total / Buckets / Avg / Peak is its own pickable tile), chart
+  and table sit flush in the card with a title row and row count. The
+  dashboard view is full-bleed — the workspace rail and every width cap step
+  aside — and a **Present** button shows it fullscreen (Esc leaves). The
+  **global filter bar shows the reports' own filters** — one chip per field
+  (and Processes), the value the reports use, "mixed" when they disagree;
+  clicking a chip edits it with date presets, a checkbox picker or a text
+  field and the value replaces the reports' own on every card, with a reset
+  per chip. Filter layering is now per field, most specific wins (override
+  > dashboard > report), so a dashboard "last month" no longer ANDs with a
+  report's "this month" into an empty result.
+- **Simple wizard breakdown step curated.** Date chips read as their field
+  (“Import date”, “Export date”) instead of “Over time (…)”. Document
+  processing shows Process, Page Count, Document Type, Document Source and
+  Creditor Name; a **Show advanced fields** chip unfolds the rest. Table
+  sources flag theirs with `"advanced":true` in `ColumnsJSON`. The Field
+  extraction quality source drops Stream and Workitem from its catalog,
+  labels Customer as **Client**, prefixes Process with its client
+  (`elektromaterial.02_Invoice`) and folds the raw/diagnostic dimensions
+  (migration `0116`). The result table is shown by default under every
+  chart; **Hide table** collapses it.
+
+- **A tenant's own users never see the tenant named** (#255). For a user who
+  belongs to exactly one tenant and holds no grant on another, the tenant *is*
+  the portal, so naming it only exposes an internal concept: the sidebar's
+  plain tenant label is gone and the mounted pages title themselves
+  "Dashboard" / "Workitems" instead of "`<Tenant>` Dashboard" / "`<Tenant>`
+  Workitems". Their view is byte-for-byte what it was before the tenant
+  kernel landed. Staff and members with cross-tenant grants keep the names --
+  they have several tenants to tell apart. Driven by one `tenant_solo` flag
+  from `_inject_tenant_nav()`.
+- **Permission codes follow one grammar, `<area>.<object>.<action>[.<scope>]`**
+  (#238, migration `0088`). Every code was renamed; the full old → new mapping
+  is Appendix A of `docs/superpowers/specs/2026-09-01-permission-structure-design.md`,
+  the grammar and the rules around it are `docs/design/permissions.md`. Generali
+  codes live under `tenant.generali.*`. Grants rode along on `PermissionID`, so
+  nobody lost or gained access.
+  **Deploy note:** migrations run before the app pool stops, so the old build
+  serves renamed codes for the deploy window and answers 403 — deploy off-hours.
+
+### Removed
+
+- **`/admin/permission_matrix`** and the Permissions tab on Access Control (both folded into the grid).
+- **Profile-level DENY** (446 semantically empty rows), **the ten
+  `admin.assign.user.accessprofile.*` codes** (rank replaces them), **12 orphan
+  codes** (`invoices.*`, `kundenmagazin.*`, two dead admin codes) and **the
+  three per-process permission families** (#238).
+- **Extraction quality is now reportable (#254).** The Octo runtime has been
+  writing per-field extraction telemetry into the statistics DB for years —
+  one row per document field, with what the machine read, what the validator
+  ended up with, and the extractor's confidence — and nothing looked at it.
+  A new Reporting source, **Field extraction quality**, puts it on the
+  page: break down by Field and rank by "Extraction correct %", "User
+  corrected %" or "Avg. confidence %" to see which fields extraction handles
+  well and which cost validators the most time. Nine measures, gated by
+  `reporting.source.field_quality`. It unions **all seven customer telemetry
+  streams** — Bucherer, Compass, ElektroMaterial, Geberit and Privera's three —
+  into one source with a Customer breakdown rather than seven separate ones,
+  which is what lets you rank the *same* field across customers: field names are
+  normalised to a shared vocabulary first, so whatever each customer calls its
+  invoice number lands on the same row. A Stream dimension splits a customer
+  running more than one document flow. Only **onboarded processes** are
+  reportable — the picker no longer offers Octo's internal process names, and
+  the filter reads `dbo.ProcessSources` matched on organization *and* process,
+  so onboarding a process is all it takes to bring it in (and `02_Invoice` being
+  onboarded for ElektroMaterial does not admit Privera's).
+  Raw field values and the validating user are deliberately not exposed — the
+  source answers "which fields extract well", not "what did this invoice say"
+  or "who fixed it". Octo's ~630 raw field names are translated through the
+  existing `FieldAliases` / `FieldLabels` registries, and "Mapped in nexora %"
+  filters a report down to the fields nexora actually knows about — widened by
+  adding alias rows, not by editing SQL. The measure descriptions spell out two
+  traps the raw numbers hide: "Deviation %" is not the complement of "Extraction
+  correct %" (a field the machine never attempted still deviates when a
+  validator fills it in), and the headline rate understates the extractor —
+  EM reads 51% correct overall but 94.6% on the instances it actually attempts.
+  The breakdown labels put the useful dimension first and call it plainly
+  "Field": it was named "Field key (nexora)" while a near-useless wide variant
+  held the name "Field", so the obvious pick charted 631 series of which 230 sit
+  permanently at 100%.
+
+### Fixed
+
+- **Eddard couldn't see an activated forecast.** "Ask Eddard about this report" attached the
+  definition and fact sheet but never the forecast toggle, so a question about the projection
+  got answered as if it weren't there. `report_context_text` now states when forecast is on
+  (with its horizon) and, when the result is shared, that the trailing buckets are the forecast
+  rather than more actuals; `reporting_simple.js` passes the run's forecast block along.
+- **Eddard always announced which report he was reading.** The "Reading: I used the ..."
+  preamble is meant for genuinely ambiguous questions (issue #132); it fired even when a
+  specific report was already attached, where the report is given, not guessed. The
+  report-context grounding now tells the model to skip that preamble for this flow.
+- **Chat starter chips didn't fit the attached report.** The four fixed suggestions
+  ("imported vs exported, last 30 days", etc.) are tuned to the docprocessing source and kept
+  showing next to whatever report "Ask Eddard about this report" attached, even when they made
+  no sense for it. They now hide once a report is attached.
+- **Live SQL said why a query failed.** A failed run showed only "Could not run
+  query" — the API had been sending the driver message in `detail` all along and
+  `NX.api` threw it away. It now rides on the thrown `Error` as `err.detail` and
+  the builder prints it under the message ("Invalid object name 'Workitem'.").
+  An error raised while the Chart or Pivot view was open is also visible now
+  instead of landing in a hidden container.
+- **Switching Table <-> SQL in Advanced cleared the result area.** The two modes
+  share one result pane, so SQL mode used to inherit the builder's grid, pivot
+  shelf, KPI band, AI caption and timing badge — and showed the *builder's*
+  generated SQL in "Query sent to the database" while the editor above held a
+  different statement entirely. Each mode now starts from its own empty state.
+- **The Advanced filter row fitted its column.** Three `flex: 1` controls in the
+  240px wells panel left the field name clipped to "Worki" and the value box
+  ~60px wide; the field select takes its own row and operator + value share the
+  next one.
+
+- `POST /api/reporting/run` answered 500 instead of 400 when a `columns` entry
+  was a bare string rather than `{field}` (the error message itself crashed).
+
+- **The reporting KPI tiles said what they compute.** On a report with a date
+  dimension *and* a second breakdown ("Extraction correct % by month / Field":
+  4 periods x 28 fields), three of the four tiles misdescribed themselves.
+  **Buckets** counted result rows, so 112 appeared under "periods in the
+  range" where there were 3 — the row count is now reported as the average's
+  denominator and Buckets counts the leading dimension's distinct values.
+  **Avg per bucket** claimed "total / buckets" while computing the mean of the
+  cells (34.501 / 112 is 0.31, not 54.029); with a breakdown it now reads
+  "Avg per row / mean of N values". The **headline figure** captioned itself
+  "Total ... sum over the period" when it was the server's authoritative
+  `AVG()` over every underlying row — a rate, not a total — and now reads
+  "Overall ... over every matching row". Finally, rows whose leading dimension
+  is NULL are excluded from the band, matching what the chart draws and what
+  `caption_facts` already stated, so Peak no longer labels itself `null` and
+  the tiles agree with the AI caption instead of contradicting it. Both
+  implementations fixed (Simple's `reporting_simple_result.js` and the
+  Advanced grid's mirror); pinned by `tests/unit/test_reporting_kpi_band.py`.
+- **A migration that would have failed on a fresh database.** The permission
+  grant in `0107` referenced `dbo.AccessProfilePermission.Effect`, a column
+  retired by `0086` — a *lower* number, so on any rebuild or PROD deploy the drop
+  runs first and the grant dies with it. It passed on INT only because the column
+  still existed the hour it was applied. Both variants now sit in `sp_executesql`
+  behind a `COL_LENGTH` check: an `IF` alone is not enough, because SQL Server
+  binds every column in a batch before executing any of it, so even the untaken
+  branch takes the whole batch down. `docs/howto/db-migrations.md` writes the
+  trap up, including why this is the one case where editing an applied migration
+  is correct — nothing added later can rescue a file that fails inside itself.
+
+### Changed
+
+- **The Simple wizard's measure list is grouped by source.** With more than one
+  source the chips used to be one flat list with a `· Source Name` suffix on
+  every label; they are now clustered under a caption per source, the same
+  pattern the breakdown step already used. Reads far better now that picking a
+  measure greys out every chip from the other sources — that constraint has
+  always been there, but with a second source it went from two greyed chips to
+  most of the list.
+- **"Document count" is retired in favour of "Documents imported" /
+  "Documents exported".** The measure list now says which date a document is
+  counted on instead of leaving it unanchored. Five saved reports built on
+  `doc_count` are repointed automatically, moving the date column, filter and
+  sort onto the shared `activity_date` axis along with the measure — the numbers
+  are unchanged. Only unambiguous definitions are rewritten; anything else keeps
+  `doc_count` and is left for its owner. "Pages processed" goes the same way —
+  `pages_imported` / `pages_exported` give the same numbers with a stated date —
+  which leaves every Document Processing measure date-anchored, so they now all
+  combine with one another instead of one odd chip greying out the rest. "Field
+  instances" and "Workitems (distinct)" also come off the field-quality source:
+  they measure how much data is in scope, not how well extraction works.
+
+- **Migrations can reach another database on the same server.**
+  `scripts/db-migrate.py` now passes the configured database names to sqlcmd as
+  `-v` variables, so a migration writes `[$(StatisticsDb)]` instead of a
+  hardcoded name that would be wrong on PROD. `$(NexoraDb)`, `$(StatisticsDb)`,
+  `$(GeneraliDb)` and `$(OctoDb)` are available; an unset one is not passed, so
+  sqlcmd fails loudly rather than substituting an empty name.
 
 - **Repository moved to the `Sydoc-Org` GitHub organization** (from the
   personal `Sydoc-Code` account, 2026-09-03). GitHub redirects the old URL,
@@ -221,6 +573,135 @@ exora\Prune Sessions"
   and wasn't independently measurable in this environment.
 
 ### Changed
+
+- **Access profiles are named `<Organization> <Role>`** (migration `0105`): `Enterprise Admin`,
+  `Global Admin`, `Sydoc User`/`Sydoc Supervisor` (formerly `nexoraUser`/`nexoraSupervisor`),
+  `ISS User`/`ISS Supervisor`, `PDBS User`, `Privera User`, `Compass User`, `ElektroMaterial User`,
+  `Generali User`. The same migration creates `Generali User` (GNRL, every Generali portal code)
+  and moves Generali users off the ISS profiles, folds the duplicate Basel-Stadt org `BSPD` into
+  `PDBS`, moves sydoc staff off customer profiles onto the Sydoc ones (which gain the PDBS
+  process and prepared-audit so nothing is lost), and renames the two assign codes whose slug
+  changed. `nx_lib/security.py::assign_profile_code` builds that slug (spaces dropped).
+- `api/dashboard/kpi_stats` also returns the previous day's value and a
+  seven-point daily series per KPI; `api/dashboard/avg_processing_time` the
+  same in minutes. `api/dashboard/processed_over_time` accepts `range`.
+- **ISS and sydoc AG sit inside their tenants** (migration `0104`). ISS
+  (`SSIX`) joins `generali`, the portal it works in; sydoc AG (`SYDC`) joins
+  `sydoc`. Membership alone opens a tenant since `0096`, so ISS's existing
+  `tenant.generali.view` grants stay as harmless leftovers. Members land on
+  their tenant's Dashboard and Workitems by default; sydoc staff keep every
+  tenant group and the Global entries through their grants. Only `demo`
+  (`DMEO`) stays outside a tenant.
+- **A tenant is a portal, not a data connection** (migration `0096`). Three
+  tenants in, every `ClientCode` pointer — on `Tenants`, on `Organizations`,
+  on `ProcessSources` — agreed in every row, and "tenant" meant a partner
+  (Mobscn), a customer (Generali) or an operator (Sydoc) depending on the
+  row. Decision: a tenant is the set of organizations that share one
+  navigation group (`Organizations.TenantCode`), nothing more. Where data
+  lives belongs to the thing that reads it — a process configuration already
+  carried its connection; a generated entity now does too
+  (`TenantEntities.ClientCode`, backfilled from its tenant). Dropped:
+  `Tenants.ClientCode`, `Tenants.OrganizationCode`, `Organizations.ClientCode`.
+  The Organizations overview derives an organization's connections from its
+  process configurations; the tenant and organization edit modals lost their
+  connection pickers. **Visibility is membership or grant:** a user whose
+  organization belongs to a tenant sees its group and pages by right (a
+  member without `tenant.<code>.view` no longer gets an empty sidebar);
+  `tenant.<code>.view` remains the grant for non-members — sydoc staff working
+  Generali — and `tenant.<code>.edit` stays an explicit grant.
+- **Tenant management page** at `/admin/tenants/manage` (#256 phase 2,
+  migration `0095`). Create and edit tenants (display name, active flag),
+  decide which organizations belong to them (ticking an
+  organization owned by another tenant moves it), mount existing pages into
+  a tenant's sidebar group (endpoint picked from the app's argument-less GET
+  routes, with label, icon, active marker and sort order), set pages to
+  draft or active, remove them, and delete a tenant once no organization
+  belongs to it. Creating a tenant provisions its `tenant.<code>.view/.edit`
+  permissions (granted to nobody). Entities, fields and the generated
+  list/crud pages stay migration-only and are shown read-only. New
+  permissions `admin.view.tenants` / `admin.edit.tenants`, seeded like
+  `0080` to every profile holding `admin.view.organizations`.
+- **The Sydoc tenant** (#257, migration `0094`): ElektroMaterial, Privera
+  and Compass — the customers sydoc hosts on the shared `default` runtime —
+  form the tenant `sydoc`, with the same three mounted pages as Mobscn.
+  Compass finally gets an organization row (`CMPS`) and its
+  `compass.01_Invoice_SAP` source. `Tenants.OrganizationCode`, the pre-0090
+  single-organization pointer, is nullable now — a tenant with several
+  organizations has no single answer; `Organizations.TenantCode` is the
+  relation that counts. `tenant.sydoc.view` goes to the profiles bound to
+  the member organizations and to `globalAdmin`. Left alone on purpose:
+  `compassUser` stays global (a `demo` user holds it), and sydoc AG, ISS
+  and demo stay outside any tenant (`0104` later seats the first two).
+- **Tenant-scoped navigation** (#257, migration `0093`). A user whose
+  organization belongs to a tenant sees that tenant's group instead of the
+  global Dashboard / Reporting / Workitems links — the same pages reached
+  through the tenant's mounted pages, not twice. Users of organizations
+  outside any tenant keep the global navigation. Mobscn's
+  group is now Dashboard, Workitems and Prepared Documents with proper
+  labels and icons; the generated "PDBS Dossiers" list page is set to
+  `draft` (kept, not served). `nx_lib/tenant/registry.py::organization_tenant`
+  answers "which tenant is this organization in", cached 60 s and failing
+  closed to *not scoped*.
+- **Generali is a tenant** (#257, migrations `0091`/`0092`). A `generali`
+  data connection (`engine_generali_db`, no Octo), a `GNRL` organization, the
+  `generali` tenant and one `custom` page per existing Generali page — so the
+  Generali sidebar group now comes from the tenant registry like Mobscn's,
+  and the hardcoded block in `_header.html` is gone. `tenant.generali.view`
+  goes to every profile or user that already reaches a Generali page. The
+  pages, their CRUD code and the 46 `generali.*` permissions are untouched;
+  folding those into `tenant.generali.*` is #238's job. To make this
+  possible, `nx_lib/clients.py` now loads a connection **without an Octo
+  domain** as a data-only connection (only `default` still requires one),
+  and the workitem paths (`api_external`, client-hint routing) consult
+  `workitem_clients()` so a data-only connection never takes part in
+  workitem routing. Custom tenant pages can carry `label`, `icon` and
+  `active` in `LayoutJSON` for the sidebar.
+- **Organization-centric tenancy** (#257, migration `0090`). The organization
+  is the hub now: it belongs to a tenant (`Organizations.TenantCode`), owns
+  its process configurations (`ProcessSources.OrganizationCode`) and its
+  access profiles (`AccessProfile.OrganizationCode`, NULL = global). The
+  columns are
+  nullable FKs backfilled from the conventions the data already followed —
+  the tenant pointer, the `<customer>.<process>` name prefix, the
+  `priveraUser`-style profile names — so nothing changed meaning.
+  **Rule:** a profile bound to an organization can only be held by that
+  organization's users; the user add/edit endpoints refuse a mismatch (400),
+  binding a profile that users elsewhere already hold is refused (409), and
+  the profile pickers on Access Control and the user page only offer
+  global profiles plus the chosen organization's own. Organizations' edit modal
+  gained Tenant, Process Configurations gained
+  Organization, the Access Control profile drawer gained Organization, and
+  `/admin/tenants` now reads tenant → organizations → users / access
+  profiles / data connection / process configurations, with the unassigned
+  leftovers (e.g. `compass.*`, `compassUser`) called out.
+  `Tenants.OrganizationCode` stays until the tenant registry stops reading
+  it; a later migration drops it.
+- **Tenants overview page** at `/admin/tenants` (#256, read-only phase).
+  One card per tenant, joining what the other admin pages show in
+  isolation: the customer organization and the users in it, the data
+  connection and whether the running process loaded it, its process
+  configurations (sources + document-field mappings), and the tenant's generated pages. A trailing "Not in a
+  tenant" section lists the organizations and connections no tenant points at
+  — with a *named-after* hint tying `<customer>.<process>` sources to the
+  organization they are named for. Gated like Organizations (`admin.view.organizations`);
+  the connection and process-configuration columns additionally respect
+  `admin.view.clients` / `admin.view.processes`. Organizations gained a
+  **Tenant** column linking back to it.
+- **Admin nav renamed after what the pages do, not the tables behind them**
+  (#255). `Clients` is now **Data Connections** (engine, dialect and Octo
+  domain per client code), `Processes` is **Process Configurations** (its
+  `dbo.ProcessSources` / `dbo.ProcessFieldMappings` mappings); `Organizations`
+  keeps its name. The three sit together in a new
+  collapsible **Tenants** group inside the admin sidebar, since together
+  they are what describes a tenant. Routes, `data-testid`s, permission
+  codes and DB columns are unchanged — labels only, plus de/fr/it.
+  Reporting keeps its own `Processes` label (a report scope, different
+  thing).
+- **The `ms02` runtime source and tenant are labelled "Mobscn"** (migration
+  `0089`). Display names only: the code stays `ms02` because it is the PK
+  referenced by `dbo.ProcessSources`, `dbo.ProcessFieldMappings`,
+  `dbo.WorkitemSourceCache` and `dbo.Tenants`, names the `MS02_*` env keys,
+  and is baked into the `tenant.ms02.*` permission codes.
 
 - **The deploy pipeline stopped testing everything twice.** Every commit
   reaching `main` arrives through a PR whose CI run already executed the full
@@ -413,6 +894,9 @@ exora\Prune Sessions"
 
 ### Removed
 
+- **Recent Validations** and `GET api/dashboard/recent_activity`. The feed
+  showed three workitems' extracted fields on a page nobody used it from; the
+  workitems page is the place to look at workitems.
 - **The dormant `tools/autopilot` orchestrator and its `nx.ps1` CLI
   plumbing.** Unused since 2026-06-15 (owner-approved deletion, recoverable
   from git history); `bin/nx.ps1` loses `--invoke-workflow`, `--kill-workflow`,
@@ -428,6 +912,26 @@ exora\Prune Sessions"
 
 ### Fixed
 
+- **Process grants are read in both code shapes.** Migration `0087` (#238)
+  replaces the three per-page process families with one
+  `process.<client>.<name>.view` code per process. The dashboard, the
+  workitems pages and reporting now accept that shape alongside the legacy
+  `*.filter.process.*` / `reporting.scope.process.*` codes, so a database on
+  either side of the migration shows the right processes. One parser,
+  `process_helpers.process_grants`, feeds all of them.
+- **Organization brand accents now actually show.** The header let any stored
+  accent preference beat the organization's `BrandAccentHex`, and the default
+  amber ends up stored for practically everyone (the effective prefs are
+  mirrored and re-read), so Privera's teal never appeared. A brand accent now
+  wins for every user of that organization; personal picks keep working where
+  there is no branding, and the Appearance page shows the brand swatch with a
+  note instead of the picker.
+- **Tenant groups no longer all light up on the Dashboard.** A mounted custom
+  page reuses a global endpoint (every tenant mounts `dashboard`), so a staffer
+  who sees several tenant groups by grant saw every group expand and highlight
+  its Dashboard entry. A group's mounted pages now count as active only for the
+  user's own tenant (`tenant_scoped`); staff get the global link highlighted and
+  the groups collapsed, tenant users still get exactly their group.
 - **Checkboxes and radio buttons that did not size themselves rendered as a
   2px speck.** The shared chrome in `nexora-ui.css` draws its own box with
   `appearance: none`, which also drops the widget's *intrinsic* size -- so

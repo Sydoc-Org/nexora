@@ -56,6 +56,7 @@ from ..prepared_documents import (
 )
 from ..process_helpers import (
     get_activity_instances_to_ignore,
+    granted_processes,
     normalize_process_selection,
     prepare_process_selection_lists,
 )
@@ -101,6 +102,7 @@ from ..workitems.sensitivity import (
     strip_sensitive_fields,  # noqa: F401 -- re-exported for tests
     strip_sensitive_from_detail,
 )
+from .tenant import apply_tenant_scope
 
 # ---------------------------- field/config helpers ---------------------------- #
 
@@ -109,16 +111,10 @@ def api_config_fields():
     if "username" not in session:
         return jsonify({}), 401
 
-    perms = session.get("permissions", [])
-    prefix = "workitems.filter.process."
-    allowed_processes = {
-        (perm.split(".")[-2] + "." + perm.split(".")[-1])
-        for perm in perms
-        if perm.startswith(prefix)
-    }
+    allowed_processes = granted_processes("workitems.filter.process.")
 
     current_lang = str(get_locale())
-    _sees_sensitive = has_permission("workitems.filter.documentfields.sensitive")
+    _sees_sensitive = has_permission("workitems.filter.docfields.sensitive.view")
     _cache_key = f"config_fields_{'_'.join(sorted(allowed_processes))}_{current_lang}_s{int(_sees_sensitive)}"
     cached = cache.get(_cache_key)
     if cached is not None:
@@ -163,7 +159,7 @@ def _docfield_comb(doccombs, i):
 def sensitive_blocked_keys():
     """FieldKeys the CURRENT user may not use (empty if they hold the perm).
     Coerces a failed lookup (None) to set() -- in-app fail-open, unchanged."""
-    if has_permission("workitems.filter.documentfields.sensitive"):
+    if has_permission("workitems.filter.docfields.sensitive.view"):
         return set()
     return get_sensitive_field_keys() or set()
 
@@ -171,7 +167,7 @@ def sensitive_blocked_keys():
 def sensitive_blocked_tokens():
     """Octo name-tokens the CURRENT user may not see (empty if they hold perm).
     Coerces a failed lookup (None) to set() -- in-app fail-open, unchanged."""
-    if has_permission("workitems.filter.documentfields.sensitive"):
+    if has_permission("workitems.filter.docfields.sensitive.view"):
         return set()
     return get_sensitive_field_tokens() or set()
 
@@ -185,14 +181,7 @@ def _strip_export_fields(details_map, blocked_tokens):
 def _ms02_target_processes():
     """The user's MS02-eligible process allow-list, derived the same way
     _get_workitems_data does (from workitems.filter.process.* perms)."""
-    prefix = "workitems.filter.process."
-    out = []
-    for perm in session.get("permissions", []):
-        if perm.startswith(prefix):
-            parts = perm.split(".")
-            if len(parts) >= 2:
-                out.append(f"{parts[-2]}.{parts[-1]}")
-    return out
+    return sorted(granted_processes("workitems.filter.process."))
 
 
 # _ms02_pid_specs/_ms02_prepared_docs_processes moved to
@@ -243,7 +232,7 @@ def _granted_process_pairs():
     """(client, process) pairs the caller holds a workitems grant for, lowered
     for case-insensitive comparison (the list query authorizes these via a
     case-insensitive SQL `=`, so the entitlement check must match that)."""
-    pairs = prepare_process_selection_lists("workitems.filter.process.", "all")
+    pairs = prepare_process_selection_lists("all")
     return {(c.lower(), p.lower()) for c, p in pairs}
 
 
@@ -303,24 +292,17 @@ def _session_scope():
     query body itself stays session-free. The external API builds its own
     scope from the key's ProcessList instead (nx_lib/views/api_external.py) --
     same keys, no session."""
-    prefix = "workitems.filter.process."
-    perms = session.get("permissions", [])
-    allowed = set()
-    for perm in perms:
-        if perm.startswith(prefix):
-            parts = perm.split(".")
-            if len(parts) >= 2:
-                allowed.add(f"{parts[-2]}.{parts[-1]}")
+    allowed = granted_processes("workitems.filter.process.")
     return {
         # compound '<client>.<process>' strings the caller may see
         "allowed": allowed,
-        "can_docfields": has_permission("workitems.filter.documentfields"),
+        "can_docfields": has_permission("workitems.filter.docfields.view"),
         "sensitive_blocked": sensitive_blocked_keys(),
-        "can_status": has_permission("workitems.filter.status"),
-        "can_deleted": has_permission("workitems.filter.status.deleted"),
-        "can_stage": has_permission("workitems.filter.stage"),
-        "can_search_id": has_permission("workitems.filter.workitemid"),
-        "can_dates": has_permission("workitems.filter.datetime"),
+        "can_status": has_permission("workitems.filter.status.view"),
+        "can_deleted": has_permission("workitems.filter.deleted.view"),
+        "can_stage": has_permission("workitems.filter.stage.view"),
+        "can_search_id": has_permission("workitems.filter.id.view"),
+        "can_dates": has_permission("workitems.filter.date.view"),
         # remember the process selection in the session (overview UI state)
         "persist_selection": True,
         # stamp MS02 pid/in_register onto rows (reads session twice internally)
@@ -398,7 +380,7 @@ def _docfield_values_all_fields(target_processes, q):
 # ---------------------------- routes ---------------------------- #
 
 
-@require_permission("workitems.filter.documentfields")
+@require_permission("workitems.filter.docfields.view")
 def api_docfield_values():
     if "username" not in session:
         return jsonify({"error": _("Not authorized")}), 401
@@ -419,12 +401,12 @@ def api_docfield_values():
 
     # Fail-closed process gating: `process` is a caller-supplied arg and must
     # not be trusted as-is -- a caller holding only the blanket
-    # workitems.filter.documentfields perm could otherwise pull value
+    # workitems.filter.docfields.view perm could otherwise pull value
     # suggestions from any process, including ones they hold no
-    # workitems.filter.process.<p> grant for. Reuse _ms02_target_processes(),
-    # the existing workitems.filter.process.* allow-list helper, rather than
-    # re-deriving it; "all" narrows to the caller's own allowed set rather
-    # than every process configured in the mapping_config registry.
+    # process.<client>.<name>.view grant for. Reuse _ms02_target_processes(),
+    # the existing process-scope allow-list helper, rather than re-deriving
+    # it; "all" narrows to the caller's own allowed set rather than every
+    # process configured in the mapping_config registry.
     allowed_processes_set = set(_ms02_target_processes())
 
     # `process` is "all" or a comma-joined multi-selection (issue #150);
@@ -558,9 +540,9 @@ def export_workitems_csv():
         return jsonify({"error": "Not authorized"}), 401
 
     include_set = set(request.args.get("include", "").split(","))
-    include_fields = "fields" in include_set and has_permission("workitems.details.view.fields")
-    include_history = "history" in include_set and has_permission("workitems.details.view.audit")
-    include_images = "images" in include_set and has_permission("workitems.details.view.images")
+    include_fields = "fields" in include_set and has_permission("workitems.details.fields.view")
+    include_history = "history" in include_set and has_permission("workitems.details.audit.view")
+    include_images = "images" in include_set and has_permission("workitems.details.images.view")
 
     # Selective export ("export selected checked rows") comes in as compound
     # `client-id` pairs, matching the `rowKey` the workitems list already
@@ -909,6 +891,7 @@ def export_workitems_csv():
 
 @require_permission("workitems.view")
 def workitems_overview():
+    scoped_tenant = apply_tenant_scope()  # 0098; before the try, see its docstring
     try:
         if "username" not in session:
             return redirect(url_for("login"))
@@ -916,47 +899,39 @@ def workitems_overview():
         logged_in_user = session.get("username")
         userid = session.get("userid")
 
-        search_term_perm = has_permission("workitems.filter.workitemid")
+        search_term_perm = has_permission("workitems.filter.id.view")
         search_term = request.args.get("search", "").strip() if search_term_perm else None
 
-        status_perm = has_permission("workitems.filter.status")
+        status_perm = has_permission("workitems.filter.status.view")
         status = request.args.get("status", "") if status_perm else None
-        deleted_status_perm = status_perm and has_permission("workitems.filter.status.deleted")
+        deleted_status_perm = status_perm and has_permission("workitems.filter.deleted.view")
 
-        stage_perm = has_permission("workitems.filter.stage")
+        stage_perm = has_permission("workitems.filter.stage.view")
         stage = request.args.get("stage", "") if stage_perm else None
 
-        datetime_perm = has_permission("workitems.filter.datetime")
+        datetime_perm = has_permission("workitems.filter.date.view")
         start_date_str = request.args.get("startDate", "") if datetime_perm else None
         end_date_str = request.args.get("endDate", "") if datetime_perm else None
         start_date = datetime.fromisoformat(start_date_str) if start_date_str else None
         end_date = datetime.fromisoformat(end_date_str) if end_date_str else None
 
-        perms = session.get("permissions", [])
-        prefix = "workitems.filter.process."
-        allowed_processes = sorted(
-            {
-                (perm.split(".")[-2] + "." + perm.split(".")[-1])
-                for perm in perms
-                if perm.startswith(prefix)
-            }
-        )
+        allowed_processes = sorted(granted_processes("workitems.filter.process."))
 
         process_name = request.args.get("prcfW", "all")
         if process_name != "all" and process_name not in allowed_processes:
             process_name = "all"
 
-        doc_fields_values_perm = has_permission("workitems.filter.documentfields")
+        doc_fields_values_perm = has_permission("workitems.filter.docfields.view")
         docfields = request.args.getlist("docfield") if doc_fields_values_perm else None
         docvalues = request.args.getlist("docvalue") if doc_fields_values_perm else None
         docops = request.args.getlist("docop") if doc_fields_values_perm else None
 
         details_view_perm = has_permission("workitems.details.view")
-        details_images_perm = has_permission("workitems.details.view.images")
-        details_audit_perm = has_permission("workitems.details.view.audit")
-        details_fields_perm = has_permission("workitems.details.view.fields")
+        details_images_perm = has_permission("workitems.details.images.view")
+        details_audit_perm = has_permission("workitems.details.audit.view")
+        details_fields_perm = has_permission("workitems.details.fields.view")
 
-        prepared_import_perm = has_permission("workitems.import.preparedaudit")
+        prepared_import_perm = has_permission("workitems.prepared.view")
         ms02_active = "ms02" in CLIENTS and engine_ms02_docfields_pg is not None
 
         # The Prepared Documents toolbar link is rendered whenever the user holds
@@ -973,6 +948,7 @@ def workitems_overview():
             "workitems_overview.html",
             logged_in_user=logged_in_user,
             userid=userid,
+            tenant_scope=scoped_tenant,
             process_name=process_name,
             search=search_term,
             status=status,
@@ -1004,7 +980,7 @@ def workitems_overview():
         return render_template("500.html")
 
 
-@require_permission("workitems.import.workitem")
+@require_permission("workitems.import.run")
 def import_workitems():
     if "username" not in session:
         return jsonify({"error": "Not authenticated"}), 401
@@ -1024,13 +1000,7 @@ def import_workitems():
         flash(_("No target process selected."), "error")
         return redirect(url_for("workitems_overview"))
 
-    perms = session.get("permissions", [])
-    prefix = "workitems.filter.process."
-    allowed_processes = {
-        (perm.split(".")[-2] + "." + perm.split(".")[-1])
-        for perm in perms
-        if perm.startswith(prefix)
-    }
+    allowed_processes = granted_processes("workitems.filter.process.")
 
     if process_name not in allowed_processes:
         flash(_("You do not have permission to import to this process."), "error")
@@ -1060,7 +1030,7 @@ def import_workitems():
     return redirect(url_for("workitems_overview"))
 
 
-@require_permission("workitems.import.preparedaudit")
+@require_permission("workitems.prepared.view")
 def import_prepared_audit():
     """MS02-only: upload a five-column Excel (PID, Collected, CollectedBy,
     Prepared, PreparedBy) and UPSERT each row by PID into the persistent
@@ -1124,15 +1094,13 @@ def api_get_media_info(workitem_id):
     if not _may_view_workitem(workitem_id):
         return jsonify({"error": _("Not authorized")}), 403
     try:
-        can_view_images = has_permission("workitems.details.view.images")
-        can_view_fields = has_permission("workitems.details.view.fields")
-        can_view_confidence = has_permission("workitems.details.view.confidence")
+        can_view_images = has_permission("workitems.details.images.view")
+        can_view_fields = has_permission("workitems.details.fields.view")
+        can_view_confidence = has_permission("workitems.details.confidence.view")
         # Source-location boxes are drawn over the page image, so the location data
         # needs BOTH the dedicated location perm AND images (no image -> nothing to
         # draw on / broken click-to-locate).
-        can_view_location = can_view_images and has_permission(
-            "workitems.details.view.source_location"
-        )
+        can_view_location = can_view_images and has_permission("workitems.details.sources.view")
 
         def _suppress(data):
             # Granular per-permission suppression (returns a copy so the cached
@@ -1214,7 +1182,7 @@ def _load_media_info(workitem_id, domain):
     )
 
 
-@require_permission("workitems.details.view.images")
+@require_permission("workitems.details.images.view")
 def api_get_media_raw(workitem_id, media_index):
     if not _may_view_workitem(workitem_id):
         return Response(_("Not authorized"), status=403)
@@ -1326,7 +1294,7 @@ def api_get_media_raw(workitem_id, media_index):
         return Response(_("Internal Server Error"), status=500)
 
 
-@require_permission("workitems.details.view.audit")
+@require_permission("workitems.details.audit.view")
 def get_audithistory(workitem_id):
     if not _may_view_workitem(workitem_id):
         return jsonify({"error": _("Not authorized")}), 403
@@ -1397,15 +1365,9 @@ def api_workitems_page_init():
     if "username" not in session:
         return jsonify({}), 401
 
-    perms = session.get("permissions", [])
-    prefix = "workitems.filter.process."
-    allowed_processes = {
-        (perm.split(".")[-2] + "." + perm.split(".")[-1])
-        for perm in perms
-        if perm.startswith(prefix)
-    }
+    allowed_processes = granted_processes("workitems.filter.process.")
     current_lang = str(get_locale())
-    _sees_sensitive = has_permission("workitems.filter.documentfields.sensitive")
+    _sees_sensitive = has_permission("workitems.filter.docfields.sensitive.view")
     _fields_key = f"config_fields_{'_'.join(sorted(allowed_processes))}_{current_lang}_s{int(_sees_sensitive)}"
     field_config = cache.get(_fields_key)
     if field_config is None:
@@ -1451,7 +1413,7 @@ def _resolve_prepared_doc_wid_stages(wids):
         return {wid: empty for wid in wids}
 
 
-@require_permission("workitems.import.preparedaudit")
+@require_permission("workitems.prepared.view")
 def prepared_documents():
     """MS02-only standalone 'prepared documents' register page. Reads a real
     OFFSET/FETCH page of dbo.PreparedDocuments and resolves a live (non-stored)
@@ -1547,9 +1509,9 @@ def prepared_documents():
         filter_args["per_page"] = str(per_page)
 
     details_view_perm = has_permission("workitems.details.view")
-    details_images_perm = has_permission("workitems.details.view.images")
-    details_audit_perm = has_permission("workitems.details.view.audit")
-    details_fields_perm = has_permission("workitems.details.view.fields")
+    details_images_perm = has_permission("workitems.details.images.view")
+    details_audit_perm = has_permission("workitems.details.audit.view")
+    details_fields_perm = has_permission("workitems.details.fields.view")
 
     return render_template(
         "prepared_documents.html",
@@ -1561,7 +1523,7 @@ def prepared_documents():
         prepared_filter=prepared_filter,
         group_by=group_by,
         filter_args=filter_args,
-        prepared_import_perm=has_permission("workitems.import.preparedaudit"),
+        prepared_import_perm=has_permission("workitems.prepared.view"),
         ms02_active=ms02_active,
         page_visibility=page_visibility(),
         details_view_perm=details_view_perm,
@@ -1572,7 +1534,7 @@ def prepared_documents():
     )
 
 
-@require_permission("workitems.import.preparedaudit")
+@require_permission("workitems.prepared.view")
 def clear_prepared_documents_route():
     """MS02-only: delete every row in the prepared-documents register."""
     ms02_active = "ms02" in CLIENTS and engine_ms02_docfields_pg is not None

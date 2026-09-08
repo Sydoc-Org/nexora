@@ -3,10 +3,10 @@
 Regression for: api_generali_reporting_list (nx_lib/views/generali.py) built its
 WHERE clause only from request filters, never applying a
 `ReportByUserID = session["userid"]` restriction for callers who lack
-`generali.reporting.edit.organizational` / `generali.reporting.edit.transorganizational`
+`tenant.generali.reporting.edit.org` / `tenant.generali.reporting.edit.all`
 -- unlike every sibling generali module (Attendance, BaseServices,
 ProjectManagement, PDQM, see tests/integration/test_generali_pdqm_routes.py).
-A generali.reporting.view-only caller could see every org's reporting rows.
+A tenant.generali.reporting.view-only caller could see every org's reporting rows.
 
 Session permissions are reloaded from the DB on EVERY request by
 nx_lib.hooks._reload_user_permissions (a before_request hook), so the
@@ -185,7 +185,7 @@ def reporting_uids(user_client):
 def test_reporting_list_view_only_scoped_to_own_records(user_client, reporting_uids, monkeypatch):
     self_uid, other_uid = reporting_uids
     _wire_fake_db(monkeypatch, self_uid, other_uid)
-    _grant_perms(monkeypatch, ["generali.reporting.view"])
+    _grant_perms(monkeypatch, ["tenant.generali.reporting.view"])
 
     resp = user_client.get("/api/generali/reporting")
     assert resp.status_code == 200
@@ -198,12 +198,14 @@ def test_reporting_list_view_only_scoped_to_own_records(user_client, reporting_u
 
 
 def test_reporting_list_org_edit_perm_sees_all(user_client, reporting_uids, monkeypatch):
-    """Regression: a caller WITH generali.reporting.edit.organizational must
+    """Regression: a caller WITH tenant.generali.reporting.edit.org must
     still see every org's rows -- the restrict must not fire for callers
     entitled to edit."""
     self_uid, other_uid = reporting_uids
     _wire_fake_db(monkeypatch, self_uid, other_uid)
-    _grant_perms(monkeypatch, ["generali.reporting.view", "generali.reporting.edit.organizational"])
+    _grant_perms(
+        monkeypatch, ["tenant.generali.reporting.view", "tenant.generali.reporting.edit.org"]
+    )
 
     resp = user_client.get("/api/generali/reporting")
     assert resp.status_code == 200
@@ -214,11 +216,11 @@ def test_reporting_list_org_edit_perm_sees_all(user_client, reporting_uids, monk
 
 
 def test_reporting_list_transorg_edit_perm_sees_all(user_client, reporting_uids, monkeypatch):
-    """Same guarantee for the transorganizational edit perm."""
+    """Same guarantee for the all-orgs (``.edit.all``) edit perm."""
     self_uid, other_uid = reporting_uids
     _wire_fake_db(monkeypatch, self_uid, other_uid)
     _grant_perms(
-        monkeypatch, ["generali.reporting.view", "generali.reporting.edit.transorganizational"]
+        monkeypatch, ["tenant.generali.reporting.view", "tenant.generali.reporting.edit.all"]
     )
 
     resp = user_client.get("/api/generali/reporting")

@@ -254,6 +254,26 @@ if cfg.DB_REPORTING_OCTO_RO_USER and cfg.DB_REPORTING_OCTO_RO_PWD and cfg.DB_OCT
 else:
     engine_octo_ro = None
 
+# Third read-only engine for the SQL sandbox's Generali target: its own
+# db_datareader-only login (DB_REPORTING_GENERALI_RO_*) over the Generali
+# tenant DB. Unset -> None -> that target answers 503; it never falls back to
+# engine_generali_db (the app's read-write login).
+if cfg.DB_REPORTING_GENERALI_RO_USER and cfg.DB_REPORTING_GENERALI_RO_PWD and cfg.DB_GENERALI:
+    engine_generali_ro: Engine | None = create_engine(
+        get_ro_db_url(
+            cfg.DB_GENERALI,
+            uid=cfg.DB_REPORTING_GENERALI_RO_USER,
+            pwd=cfg.DB_REPORTING_GENERALI_RO_PWD,
+        ),
+        pool_size=5,
+        max_overflow=10,
+        pool_timeout=30,
+        pool_recycle=1800,
+        pool_pre_ping=True,
+    )
+else:
+    engine_generali_ro = None
+
 # Dedicated executor for DB health pings so a hung server doesn't block the page.
 _db_ping_executor = ThreadPoolExecutor(max_workers=8, thread_name_prefix="db-ping")
 

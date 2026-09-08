@@ -1,6 +1,6 @@
 """E2E for the reporting source-registry admin page (A3).
 
-TestAdmin holds reporting.admin.sources, so the page renders and a new 'table'
+TestAdmin holds reporting.sources.manage, so the page renders and a new 'table'
 source can be registered through the form and appears in the registry list.
 """
 

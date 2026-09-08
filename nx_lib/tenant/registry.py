@@ -40,10 +40,12 @@ _IDENT_RE = re.compile(r'^[A-Za-z_][A-Za-z0-9_."\[\]]{0,99}$')
 
 @dataclass(frozen=True)
 class Tenant:
+    """A branded portal: the organizations whose ``Organizations.TenantCode``
+    points here share its navigation group. Where data lives is not a tenant
+    property -- each entity carries its own ``client_code`` (0096)."""
+
     code: str
     display_name: str
-    organization_code: str
-    client_code: str
     active: bool
 
 
@@ -52,6 +54,7 @@ class TenantEntity:
     tenant: str
     key: str
     source_object: str
+    client_code: str  # the dbo.Clients row whose engine holds source_object (0096)
     kind: str
     engine_role: str
     id_column: str
@@ -103,23 +106,18 @@ def registry() -> TenantRegistry | None:
         conn = engine_nexora_db.raw_connection()
         cur = conn.cursor()
 
-        cur.execute(
-            "SELECT TenantCode, DisplayName, OrganizationCode, ClientCode, IsActive "
-            "FROM Tenants WHERE IsActive = 1"
-        )
+        cur.execute("SELECT TenantCode, DisplayName, IsActive FROM Tenants WHERE IsActive = 1")
         tenants = {
             r.TenantCode: Tenant(
                 code=r.TenantCode,
                 display_name=r.DisplayName,
-                organization_code=r.OrganizationCode,
-                client_code=r.ClientCode,
                 active=bool(r.IsActive),
             )
             for r in cur.fetchall()
         }
 
         cur.execute(
-            "SELECT TenantCode, EntityKey, SourceObject, Kind, EngineRole, IdColumn, "
+            "SELECT TenantCode, EntityKey, SourceObject, ClientCode, Kind, EngineRole, IdColumn, "
             "LabelEn, LabelDe, LabelFr, LabelIt, SortOrder FROM TenantEntities "
             "WHERE Status = 'active'"
         )
@@ -136,6 +134,7 @@ def registry() -> TenantRegistry | None:
                 tenant=r.TenantCode,
                 key=r.EntityKey,
                 source_object=r.SourceObject,
+                client_code=r.ClientCode,
                 kind=r.Kind,
                 engine_role=r.EngineRole,
                 id_column=r.IdColumn,
@@ -211,6 +210,72 @@ def registry() -> TenantRegistry | None:
 def invalidate_tenant_config() -> None:
     """Drop the cached registry so the next registry() call re-queries."""
     cache.delete(_CACHE_KEY)
+    cache.delete(_ORG_CACHE_KEY)
+
+
+_ORG_CACHE_KEY = "tenant_org_map"
+
+
+def organization_tenant(org_code: str | None) -> str | None:
+    """TenantCode of the organization ``org_code`` belongs to (0090,
+    ``Organizations.TenantCode``), or None -- also None when the map cannot be
+    loaded (fail closed = the user is treated as *not* tenant-scoped and keeps
+    the global navigation, never the other way round). Same 60 s cache as the
+    registry; a failed load is never cached."""
+    if not org_code:
+        return None
+    m = organization_tenant_map()
+    return m.get(org_code) if m is not None else None
+
+
+def organization_tenant_map() -> dict[str, str] | None:
+    """{organizationcode: TenantCode} for every organization inside a tenant
+    (``Organizations.TenantCode``), cached 60 s. None when the map cannot be
+    loaded -- never cached, callers fail closed."""
+    m: dict[str, str] | None = cache.get(_ORG_CACHE_KEY)
+    if m is not None:
+        return m
+    conn = None
+    try:
+        conn = engine_nexora_db.raw_connection()
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT organizationcode, TenantCode FROM Organizations WHERE TenantCode IS NOT NULL"
+        )
+        m = {r.organizationcode: r.TenantCode for r in cur.fetchall()}
+        cache.set(_ORG_CACHE_KEY, m, timeout=_TTL)
+        return m
+    except Exception as e:
+        current_app.logger.error(f"tenant_org_map load: {e}")
+        return None
+    finally:
+        if conn:
+            conn.close()
+
+
+def processes_of_tenant(sources, org_to_tenant: dict[str, str], code: str) -> set[str]:
+    """Process names (``ProcessSources.ProcessName``) of the sources whose
+    organization belongs to tenant ``code``. Pure: ``sources`` are objects with
+    ``.process`` / ``.organization`` (mapping_config's ProcessSource)."""
+    return {
+        s.process
+        for s in sources
+        if getattr(s, "organization", None) and org_to_tenant.get(s.organization) == code
+    }
+
+
+def tenant_processes(code: str) -> set[str] | None:
+    """The processes that belong to tenant ``code`` (0097: the tenant-scoped
+    dashboard narrows a user's process grants to this set). None when either
+    registry is unavailable -- the caller treats that as *no* processes, never
+    as *all*."""
+    from .. import mapping_config  # local: mapping_config is a sibling leaf module
+
+    reg = mapping_config.registry()
+    m = organization_tenant_map()
+    if reg is None or m is None:
+        return None
+    return processes_of_tenant(reg.sources.values(), m, code)
 
 
 def tenant(code: str) -> Tenant | None:

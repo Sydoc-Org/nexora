@@ -1,4 +1,4 @@
-/* Dashboard builder (kind:'dashboard' saved reports) -- Task 11 skeleton.
+/* Dashboard builder (kind:'dashboard' saved reports).
    State model + open/save/edit-toggle handlers ported from the design
    prototype (docs/superpowers/specs/2026-07-20-reporting-dashboard-prototype.dc.html)
    per spec section 3 (docs/superpowers/specs/2026-07-20-reporting-redesign-handoff.md).
@@ -26,19 +26,6 @@
 
   var I18N = window.NX_I18N_REPORTING_DASHBOARD;
 
-  // Chart.js palette for bar/donut cards (spec §Dashboard "Cards") -- cycles
-  // if a card has more categories than colors.
-  var CARD_PALETTE = ['#4f46e5', '#6366f1', '#7c3aed', '#8b5cf6', '#a5b4fc'];
-
-  // Multi-series palette for two-dimension line/bar cards (#174) -- the first
-  // 8 of the Simple pane's NX_PALETTE, duplicated rather than shared for the
-  // same reason that pane duplicates it from _reporting_viz_js.html. Its
-  // length IS the per-card series cap: a 190px-tall card body cannot carry
-  // Simple's 12 legible lines, and every drawn series must own a color.
-  var SERIES_PALETTE = [
-    '#4f46e5', '#7c3aed', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#64748b', '#a78bfa'
-  ];
-
   // Filter-op set + labels for the global-filter popover (D11/Task 13) --
   // mirrors _reporting_js.html's OP_LABELS/op <select> (same msgids, so
   // translations can't drift apart between the two). Narrower than that
@@ -55,7 +42,7 @@
   var state = { editing: false, dirty: false, reportId: null, canEdit: true,
                 dragId: null, overId: null, seq: 100, def: null };
 
-  var DEFAULT_SPAN = { kpi: 3, line: 8, donut: 4, bar: 6, table: 6, report: 12 };
+  var DEFAULT_SPAN = { kpi: 3, chart: 8, table: 6, report: 12 };
 
   // Card height is a whole number of grid rows (--rdb-row / --rdb-gap in
   // reporting.css); .rdb-card's height calc() reads the count off the
@@ -63,7 +50,7 @@
   // predating the `rows` field fall back to the per-type default, sized to the
   // fixed body heights those cards used to have -- so an older dashboard
   // reopens looking as it did before resizing existed.
-  var DEFAULT_ROWS = { kpi: 1, line: 2, donut: 2, bar: 2, table: 2, report: 4 };
+  var DEFAULT_ROWS = { kpi: 1, chart: 3, table: 2, report: 4 };
   var GRID_COLS = 12, MAX_ROWS = 6;
 
   function clampInt(v, lo, hi, dflt) {
@@ -89,32 +76,58 @@
              globalFilters: [], cards: [] };
   }
 
-  // ---- Card-array helpers (ported from the prototype's setCards/addCard;
-  // per-card remove/duplicate + drag-reorder + real filter editing are
-  // Tasks 12/13's job -- this only proves the array -> render round trip). ----
+  // ---- Card-array helpers ----------------------------------------------------
   function setCards(fn) {
     state.def.cards = fn((state.def.cards || []).slice());
     state.dirty = true;
     render();
   }
 
+  // A card is a reference to a saved report plus the piece of it to show:
+  // type = 'report' | 'chart' | 'table' | 'kpi' (kpiIndex picks the tile).
+  // `definition` is the report's live definition, attached when the dashboard
+  // opens (hydrateCards) and stripped again on save (persistedDef) -- the
+  // dashboard never stores its own copy.
   function addCard(type, opts) {
     if (!state.editing) return null;
-    // opts comes from the add-card mask: an adopted saved-report definition,
-    // a title and an explicit size. Without it this is still the old empty
-    // placeholder (D14) -- a "configure this card" body until a saved report
-    // is adopted into it (openReportPicker/adoptReport).
     opts = opts || {};
-    var card = { id: 'n' + state.seq, type: type,
+    var card = { id: 'n' + state.seq, type: type, reportId: String(opts.reportId),
                  span: clampInt(opts.span, 1, GRID_COLS, DEFAULT_SPAN[type] || 6),
                  rows: clampInt(opts.rows, 1, MAX_ROWS, DEFAULT_ROWS[type] || 2),
                  title: opts.title || I18N.newCard,
-                 definition: opts.definition ||
-                   { source: null, metrics: [], columns: [], filters: [] },
+                 definition: opts.definition || null,
                  filterOverrides: [] };
+    if (type === 'kpi') card.kpiIndex = opts.kpiIndex || 0;
     state.seq += 1;
     setCards(function (list) { return list.concat([card]); });
     return card;
+  }
+
+  // GET each distinct report once and attach its definition to the cards
+  // that reference it. A deleted report leaves definition null and the card
+  // says so (runCard).
+  async function hydrateCards(cards) {
+    var ids = [];
+    (cards || []).forEach(function (c) {
+      if (c.reportId && ids.indexOf(c.reportId) === -1) ids.push(c.reportId);
+    });
+    var defs = {};
+    await Promise.all(ids.map(async function (id) {
+      var res = await api('/api/reporting/reports/' + id);
+      defs[id] = (res.ok && res.data && res.data.definition) || null;
+    }));
+    (cards || []).forEach(function (c) { if (c.reportId) c.definition = defs[c.reportId]; });
+  }
+
+  function persistedDef() {
+    var d = Object.assign({}, state.def);
+    d.cards = (d.cards || []).map(function (c) {
+      if (!c.reportId) return c;
+      var o = Object.assign({}, c);
+      delete o.definition;
+      return o;
+    });
+    return d;
   }
 
   // ---- Public entry points (window.ReportingDashboard) ---------------------
@@ -150,7 +163,7 @@
     return max + 1;
   }
 
-  function open(report) {
+  async function open(report) {
     state.def = report.definition;
     state.reportId = report.id;
     state.canEdit = !!report.canEdit;
@@ -158,6 +171,8 @@
     state.dirty = false;
     state.dragId = null; state.overId = null;
     state.seq = nextSeqFor(state.def.cards);
+    await hydrateCards(state.def.cards);
+    if (state.def !== report.definition) return;   // another dashboard opened meanwhile
     render();
   }
 
@@ -170,7 +185,7 @@
   }
 
   async function save() {
-    var body = JSON.stringify({ name: (state.def.title || I18N.untitled), definition: state.def });
+    var body = JSON.stringify({ name: (state.def.title || I18N.untitled), definition: persistedDef() });
     var res = state.reportId
       ? await api('/api/reporting/reports/' + state.reportId, { method: 'PUT', body: body })
       : await api('/api/reporting/reports', { method: 'POST', body: body });
@@ -223,6 +238,9 @@
           '<span class="rdb-editing-dot" aria-hidden="true"></span>' + esc(I18N.editing) + '</span>' +
         '<button type="button" id="rdbAddCard" class="rdb-addcard-btn" data-testid="rdb-add-card" hidden>' +
           '<i class="fas fa-plus" aria-hidden="true"></i>' + esc(I18N.addCard) + '</button>' +
+        '<button type="button" id="rdbPresent" class="nx-btn nx-btn--secondary" data-testid="rdb-present" ' +
+          'title="' + esc(I18N.presentTitle) + '">' +
+          '<i class="fas fa-expand" aria-hidden="true"></i>' + esc(I18N.present) + '</button>' +
         (canExport ?
           '<button type="button" id="rdbExport" class="nx-btn nx-btn--secondary" data-testid="rdb-export">' +
             '<i class="fas fa-file-export" aria-hidden="true"></i>' + esc(I18N.export_) + '</button>'
@@ -245,15 +263,31 @@
     });
     el('rdbTitleInput').addEventListener('blur', commitTitle);
     if (canExport) el('rdbExport').addEventListener('click', toggleExportMenu);
+    // Present: the dashboard element itself goes fullscreen -- the browser
+    // hides everything else, the grid gets the whole screen. Edit mode ends
+    // first (autosaving) so a wall screen never shows drag handles. Esc leaves.
+    el('rdbPresent').hidden = !document.fullscreenEnabled;
+    el('rdbPresent').addEventListener('click', function () {
+      if (state.editing) toggleEditing();
+      var host = el('rsDashboard');
+      if (host.requestFullscreen) host.requestFullscreen().catch(function () { toast(I18N.presentFailed, true); });
+    });
+    document.addEventListener('fullscreenchange', function () {
+      var on = document.fullscreenElement === el('rsDashboard');
+      el('rsDashboard').classList.toggle('rdb-presenting', on);
+      renderHeader();
+    });
     // Header "Add card" and the grid's add-card tile both open the same
-    // one-dialog mask (report -> type -> size). There is no fast path that
-    // drops an unconfigured card straight onto the grid any more.
+    // overlay: pick a saved report, then take pieces of it.
     el('rdbAddCard').addEventListener('click', openAddMask);
     el('rdbEditToggle').addEventListener('click', toggleEditing);
     // Delegated grid clicks -- cards (and the add-card tile) are rebuilt/
     // replaced on every render, so direct per-element listeners would be
     // lost on re-render.
+    el('rdbGrid').addEventListener('input', handleCardToolInput);
+    el('rdbGrid').addEventListener('change', handleCardToolChange);
     el('rdbGrid').addEventListener('click', function (e) {
+      if (handleCardToolClick(e)) return;
       var filterX = e.target.closest && e.target.closest('[data-testid="rdb-card-filter-remove"]');
       if (filterX) {
         var filterCardEl = filterX.closest('[data-card-id]');
@@ -272,17 +306,10 @@
         if (rmCardEl) removeCard(rmCardEl.getAttribute('data-card-id'));
         return;
       }
-      var configure = e.target.closest && e.target.closest('[data-testid="rdb-card-configure"]');
-      if (configure) {
-        var cfgCardEl = configure.closest('[data-card-id]');
-        if (cfgCardEl) openReportPicker(cfgCardEl.getAttribute('data-card-id'));
-        return;
-      }
       var addTile = e.target.closest && e.target.closest('[data-testid="rdb-add-tile"]');
       if (addTile) { openAddMask(); return; }
-      // Whole-report card: table toggle (show/hide the full grid in place,
-      // same msgids as the Simple pane's own #rsTableToggle) and row
-      // drill-through (mirrors handleCardTableRowClick; forecast rows stay
+      // Table toggle (whole-report cards; same msgids as the Simple pane's
+      // own #rsTableToggle) and table-row drill-through (forecast rows stay
       // inert).
       var rtToggle = e.target.closest && e.target.closest('.rdb-report-table-toggle');
       if (rtToggle) {
@@ -304,21 +331,6 @@
         var rtCard = rtCardWrap && findCardById(rtCardWrap.getAttribute('data-card-id'));
         if (rtCard) handleCardTableRowClick(rtCard, rtRows.indexOf(rtRow));
         return;
-      }
-      // Table-card row drill-through (Task 15): renderTable draws each row as
-      // a flat k/v span pair (no per-row wrapper element -- see its comment),
-      // so the row index is derived from the hit span's position among its
-      // siblings rather than a data-row-index attribute.
-      var tableHit = e.target.closest && e.target.closest('.rdb-table-k, .rdb-table-v');
-      if (tableHit) {
-        var rowsContainer = tableHit.closest('[data-testid="rdb-table-rows"]');
-        var tableCardEl = tableHit.closest('[data-card-id]');
-        if (rowsContainer && tableCardEl) {
-          var siblings = Array.prototype.slice.call(rowsContainer.children);
-          var pos = siblings.indexOf(tableHit);
-          var tableCard = pos > -1 && findCardById(tableCardEl.getAttribute('data-card-id'));
-          if (tableCard) handleCardTableRowClick(tableCard, Math.floor(pos / 2));
-        }
       }
     });
     // Drag-to-reorder (D10, ported 1:1 from the prototype's onDragStart/
@@ -347,7 +359,6 @@
     });
     document.addEventListener('keydown', function (e) {
       if (filterPop.open && e.key === 'Escape') closeFilterPopover();
-      if (reportPicker.open && e.key === 'Escape') closeReportPicker();
       if (addMask.open && e.key === 'Escape') closeAddMask();
       if (exportMenu.open && e.key === 'Escape') closeExportMenu();
     });
@@ -381,85 +392,38 @@
     el('rdbEditingPill').hidden = !state.editing;
     el('rdbAddCard').hidden = !state.editing;
     el('rdbRenamePencil').hidden = !state.editing || !state.canEdit;
-    el('rdbEditToggle').hidden = !state.canEdit;
+    el('rdbEditToggle').hidden = !state.canEdit || !!document.fullscreenElement;
     el('rdbEditToggle').textContent = state.editing ? I18N.done : I18N.edit;
   }
 
-  // ---- D4 filter merge -------------------------------------------------
-  // card.definition.filters (base) + state.def.globalFilters (dashboard-
-  // wide) + card.filterOverrides (per-card), concatenated in that order.
-  // De-duping is by EXACT duplicate only (same field+op+value) -- two
-  // DIFFERENT filters on the same field (e.g. a "date >= X" + "date <= Y"
-  // range pair split across gte/lte) both survive as an AND. Previously
-  // this keyed by field with last-write-wins (`byField[f.field] = f`),
-  // which silently dropped the earlier of two same-field filters and
-  // widened the card's query (Task 61). Exact semantics Tasks 13 (override
-  // editing UI) and 15 (KPI trend/drill) build on -- keep this shape if
-  // it's ever extended.
+  // ---- Filter merge --------------------------------------------------------
+  // Three layers, most specific wins PER FIELD: a card's filterOverrides
+  // replace the dashboard's globalFilters on that field, which replace the
+  // report's own definition.filters on that field. Within one layer every
+  // filter survives (a gte + lte range pair is two filters on one field), so
+  // "this month" on the bar does not AND itself onto the report's "last
+  // quarter" -- it takes the field over. Exact duplicates collapse.
   function effectiveFilters(card) {
-    var result = [];
-    var seen = {};
-    function apply(list) {
-      (list || []).forEach(function (f) {
-        if (!f || f.field == null) return;
+    var layers = [
+      (card.definition && card.definition.filters) || [],
+      (state.def && state.def.globalFilters) || [],
+      card.filterOverrides || []
+    ];
+    var owner = {};   // field -> index of the most specific layer that filters it
+    layers.forEach(function (list, i) {
+      list.forEach(function (f) { if (f && f.field != null) owner[f.field] = i; });
+    });
+    var result = [], seen = {};
+    layers.forEach(function (list, i) {
+      list.forEach(function (f) {
+        if (!f || f.field == null || owner[f.field] !== i) return;
         var key = f.field + '|' + f.op + '|' + JSON.stringify(f.value);
         if (seen[key]) return;
         seen[key] = true;
         result.push(f);
       });
-    }
-    apply(card.definition && card.definition.filters);
-    apply(state.def && state.def.globalFilters);
-    apply(card.filterOverrides);
+    });
     return result;
-  }
-
-  // ---- KPI trend period-shift (D8) ---------------------------------------
-  // A "date-range filter" is any effective filter with op 'between' -- the
-  // same signal the Advanced pane's own drill code uses to spot the date
-  // axis (see _reporting_js.html: `x.op === 'between'`). Its value is either
-  // a relative-date token {token:'<name>'} or a literal [start, end] ISO
-  // pair (the Simple wizard's own two shapes -- _reporting_simple_js.html's
-  // isTokenValue/TOKEN_LABELS).
-  function isTokenValue(v) {
-    return !!v && typeof v === 'object' && !Array.isArray(v) && typeof v.token === 'string';
-  }
-
-  // Known relative-date tokens with a documented "previous period" sibling
-  // (nx_lib/reporting/tokens.py's RELATIVE_DATE_TOKENS) -- mapped directly,
-  // never re-derived client-side. Tokens without a listed sibling here
-  // (last_year, last_month, last_quarter, last_week, last_3_months,
-  // last_n_days, today, yesterday) are NOT resolved locally -- doing so
-  // would duplicate the server's own date math -- so shiftDateRangeFilter
-  // returns null for them (D8: honest numbers or nothing).
-  var PREV_TOKEN = {
-    this_week: 'last_week', this_month: 'last_month',
-    this_quarter: 'last_quarter', this_year: 'last_year'
-  };
-
-  function isoDate(d) { return d.toISOString().slice(0, 10); }
-
-  // Pure: given ONE date-range filter, returns the equivalent filter for
-  // "one period back", or null when no shift is possible. A token with a
-  // sibling in PREV_TOKEN maps directly; a literal [start, end] pair shifts
-  // back by its own (inclusive) length, ending the day before `start`.
-  function shiftDateRangeFilter(f) {
-    if (!f || f.op !== 'between') return null;
-    var v = f.value;
-    if (isTokenValue(v)) {
-      var prev = PREV_TOKEN[v.token];
-      return prev ? { field: f.field, op: 'between', value: { token: prev } } : null;
-    }
-    if (Array.isArray(v) && v.length === 2 && v[0] && v[1]) {
-      var start = new Date(String(v[0]).slice(0, 10) + 'T00:00:00Z');
-      var end = new Date(String(v[1]).slice(0, 10) + 'T00:00:00Z');
-      if (isNaN(start.getTime()) || isNaN(end.getTime()) || end < start) return null;
-      var spanMs = end.getTime() - start.getTime();
-      var newEnd = new Date(start.getTime() - 86400000);
-      var newStart = new Date(newEnd.getTime() - spanMs);
-      return { field: f.field, op: 'between', value: [isoDate(newStart), isoDate(newEnd)] };
-    }
-    return null;
   }
 
   // ---- Filter-field catalog (D11) ----------------------------------------
@@ -517,13 +481,6 @@
   // builder's filter row (_reporting_js.html): grainable OR a "date"-ish type.
   function isDateFieldMeta(meta) {
     return !!(meta && (meta.grainable || /date/i.test(meta.type || '')));
-  }
-
-  function filterChipLabel(f) {
-    var meta = fieldMetaByKey(f.field);
-    var parts = [(meta && meta.label) || f.field, OP_LABELS[f.op] || f.op];
-    if (f.value != null && f.value !== '') parts.push(String(f.value));
-    return parts.join(' ');
   }
 
   // ---- Global filter popover (D11 -- field/op/value, self-contained) -----
@@ -632,7 +589,7 @@
       applyBtn.textContent = I18N.apply;
       applyBtn.addEventListener('click', function () {
         var isNullOp = opSel.value === 'is_null' || opSel.value === 'is_not_null';
-        applyGlobalFilter(index, fieldSel.value, opSel.value, isNullOp ? null : valInput.value);
+        applyFacet(fieldSel.value, { field: fieldSel.value, op: opSel.value, value: isNullOp ? null : valInput.value });
       });
       actions.appendChild(cancelBtn);
       actions.appendChild(applyBtn);
@@ -658,35 +615,32 @@
   function snapshotEffectiveByCard() {
     var map = {};
     ((state.def && state.def.cards) || []).forEach(function (c) {
-      map[c.id] = JSON.stringify(effectiveFilters(c));
+      map[c.id] = JSON.stringify(cardRunDef(c, effectiveFilters(c)));
     });
     return map;
   }
 
   function rerunCardsWhereChanged(before) {
     ((state.def && state.def.cards) || []).forEach(function (c) {
-      if (JSON.stringify(effectiveFilters(c)) !== before[c.id]) renderCard(c);
+      if (JSON.stringify(cardRunDef(c, effectiveFilters(c))) !== before[c.id]) renderCard(c);
     });
   }
 
-  function applyGlobalFilter(index, field, op, value) {
+  // Set (or replace) the dashboard's filter on one field, then re-run only
+  // the cards whose effective query changed.
+  function applyFacet(field, f) {
     var before = snapshotEffectiveByCard();
-    state.def.globalFilters = state.def.globalFilters || [];
-    var f = { field: field, op: op, value: value };
-    if (index == null || index < 0) {
-      state.def.globalFilters.push(f);
-    } else {
-      state.def.globalFilters[index] = f;
-    }
+    state.def.globalFilters = (state.def.globalFilters || []).filter(function (g) { return g.field !== field; });
+    if (f) state.def.globalFilters.push(f);
     state.dirty = true;
     closeFilterPopover();
     renderFilterBar();
     rerunCardsWhereChanged(before);
   }
 
-  function removeGlobalFilter(index) {
+  function applyProcesses(picked) {
     var before = snapshotEffectiveByCard();
-    state.def.globalFilters.splice(index, 1);
+    state.def.globalProcesses = picked && picked.length ? picked.slice() : null;
     state.dirty = true;
     closeFilterPopover();
     renderFilterBar();
@@ -704,35 +658,297 @@
     renderCard(card);
   }
 
+  // ---- Filter bar: the reports' own filters, one chip per field ------------
+  // The bar does not start empty. Every field the cards' reports already
+  // filter on gets a chip showing the reports' value; clicking it edits the
+  // value with a control that fits the field (date presets, a checkbox
+  // picker for value lists, text otherwise) and that becomes the dashboard's
+  // value for the field on every card. A chip carrying a dashboard value is
+  // tinted and offers a reset back to the reports' own. Reports that disagree
+  // on a field read "mixed" until one value is picked. Processes (report
+  // scope, not a filter) get the same treatment.
+  var PROCESSES = '__processes';
+
+  var TOKEN_LABELS = {
+    today: I18N.tokenToday, yesterday: I18N.tokenYesterday,
+    this_week: I18N.thisWeek, last_week: I18N.lastWeek,
+    this_month: I18N.thisMonth, last_month: I18N.lastMonth,
+    this_quarter: I18N.thisQuarter, last_quarter: I18N.lastQuarter,
+    last_3_months: I18N.last3Months, this_year: I18N.thisYear, last_year: I18N.lastYear
+  };
+  function isTokenValue(v) {
+    return !!v && typeof v === 'object' && !Array.isArray(v) && typeof v.token === 'string';
+  }
+
+  function definedCards() {
+    return ((state.def && state.def.cards) || []).filter(function (c) { return c.definition; });
+  }
+
+  // Processes every card's source offers (the picker's choices) and the
+  // processes the reports themselves narrow to ([] = all of them).
+  function processFacetData() {
+    var all = [], reportPicked = [], anyNarrowed = false;
+    definedCards().forEach(function (c) {
+      var src = catalog.sources.find(function (s) { return s.id === c.definition.source; });
+      ((src && src.processes) || []).forEach(function (p) { if (all.indexOf(p) === -1) all.push(p); });
+      var picked = (c.definition.scope && c.definition.scope.processes) || [];
+      if (picked.length) anyNarrowed = true;
+      picked.forEach(function (p) { if (reportPicked.indexOf(p) === -1) reportPicked.push(p); });
+    });
+    return { all: all, reportPicked: anyNarrowed ? reportPicked : [] };
+  }
+
+  function facets() {
+    var byField = {}, order = [];
+    definedCards().forEach(function (c) {
+      (c.definition.filters || []).forEach(function (f) {
+        if (!f || f.field == null) return;
+        var e = byField[f.field];
+        if (!e) { e = byField[f.field] = { field: f.field, values: [], global: null }; order.push(e); }
+        var j = f.op + '|' + JSON.stringify(f.value);
+        if (!e.values.some(function (v) { return v.json === j; })) e.values.push({ op: f.op, value: f.value, json: j });
+      });
+    });
+    ((state.def && state.def.globalFilters) || []).forEach(function (f) {
+      var e = byField[f.field];
+      if (!e) { e = byField[f.field] = { field: f.field, values: [], global: null }; order.push(e); }
+      e.global = f;
+    });
+    var procs = processFacetData();
+    if (procs.all.length) {
+      order.unshift({ field: PROCESSES, values: [], global: null, procs: procs });
+    }
+    return order;
+  }
+
+  function valueLabel(op, v) {
+    if (isTokenValue(v)) return TOKEN_LABELS[v.token] || v.token;
+    if (op === 'is_null' || op === 'is_not_null') return OP_LABELS[op];
+    if (Array.isArray(v)) {
+      if (op === 'between') return v.join(' → ');
+      var shown = v.slice(0, 3).join(', ');
+      return v.length > 3 ? shown + ' +' + (v.length - 3) : shown;
+    }
+    var opl = (op && op !== 'eq') ? (OP_LABELS[op] || op) + ' ' : '';
+    return opl + (v === null || v === undefined ? '' : String(v));
+  }
+
+  function facetLabel(fc) {
+    if (fc.field === PROCESSES) {
+      var gp = state.def && state.def.globalProcesses;
+      var picked = (gp && gp.length) ? gp : fc.procs.reportPicked;
+      return { name: I18N.processes, value: picked.length ? valueLabel('in', picked) : I18N.allProcesses,
+               mixed: false, active: !!(gp && gp.length) };
+    }
+    var meta = fieldMetaByKey(fc.field);
+    var name = (meta && meta.label) || fc.field;
+    if (fc.global) return { name: name, value: valueLabel(fc.global.op, fc.global.value), mixed: false, active: true };
+    if (fc.values.length === 1) return { name: name, value: valueLabel(fc.values[0].op, fc.values[0].value), mixed: false, active: false };
+    return { name: name, value: I18N.mixed, mixed: true, active: false };
+  }
+
+  function isDateFacet(fc) {
+    if (isDateFieldMeta(fieldMetaByKey(fc.field))) return true;
+    var probe = fc.global || fc.values[0];
+    return !!(probe && (isTokenValue(probe.value) || probe.op === 'between'));
+  }
+
+  function isListFacet(fc) {
+    var probe = fc.global || fc.values[0];
+    return !!(probe && (probe.op === 'in' || probe.op === 'not_in'));
+  }
+
+  // ---- Facet editor: one popover, three shapes ------------------------------
+  async function openFacetEditor(anchorEl, fc) {
+    await ensureCatalog();
+    var values = null, labels = {};
+    if (fc.field === PROCESSES) {
+      values = fc.procs.all.slice();
+    } else if (isListFacet(fc)) {
+      var host = definedCards().find(function (c) {
+        return (c.definition.filters || []).some(function (f) { return f.field === fc.field; });
+      });
+      if (host) {
+        var src = catalog.sources.find(function (s) { return s.id === host.definition.source; });
+        if (fc.field === 'processname' && src && (src.processes || []).length) {
+          values = src.processes.slice();
+        } else {
+          var res = await api('/api/reporting/field_values', {
+            method: 'POST', body: JSON.stringify({ source: host.definition.source, field: fc.field })
+          });
+          values = (res.ok && res.data && res.data.values) || [];
+          labels = (res.ok && res.data && res.data.labels) || {};
+        }
+      }
+    }
+    // Same deferral as openFilterPopover: land in a fresh task so the click
+    // that opened us has finished bubbling past the outside-click closer.
+    setTimeout(function () {
+      if (!anchorEl.isConnected) return;
+      closeFilterPopover();
+      var pop = document.createElement('div');
+      pop.id = 'rdbFilterPop';
+      pop.className = 'rdb-filter-pop rdb-facet-pop';
+      pop.setAttribute('data-testid', 'rdb-filter-pop');
+      pop.setAttribute('role', 'dialog');
+      var lab = facetLabel(fc);
+      pop.setAttribute('aria-label', lab.name);
+      var head = document.createElement('label');
+      head.textContent = lab.name;
+      pop.appendChild(head);
+
+      var current = fc.field === PROCESSES ? null : (fc.global || fc.values[0] || null);
+      var apply;   // () => void, set per shape below
+
+      if (fc.field === PROCESSES || (values && values.length)) {
+        var selected = fc.field === PROCESSES
+          ? ((state.def.globalProcesses && state.def.globalProcesses.length) ? state.def.globalProcesses : fc.procs.reportPicked)
+          : (current && Array.isArray(current.value) ? current.value : []);
+        selected.forEach(function (v) { if (values.indexOf(v) === -1) values.push(v); });
+        var list = document.createElement('div');
+        list.className = 'rdb-facet-values';
+        list.setAttribute('data-testid', 'rdb-facet-values');
+        var inputs = values.map(function (v) {
+          var l = document.createElement('label');
+          var cb = document.createElement('input');
+          cb.type = 'checkbox'; cb.value = v;
+          cb.checked = fc.field === PROCESSES && !selected.length ? true : selected.indexOf(v) !== -1;
+          l.appendChild(cb);
+          l.appendChild(document.createTextNode(' ' + (labels[v] || v)));
+          list.appendChild(l);
+          return cb;
+        });
+        pop.appendChild(list);
+        apply = function () {
+          var picked = inputs.filter(function (c) { return c.checked; }).map(function (c) { return c.value; });
+          if (fc.field === PROCESSES) { applyProcesses(picked.length === values.length ? null : picked); return; }
+          if (!picked.length) return;   // an empty IN () matches nothing -- keep editing
+          applyFacet(fc.field, { field: fc.field, op: (current && current.op) || 'in', value: picked });
+        };
+      } else if (isDateFacet(fc)) {
+        var preset = document.createElement('select');
+        preset.className = 'reporting-input';
+        preset.setAttribute('data-testid', 'rdb-facet-preset');
+        Object.keys(TOKEN_LABELS).forEach(function (k) {
+          var o = document.createElement('option');
+          o.value = k; o.textContent = TOKEN_LABELS[k];
+          preset.appendChild(o);
+        });
+        var co = document.createElement('option');
+        co.value = ''; co.textContent = I18N.custom;
+        preset.appendChild(co);
+        var range = document.createElement('div');
+        range.className = 'rdb-facet-range';
+        var from = document.createElement('input'); from.type = 'date'; from.className = 'reporting-input';
+        from.setAttribute('data-testid', 'rdb-facet-from');
+        var to = document.createElement('input'); to.type = 'date'; to.className = 'reporting-input';
+        to.setAttribute('data-testid', 'rdb-facet-to');
+        range.appendChild(from); range.appendChild(to);
+        if (current && isTokenValue(current.value) && TOKEN_LABELS[current.value.token]) {
+          preset.value = current.value.token;
+        } else {
+          preset.value = '';
+          if (current && Array.isArray(current.value)) { from.value = String(current.value[0] || '').slice(0, 10); to.value = String(current.value[1] || '').slice(0, 10); }
+        }
+        range.hidden = !!preset.value;
+        preset.addEventListener('change', function () { range.hidden = !!preset.value; });
+        pop.appendChild(preset); pop.appendChild(range);
+        apply = function () {
+          if (preset.value) { applyFacet(fc.field, { field: fc.field, op: 'between', value: { token: preset.value } }); return; }
+          if (!from.value || !to.value) return;
+          applyFacet(fc.field, { field: fc.field, op: 'between', value: [from.value, to.value] });
+        };
+      } else {
+        var input = document.createElement('input');
+        input.className = 'reporting-input';
+        input.setAttribute('data-testid', 'rdb-facet-input');
+        input.value = current && current.value != null && !Array.isArray(current.value) ? String(current.value) : '';
+        pop.appendChild(input);
+        apply = function () {
+          var v = input.value.trim();
+          if (!v) return;
+          applyFacet(fc.field, { field: fc.field, op: (current && current.op) || 'eq', value: v });
+        };
+      }
+
+      var actions = document.createElement('div');
+      actions.className = 'rdb-filter-pop-actions';
+      if (lab.active) {
+        var reset = document.createElement('button');
+        reset.type = 'button';
+        reset.className = 'nx-btn nx-btn--secondary';
+        reset.setAttribute('data-testid', 'rdb-facet-reset');
+        reset.textContent = I18N.resetFilter;
+        reset.addEventListener('click', function () {
+          if (fc.field === PROCESSES) applyProcesses(null); else applyFacet(fc.field, null);
+        });
+        actions.appendChild(reset);
+      }
+      var ok = document.createElement('button');
+      ok.type = 'button';
+      ok.className = 'nx-btn nx-btn--primary';
+      ok.setAttribute('data-testid', 'rdb-facet-apply');
+      ok.textContent = I18N.apply;
+      ok.addEventListener('click', apply);
+      actions.appendChild(ok);
+      pop.appendChild(actions);
+
+      el('rdbFilterBar').appendChild(pop);
+      positionFilterPopover(pop, anchorEl);
+      filterPop.open = true;
+    }, 0);
+  }
+
   function renderFilterBar() {
     closeFilterPopover();
     var chips = el('rdbFilterChips');
     chips.innerHTML = '';
-    var filters = (state.def && state.def.globalFilters) || [];
-    filters.forEach(function (f, i) {
+    // Field labels come from the catalog; first paint may show raw keys,
+    // the catalog's arrival repaints once.
+    if (!catalog.loaded) ensureCatalog().then(function () { if (el('rdbFilterChips')) renderFilterBar(); });
+    facets().forEach(function (fc) {
+      var lab = facetLabel(fc);
       var chipEl = document.createElement('span');
-      chipEl.className = 'reporting-drill-chip reporting-drill-chip--indigo rdb-gfilter';
+      chipEl.className = 'reporting-drill-chip rdb-gfilter ' +
+        (lab.active ? 'reporting-drill-chip--indigo rdb-gfilter--active' : 'rdb-gfilter--derived') +
+        (lab.mixed ? ' rdb-gfilter--mixed' : '');
       chipEl.setAttribute('data-testid', 'rdb-gfilter');
+      chipEl.setAttribute('data-field', fc.field);
       chipEl.tabIndex = 0;
-      var icon = document.createElement('i');
-      icon.className = 'fas fa-filter';
-      icon.setAttribute('aria-hidden', 'true');
-      var label = document.createElement('span');
-      label.textContent = filterChipLabel(f);
-      var x = document.createElement('i');
-      x.className = 'fas fa-xmark rdb-gfilter-x';
-      x.setAttribute('data-testid', 'rdb-gfilter-remove');
-      x.setAttribute('aria-hidden', 'true');
-      x.addEventListener('click', function (e) { e.stopPropagation(); removeGlobalFilter(i); });
-      chipEl.appendChild(icon); chipEl.appendChild(label); chipEl.appendChild(x);
-      chipEl.addEventListener('click', function () { openFilterPopover(chipEl, f, i); });
+      chipEl.setAttribute('role', 'button');
+      var name = document.createElement('span');
+      name.className = 'rdb-gfilter-name';
+      name.textContent = lab.name;
+      var val = document.createElement('span');
+      val.className = 'rdb-gfilter-val';
+      val.textContent = lab.value;
+      chipEl.appendChild(name); chipEl.appendChild(val);
+      if (lab.active) {
+        var x = document.createElement('i');
+        x.className = 'fas fa-rotate-left rdb-gfilter-x';
+        x.setAttribute('data-testid', 'rdb-gfilter-remove');
+        x.setAttribute('title', I18N.resetFilter);
+        x.setAttribute('aria-hidden', 'true');
+        x.addEventListener('click', function (e) {
+          e.stopPropagation();
+          if (fc.field === PROCESSES) applyProcesses(null); else applyFacet(fc.field, null);
+        });
+        chipEl.appendChild(x);
+      }
+      var open = function () { openFacetEditor(chipEl, fc); };
+      chipEl.addEventListener('click', open);
+      chipEl.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
+      });
       chips.appendChild(chipEl);
     });
     var add = document.createElement('button');
     add.type = 'button';
     add.className = 'rdb-add-filter';
     add.setAttribute('data-testid', 'rdb-add-filter');
-    add.innerHTML = '<i class="fas fa-plus" aria-hidden="true"></i>' + esc(I18N.addFilter);
+    add.setAttribute('title', I18N.addFilter);
+    add.setAttribute('aria-label', I18N.addFilter);
+    add.innerHTML = '<i class="fas fa-plus" aria-hidden="true"></i>';
     add.addEventListener('click', function () { openFilterPopover(add, null, -1); });
     chips.appendChild(add);
   }
@@ -753,112 +969,15 @@
     });
   }
 
-  // ---- Small formatting/number helpers -----------------------------------
-  function toNum(v) {
-    if (v === null || v === undefined || v === '') return null;
-    var n = Number(v);
-    return isFinite(n) ? n : null;
-  }
-
-  function fmtNum(v) {
-    var n = toNum(v);
-    if (n === null) return v == null ? '—' : String(v);
-    return n.toLocaleString('en-US', { maximumFractionDigits: Number.isInteger(n) ? 0 : 2 });
-  }
-
-  function fmtLabel(v) { return v == null ? '' : String(v); }
-
   // Leading response columns are the definition's dimensions, the trailing
-  // ones its metrics; the first metric is the value a card draws. A
-  // zero-dimension definition (KPI cards run a zero-column clone, same
-  // pattern as the Simple pane's grand-total call) returns just the metric
-  // columns, so there's no dimension to read.
-  //
-  // `dims` is every dimension index: dims[0] is the axis, dims[1..] are the
-  // breakdown that renderLine/renderBar pivot into series (#174). Before
-  // that this returned a fixed val:1, so a two-dimension report read its
-  // SECOND DIMENSION as the value -- toNum('Invoice') === null -- and every
-  // such card drew a flat zero line while the same report charted correctly
-  // in the Simple result view.
+  // ones its metrics. `dims` is every dimension index (dims[0] is the axis);
+  // a zero-dimension result has none to drill on.
   function dimValIdx(columns, card) {
     var nMetrics = ((card && card.definition && card.definition.metrics) || []).length || 1;
     var val = Math.max(0, columns.length - nMetrics);
     var dims = [];
     for (var i = 0; i < val; i++) dims.push(i);
     return { dim: dims.length ? 0 : -1, val: val, dims: dims };
-  }
-
-  // Display label for a row's dimensions: the axis value on its own for a
-  // single-dim card, all of them joined for a breakdown ("Jan · Invoice"),
-  // matching the Simple pane's series labels.
-  function dimLabel(row, idx) {
-    return idx.dims.map(function (d) { return fmtLabel(row[d]); }).join(' · ');
-  }
-
-  // Two-dimension pivot: first dim = axis, the remaining dims joined = one
-  // series each. Ported from the Simple pane's chart builder
-  // (_reporting_simple_js.html, its `dims >= 2` branch) per #174 -- the logic
-  // already existed, cards just never used it. Series are ordered by total
-  // desc and capped at SERIES_PALETTE.length; the overflow count comes back
-  // in `hidden` so the caller can say so rather than truncate silently.
-  function pivotCard(rows, idx) {
-    var xOrder = [], rawX = [], cell = {}, tot = {}, parts = {};
-    rows.forEach(function (r) {
-      var x = fmtLabel(r[idx.dims[0]]);
-      var pv = [], lbl = [];
-      for (var d = 1; d < idx.dims.length; d++) { pv.push(r[idx.dims[d]]); lbl.push(fmtLabel(r[idx.dims[d]])); }
-      var s = lbl.join(' · ');
-      var v = toNum(r[idx.val]) || 0;
-      if (!cell[x]) { xOrder.push(x); rawX.push(r[idx.dims[0]]); cell[x] = {}; }
-      // Every breakdown dim is in the series key, so a cell is one exact
-      // aggregate row -- nothing is summed across buckets, which keeps
-      // avg/min/max metrics honest (same reasoning as the Simple pane).
-      cell[x][s] = (cell[x][s] || 0) + v;
-      tot[s] = (tot[s] || 0) + v;
-      parts[s] = pv;
-    });
-    var keys = Object.keys(tot).sort(function (a, b) { return tot[b] - tot[a]; });
-    var shown = keys.slice(0, SERIES_PALETTE.length);
-    return {
-      labels: xOrder, rawX: rawX, hidden: keys.length - shown.length, total: keys.length,
-      series: shown.map(function (s, i) {
-        return {
-          label: s, parts: parts[s], color: SERIES_PALETTE[i],
-          data: xOrder.map(function (x) { return cell[x][s] || 0; })
-        };
-      })
-    };
-  }
-
-  // Note line above a chart body when the pivot dropped series (never a
-  // silent cap). Returns '' when everything fit.
-  function seriesCapNoteHtml(pv) {
-    if (!pv.hidden) return '';
-    return '<p class="rdb-card-note" data-testid="rdb-card-note">' + esc(
-      I18N.chartSeriesCapped.replace('{shown}', String(pv.series.length))
-                            .replace('{n}', String(pv.total))) + '</p>';
-  }
-
-  // Chart.js options shared by the multi-series line/bar branches: a legend
-  // (single-series cards keep it off -- one unnamed series needs no key) and
-  // the drill-through hit-test, which for a pivoted card must carry the
-  // clicked SERIES as well as the x bucket.
-  function multiSeriesOptions(card, pv) {
-    return {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: true, position: 'bottom',
-        labels: { boxWidth: 8, boxHeight: 8, usePointStyle: true, pointStyle: 'circle',
-                  font: { family: 'Inter', size: 10.5 }, color: tickColor(), padding: 10 } } },
-      scales: {
-        x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 10.5 }, color: tickColor() } },
-        y: { grid: { color: dividerColor() },
-             ticks: { font: { family: 'Inter', size: 10.5 }, color: tickColor() } }
-      },
-      onClick: function (evt) {
-        var els = this.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, false);
-        if (els.length) handleCardSeriesClick(card, pv, els[0].datasetIndex, els[0].index);
-      }
-    };
   }
 
   function findCardEl(id) {
@@ -871,21 +990,6 @@
 
   function findCardById(id) {
     return ((state.def && state.def.cards) || []).find(function (c) { return c.id === id; });
-  }
-
-  function dividerColor() {
-    return getComputedStyle(document.documentElement).getPropertyValue('--nx-divider').trim() || '#e5e7eb';
-  }
-
-  // Chart-build-time dark check (Task 16) -- read once per render call, not
-  // live-reactive: toggling dark mode with a dashboard open re-themes on the
-  // next render, which is acceptable v1 (see the redesign plan's Task 16).
-  function isDark() {
-    return document.documentElement.classList.contains('dark');
-  }
-
-  function tickColor() {
-    return isDark() ? '#64748b' : '#9ca3af';
   }
 
   // ---- Drill-through (chart-element / table-row clicks) ------------------
@@ -935,33 +1039,8 @@
     return out;
   }
 
-  // index is the Chart.js element index from onClick (getElementsAtEventForMode).
-  function handleCardChartClick(card, index) {
-    var data = cardRunData[card.id];
-    if (!data) return;
-    var idx = dimValIdx(data.columns, card);
-    if (idx.dim < 0) return;  // no dimension column -- nothing to drill on
-    var row = data.rows[index];
-    if (!row) return;
-    var clicked = clickedFor(card, idx, idx.dims.map(function (d) { return row[d]; }));
-    if (clicked.length) openCardDrill(card, clicked);
-  }
-
-  // Pivoted (multi-series) line/bar cards: the clicked element identifies a
-  // series AND an x bucket, and both must reach the drill -- otherwise
-  // clicking one process's point drills into every process for that month.
-  // The pivot keeps each series' raw per-dim values in `parts`, same as the
-  // Simple pane's chartData.rawSeries.
-  function handleCardSeriesClick(card, pv, datasetIndex, index) {
-    var idx = dimValIdx((cardRunData[card.id] || {}).columns || [], card);
-    var s = pv.series[datasetIndex];
-    if (!s || index >= pv.rawX.length) return;
-    var clicked = clickedFor(card, idx, [pv.rawX[index]].concat(s.parts));
-    if (clicked.length) openCardDrill(card, clicked);
-  }
-
   // rowIndex is the table card's row position (0-based, matching the capped
-  // rows renderTable actually drew).
+  // rows the table actually drew).
   function handleCardTableRowClick(card, rowIndex) {
     var data = cardRunData[card.id];
     if (!data) return;
@@ -971,171 +1050,6 @@
     if (!row) return;
     var clicked = clickedFor(card, idx, idx.dims.map(function (d) { return row[d]; }));
     if (clicked.length) openCardDrill(card, clicked);
-  }
-
-  // ---- Per-type card body renderers --------------------------------------
-  // Each takes the already-cleared <body> element for the card plus the
-  // {columns, rows} the run returned, and draws into it.
-  function renderKpi(card, body, columns, rows) {
-    var idx = dimValIdx(columns, card);
-    var v = rows.length ? rows[0][idx.val] : null;
-    body.innerHTML = '<p class="rdb-kpi-value" data-testid="rdb-kpi-value">' + esc(fmtNum(v)) + '</p>';
-  }
-
-  function renderLine(card, body, columns, rows) {
-    destroyCardChart(card.id);
-    if (typeof Chart === 'undefined') { body.textContent = I18N.chartUnavailable; return; }
-    var idx = dimValIdx(columns, card);
-    if (idx.dims.length > 1) return renderMultiSeries(card, body, rows, idx, 'line');
-    body.innerHTML = '<div class="rdb-chart-wrap"><canvas></canvas></div>';
-    var canvas = body.querySelector('canvas');
-    var labels = rows.map(function (r) { return idx.dim >= 0 ? fmtLabel(r[idx.dim]) : ''; });
-    var data = rows.map(function (r) { return toNum(r[idx.val]) || 0; });
-    var ctx = canvas.getContext('2d');
-    var h = (canvas.parentNode && canvas.parentNode.clientHeight) || 190;
-    var gradient = ctx.createLinearGradient(0, 0, 0, h);
-    gradient.addColorStop(0, 'rgba(79,70,229,.20)');
-    gradient.addColorStop(1, 'rgba(79,70,229,0)');
-    charts[card.id] = new Chart(ctx, {
-      type: 'line',
-      data: { labels: labels, datasets: [{
-        data: data, borderColor: '#4f46e5', borderWidth: 2.5, tension: 0.4,
-        pointRadius: 0, fill: true, backgroundColor: gradient
-      }] },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 10.5 }, color: tickColor() } },
-          y: { grid: { color: dividerColor() },
-               ticks: { font: { family: 'Inter', size: 10.5 }, color: tickColor() } }
-        },
-        // Drill-through (Task 15): same getElementsAtEventForMode hit-test
-        // the Simple pane's own chart onClick uses.
-        onClick: function (evt) {
-          var els = this.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, false);
-          if (els.length) handleCardChartClick(card, els[0].index);
-        }
-      }
-    });
-  }
-
-  function renderBar(card, body, columns, rows) {
-    destroyCardChart(card.id);
-    if (typeof Chart === 'undefined') { body.textContent = I18N.chartUnavailable; return; }
-    var idx = dimValIdx(columns, card);
-    if (idx.dims.length > 1) return renderMultiSeries(card, body, rows, idx, 'bar');
-    body.innerHTML = '<div class="rdb-chart-wrap"><canvas></canvas></div>';
-    var canvas = body.querySelector('canvas');
-    var labels = rows.map(function (r) { return idx.dim >= 0 ? fmtLabel(r[idx.dim]) : ''; });
-    var data = rows.map(function (r) { return toNum(r[idx.val]) || 0; });
-    var colors = labels.map(function (_, i) { return CARD_PALETTE[i % CARD_PALETTE.length]; });
-    charts[card.id] = new Chart(canvas.getContext('2d'), {
-      type: 'bar',
-      data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, borderRadius: 5, barThickness: 26 }] },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 10.5 }, color: tickColor() } },
-          y: { grid: { color: dividerColor() },
-               ticks: { font: { family: 'Inter', size: 10.5 }, color: tickColor() } }
-        },
-        onClick: function (evt) {
-          var els = this.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, false);
-          if (els.length) handleCardChartClick(card, els[0].index);
-        }
-      }
-    });
-  }
-
-  // Two-dimension line/bar cards (#174): axis = first dim, one colored,
-  // named series per remaining-dims combination -- what the Simple result
-  // view has always drawn for the same report. Legend on (a named series
-  // needs its key); single-series cards keep their locked indigo look above.
-  function renderMultiSeries(card, body, rows, idx, type) {
-    var pv = pivotCard(rows, idx);
-    body.innerHTML = seriesCapNoteHtml(pv) + '<div class="rdb-chart-wrap"><canvas></canvas></div>';
-    var canvas = body.querySelector('canvas');
-    charts[card.id] = new Chart(canvas.getContext('2d'), {
-      type: type,
-      data: {
-        labels: pv.labels,
-        datasets: pv.series.map(function (s) {
-          return type === 'line'
-            ? { label: s.label, data: s.data, borderColor: s.color, backgroundColor: s.color,
-                borderWidth: 2, tension: 0.4, pointRadius: 0, fill: false }
-            : { label: s.label, data: s.data, backgroundColor: s.color,
-                borderRadius: 5, maxBarThickness: 26 };
-        })
-      },
-      options: multiSeriesOptions(card, pv)
-    });
-  }
-
-  // Donut/table cap at 8 rows; donuts additionally roll the remainder into
-  // an 8th "Other" segment (tables just show the first 8, no roll-up row).
-  // A second dimension is not pivoted here -- a donut has no axis to pivot
-  // against -- but it IS named: the segment label joins every dimension
-  // ("Jan · Invoice"), so each segment stays one exact aggregate row rather
-  // than silently charting the breakdown column as if it were the value.
-  function renderDonut(card, body, columns, rows) {
-    destroyCardChart(card.id);
-    var idx = dimValIdx(columns, card);
-    var pairs = rows.map(function (r) {
-      return { label: dimLabel(r, idx), value: toNum(r[idx.val]) || 0 };
-    });
-    if (pairs.length > 8) {
-      var rest = pairs.slice(7).reduce(function (a, p) { return a + p.value; }, 0);
-      pairs = pairs.slice(0, 7).concat([{ label: I18N.other, value: rest }]);
-    }
-    var total = pairs.reduce(function (a, p) { return a + p.value; }, 0);
-    var colors = pairs.map(function (_, i) { return CARD_PALETTE[i % CARD_PALETTE.length]; });
-    body.innerHTML =
-      '<div class="rdb-donut-wrap">' +
-        '<div class="rdb-donut-ring">' +
-          '<canvas></canvas>' +
-          '<div class="rdb-donut-center" data-testid="rdb-donut-center">' +
-            '<span class="rdb-donut-total-value">' + esc(fmtNum(total)) + '</span>' +
-            '<span class="rdb-donut-total-label">' + esc(I18N.total) + '</span>' +
-          '</div>' +
-        '</div>' +
-        '<div class="rdb-donut-legend">' +
-          pairs.map(function (p, i) {
-            return '<div class="rdb-donut-legend-row">' +
-              '<span class="rdb-donut-swatch" style="background:' + colors[i] + '"></span>' +
-              '<span class="rdb-donut-legend-label">' + esc(p.label) + '</span>' +
-              '<span class="rdb-donut-legend-value">' + esc(fmtNum(p.value)) + '</span>' +
-            '</div>';
-          }).join('') +
-        '</div>' +
-      '</div>';
-    if (typeof Chart === 'undefined') return;
-    var canvas = body.querySelector('canvas');
-    charts[card.id] = new Chart(canvas.getContext('2d'), {
-      type: 'doughnut',
-      data: { labels: pairs.map(function (p) { return p.label; }),
-              datasets: [{ data: pairs.map(function (p) { return p.value; }),
-                           backgroundColor: colors, borderColor: '#fff', borderWidth: 2 }] },
-      options: { responsive: true, maintainAspectRatio: false, cutout: '68%',
-                 plugins: { legend: { display: false } } }
-    });
-  }
-
-  // Each row is a flat k/v span pair with no wrapping element (2 children
-  // per row, k then v) -- kept minimal since the CSS grid places them
-  // directly; the grid's delegated click handler above derives the row
-  // index from the hit span's position among rowsContainer.children.
-  function renderTable(card, body, columns, rows) {
-    destroyCardChart(card.id);
-    var idx = dimValIdx(columns, card);
-    var capped = rows.slice(0, 8);
-    body.innerHTML = '<div class="rdb-table-rows" data-testid="rdb-table-rows">' +
-      capped.map(function (r) {
-        return '<span class="rdb-table-k">' + esc(dimLabel(r, idx)) + '</span>' +
-               '<span class="rdb-table-v">' + esc(fmtNum(r[idx.val])) + '</span>';
-      }).join('') +
-    '</div>';
   }
 
   // Whole-report card: the saved report as the Simple tab shows it -- the
@@ -1163,13 +1077,16 @@
         return String(r[0] == null ? '' : r[0]).slice(0, 10) <= fc.anchor;
       });
     }
-    cardRunData[card.id] = { columns: columns, rows: rows };
+    cardRunData[card.id] = { columns: columns, rows: rows, fc: fc, def: def };
+    var piece = card.type || 'report';
+    var chartPiece = piece === 'report' || piece === 'chart';
     body.innerHTML =
       '<div class="rdb-report" data-testid="rdb-report">' +
         '<div class="rdb-report-side">' +
           '<div class="reporting-ledger-kpis rdb-report-kpis" data-testid="rdb-report-kpis" hidden></div>' +
         '</div>' +
         '<div class="nx-card nx-card--pad rdb-report-chartcard" data-testid="rdb-report-chartcard">' +
+          (state.editing && chartPiece && card.id !== PICK_ID ? cardToolsHtml(card) : '') +
           '<p class="reporting-simple-chartnote rdb-report-note" data-testid="rdb-report-note" hidden></p>' +
           '<div class="rdb-report-chart"><canvas></canvas></div>' +
         '</div>' +
@@ -1187,7 +1104,7 @@
     // With NO dimension the breakdown run's own first row already IS the
     // total for this shape, so no second request is needed.
     var grandTotals = null;
-    if (hasMetrics && dims) {
+    if (hasMetrics && dims && piece !== 'chart' && piece !== 'table') {
       var totalDef = JSON.parse(JSON.stringify(def));
       totalDef.columns = []; totalDef.sort = [];
       delete totalDef.forecast; delete totalDef.compare;
@@ -1217,18 +1134,8 @@
     // Chart -- identical config to the Simple result view (saved colours,
     // right axis, forecast tail/band), on the card's own canvas.
     var charted = false;
-    if (hasMetrics && dims && rows.length && typeof Chart !== 'undefined') {
-      var built = RS.buildChartData(def, columns, rows, fc);
-      if (built.note) { q('.rdb-report-note').textContent = built.note; q('.rdb-report-note').hidden = false; }
-      if (built.data) {
-        var cfg = RS.chartConfigFor(built.data, built.data.type, def, {
-          onDrill: function (index, datasetIndex) { reportCardChartDrill(card, built.data, index, datasetIndex); }
-        });
-        charts[card.id] = new Chart(q('.rdb-report-chart canvas'), cfg.config);
-        charted = true;
-      } else {
-        q('.rdb-report-chart').hidden = true;
-      }
+    if (chartPiece && hasMetrics && dims && rows.length && typeof Chart !== 'undefined') {
+      charted = mountCardChart(card, body);
     } else {
       q('.rdb-report-chartcard').hidden = true;
     }
@@ -1238,7 +1145,300 @@
     var drillable = !!(hasMetrics && dims && rows.length && reportCardDrillable(card, def, columns, rows));
     q('.rdb-report-table').innerHTML = RS.tableHtml(columns, rows, fc, drillable);
     if (!charted) { q('.rdb-report-table').hidden = false; q('.rdb-report-tablebar').hidden = true; }
+    applyPiece(card, body, piece);
     prefixTestIds(body);
+  }
+
+  // A card shows ONE piece of its report -- a KPI tile, the chart, the table
+  // or the whole thing. Everything is drawn by the same renderer above and
+  // the piece simply hides the rest, so a card can never drift from what the
+  // report itself shows.
+  function applyPiece(card, body, piece) {
+    if (piece === 'report') return;
+    var show = function (sel, on) { var n = body.querySelector(sel); if (n) n.hidden = !on; };
+    body.classList.add('rdb-report--' + piece);
+    show('.rdb-report-side', piece === 'kpi');
+    show('.rdb-report-chartcard', piece === 'chart');
+    show('.rdb-report-tablebar', false);
+    show('.rdb-report-table', piece === 'table');
+    if (piece === 'kpi') {
+      var tiles = kpiTiles(body);
+      var keep = tiles[clampInt(card.kpiIndex, 0, Math.max(0, tiles.length - 1), 0)];
+      tiles.forEach(function (t) { if (t !== keep && t.parentNode) t.parentNode.removeChild(t); });
+      var statsTitle = body.querySelector('.rs-kpi-stats-title');
+      if (statsTitle) statsTitle.hidden = true;   // the card's own caption names the measure
+    }
+    if (piece === 'table') {
+      var cardEl = body.closest('[data-card-id]');
+      var meta = cardEl && cardEl.querySelector('.rdb-card-meta');
+      var n = (cardRunData[card.id] || {}).rows;
+      if (meta && n) meta.textContent = I18N.tableRowCount.replace('{n}', String(n.length));
+    }
+  }
+
+  // ---- Per-card chart tools (edit mode): type, forecast, colours & axes --
+  // The Results tab's toolbar, per card. Chart type and colours re-mount the
+  // chart from the card's last result (no re-run); the forecast toggle needs
+  // the server and re-runs the card. Everything lands on card.viz, which
+  // cardRunDef layers over the report's saved definition.
+  var CHART_TYPES = [
+    ['bar', 'fa-chart-column', 'chartBar'], ['line', 'fa-chart-line', 'chartLine'],
+    ['stacked', 'fa-layer-group', 'chartStacked'], ['pie', 'fa-chart-pie', 'chartPie'],
+    ['doughnut', 'fa-circle-notch', 'chartDoughnut']];
+
+  function cardToolsHtml(card) {
+    var fc = (card.viz && card.viz.forecast !== undefined) ? card.viz.forecast
+           : ((card.definition || {}).forecast || false);
+    var horizon = (fc && fc.horizon) ? String(fc.horizon) : 'auto';
+    return '<div class="reporting-simple-charttools rdb-card-tools" data-testid="rdb-card-tools">' +
+      '<div class="rs-chart-track">' +
+      CHART_TYPES.map(function (t) {
+        return '<button type="button" class="reporting-chartbtn" data-type="' + t[0] + '" title="' + esc(I18N[t[2]]) +
+          '" aria-label="' + esc(I18N[t[2]]) + '" data-testid="rdb-chart-' + t[0] + '">' +
+          '<i class="fas ' + t[1] + '" aria-hidden="true"></i></button>';
+      }).join('') + '</div>' +
+      '<button type="button" class="reporting-chartbtn" data-testid="rdb-chart-png" title="' + esc(I18N.chartPng) +
+        '" aria-label="' + esc(I18N.chartPng) + '"><i class="fas fa-download" aria-hidden="true"></i></button>' +
+      '<button type="button" class="reporting-chartbtn" data-testid="rdb-forecast-toggle" aria-pressed="' + (fc ? 'true' : 'false') +
+        '" title="' + esc(I18N.forecastLabel) + '" aria-label="' + esc(I18N.forecastLabel) + '">' +
+        '<i class="fas fa-arrow-trend-up" aria-hidden="true"></i></button>' +
+      '<select class="rs-forecast-horizon" data-testid="rdb-forecast-horizon" aria-label="' + esc(I18N.forecastHorizon) + '"' +
+        (fc ? '' : ' hidden') + '>' +
+        ['auto', '7', '14', '30'].map(function (h) {
+          return '<option value="' + h + '"' + (h === horizon ? ' selected' : '') + '>' +
+            (h === 'auto' ? esc(I18N.forecastAuto) : '+' + h) + '</option>';
+        }).join('') + '</select>' +
+      '<button type="button" class="reporting-chartbtn" data-testid="rdb-style-toggle" aria-pressed="false" aria-expanded="false" title="' +
+        esc(I18N.styleToggle) + '" aria-label="' + esc(I18N.styleToggle) + '"><i class="fas fa-palette" aria-hidden="true"></i></button>' +
+      '<div class="rs-style-pop rdb-style-pop" data-testid="rdb-style-pop" hidden>' +
+        '<div class="rdb-style-rows"></div>' +
+        '<button type="button" class="reporting-link rs-style-reset" data-testid="rdb-style-reset">' + esc(I18N.styleReset) + '</button>' +
+      '</div>' +
+    '</div>';
+  }
+
+  // Builds (or rebuilds) the card's Chart.js instance from its last result.
+  // Returns false when the result has no chartable shape.
+  function mountCardChart(card, body) {
+    var RS = window.ReportingSimple;
+    var run = cardRunData[card.id];
+    if (!run) return false;
+    destroyCardChart(card.id);
+    var def = cardRunDef(card, effectiveFilters(card));
+    var q = function (sel) { return body.querySelector(sel); };
+    var built = RS.buildChartData(def, run.columns, run.rows, run.fc);
+    var note = q('.rdb-report-note');
+    if (note) { note.textContent = built.note || ''; note.hidden = !built.note; }
+    if (!built.data) { q('.rdb-report-chart').hidden = true; return false; }
+    var type = (card.viz && card.viz.chartType) || built.data.type;
+    var cfg = RS.chartConfigFor(built.data, type, def, {
+      onDrill: function (index, datasetIndex) { reportCardChartDrill(card, built.data, index, datasetIndex); }
+    });
+    run.built = built.data; run.type = cfg.type;
+    q('.rdb-report-chart').hidden = false;
+    charts[card.id] = new Chart(q('.rdb-report-chart canvas'), cfg.config);
+    syncCardTools(card, body, def, cfg);
+    return true;
+  }
+
+  function syncCardTools(card, body, def, cfg) {
+    var RS = window.ReportingSimple;
+    var tools = body.querySelector('[data-testid="rdb-card-tools"]');
+    if (!tools) return;
+    var multi = !!cfg.multi;
+    Array.prototype.forEach.call(tools.querySelectorAll('button[data-type]'), function (b) {
+      var t = b.dataset.type;
+      b.hidden = (t === 'stacked') ? !multi : ((t === 'pie' || t === 'doughnut') && multi);
+      b.classList.toggle('is-selected', t === cfg.type);
+      b.setAttribute('aria-pressed', t === cfg.type ? 'true' : 'false');
+    });
+    var fcBtn = tools.querySelector('[data-testid="rdb-forecast-toggle"]');
+    var eligible = RS.forecastEligible(def);
+    // Not `disabled`: a disabled button swallows the click and the user just
+    // sees "nothing happens". aria-disabled keeps it clickable so the click
+    // can say WHY (toast) -- the hover title alone is invisible on touch.
+    var blocked = !eligible || cfg.circular;
+    fcBtn.setAttribute('aria-disabled', blocked ? 'true' : 'false');
+    fcBtn.title = !eligible ? I18N.forecastNeedsShape : cfg.circular ? I18N.forecastNeedsLineBar : I18N.forecastLabel;
+    var on = !!def.forecast && def.forecast.enabled !== false;
+    fcBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    fcBtn.classList.toggle('is-selected', on);
+    tools.querySelector('[data-testid="rdb-forecast-horizon"]').hidden = !on || blocked;
+    var pop = tools.querySelector('[data-testid="rdb-style-pop"]');
+    if (!pop.hidden) renderCardStyleRows(card, tools, def, cfg);
+  }
+
+  function cardStyle(card) {
+    var viz = card.viz || {};
+    return viz.style || (card.definition && card.definition.style) || {};
+  }
+  // First tweak copies the report's saved style so the card starts from
+  // what the report shows and never mutates the shared definition.
+  function ensureCardStyle(card) {
+    card.viz = card.viz || {};
+    if (!card.viz.style) card.viz.style = JSON.parse(JSON.stringify(cardStyle(card)));
+    return card.viz.style;
+  }
+
+  function renderCardStyleRows(card, tools, def, cfg) {
+    var RS = window.ReportingSimple;
+    var d = cardRunData[card.id].built;
+    var style = cardStyle(card), colors = style.colors || {};
+    var rightKeys = cfg.circular ? [] : RS.rightAxisKeys(d, style);
+    var html = '';
+    d.datasets.forEach(function (ds, i) {
+      var key = RS.seriesKey(ds, !!d.multiSeries);
+      var onRight = rightKeys.indexOf(key) >= 0;
+      html += '<div class="rs-style-row" data-key="' + esc(key) + '">' +
+        '<input type="color" value="' + esc(colors[key] || RS.defaultSeriesColor(d, i)) +
+        '" aria-label="' + esc(ds.label) + '" data-testid="rdb-style-color">' +
+        '<span>' + esc(ds.label) + '</span>' +
+        (!cfg.circular && d.datasets.length > 1
+          ? '<span class="rs-axis-seg" role="group">' +
+            '<button type="button" class="rs-axis-btn" data-axis="left" aria-pressed="' + (!onRight) +
+            '" title="' + esc(I18N.styleLeftAxis) + '" data-testid="rdb-style-axis-left">' + esc(I18N.axisShortLeft) + '</button>' +
+            '<button type="button" class="rs-axis-btn" data-axis="right" aria-pressed="' + onRight +
+            '" title="' + esc(I18N.styleRightAxis) + '" data-testid="rdb-style-axis-right">' + esc(I18N.axisShortRight) + '</button>' +
+            '</span>'
+          : '') +
+        '</div>';
+    });
+    tools.querySelector('.rdb-style-rows').innerHTML = html;
+  }
+
+  // Colour inputs fire `input` continuously while dragging the picker --
+  // one remount per frame per card.
+  var styleRaf = {};
+  function remountCardChart(card, body) {
+    if (styleRaf[card.id]) return;
+    styleRaf[card.id] = requestAnimationFrame(function () {
+      styleRaf[card.id] = 0;
+      mountCardChart(card, body);
+    });
+  }
+
+  function cardAndBody(node) {
+    var cardEl = node.closest && node.closest('[data-card-id]');
+    var card = cardEl && findCardById(cardEl.getAttribute('data-card-id'));
+    return card ? { card: card, cardEl: cardEl, body: cardEl.querySelector('[data-testid="rdb-card-body"]') } : null;
+  }
+
+  // Delegated toolbar clicks (grid-level, cards are rebuilt on every render).
+  // Returns true when the click was a toolbar action.
+  function handleCardToolClick(e) {
+    var tools = e.target.closest && e.target.closest('[data-testid="rdb-card-tools"]');
+    if (!tools || !state.editing) return false;
+    var ctx = cardAndBody(tools);
+    if (!ctx) return true;
+    var card = ctx.card, body = ctx.body;
+    var typeBtn = e.target.closest('button[data-type]');
+    if (typeBtn) {
+      card.viz = card.viz || {};
+      card.viz.chartType = typeBtn.dataset.type;
+      state.dirty = true;
+      mountCardChart(card, body);
+      return true;
+    }
+    if (e.target.closest('[data-testid="rdb-chart-png"]')) {
+      var src = body.querySelector('.rdb-report-chart canvas');
+      if (!src || !charts[card.id]) return true;
+      var c = document.createElement('canvas');
+      c.width = src.width; c.height = src.height;
+      var ctx2 = c.getContext('2d');
+      ctx2.fillStyle = '#fff'; ctx2.fillRect(0, 0, c.width, c.height); ctx2.drawImage(src, 0, 0);
+      var a = document.createElement('a');
+      a.href = c.toDataURL('image/png');
+      a.download = (card.title || 'card') + '-chart.png';
+      a.click();
+      return true;
+    }
+    if (e.target.closest('[data-testid="rdb-forecast-toggle"]')) {
+      var fcBtn = e.target.closest('[data-testid="rdb-forecast-toggle"]');
+      if (fcBtn.getAttribute('aria-disabled') === 'true') { toast(fcBtn.title, true); return true; }
+      var run = cardRunData[card.id] || {};
+      var on = !!(run.def && run.def.forecast && run.def.forecast.enabled !== false);
+      card.viz = card.viz || {};
+      if (on) card.viz.forecast = false;
+      else {
+        var h = tools.querySelector('[data-testid="rdb-forecast-horizon"]').value;
+        card.viz.forecast = { enabled: true, horizon: h === 'auto' ? 'auto' : parseInt(h, 10) };
+      }
+      state.dirty = true;
+      runCard(card, ctx.cardEl);
+      return true;
+    }
+    if (e.target.closest('[data-testid="rdb-style-toggle"]')) {
+      var pop = tools.querySelector('[data-testid="rdb-style-pop"]');
+      var btn = tools.querySelector('[data-testid="rdb-style-toggle"]');
+      pop.hidden = !pop.hidden;
+      btn.setAttribute('aria-expanded', pop.hidden ? 'false' : 'true');
+      btn.setAttribute('aria-pressed', pop.hidden ? 'false' : 'true');
+      btn.classList.toggle('is-selected', !pop.hidden);
+      var run2 = cardRunData[card.id];
+      if (!pop.hidden && run2 && run2.built) {
+        renderCardStyleRows(card, tools, cardRunDef(card, effectiveFilters(card)),
+                            { circular: run2.type === 'pie' || run2.type === 'doughnut' });
+      }
+      return true;
+    }
+    var axisBtn = e.target.closest('.rs-axis-btn');
+    if (axisBtn) {
+      var key = axisBtn.closest('.rs-style-row').dataset.key;
+      var style = ensureCardStyle(card);
+      var keys = window.ReportingSimple.rightAxisKeys(cardRunData[card.id].built, style).slice();
+      var at = keys.indexOf(key);
+      if (axisBtn.dataset.axis === 'right' && at < 0) keys.push(key);
+      if (axisBtn.dataset.axis === 'left' && at >= 0) keys.splice(at, 1);
+      style.rightAxis = keys;
+      state.dirty = true;
+      mountCardChart(card, body);
+      return true;
+    }
+    if (e.target.closest('[data-testid="rdb-style-reset"]')) {
+      card.viz = card.viz || {};
+      card.viz.style = {};   // explicit empty style: the report's saved colours are dropped too
+      state.dirty = true;
+      mountCardChart(card, body);
+      return true;
+    }
+    return true;
+  }
+
+  function handleCardToolInput(e) {
+    var tools = e.target.closest && e.target.closest('[data-testid="rdb-card-tools"]');
+    if (!tools || !state.editing) return;
+    var ctx = cardAndBody(tools);
+    if (!ctx) return;
+    if (e.target.type === 'color') {
+      var row = e.target.closest('.rs-style-row');
+      if (!row) return;
+      var style = ensureCardStyle(ctx.card);
+      style.colors = style.colors || {};
+      style.colors[row.dataset.key] = e.target.value;
+      state.dirty = true;
+      remountCardChart(ctx.card, ctx.body);
+    }
+  }
+
+  function handleCardToolChange(e) {
+    var sel = e.target.closest && e.target.closest('[data-testid="rdb-forecast-horizon"]');
+    if (!sel || !state.editing) return;
+    var ctx = cardAndBody(sel);
+    if (!ctx) return;
+    var card = ctx.card;
+    card.viz = card.viz || {};
+    var h = sel.value;
+    card.viz.forecast = { enabled: true, horizon: h === 'auto' ? 'auto' : parseInt(h, 10) };
+    state.dirty = true;
+    runCard(card, ctx.cardEl);
+  }
+
+  // The band's pickable tiles in DOM order: one per measure, then Buckets,
+  // Avg and Peak each on their own -- the same four tiles the Results tab's
+  // strip shows. kpiIndex on a card is a position in this list.
+  function kpiTiles(root) {
+    return Array.prototype.slice.call(
+      root.querySelectorAll('.rs-kpi-total-card, .rs-kpi-stats-card .reporting-ledger-kpi'));
   }
 
   // The Simple builders stamp their own data-testids (rs-kpi-total,
@@ -1251,7 +1451,7 @@
     });
   }
 
-  // Mirrors the Simple pane's renderTable probe: drillable only when the
+  // Mirrors the Simple pane's table probe: drillable only when the
   // leading columns resolve to a valid drill definition for the first row.
   function reportCardDrillable(card, def, columns, rows) {
     if (!window.ReportingDrill || !catalog.sources) return false;
@@ -1279,46 +1479,48 @@
     openCardDrill(card, clicked);
   }
 
-  function renderCardContent(card, body, columns, rows) {
-    if (card.type === 'kpi') return renderKpi(card, body, columns, rows);
-    if (card.type === 'line') return renderLine(card, body, columns, rows);
-    if (card.type === 'bar') return renderBar(card, body, columns, rows);
-    if (card.type === 'donut') return renderDonut(card, body, columns, rows);
-    if (card.type === 'table') return renderTable(card, body, columns, rows);
-    body.textContent = '';
-  }
-
   // ---- Per-card run: one POST /api/reporting/run per card ----------------
-  var runGen = {};  // per-card fetch generation -- staleness guard (same idea
-                     // as the Simple pane's seq/runSeq): a card can be
-                     // re-rendered (edit toggled, cards changed) while an
-                     // older fetch for the same card id is still in flight.
+  var runGen = {};  // per-card fetch generation -- staleness guard: a card can
+                     // be re-rendered while an older fetch is still in flight.
 
-  // D-KPI: a KPI card's run payload must never carry a breakdown dimension.
-  // renderKpi (and the trend calc below) read rows[0] as THE total -- with a
-  // dimension present that's just the first bucket, not a sum (and summing
-  // client-side is explicitly wrong for avg/min/max metrics). The card's own
-  // definition.columns can still hold a breakdown dim (e.g. adapted from a
-  // chart card), so clear it here before POSTing, same zero-column-clone
-  // idea as _reporting_simple_js.html's runCurrent grand-total call.
   function cardRunDef(card, filters) {
     var def = Object.assign({}, card.definition || {});
     def.filters = filters;
-    if (card.type === 'kpi') { def.columns = []; def.sort = []; }
+    // The Processes chip on the filter bar narrows every card's process scope
+    // (reports keep theirs in scope.processes, not in filters).
+    var gp = state.def && state.def.globalProcesses;
+    if (gp && gp.length) def.scope = Object.assign({}, def.scope || {}, { processes: gp.slice() });
+    // The card's own chart tweaks (edit-mode toolbar) sit on top of the
+    // report: card.viz = { chartType, forecast: {enabled, horizon} | false,
+    // style: {colors, rightAxis} }. The saved report is never touched.
+    var viz = card.viz || {};
+    if (viz.chartType) def.chartType = viz.chartType === 'stacked' ? 'bar' : viz.chartType;
+    if (viz.forecast === false) delete def.forecast;
+    else if (viz.forecast) def.forecast = viz.forecast;
+    if (viz.style) def.style = viz.style;
     return def;
   }
 
   async function runCard(card, cardEl) {
     if (!cardEl) return;
     var gen = (runGen[card.id] = (runGen[card.id] || 0) + 1);
+    var body = cardEl.querySelector('[data-testid="rdb-card-body"]');
+    if (!body) return;
+    if (!card.definition) {   // the saved report behind this card is gone
+      body.className = 'rdb-card-body rdb-card-body--error';
+      body.innerHTML = '<p class="rdb-card-error" data-testid="rdb-card-error">' +
+        esc(I18N.reportGone) + '</p>';
+      return;
+    }
     var def = cardRunDef(card, effectiveFilters(card));
-    // Whole-report cards mirror the Simple result run: compare: true rides on
-    // a COPY of the body (cardRunDef's value also feeds Export) so the KPI
-    // band gets its prior-period delta chips.
-    var posted = card.type === 'report' ? Object.assign({}, def, { compare: true }) : def;
+    // compare: true rides on a COPY of the body (cardRunDef's value also feeds
+    // Export) so the KPI band gets its prior-period delta chips. Chart and
+    // table pieces never draw the band, so they skip the extra work.
+    var wantsBand = card.type === 'report' || card.type === 'kpi';
+    var posted = wantsBand ? Object.assign({}, def, { compare: true }) : def;
     var res = await api('/api/reporting/run', { method: 'POST', body: JSON.stringify(posted) });
     if (runGen[card.id] !== gen) return;  // superseded by a newer render/run
-    var body = cardEl.querySelector('[data-testid="rdb-card-body"]');
+    body = cardEl.querySelector('[data-testid="rdb-card-body"]');
     if (!body) return;
     if (!res.ok || !res.data || !Array.isArray(res.data.columns) || !Array.isArray(res.data.rows)) {
       destroyCardChart(card.id);
@@ -1328,54 +1530,12 @@
       return;
     }
     body.className = 'rdb-card-body';
-    if (card.type === 'report') { renderReportCard(card, body, def, res.data, gen); return; }
-    cardRunData[card.id] = { columns: res.data.columns, rows: res.data.rows };
-    renderCardContent(card, body, res.data.columns, res.data.rows);
-    if (card.type === 'kpi') maybeRenderKpiTrend(card, body, res.data.columns, res.data.rows, gen);
-  }
-
-  // ---- KPI trend (D8): a second /api/reporting/run with the one date-range
-  // filter shifted back a period, rendered as "+x.y% vs previous period" --
-  // computed only when the card's effective filters hold EXACTLY one
-  // date-range filter and its shift is possible (shiftDateRangeFilter);
-  // otherwise no trend line at all (honest numbers or nothing, per D8).
-  async function maybeRenderKpiTrend(card, body, columns, rows, gen) {
-    var dateFilters = effectiveFilters(card).filter(function (f) { return f.op === 'between'; });
-    if (dateFilters.length !== 1) return;
-    var shifted = shiftDateRangeFilter(dateFilters[0]);
-    if (!shifted) return;
-    var idx = dimValIdx(columns, card);
-    var curVal = toNum(rows.length ? rows[0][idx.val] : null);
-    if (curVal === null) return;
-    var filters2 = effectiveFilters(card).map(function (f) {
-      return f === dateFilters[0] ? shifted : f;
-    });
-    var def2 = cardRunDef(card, filters2);
-    var res2 = await api('/api/reporting/run', { method: 'POST', body: JSON.stringify(def2) });
-    if (runGen[card.id] !== gen) return;  // superseded meanwhile
-    if (!res2.ok || !res2.data || !Array.isArray(res2.data.rows)) return;
-    var prevVal = toNum(res2.data.rows.length ? res2.data.rows[0][idx.val] : null);
-    if (!prevVal) return;  // null or 0 -- no honest percentage to show
-    var pct = ((curVal - prevVal) / prevVal) * 100;
-    var up = pct >= 0;
-    var text = (up ? '+' : '') + pct.toFixed(1) + '% ' + I18N.vsPreviousPeriod;
-    var trendEl = document.createElement('p');
-    trendEl.className = 'rdb-kpi-trend rdb-kpi-trend--' + (up ? 'up' : 'down');
-    trendEl.setAttribute('data-testid', 'rdb-kpi-trend');
-    trendEl.innerHTML = '<i class="fas ' + (up ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down') +
-      '" aria-hidden="true"></i> ' + esc(text);
-    body.appendChild(trendEl);
+    renderReportCard(card, body, def, res.data, gen);
   }
 
   // ---- Card shells (loading skeleton until the run resolves) -------------
   function loadingBodyHtml(type) {
     if (type === 'kpi') return '<div class="rdb-skeleton rdb-skeleton--kpi"></div>';
-    if (type === 'donut') {
-      return '<div class="rdb-donut-wrap">' +
-        '<div class="rdb-skeleton rdb-skeleton--donut"></div>' +
-        '<div class="rdb-skeleton rdb-skeleton--legend"></div>' +
-      '</div>';
-    }
     if (type === 'table') {
       return '<div class="rdb-skeleton rdb-skeleton--row"></div>' +
         '<div class="rdb-skeleton rdb-skeleton--row"></div>' +
@@ -1385,7 +1545,7 @@
       return '<div class="rdb-skeleton rdb-skeleton--kpi"></div>' +
         '<div class="rdb-skeleton rdb-skeleton--chart"></div>';
     }
-    return '<div class="rdb-skeleton rdb-skeleton--chart"></div>';  // line/bar
+    return '<div class="rdb-skeleton rdb-skeleton--chart"></div>';
   }
 
   // Per-card head extras after the title: a violet override-summary chip
@@ -1413,11 +1573,11 @@
     return '';
   }
 
-  // A card with no source yet (the add-card tile's placeholder shape, D14)
-  // never gets POSTed to /api/reporting/run -- it renders a "configure this
-  // card" body instead until a saved report is adopted into it.
-  function isEmptyCardDef(c) {
-    return !c.definition || !c.definition.source;
+  // Cards predating the pick-a-piece flow carried a copied definition and a
+  // type of their own (kpi/line/bar/donut/table); they have no reportId. They
+  // are never run -- the body says to remove and re-add the piece.
+  function isLegacyCard(c) {
+    return !c.reportId;
   }
 
   // Hover control cluster (Task 14, edit mode only): duplicate + remove,
@@ -1434,18 +1594,12 @@
     '</div>';
   }
 
-  // Empty-definition card body: clickable (opens the report picker) only in
-  // edit mode -- a static note otherwise, since the picker is a mutation.
-  function emptyCardBodyHtml() {
-    if (state.editing) {
-      return '<button type="button" class="rdb-card-configure" data-testid="rdb-card-configure">' +
-        '<i class="fas fa-plug" aria-hidden="true"></i>' + esc(I18N.configureCard) + '</button>';
-    }
-    return '<p class="rdb-card-unconfigured">' + esc(I18N.configureCard) + '</p>';
+  function legacyCardBodyHtml() {
+    return '<p class="rdb-card-unconfigured" data-testid="rdb-card-legacy">' + esc(I18N.legacyCard) + '</p>';
   }
 
   function cardShellHtml(c) {
-    var empty = isEmptyCardDef(c);
+    var empty = isLegacyCard(c);
     var bodyClass = 'rdb-card-body' + (empty ? '' : ' rdb-card-body--loading');
     return '<div class="rdb-card" data-testid="rdb-card" data-card-id="' + esc(c.id) + '" ' +
       'data-type="' + esc(c.type) + '" draggable="' + (state.editing ? 'true' : 'false') + '" ' +
@@ -1454,10 +1608,11 @@
       '<div class="rdb-card-head">' +
         (state.editing ? '<i class="fas fa-grip-vertical rdb-card-grip" aria-hidden="true"></i>' : '') +
         '<span class="rdb-card-title">' + esc(c.title || '') + '</span>' +
+        '<span class="rdb-card-meta" data-testid="rdb-card-meta"></span>' +
         cardHeadExtrasHtml(c) +
       '</div>' +
       '<div class="' + bodyClass + '" data-testid="rdb-card-body">' +
-        (empty ? emptyCardBodyHtml() : loadingBodyHtml(c.type)) +
+        (empty ? legacyCardBodyHtml() : loadingBodyHtml(c.type)) +
       '</div>' +
       (state.editing ? cardResizeHandleHtml() : '') +
     '</div>';
@@ -1465,23 +1620,19 @@
 
   // Renders (or re-renders in place) exactly one card: builds its shell,
   // inserts/replaces it in the grid, then kicks off its run -- unless the
-  // card has no source yet (D14 empty placeholder), in which case there's
-  // nothing to run. Public per the plan so Tasks 13/15 can re-render a
-  // single card (e.g. after a filter override edit) without rebuilding the
-  // whole grid.
+  // card is a legacy one, in which case there's nothing to run.
   function renderCard(card) {
     destroyCardChart(card.id);
     var existing = findCardEl(card.id);
     var html = cardShellHtml(card);
     if (existing) { existing.outerHTML = html; } else { el('rdbGrid').insertAdjacentHTML('beforeend', html); }
     var cardEl = findCardEl(card.id);
-    if (!isEmptyCardDef(card)) runCard(card, cardEl);
+    if (!isLegacyCard(card)) runCard(card, cardEl);
     return cardEl;
   }
 
   // Add-card tile: last grid item in edit mode, span 6. Clicking anywhere on
-  // it opens the add-card mask (openAddMask) -- the old type pills are gone,
-  // the mask asks for the type along with the report, title and size.
+  // it opens the add-card overlay (openAddMask): pick a report, take pieces.
   function addTileHtml() {
     return '<button type="button" class="rdb-add-tile" data-testid="rdb-add-tile" ' +
       'style="grid-column:span 6">' +
@@ -1497,6 +1648,7 @@
     var cards = (state.def && state.def.cards) || [];
     var keep = {};
     cards.forEach(function (c) { keep[c.id] = 1; });
+    if (addMask.open) keep[PICK_ID] = 1;   // the pick overlay's own chart survives re-renders
     destroyChartsExcept(keep);
     grid.innerHTML = '';
     cards.forEach(renderCard);
@@ -1514,7 +1666,8 @@
   function handleGridDragStart(e) {
     // A corner-resize drag starts with a pointerdown on the same (draggable)
     // card, so never let it turn into an HTML5 reorder drag as well.
-    if (resizing || (e.target.closest && e.target.closest('[data-testid="rdb-card-resize"]'))) {
+    if (resizing || (e.target.closest && (e.target.closest('[data-testid="rdb-card-resize"]') ||
+                                           e.target.closest('[data-testid="rdb-card-tools"]')))) {
       e.preventDefault();
       return;
     }
@@ -1542,12 +1695,29 @@
     moveDragged(id);
   }
 
+  // FLIP: measure every card, move the DOM nodes, measure again, then play
+  // each card from its old spot to its new one so neighbours slide instead
+  // of jumping (the transition lives on .rdb-grid--dragging .rdb-card).
   function reorderGridDom() {
     var grid = el('rdbGrid');
     var addTile = grid.querySelector('[data-testid="rdb-add-tile"]');
+    var nodes = [], before = [];
     (state.def.cards || []).forEach(function (c) {
       var node = findCardEl(c.id);
-      if (node) grid.insertBefore(node, addTile || null);
+      if (!node) return;
+      nodes.push(node); before.push(node.getBoundingClientRect());
+    });
+    nodes.forEach(function (node) { grid.insertBefore(node, addTile || null); });
+    nodes.forEach(function (node, i) {
+      var a = node.getBoundingClientRect();
+      var dx = before[i].left - a.left, dy = before[i].top - a.top;
+      if (!dx && !dy) return;
+      node.style.transition = 'none';
+      node.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+    });
+    // Next frame: drop the inverse transform under the CSS transition.
+    requestAnimationFrame(function () {
+      nodes.forEach(function (node) { node.style.transition = ''; node.style.transform = ''; });
     });
   }
 
@@ -1668,185 +1838,41 @@
     setCards(function (list) { return list.filter(function (c) { return c.id !== id; }); });
   }
 
-  // ---- Saved-report picker (D14 v1 card configuration) -------------------
-  // Self-contained, like the filter catalog above: fetches its own copy of
-  // GET /api/reporting/reports (the same endpoint/shape the Simple pane's
-  // library uses), filtered to the caller's own non-SQL, non-dashboard
-  // reports. Adopting one copies its definition + name into the card.
-  var reportPicker = { open: false, cardId: null };
-
-  function closeReportPicker() {
-    var overlay = el('rdbReportPicker');
-    if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
-    reportPicker.open = false;
-    reportPicker.cardId = null;
-  }
-
-  async function adoptReport(cardId, reportId) {
-    var res = await api('/api/reporting/reports/' + reportId);
-    if (!res.ok || !res.data) { toast(I18N.couldNotLoad, true); return; }
-    var card = ((state.def && state.def.cards) || []).find(function (c) { return c.id === cardId; });
-    if (!card) return;
-    card.definition = res.data.definition;
-    card.title = res.data.name;
-    state.dirty = true;
-    closeReportPicker();
-    renderCard(card);
-  }
-
-  function reportPickerBodyHtml(reports) {
-    if (!reports.length) return '<p class="rdb-modal-empty">' + esc(I18N.noSavedReports) + '</p>';
-    return '<ul class="rdb-report-list">' +
-      reports.map(function (r) {
-        return '<li><button type="button" class="rdb-report-item" data-testid="rdb-report-pick" ' +
-          'data-report-id="' + esc(r.id) + '">' + esc(r.name) + '</button></li>';
-      }).join('') +
-    '</ul>';
-  }
-
-  async function openReportPicker(cardId) {
-    if (!state.editing) return;
-    closeReportPicker();
-    reportPicker.open = true;
-    reportPicker.cardId = cardId;
-    var overlay = document.createElement('div');
-    overlay.id = 'rdbReportPicker';
-    overlay.className = 'rdb-modal-overlay';
-    overlay.setAttribute('data-testid', 'rdb-report-picker');
-    overlay.setAttribute('role', 'dialog');
-    overlay.setAttribute('aria-modal', 'true');
-    overlay.setAttribute('aria-label', I18N.pickReport);
-    overlay.innerHTML =
-      '<div class="rdb-modal">' +
-        '<div class="rdb-modal-head"><span class="rdb-modal-title">' + esc(I18N.pickReport) + '</span>' +
-          '<button type="button" class="rdb-modal-close" data-testid="rdb-report-picker-close" ' +
-            'aria-label="' + esc(I18N.cancel) + '"><i class="fas fa-xmark" aria-hidden="true"></i></button></div>' +
-        '<div class="rdb-modal-body" data-testid="rdb-report-picker-body">' +
-          '<p class="rdb-modal-loading">' + esc(I18N.loading) + '</p></div>' +
-      '</div>';
-    document.body.appendChild(overlay);
-    overlay.addEventListener('click', function (e) {
-      if (e.target === overlay || (e.target.closest && e.target.closest('[data-testid="rdb-report-picker-close"]'))) {
-        closeReportPicker();
-        return;
-      }
-      var pick = e.target.closest && e.target.closest('[data-testid="rdb-report-pick"]');
-      if (pick) adoptReport(cardId, pick.getAttribute('data-report-id'));
-    });
-
-    var res = await api('/api/reporting/reports');
-    if (!reportPicker.open || reportPicker.cardId !== cardId) return;  // closed/superseded meanwhile
-    var reports = (res.ok && Array.isArray(res.data)) ? res.data.filter(function (r) {
-      return r.owned && r.kind !== 'sql' && r.kind !== 'dashboard';
-    }) : [];
-    var body = overlay.querySelector('[data-testid="rdb-report-picker-body"]');
-    if (body) body.innerHTML = reportPickerBodyHtml(reports);
-  }
-
-  // ---- Add-card mask (one dialog: report -> type -> size) ----------------
-  // Replaces the old two-step flow, where a type pill on the add tile dropped
-  // an unconfigured card that then had to be clicked to reach the saved-report
-  // picker. Reads the same GET /api/reporting/reports list that picker uses.
-  // Submitting with no report selected still adds the empty "configure this
-  // card" placeholder, so an empty library is not a dead end -- and
-  // openReportPicker() below still configures those cards.
-  var MASK_TYPES = [
-    { t: 'line',   icon: 'fa-chart-line',      label: 'pillChart' },
-    { t: 'kpi',    icon: 'fa-hashtag',         label: 'pillKpi' },
-    { t: 'table',  icon: 'fa-table',           label: 'pillTable' },
-    { t: 'donut',  icon: 'fa-chart-pie',       label: 'pillDonut' },
-    { t: 'report', icon: 'fa-window-maximize', label: 'pillReport' }
-  ];
-
-  var addMask = { open: false, reportId: null, type: 'line', span: 8, rows: 2,
-                  sizeTouched: false, busy: false };
+  // ---- Add card: pick a saved report, then take pieces of it -------------
+  // The report renders in an overlay exactly as its whole-report card would
+  // (same renderReportCard), and every piece -- each KPI tile, the chart, the
+  // table, the whole report -- carries an "Add to dashboard" button. The
+  // overlay stays open so several pieces can be taken in a row.
+  var PICK_ID = '__pick';
+  var addMask = { open: false, report: null };
 
   function closeAddMask() {
     var overlay = el('rdbAddMask');
     if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+    destroyCardChart(PICK_ID);
+    delete cardRunData[PICK_ID];
     addMask.open = false;
-    addMask.busy = false;
-  }
-
-  function maskTypePillsHtml() {
-    return MASK_TYPES.map(function (m) {
-      return '<button type="button" class="rdb-mask-pill" data-mask-type="' + m.t + '" ' +
-        'data-testid="rdb-mask-type-' + m.t + '" aria-pressed="false">' +
-        '<i class="fas ' + m.icon + '" aria-hidden="true"></i>' + esc(I18N[m.label]) + '</button>';
-    }).join('');
+    addMask.report = null;
   }
 
   function maskReportsHtml(reports) {
     if (!reports.length) return '<p class="rdb-modal-empty">' + esc(I18N.noSavedReports) + '</p>';
     return '<ul class="rdb-report-list">' + reports.map(function (r) {
       return '<li><button type="button" class="rdb-report-item" data-testid="rdb-mask-report" ' +
-        'data-report-id="' + esc(r.id) + '" data-report-name="' + esc(r.name) + '" ' +
-        'aria-pressed="false">' + esc(r.name) + '</button></li>';
+        'data-report-id="' + esc(r.id) + '">' + esc(r.name) + '</button></li>';
     }).join('') + '</ul>';
   }
 
-  // Single source of truth for the mask's visible state: pressed pills, the
-  // pressed report row, both slider read-outs and the proportional preview
-  // box (width as a share of the 12 columns, height in row units).
-  function syncMask() {
-    var overlay = el('rdbAddMask');
-    if (!overlay) return;
-    Array.prototype.forEach.call(overlay.querySelectorAll('[data-mask-type]'), function (b) {
-      b.setAttribute('aria-pressed', String(b.getAttribute('data-mask-type') === addMask.type));
-    });
-    Array.prototype.forEach.call(overlay.querySelectorAll('[data-testid="rdb-mask-report"]'), function (b) {
-      b.setAttribute('aria-pressed', String(b.getAttribute('data-report-id') === String(addMask.reportId)));
-    });
-    el('rdbMaskSpan').value = addMask.span;
-    el('rdbMaskRows').value = addMask.rows;
-    el('rdbMaskSpanOut').textContent = addMask.span + '/' + GRID_COLS;
-    el('rdbMaskRowsOut').textContent = String(addMask.rows);
-    var box = el('rdbMaskPreviewBox');
-    box.style.width = (addMask.span / GRID_COLS * 100) + '%';
-    box.style.height = (addMask.rows * 17) + 'px';
-    box.textContent = addMask.span + ' × ' + addMask.rows;
-    box.setAttribute('data-geom', addMask.span + 'x' + addMask.rows);
-  }
-
-  async function submitAddMask() {
-    if (addMask.busy) return;
-    var type = addMask.type;
-    var opts = { span: addMask.span, rows: addMask.rows,
-                 title: (el('rdbMaskTitle').value || '').trim() };
-    if (addMask.reportId) {
-      addMask.busy = true;
-      var res = await api('/api/reporting/reports/' + addMask.reportId);
-      addMask.busy = false;
-      if (!addMask.open) return;                      // closed meanwhile
-      if (!res.ok || !res.data) { toast(I18N.couldNotLoad, true); return; }
-      opts.definition = res.data.definition;
-      if (!opts.title) opts.title = res.data.name;
-    }
-    closeAddMask();
-    addCard(type, opts);
-  }
-
-  function applyMaskType(type) {
-    addMask.type = type;
-    // The sliders track the type's default size until the user moves one --
-    // picking "Whole report" after "KPI" should not leave a full report
-    // squeezed into 3 columns.
-    if (!addMask.sizeTouched) {
-      addMask.span = DEFAULT_SPAN[type] || 6;
-      addMask.rows = DEFAULT_ROWS[type] || 2;
-    }
-    syncMask();
+  function pickBtnHtml(piece, extraAttrs) {
+    return '<button type="button" class="rdb-pick-btn" data-pick="' + piece + '"' + (extraAttrs || '') +
+      ' data-testid="rdb-pick-' + piece + '"><i class="fas fa-plus" aria-hidden="true"></i>' +
+      esc(I18N.pickAdd) + '</button>';
   }
 
   async function openAddMask() {
     if (!state.editing) return;
     closeAddMask();
     addMask.open = true;
-    addMask.reportId = null;
-    addMask.type = 'line';
-    addMask.sizeTouched = false;
-    addMask.span = DEFAULT_SPAN.line;
-    addMask.rows = DEFAULT_ROWS.line;
     var overlay = document.createElement('div');
     overlay.id = 'rdbAddMask';
     overlay.className = 'rdb-modal-overlay';
@@ -1857,83 +1883,101 @@
     overlay.innerHTML =
       '<div class="rdb-modal rdb-modal--mask">' +
         '<div class="rdb-modal-head">' +
-          '<span class="rdb-modal-title">' + esc(I18N.addCardTitle) + '</span>' +
+          '<span class="rdb-modal-title" data-testid="rdb-add-mask-title">' + esc(I18N.addCardTitle) + '</span>' +
+          '<span class="rdb-spacer"></span>' +
+          '<span id="rdbMaskActions"></span>' +
           '<button type="button" class="rdb-modal-close" data-testid="rdb-add-mask-close" ' +
             'aria-label="' + esc(I18N.cancel) + '"><i class="fas fa-xmark" aria-hidden="true"></i></button>' +
         '</div>' +
-        '<div class="rdb-modal-body rdb-mask-body">' +
-          '<p class="rdb-mask-step"><span class="rdb-mask-stepno">1</span>' +
-            esc(I18N.maskStepReport) + '</p>' +
-          '<div id="rdbMaskReports" class="rdb-mask-reports" data-testid="rdb-add-mask-reports">' +
-            '<p class="rdb-modal-loading">' + esc(I18N.loading) + '</p></div>' +
-          '<p class="rdb-mask-hint">' + esc(I18N.maskReportHint) + '</p>' +
-          '<p class="rdb-mask-step"><span class="rdb-mask-stepno">2</span>' +
-            esc(I18N.maskStepType) + '</p>' +
-          '<div class="rdb-mask-pills">' + maskTypePillsHtml() + '</div>' +
-          '<p class="rdb-mask-step"><span class="rdb-mask-stepno">3</span>' +
-            esc(I18N.maskStepSize) + '</p>' +
-          '<input id="rdbMaskTitle" class="reporting-input rdb-mask-input" ' +
-            'data-testid="rdb-add-mask-title" aria-label="' + esc(I18N.maskTitle) + '" ' +
-            'placeholder="' + esc(I18N.maskTitle) + '">' +
-          '<div class="rdb-mask-sizes">' +
-            '<label class="rdb-mask-label" for="rdbMaskSpan">' + esc(I18N.maskWidth) +
-              '<span id="rdbMaskSpanOut" class="rdb-mask-out"></span></label>' +
-            '<input type="range" id="rdbMaskSpan" data-testid="rdb-add-mask-span" ' +
-              'min="1" max="' + GRID_COLS + '" step="1">' +
-            '<label class="rdb-mask-label" for="rdbMaskRows">' + esc(I18N.maskHeight) +
-              '<span id="rdbMaskRowsOut" class="rdb-mask-out"></span></label>' +
-            '<input type="range" id="rdbMaskRows" data-testid="rdb-add-mask-rows" ' +
-              'min="1" max="' + MAX_ROWS + '" step="1">' +
-          '</div>' +
-          '<div class="rdb-mask-preview" aria-hidden="true">' +
-            '<div id="rdbMaskPreviewBox" class="rdb-mask-preview-box" ' +
-              'data-testid="rdb-add-mask-preview"></div></div>' +
-        '</div>' +
-        '<div class="rdb-modal-foot">' +
-          '<button type="button" class="nx-btn nx-btn--secondary" data-testid="rdb-add-mask-cancel">' +
-            esc(I18N.cancel) + '</button>' +
-          '<button type="button" class="nx-btn nx-btn--primary" data-testid="rdb-add-mask-submit">' +
-            '<i class="fas fa-plus" aria-hidden="true"></i>' + esc(I18N.addCard) + '</button>' +
-        '</div>' +
+        '<div class="rdb-modal-body" id="rdbMaskBody" data-testid="rdb-add-mask-body">' +
+          '<p class="rdb-modal-loading">' + esc(I18N.loading) + '</p></div>' +
       '</div>';
     document.body.appendChild(overlay);
     overlay.addEventListener('click', function (e) {
       var hit = e.target.closest ? e.target : null;
-      if (e.target === overlay ||
-          (hit && (hit.closest('[data-testid="rdb-add-mask-close"]') ||
-                   hit.closest('[data-testid="rdb-add-mask-cancel"]')))) {
+      if (e.target === overlay || (hit && hit.closest('[data-testid="rdb-add-mask-close"]'))) {
         closeAddMask();
         return;
       }
       if (!hit) return;
-      var pill = hit.closest('[data-mask-type]');
-      if (pill) { applyMaskType(pill.getAttribute('data-mask-type')); return; }
       var pick = hit.closest('[data-testid="rdb-mask-report"]');
-      if (pick) {
-        addMask.reportId = pick.getAttribute('data-report-id');
-        el('rdbMaskTitle').value = pick.getAttribute('data-report-name') || '';
-        syncMask();
-        return;
-      }
-      if (hit.closest('[data-testid="rdb-add-mask-submit"]')) submitAddMask();
+      if (pick) { openPickReport(pick.getAttribute('data-report-id')); return; }
+      var btn = hit.closest('[data-pick]');
+      if (btn) pickPiece(btn);
     });
-    overlay.addEventListener('input', function (e) {
-      if (e.target.id !== 'rdbMaskSpan' && e.target.id !== 'rdbMaskRows') return;
-      addMask.sizeTouched = true;
-      addMask.span = clampInt(el('rdbMaskSpan').value, 1, GRID_COLS, addMask.span);
-      addMask.rows = clampInt(el('rdbMaskRows').value, 1, MAX_ROWS, addMask.rows);
-      syncMask();
-    });
-    syncMask();
 
     var res = await api('/api/reporting/reports');
     if (!addMask.open) return;   // closed meanwhile
     var reports = (res.ok && Array.isArray(res.data)) ? res.data.filter(function (r) {
       return r.owned && r.kind !== 'sql' && r.kind !== 'dashboard';
     }) : [];
-    var host = el('rdbMaskReports');
-    if (host) host.innerHTML = maskReportsHtml(reports);
-    syncMask();
+    el('rdbMaskBody').innerHTML =
+      '<p class="rdb-mask-step">' + esc(I18N.maskStepReport) + '</p>' + maskReportsHtml(reports);
+  }
+
+  // Step 2: the picked report, rendered whole, with a pick button on every
+  // piece. Global filters apply here too, so what you see is what the card
+  // will show.
+  async function openPickReport(reportId) {
+    var res = await api('/api/reporting/reports/' + reportId);
+    if (!addMask.open) return;
+    if (!res.ok || !res.data) { toast(I18N.couldNotLoad, true); return; }
+    addMask.report = { id: String(reportId), name: res.data.name, definition: res.data.definition };
+    var overlay = el('rdbAddMask');
+    overlay.querySelector('.rdb-modal').classList.add('rdb-modal--pick');
+    overlay.querySelector('[data-testid="rdb-add-mask-title"]').textContent = res.data.name;
+    el('rdbMaskActions').innerHTML =
+      '<button type="button" class="nx-btn nx-btn--secondary" data-pick="report" data-testid="rdb-pick-report">' +
+        '<i class="fas fa-plus" aria-hidden="true"></i>' + esc(I18N.pickWhole) + '</button>';
+    var body = el('rdbMaskBody');
+    body.className = 'rdb-modal-body rdb-card-body rdb-pick-host';
+    body.innerHTML = '<p class="rdb-mask-hint">' + esc(I18N.pickHint) + '</p>' +
+      '<div class="rdb-skeleton rdb-skeleton--kpi"></div><div class="rdb-skeleton rdb-skeleton--chart"></div>';
+    var pseudo = { id: PICK_ID, type: 'report', title: res.data.name,
+                   definition: res.data.definition, filterOverrides: [] };
+    var def = cardRunDef(pseudo, effectiveFilters(pseudo));
+    var gen = (runGen[PICK_ID] = (runGen[PICK_ID] || 0) + 1);
+    var run = await api('/api/reporting/run', {
+      method: 'POST', body: JSON.stringify(Object.assign({}, def, { compare: true }))
+    });
+    if (!addMask.open || runGen[PICK_ID] !== gen) return;
+    if (!run.ok || !run.data || !Array.isArray(run.data.columns) || !Array.isArray(run.data.rows)) {
+      body.innerHTML = '<p class="rdb-card-error">' + esc(I18N.couldNotLoad) + '</p>';
+      return;
+    }
+    body.innerHTML = '<p class="rdb-mask-hint">' + esc(I18N.pickHint) + '</p>';
+    var host = document.createElement('div');
+    host.setAttribute('data-testid', 'rdb-pick-report-body');
+    body.appendChild(host);
+    await renderReportCard(pseudo, host, def, run.data, gen);
+    if (!addMask.open || runGen[PICK_ID] !== gen) return;
+    kpiTiles(host).forEach(function (tile, i) {
+      tile.insertAdjacentHTML('beforeend', pickBtnHtml('kpi', ' data-kpi-index="' + i + '"'));
+    });
+    var chartcard = host.querySelector('.rdb-report-chartcard');
+    if (chartcard && !chartcard.hidden) chartcard.insertAdjacentHTML('afterbegin', pickBtnHtml('chart'));
+    var table = host.querySelector('.rdb-report-table');
+    var bar = host.querySelector('.rdb-report-tablebar');
+    if (table) {
+      table.hidden = false;
+      if (bar) { bar.hidden = false; bar.innerHTML = pickBtnHtml('table'); }
+    }
+  }
+
+  function pickPiece(btn) {
+    var r = addMask.report;
+    if (!r) return;
+    var piece = btn.getAttribute('data-pick');
+    var opts = { reportId: r.id, definition: r.definition, title: r.name };
+    if (piece === 'kpi') {
+      opts.kpiIndex = parseInt(btn.getAttribute('data-kpi-index'), 10) || 0;
+      var tile = btn.closest('.rs-kpi-total-card, .reporting-ledger-kpi');
+      var cap = tile && tile.querySelector('.reporting-ledger-caption');
+      if (cap && cap.textContent.trim()) opts.title += ' · ' + cap.textContent.trim();
+    }
+    addCard(piece, opts);
+    btn.classList.add('is-added');
+    btn.innerHTML = '<i class="fas fa-check" aria-hidden="true"></i>' + esc(I18N.pickAdded);
   }
 
   // ---- Export (D9 -- per-card, gated by data-can-export) ------------------
@@ -1960,7 +2004,7 @@
 
   function openExportMenu() {
     closeExportMenu();
-    var cards = ((state.def && state.def.cards) || []).filter(function (c) { return !isEmptyCardDef(c); });
+    var cards = ((state.def && state.def.cards) || []).filter(function (c) { return !isLegacyCard(c) && c.definition; });
     var menu = document.createElement('div');
     menu.id = 'rdbExportMenu';
     menu.className = 'rdb-export-menu';
@@ -1989,8 +2033,7 @@
   async function exportCard(cardId) {
     var card = findCardById(cardId);
     if (!card) return;
-    var def = Object.assign({}, card.definition || {});
-    def.filters = effectiveFilters(card);
+    var def = cardRunDef(card, effectiveFilters(card));
     def.format = 'xlsx';
     var res;
     try {

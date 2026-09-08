@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     {% include '_theme_prepaint.html' %}
     <link rel="stylesheet" href="{{ static_v('css/nexora-ui.css') }}">
-    <title>{{ _("Clients - nexora") }}</title>
+    <title>{{ _("Data Connections - nexora") }}</title>
     <link rel="stylesheet" href="{{ static_v('css/admin.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous" />
 </head>
@@ -16,10 +16,10 @@
 
     <main class="nx-main">
         {{ a.page_header(
-            title=_('Clients'),
-            subtitle=_('Runtime sources (which DB/dialect/Octo tenant serves each client) -- not customer organizations'),
+            title=_('Data Connections'),
+            subtitle=_("Where tenant data lives: DB, SQL dialect and Octo domain per client code -- not the organization itself (see Organizations)"),
             back_url=url_for('admin_dashboard'),
-            actions=([{'label': _('Add client'), 'icon': 'fa-plus', 'onclick': 'openAddClientModal()', 'variant': 'primary', 'testid': 'add-client'}] if can_edit else None),
+            actions=([{'label': _('Add connection'), 'icon': 'fa-plus', 'onclick': 'openAddClientModal()', 'variant': 'primary', 'testid': 'add-client'}] if can_edit else None),
             icon='fa-server'
         ) }}
 

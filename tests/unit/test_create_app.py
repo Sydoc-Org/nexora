@@ -160,9 +160,9 @@ EXPECTED_NON_GENERALI_ENDPOINTS = {
     "dashboard_kpi_stats",
     "dashboard_hourly_stats",
     "dashboard_avg_processing_time",
+    "dashboard_backlog_trend",
     "dashboard",
     "dashboard_set_filter",
-    "api_recent_activity",
     # views/admin/ (package)
     "admin_dashboard",
     "admin_organizations_view",
@@ -191,7 +191,6 @@ EXPECTED_NON_GENERALI_ENDPOINTS = {
     "admin_active_sessions",
     "admin_access_control",
     "get_users_admin_access_control",
-    "get_profile_details",
     "save_access_profile",
     "get_user_overrides",
     "api_admin_user_effective_permissions",

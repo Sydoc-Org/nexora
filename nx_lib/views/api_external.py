@@ -73,7 +73,7 @@ from flask import current_app, g, jsonify, request
 from werkzeug.datastructures import MultiDict
 
 from ..api_auth import require_api_key
-from ..clients import CLIENTS
+from ..clients import workitem_clients
 from ..extensions import limiter
 from ..workitem_sources import (
     get_domain_for_workitem,
@@ -220,7 +220,7 @@ def api_v1_undelivered():
 # --------------------------- /api/v1/workitems ----------------------------- #
 
 # The query endpoint's exposed enums (issue #197). Deleted is internal-only
-# (workitems.filter.status.deleted) and deliberately not exposed to keys.
+# (workitems.filter.deleted.view) and deliberately not exposed to keys.
 WORKITEM_API_STATUSES = ("Ready", "In Progress", "Done")
 # Mirrors the overview's perPage whitelist -- validated as strings like ?days=.
 WORKITEM_API_PER_PAGE = ("40", "100", "200", "500", "1000")
@@ -524,7 +524,7 @@ def api_v1_workitem_detail(workitem_id):
         # default-source document (deterministic; such keys should be split).
         code = None
         pair = None
-        for candidate in CLIENTS:
+        for candidate in workitem_clients():
             p = process_pair_for_workitem(workitem_id, client_hint=candidate)
             if p is not None and (p[0].lower(), p[1].lower()) in key_pairs:
                 code, pair = candidate, p

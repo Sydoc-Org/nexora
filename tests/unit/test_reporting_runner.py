@@ -37,8 +37,8 @@ FAKE_CATALOG = [
 
 OWNER_PERMS = {
     "reporting.view",
-    "reporting.source.docprocessing",
-    "reporting.scope.process.acme.inv",
+    "reporting.source.docprocessing.use",
+    "process.acme.inv.view",
 }
 
 
@@ -72,7 +72,7 @@ def _patch_view_internals(monkeypatch, captured):
             "id": "docprocessing",
             "kind": "curated",
             "provider": "docprocessing",
-            "permission": "reporting.source.docprocessing",
+            "permission": "reporting.source.docprocessing.use",
         },
     )
     monkeypatch.setattr(
@@ -155,7 +155,7 @@ def test_scheduled_table_source_metric_definition_resolves(monkeypatch):
             "id": "workitems",
             "kind": "curated",
             "provider": "table",
-            "permission": "reporting.source.workitems",
+            "permission": "reporting.source.workitems.use",
             "baseObject": "dbo.Workitems",
             "engine": "octo",
             "columns": [{"field": "status", "label": "Status", "type": "string"}],
@@ -181,7 +181,7 @@ def test_scheduled_table_source_metric_definition_resolves(monkeypatch):
         metrics=[{"metric": "wi_count"}],
     )
     cols, rows = runner_mod.execute_definition(
-        definition, {"reporting.view", "reporting.source.workitems"}, 1, "tester", "en"
+        definition, {"reporting.view", "reporting.source.workitems.use"}, 1, "tester", "en"
     )
 
     assert "COUNT(*) AS [wi_count]" in captured["sql"]
@@ -200,7 +200,7 @@ def test_scheduled_table_source_definition_with_grain_validates(monkeypatch):
             "id": "workitems",
             "kind": "curated",
             "provider": "table",
-            "permission": "reporting.source.workitems",
+            "permission": "reporting.source.workitems.use",
             "baseObject": "dbo.Workitems",
             "engine": "octo",
             "columns": [
@@ -229,7 +229,7 @@ def test_scheduled_table_source_definition_with_grain_validates(monkeypatch):
         metrics=[{"metric": "wi_count"}],
     )
     cols, rows = runner_mod.execute_definition(
-        definition, {"reporting.view", "reporting.source.workitems"}, 1, "tester", "en"
+        definition, {"reporting.view", "reporting.source.workitems.use"}, 1, "tester", "en"
     )
 
     assert rows == [("2026-01-01", 3)]
@@ -316,7 +316,7 @@ def test_scheduled_definition_scoped_to_client_only_queries_that_clients_process
     monkeypatch.setattr(rv, "_load_process_configs", capture_configs)
     monkeypatch.setattr(rv, "_load_field_col_maps", capture_col_maps)
 
-    owner_perms = OWNER_PERMS | {"reporting.scope.process.other.inv"}
+    owner_perms = OWNER_PERMS | {"process.other.inv.view"}
     definition = _definition(scope={"clients": ["acme"], "processes": []})
 
     runner_mod.execute_definition(definition, owner_perms, 1, "tester", "en")
@@ -355,7 +355,7 @@ def test_scheduled_empty_scope_intersection_never_widens_to_all_allowed(monkeypa
     monkeypatch.setattr(rv, "_load_process_configs", load_configs)
     monkeypatch.setattr(rv, "_load_field_col_maps", load_col_maps)
 
-    owner_perms = OWNER_PERMS | {"reporting.scope.process.other.inv"}
+    owner_perms = OWNER_PERMS | {"process.other.inv.view"}
     definition = _definition(scope={"clients": ["nope"], "processes": []})
 
     with pytest.raises(QueryBuildError):
