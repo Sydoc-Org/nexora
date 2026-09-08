@@ -312,6 +312,26 @@ def _is_report_owner(report_id, userid):
         conn.close()
 
 
+def _can_view_report(report_id, userid):
+    """True when ``userid`` may open the report: owner, ``Visibility='shared'``,
+    or an explicit ``dbo.ReportShares`` grant. Same rule ``api_reports_get``
+    applies in its WHERE clause; annotations (#284) read through this."""
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT 1 FROM dbo.Reports r "
+            "LEFT JOIN dbo.ReportShares s "
+            "       ON s.ReportID = r.ReportID AND s.SharedWithUserID = ? "
+            "WHERE r.ReportID = ? "
+            "  AND (r.OwnerUserID = ? OR r.Visibility = 'shared' OR s.SharedWithUserID = ?)",
+            (userid, report_id, userid, userid),
+        )
+        return cur.fetchone() is not None
+    finally:
+        conn.close()
+
+
 def _resolve_user(identifier):
     """Resolve a username or email to {userId, name}, or None if unknown."""
     ident = (identifier or "").strip()
