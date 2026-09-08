@@ -10,6 +10,18 @@ Work toward the next release.
 
 ### Fixed
 
+- **The outage monitor no longer alarms on planned maintenance** (#281).
+  `nx_lib/hooks.py` marks its maintenance 503 with `X-Nexora-Maintenance: 1`
+  and a `Retry-After` derived from the window's `EndAt`; the HTTP probe reads
+  the marker and returns a third state, *excused*, which freezes the component
+  instead of opening an incident. It does not recover one either — a
+  maintenance page proves nothing about the component behind it, so taking the
+  site down would otherwise close every open incident. The excuse expires after
+  4 hours so a window left open cannot silence the monitor. Previously any
+  window over ~15 minutes was guaranteed to mail the helpdesk: three
+  consecutive HTTP failures open an incident and the 30-minute min-hold keeps
+  it open past the window closing.
+
 - **The `dbo.ActiveSessions` prune now has a way to be scheduled.** #227
   shipped `ops/cleanup/prune_active_sessions.py` and a docstring asking someone
   to register a task by hand; nothing in the repo executed it, so merging and

@@ -107,6 +107,12 @@ def _probe_http(url):
     except requests.RequestException as e:
         return "http:site", False, f"{url}: {type(e).__name__}: {str(e)[:160]}"
     # Any 2xx/3xx means IIS served the app. A login redirect is a healthy answer.
+    if resp.headers.get(outage.MAINTENANCE_HEADER):
+        # Deliberate window, not a dead site (#281). ok=None freezes the
+        # component rather than opening an incident; see update_component.
+        retry = resp.headers.get("Retry-After")
+        until = f", ends in {retry}s" if retry else ""
+        return "http:site", None, f"{url}: planned maintenance{until}"
     ok = resp.status_code < 400
     return "http:site", ok, f"{url}: HTTP {resp.status_code}{_took(resp)}"
 

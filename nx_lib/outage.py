@@ -35,6 +35,19 @@ DEFAULT_FAIL_THRESHOLD = 2
 DEFAULT_RECOVER_THRESHOLD = 2
 DEFAULT_MIN_HOLD_S = 30 * 60
 
+# --- Planned maintenance ------------------------------------------------------
+# nx_lib/hooks.py sets this on its maintenance 503 so a deliberate window can be
+# told apart from a dead site. Without it the monitor mailed the helpdesk every
+# time somebody scheduled work (#281): the probe is unauthenticated and judged
+# health on `status_code < 400`, and a maintenance 503 is a 503.
+MAINTENANCE_HEADER = "X-Nexora-Maintenance"
+
+# How long a maintenance marker excuses a component before it is treated as a
+# fault anyway. _get_blocking_maintenance filters on EndAt >= GETDATE(), so the
+# app cannot 503 past the window -- but a window can be extended, or opened with
+# an EndAt days out, and a monitor that stays silent for days is not a monitor.
+DEFAULT_MAINTENANCE_MAX_S = 4 * 60 * 60
+
 # --- Log-storm defaults -------------------------------------------------------
 # The reference case (issue #166) was `Invalid object name 'dbo.WorkitemTags'`
 # repeating for hours while every DB ping stayed green -- logic-level breakage
@@ -199,6 +212,7 @@ def update_component(
     fail_threshold=DEFAULT_FAIL_THRESHOLD,
     recover_threshold=DEFAULT_RECOVER_THRESHOLD,
     min_hold_s=DEFAULT_MIN_HOLD_S,
+    maintenance_max_s=DEFAULT_MAINTENANCE_MAX_S,
 ):
     """Fold one probe result into a component's incident state.
 
@@ -206,6 +220,14 @@ def update_component(
     ``"recover"``. Only the two non-None events produce mail -- everything else
     (repeat failures on an already-open incident, recoveries still inside the
     min-hold window) updates state silently. See the module docstring for why.
+
+    ``ok`` takes three values. ``True``/``False`` are healthy and failing.
+    ``None`` means *excused* -- the probe reached a deliberate maintenance
+    response (#281). An excused probe freezes the streaks: it must not open an
+    incident, and equally must not recover one that was already open, since a
+    maintenance page proves nothing about the component behind it. The excuse
+    expires after ``maintenance_max_s``, after which the component is judged as
+    failing; a window left open for days must not silence the monitor.
     """
     prev = prev or {}
     fail_streak = prev.get("fail_streak", 0)
@@ -213,12 +235,50 @@ def update_component(
     open_since = prev.get("open_since")
     first_fail_at = prev.get("first_fail_at")
 
+    maintenance_since = prev.get("maintenance_since")
+    excuse_expired = False
+
+    if ok is None:
+        since = maintenance_since or now.isoformat()
+        try:
+            excused_for = (now - datetime.fromisoformat(since)).total_seconds()
+        except ValueError:
+            excused_for, since = 0.0, now.isoformat()
+        if excused_for <= maintenance_max_s:
+            # Frozen: same streaks, same open_since, no event. Detail is still
+            # refreshed so --check and the run log show it is in maintenance
+            # rather than looking stale.
+            held = dict(prev)
+            held.update(
+                {
+                    "fail_streak": fail_streak,
+                    "ok_streak": ok_streak,
+                    "open_since": open_since,
+                    "first_fail_at": first_fail_at,
+                    "last_detail": detail,
+                    "updated_at": now.isoformat(),
+                    "maintenance_since": since,
+                }
+            )
+            return held, None
+        # The excuse has run too long to be credible; judge it as a failure.
+        # `since` is deliberately KEPT: clearing it would hand the next excused
+        # probe a fresh allowance, so an indefinite window would alternate
+        # expire-fail-restart and never reach the second consecutive failure
+        # that opens an incident.
+        ok = False
+        excuse_expired = True
+        maintenance_since = since
+
     if ok:
         ok_streak += 1
         fail_streak = 0
+        maintenance_since = None
     else:
         fail_streak += 1
         ok_streak = 0
+        if not excuse_expired:
+            maintenance_since = None
         if fail_streak == 1:
             first_fail_at = now.isoformat()
 
@@ -241,6 +301,7 @@ def update_component(
         "first_fail_at": first_fail_at,
         "last_detail": detail,
         "updated_at": now.isoformat(),
+        "maintenance_since": maintenance_since,
     }
     return state, event
 

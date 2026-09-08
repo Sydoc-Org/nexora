@@ -82,6 +82,39 @@ A warning storm is labelled `warn storm @ <site>` rather than `log storm`, and a
 signature seen at both levels is judged at the *error* bar -- one stray WARNING
 must not raise an error storm's threshold.
 
+## Planned maintenance
+
+A maintenance 503 is still a 503, so before #281 every window somebody
+scheduled arrived at the helpdesk as an outage: the HTTP probes fail together,
+three consecutive failures open an incident, and the 30-minute min-hold keeps it
+open past the window closing. Any window longer than ~15 minutes alarmed.
+
+`nx_lib/hooks.py` now marks the maintenance response with
+**`X-Nexora-Maintenance: 1`** plus a `Retry-After` derived from the window's
+`EndAt`. A header rather than a body marker because the two branches return
+different content types -- HTML for a page, JSON for `/api/`.
+
+The probe reads that marker and returns `ok=None`, a third state meaning
+*excused*. `update_component` then **freezes** the component: no incident opens,
+and equally none recovers, because a maintenance page proves nothing about the
+component behind it -- otherwise taking the site down would silently close every
+incident that was already open.
+
+Two safeguards:
+
+- **Maintenance is not health.** The component holds its previous state and its
+  detail reads `planned maintenance, ends in Ns`, so `--check` and the run log
+  show what is happening rather than a false all-clear.
+- **The excuse expires** after `DEFAULT_MAINTENANCE_MAX_S` (4 hours), after
+  which the component is judged as failing. `_get_blocking_maintenance` filters
+  on `EndAt >= GETDATE()` so the app cannot 503 past its window -- but a window
+  can be extended (one was, from 08:30 to 09:30, on the morning this was
+  written) or opened with an `EndAt` days out, and a monitor that stays silent
+  for days is not a monitor.
+
+Fixing this removes most of the mail at source. #282's rate cap is the backstop
+for the rest.
+
 On a **dev box** expect the log-storm probe to fire constantly: the unit suite
 deliberately logs errors ("boom", "DB down", …) into the same `app.log`, so a
 run right after `pytest` opens dozens of incidents. That is why `SUPPORT_MAIL`
