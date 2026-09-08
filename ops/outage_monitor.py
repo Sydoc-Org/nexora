@@ -377,11 +377,19 @@ def run_once(dry_run=False):
             print(f"[warn] status mirror write failed: {e}")
 
     sent = 0
+    throttled = 0
     for kind in ("open", "recover"):
         batch = [e for e in events if e["kind"] == kind]
         if not batch:
             continue
-        subject, body = outage.render_alert(batch, environment, now)
+        # Budget check before rendering the mail, and before the dry-run branch,
+        # so --dry-run reports what the cap would actually do.
+        allowed, suppressed, state["mail"] = outage.mail_budget(state.get("mail"), now)
+        subject, body = outage.render_alert(batch, environment, now, suppressed=suppressed)
+        if not allowed:
+            throttled += 1
+            print(f"[throttled] mail cap reached -- not mailing: {subject}")
+            continue
         if dry_run:
             print(f"[dry-run] would mail {support_mail or '<SUPPORT_MAIL unset>'}: {subject}")
             continue
@@ -400,9 +408,11 @@ def run_once(dry_run=False):
     if not dry_run:
         outage.save_state(STATE_PATH, state)
     open_now = [k for k, c in state["components"].items() if c.get("open_since")]
+    pending = (state.get("mail") or {}).get("suppressed", 0)
     print(
         f"outage monitor: {len(results)} probes, {len(events)} event(s), "
-        f"{sent} mail(s), {len(open_now)} incident(s) open"
+        f"{sent} mail(s), {throttled} throttled, {len(open_now)} incident(s) open"
+        + (f", {pending} suppressed awaiting report" if pending else "")
     )
     return len(open_now)
 
