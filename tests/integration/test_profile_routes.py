@@ -220,20 +220,25 @@ def _patch_avatars_dir(monkeypatch, uploads_dir):
     monkeypatch.setattr(profile_module, "PATHS", SimpleNamespace(uploads=uploads_dir))
 
 
-def test_avatar_missing_returns_404(client, tmp_path, monkeypatch):
+def test_avatar_requires_session(client, tmp_path, monkeypatch):
     _patch_avatars_dir(monkeypatch, tmp_path)
-    resp = client.get("/avatar/999999")
+    assert client.get("/avatar/999999").status_code == 401
+
+
+def test_avatar_missing_returns_404(user_client, tmp_path, monkeypatch):
+    _patch_avatars_dir(monkeypatch, tmp_path)
+    resp = user_client.get("/avatar/999999")
     assert resp.status_code == 404
 
 
-def test_avatar_serves_uploaded_file(client, tmp_path, monkeypatch):
+def test_avatar_serves_uploaded_file(user_client, tmp_path, monkeypatch):
     _patch_avatars_dir(monkeypatch, tmp_path)
     avatars_dir = tmp_path / "avatars"
     avatars_dir.mkdir(parents=True)
     img = Image.new("RGB", (1, 1))
     img.save(avatars_dir / "424242-icon.png", format="PNG")
 
-    resp = client.get("/avatar/424242")
+    resp = user_client.get("/avatar/424242")
     assert resp.status_code == 200
     assert resp.headers["Content-Type"] == "image/png"
 

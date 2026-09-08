@@ -851,23 +851,21 @@ def test_set_new_password_cross_session_replay_rejected_after_first_write(client
         conn.close()
 
 
-def test_verify_2fa_rate_limit_eventually_429(client, reset_limiter):
-    """auth.py:309 — @limiter.limit('30 per hour'), added to close a TOTP
-    brute-force gap (a valid pre_2fa_userid session let a caller try all
-    1,000,000 6-digit codes with no throttling). 30 bad-code attempts are
-    allowed (each 401); the 31st within the hour must be 429. Unlike the
-    login/reset-password rate-limit tests above, this asserts the 31st
-    status strictly rather than accepting a bare 401 fallback — 401 on every
-    attempt is exactly the pre-fix defect this test exists to catch, so
-    tolerating it here would make the test pass whether or not the limit is
-    applied."""
+def test_verify_2fa_rate_limit_eventually_429(client, reset_limiter, clear_2fa_lockout):
+    """Two ceilings on TOTP brute force, both asserted strictly. Per-IP:
+    @limiter.limit('30 per hour') -- the 31st attempt within the hour is 429.
+    Per-account: dbo.LoginLockout under the "2fa:<userid>" key -- the 5th
+    wrong code locks the account for 15 minutes, so attempts 6..30 bounce
+    (302 back to /verify_2fa) instead of being checked at all. 401 on every
+    attempt is exactly the pre-fix defect this test exists to catch."""
     with client.session_transaction() as sess:
         sess["pre_2fa_userid"] = "1001"
     statuses = []
     for _ in range(31):
         resp = client.post("/verify_2fa", data={"code": "000000"}, follow_redirects=False)
         statuses.append(resp.status_code)
-    assert statuses[:30] == [401] * 30, statuses
+    assert statuses[:5] == [401] * 5, statuses
+    assert statuses[5:30] == [302] * 25, statuses
     assert statuses[30] == 429, statuses
 
 

@@ -230,6 +230,25 @@ MS02_DOCFIELDS_DB_USER = os.environ.get("MS02_DOCFIELDS_DB_USER", MS02_DB_USER)
 MS02_DOCFIELDS_DB_PWD = os.environ.get("MS02_DOCFIELDS_DB_PWD", MS02_DB_PWD)
 MS02_DOCFIELDS_DB_PORT = os.environ.get("MS02_DOCFIELDS_DB_PORT", MS02_DB_PORT)
 
+# Every third-party script/stylesheet the templates load, by exact CDN path.
+CDN_SCRIPTS = [
+    "https://cdn.tailwindcss.com",
+    "https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.0",
+    "https://cdn.jsdelivr.net/npm/@tailwindplus/elements@1.0.22",
+    "https://cdn.jsdelivr.net/npm/@tailwindplus/elements@1.0.22/",
+    "https://cdn.jsdelivr.net/npm/flatpickr@4.6.13",
+    "https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/",
+    "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js",
+    "https://cdn.jsdelivr.net/npm/chart.js@4.5.1",
+    "https://cdn.jsdelivr.net/npm/motion@12.40.0/dist/motion.js",
+    "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/",
+]
+CDN_STYLES = [
+    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css",
+    "https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css",
+    "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/",
+]
+
 CSP = {
     "default-src": "'self'",
     "base-uri": "'self'",
@@ -242,32 +261,36 @@ CSP = {
         # onclick/onchange/... attribute handlers are not covered by a
         # script-src nonce, so those were converted to addEventListener
         # bindings rather than allowed via 'unsafe-hashes'.
-        "https://cdn.tailwindcss.com",
-        "https://cdnjs.cloudflare.com",
-        "https://cdn.jsdelivr.net",
+        #
+        # Exact library paths, not whole CDN origins: allowing all of
+        # cdnjs/jsdelivr would let any HTML injection pull an arbitrary
+        # library from there without a nonce, which is most of what the
+        # nonce is supposed to prevent. A path ending in "/" is a prefix,
+        # anything else is an exact match (query string ignored). Bumping a
+        # CDN version in a template means bumping it here too -- the
+        # test_csp_cdn_allowlist unit test keeps the two in sync.
+        *CDN_SCRIPTS,
     ],
     "style-src": [
         "'self'",
         "'unsafe-inline'",
         "https://fonts.googleapis.com",
-        "https://cdnjs.cloudflare.com",
-        "https://cdn.jsdelivr.net",
+        *CDN_STYLES,
     ],
     "font-src": [
         "'self'",
         "https://fonts.gstatic.com",
-        "https://cdnjs.cloudflare.com",
+        "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/webfonts/",
     ],
     "img-src": [
         "'self'",
         "data:",
         "blob:",
-        "https://cdn.tailwindcss.com",
     ],
     "connect-src": [
         "'self'",
+        # tailwind's browser build fetches nothing, but keep the play CDN
+        # here: it XHRs its own plugin manifests when ?plugins= is used.
         "https://cdn.tailwindcss.com",
-        "https://cdnjs.cloudflare.com",
-        "https://cdn.jsdelivr.net",
     ],
 }

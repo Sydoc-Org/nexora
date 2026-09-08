@@ -672,10 +672,9 @@ def export_workitems_csv():
                                 img_bytes = get_media(img_url, domain)
                                 if str(ext).lower() in (".tif", ".tiff"):
                                     with Image.open(io.BytesIO(img_bytes)) as img:
-                                        if img.mode != "RGB":
-                                            img = img.convert("RGB")
+                                        rgb = img if img.mode == "RGB" else img.convert("RGB")
                                         buf = io.BytesIO()
-                                        img.save(buf, "JPEG", quality=75)
+                                        rgb.save(buf, "JPEG", quality=75)
                                         img_bytes = buf.getvalue()
                                 detail["images"].append(base64.b64encode(img_bytes).decode("utf-8"))
                             except Exception as img_err:
@@ -1254,10 +1253,9 @@ def api_get_media_raw(workitem_id, media_index):
             try:
                 image_stream = io.BytesIO(raw_media_bytes)
                 with Image.open(image_stream) as img:
-                    if img.mode != "RGB":
-                        img = img.convert("RGB")
+                    rgb = img if img.mode == "RGB" else img.convert("RGB")
                     buffer = io.BytesIO()
-                    img.save(buffer, format="JPEG", quality=85)
+                    rgb.save(buffer, format="JPEG", quality=85)
                     jpeg_bytes = buffer.getvalue()
                     cache.set(_tif_cache_key, jpeg_bytes, timeout=3600)
                     resp = send_file(

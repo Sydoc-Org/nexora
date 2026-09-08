@@ -39,12 +39,14 @@ def test_get_ip_prefers_x_forwarded_for(app):
         assert get_ip() == "1.2.3.4"
 
 
-def test_get_ip_uses_first_in_xff_list(app):
+def test_get_ip_uses_last_in_xff_list(app):
+    """Rightmost hop = the one the trusted proxy appended; the leftmost is
+    whatever the client typed (security sweep 2026-09)."""
     with app.test_request_context(
         "/",
         headers={"X-Forwarded-For": "1.2.3.4, 5.6.7.8"},
     ):
-        assert get_ip() == "1.2.3.4"
+        assert get_ip() == "5.6.7.8"
 
 
 def test_get_ip_returns_unknown_when_nothing_set(app):

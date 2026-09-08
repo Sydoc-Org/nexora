@@ -92,7 +92,7 @@
 
                     const eventText = document.createElement('p');
                     eventText.className = 'text-sm text-gray-800';
-                    eventText.innerHTML = `<strong class="font-semibold">${item.Step}:</strong> ${item.Activity}`;
+                    eventText.innerHTML = `<strong class="font-semibold">${NX.esc(item.Step)}:</strong> ${NX.esc(item.Activity)}`;
                     eventElement.appendChild(eventText);
 
                     const detailsText = document.createElement('p');

@@ -71,6 +71,24 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
+### Security
+
+- **Security sweep (2026-09-08).** Rate limiter and CSV request log now key on the
+  *rightmost* `X-Forwarded-For` hop (the one the trusted proxy appended) instead of
+  the client-typed leftmost one, which let a caller dodge the login / 2FA /
+  password-reset throttles or burn a victim's bucket. The TOTP step gained the same
+  account-level lockout as the password step (5 wrong codes → 15 min, under a
+  separate `2fa:<userid>` key so a re-login cannot reset it). Password-reset and
+  invite tokens now carry a fingerprint of the password hash they were minted
+  against, so a spent link stays dead across app-pool recycles. The PROD CSP allows
+  third-party scripts and styles by exact CDN path (`config.CDN_SCRIPTS` /
+  `CDN_STYLES`, kept in sync by `test_csp_cdn_allowlist.py`) rather than whole
+  cdnjs/jsdelivr origins. `/avatar/<id>` requires a session. Minimum password
+  length raised from 8 to 12. Two `innerHTML` sites now escape server data
+  (Generali reporting fullname, workitem audit trail). The admin-typed MS02 stats
+  table is re-quoted per part at the use site. Dependency bumps for open CVEs:
+  Pillow 12.3.0, Werkzeug 3.1.6, Flask 3.1.3, requests 2.33.0, python-dotenv 1.2.2.
+
 ### Added
 
 - **Report definitions (layouts).** A new *Report definitions* screen in the reporting rail

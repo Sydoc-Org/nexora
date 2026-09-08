@@ -57,7 +57,9 @@ _SESSION_ENFORCE_SKIP_PATHS = (
 
 def get_ip():
     if request.headers.getlist("X-Forwarded-For"):
-        return request.headers.getlist("X-Forwarded-For")[0].split(",")[0]
+        # Rightmost hop = the one the nearest proxy appended (see
+        # extensions.client_ip); the leftmost is client-supplied.
+        return request.headers.getlist("X-Forwarded-For")[-1].rsplit(",", 1)[-1].strip()
     return request.remote_addr or "Unknown"
 
 

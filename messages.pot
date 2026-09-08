@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-08 19:55+0200\n"
+"POT-Creation-Date: 2026-09-08 21:21+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -473,129 +473,129 @@ msgstr ""
 msgid "Workitem ID"
 msgstr ""
 
-#: nx_lib/views/auth.py:117
+#: nx_lib/views/auth.py:121
 msgid "Your nexora account is ready"
 msgstr ""
 
-#: nx_lib/views/auth.py:119
+#: nx_lib/views/auth.py:123
 msgid ""
 "An account has been created for you on nexora. Choose your own password "
 "by clicking the button below. You will then be asked to set up two-factor"
 " authentication."
 msgstr ""
 
-#: nx_lib/views/auth.py:123
+#: nx_lib/views/auth.py:127
 msgid "This link is valid for 7 days."
 msgstr ""
 
-#: nx_lib/views/auth.py:124
+#: nx_lib/views/auth.py:128
 msgid "Set Your Password"
 msgstr ""
 
-#: nx_lib/views/auth.py:126
+#: nx_lib/views/auth.py:130
 msgid "nexora Password Reset Request"
 msgstr ""
 
-#: nx_lib/views/auth.py:128
+#: nx_lib/views/auth.py:132
 msgid ""
 "We received a request to reset the password for your account. You can "
 "reset your password by clicking the button below."
 msgstr ""
 
-#: nx_lib/views/auth.py:132
+#: nx_lib/views/auth.py:136
 msgid ""
 "If you did not request a password reset, please ignore this email. This "
 "link is valid for 15 minutes."
 msgstr ""
 
-#: nx_lib/views/auth.py:135
+#: nx_lib/views/auth.py:139
 msgid "Reset Your Password"
 msgstr ""
 
-#: nx_lib/views/auth.py:186
+#: nx_lib/views/auth.py:190
 msgid "Hello,"
 msgstr ""
 
-#: nx_lib/views/auth.py:192
+#: nx_lib/views/auth.py:196
 msgid "Thanks,<br>The Sydoc Team"
 msgstr ""
 
-#: nx_lib/views/auth.py:306
+#: nx_lib/views/auth.py:310
 msgid "Session expired, please try again"
 msgstr ""
 
-#: nx_lib/views/auth.py:358
+#: nx_lib/views/auth.py:362
 msgid "Database error"
 msgstr ""
 
-#: nx_lib/views/auth.py:366
+#: nx_lib/views/auth.py:370
 msgid "Invalid code. Please try again."
 msgstr ""
 
-#: nx_lib/views/auth.py:416
-msgid "Invalid code"
-msgstr ""
-
-#: nx_lib/views/auth.py:431 nx_lib/views/auth.py:776
-#: templates/js/_profile_js.html:5
-msgid "Passwords do not match"
-msgstr ""
-
-#: nx_lib/views/auth.py:433 nx_lib/views/auth.py:778
-msgid "All Fields must be filled"
-msgstr ""
-
-#: nx_lib/views/auth.py:437 nx_lib/views/auth.py:782
-#: nx_lib/views/profile.py:193
-msgid "New password has to be atleast 8 characters long, with no whitespaces"
-msgstr ""
-
-#: nx_lib/views/auth.py:461 nx_lib/views/auth.py:803
-msgid "New Password musn't be previously used password"
-msgstr ""
-
-#: nx_lib/views/auth.py:494 nx_lib/views/auth.py:850
-msgid "Something went wrong, please try again"
-msgstr ""
-
-#: nx_lib/views/auth.py:646 nx_lib/views/auth.py:710
-msgid "Invalid credentials"
-msgstr ""
-
-#: nx_lib/views/auth.py:675
+#: nx_lib/views/auth.py:414 nx_lib/views/auth.py:706
 #, python-format
 msgid "Too many failed attempts. Try again in %(minutes)d minute(s)."
 msgstr ""
 
-#: nx_lib/views/auth.py:714
+#: nx_lib/views/auth.py:447
+msgid "Invalid code"
+msgstr ""
+
+#: nx_lib/views/auth.py:462 nx_lib/views/auth.py:807
+#: templates/js/_profile_js.html:5
+msgid "Passwords do not match"
+msgstr ""
+
+#: nx_lib/views/auth.py:464 nx_lib/views/auth.py:809
+msgid "All Fields must be filled"
+msgstr ""
+
+#: nx_lib/views/auth.py:468 nx_lib/views/auth.py:813
+#: nx_lib/views/profile.py:195
+msgid "New password has to be at least 12 characters long, with no whitespaces"
+msgstr ""
+
+#: nx_lib/views/auth.py:492 nx_lib/views/auth.py:834
+msgid "New Password musn't be previously used password"
+msgstr ""
+
+#: nx_lib/views/auth.py:525 nx_lib/views/auth.py:881
+msgid "Something went wrong, please try again"
+msgstr ""
+
+#: nx_lib/views/auth.py:677 nx_lib/views/auth.py:741
+msgid "Invalid credentials"
+msgstr ""
+
+#: nx_lib/views/auth.py:745
 msgid "Login temporarily unavailable"
 msgstr ""
 
-#: nx_lib/views/auth.py:835
+#: nx_lib/views/auth.py:866
 msgid "Password set. You can now sign in."
 msgstr ""
 
-#: nx_lib/views/auth.py:837
+#: nx_lib/views/auth.py:868
 msgid "Password changed"
 msgstr ""
 
-#: nx_lib/views/auth.py:980
+#: nx_lib/views/auth.py:1041
 msgid "If that email is registered, a reset link has been sent."
 msgstr ""
 
-#: nx_lib/views/auth.py:984
+#: nx_lib/views/auth.py:1045
 msgid "Unexpected error occurred"
 msgstr ""
 
 #: nx_lib/views/admin/permissions.py:243 nx_lib/views/admin/permissions.py:561
 #: nx_lib/views/admin/permissions.py:603 nx_lib/views/admin/permissions.py:648
 #: nx_lib/views/admin/permissions.py:687 nx_lib/views/admin/permissions.py:726
-#: nx_lib/views/admin/permissions.py:758 nx_lib/views/dashboard.py:625
-#: nx_lib/views/dashboard.py:713 nx_lib/views/dashboard.py:789
-#: nx_lib/views/dashboard.py:859 nx_lib/views/dashboard.py:916
-#: nx_lib/views/workitems.py:386 nx_lib/views/workitems.py:1093
-#: nx_lib/views/workitems.py:1095 nx_lib/views/workitems.py:1188
-#: nx_lib/views/workitems.py:1300
+#: nx_lib/views/admin/permissions.py:758 nx_lib/views/dashboard.py:628
+#: nx_lib/views/dashboard.py:716 nx_lib/views/dashboard.py:792
+#: nx_lib/views/dashboard.py:862 nx_lib/views/dashboard.py:919
+#: nx_lib/views/workitems.py:386 nx_lib/views/workitems.py:1092
+#: nx_lib/views/workitems.py:1094 nx_lib/views/workitems.py:1187
+#: nx_lib/views/workitems.py:1298
 msgid "Not authorized"
 msgstr ""
 
@@ -603,9 +603,9 @@ msgstr ""
 #: nx_lib/views/admin/permissions.py:592 nx_lib/views/admin/system.py:148
 #: nx_lib/views/admin/system.py:191 nx_lib/views/admin/system.py:234
 #: nx_lib/views/admin/system.py:254 nx_lib/views/admin/users.py:421
-#: nx_lib/views/admin/users.py:573 nx_lib/views/dashboard.py:702
-#: nx_lib/views/dashboard.py:778 nx_lib/views/dashboard.py:848
-#: nx_lib/views/dashboard.py:902 nx_lib/views/dashboard.py:964
+#: nx_lib/views/admin/users.py:573 nx_lib/views/dashboard.py:705
+#: nx_lib/views/dashboard.py:781 nx_lib/views/dashboard.py:851
+#: nx_lib/views/dashboard.py:905 nx_lib/views/dashboard.py:967
 #: nx_lib/views/generali/_crud.py:186 nx_lib/views/generali/attendance.py:98
 #: nx_lib/views/generali/documents.py:288
 #: nx_lib/views/generali/documents.py:327
@@ -613,16 +613,16 @@ msgstr ""
 #: nx_lib/views/generali/documents.py:537
 #: nx_lib/views/generali/importstatus.py:119 nx_lib/views/generali/pdqm.py:102
 #: nx_lib/views/generali/reporting.py:260
-#: nx_lib/views/generali/reporting.py:321 nx_lib/views/workitems.py:1361
+#: nx_lib/views/generali/reporting.py:321 nx_lib/views/workitems.py:1359
 msgid "An unexpected error occurred"
 msgstr ""
 
-#: nx_lib/views/dashboard.py:938 templates/appearance.html:357
+#: nx_lib/views/dashboard.py:941 templates/appearance.html:357
 #: templates/dashboard.html:117
 msgid "Backlog"
 msgstr ""
 
-#: nx_lib/views/dashboard.py:941
+#: nx_lib/views/dashboard.py:944
 msgid "Other"
 msgstr ""
 
@@ -646,72 +646,72 @@ msgstr ""
 msgid "Unexpected error"
 msgstr ""
 
-#: nx_lib/views/profile.py:186
+#: nx_lib/views/profile.py:188
 msgid "New passwords do not match"
 msgstr ""
 
-#: nx_lib/views/profile.py:189
+#: nx_lib/views/profile.py:191
 msgid "All fields must be filled"
 msgstr ""
 
-#: nx_lib/views/profile.py:203 nx_lib/views/profile.py:233
-#: nx_lib/views/profile.py:246 nx_lib/views/profile.py:259
+#: nx_lib/views/profile.py:205 nx_lib/views/profile.py:235
+#: nx_lib/views/profile.py:248 nx_lib/views/profile.py:261
 msgid "Unexpected Error"
 msgstr ""
 
-#: nx_lib/views/profile.py:226
+#: nx_lib/views/profile.py:228
 msgid "Password updated successfully!"
 msgstr ""
 
-#: nx_lib/views/profile.py:228
+#: nx_lib/views/profile.py:230
 msgid "Current password is incorrect"
 msgstr ""
 
-#: nx_lib/views/profile.py:255
+#: nx_lib/views/profile.py:257
 msgid "Language changed successfully!"
 msgstr ""
 
-#: nx_lib/views/profile.py:343
+#: nx_lib/views/profile.py:345
 msgid "Unauthorized"
 msgstr ""
 
-#: nx_lib/views/profile.py:350
+#: nx_lib/views/profile.py:352
 msgid "Please choose a category."
 msgstr ""
 
-#: nx_lib/views/profile.py:352 templates/js/_feedback_js.html:149
+#: nx_lib/views/profile.py:354 templates/js/_feedback_js.html:149
 msgid "Please describe the problem or idea."
 msgstr ""
 
-#: nx_lib/views/profile.py:354
+#: nx_lib/views/profile.py:356
 msgid "Message is too long."
 msgstr ""
 
-#: nx_lib/views/profile.py:367 templates/js/_feedback_js.html:84
+#: nx_lib/views/profile.py:369 templates/js/_feedback_js.html:84
 msgid "Screenshot must be a PNG or JPEG image."
 msgstr ""
 
-#: nx_lib/views/profile.py:370 templates/js/_feedback_js.html:89
+#: nx_lib/views/profile.py:372 templates/js/_feedback_js.html:89
 msgid "Screenshot is too large (max 5 MB)."
 msgstr ""
 
-#: nx_lib/views/profile.py:377
+#: nx_lib/views/profile.py:379
 msgid "Feedback is not configured on this environment."
 msgstr ""
 
-#: nx_lib/views/profile.py:379 templates/feedback.html:60
+#: nx_lib/views/profile.py:381 templates/feedback.html:60
 msgid "Bug"
 msgstr ""
 
-#: nx_lib/views/profile.py:379 templates/feedback.html:63
+#: nx_lib/views/profile.py:381 templates/feedback.html:63
 msgid "Idea"
 msgstr ""
 
-#: nx_lib/views/profile.py:379 templates/feedback.html:66
+#: nx_lib/views/profile.py:381 templates/feedback.html:66
 msgid "Question"
 msgstr ""
 
-#: nx_lib/views/profile.py:402 templates/js/_feedback_js.html:169
+#: nx_lib/views/profile.py:404 templates/js/_feedback_js.html:169
 #: templates/js/_feedback_js.html:175
 msgid "Could not send feedback. Please try again later."
 msgstr ""
@@ -769,130 +769,130 @@ msgid ""
 "workitems."
 msgstr ""
 
-#: nx_lib/views/workitems.py:871
+#: nx_lib/views/workitems.py:870
 msgid "TRUNCATED"
 msgstr ""
 
-#: nx_lib/views/workitems.py:872
+#: nx_lib/views/workitems.py:871
 msgid "exported"
 msgstr ""
 
-#: nx_lib/views/workitems.py:872
+#: nx_lib/views/workitems.py:871
 msgid "matching workitems"
 msgstr ""
 
-#: nx_lib/views/workitems.py:878
+#: nx_lib/views/workitems.py:877
 msgid "EXPORT TIMED OUT"
 msgstr ""
 
-#: nx_lib/views/workitems.py:879
+#: nx_lib/views/workitems.py:878
 msgid ""
 "no fields or images completed before the time limit; this is not a zero-"
 "result export"
 msgstr ""
 
-#: nx_lib/views/workitems.py:989 nx_lib/views/workitems.py:1054
+#: nx_lib/views/workitems.py:988 nx_lib/views/workitems.py:1053
 msgid "No file part in the request."
 msgstr ""
 
-#: nx_lib/views/workitems.py:996 nx_lib/views/workitems.py:1057
+#: nx_lib/views/workitems.py:995 nx_lib/views/workitems.py:1056
 msgid "No file selected for uploading."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1000
+#: nx_lib/views/workitems.py:999
 msgid "No target process selected."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1006
+#: nx_lib/views/workitems.py:1005
 msgid "You do not have permission to import to this process."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1021
+#: nx_lib/views/workitems.py:1020
 #, python-brace-format
 msgid "File '{}' successfully imported into {}."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1026
+#: nx_lib/views/workitems.py:1025
 msgid "An error occurred while saving the file."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1028
+#: nx_lib/views/workitems.py:1027
 msgid "Invalid file type. Please upload a valid PDF."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1051 nx_lib/views/workitems.py:1542
+#: nx_lib/views/workitems.py:1050 nx_lib/views/workitems.py:1540
 msgid "This import is only available for the MS02 client."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1061
+#: nx_lib/views/workitems.py:1060
 msgid "Invalid file type. Please upload a valid Excel (.xlsx) file."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1069
+#: nx_lib/views/workitems.py:1068
 msgid "The Excel file has no usable rows."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1086
+#: nx_lib/views/workitems.py:1085
 msgid "Could not save the prepared documents. Please try again."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1163 nx_lib/views/workitems.py:1196
+#: nx_lib/views/workitems.py:1162 nx_lib/views/workitems.py:1195
 msgid "Workitem not found"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1167 nx_lib/views/workitems.py:1294
+#: nx_lib/views/workitems.py:1166 nx_lib/views/workitems.py:1292
 msgid "Internal Server Error"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1209
+#: nx_lib/views/workitems.py:1208
 msgid "Media index out of bounds"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1237
+#: nx_lib/views/workitems.py:1236
 msgid "Failed to render PDF page"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1270
+#: nx_lib/views/workitems.py:1268
 msgid "Failed to process TIFF image"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1359
+#: nx_lib/views/workitems.py:1357
 msgid "Failed to fetch audit history"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1424
+#: nx_lib/views/workitems.py:1422
 msgid "This page is only available for the MS02 client."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1548
+#: nx_lib/views/workitems.py:1546
 msgid "Could not clear the prepared documents. Please try again."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1609
+#: nx_lib/views/workitems.py:1607
 msgid "Could not load saved views."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1623 nx_lib/views/workitems.py:1626
+#: nx_lib/views/workitems.py:1621 nx_lib/views/workitems.py:1624
 msgid "Invalid view name or filters."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1640 nx_lib/views/workitems.py:1693
+#: nx_lib/views/workitems.py:1638 nx_lib/views/workitems.py:1691
 msgid "View not found."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1655
+#: nx_lib/views/workitems.py:1653
 msgid "Too many saved views — delete one first."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1672
+#: nx_lib/views/workitems.py:1670
 msgid "A view with this name already exists."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1675
+#: nx_lib/views/workitems.py:1673
 msgid "Could not save the view."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1697
+#: nx_lib/views/workitems.py:1695
 msgid "Could not delete the view."
 msgstr ""
 
@@ -4906,7 +4906,7 @@ msgid "Change password"
 msgstr ""
 
 #: templates/profile.html:168
-msgid "At least 8 characters, no whitespace."
+msgid "At least 12 characters, no whitespace."
 msgstr ""
 
 #: templates/profile.html:193
@@ -5585,7 +5585,7 @@ msgid ""
 msgstr ""
 
 #: templates/set_password.html:113
-msgid "At least 8 characters, no spaces"
+msgid "At least 12 characters, no spaces"
 msgstr ""
 
 #: templates/set_password.html:121
@@ -7673,7 +7673,7 @@ msgid "Passwords match"
 msgstr ""
 
 #: templates/js/_profile_js.html:6
-msgid "At least 8 characters required"
+msgid "At least 12 characters required"
 msgstr ""
 
 #: templates/js/_reporting_ai_js.html:35
