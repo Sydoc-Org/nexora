@@ -1012,7 +1012,7 @@ modalConfirmBtn.addEventListener('click', () => {
                     <input type="checkbox" class="row-checkbox h-4 w-4 rounded border-gray-300 text-[var(--nx-accent)] focus:ring-[var(--nx-accent)] cursor-pointer"
                         data-id="${rowKey}" data-testid="workitems-row-checkbox-${workitem.workitemid}">
                 </td>
-                <td>
+                <td data-sort="${workitem.workitemid}">
                     <div class="nx-wi-cell-id">${workitem.workitemid}</div>
                     <div class="nx-wi-cell-stage">
                         <span class="nx-wi-ticks">${stageTicksHtml(n, 13)}</span>
@@ -1024,7 +1024,7 @@ modalConfirmBtn.addEventListener('click', () => {
                         <span class="nx-wi-dot" style="background:${dot.dot};box-shadow:0 0 0 3px ${dot.halo}"></span>${workitem.status}
                     </span>
                 </td>
-                <td>
+                <td data-sort="${movedTimeText(workitem.modifiedat)}">
                     <div class="nx-wi-cell-time">${movedTimeText(workitem.modifiedat)}</div>
                     <div class="nx-wi-cell-ago">${movedAgo(workitem.modifiedat)}</div>
                 </td>
@@ -1241,8 +1241,11 @@ modalConfirmBtn.addEventListener('click', () => {
             const bCell = b.mainRow.cells[columnIndex];
             if (!aCell || !bCell) return 0;
 
-            const aText = aCell.textContent.trim();
-            const bText = bCell.textContent.trim();
+            // Cells 1 and 3 are two-line (id+stage, time+relative-ago) since
+            // the console redesign; data-sort carries the single value that
+            // actually matters instead of the concatenated display text.
+            const aText = (aCell.dataset.sort ?? aCell.textContent).trim();
+            const bText = (bCell.dataset.sort ?? bCell.textContent).trim();
 
             let comparison = 0;
             if (columnIndex === 3) {
