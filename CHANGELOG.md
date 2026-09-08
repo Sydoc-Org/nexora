@@ -229,6 +229,11 @@ exora\Prune Sessions"
   someone's memory of clicking through Task Scheduler. Four tests cover it,
   including that the file keeps its UTF-16 LE encoding: Task Scheduler refuses
   UTF-8, and an editor silently "fixing" it is invisible until an import fails.
+- **Reporting explains a change ("Why did it move?").** The Total delta chip on
+  the Simple KPI band (and on dashboard whole-report cards) is now a button.
+  It opens a drawer decomposing the change vs. the prior window by process and
+  the source's categorical columns, ranked by contribution, with click-through
+  to the documents. New `POST /api/reporting/contribution`; no new permission.
 
 ### Changed
 
@@ -444,6 +449,11 @@ exora\Prune Sessions"
 
 ### Fixed
 
+- **The Sources rail stays one card per database when the database is down.**
+  Cards were collapsed on the health probe's `DB_NAME()`, so an unreachable SQL
+  Server made every registered source its own card (six Generali boxes).
+  `/api/reporting/sources` now carries each source's `engine` and the rail
+  falls back to it — one Generali card, probe or no probe.
 - **The last eight hardcoded-English strings are out of
   `static/js/reporting_schema.js`** (#246). Each was the fallback half of
   `I18N.key || '<English default>'`, kept for the case the shim was missing.

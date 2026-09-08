@@ -80,6 +80,8 @@ guide as an app page.
 
 - Click a chart bar or a table row to open the documents behind that number;
   the **Query** card beside the chart shows exactly how it was computed.
+- Click the ↑/↓ chip on the total to see which processes or categories drove
+  the change since the previous period.
 - The ↑/↓ comparison chips compare a window shifted back by your range's
   length in days — not the previous calendar period. Hover a chip for the
   exact dates.
@@ -436,6 +438,19 @@ number. A hint line tells you when this is available.
   pivot cells, and hand-written SQL results.
 - On a distinct-count measure, the drawer says so: you may see more rows than
   the number, because the same value can appear on several rows.
+
+### Click the arrow on the total to see what drove the change
+
+When a report with a time preset shows a small **↑ / ↓ percentage** next to its
+total, that chip is a button. Click it and a panel explains the change: one
+tab per breakdown (process first, then the source's other categories), each
+listing which values moved the number most, with the previous and current
+figure, the change, and its share of the total change.
+
+- Click a row to jump to the documents behind that value.
+- "(other)" gathers everything outside the top eight.
+- Averages and distinct counts show the change but no share — a share of an
+  average has no meaning.
 
 ---
 

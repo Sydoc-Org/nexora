@@ -42,8 +42,11 @@ content area. `templates/js/_reporting_tabs_js.html` is the nav controller
   last rendered result from `state.lastRun` without re-querying (only the
   Chart.js instance is re-mounted — the rest of the result DOM never left).
   With nothing rendered yet this session it opens the most recent report.
-- **Sources rail**: one card per accessible source (`/api/reporting/sources`
-  for the list, **`GET /api/reporting/sources/health`** for the green pulse
+- **Sources rail**: one card per **database** — accessible sources
+  (`/api/reporting/sources`, each carrying its `engine`) are collapsed on the
+  probe's database name, or on the engine code while the probe is down, so
+  six Generali table sources still make one Generali card
+  (**`GET /api/reporting/sources/health`** for the green pulse
   dot, the probe latency and the real database name — one timed
   `SELECT DB_NAME()` per distinct engine, shared across sources; the URL
   carries no database attribute because the engines are built from
@@ -961,6 +964,41 @@ export), wired into `static/js/reporting_simple.js` (Simple: chart
 `onClick`/`onHover` + result-row clicks) and `templates/js/_reporting_js.html`
 (Advanced: chart `onElementClick` + grid-row clicks), with drawer markup/CSS
 in `templates/reporting.html` and `static/css/reporting.css`.
+
+### Contribution analysis ("Why did it move?")
+
+When the Simple KPI band shows a **Total** delta chip (see *Comparison & delta
+chips*), the chip is a button. Clicking it POSTs the current definition
+(tokens intact) to `POST /api/reporting/contribution` and opens the drill
+slide-over with one tab per dimension, each listing the values ranked by
+their contribution to the change vs. the same shifted prior window the chip
+used. Dashboard whole-report cards get the same button because they render
+the Simple KPI band.
+
+- **Dimensions** are picked automatically (`pick_dimensions` in
+  `nx_lib/reporting/contribution.py`): `processname` first when the source
+  has it, then string-typed catalog columns in catalog order, never
+  `workitem_id`, never a field an `eq` filter already pins; at most three.
+- **Rows** are the first metric grouped by that one column, run once for the
+  current window and once for the prior one through the ordinary
+  `_prepare_run` path (same grants, source permission and process scope as
+  the report), joined on value, sorted by `|delta|`, top 8 plus `(other)`.
+  `share` is `delta / (currentTotal − priorTotal)`; it is `null` for ratio
+  metrics (`avg`, `min`, `max`, `count_distinct`) and when the total did not
+  change. Header totals come from the zero-column clone (`total_definition`),
+  so they always equal the band's Total.
+- A dimension whose query fails is dropped and listed under `skipped`
+  (footer note "Not shown: …"); the endpoint never 500s because one column
+  is unqueryable. 400 without metrics or without exactly one relative-date
+  token filter; 403 without the source permission.
+- Clicking a row opens the normal drill-through for that value on the
+  current window (`eq`, or `is_null` for "(empty)"); `(other)` is not
+  clickable.
+
+Code: `nx_lib/reporting/contribution.py` (pure), `api_contribution` in
+`nx_lib/views/reporting/run.py`, `static/js/reporting_contribution.js` +
+shim `templates/js/_reporting_contribution_js.html`, wired in
+`static/js/reporting_simple_result.js` and `static/js/reporting_dashboard.js`.
 
 ### Export (Excel / CSV, and what you see)
 

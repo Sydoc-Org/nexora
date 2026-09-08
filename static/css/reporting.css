@@ -2959,3 +2959,38 @@ body.reporting-console .rdb-card .rdb-card-tools, .rdb-card .rdb-card-tools {
    there sets padding: 4px 0 60px and out-ranked the :fullscreen rule, which
    left a wall screen border-on-border. */
 body.reporting-console.rdb-fullbleed .reporting-dashboard:fullscreen { padding: 40px max(48px, 3vw) 72px; }
+/* ---- Contribution analysis ("Why did it move?") — the Total delta chip is
+   a button; the drawer body reuses the drill shell (#rdPanel). ---- */
+.rp-delta--why {
+  cursor: pointer;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 0 .45rem;
+  background: transparent;
+  font: inherit;
+  font-size: .72rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+.rp-delta--why:hover,
+.rp-delta--why:focus-visible { background: color-mix(in srgb, currentColor 12%, transparent); outline: none; }
+
+.reporting-contrib-head { margin: 0 0 .75rem; font-size: .9rem; }
+.reporting-contrib-tabs { display: flex; gap: .25rem; margin-bottom: .5rem; flex-wrap: wrap; }
+.reporting-contrib-tab {
+  font: inherit; font-size: .8rem; padding: .25rem .6rem; border-radius: 999px;
+  border: 1px solid var(--nx-border); background: transparent; cursor: pointer;
+}
+.reporting-contrib-tab.is-active { background: var(--nx-accent); color: #fff; border-color: var(--nx-accent); }
+.reporting-contrib-row {
+  display: grid; grid-template-columns: minmax(6rem, 1fr) 2fr auto; gap: .5rem;
+  align-items: center; padding: .35rem .25rem; border-bottom: 1px solid var(--nx-border);
+}
+.reporting-contrib-row[tabindex]:hover,
+.reporting-contrib-row[tabindex]:focus-visible { background: var(--nx-accent-tint); cursor: pointer; outline: none; }
+.reporting-contrib-row.is-other { opacity: .7; }
+.reporting-contrib-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.reporting-contrib-bar { height: .6rem; background: color-mix(in srgb, currentColor 12%, transparent); border-radius: 999px; overflow: hidden; }
+.reporting-contrib-bar i { display: block; height: 100%; background: currentColor; border-radius: 999px; }
+.reporting-contrib-nums { font-variant-numeric: tabular-nums; font-size: .8rem; white-space: nowrap; }
+.reporting-contrib-nums small { color: var(--nx-text-meta); }
