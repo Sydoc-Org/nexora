@@ -8,8 +8,6 @@ ALTER TABLE [dbo].[TenantEntities] DROP CONSTRAINT [CK_TenantEntities_EngineRole
 GO
 ALTER TABLE [dbo].[TenantEntities] DROP CONSTRAINT [FK_TenantEntities_Tenants]
 GO
-ALTER TABLE [dbo].[TenantEntities] DROP CONSTRAINT [FK_TenantEntities_Clients]
-GO
 ALTER TABLE [dbo].[TenantEntities] DROP CONSTRAINT [DF_TenantEntities_Status]
 GO
 ALTER TABLE [dbo].[TenantEntities] DROP CONSTRAINT [DF_TenantEntities_SortOrder]
@@ -35,7 +33,6 @@ CREATE TABLE [dbo].[TenantEntities](
 	[LabelIt] [nvarchar](120) NULL,
 	[SortOrder] [int] NOT NULL,
 	[Status] [nvarchar](8) NOT NULL,
-	[ClientCode] [nvarchar](50) NOT NULL,
  CONSTRAINT [PK_TenantEntities] PRIMARY KEY CLUSTERED 
 (
 	[TenantCode] ASC,
@@ -48,11 +45,6 @@ GO
 ALTER TABLE [dbo].[TenantEntities] ADD  CONSTRAINT [DF_TenantEntities_SortOrder]  DEFAULT ((100)) FOR [SortOrder]
 GO
 ALTER TABLE [dbo].[TenantEntities] ADD  CONSTRAINT [DF_TenantEntities_Status]  DEFAULT ('draft') FOR [Status]
-GO
-ALTER TABLE [dbo].[TenantEntities]  WITH CHECK ADD  CONSTRAINT [FK_TenantEntities_Clients] FOREIGN KEY([ClientCode])
-REFERENCES [dbo].[Clients] ([ClientCode])
-GO
-ALTER TABLE [dbo].[TenantEntities] CHECK CONSTRAINT [FK_TenantEntities_Clients]
 GO
 ALTER TABLE [dbo].[TenantEntities]  WITH CHECK ADD  CONSTRAINT [FK_TenantEntities_Tenants] FOREIGN KEY([TenantCode])
 REFERENCES [dbo].[Tenants] ([TenantCode])

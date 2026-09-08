@@ -1,7 +1,5 @@
 ﻿USE [nexora]
 GO
-ALTER TABLE [dbo].[ProcessSources] DROP CONSTRAINT [FK_ProcessSources_Organizations]
-GO
 DROP TABLE [dbo].[ProcessSources]
 GO
 SET ANSI_NULLS ON
@@ -21,16 +19,10 @@ CREATE TABLE [dbo].[ProcessSources](
 	[WorkitemColumn] [nvarchar](100) NULL,
 	[ExtraCondition] [nvarchar](100) NULL,
 	[IdColumnType] [nvarchar](30) NULL,
-	[OrganizationCode] [nvarchar](5) NULL,
  CONSTRAINT [PK_ProcessSources] PRIMARY KEY CLUSTERED 
 (
 	[ClientCode] ASC,
 	[ProcessName] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
 ) ON [PRIMARY]
-GO
-ALTER TABLE [dbo].[ProcessSources]  WITH CHECK ADD  CONSTRAINT [FK_ProcessSources_Organizations] FOREIGN KEY([OrganizationCode])
-REFERENCES [dbo].[Organizations] ([organizationcode])
-GO
-ALTER TABLE [dbo].[ProcessSources] CHECK CONSTRAINT [FK_ProcessSources_Organizations]
 GO

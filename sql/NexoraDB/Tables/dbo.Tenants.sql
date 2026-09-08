@@ -1,5 +1,9 @@
 ﻿USE [nexora]
 GO
+ALTER TABLE [dbo].[Tenants] DROP CONSTRAINT [FK_Tenants_Organizations]
+GO
+ALTER TABLE [dbo].[Tenants] DROP CONSTRAINT [FK_Tenants_Clients]
+GO
 ALTER TABLE [dbo].[Tenants] DROP CONSTRAINT [DF_Tenants_IsActive]
 GO
 DROP TABLE [dbo].[Tenants]
@@ -11,6 +15,8 @@ GO
 CREATE TABLE [dbo].[Tenants](
 	[TenantCode] [nvarchar](50) NOT NULL,
 	[DisplayName] [nvarchar](100) NOT NULL,
+	[OrganizationCode] [nvarchar](5) NOT NULL,
+	[ClientCode] [nvarchar](50) NOT NULL,
 	[IsActive] [bit] NOT NULL,
  CONSTRAINT [PK_Tenants] PRIMARY KEY CLUSTERED 
 (
@@ -19,4 +25,14 @@ CREATE TABLE [dbo].[Tenants](
 ) ON [PRIMARY]
 GO
 ALTER TABLE [dbo].[Tenants] ADD  CONSTRAINT [DF_Tenants_IsActive]  DEFAULT ((1)) FOR [IsActive]
+GO
+ALTER TABLE [dbo].[Tenants]  WITH CHECK ADD  CONSTRAINT [FK_Tenants_Clients] FOREIGN KEY([ClientCode])
+REFERENCES [dbo].[Clients] ([ClientCode])
+GO
+ALTER TABLE [dbo].[Tenants] CHECK CONSTRAINT [FK_Tenants_Clients]
+GO
+ALTER TABLE [dbo].[Tenants]  WITH CHECK ADD  CONSTRAINT [FK_Tenants_Organizations] FOREIGN KEY([OrganizationCode])
+REFERENCES [dbo].[Organizations] ([organizationcode])
+GO
+ALTER TABLE [dbo].[Tenants] CHECK CONSTRAINT [FK_Tenants_Organizations]
 GO
