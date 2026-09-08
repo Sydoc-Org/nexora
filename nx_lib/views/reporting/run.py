@@ -148,6 +148,10 @@ def api_sources():
     out = []
     for s in sources:
         entry = {"id": s["id"], "label": s["label"], "kind": s["kind"]}
+        # The rail groups cards by database; when the health probe is down it
+        # falls back to this engine key rather than one card per source label.
+        if s.get("engine"):
+            entry["engine"] = s["engine"]
         if s["kind"] == "curated":
             provider = s.get("provider") or "docprocessing"
             if provider == "docprocessing":

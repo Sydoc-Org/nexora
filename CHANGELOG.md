@@ -38,6 +38,11 @@ Work toward the next release.
 
 ### Fixed
 
+- **The Sources rail stays one card per database when the database is down.**
+  Cards were collapsed on the health probe's `DB_NAME()`, so an unreachable SQL
+  Server made every registered source its own card (six Generali boxes).
+  `/api/reporting/sources` now carries each source's `engine` and the rail
+  falls back to it — one Generali card, probe or no probe.
 - **The last eight hardcoded-English strings are out of
   `static/js/reporting_schema.js`** (#246). Each was the fallback half of
   `I18N.key || '<English default>'`, kept for the case the shim was missing.

@@ -106,6 +106,12 @@
   });
 
   // ---------- Sources rail ----------
+  // Database names for the engine/target codes, used only while the health
+  // probe (which reports the real DB_NAME()) is unavailable — one card per
+  // database must hold even when the database itself is unreachable.
+  var ENGINE_LABELS = { nexora: 'nexora', statistics: 'Statistics', generali: 'Generali',
+                        octopus: 'Octo', statistics_ro: 'Statistics', octo_ro: 'Octo',
+                        generali_ro: 'Generali' };
   // Card per accessible source (GET /api/reporting/sources). The card names
   // the real database behind the source (from /api/reporting/sources/health)
   // rather than the registry label, plus a connected dot and probe latency;
@@ -113,7 +119,7 @@
   function sourceCardHtml(s, health) {
     var h = health && health[s.id];
     var dot = h ? '<span class="rc-src-dot' + (h.ok ? ' rc-src-dot--ok src-pulse' : ' rc-src-dot--warn') + '"></span>' : '';
-    var name = (h && h.db) || s.label;
+    var name = (h && h.db) || ENGINE_LABELS[s.engine || s.target] || s.label;
     // With reporting.sources.schema the card opens the source visualizer
     // (static/js/reporting_schema.js); without it there is no panel on the
     // page, so it stays a plain div.
@@ -164,10 +170,12 @@
     }
     // Several sources can sit on the same database (Workitems + Live SQL both
     // hit RuntimeDatabase) -- one card per distinct database, first wins.
+    // Without a probe result the engine/target code stands in for the
+    // database, so six Generali table sources still make one Generali card.
     var seen = {};
     var cards = res.filter(function (s) {
       var h = byId && byId[s.id];
-      var key = (h && h.db) || s.label;
+      var key = (h && h.db) || ENGINE_LABELS[s.engine || s.target] || s.engine || s.target || s.label;
       if (seen[key]) return false;
       seen[key] = true;
       return true;

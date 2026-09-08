@@ -39,8 +39,11 @@ content area. `templates/js/_reporting_tabs_js.html` is the nav controller
   last rendered result from `state.lastRun` without re-querying (only the
   Chart.js instance is re-mounted — the rest of the result DOM never left).
   With nothing rendered yet this session it opens the most recent report.
-- **Sources rail**: one card per accessible source (`/api/reporting/sources`
-  for the list, **`GET /api/reporting/sources/health`** for the green pulse
+- **Sources rail**: one card per **database** — accessible sources
+  (`/api/reporting/sources`, each carrying its `engine`) are collapsed on the
+  probe's database name, or on the engine code while the probe is down, so
+  six Generali table sources still make one Generali card
+  (**`GET /api/reporting/sources/health`** for the green pulse
   dot, the probe latency and the real database name — one timed
   `SELECT DB_NAME()` per distinct engine, shared across sources; the URL
   carries no database attribute because the engines are built from
