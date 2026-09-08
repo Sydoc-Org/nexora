@@ -4,7 +4,7 @@
 worktree `plan/reporting-contribution-analysis`; the main checkout `C:\dev\nexora` was on a peer's
 branch `refactor/255-admin-nav-tenancy-labels` at the time, so the merge was done inside the
 worktree — `git switch feat/reporting-contribution-analysis` in the main checkout to see it) ·
-**~16 commits ahead of `origin/main` @ `69dc932d`, nothing pushed** · commit-only (remote session) ·
+**~18 commits ahead of `origin/main` @ `69dc932d` (HEAD `d00a382e`), nothing pushed** · commit-only (remote session) ·
 execution complete, worktree removed and plan branch deleted.
 
 **Prior handoff:** [`2026-09-07-reporting-contribution-analysis-plan.md`](2026-09-07-reporting-contribution-analysis-plan.md)
@@ -27,7 +27,9 @@ execution complete, worktree removed and plan branch deleted.
 | `156984dd` | `fix(reporting)`: drawer survives a declined drill and Escape/backdrop close |
 | `58701283` | `fix(reporting)`: drawer restores the export buttons on every close |
 | `1bf5a3c8` | `fix(reporting)`: no Why? chip on `latest`-mode (level) metrics; skip unfilterable dims |
-| this file | handoff |
+| `1c570f3e` | this handoff (first version) |
+| `30b1f1eb` | `feat(reporting)`: merge of the plan branch into `feat/reporting-contribution-analysis` |
+| `d00a382e` | `fix(reporting)`: sources rail keeps one card per database when the health probe fails |
 
 ## TL;DR
 
@@ -77,6 +79,12 @@ execution complete, worktree removed and plan branch deleted.
 
 ## Next steps
 
+0. **INT is dark right now** (since 2026-09-08 08:30): every request logs
+   `[08001] SQL Server does not exist or access denied` for the INT server in `var/logs/system/app.log`;
+   the TEST DB answers. Restore that connection first — until then Reporting shows no data, no chip,
+   no drawer. Then `bin
+x.ps1 -r` and check the Sources rail shows one card per database.
+
 1. **Owner:** review the branch, `git push`, open the PR against `main`. Consider creating a GitHub
    issue and renaming the branch to `feat/<nnn>-reporting-contribution-analysis`.
 2. Post-merge: open a dashboard whole-report card with a time preset once in the browser and click
@@ -84,11 +92,39 @@ execution complete, worktree removed and plan branch deleted.
    dashboard tab redirected to the library for `ben.streich` on INT).
 3. Follow-ups (each small, none blocking): a11y pass over the drawer tablist; `(empty)` vs empty
    string drill; a lower rate limit for the endpoint if the reporting DB feels it.
-4. Next Insight-track features per the 2026-09-07 brainstorm: chart annotations → anomaly radar →
-   Eddard weekly card; History track: snapshots, cycle-time metrics; target lines after report
-   layouts land. No specs yet.
+4. **Roadmap from the 2026-09-07 brainstorm** (owner picked tracks Insight + History + Eddard
+   proactive; contribution analysis was feature 1). Each item is its own brainstorm → spec → plan
+   cycle (`superpowers:brainstorming`, then `/write-plan`, then `/execute-plan`); none has a spec yet.
+   Suggested order, smallest useful step first:
+   1. **Chart annotations** (Insight) — pin a dated note on a report's time axis ("new client
+      onboarded", "mailroom outage"), shown as a marker on the chart and listed under it. Needs a
+      NexoraDB migration (`ReportingAnnotations`: report id, date, text, author) — claim the next
+      `NNNN` in the issue first.
+   2. **Anomaly radar** (Insight) — reuse the contribution helper's shifted-window totals to flag a
+      bucket that deviates > N σ from its trailing mean; badge on the KPI band, list in a drawer.
+      Pure helper in `nx_lib/reporting/`, no migration.
+   3. **Eddard weekly card** (Eddard proactive) — a scheduled run that asks the AI assistant for a
+      3-line summary of the week's movers (built on `api_contribution` + anomaly output) and posts
+      it as a dashboard card / email via the existing schedule delivery.
+   4. **Snapshots** (History) — persist a report's result rows per run so past values survive
+      source edits; needs a migration and a retention job.
+   5. **Cycle-time metrics** (History) — time between workitem states as a first-class metric in
+      the wizard measure list; depends on which states each source exposes.
+   6. **Target lines** — after the sibling `plan/report-layouts` branch lands (it owns the chart
+      option surface this would extend).
+5. Deferred minors from the final review, still open: a11y roles on drawer rows/tabpanels; e2e
+   gaps (dashboard card, empty state, backdrop/Escape); `(empty)` vs empty-string drill; sentinel
+   collision on literal "(empty)"/"(other)"; a dedicated rate limit (8 queries/call); three
+   unused msgids.
 
 ## Gotchas & notes
+
+- **Sources rail fix (`d00a382e`):** the rail groups cards by database using the health probe's
+  `db` name; with the probe down it used to fall back to the source *label*, so the six Generali
+  table sources became six cards. Now `GET /api/reporting/sources` also returns `engine`, and the
+  rail falls back to an engine-keyed label (`ENGINE_LABELS` in `templates/js/_reporting_tabs_js.html`).
+  Covered by `tests/e2e/test_reporting_rail.py` (probe stubbed to 503, expects 2 cards). The
+  wizard's measure list still shows one group per source under a Generali heading — by design.
 
 - **Level metrics:** for `total_mode = "latest"` metrics (Backlog) the chip stays a plain span on
   purpose — the drawer sums the window, the chip shows the latest bucket; they cannot agree.
@@ -120,10 +156,10 @@ execution complete, worktree removed and plan branch deleted.
 
 ```powershell
 $env:PATH = "C:\dev\nexora\.venv\Scripts;$env:PATH"
-git log --oneline origin/main..HEAD                       # 16 commits incl. spec, plan, handoffs
+git log --oneline origin/main..HEAD                       # 18 commits incl. spec, plan, handoffs
 python scripts/test_db_reset.py
 pytest tests/unit/test_reporting_contribution.py tests/integration/test_reporting_contribution_api.py -q --no-cov   # 22 passed
-$env:NEXORA_E2E_PORT = 5177; pytest tests/e2e/test_reporting_contribution.py -q --no-cov         # 4 passed
+$env:NEXORA_E2E_PORT = 5177; pytest tests/e2e/test_reporting_contribution.py tests/e2e/test_reporting_rail.py -q --no-cov   # 5 passed
 pytest tests/unit/test_translations.py tests/unit/test_reporting_help_sync.py -q --no-cov
 ```
 
