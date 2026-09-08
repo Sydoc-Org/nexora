@@ -33,6 +33,36 @@ scripts/git-hooks/*   text eol=lf
 .mcp.json             text eol=lf
 .claude/settings.json text eol=lf
 
+# Everything else that is text. Same story as the three blocks above, and the
+# reason this list keeps growing: `* text=auto` checks a file out as CRLF on
+# Windows, the mixed-line-ending hook rewrites it to LF, and the pre-push
+# full-range scan then rejects the whole push -- on `main`'s own content, for
+# anybody. Measured on 2026-09-08: 108 files, so no push could succeed at all.
+#
+# Pinning by type rather than excluding the paths from the hook, because most of
+# these are real source (21 files under static/css/) rather than vendored output
+# like sql/. The design_handoff trees are generated, but they are checked in and
+# read by people, so LF is right for them too.
+*.css                 text eol=lf
+*.jsx                 text eol=lf
+*.ts                  text eol=lf
+*.cjs                 text eol=lf
+*.json                text eol=lf
+*.txt                 text eol=lf
+*.toml                text eol=lf
+*.cfg                 text eol=lf
+*.lock                text eol=lf
+*.drawio              text eol=lf
+*.env.example         text eol=lf
+# Extensionless and dotfiles, which no glob above reaches.
+LICENSE               text eol=lf
+.gitignore            text eol=lf
+.gitattributes        text eol=lf
+.editorconfig         text eol=lf
+.gitlint              text eol=lf
+.claudeignore         text eol=lf
+.python-version       text eol=lf
+
 # Task Scheduler task definitions. The Task Scheduler engine only accepts
 # UTF-16 XML (handing it UTF-8 fails with "unable to switch the encoding"), and
 # UTF-16 is half NUL bytes — any line-ending or end-of-file normalization
