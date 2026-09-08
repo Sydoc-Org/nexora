@@ -92,8 +92,8 @@ def test_ms02_source_quotes_pascalcase_columns():
         "ms02", "sydoc.05_PDBS", 'public."DossierStatistik"', "DatumInTempExport", "ImportDate"
     )
     table, exp, imp = _ms02_source([r])
-    # table passes through verbatim (already schema-qualified + quoted).
-    assert table == 'public."DossierStatistik"'
+    # table is re-quoted per dotted part, whatever quoting the admin typed.
+    assert table == '"public"."DossierStatistik"'
     # Column names get wrapped as Postgres identifiers.
     assert exp == '"DatumInTempExport"'
     assert imp == '"ImportDate"'
@@ -104,7 +104,11 @@ def test_ms02_source_dedupes_to_first_row():
     r1 = _row("ms02", "a", 'public."DossierStatistik"', "DatumInTempExport", "ImportDate")
     r2 = _row("ms02", "b", 'public."Other"', "X", "Y")
     table, exp, imp = _ms02_source([r1, r2])
-    assert (table, exp, imp) == ('public."DossierStatistik"', '"DatumInTempExport"', '"ImportDate"')
+    assert (table, exp, imp) == (
+        '"public"."DossierStatistik"',
+        '"DatumInTempExport"',
+        '"ImportDate"',
+    )
 
 
 def test_ms02_source_escapes_embedded_quote():

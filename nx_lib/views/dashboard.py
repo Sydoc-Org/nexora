@@ -107,7 +107,7 @@ def _ms02_source(ms02_rows):
 
     Returns (table, export_expr, import_expr) or None. MS02 rows all point at the
     same table (no per-process split), so we dedupe to the first row. table is
-    used verbatim (already schema-qualified, e.g. public."DossierStatistik"); the
+    re-quoted per part (schema-qualified, e.g. public."DossierStatistik"); the
     column names are admin-controlled ProcessSources values, quoted as Postgres
     identifiers because they are PascalCase. The old hardcoded
     'public.batchtracking'/'datuminexport' literals never existed in the MS02 DB."""
@@ -118,7 +118,10 @@ def _ms02_source(ms02_rows):
     def q(col):
         return '"' + str(col).replace('"', '""') + '"'
 
-    return r.table, q(r.export_column), q(r.import_column)
+    # Re-quote the table per dotted part (admin-typed, may arrive bare,
+    # "quoted" or [bracketed]) so it can never be anything but an identifier.
+    table = ".".join(q(p.strip('"[]')) for p in str(r.table).split("."))
+    return table, q(r.export_column), q(r.import_column)
 
 
 def _ms02_stat_rows(sql, *, strict=False):

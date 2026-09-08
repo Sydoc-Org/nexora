@@ -42,7 +42,7 @@ the deploy while the old app is still serving instead of 500-ing the site.
 | `--threads=32` | Matches the SQLAlchemy pools (10 + 20 overflow per engine). |
 | `--connection-limit=1000` | Keep-alive channels from ~500 browsers would hit waitress's default ceiling of 100. |
 | `--url-scheme=https` | TLS terminates at the ngrok edge; waitress only ever sees plain HTTP. Telling it "https" keeps Talisman's `force_https` from redirect-looping and makes `url_for(_external=True)` right. |
-| `--trusted-proxy=127.0.0.1 --trusted-proxy-headers=x-forwarded-for` | waitress ≥ 2 **strips** `X-Forwarded-*` from untrusted peers. IIS is the peer, so trust it — otherwise the CSV log and the rate limiter see only `127.0.0.1`. The limiter keys on the leftmost hop (`nx_lib/extensions.py::client_ip`). |
+| `--trusted-proxy=127.0.0.1 --trusted-proxy-headers=x-forwarded-for` | waitress ≥ 2 **strips** `X-Forwarded-*` from untrusted peers. IIS is the peer, so trust it — otherwise the CSV log and the rate limiter see only `127.0.0.1`. waitress trims the header to that one trusted hop; the limiter and the CSV log key on the rightmost hop (`nx_lib/extensions.py::client_ip`, `hooks.get_ip`) — never the client-typed leftmost one. |
 | `ENVIRONMENT=PROD`, `PYTHONPATH=D:\sydoc\nexora` | Child-process env; the app pool identity has no user profile to inherit from. |
 | `stdoutLogFile=…\var\logs\system\waitress-stdout` | Process stdout/stderr (startup tracebacks land here). `app.log` beside it is the app logger. |
 | `requestTimeout=00:02:00` | Same 120 s ceiling the FastCGI setup had. |

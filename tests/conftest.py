@@ -17,6 +17,7 @@ os.environ.setdefault("NEXORA_USER_CACHE_TTL", "0")
 
 import pyotp
 import pytest
+from sqlalchemy import text
 
 from nx_lib import create_app
 from nx_lib.db import engine_nexora_db
@@ -116,6 +117,21 @@ def _reset_rate_limiter():
 def client(app):
     """Flask test client. Fresh per test."""
     return app.test_client()
+
+
+@pytest.fixture()
+def clear_2fa_lockout():
+    """Wipe the seed user's 2FA lockout row (dbo.LoginLockout "2fa:1001")
+    before AND after -- views/auth commits on its own connection, so a
+    test that burns wrong codes would otherwise lock later tests out."""
+
+    def _wipe():
+        with engine_nexora_db.begin() as conn:
+            conn.execute(text("DELETE FROM dbo.LoginLockout WHERE userid = '2fa:1001'"))
+
+    _wipe()
+    yield
+    _wipe()
 
 
 @pytest.fixture()

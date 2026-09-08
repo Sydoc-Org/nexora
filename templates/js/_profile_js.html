@@ -3,7 +3,7 @@
     const DEFAULT_ICON = "{{ static_v('images/default-Icon.png') }}";
     const I18N_MATCH    = "{{ _('Passwords match') }}";
     const I18N_NOMATCH  = "{{ _('Passwords do not match') }}";
-    const I18N_TOOSHORT = "{{ _('At least 8 characters required') }}";
+    const I18N_TOOSHORT = "{{ _('At least 12 characters required') }}";
 
     window.defaultIconNonHeader = function () {
         const el = document.getElementById('profilePictureNonHeader');
@@ -72,7 +72,7 @@
         function scorePassword(pw) {
             if (!pw) return 0;
             let s = 0;
-            if (pw.length >= 8)  s++;
+            if (pw.length >= 12) s++;
             if (pw.length >= 12) s++;
             if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) s++;
             if (/\d/.test(pw) && /[^A-Za-z0-9]/.test(pw)) s++;
@@ -87,7 +87,7 @@
                 if (!confPw.value) {
                     matchHnt.textContent = '';
                     matchHnt.classList.remove('is-error', 'is-success');
-                } else if (newPw.value && newPw.value.length < 8) {
+                } else if (newPw.value && newPw.value.length < 12) {
                     matchHnt.textContent = I18N_TOOSHORT;
                     matchHnt.classList.add('is-error');
                     matchHnt.classList.remove('is-success');

@@ -211,7 +211,7 @@
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td class="px-4 py-3 text-center whitespace-nowrap"><span class="nx-mono">${formatDate(r.reportForDate)}</span></td>
-                <td class="px-4 py-3 text-center text-sm whitespace-nowrap">${r.fullname}</td>
+                <td class="px-4 py-3 text-center text-sm whitespace-nowrap">${NX.esc(r.fullname)}</td>
                 <td class="px-4 py-3 text-sm">${catLabel}</td>
                 <td class="px-4 py-3 text-center">${ontimeBadge(r.ontime)}</td>
                 <td class="px-4 py-3 text-center text-sm whitespace-nowrap"><span class="nx-mono" style="color:var(--nx-text-sec)">${formatDateTime(r.reportTimeStamp)}</span></td>

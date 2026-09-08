@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-07 17:52+0200\n"
+"POT-Creation-Date: 2026-09-08 20:37+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -595,11 +595,11 @@ msgstr "Data"
 msgid "Workitem ID"
 msgstr "ID Workitem"
 
-#: nx_lib/views/auth.py:117
+#: nx_lib/views/auth.py:121
 msgid "Your nexora account is ready"
 msgstr "Il tuo account nexora è pronto"
 
-#: nx_lib/views/auth.py:119
+#: nx_lib/views/auth.py:123
 msgid ""
 "An account has been created for you on nexora. Choose your own password "
 "by clicking the button below. You will then be asked to set up two-factor"
@@ -609,19 +609,19 @@ msgstr ""
 "facendo clic sul pulsante qui sotto. Ti verrà poi chiesto di configurare "
 "l'autenticazione a due fattori."
 
-#: nx_lib/views/auth.py:123
+#: nx_lib/views/auth.py:127
 msgid "This link is valid for 7 days."
 msgstr "Questo link è valido per 7 giorni."
 
-#: nx_lib/views/auth.py:124
+#: nx_lib/views/auth.py:128
 msgid "Set Your Password"
 msgstr "Imposta la tua password"
 
-#: nx_lib/views/auth.py:126
+#: nx_lib/views/auth.py:130
 msgid "nexora Password Reset Request"
 msgstr "nexora Richiesta di reimpostazione della password"
 
-#: nx_lib/views/auth.py:128
+#: nx_lib/views/auth.py:132
 msgid ""
 "We received a request to reset the password for your account. You can "
 "reset your password by clicking the button below."
@@ -630,7 +630,7 @@ msgstr ""
 "suo account. Può reimpostare la password facendo clic sul pulsante qui "
 "sotto."
 
-#: nx_lib/views/auth.py:132
+#: nx_lib/views/auth.py:136
 msgid ""
 "If you did not request a password reset, please ignore this email. This "
 "link is valid for 15 minutes."
@@ -638,93 +638,93 @@ msgstr ""
 "Se non ha richiesto una reimpostazione della password, ignori questa "
 "e-mail. Il link è valido per 15 minuti."
 
-#: nx_lib/views/auth.py:135
+#: nx_lib/views/auth.py:139
 msgid "Reset Your Password"
 msgstr "Reimposta la tua password"
 
-#: nx_lib/views/auth.py:186
+#: nx_lib/views/auth.py:190
 msgid "Hello,"
 msgstr "Salve,"
 
-#: nx_lib/views/auth.py:192
+#: nx_lib/views/auth.py:196
 msgid "Thanks,<br>The Sydoc Team"
 msgstr "Grazie,<br>Il team Sydoc"
 
-#: nx_lib/views/auth.py:306
+#: nx_lib/views/auth.py:310
 msgid "Session expired, please try again"
 msgstr "Sessione scaduta, riprova"
 
-#: nx_lib/views/auth.py:358
+#: nx_lib/views/auth.py:362
 msgid "Database error"
 msgstr "Errore del database"
 
-#: nx_lib/views/auth.py:366
+#: nx_lib/views/auth.py:370
 msgid "Invalid code. Please try again."
 msgstr "Codice non valido. Riprova."
 
-#: nx_lib/views/auth.py:416
-msgid "Invalid code"
-msgstr "Codice non valido"
-
-#: nx_lib/views/auth.py:431 nx_lib/views/auth.py:776
-#: templates/js/_profile_js.html:5
-msgid "Passwords do not match"
-msgstr "Le password non corrispondono"
-
-#: nx_lib/views/auth.py:433 nx_lib/views/auth.py:778
-msgid "All Fields must be filled"
-msgstr "Tutti i campi devono essere compilati"
-
-#: nx_lib/views/auth.py:437 nx_lib/views/auth.py:782
-#: nx_lib/views/profile.py:193
-msgid "New password has to be atleast 8 characters long, with no whitespaces"
-msgstr "La nuova password deve contenere almeno 8 caratteri, senza spazi"
-
-#: nx_lib/views/auth.py:461 nx_lib/views/auth.py:803
-msgid "New Password musn't be previously used password"
-msgstr "La nuova password non deve essere una password già utilizzata"
-
-#: nx_lib/views/auth.py:494 nx_lib/views/auth.py:850
-msgid "Something went wrong, please try again"
-msgstr "Qualcosa è andato storto, riprova"
-
-#: nx_lib/views/auth.py:646 nx_lib/views/auth.py:710
-msgid "Invalid credentials"
-msgstr "Credenziali non valide"
-
-#: nx_lib/views/auth.py:675
+#: nx_lib/views/auth.py:413 nx_lib/views/auth.py:703
 #, python-format
 msgid "Too many failed attempts. Try again in %(minutes)d minute(s)."
 msgstr "Troppi tentativi falliti. Riprova tra %(minutes)d minuto(i)."
 
-#: nx_lib/views/auth.py:714
+#: nx_lib/views/auth.py:444
+msgid "Invalid code"
+msgstr "Codice non valido"
+
+#: nx_lib/views/auth.py:459 nx_lib/views/auth.py:804
+#: templates/js/_profile_js.html:5
+msgid "Passwords do not match"
+msgstr "Le password non corrispondono"
+
+#: nx_lib/views/auth.py:461 nx_lib/views/auth.py:806
+msgid "All Fields must be filled"
+msgstr "Tutti i campi devono essere compilati"
+
+#: nx_lib/views/auth.py:465 nx_lib/views/auth.py:810
+#: nx_lib/views/profile.py:195
+msgid "New password has to be at least 12 characters long, with no whitespaces"
+msgstr "La nuova password deve contenere almeno 12 caratteri, senza spazi"
+
+#: nx_lib/views/auth.py:489 nx_lib/views/auth.py:831
+msgid "New Password musn't be previously used password"
+msgstr "La nuova password non deve essere una password già utilizzata"
+
+#: nx_lib/views/auth.py:522 nx_lib/views/auth.py:878
+msgid "Something went wrong, please try again"
+msgstr "Qualcosa è andato storto, riprova"
+
+#: nx_lib/views/auth.py:674 nx_lib/views/auth.py:738
+msgid "Invalid credentials"
+msgstr "Credenziali non valide"
+
+#: nx_lib/views/auth.py:742
 msgid "Login temporarily unavailable"
 msgstr "Accesso temporaneamente non disponibile"
 
-#: nx_lib/views/auth.py:835
+#: nx_lib/views/auth.py:863
 msgid "Password set. You can now sign in."
 msgstr "Password impostata. Ora puoi accedere."
 
-#: nx_lib/views/auth.py:837
+#: nx_lib/views/auth.py:865
 msgid "Password changed"
 msgstr "Password modificata"
 
-#: nx_lib/views/auth.py:980
+#: nx_lib/views/auth.py:1032
 msgid "If that email is registered, a reset link has been sent."
 msgstr ""
 "Se questo indirizzo e-mail è registrato, è stato inviato un link per "
 "reimpostare la password."
 
-#: nx_lib/views/auth.py:984
+#: nx_lib/views/auth.py:1036
 msgid "Unexpected error occurred"
 msgstr "Si è verificato un errore imprevisto"
 
 #: nx_lib/views/admin/permissions.py:243 nx_lib/views/admin/permissions.py:561
 #: nx_lib/views/admin/permissions.py:603 nx_lib/views/admin/permissions.py:648
 #: nx_lib/views/admin/permissions.py:687 nx_lib/views/admin/permissions.py:726
-#: nx_lib/views/admin/permissions.py:758 nx_lib/views/dashboard.py:625
-#: nx_lib/views/dashboard.py:713 nx_lib/views/dashboard.py:789
-#: nx_lib/views/dashboard.py:859 nx_lib/views/dashboard.py:916
+#: nx_lib/views/admin/permissions.py:758 nx_lib/views/dashboard.py:628
+#: nx_lib/views/dashboard.py:716 nx_lib/views/dashboard.py:792
+#: nx_lib/views/dashboard.py:862 nx_lib/views/dashboard.py:919
 #: nx_lib/views/workitems.py:386 nx_lib/views/workitems.py:1093
 #: nx_lib/views/workitems.py:1095 nx_lib/views/workitems.py:1188
 #: nx_lib/views/workitems.py:1300
@@ -735,9 +735,9 @@ msgstr "Non autorizzato"
 #: nx_lib/views/admin/permissions.py:592 nx_lib/views/admin/system.py:148
 #: nx_lib/views/admin/system.py:191 nx_lib/views/admin/system.py:234
 #: nx_lib/views/admin/system.py:254 nx_lib/views/admin/users.py:421
-#: nx_lib/views/admin/users.py:573 nx_lib/views/dashboard.py:702
-#: nx_lib/views/dashboard.py:778 nx_lib/views/dashboard.py:848
-#: nx_lib/views/dashboard.py:902 nx_lib/views/dashboard.py:964
+#: nx_lib/views/admin/users.py:573 nx_lib/views/dashboard.py:705
+#: nx_lib/views/dashboard.py:781 nx_lib/views/dashboard.py:851
+#: nx_lib/views/dashboard.py:905 nx_lib/views/dashboard.py:967
 #: nx_lib/views/generali/_crud.py:186 nx_lib/views/generali/attendance.py:98
 #: nx_lib/views/generali/documents.py:288
 #: nx_lib/views/generali/documents.py:327
@@ -749,12 +749,12 @@ msgstr "Non autorizzato"
 msgid "An unexpected error occurred"
 msgstr "Si è verificato un errore imprevisto"
 
-#: nx_lib/views/dashboard.py:938 templates/appearance.html:357
+#: nx_lib/views/dashboard.py:941 templates/appearance.html:357
 #: templates/dashboard.html:117
 msgid "Backlog"
 msgstr "Arretrato"
 
-#: nx_lib/views/dashboard.py:941
+#: nx_lib/views/dashboard.py:944
 msgid "Other"
 msgstr "Altro"
 
@@ -778,72 +778,72 @@ msgstr "Profilo aggiornato con successo!"
 msgid "Unexpected error"
 msgstr "Errore imprevisto"
 
-#: nx_lib/views/profile.py:186
+#: nx_lib/views/profile.py:188
 msgid "New passwords do not match"
 msgstr "Le nuove password non corrispondono"
 
-#: nx_lib/views/profile.py:189
+#: nx_lib/views/profile.py:191
 msgid "All fields must be filled"
 msgstr "Tutti i campi devono essere compilati"
 
-#: nx_lib/views/profile.py:203 nx_lib/views/profile.py:233
-#: nx_lib/views/profile.py:246 nx_lib/views/profile.py:259
+#: nx_lib/views/profile.py:205 nx_lib/views/profile.py:235
+#: nx_lib/views/profile.py:248 nx_lib/views/profile.py:261
 msgid "Unexpected Error"
 msgstr "Errore imprevisto"
 
-#: nx_lib/views/profile.py:226
+#: nx_lib/views/profile.py:228
 msgid "Password updated successfully!"
 msgstr "Password aggiornata con successo!"
 
-#: nx_lib/views/profile.py:228
+#: nx_lib/views/profile.py:230
 msgid "Current password is incorrect"
 msgstr "La password attuale non è corretta"
 
-#: nx_lib/views/profile.py:255
+#: nx_lib/views/profile.py:257
 msgid "Language changed successfully!"
 msgstr "Lingua modificata con successo!"
 
-#: nx_lib/views/profile.py:343
+#: nx_lib/views/profile.py:345
 msgid "Unauthorized"
 msgstr "Non autorizzato"
 
-#: nx_lib/views/profile.py:350
+#: nx_lib/views/profile.py:352
 msgid "Please choose a category."
 msgstr "Seleziona una categoria."
 
-#: nx_lib/views/profile.py:352 templates/js/_feedback_js.html:149
+#: nx_lib/views/profile.py:354 templates/js/_feedback_js.html:149
 msgid "Please describe the problem or idea."
 msgstr "Descrivi il problema o l'idea."
 
-#: nx_lib/views/profile.py:354
+#: nx_lib/views/profile.py:356
 msgid "Message is too long."
 msgstr "Il messaggio è troppo lungo."
 
-#: nx_lib/views/profile.py:367 templates/js/_feedback_js.html:84
+#: nx_lib/views/profile.py:369 templates/js/_feedback_js.html:84
 msgid "Screenshot must be a PNG or JPEG image."
 msgstr "Lo screenshot deve essere un'immagine PNG o JPEG."
 
-#: nx_lib/views/profile.py:370 templates/js/_feedback_js.html:89
+#: nx_lib/views/profile.py:372 templates/js/_feedback_js.html:89
 msgid "Screenshot is too large (max 5 MB)."
 msgstr "Lo screenshot è troppo grande (max 5 MB)."
 
-#: nx_lib/views/profile.py:377
+#: nx_lib/views/profile.py:379
 msgid "Feedback is not configured on this environment."
 msgstr "Il feedback non è configurato in questo ambiente."
 
-#: nx_lib/views/profile.py:379 templates/feedback.html:60
+#: nx_lib/views/profile.py:381 templates/feedback.html:60
 msgid "Bug"
 msgstr "Bug"
 
-#: nx_lib/views/profile.py:379 templates/feedback.html:63
+#: nx_lib/views/profile.py:381 templates/feedback.html:63
 msgid "Idea"
 msgstr "Idea"
 
-#: nx_lib/views/profile.py:379 templates/feedback.html:66
+#: nx_lib/views/profile.py:381 templates/feedback.html:66
 msgid "Question"
 msgstr "Domanda"
 
-#: nx_lib/views/profile.py:402 templates/js/_feedback_js.html:169
+#: nx_lib/views/profile.py:404 templates/js/_feedback_js.html:169
 #: templates/js/_feedback_js.html:175
 msgid "Could not send feedback. Please try again later."
 msgstr "Impossibile inviare il feedback. Riprova più tardi."
@@ -1919,39 +1919,39 @@ msgstr "Impossibile aggiornare la pianificazione"
 msgid "Could not delete schedule"
 msgstr "Impossibile eliminare la pianificazione"
 
-#: templates/_header.html:194
+#: templates/_header.html:40
 msgid "Open navigation"
 msgstr "Apri la barra di navigazione"
 
-#: templates/_header.html:211 templates/js/_header_js.html:17
+#: templates/_header.html:57 templates/js/_header_js.html:17
 #: templates/js/_header_js.html:18 templates/js/_header_js.html:19
 #: templates/js/_header_js.html:20 templates/js/_header_js.html:21
 msgid "Admin"
 msgstr "Admin"
 
-#: templates/_header.html:218 templates/_header.html:272
+#: templates/_header.html:64 templates/_header.html:118
 msgid "Overview"
 msgstr "Panoramica"
 
-#: templates/_header.html:223 templates/admin/access_control.html:19
+#: templates/_header.html:69 templates/admin/access_control.html:19
 #: templates/admin/admin_overview.html:75 templates/js/_header_js.html:18
 msgid "Access Control"
 msgstr "Controllo accessi"
 
-#: templates/_header.html:228 templates/admin/admin_overview.html:85
+#: templates/_header.html:74 templates/admin/admin_overview.html:85
 #: templates/admin/permissions.html:21 templates/admin/user_detail.html:88
 msgid "Permissions"
 msgstr "Permessi"
 
-#: templates/_header.html:233
+#: templates/_header.html:79
 msgid "Sessions"
 msgstr "Sessioni"
 
-#: templates/_header.html:238
+#: templates/_header.html:84
 msgid "Logs"
 msgstr "Registri"
 
-#: templates/_header.html:244 templates/admin/logs.html:66
+#: templates/_header.html:90 templates/admin/logs.html:66
 #: templates/admin/logs.html:99 templates/admin/tenants_manage.html:78
 #: templates/admin/user_detail.html:222 templates/api_docs.html:189
 #: templates/appearance.html:369 templates/generali_importstatus.html:50
@@ -1961,155 +1961,155 @@ msgstr "Registri"
 msgid "Status"
 msgstr "Stato"
 
-#: templates/_header.html:251
+#: templates/_header.html:97
 msgid "Maintenance"
 msgstr "Manutenzione"
 
-#: templates/_header.html:265 templates/admin/tenants.html:149
+#: templates/_header.html:111 templates/admin/tenants.html:149
 msgid "Tenants"
 msgstr "Tenants"
 
-#: templates/_header.html:278
+#: templates/_header.html:124
 msgid "Manage"
 msgstr "Gestisci"
 
-#: templates/_header.html:284 templates/admin/admin_overview.html:95
+#: templates/_header.html:130 templates/admin/admin_overview.html:95
 #: templates/admin/organizations.html:19 templates/admin/tenants_manage.html:38
 #: templates/js/_header_js.html:19
 msgid "Organizations"
 msgstr "Organizzazioni"
 
-#: templates/_header.html:290 templates/admin/clients.html:19
+#: templates/_header.html:136 templates/admin/clients.html:19
 msgid "Data Connections"
 msgstr "Connessioni dati"
 
-#: templates/_header.html:297 templates/admin/processes.html:19
+#: templates/_header.html:143 templates/admin/processes.html:19
 msgid "Process Configurations"
 msgstr "Configurazioni di processo"
 
-#: templates/_header.html:311
+#: templates/_header.html:157
 msgid "Development"
 msgstr "Sviluppo"
 
-#: templates/_header.html:318 templates/api_docs.html:76
+#: templates/_header.html:164 templates/api_docs.html:76
 msgid "API Documentation"
 msgstr "Documentazione API"
 
-#: templates/_header.html:325 templates/dashboard.html:34
+#: templates/_header.html:171 templates/dashboard.html:34
 msgid "Global Dashboard"
 msgstr "Dashboard globale"
 
-#: templates/_header.html:326
+#: templates/_header.html:172
 msgid "Global Reporting"
 msgstr "Reporting globale"
 
-#: templates/_header.html:327 templates/workitems_overview.html:66
+#: templates/_header.html:173 templates/workitems_overview.html:66
 msgid "Global Workitems"
 msgstr "Workitems globali"
 
-#: templates/_header.html:436 templates/_header.html:438
+#: templates/_header.html:282 templates/_header.html:284
 #: templates/appearance.html:302 templates/appearance.html:307
 #: templates/js/_header_js.html:13
 msgid "Keep sidebar open"
 msgstr "Mantieni la barra laterale aperta"
 
-#: templates/_header.html:442 templates/js/_header_js.html:56
+#: templates/_header.html:288 templates/js/_header_js.html:56
 msgid "Toggle dark mode"
 msgstr "Attiva/disattiva modalità scura"
 
-#: templates/_header.html:444
+#: templates/_header.html:290
 msgid "Dark Mode"
 msgstr "Modalità scura"
 
-#: templates/_header.html:452 templates/profile.html:44
+#: templates/_header.html:298 templates/profile.html:44
 #: templates/profile.html:123
 msgid "Profile Picture"
 msgstr "Foto profilo"
 
-#: templates/_header.html:462
+#: templates/_header.html:308
 msgid "Your profile"
 msgstr "Il tuo profilo"
 
-#: templates/_header.html:466 templates/appearance.html:34
+#: templates/_header.html:312 templates/appearance.html:34
 #: templates/js/_header_js.html:57 templates/profile.html:75
 #: templates/profile.html:317
 msgid "Appearance"
 msgstr "Aspetto"
 
-#: templates/_header.html:470 templates/js/_header_js.html:58
+#: templates/_header.html:316 templates/js/_header_js.html:58
 #: templates/whats_new.html:79
 msgid "What's New"
 msgstr "Novità"
 
-#: templates/_header.html:475 templates/feedback.html:34
+#: templates/_header.html:321 templates/feedback.html:34
 #: templates/js/_header_js.html:59
 msgid "Feedback"
 msgstr "Feedback"
 
-#: templates/_header.html:482 templates/_header.html:552
-#: templates/_header.html:555
+#: templates/_header.html:328 templates/_header.html:398
+#: templates/_header.html:401
 msgid "Keyboard shortcuts"
 msgstr "Scorciatoie da tastiera"
 
-#: templates/_header.html:486 templates/_small_footer.html:28
+#: templates/_header.html:332 templates/_small_footer.html:28
 #: templates/reporting.html:86
 msgid "Help"
 msgstr "Aiuto"
 
-#: templates/_header.html:492 templates/_header.html:534
+#: templates/_header.html:338 templates/_header.html:380
 msgid "Switch user"
 msgstr "Cambia utente"
 
-#: templates/_header.html:498 templates/js/_header_js.html:60
+#: templates/_header.html:344 templates/js/_header_js.html:60
 #: templates/profile.html:82
 msgid "Sign out"
 msgstr "Disconnetti"
 
-#: templates/_header.html:515
+#: templates/_header.html:361
 msgid "Command palette"
 msgstr "Tavolozza dei comandi"
 
-#: templates/_header.html:519
+#: templates/_header.html:365
 msgid "Type a command or search..."
 msgstr "Digita un comando o cerca..."
 
-#: templates/_header.html:524
+#: templates/_header.html:370
 msgid "navigate"
 msgstr "naviga"
 
-#: templates/_header.html:525
+#: templates/_header.html:371
 msgid "open"
 msgstr "apri"
 
-#: templates/_header.html:526
+#: templates/_header.html:372
 msgid "close"
 msgstr "chiudi"
 
-#: templates/_header.html:538
+#: templates/_header.html:384
 msgid "Switch to user..."
 msgstr "Passa all'utente ..."
 
-#: templates/_header.html:559 templates/admin/access_control.html:130
+#: templates/_header.html:405 templates/admin/access_control.html:130
 msgid "Global"
 msgstr "Globale"
 
-#: templates/_header.html:561
+#: templates/_header.html:407
 msgid "Open command palette"
 msgstr "Apri la tavolozza dei comandi"
 
-#: templates/_header.html:565
+#: templates/_header.html:411
 msgid "Show this shortcuts overlay"
 msgstr "Mostra questa panoramica scorciatoie"
 
-#: templates/_header.html:569
+#: templates/_header.html:415
 msgid "Close the open dialog or panel"
 msgstr "Chiudi la finestra di dialogo o il pannello aperto"
 
-#: templates/_header.html:574
+#: templates/_header.html:420
 msgid "Document viewer"
 msgstr "Visualizzatore documenti"
 
-#: templates/_header.html:576
+#: templates/_header.html:422
 msgid "Previous / next document page"
 msgstr "Pagina documento precedente / successiva"
 
@@ -2324,7 +2324,13 @@ msgid ""
 "the right database with the query written and already run. The Target "
 "picker names the real databases; the nexora database itself is not a "
 "query target."
-msgstr "Il modo più rapido per guardare dentro una tabella: fai clic sulla scheda della sua sorgente sotto “Sorgenti”, espandi la tabella e scegli “Interroga le prime 100 righe” — la schermata SQL si apre sul database giusto, con la query già scritta ed eseguita. Il selettore della destinazione indica i nomi reali dei database; il database nexora stesso non è una destinazione di query."
+msgstr ""
+"Il modo più rapido per guardare dentro una tabella: fai clic sulla scheda"
+" della sua sorgente sotto “Sorgenti”, espandi la tabella e scegli "
+"“Interroga le prime 100 righe” — la schermata SQL si apre sul database "
+"giusto, con la query già scritta ed eseguita. Il selettore della "
+"destinazione indica i nomi reali dei database; il database nexora stesso "
+"non è una destinazione di query."
 
 #: templates/_reporting_help.html:31
 msgid "Checking a number"
@@ -5248,8 +5254,8 @@ msgid "Change password"
 msgstr "Cambia password"
 
 #: templates/profile.html:168
-msgid "At least 8 characters, no whitespace."
-msgstr "Almeno 8 caratteri, senza spazi."
+msgid "At least 12 characters, no whitespace."
+msgstr "Almeno 12 caratteri, senza spazi."
 
 #: templates/profile.html:193
 msgid "Current password"
@@ -5953,8 +5959,8 @@ msgstr ""
 "configurare l'autenticazione a due fattori."
 
 #: templates/set_password.html:113
-msgid "At least 8 characters, no spaces"
-msgstr "Almeno 8 caratteri, senza spazi"
+msgid "At least 12 characters, no spaces"
+msgstr "Almeno 12 caratteri, senza spazi"
 
 #: templates/set_password.html:121
 msgid "Confirm password"
@@ -5976,15 +5982,15 @@ msgstr "Vai al login"
 msgid "Two-Factor Authentication - nexora"
 msgstr "Autenticazione a due fattori - nexora"
 
-#: templates/verify_2fa.html:35
+#: templates/verify_2fa.html:55
 msgid "Two-Factor Authentication"
 msgstr "Autenticazione a due fattori"
 
-#: templates/verify_2fa.html:37
+#: templates/verify_2fa.html:57
 msgid "Please enter the code from your authenticator app to continue."
 msgstr "Inserisci il codice dalla tua app Authenticator per continuare."
 
-#: templates/verify_2fa.html:73
+#: templates/verify_2fa.html:94
 msgid "Verify Identity"
 msgstr "Verifica identità"
 
@@ -8144,8 +8150,8 @@ msgid "Passwords match"
 msgstr "Le password corrispondono"
 
 #: templates/js/_profile_js.html:6
-msgid "At least 8 characters required"
-msgstr "Almeno 8 caratteri richiesti"
+msgid "At least 12 characters required"
+msgstr "Almeno 12 caratteri richiesti"
 
 #: templates/js/_reporting_ai_js.html:35
 msgid "Tell me what I am seeing in this report."
@@ -10655,4 +10661,7 @@ msgstr "A"
 
 #~ msgid "apply to every card · a card can override them"
 #~ msgstr "si applicano a ogni scheda · una scheda può sovrascriverli"
+
+#~ msgid "New password has to be atleast 8 characters long, with no whitespaces"
+#~ msgstr "La nuova password deve contenere almeno 8 caratteri, senza spazi"
 
