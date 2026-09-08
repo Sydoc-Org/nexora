@@ -1,4 +1,4 @@
-"""Delete expired rows from dbo.ActiveSessions (#227).
+r"""Delete expired rows from dbo.ActiveSessions (#227).
 
 Session expiry was implemented on one half only: ops/cleanup/
 cleanup_expired_sessionFiles.ps1 removes the session *files* under var/session,
@@ -33,13 +33,25 @@ USAGE
 ENVIRONMENT selects the target database, exactly as it does for the app
 (ENVIRONMENT=PROD on the scheduled run).
 
-NOT YET SCHEDULED -- MANUAL DEPLOY STEP
-Merging this changes nothing on its own: no row is deleted until someone
-registers a scheduled task on the app host, next to the existing
-cleanup_expired_sessionFiles.ps1. Until that task exists, do not state the
-retention anywhere user-facing -- the privacy page (#260) made exactly that
-mistake. Same failure mode as env/PROD.env in CLAUDE.md: the repo change
-lands, the server side is hand-work, and forgetting is silent.
+SCHEDULING -- ONE MANUAL STEP ON THE APP HOST
+Deploying this file changes nothing on its own: nothing in the repo executes
+it. prune-active-sessions-task.xml next to this script is a ready-to-import
+Task Scheduler definition (daily at 03:30, SYSTEM, ENVIRONMENT=PROD, output to
+var/logs/system/prune_active_sessions.log). Import it once in an elevated shell
+on the app host:
+
+    schtasks /create /xml "D:\sydoc\nexora\ops\cleanup\prune-active-sessions-task.xml" /tn "\sydoc\nexora\Prune Sessions"
+
+    schtasks /run /tn "\sydoc\nexora\Prune Sessions"
+    Get-Content D:\sydoc\nexora\var\logs\system\prune_active_sessions.log
+
+Or Task Scheduler -> Import Task... -> pick the XML. Same pattern as
+ops/outage-monitor-task.xml (docs/howto/outage-monitor.md).
+
+Until that task exists no row is ever deleted, and the retention must not be
+stated anywhere user-facing -- the privacy page (#260) made exactly that
+mistake. Same failure mode as env/PROD.env in CLAUDE.md: the repo change lands,
+the server side is hand-work, and forgetting is silent.
 
     ENVIRONMENT=PROD python ops/cleanup/prune_active_sessions.py --dry-run
 """

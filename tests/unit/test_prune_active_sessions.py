@@ -129,3 +129,64 @@ def test_a_sub_day_grace_would_still_outlast_a_live_session():
         if floored_days == 0:
             # exactly the case that wiped the table; unreachable now
             assert minutes > 0
+
+
+# --------------------------------------------------------------------------- #
+# The Task Scheduler definition. Without it the script ships to the server and
+# never runs, which is how #227 originally landed.
+# --------------------------------------------------------------------------- #
+
+TASK_XML = MODULE_PATH.parent / "prune-active-sessions-task.xml"
+
+
+def _task_xml_text() -> str:
+    """UTF-16 LE with a BOM, like every Task Scheduler export."""
+    raw = TASK_XML.read_bytes()
+    assert raw[:2] == b"\xff\xfe", "task XML lost its UTF-16 LE BOM"
+    assert len(raw) % 2 == 0, f"odd byte count ({len(raw)}) -- will not decode"
+    return raw[2:].decode("utf-16-le")
+
+
+def test_task_definition_exists_and_ships():
+    """It has to reach the server to be importable from there, and ops/ is not
+    in deploy.yml's /XD list -- same reasoning as the script itself."""
+    assert TASK_XML.is_file(), "no importable task definition next to the script"
+
+
+def test_task_xml_keeps_its_utf16_encoding():
+    """Task Scheduler refuses UTF-8 ("unable to switch the encoding"), and
+    .gitattributes marks *.xml binary precisely so normalisation cannot leave an
+    odd byte count that no longer decodes. Both halves are asserted here because
+    a well-meant `dos2unix` or an editor "fixing" the encoding is silent until
+    someone tries to import it on the host."""
+    text = _task_xml_text()
+    assert "\r\n" in text, "CRLF line endings were normalised away"
+
+
+def test_task_xml_is_wellformed_and_targets_this_script():
+    import xml.etree.ElementTree as ET
+
+    root = ET.fromstring(_task_xml_text())
+    ns = {"t": "http://schemas.microsoft.com/windows/2004/02/mit/task"}
+    args = root.find(".//t:Arguments", ns).text
+    assert "prune_active_sessions.py" in args, "task does not run this script"
+    assert "ENVIRONMENT=PROD" in args, (
+        "an Exec action cannot set an env var, so the cmd.exe wrapper must; "
+        "without it ENVIRONMENT is unset and the script targets the wrong database"
+    )
+    assert root.find(".//t:UserId", ns).text == "S-1-5-18", "must run as SYSTEM"
+
+
+def test_task_runs_often_enough_for_the_retention_window():
+    """A daily pass against an 8-day window leaves plenty of margin. A trigger
+    interval longer than the retention would let rows outlive it."""
+    import xml.etree.ElementTree as ET
+
+    mod = _load()
+    root = ET.fromstring(_task_xml_text())
+    ns = {"t": "http://schemas.microsoft.com/windows/2004/02/mit/task"}
+    days = root.find(".//t:ScheduleByDay/t:DaysInterval", ns)
+    assert days is not None, "expected a daily calendar trigger"
+    assert (
+        int(days.text) * 24 * 60 < mod.RETENTION_MINUTES
+    ), "the task runs less often than the retention window"
