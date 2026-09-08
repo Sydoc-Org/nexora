@@ -177,3 +177,14 @@ def test_viewer_sees_list_but_no_add(nexora_server, page):
     expect(page.get_by_test_id("rs-annotation-row")).to_have_count(1)
     expect(page.get_by_test_id("rs-annotation-add")).to_be_hidden()
     expect(page.get_by_test_id("rs-annotation-delete")).to_have_count(0)
+
+    # A non-owner clicking the marker itself (chartConfigFor passes
+    # dsIndex=null for a marker hit, never the marker dataset's own
+    # out-of-bounds index) must not drill at all -- no drawer, no throw.
+    page.evaluate("""() => {
+        window.__drillCalls = [];
+        window.RS.drillFromChart = (i, d) => window.__drillCalls.push([i, d]);
+        window.RS.annotations.onChartAnnotate(0, null);
+    }""")
+    assert page.evaluate("window.__drillCalls") == []
+    expect(page.get_by_test_id("rs-annotation-pop")).to_be_hidden()

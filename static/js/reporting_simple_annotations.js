@@ -98,7 +98,7 @@
   // Chart click-handler hook (chartConfigFor opts.onAnnotate): Alt+click on a
   // bucket, or a click on an existing marker.
   A.onChartAnnotate = function (index, dsIndex) {
-    if (!canEdit()) { RS.drillFromChart(index, dsIndex || 0); return; }
+    if (!canEdit()) { if (dsIndex != null) RS.drillFromChart(index, dsIndex); return; }
     var c = RS.state.chart, pt = null;
     if (c && c.canvas) {
       var r = c.canvas.getBoundingClientRect();
@@ -120,11 +120,8 @@
       window.NX.toast((res.data && res.data.error) || RS.I18N.annotationCouldNotSave, 'error');
       return;
     }
-    var cur = RS.state.current || {};
-    A.list.push({ id: res.data.id, bucket: bucket, text: text, author: cur.ownerName || '', createdAt: null });
-    A.list.sort(function (a, b) { return a.bucket < b.bucket ? -1 : a.bucket > b.bucket ? 1 : a.id - b.id; });
     A.closePopover();
-    A.refresh();
+    await A.load(A.reportId);
   }
 
   async function remove(id) {

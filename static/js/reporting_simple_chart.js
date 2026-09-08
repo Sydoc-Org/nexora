@@ -358,7 +358,7 @@
                    if (d.forecastStart != null && d.forecast && els[0].index >= d.forecastStart) return;
                    var onAnnotate = opts && opts.onAnnotate;
                    if (onAnnotate && (dsHit._nxAnnotations || (evt.native && evt.native.altKey))) {
-                     onAnnotate(els[0].index, els[0].datasetIndex); return;
+                     onAnnotate(els[0].index, dsHit._nxAnnotations ? null : els[0].datasetIndex); return;
                    }
                    if (dsHit._nxAnnotations) return;
                    onDrill(els[0].index, els[0].datasetIndex);
