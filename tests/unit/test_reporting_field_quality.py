@@ -156,13 +156,16 @@ def test_process_filter_is_scoped_to_the_organization(onboarded_sql):
 
 
 def test_every_stream_declares_an_organization_slot(onboarded_sql):
-    # Each UNION ALL branch carries an OrgCode -- a literal for an onboarded
+    # Each cfa branch carries an OrgCode -- a literal for an onboarded
     # customer, NULL for one with no dbo.Organizations row. A branch that
     # forgot it would not compile, but a branch that silently reused another
     # customer's code would cross-admit telemetry, so count them.
-    view = onboarded_sql.split("CREATE OR ALTER VIEW", 1)[1].split("\nGO", 1)[0]
-    cfa = view.split("WITH cfa AS", 1)[1].split("dates AS", 1)[0]
-    assert cfa.count("AS OrgCode") == len(CLIENT_TABLES)
+    #
+    # Schema-adaptive rewrite: the view is now built as dynamic SQL (only
+    # unions branches whose backing table exists on the target server -- see
+    # the migration's own header comment). "AS OrgCode" appears nowhere else
+    # in the file, so a plain count still catches a branch that forgot it.
+    assert onboarded_sql.count("AS OrgCode") == len(CLIENT_TABLES)
 
 
 def test_onboarded_filter_keeps_the_catalog_and_view_in_step(onboarded_sql, catalog):

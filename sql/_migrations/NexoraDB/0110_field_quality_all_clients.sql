@@ -44,78 +44,76 @@
 -- rewrite below is belt-and-braces for a report saved on a dev box in between.
 --
 -- Idempotent.
+--
+-- Schema-adaptive (edited after applied on INT, checksum re-blessed): PROD's
+-- SYDOC_Statistik is missing Bucherer_Collect_Field_Attributes -- Bucherer's
+-- collector pipeline is INT-only, not yet a live PROD client. A plain CREATE
+-- VIEW referencing it fails at CREATE time (cross-database three-part names
+-- are bound eagerly, unlike same-database deferred name resolution), taking
+-- the whole migration batch down with it -- exactly the "fails on a fresh
+-- database, nothing added later can rescue it" case docs/howto/db-migrations.md
+-- documents fixing in place. The view is now built as dynamic SQL that only
+-- unions branches whose backing table actually exists on the target server,
+-- so a customer missing from one environment degrades to "not in the view"
+-- rather than blocking every migration after it.
 
 -- 1) The unified view. One row per (stream, workitem, field) -- the same grain
 --    as the underlying tables. The extraction-quality maths is written ONCE
 --    here rather than seven times; see 0097 for why each expression looks like
 --    it does (0/100 floats, the RESULT flag, the LEFT joins).
 GO
+DECLARE @cfa TABLE (ord INT IDENTITY, txt NVARCHAR(MAX));
+DECLARE @dates TABLE (ord INT IDENTITY, txt NVARCHAR(MAX));
+
+IF OBJECT_ID('[$(StatisticsDb)].dbo.Bucherer_Collect_Field_Attributes') IS NOT NULL
+INSERT INTO @cfa (txt) VALUES (N'SELECT N''Bucherer'' AS Customer, N''bucherer'' AS Stream, WORKITEM_ID, PROCESS, FIELD, [TYPE], VALUE_BEFORE_VALIDATION, [RESULT], [TIME], CONF_BEST_CANDIDATE, CONF_2ND_CANDIDATE, IS_SET_BY_MACHINE, IS_USER_VERIFIED, IS_USER_ENTERED, IS_USER_MODIFIED, VALUE_FROM_CANDIDATE_LIST, VALUE_ORIGIN, HISTORY_SOURCE, STATUS_BEFORE_VALIDATION, STATUS_AFTER_VALIDATION FROM [$(StatisticsDb)].dbo.Bucherer_Collect_Field_Attributes');
+
+IF OBJECT_ID('[$(StatisticsDb)].dbo.Compass_Collect_Field_Attributes') IS NOT NULL
+INSERT INTO @cfa (txt) VALUES (N'SELECT N''Compass'' AS Customer, N''compass'' AS Stream, WORKITEM_ID, PROCESS, FIELD, [TYPE], VALUE_BEFORE_VALIDATION, [RESULT], [TIME], CONF_BEST_CANDIDATE, CONF_2ND_CANDIDATE, IS_SET_BY_MACHINE, IS_USER_VERIFIED, IS_USER_ENTERED, IS_USER_MODIFIED, VALUE_FROM_CANDIDATE_LIST, VALUE_ORIGIN, HISTORY_SOURCE, STATUS_BEFORE_VALIDATION, STATUS_AFTER_VALIDATION FROM [$(StatisticsDb)].dbo.Compass_Collect_Field_Attributes');
+
+IF OBJECT_ID('[$(StatisticsDb)].dbo.Em_Collect_Field_Attributes') IS NOT NULL
+INSERT INTO @cfa (txt) VALUES (N'SELECT N''ElektroMaterial'' AS Customer, N''em'' AS Stream, WORKITEM_ID, PROCESS, FIELD, [TYPE], VALUE_BEFORE_VALIDATION, [RESULT], [TIME], CONF_BEST_CANDIDATE, CONF_2ND_CANDIDATE, IS_SET_BY_MACHINE, IS_USER_VERIFIED, IS_USER_ENTERED, IS_USER_MODIFIED, VALUE_FROM_CANDIDATE_LIST, VALUE_ORIGIN, HISTORY_SOURCE, STATUS_BEFORE_VALIDATION, STATUS_AFTER_VALIDATION FROM [$(StatisticsDb)].dbo.Em_Collect_Field_Attributes');
+
+IF OBJECT_ID('[$(StatisticsDb)].dbo.Geberit_Collect_Field_Attributes') IS NOT NULL
+INSERT INTO @cfa (txt) VALUES (N'SELECT N''Geberit'' AS Customer, N''geberit'' AS Stream, WORKITEM_ID, PROCESS, FIELD, [TYPE], VALUE_BEFORE_VALIDATION, [RESULT], [TIME], CONF_BEST_CANDIDATE, CONF_2ND_CANDIDATE, IS_SET_BY_MACHINE, IS_USER_VERIFIED, IS_USER_ENTERED, IS_USER_MODIFIED, VALUE_FROM_CANDIDATE_LIST, VALUE_ORIGIN, HISTORY_SOURCE, STATUS_BEFORE_VALIDATION, STATUS_AFTER_VALIDATION FROM [$(StatisticsDb)].dbo.Geberit_Collect_Field_Attributes');
+
+IF OBJECT_ID('[$(StatisticsDb)].dbo.PriveraInvoice_Collect_Field_Attributes') IS NOT NULL
+INSERT INTO @cfa (txt) VALUES (N'SELECT N''Privera'' AS Customer, N''priverainvoice'' AS Stream, WORKITEM_ID, PROCESS, FIELD, [TYPE], VALUE_BEFORE_VALIDATION, [RESULT], [TIME], CONF_BEST_CANDIDATE, CONF_2ND_CANDIDATE, IS_SET_BY_MACHINE, IS_USER_VERIFIED, IS_USER_ENTERED, IS_USER_MODIFIED, VALUE_FROM_CANDIDATE_LIST, VALUE_ORIGIN, HISTORY_SOURCE, STATUS_BEFORE_VALIDATION, STATUS_AFTER_VALIDATION FROM [$(StatisticsDb)].dbo.PriveraInvoice_Collect_Field_Attributes');
+
+IF OBJECT_ID('[$(StatisticsDb)].dbo.PriveraInvoice2025_Collect_Field_Attributes') IS NOT NULL
+INSERT INTO @cfa (txt) VALUES (N'SELECT N''Privera'' AS Customer, N''priverainvoice2025'' AS Stream, WORKITEM_ID, PROCESS, FIELD, [TYPE], VALUE_BEFORE_VALIDATION, [RESULT], [TIME], CONF_BEST_CANDIDATE, CONF_2ND_CANDIDATE, IS_SET_BY_MACHINE, IS_USER_VERIFIED, IS_USER_ENTERED, IS_USER_MODIFIED, VALUE_FROM_CANDIDATE_LIST, VALUE_ORIGIN, HISTORY_SOURCE, STATUS_BEFORE_VALIDATION, STATUS_AFTER_VALIDATION FROM [$(StatisticsDb)].dbo.PriveraInvoice2025_Collect_Field_Attributes');
+
+IF OBJECT_ID('[$(StatisticsDb)].dbo.PriveraPost_Collect_Field_Attributes') IS NOT NULL
+INSERT INTO @cfa (txt) VALUES (N'SELECT N''Privera'' AS Customer, N''priverapost'' AS Stream, WORKITEM_ID, PROCESS, FIELD, [TYPE], VALUE_BEFORE_VALIDATION, [RESULT], [TIME], CONF_BEST_CANDIDATE, CONF_2ND_CANDIDATE, IS_SET_BY_MACHINE, IS_USER_VERIFIED, IS_USER_ENTERED, IS_USER_MODIFIED, VALUE_FROM_CANDIDATE_LIST, VALUE_ORIGIN, HISTORY_SOURCE, STATUS_BEFORE_VALIDATION, STATUS_AFTER_VALIDATION FROM [$(StatisticsDb)].dbo.PriveraPost_Collect_Field_Attributes');
+
+IF OBJECT_ID('[$(StatisticsDb)].dbo.Bucherer_Invoice') IS NOT NULL
+INSERT INTO @dates (txt) VALUES (N'SELECT N''bucherer'' AS Stream, CONVERT(nvarchar(50), [Workitem]) COLLATE DATABASE_DEFAULT AS Workitem, MIN([ImportDate]) AS ImportDate, MAX([UploadDatetime]) AS ExportDate FROM [$(StatisticsDb)].dbo.Bucherer_Invoice GROUP BY CONVERT(nvarchar(50), [Workitem]) COLLATE DATABASE_DEFAULT');
+
+IF OBJECT_ID('[$(StatisticsDb)].dbo.Compass_Invoice') IS NOT NULL
+INSERT INTO @dates (txt) VALUES (N'SELECT N''compass'' AS Stream, CONVERT(nvarchar(50), [WorkItem]) COLLATE DATABASE_DEFAULT AS Workitem, MIN([ImportDate]) AS ImportDate, MAX([UploadDatetime]) AS ExportDate FROM [$(StatisticsDb)].dbo.Compass_Invoice GROUP BY CONVERT(nvarchar(50), [WorkItem]) COLLATE DATABASE_DEFAULT');
+
+IF OBJECT_ID('[$(StatisticsDb)].dbo.EM_Invoice') IS NOT NULL
+INSERT INTO @dates (txt) VALUES (N'SELECT N''em'' AS Stream, CONVERT(nvarchar(50), [WorkItem]) COLLATE DATABASE_DEFAULT AS Workitem, MIN([ImportDatetime]) AS ImportDate, MAX([ExportEM_dt]) AS ExportDate FROM [$(StatisticsDb)].dbo.EM_Invoice GROUP BY CONVERT(nvarchar(50), [WorkItem]) COLLATE DATABASE_DEFAULT');
+
+IF OBJECT_ID('[$(StatisticsDb)].dbo.Geberit_Garantiekarten') IS NOT NULL
+INSERT INTO @dates (txt) VALUES (N'SELECT N''geberit'' AS Stream, CONVERT(nvarchar(50), [WorkItem]) COLLATE DATABASE_DEFAULT AS Workitem, MIN([ImportDate]) AS ImportDate, MAX([UploadDatetime]) AS ExportDate FROM [$(StatisticsDb)].dbo.Geberit_Garantiekarten GROUP BY CONVERT(nvarchar(50), [WorkItem]) COLLATE DATABASE_DEFAULT');
+
+IF OBJECT_ID('[$(StatisticsDb)].dbo.PriveraInvoice') IS NOT NULL
+BEGIN
+INSERT INTO @dates (txt) VALUES (N'SELECT N''priverainvoice'' AS Stream, CONVERT(nvarchar(50), [WID]) COLLATE DATABASE_DEFAULT AS Workitem, MIN([ImportTime]) AS ImportDate, MAX([ExportDate]) AS ExportDate FROM [$(StatisticsDb)].dbo.PriveraInvoice GROUP BY CONVERT(nvarchar(50), [WID]) COLLATE DATABASE_DEFAULT');
+INSERT INTO @dates (txt) VALUES (N'SELECT N''priverainvoice2025'' AS Stream, CONVERT(nvarchar(50), [WID]) COLLATE DATABASE_DEFAULT AS Workitem, MIN([ImportTime]) AS ImportDate, MAX([ExportDate]) AS ExportDate FROM [$(StatisticsDb)].dbo.PriveraInvoice GROUP BY CONVERT(nvarchar(50), [WID]) COLLATE DATABASE_DEFAULT');
+END
+
+IF OBJECT_ID('[$(StatisticsDb)].dbo.PriveraPosteingang') IS NOT NULL
+INSERT INTO @dates (txt) VALUES (N'SELECT N''priverapost'' AS Stream, CONVERT(nvarchar(50), [WorkItemID]) COLLATE DATABASE_DEFAULT AS Workitem, MIN([ImportDatetime_dt]) AS ImportDate, MAX([ExportDatetime_dt]) AS ExportDate FROM [$(StatisticsDb)].dbo.PriveraPosteingang GROUP BY CONVERT(nvarchar(50), [WorkItemID]) COLLATE DATABASE_DEFAULT');
+
+DECLARE @cfaSql NVARCHAR(MAX) = (SELECT STRING_AGG(txt, N' UNION ALL ') WITHIN GROUP (ORDER BY ord) FROM @cfa);
+DECLARE @datesSql NVARCHAR(MAX) = (SELECT STRING_AGG(txt, N' UNION ALL ') WITHIN GROUP (ORDER BY ord) FROM @dates);
+
+DECLARE @sql NVARCHAR(MAX) = N'
 CREATE OR ALTER VIEW dbo.vFieldExtractionQuality AS
-WITH cfa AS (
-    SELECT N'Bucherer' AS Customer, N'bucherer' AS Stream,
-           WORKITEM_ID, PROCESS, FIELD, [TYPE], VALUE_BEFORE_VALIDATION, [RESULT], [TIME], CONF_BEST_CANDIDATE, CONF_2ND_CANDIDATE, IS_SET_BY_MACHINE, IS_USER_VERIFIED, IS_USER_ENTERED, IS_USER_MODIFIED, VALUE_FROM_CANDIDATE_LIST, VALUE_ORIGIN, HISTORY_SOURCE, STATUS_BEFORE_VALIDATION, STATUS_AFTER_VALIDATION
-    FROM [$(StatisticsDb)].dbo.Bucherer_Collect_Field_Attributes
-    UNION ALL
-    SELECT N'Compass' AS Customer, N'compass' AS Stream,
-           WORKITEM_ID, PROCESS, FIELD, [TYPE], VALUE_BEFORE_VALIDATION, [RESULT], [TIME], CONF_BEST_CANDIDATE, CONF_2ND_CANDIDATE, IS_SET_BY_MACHINE, IS_USER_VERIFIED, IS_USER_ENTERED, IS_USER_MODIFIED, VALUE_FROM_CANDIDATE_LIST, VALUE_ORIGIN, HISTORY_SOURCE, STATUS_BEFORE_VALIDATION, STATUS_AFTER_VALIDATION
-    FROM [$(StatisticsDb)].dbo.Compass_Collect_Field_Attributes
-    UNION ALL
-    SELECT N'ElektroMaterial' AS Customer, N'em' AS Stream,
-           WORKITEM_ID, PROCESS, FIELD, [TYPE], VALUE_BEFORE_VALIDATION, [RESULT], [TIME], CONF_BEST_CANDIDATE, CONF_2ND_CANDIDATE, IS_SET_BY_MACHINE, IS_USER_VERIFIED, IS_USER_ENTERED, IS_USER_MODIFIED, VALUE_FROM_CANDIDATE_LIST, VALUE_ORIGIN, HISTORY_SOURCE, STATUS_BEFORE_VALIDATION, STATUS_AFTER_VALIDATION
-    FROM [$(StatisticsDb)].dbo.Em_Collect_Field_Attributes
-    UNION ALL
-    SELECT N'Geberit' AS Customer, N'geberit' AS Stream,
-           WORKITEM_ID, PROCESS, FIELD, [TYPE], VALUE_BEFORE_VALIDATION, [RESULT], [TIME], CONF_BEST_CANDIDATE, CONF_2ND_CANDIDATE, IS_SET_BY_MACHINE, IS_USER_VERIFIED, IS_USER_ENTERED, IS_USER_MODIFIED, VALUE_FROM_CANDIDATE_LIST, VALUE_ORIGIN, HISTORY_SOURCE, STATUS_BEFORE_VALIDATION, STATUS_AFTER_VALIDATION
-    FROM [$(StatisticsDb)].dbo.Geberit_Collect_Field_Attributes
-    UNION ALL
-    SELECT N'Privera' AS Customer, N'priverainvoice' AS Stream,
-           WORKITEM_ID, PROCESS, FIELD, [TYPE], VALUE_BEFORE_VALIDATION, [RESULT], [TIME], CONF_BEST_CANDIDATE, CONF_2ND_CANDIDATE, IS_SET_BY_MACHINE, IS_USER_VERIFIED, IS_USER_ENTERED, IS_USER_MODIFIED, VALUE_FROM_CANDIDATE_LIST, VALUE_ORIGIN, HISTORY_SOURCE, STATUS_BEFORE_VALIDATION, STATUS_AFTER_VALIDATION
-    FROM [$(StatisticsDb)].dbo.PriveraInvoice_Collect_Field_Attributes
-    UNION ALL
-    SELECT N'Privera' AS Customer, N'priverainvoice2025' AS Stream,
-           WORKITEM_ID, PROCESS, FIELD, [TYPE], VALUE_BEFORE_VALIDATION, [RESULT], [TIME], CONF_BEST_CANDIDATE, CONF_2ND_CANDIDATE, IS_SET_BY_MACHINE, IS_USER_VERIFIED, IS_USER_ENTERED, IS_USER_MODIFIED, VALUE_FROM_CANDIDATE_LIST, VALUE_ORIGIN, HISTORY_SOURCE, STATUS_BEFORE_VALIDATION, STATUS_AFTER_VALIDATION
-    FROM [$(StatisticsDb)].dbo.PriveraInvoice2025_Collect_Field_Attributes
-    UNION ALL
-    SELECT N'Privera' AS Customer, N'priverapost' AS Stream,
-           WORKITEM_ID, PROCESS, FIELD, [TYPE], VALUE_BEFORE_VALIDATION, [RESULT], [TIME], CONF_BEST_CANDIDATE, CONF_2ND_CANDIDATE, IS_SET_BY_MACHINE, IS_USER_VERIFIED, IS_USER_ENTERED, IS_USER_MODIFIED, VALUE_FROM_CANDIDATE_LIST, VALUE_ORIGIN, HISTORY_SOURCE, STATUS_BEFORE_VALIDATION, STATUS_AFTER_VALIDATION
-    FROM [$(StatisticsDb)].dbo.PriveraPost_Collect_Field_Attributes
-),
-dates AS (
-    SELECT N'bucherer' AS Stream, CONVERT(nvarchar(50), [Workitem]) COLLATE DATABASE_DEFAULT AS Workitem,
-           MIN([ImportDate]) AS ImportDate, MAX([UploadDatetime]) AS ExportDate
-    FROM [$(StatisticsDb)].dbo.Bucherer_Invoice
-    GROUP BY CONVERT(nvarchar(50), [Workitem]) COLLATE DATABASE_DEFAULT
-    UNION ALL
-    SELECT N'compass' AS Stream, CONVERT(nvarchar(50), [WorkItem]) COLLATE DATABASE_DEFAULT AS Workitem,
-           MIN([ImportDate]) AS ImportDate, MAX([UploadDatetime]) AS ExportDate
-    FROM [$(StatisticsDb)].dbo.Compass_Invoice
-    GROUP BY CONVERT(nvarchar(50), [WorkItem]) COLLATE DATABASE_DEFAULT
-    UNION ALL
-    SELECT N'em' AS Stream, CONVERT(nvarchar(50), [WorkItem]) COLLATE DATABASE_DEFAULT AS Workitem,
-           MIN([ImportDatetime]) AS ImportDate, MAX([ExportEM_dt]) AS ExportDate
-    FROM [$(StatisticsDb)].dbo.EM_Invoice
-    GROUP BY CONVERT(nvarchar(50), [WorkItem]) COLLATE DATABASE_DEFAULT
-    UNION ALL
-    SELECT N'geberit' AS Stream, CONVERT(nvarchar(50), [WorkItem]) COLLATE DATABASE_DEFAULT AS Workitem,
-           MIN([ImportDate]) AS ImportDate, MAX([UploadDatetime]) AS ExportDate
-    FROM [$(StatisticsDb)].dbo.Geberit_Garantiekarten
-    GROUP BY CONVERT(nvarchar(50), [WorkItem]) COLLATE DATABASE_DEFAULT
-    UNION ALL
-    SELECT N'priverainvoice' AS Stream, CONVERT(nvarchar(50), [WID]) COLLATE DATABASE_DEFAULT AS Workitem,
-           MIN([ImportTime]) AS ImportDate, MAX([ExportDate]) AS ExportDate
-    FROM [$(StatisticsDb)].dbo.PriveraInvoice
-    GROUP BY CONVERT(nvarchar(50), [WID]) COLLATE DATABASE_DEFAULT
-    UNION ALL
-    SELECT N'priverainvoice2025' AS Stream, CONVERT(nvarchar(50), [WID]) COLLATE DATABASE_DEFAULT AS Workitem,
-           MIN([ImportTime]) AS ImportDate, MAX([ExportDate]) AS ExportDate
-    FROM [$(StatisticsDb)].dbo.PriveraInvoice
-    GROUP BY CONVERT(nvarchar(50), [WID]) COLLATE DATABASE_DEFAULT
-    UNION ALL
-    SELECT N'priverapost' AS Stream, CONVERT(nvarchar(50), [WorkItemID]) COLLATE DATABASE_DEFAULT AS Workitem,
-           MIN([ImportDatetime_dt]) AS ImportDate, MAX([ExportDatetime_dt]) AS ExportDate
-    FROM [$(StatisticsDb)].dbo.PriveraPosteingang
-    GROUP BY CONVERT(nvarchar(50), [WorkItemID]) COLLATE DATABASE_DEFAULT
-)
+WITH cfa AS (' + @cfaSql + N'),
+dates AS (' + @datesSql + N')
 SELECT
     cfa.Customer                                      AS Customer,
     cfa.Stream                                        AS Stream,
@@ -128,28 +126,20 @@ SELECT
     cfa.[TYPE]                                        AS FieldType,
     d.ImportDate                                      AS ImportDate,
     d.ExportDate                                      AS ExportDate,
-    -- Octo stores confidences as 0..1 strings; x100 makes them percentages.
     TRY_CONVERT(float, cfa.CONF_BEST_CANDIDATE) * 100 AS Confidence,
     TRY_CONVERT(float, cfa.CONF_2ND_CANDIDATE)  * 100 AS Confidence2nd,
     TRY_CONVERT(float, cfa.[TIME])                    AS ExtractionTimeMs,
-    -- 0/100 FLOATS, not 0/1 ints: the reporting layer emits a bare AVG(col) and
-    -- T-SQL integer-divides AVG over an int column. As floats, AVG() *is* the
-    -- percentage, with no post-maths.
-    CASE WHEN cfa.VALUE_BEFORE_VALIDATION <> '' THEN 100e0 ELSE 0e0 END
+    CASE WHEN cfa.VALUE_BEFORE_VALIDATION <> '''' THEN 100e0 ELSE 0e0 END
                                                       AS ExtractedPct,
-    CASE WHEN cfa.VALUE_BEFORE_VALIDATION <> '' AND cfa.[RESULT] = 'Equal'
+    CASE WHEN cfa.VALUE_BEFORE_VALIDATION <> '''' AND cfa.[RESULT] = ''Equal''
          THEN 100e0 ELSE 0e0 END                      AS CorrectPct,
-    CASE WHEN cfa.[RESULT] = 'Different' THEN 100e0 ELSE 0e0 END
+    CASE WHEN cfa.[RESULT] = ''Different'' THEN 100e0 ELSE 0e0 END
                                                       AS DeviationPct,
     TRY_CONVERT(float, cfa.IS_SET_BY_MACHINE)         * 100 AS SetByMachinePct,
     TRY_CONVERT(float, cfa.IS_USER_VERIFIED)          * 100 AS UserVerifiedPct,
     TRY_CONVERT(float, cfa.IS_USER_ENTERED)           * 100 AS UserEnteredPct,
     TRY_CONVERT(float, cfa.IS_USER_MODIFIED)          * 100 AS UserModifiedPct,
     TRY_CONVERT(float, cfa.VALUE_FROM_CANDIDATE_LIST) * 100 AS FromCandidateListPct,
-    -- Octo emits hundreds of distinct "fields" per stream, most of them internal
-    -- bookkeeping. Filtering this to 100 narrows a report to the fields nexora
-    -- actually knows about. Widen it by adding dbo.FieldAliases rows, not by
-    -- editing this view.
     CASE WHEN fa.TargetKey IS NULL THEN 0e0 ELSE 100e0 END
                                                       AS MappedInNexoraPct,
     cfa.VALUE_ORIGIN                                  AS ValueOrigin,
@@ -160,12 +150,11 @@ FROM cfa
 LEFT JOIN dates d
        ON d.Stream   = cfa.Stream
       AND d.Workitem = cfa.WORKITEM_ID COLLATE DATABASE_DEFAULT
--- COLLATE DATABASE_DEFAULT: NexoraDB is Latin1_General_CI_AS, the statistics DB
--- SQL_Latin1_General_CP1_CI_AS, and an uncollated cross-database string compare
--- is a hard error, not a warning.
 LEFT JOIN dbo.FieldAliases fa
        ON fa.SourceFieldName = cfa.FIELD COLLATE DATABASE_DEFAULT
-LEFT JOIN dbo.FieldLabels  fl ON fl.FieldKey = LOWER(fa.TargetKey);
+LEFT JOIN dbo.FieldLabels  fl ON fl.FieldKey = LOWER(fa.TargetKey);';
+
+EXEC sp_executesql @sql;
 GO
 
 -- 2) Repoint the source: new code, new label, new base object, Customer and

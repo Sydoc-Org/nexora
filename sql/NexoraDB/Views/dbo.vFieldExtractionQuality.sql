@@ -4,7 +4,7 @@ DROP VIEW [dbo].[vFieldExtractionQuality]
 GO
 SET ANSI_NULLS ON
 GO
-SET QUOTED_IDENTIFIER OFF
+SET QUOTED_IDENTIFIER ON
 GO
 CREATE   VIEW [dbo].[vFieldExtractionQuality] AS
 WITH cfa AS (
@@ -136,5 +136,4 @@ WHERE EXISTS (
         WHERE ps.ClientCode       = 'default'
           AND ps.OrganizationCode = cfa.OrgCode
       );
-
 GO
