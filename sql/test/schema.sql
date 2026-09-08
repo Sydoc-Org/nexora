@@ -274,6 +274,25 @@ BEGIN
 END;
 GO
 
+-- Chart annotations (mirrors 0123_report_annotations.sql).
+IF OBJECT_ID(N'dbo.ReportAnnotations', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.ReportAnnotations (
+        AnnotationID INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_ReportAnnotations PRIMARY KEY,
+        ReportID     INT NOT NULL,
+        BucketKey    NVARCHAR(64) NOT NULL,
+        Text         NVARCHAR(500) NOT NULL,
+        CreatedBy    INT NOT NULL,
+        CreatedAt    DATETIME2(0) NOT NULL CONSTRAINT DF_ReportAnnotations_CreatedAt DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT FK_ReportAnnotations_Reports FOREIGN KEY (ReportID)
+            REFERENCES dbo.Reports(ReportID) ON DELETE CASCADE,
+        CONSTRAINT FK_ReportAnnotations_Users FOREIGN KEY (CreatedBy)
+            REFERENCES dbo.Users(userID)
+    );
+    CREATE INDEX IX_ReportAnnotations_Report ON dbo.ReportAnnotations(ReportID, BucketKey);
+END;
+GO
+
 -- DB-backed reporting source registry (mirrors 0010_reporting_sources_registry.sql).
 IF OBJECT_ID(N'dbo.ReportingSources', N'U') IS NULL
 BEGIN
