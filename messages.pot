@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-07 21:56+0200\n"
+"POT-Creation-Date: 2026-09-08 14:33+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -716,46 +716,46 @@ msgstr ""
 msgid "Could not send feedback. Please try again later."
 msgstr ""
 
-#: nx_lib/views/tenant.py:289
+#: nx_lib/views/tenant.py:299
 #, python-format
 msgid "Missing value for %(field)s."
 msgstr ""
 
-#: nx_lib/views/tenant.py:296
+#: nx_lib/views/tenant.py:305
 #, python-format
 msgid "%(field)s must be a valid date (YYYY-MM-DD)."
 msgstr ""
 
-#: nx_lib/views/tenant.py:303
+#: nx_lib/views/tenant.py:315
 #, python-format
 msgid "%(field)s must be numeric."
 msgstr ""
 
 #: nx_lib/views/admin/clients.py:154 nx_lib/views/admin/organizations.py:128
 #: nx_lib/views/admin/processes.py:420 nx_lib/views/admin/processes.py:573
-#: nx_lib/views/admin/users.py:158 nx_lib/views/tenant.py:523
-#: nx_lib/views/tenant.py:587 nx_lib/views/tenant.py:632
-#: nx_lib/views/tenant.py:667 nx_lib/views/tenant.py:706
+#: nx_lib/views/admin/users.py:158 nx_lib/views/tenant.py:535
+#: nx_lib/views/tenant.py:599 nx_lib/views/tenant.py:644
+#: nx_lib/views/tenant.py:679 nx_lib/views/tenant.py:718
 msgid "An unexpected error occurred."
 msgstr ""
 
-#: nx_lib/views/tenant.py:569 nx_lib/views/tenant.py:611
+#: nx_lib/views/tenant.py:581 nx_lib/views/tenant.py:623
 msgid "This entity has no writable fields."
 msgstr ""
 
-#: nx_lib/views/tenant.py:584
+#: nx_lib/views/tenant.py:596
 msgid "Record created successfully."
 msgstr ""
 
-#: nx_lib/views/tenant.py:628 nx_lib/views/tenant.py:663
+#: nx_lib/views/tenant.py:640 nx_lib/views/tenant.py:675
 msgid "Record not found."
 msgstr ""
 
-#: nx_lib/views/tenant.py:629
+#: nx_lib/views/tenant.py:641
 msgid "Record updated successfully."
 msgstr ""
 
-#: nx_lib/views/tenant.py:664
+#: nx_lib/views/tenant.py:676
 msgid "Record deleted successfully."
 msgstr ""
 
@@ -1414,9 +1414,13 @@ msgstr ""
 #: nx_lib/views/reporting/admin_registry.py:261
 #: nx_lib/views/reporting/admin_registry.py:369
 #: nx_lib/views/reporting/admin_registry.py:388
+#: nx_lib/views/reporting/annotations.py:52
+#: nx_lib/views/reporting/annotations.py:78
+#: nx_lib/views/reporting/annotations.py:107
+#: nx_lib/views/reporting/annotations.py:118
 #: nx_lib/views/reporting/reports.py:195 nx_lib/views/reporting/reports.py:292
-#: nx_lib/views/reporting/reports.py:314 nx_lib/views/reporting/reports.py:390
-#: nx_lib/views/reporting/reports.py:400 nx_lib/views/reporting/reports.py:450
+#: nx_lib/views/reporting/reports.py:314 nx_lib/views/reporting/reports.py:410
+#: nx_lib/views/reporting/reports.py:420 nx_lib/views/reporting/reports.py:470
 #: nx_lib/views/reporting/schedules.py:70
 #: nx_lib/views/reporting/schedules.py:94
 #: nx_lib/views/reporting/schedules.py:143
@@ -1453,8 +1457,8 @@ msgstr ""
 #: nx_lib/views/reporting/ai.py:312 nx_lib/views/reporting/ai.py:440
 #: nx_lib/views/reporting/ai.py:621 nx_lib/views/reporting/ai.py:1027
 #: nx_lib/views/reporting/catalog.py:123 nx_lib/views/reporting/export.py:99
-#: nx_lib/views/reporting/export.py:194 nx_lib/views/reporting/run.py:177
-#: nx_lib/views/reporting/run.py:278
+#: nx_lib/views/reporting/export.py:194 nx_lib/views/reporting/run.py:190
+#: nx_lib/views/reporting/run.py:286 nx_lib/views/reporting/run.py:396
 msgid "Invalid JSON body"
 msgstr ""
 
@@ -1529,12 +1533,38 @@ msgstr ""
 msgid "columns and rows are required"
 msgstr ""
 
+#: nx_lib/views/reporting/annotations.py:40
+msgid "Pick a bucket on the chart."
+msgstr ""
+
+#: nx_lib/views/reporting/annotations.py:42
+msgid "Annotation text is required."
+msgstr ""
+
+#: nx_lib/views/reporting/annotations.py:44
+msgid "Annotation text is limited to 500 characters."
+msgstr ""
+
+#: nx_lib/views/reporting/annotations.py:68
+msgid "Could not list annotations"
+msgstr ""
+
+#: nx_lib/views/reporting/annotations.py:97
+msgid "Could not save annotation"
+msgstr ""
+
+#: nx_lib/views/reporting/annotations.py:122
+msgid "Could not delete annotation"
+msgstr ""
+
 #: nx_lib/views/reporting/catalog.py:130
 msgid "Unknown or unsupported source"
 msgstr ""
 
 #: nx_lib/views/reporting/catalog.py:132 nx_lib/views/reporting/export.py:134
-#: nx_lib/views/reporting/health.py:167 nx_lib/views/reporting/run.py:181
+#: nx_lib/views/reporting/health.py:167 nx_lib/views/reporting/run.py:194
+#: nx_lib/views/reporting/run.py:309 nx_lib/views/reporting/run.py:317
+#: nx_lib/views/reporting/run.py:342
 msgid "Not authorized for this source"
 msgstr ""
 
@@ -1554,19 +1584,19 @@ msgstr ""
 msgid "Not authorized for live SQL"
 msgstr ""
 
-#: nx_lib/views/reporting/export.py:107 nx_lib/views/reporting/run.py:284
+#: nx_lib/views/reporting/export.py:107 nx_lib/views/reporting/run.py:402
 msgid "Acknowledgment required"
 msgstr ""
 
-#: nx_lib/views/reporting/export.py:115 nx_lib/views/reporting/run.py:289
+#: nx_lib/views/reporting/export.py:115 nx_lib/views/reporting/run.py:407
 msgid "Not authorized for this SQL target"
 msgstr ""
 
-#: nx_lib/views/reporting/export.py:121 nx_lib/views/reporting/run.py:293
+#: nx_lib/views/reporting/export.py:121 nx_lib/views/reporting/run.py:411
 msgid "Invalid SQL request."
 msgstr ""
 
-#: nx_lib/views/reporting/export.py:123 nx_lib/views/reporting/run.py:295
+#: nx_lib/views/reporting/export.py:123 nx_lib/views/reporting/run.py:413
 msgid "SQL source is not configured"
 msgstr ""
 
@@ -1577,11 +1607,13 @@ msgstr ""
 #: nx_lib/views/reporting/export.py:128 nx_lib/views/reporting/export.py:175
 #: nx_lib/views/reporting/export.py:210 templates/hero.html:165
 #: templates/js/_reporting_js.html:33
-#: templates/js/_reporting_scheduled_js.html:15 templates/reporting.html:572
+#: templates/js/_reporting_scheduled_js.html:15 templates/reporting.html:573
 msgid "Report"
 msgstr ""
 
-#: nx_lib/views/reporting/export.py:137 nx_lib/views/reporting/run.py:184
+#: nx_lib/views/reporting/export.py:137 nx_lib/views/reporting/run.py:197
+#: nx_lib/views/reporting/run.py:294 nx_lib/views/reporting/run.py:307
+#: nx_lib/views/reporting/run.py:320
 msgid "This report definition is invalid or outdated."
 msgstr ""
 
@@ -1592,7 +1624,7 @@ msgstr ""
 #: nx_lib/views/reporting/export.py:154 templates/_reporting_simple.html:240
 #: templates/js/_reporting_dashboard_js.html:80
 #: templates/js/_reporting_js.html:55 templates/js/_reporting_simple_js.html:8
-#: templates/js/_reporting_viz_js.html:14 templates/reporting.html:431
+#: templates/js/_reporting_viz_js.html:14 templates/reporting.html:432
 msgid "Forecast"
 msgstr ""
 
@@ -1645,74 +1677,82 @@ msgstr ""
 msgid "Could not delete report"
 msgstr ""
 
-#: nx_lib/views/reporting/reports.py:408
+#: nx_lib/views/reporting/reports.py:428
 msgid "Invalid visibility"
 msgstr ""
 
-#: nx_lib/views/reporting/reports.py:417
+#: nx_lib/views/reporting/reports.py:437
 msgid "User not found"
 msgstr ""
 
-#: nx_lib/views/reporting/reports.py:419
+#: nx_lib/views/reporting/reports.py:439
 msgid "Cannot share a report with yourself"
 msgstr ""
 
-#: nx_lib/views/reporting/reports.py:440 nx_lib/views/reporting/reports.py:461
+#: nx_lib/views/reporting/reports.py:460 nx_lib/views/reporting/reports.py:481
 msgid "Could not update sharing"
 msgstr ""
 
-#: nx_lib/views/reporting/run.py:188
+#: nx_lib/views/reporting/run.py:201 nx_lib/views/reporting/run.py:324
 msgid "Could not build report"
 msgstr ""
 
-#: nx_lib/views/reporting/run.py:193
+#: nx_lib/views/reporting/run.py:206
 msgid "Could not run report"
 msgstr ""
 
-#: nx_lib/views/reporting/run.py:261
+#: nx_lib/views/reporting/run.py:289
+msgid "This report has no measure to explain."
+msgstr ""
+
+#: nx_lib/views/reporting/run.py:300
+msgid "No comparison window — the report needs exactly one relative-date filter."
+msgstr ""
+
+#: nx_lib/views/reporting/run.py:379
 msgid "SQL is required."
 msgstr ""
 
-#: nx_lib/views/reporting/run.py:262
+#: nx_lib/views/reporting/run.py:380
 #, python-brace-format
 msgid "The SQL exceeds {n} characters."
 msgstr ""
 
-#: nx_lib/views/reporting/run.py:263
+#: nx_lib/views/reporting/run.py:381
 #, python-brace-format
 msgid "Disallowed keyword: {kw}"
 msgstr ""
 
-#: nx_lib/views/reporting/run.py:264
+#: nx_lib/views/reporting/run.py:382
 msgid "The SQL could not be parsed."
 msgstr ""
 
-#: nx_lib/views/reporting/run.py:265
+#: nx_lib/views/reporting/run.py:383
 msgid "Exactly one statement is allowed."
 msgstr ""
 
-#: nx_lib/views/reporting/run.py:266
+#: nx_lib/views/reporting/run.py:384
 msgid "Only SELECT / WITH / set operations are allowed."
 msgstr ""
 
-#: nx_lib/views/reporting/run.py:267
+#: nx_lib/views/reporting/run.py:385
 #, python-brace-format
 msgid "Disallowed construct: {kw}"
 msgstr ""
 
-#: nx_lib/views/reporting/run.py:268
+#: nx_lib/views/reporting/run.py:386
 msgid "T-SQL does not support LIMIT — use TOP (n) instead."
 msgstr ""
 
-#: nx_lib/views/reporting/run.py:282 nx_lib/views/reporting/run.py:326
+#: nx_lib/views/reporting/run.py:400 nx_lib/views/reporting/run.py:444
 msgid "Not authenticated"
 msgstr ""
 
-#: nx_lib/views/reporting/run.py:305 nx_lib/views/reporting/run.py:309
+#: nx_lib/views/reporting/run.py:423 nx_lib/views/reporting/run.py:427
 msgid "Could not run query"
 msgstr ""
 
-#: nx_lib/views/reporting/run.py:339
+#: nx_lib/views/reporting/run.py:457
 msgid "Could not record acknowledgment"
 msgstr ""
 
@@ -1735,39 +1775,39 @@ msgstr ""
 msgid "Could not delete schedule"
 msgstr ""
 
-#: templates/_header.html:194
+#: templates/_header.html:40
 msgid "Open navigation"
 msgstr ""
 
-#: templates/_header.html:211 templates/js/_header_js.html:17
+#: templates/_header.html:57 templates/js/_header_js.html:17
 #: templates/js/_header_js.html:18 templates/js/_header_js.html:19
 #: templates/js/_header_js.html:20 templates/js/_header_js.html:21
 msgid "Admin"
 msgstr ""
 
-#: templates/_header.html:218 templates/_header.html:272
+#: templates/_header.html:64 templates/_header.html:118
 msgid "Overview"
 msgstr ""
 
-#: templates/_header.html:223 templates/admin/access_control.html:19
+#: templates/_header.html:69 templates/admin/access_control.html:19
 #: templates/admin/admin_overview.html:75 templates/js/_header_js.html:18
 msgid "Access Control"
 msgstr ""
 
-#: templates/_header.html:228 templates/admin/admin_overview.html:85
+#: templates/_header.html:74 templates/admin/admin_overview.html:85
 #: templates/admin/permissions.html:21 templates/admin/user_detail.html:88
 msgid "Permissions"
 msgstr ""
 
-#: templates/_header.html:233
+#: templates/_header.html:79
 msgid "Sessions"
 msgstr ""
 
-#: templates/_header.html:238
+#: templates/_header.html:84
 msgid "Logs"
 msgstr ""
 
-#: templates/_header.html:244 templates/admin/logs.html:66
+#: templates/_header.html:90 templates/admin/logs.html:66
 #: templates/admin/logs.html:99 templates/admin/tenants_manage.html:78
 #: templates/admin/user_detail.html:222 templates/api_docs.html:189
 #: templates/appearance.html:369 templates/generali_importstatus.html:50
@@ -1777,155 +1817,155 @@ msgstr ""
 msgid "Status"
 msgstr ""
 
-#: templates/_header.html:251
+#: templates/_header.html:97
 msgid "Maintenance"
 msgstr ""
 
-#: templates/_header.html:265 templates/admin/tenants.html:149
+#: templates/_header.html:111 templates/admin/tenants.html:149
 msgid "Tenants"
 msgstr ""
 
-#: templates/_header.html:278
+#: templates/_header.html:124
 msgid "Manage"
 msgstr ""
 
-#: templates/_header.html:284 templates/admin/admin_overview.html:95
+#: templates/_header.html:130 templates/admin/admin_overview.html:95
 #: templates/admin/organizations.html:19 templates/admin/tenants_manage.html:38
 #: templates/js/_header_js.html:19
 msgid "Organizations"
 msgstr ""
 
-#: templates/_header.html:290 templates/admin/clients.html:19
+#: templates/_header.html:136 templates/admin/clients.html:19
 msgid "Data Connections"
 msgstr ""
 
-#: templates/_header.html:297 templates/admin/processes.html:19
+#: templates/_header.html:143 templates/admin/processes.html:19
 msgid "Process Configurations"
 msgstr ""
 
-#: templates/_header.html:311
+#: templates/_header.html:157
 msgid "Development"
 msgstr ""
 
-#: templates/_header.html:318 templates/api_docs.html:76
+#: templates/_header.html:164 templates/api_docs.html:76
 msgid "API Documentation"
 msgstr ""
 
-#: templates/_header.html:325 templates/dashboard.html:34
+#: templates/_header.html:171 templates/dashboard.html:34
 msgid "Global Dashboard"
 msgstr ""
 
-#: templates/_header.html:326
+#: templates/_header.html:172
 msgid "Global Reporting"
 msgstr ""
 
-#: templates/_header.html:327 templates/workitems_overview.html:66
+#: templates/_header.html:173 templates/workitems_overview.html:66
 msgid "Global Workitems"
 msgstr ""
 
-#: templates/_header.html:436 templates/_header.html:438
+#: templates/_header.html:282 templates/_header.html:284
 #: templates/appearance.html:302 templates/appearance.html:307
 #: templates/js/_header_js.html:13
 msgid "Keep sidebar open"
 msgstr ""
 
-#: templates/_header.html:442 templates/js/_header_js.html:56
+#: templates/_header.html:288 templates/js/_header_js.html:56
 msgid "Toggle dark mode"
 msgstr ""
 
-#: templates/_header.html:444
+#: templates/_header.html:290
 msgid "Dark Mode"
 msgstr ""
 
-#: templates/_header.html:452 templates/profile.html:44
+#: templates/_header.html:298 templates/profile.html:44
 #: templates/profile.html:123
 msgid "Profile Picture"
 msgstr ""
 
-#: templates/_header.html:462
+#: templates/_header.html:308
 msgid "Your profile"
 msgstr ""
 
-#: templates/_header.html:466 templates/appearance.html:34
+#: templates/_header.html:312 templates/appearance.html:34
 #: templates/js/_header_js.html:57 templates/profile.html:75
 #: templates/profile.html:317
 msgid "Appearance"
 msgstr ""
 
-#: templates/_header.html:470 templates/js/_header_js.html:58
+#: templates/_header.html:316 templates/js/_header_js.html:58
 #: templates/whats_new.html:79
 msgid "What's New"
 msgstr ""
 
-#: templates/_header.html:475 templates/feedback.html:34
+#: templates/_header.html:321 templates/feedback.html:34
 #: templates/js/_header_js.html:59
 msgid "Feedback"
 msgstr ""
 
-#: templates/_header.html:482 templates/_header.html:552
-#: templates/_header.html:555
+#: templates/_header.html:328 templates/_header.html:398
+#: templates/_header.html:401
 msgid "Keyboard shortcuts"
 msgstr ""
 
-#: templates/_header.html:486 templates/_small_footer.html:28
+#: templates/_header.html:332 templates/_small_footer.html:28
 #: templates/reporting.html:86
 msgid "Help"
 msgstr ""
 
-#: templates/_header.html:492 templates/_header.html:534
+#: templates/_header.html:338 templates/_header.html:380
 msgid "Switch user"
 msgstr ""
 
-#: templates/_header.html:498 templates/js/_header_js.html:60
+#: templates/_header.html:344 templates/js/_header_js.html:60
 #: templates/profile.html:82
 msgid "Sign out"
 msgstr ""
 
-#: templates/_header.html:515
+#: templates/_header.html:361
 msgid "Command palette"
 msgstr ""
 
-#: templates/_header.html:519
+#: templates/_header.html:365
 msgid "Type a command or search..."
 msgstr ""
 
-#: templates/_header.html:524
+#: templates/_header.html:370
 msgid "navigate"
 msgstr ""
 
-#: templates/_header.html:525
+#: templates/_header.html:371
 msgid "open"
 msgstr ""
 
-#: templates/_header.html:526
+#: templates/_header.html:372
 msgid "close"
 msgstr ""
 
-#: templates/_header.html:538
+#: templates/_header.html:384
 msgid "Switch to user..."
 msgstr ""
 
-#: templates/_header.html:559 templates/admin/access_control.html:130
+#: templates/_header.html:405 templates/admin/access_control.html:130
 msgid "Global"
 msgstr ""
 
-#: templates/_header.html:561
+#: templates/_header.html:407
 msgid "Open command palette"
 msgstr ""
 
-#: templates/_header.html:565
+#: templates/_header.html:411
 msgid "Show this shortcuts overlay"
 msgstr ""
 
-#: templates/_header.html:569
+#: templates/_header.html:415
 msgid "Close the open dialog or panel"
 msgstr ""
 
-#: templates/_header.html:574
+#: templates/_header.html:420
 msgid "Document viewer"
 msgstr ""
 
-#: templates/_header.html:576
+#: templates/_header.html:422
 msgid "Previous / next document page"
 msgstr ""
 
@@ -2098,57 +2138,70 @@ msgstr ""
 
 #: templates/_reporting_help.html:35
 msgid ""
+"Click the ↑/↓ chip on the total to see which processes or categories "
+"drove the change since the previous period."
+msgstr ""
+
+#: templates/_reporting_help.html:36
+msgid ""
+"Own the report? Alt+click a bar to pin a note on that period (“mailroom "
+"outage”). It shows as a small triangle on the chart and in the "
+"Annotations list below for everyone the report is shared with."
+msgstr ""
+
+#: templates/_reporting_help.html:37
+msgid ""
 "Each measure gets its own total card, named after it — “Total · Documents"
 " imported”, “Total · Documents exported”. There is no combined number: "
 "the same document can be counted in both, so adding them up would not "
 "count anything real."
 msgstr ""
 
-#: templates/_reporting_help.html:36
+#: templates/_reporting_help.html:38
 msgid ""
 "A card headed “Overall” instead of “Total” holds a rate or an average, "
 "which cannot be added up. It is the real figure across every document "
 "behind the report — not the chart’s numbers summed."
 msgstr ""
 
-#: templates/_reporting_help.html:37
+#: templates/_reporting_help.html:39
 msgid ""
 "“Buckets” counts periods, not table rows. Break down by month and by "
 "field and each month contributes one row per field, so the average card "
 "switches to “Avg per row” and names how many values it averaged."
 msgstr ""
 
-#: templates/_reporting_help.html:38
+#: templates/_reporting_help.html:40
 msgid ""
 "Documents with no date sit in no period, so the stat band and the chart "
 "both leave them out. Eddard’s summary says how many were set aside."
 msgstr ""
 
-#: templates/_reporting_help.html:39
+#: templates/_reporting_help.html:41
 msgid ""
 "The ↑/↓ comparison chips compare a window shifted back by your range’s "
 "length in days — not the previous calendar period. Hover a chip for the "
 "exact dates."
 msgstr ""
 
-#: templates/_reporting_help.html:40
+#: templates/_reporting_help.html:42
 msgid ""
 "Two people can see different totals on the same report: it always runs "
 "with the viewer’s own data access."
 msgstr ""
 
-#: templates/_reporting_help.html:41
+#: templates/_reporting_help.html:43
 msgid ""
 "Charts cap at 50 axis values and 12 series — past the cap you get a "
 "partial chart or none at all; the table and exports always carry the full"
 " data."
 msgstr ""
 
-#: templates/_reporting_help.html:43
+#: templates/_reporting_help.html:45
 msgid "Saving and sharing"
 msgstr ""
 
-#: templates/_reporting_help.html:45
+#: templates/_reporting_help.html:47
 msgid ""
 "Save writes back to the report you have open — the pencil next to the "
 "title renames it in place. A result that is not a saved report yet (a "
@@ -2156,27 +2209,27 @@ msgid ""
 "reports. To keep the original untouched, use ⋯ → “Save as copy”."
 msgstr ""
 
-#: templates/_reporting_help.html:46
+#: templates/_reporting_help.html:48
 msgid ""
 "A report of yours that you have shared — with everyone or with named "
 "colleagues — is tagged “· shared” on its card. Named shares stay under My"
 " reports; only “shared with everyone” moves it to the Library shelf."
 msgstr ""
 
-#: templates/_reporting_help.html:47
+#: templates/_reporting_help.html:49
 msgid ""
 "A scheduled email runs with the report owner’s data access — recipients "
 "see the owner’s numbers, not their own."
 msgstr ""
 
-#: templates/_reporting_help.html:48
+#: templates/_reporting_help.html:50
 msgid ""
 "Delete a report you own: open its card’s “…” menu under My reports, or "
 "open the report and use ⋯ → Delete report. Shared copies and schedules go"
 " with it."
 msgstr ""
 
-#: templates/_reporting_help.html:49
+#: templates/_reporting_help.html:51
 msgid ""
 "Dashboard cards are pieces of your saved reports: Add a card, pick a "
 "report and it opens in full — hover a KPI tile or the chart, or use the "
@@ -2190,79 +2243,79 @@ msgid ""
 "follows; ↺ on the chip goes back."
 msgstr ""
 
-#: templates/_reporting_help.html:50
+#: templates/_reporting_help.html:52
 msgid ""
 "In edit mode a tile can be dragged anywhere to rearrange it, and resized "
 "by its bottom-right corner grip: width snaps to the 12 grid columns, "
 "height to whole rows. Done saves the layout."
 msgstr ""
 
-#: templates/_reporting_help.html:51
+#: templates/_reporting_help.html:53
 msgid ""
 "A dashboard’s library card previews its real layout — one small tile per "
 "card — plus a card count, so you can tell dashboards apart before opening"
 " one."
 msgstr ""
 
-#: templates/_reporting_help.html:54
+#: templates/_reporting_help.html:56
 msgid "Asking Eddard"
 msgstr ""
 
-#: templates/_reporting_help.html:56
+#: templates/_reporting_help.html:58
 msgid ""
 "Eddard is the reporting assistant behind the chat panel — the little "
 "black hole in the top bar."
 msgstr ""
 
-#: templates/_reporting_help.html:57
+#: templates/_reporting_help.html:59
 msgid ""
 "Name the measure, the time range and the processes: “invoices by process,"
 " last 3 months” beats “show me invoices”."
 msgstr ""
 
-#: templates/_reporting_help.html:58
+#: templates/_reporting_help.html:60
 msgid ""
 "Check what Eddard built with “Open in builder” — the filters and process "
 "scope it chose are visible there before you trust the number."
 msgstr ""
 
-#: templates/_reporting_help.html:59
+#: templates/_reporting_help.html:61
 msgid ""
 "Follow-ups work: the chat remembers the conversation, so “now only this "
 "quarter” refines the last answer."
 msgstr ""
 
-#: templates/_reporting_help.html:60
+#: templates/_reporting_help.html:62
 msgid ""
 "When Eddard used tools, unfold “How the agent worked” to see the steps; "
 "if a “Continue” button appears, click it before rephrasing your question."
 msgstr ""
 
-#: templates/_reporting_help.html:61
+#: templates/_reporting_help.html:63
 msgid ""
 "The answer-depth control sits at the bottom-left of the composer: Quick "
 "for a fast number, Balanced for everyday questions, Deep when the "
 "question is hard and you can wait."
 msgstr ""
 
-#: templates/_reporting_help.html:69
+#: templates/_reporting_help.html:71
 msgid "Full guide"
 msgstr ""
 
-#: templates/_reporting_help.html:70 templates/admin/logs.html:141
+#: templates/_reporting_help.html:72 templates/admin/logs.html:141
 #: templates/js/_reporting_drill_js.html:16
 #: templates/prepared_documents.html:253 templates/prepared_documents.html:265
-#: templates/reporting.html:149 templates/reporting.html:181
-#: templates/reporting.html:275 templates/reporting.html:285
-#: templates/reporting.html:524 templates/reporting.html:560
-#: templates/reporting.html:634 templates/workitems_overview.html:620
+#: templates/reporting.html:149 templates/reporting.html:182
+#: templates/reporting.html:276 templates/reporting.html:286
+#: templates/reporting.html:525 templates/reporting.html:561
+#: templates/reporting.html:635 templates/workitems_overview.html:620
 msgid "Close"
 msgstr ""
 
 #: templates/_reporting_simple.html:17 templates/_reporting_simple.html:47
 #: templates/_reporting_simple.html:62 templates/_reporting_simple.html:148
 #: templates/js/_reporting_dashboard_js.html:4
-#: templates/js/_reporting_simple_js.html:21 templates/reporting.html:100
+#: templates/js/_reporting_simple_js.html:30 templates/reporting.html:100
 msgid "Library"
 msgstr ""
 
@@ -2305,12 +2358,12 @@ msgid "4 per row"
 msgstr ""
 
 #: templates/_reporting_simple.html:41 templates/js/_reporting_js.html:75
-#: templates/js/_reporting_simple_js.html:20
+#: templates/js/_reporting_simple_js.html:29
 msgid "My reports"
 msgstr ""
 
 #: templates/_reporting_simple.html:53 templates/js/_reporting_js.html:76
-#: templates/js/_reporting_simple_js.html:22
+#: templates/js/_reporting_simple_js.html:31
 msgid "Shared with me"
 msgstr ""
 
@@ -2339,32 +2392,32 @@ msgid "Break it down by…"
 msgstr ""
 
 #: templates/_reporting_simple.html:88
-#: templates/js/_reporting_simple_js.html:64
+#: templates/js/_reporting_simple_js.html:73
 msgid "Granularity"
 msgstr ""
 
 #: templates/_reporting_simple.html:90 templates/js/_reporting_js.html:22
-#: templates/js/_reporting_simple_js.html:67
+#: templates/js/_reporting_simple_js.html:76
 msgid "Day"
 msgstr ""
 
 #: templates/_reporting_simple.html:91 templates/js/_reporting_js.html:23
-#: templates/js/_reporting_simple_js.html:68
+#: templates/js/_reporting_simple_js.html:77
 msgid "Week"
 msgstr ""
 
 #: templates/_reporting_simple.html:92 templates/js/_reporting_js.html:24
-#: templates/js/_reporting_simple_js.html:69
+#: templates/js/_reporting_simple_js.html:78
 msgid "Month"
 msgstr ""
 
 #: templates/_reporting_simple.html:93 templates/js/_reporting_js.html:25
-#: templates/js/_reporting_simple_js.html:70
+#: templates/js/_reporting_simple_js.html:79
 msgid "Quarter"
 msgstr ""
 
 #: templates/_reporting_simple.html:94 templates/js/_reporting_js.html:26
-#: templates/js/_reporting_simple_js.html:71
+#: templates/js/_reporting_simple_js.html:80
 msgid "Year"
 msgstr ""
 
@@ -2375,7 +2428,7 @@ msgid ""
 msgstr ""
 
 #: templates/_reporting_simple.html:99 templates/dashboard.html:69
-#: templates/js/_reporting_simple_js.html:142
+#: templates/js/_reporting_simple_js.html:152
 msgid "Time range"
 msgstr ""
 
@@ -2414,7 +2467,7 @@ msgid "Show result"
 msgstr ""
 
 #: templates/_reporting_simple.html:133
-#: templates/js/_reporting_simple_js.html:143
+#: templates/js/_reporting_simple_js.html:153
 msgid "So far"
 msgstr ""
 
@@ -2426,7 +2479,7 @@ msgid "Saved"
 msgstr ""
 
 #: templates/_reporting_simple.html:158
-#: templates/js/_reporting_dashboard_js.html:5 templates/reporting.html:391
+#: templates/js/_reporting_dashboard_js.html:5 templates/reporting.html:392
 msgid "Rename"
 msgstr ""
 
@@ -2442,31 +2495,32 @@ msgstr ""
 msgid "Adjust"
 msgstr ""
 
-#: templates/_reporting_simple.html:174 templates/reporting.html:409
+#: templates/_reporting_simple.html:174 templates/reporting.html:410
 msgid "Export format"
 msgstr ""
 
-#: templates/_reporting_simple.html:175 templates/reporting.html:410
-#: templates/reporting.html:546 templates/reporting.html:585
+#: templates/_reporting_simple.html:175 templates/reporting.html:411
+#: templates/reporting.html:547 templates/reporting.html:586
 msgid "Excel"
 msgstr ""
 
 #: templates/_reporting_simple.html:178
-#: templates/js/_reporting_dashboard_js.html:10 templates/reporting.html:414
+#: templates/js/_reporting_dashboard_js.html:10 templates/reporting.html:415
 #: templates/tenant/page.html:43
 msgid "Export"
 msgstr ""
 
-#: templates/_reporting_simple.html:181 templates/admin/access_control.html:240
-#: templates/admin/maintenance.html:114 templates/admin/permissions.html:101
-#: templates/admin/processes.html:208 templates/admin/processes.html:244
+#: templates/_reporting_simple.html:181 templates/_reporting_simple.html:279
+#: templates/admin/access_control.html:240 templates/admin/maintenance.html:114
+#: templates/admin/permissions.html:101 templates/admin/processes.html:208
+#: templates/admin/processes.html:244
 #: templates/generali_additionalservices.html:324
 #: templates/generali_baseservices.html:273 templates/generali_pdqm.html:348
 #: templates/generali_projectmanagement.html:259
 #: templates/generali_reporting.html:316
-#: templates/js/_generali_reporting_js.html:37 templates/reporting.html:404
-#: templates/reporting.html:605 templates/reporting_metrics.html:78
-#: templates/reporting_sources.html:88 templates/tenant/page.html:134
+#: templates/js/_generali_reporting_js.html:37 templates/reporting.html:405
+#: templates/reporting.html:606 templates/reporting_metrics.html:78
+#: templates/reporting_sources.html:88 templates/tenant/page.html:136
 msgid "Save"
 msgstr ""
 
@@ -2475,13 +2529,13 @@ msgid "More actions"
 msgstr ""
 
 #: templates/_reporting_simple.html:190
-#: templates/js/_reporting_simple_js.html:96
+#: templates/js/_reporting_simple_js.html:105
 msgid "Open in Advanced"
 msgstr ""
 
 #: templates/_reporting_simple.html:192 templates/js/_reporting_ai_js.html:42
-#: templates/js/_reporting_js.html:46 templates/js/_reporting_simple_js.html:97
-#: templates/reporting.html:407
+#: templates/js/_reporting_js.html:46
+#: templates/js/_reporting_simple_js.html:106 templates/reporting.html:408
 msgid "Show query"
 msgstr ""
 
@@ -2490,7 +2544,7 @@ msgid "Save as copy"
 msgstr ""
 
 #: templates/_reporting_simple.html:198
-#: templates/js/_reporting_simple_js.html:85
+#: templates/js/_reporting_simple_js.html:94
 msgid "Delete report"
 msgstr ""
 
@@ -2525,12 +2579,12 @@ msgid "Download chart as image"
 msgstr ""
 
 #: templates/_reporting_simple.html:241
-#: templates/js/_reporting_dashboard_js.html:81 templates/reporting.html:433
+#: templates/js/_reporting_dashboard_js.html:81 templates/reporting.html:434
 msgid "Forecast horizon"
 msgstr ""
 
 #: templates/_reporting_simple.html:242
-#: templates/js/_reporting_dashboard_js.html:82 templates/reporting.html:434
+#: templates/js/_reporting_dashboard_js.html:82 templates/reporting.html:435
 msgid "Auto"
 msgstr ""
 
@@ -2552,23 +2606,78 @@ msgstr ""
 msgid "Reset colours"
 msgstr ""
 
+#: templates/_reporting_simple.html:268
+#: templates/js/_reporting_simple_js.html:9
+msgid "Annotations"
+msgstr ""
+
+#: templates/_reporting_simple.html:269
+#: templates/js/_reporting_simple_js.html:10
+msgid "Add annotation"
+msgstr ""
+
+#: templates/_reporting_simple.html:275
+msgid "Bucket"
+msgstr ""
+
 #: templates/_reporting_simple.html:276
+#: templates/js/_reporting_simple_js.html:13
+msgid "What happened here? (e.g. “mailroom outage”)"
+msgstr ""
+
+#: templates/_reporting_simple.html:276
+msgid "Annotation text"
+msgstr ""
+
+#: templates/_reporting_simple.html:278 templates/admin/access_control.html:195
+#: templates/admin/access_control.html:239 templates/admin/clients.html:101
+#: templates/admin/clients.html:176 templates/admin/maintenance.html:113
+#: templates/admin/maintenance.html:129
+#: templates/admin/modals/_organizations_modals.html:13
+#: templates/admin/modals/_organizations_modals.html:51
+#: templates/admin/modals/_user_modals.html:13
+#: templates/admin/modals/_user_modals.html:80
+#: templates/admin/organizations.html:98 templates/admin/permissions.html:100
+#: templates/admin/processes.html:123 templates/admin/processes.html:207
+#: templates/admin/processes.html:243 templates/admin/tenants_manage.html:133
+#: templates/admin/tenants_manage.html:174 templates/admin/user_detail.html:78
+#: templates/admin/user_detail.html:276
+#: templates/generali_additionalservices.html:261
+#: templates/generali_additionalservices.html:320
+#: templates/generali_additionalservices.html:345
+#: templates/generali_baseservices.html:222
+#: templates/generali_baseservices.html:269
+#: templates/generali_baseservices.html:294 templates/generali_pdqm.html:272
+#: templates/generali_pdqm.html:344 templates/generali_pdqm.html:369
+#: templates/generali_projectmanagement.html:215
+#: templates/generali_projectmanagement.html:255
+#: templates/generali_projectmanagement.html:280
+#: templates/generali_reporting.html:229 templates/generali_reporting.html:312
+#: templates/generali_reporting.html:337
+#: templates/js/_reporting_dashboard_js.html:42 templates/reporting.html:495
+#: templates/reporting.html:592 templates/reporting.html:605
+#: templates/tenant/page.html:135 templates/workitems_overview.html:511
+#: templates/workitems_overview.html:607
+msgid "Cancel"
+msgstr ""
+
+#: templates/_reporting_simple.html:294
 msgid "Eddard insight"
 msgstr ""
 
-#: templates/_reporting_simple.html:286
+#: templates/_reporting_simple.html:304
 msgid "Ask Eddard about this report"
 msgstr ""
 
-#: templates/_reporting_simple.html:292
+#: templates/_reporting_simple.html:310
 msgid "Anomalies"
 msgstr ""
 
-#: templates/_reporting_simple.html:297
+#: templates/_reporting_simple.html:315
 msgid "Query"
 msgstr ""
 
-#: templates/_reporting_simple.html:298 templates/admin/logs.html:135
+#: templates/_reporting_simple.html:316 templates/admin/logs.html:135
 #: templates/api_docs.html:149 templates/api_docs.html:155
 #: templates/api_docs.html:169 templates/api_docs.html:215
 #: templates/api_docs.html:221 templates/api_docs.html:246
@@ -2578,22 +2687,22 @@ msgstr ""
 #: templates/api_docs.html:372 templates/api_docs.html:386
 #: templates/api_docs.html:392 templates/api_docs.html:412
 #: templates/api_docs.html:418 templates/api_docs.html:462
-#: templates/api_docs.html:468 templates/reporting.html:462
+#: templates/api_docs.html:468 templates/reporting.html:463
 msgid "Copy"
 msgstr ""
 
-#: templates/_reporting_simple.html:308
-#: templates/js/_reporting_layouts_js.html:43 templates/reporting.html:379
+#: templates/_reporting_simple.html:326
+#: templates/js/_reporting_layouts_js.html:43 templates/reporting.html:380
 msgid "Table"
 msgstr ""
 
-#: templates/_reporting_simple.html:309
+#: templates/_reporting_simple.html:327
 #: templates/js/_reporting_dashboard_js.html:69
-#: templates/js/_reporting_simple_js.html:34
+#: templates/js/_reporting_simple_js.html:43
 msgid "Show table"
 msgstr ""
 
-#: templates/_reporting_simple.html:311
+#: templates/_reporting_simple.html:329
 msgid "Click a row or chart element to see the documents behind it."
 msgstr ""
 
@@ -3171,7 +3280,7 @@ msgid "Aurora"
 msgstr ""
 
 #: templates/admin/admin_overview.html:88 templates/appearance.html:121
-#: templates/reporting.html:426
+#: templates/reporting.html:427
 msgid "Grid"
 msgstr ""
 
@@ -3416,7 +3525,7 @@ msgstr ""
 msgid "Process"
 msgstr ""
 
-#: templates/dashboard.html:65 templates/reporting.html:370
+#: templates/dashboard.html:65 templates/reporting.html:371
 #: templates/workitems_overview.html:97
 msgid "Filter by client and process"
 msgstr ""
@@ -3635,7 +3744,7 @@ msgstr ""
 #: templates/generali-dashboard.html:144 templates/generali_documents.html:36
 #: templates/js/_generali_dashboard_js.html:25
 #: templates/js/_reporting_js.html:50
-#: templates/js/_reporting_simple_js.html:113
+#: templates/js/_reporting_simple_js.html:122
 #: templates/js/_reporting_viz_js.html:18 templates/prepared_documents.html:51
 #: templates/workitems_overview.html:74
 msgid "Total"
@@ -3907,38 +4016,6 @@ msgstr ""
 msgid "Effort (hours)"
 msgstr ""
 
-#: templates/admin/access_control.html:195
-#: templates/admin/access_control.html:239 templates/admin/clients.html:101
-#: templates/admin/clients.html:176 templates/admin/maintenance.html:113
-#: templates/admin/maintenance.html:129
-#: templates/admin/modals/_organizations_modals.html:13
-#: templates/admin/modals/_organizations_modals.html:51
-#: templates/admin/modals/_user_modals.html:13
-#: templates/admin/modals/_user_modals.html:80
-#: templates/admin/organizations.html:98 templates/admin/permissions.html:100
-#: templates/admin/processes.html:123 templates/admin/processes.html:207
-#: templates/admin/processes.html:243 templates/admin/tenants_manage.html:133
-#: templates/admin/tenants_manage.html:174 templates/admin/user_detail.html:78
-#: templates/admin/user_detail.html:276
-#: templates/generali_additionalservices.html:261
-#: templates/generali_additionalservices.html:320
-#: templates/generali_additionalservices.html:345
-#: templates/generali_baseservices.html:222
-#: templates/generali_baseservices.html:269
-#: templates/generali_baseservices.html:294 templates/generali_pdqm.html:272
-#: templates/generali_pdqm.html:344 templates/generali_pdqm.html:369
-#: templates/generali_projectmanagement.html:215
-#: templates/generali_projectmanagement.html:255
-#: templates/generali_projectmanagement.html:280
-#: templates/generali_reporting.html:229 templates/generali_reporting.html:312
-#: templates/generali_reporting.html:337
-#: templates/js/_reporting_dashboard_js.html:42 templates/reporting.html:494
-#: templates/reporting.html:591 templates/reporting.html:604
-#: templates/tenant/page.html:133 templates/workitems_overview.html:511
-#: templates/workitems_overview.html:607
-msgid "Cancel"
-msgstr ""
-
 #: templates/generali_additionalservices.html:265
 #: templates/generali_baseservices.html:226 templates/generali_pdqm.html:276
 #: templates/generali_projectmanagement.html:219
@@ -3989,7 +4066,7 @@ msgstr ""
 #: templates/js/_reporting_sources_js.html:40
 #: templates/js/_tenant_page_js.html:30
 #: templates/js/admin/_maintenance_js.html:132
-#: templates/js/admin/_user_management_js.html:79 templates/reporting.html:392
+#: templates/js/admin/_user_management_js.html:79 templates/reporting.html:393
 msgid "Delete"
 msgstr ""
 
@@ -4086,7 +4163,7 @@ msgid "Search by ID, policy, damage number…"
 msgstr ""
 
 #: templates/generali_documents.html:204
-#: templates/js/_reporting_simple_js.html:147 templates/reporting.html:117
+#: templates/js/_reporting_simple_js.html:157 templates/reporting.html:117
 #: templates/workitems_overview.html:345
 msgid "Advanced"
 msgstr ""
@@ -4661,7 +4738,7 @@ msgid "Per page"
 msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:41
-#: templates/js/_reporting_simple_js.html:63
+#: templates/js/_reporting_simple_js.html:72
 #: templates/js/admin/_logs_js.html:169 templates/prepared_documents.html:149
 msgid "Apply"
 msgstr ""
@@ -4697,28 +4774,28 @@ msgstr ""
 msgid "Next"
 msgstr ""
 
-#: templates/prepared_documents.html:251 templates/reporting.html:273
+#: templates/prepared_documents.html:251 templates/reporting.html:274
 msgid "Workitem preview"
 msgstr ""
 
-#: templates/prepared_documents.html:271 templates/reporting.html:291
+#: templates/prepared_documents.html:271 templates/reporting.html:292
 #: templates/workitems_overview.html:626
 msgid "Show where extracted values were found on the document"
 msgstr ""
 
 #: templates/js/_workitem_detail_panel_js.html:33
-#: templates/prepared_documents.html:273 templates/reporting.html:293
+#: templates/prepared_documents.html:273 templates/reporting.html:294
 #: templates/workitems_overview.html:629
 msgid "Show sources"
 msgstr ""
 
-#: templates/prepared_documents.html:275 templates/reporting.html:295
+#: templates/prepared_documents.html:275 templates/reporting.html:296
 #: templates/workitems_overview.html:631
 msgid "Document page preview"
 msgstr ""
 
 #: templates/prepared_documents.html:280 templates/prepared_documents.html:281
-#: templates/reporting.html:300 templates/reporting.html:301
+#: templates/reporting.html:301 templates/reporting.html:302
 #: templates/workitems_overview.html:637 templates/workitems_overview.html:638
 msgid "Extracted values"
 msgstr ""
@@ -4841,11 +4918,11 @@ msgstr ""
 msgid "Tips & help"
 msgstr ""
 
-#: templates/reporting.html:91 templates/reporting.html:177
+#: templates/reporting.html:91 templates/reporting.html:178
 msgid "Ask Eddard"
 msgstr ""
 
-#: templates/reporting.html:92 templates/reporting.html:179
+#: templates/reporting.html:92 templates/reporting.html:180
 msgid "Eddard"
 msgstr ""
 
@@ -4867,7 +4944,7 @@ msgid "Report definitions"
 msgstr ""
 
 #: templates/js/admin/_maintenance_js.html:46 templates/reporting.html:111
-#: templates/reporting.html:344
+#: templates/reporting.html:345
 msgid "Scheduled"
 msgstr ""
 
@@ -4879,402 +4956,402 @@ msgstr ""
 msgid "Manage data sources"
 msgstr ""
 
-#: templates/reporting.html:186
+#: templates/reporting.html:187
 msgid ""
 "Hi, I'm Eddard. Ask about your data in plain language. I can build "
 "reports, draft SQL, and — with the right permission — run read-only "
 "queries and report real numbers."
 msgstr ""
 
-#: templates/reporting.html:192
+#: templates/reporting.html:193
 msgid "documents imported per month this year"
 msgstr ""
 
-#: templates/reporting.html:193
+#: templates/reporting.html:194
 msgid "imported vs exported, last 30 days"
 msgstr ""
 
-#: templates/reporting.html:194
+#: templates/reporting.html:195
 msgid "documents by process this quarter"
 msgstr ""
 
-#: templates/reporting.html:195
+#: templates/reporting.html:196
 msgid "imported but not yet exported"
 msgstr ""
 
-#: templates/reporting.html:213
+#: templates/reporting.html:214
 msgid "Quick"
 msgstr ""
 
-#: templates/reporting.html:213
+#: templates/reporting.html:214
 msgid "Fastest answer, least deliberation"
 msgstr ""
 
-#: templates/reporting.html:214 templates/reporting.html:231
+#: templates/reporting.html:215 templates/reporting.html:232
 msgid "Balanced"
 msgstr ""
 
-#: templates/reporting.html:214
+#: templates/reporting.html:215
 msgid "A balance of speed and depth"
 msgstr ""
 
-#: templates/reporting.html:215
+#: templates/reporting.html:216
 msgid "Deep"
 msgstr ""
 
-#: templates/reporting.html:215
+#: templates/reporting.html:216
 msgid "Slowest and most thorough, for hard questions"
 msgstr ""
 
-#: templates/reporting.html:221
+#: templates/reporting.html:222
 msgid "Ask about your data…"
 msgstr ""
 
-#: templates/reporting.html:227 templates/reporting.html:235
+#: templates/reporting.html:228 templates/reporting.html:236
 msgid "Answer depth"
 msgstr ""
 
-#: templates/reporting.html:257 templates/reporting.html:547
+#: templates/reporting.html:258 templates/reporting.html:548
 msgid "Send"
 msgstr ""
 
-#: templates/reporting.html:348 templates/reporting.html:570
+#: templates/reporting.html:349 templates/reporting.html:571
 msgid "New schedule"
 msgstr ""
 
-#: templates/reporting.html:350
+#: templates/reporting.html:351
 msgid "Reports run automatically and get delivered to your inbox or team."
 msgstr ""
 
-#: templates/admin/user_detail.html:124 templates/reporting.html:360
+#: templates/admin/user_detail.html:124 templates/reporting.html:361
 #: templates/reporting_metrics.html:41 templates/reporting_metrics.html:53
 msgid "Source"
 msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:19
-#: templates/js/_reporting_simple_js.html:53
-#: templates/js/_reporting_simple_js.html:140 templates/reporting.html:363
+#: templates/js/_reporting_simple_js.html:62
+#: templates/js/_reporting_simple_js.html:150 templates/reporting.html:364
 msgid "Processes"
 msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:20
-#: templates/js/_reporting_js.html:20 templates/js/_reporting_simple_js.html:72
-#: templates/reporting.html:366
+#: templates/js/_reporting_js.html:20 templates/js/_reporting_simple_js.html:81
+#: templates/reporting.html:367
 msgid "All processes"
 msgstr ""
 
-#: templates/reporting.html:372
+#: templates/reporting.html:373
 msgid "Search fields…"
 msgstr ""
 
-#: templates/reporting.html:378
+#: templates/reporting.html:379
 msgid "Report mode"
 msgstr ""
 
-#: templates/reporting.html:380
+#: templates/reporting.html:381
 msgid "Requires the reporting.sql.run permission"
 msgstr ""
 
-#: templates/reporting.html:380
+#: templates/reporting.html:381
 msgid "SQL"
 msgstr ""
 
-#: templates/js/_reporting_js.html:34 templates/reporting.html:382
+#: templates/js/_reporting_js.html:34 templates/reporting.html:383
 msgid "Untitled report"
 msgstr ""
 
-#: templates/reporting.html:383
+#: templates/reporting.html:384
 msgid "Report title"
 msgstr ""
 
-#: templates/js/_reporting_js.html:71 templates/reporting.html:386
+#: templates/js/_reporting_js.html:71 templates/reporting.html:387
 msgid "Saved reports…"
 msgstr ""
 
-#: templates/reporting.html:389
+#: templates/reporting.html:390
 msgid "Load"
 msgstr ""
 
-#: templates/reporting.html:394
+#: templates/reporting.html:395
 msgid "Share the selected report you own"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:91 templates/reporting.html:394
+#: templates/js/_reporting_simple_js.html:100 templates/reporting.html:395
 msgid "Share"
 msgstr ""
 
-#: templates/reporting.html:397
+#: templates/reporting.html:398
 msgid "Schedule the selected report you own"
 msgstr ""
 
-#: templates/reporting.html:397
+#: templates/reporting.html:398
 msgid "Schedule"
 msgstr ""
 
-#: templates/reporting.html:403
+#: templates/reporting.html:404
 msgid "Run"
 msgstr ""
 
-#: templates/reporting.html:405
+#: templates/reporting.html:406
 msgid "Save as"
 msgstr ""
 
-#: templates/admin/tenants_manage.html:76 templates/reporting.html:419
+#: templates/admin/tenants_manage.html:76 templates/reporting.html:420
 msgid "Target"
 msgstr ""
 
-#: templates/reporting.html:427
+#: templates/reporting.html:428
 msgid "Chart"
 msgstr ""
 
-#: templates/reporting.html:428
+#: templates/reporting.html:429
 msgid "Pivot"
 msgstr ""
 
-#: templates/js/_reporting_js.html:57 templates/reporting.html:445
+#: templates/js/_reporting_js.html:57 templates/reporting.html:446
 msgid "Build a report to see results"
 msgstr ""
 
-#: templates/js/_reporting_js.html:58 templates/reporting.html:446
+#: templates/js/_reporting_js.html:58 templates/reporting.html:447
 msgid ""
 "Choose a source on the left, add columns and filters, then press Run — or"
 " ask Eddard to draft one in plain language."
 msgstr ""
 
-#: templates/reporting.html:461
+#: templates/reporting.html:462
 msgid "Query sent to the database"
 msgstr ""
 
-#: templates/reporting.html:469
+#: templates/reporting.html:470
 msgid "Metrics"
 msgstr ""
 
-#: templates/js/_reporting_metrics_js.html:101 templates/reporting.html:471
+#: templates/js/_reporting_metrics_js.html:101 templates/reporting.html:472
 #: templates/reporting_metrics.html:50
 msgid "Add metric"
 msgstr ""
 
-#: templates/reporting.html:472
+#: templates/reporting.html:473
 msgid "With a metric selected, the Columns above become the grouping."
 msgstr ""
 
-#: templates/js/_reporting_viz_js.html:22 templates/reporting.html:474
+#: templates/js/_reporting_viz_js.html:22 templates/reporting.html:475
 msgid "Columns"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:52 templates/reporting.html:475
+#: templates/js/_reporting_simple_js.html:61 templates/reporting.html:476
 msgid "Filters"
 msgstr ""
 
-#: templates/js/_reporting_dashboard_js.html:35 templates/reporting.html:476
+#: templates/js/_reporting_dashboard_js.html:35 templates/reporting.html:477
 #: templates/workitems_overview.html:331
 msgid "Add filter"
 msgstr ""
 
-#: templates/admin/tenants_manage.html:77 templates/reporting.html:477
+#: templates/admin/tenants_manage.html:77 templates/reporting.html:478
 msgid "Sort"
 msgstr ""
 
-#: templates/reporting.html:478
+#: templates/reporting.html:479
 msgid "Add sort"
 msgstr ""
 
-#: templates/js/_reporting_scheduled_js.html:18 templates/reporting.html:479
-#: templates/reporting.html:545 templates/reporting.html:584
+#: templates/js/_reporting_scheduled_js.html:18 templates/reporting.html:480
+#: templates/reporting.html:546 templates/reporting.html:585
 #: templates/reporting_metrics.html:68
 msgid "Format"
 msgstr ""
 
-#: templates/reporting.html:480
+#: templates/reporting.html:481
 msgid "Subtitle"
 msgstr ""
 
-#: templates/reporting.html:491
+#: templates/reporting.html:492
 msgid "Live SQL — read-only"
 msgstr ""
 
-#: templates/reporting.html:492
+#: templates/reporting.html:493
 msgid ""
 "You are about to run read-only SQL against a live reporting database. "
 "Queries cannot modify data, and every run is logged. Double-check your "
 "query before running."
 msgstr ""
 
-#: templates/reporting.html:495
+#: templates/reporting.html:496
 msgid "I understand"
 msgstr ""
 
-#: templates/reporting.html:502
+#: templates/reporting.html:503
 msgid "Share report"
 msgstr ""
 
-#: templates/reporting.html:505
+#: templates/reporting.html:506
 msgid "Private — only me"
 msgstr ""
 
-#: templates/reporting.html:507
+#: templates/reporting.html:508
 msgid "Shared with everyone who can use Reporting"
 msgstr ""
 
-#: templates/reporting.html:509
+#: templates/reporting.html:510
 msgid "Shared with specific people"
 msgstr ""
 
-#: templates/reporting.html:517
+#: templates/reporting.html:518
 msgid "Search people by name or email…"
 msgstr ""
 
-#: templates/reporting.html:520
+#: templates/reporting.html:521
 msgid "Can edit"
 msgstr ""
 
-#: templates/admin/tenants_manage.html:116 templates/reporting.html:521
+#: templates/admin/tenants_manage.html:116 templates/reporting.html:522
 #: templates/tenant/page.html:43
 msgid "Add"
 msgstr ""
 
-#: templates/reporting.html:531
+#: templates/reporting.html:532
 msgid "Schedule report"
 msgstr ""
 
-#: templates/reporting.html:534 templates/reporting.html:573
+#: templates/reporting.html:535 templates/reporting.html:574
 msgid "Frequency"
 msgstr ""
 
 #: templates/js/_reporting_js.html:85
-#: templates/js/_reporting_scheduled_js.html:8 templates/reporting.html:535
-#: templates/reporting.html:574
+#: templates/js/_reporting_scheduled_js.html:8 templates/reporting.html:536
+#: templates/reporting.html:575
 msgid "Daily"
 msgstr ""
 
-#: templates/js/_reporting_js.html:86 templates/reporting.html:536
-#: templates/reporting.html:575
+#: templates/js/_reporting_js.html:86 templates/reporting.html:537
+#: templates/reporting.html:576
 msgid "Weekly"
 msgstr ""
 
-#: templates/js/_reporting_js.html:87 templates/reporting.html:537
-#: templates/reporting.html:576
+#: templates/js/_reporting_js.html:87 templates/reporting.html:538
+#: templates/reporting.html:577
 msgid "Monthly"
 msgstr ""
 
-#: templates/reporting.html:538 templates/reporting.html:577
+#: templates/reporting.html:539 templates/reporting.html:578
 msgid "Time (UTC)"
 msgstr ""
 
-#: templates/reporting.html:539 templates/reporting.html:578
+#: templates/reporting.html:540 templates/reporting.html:579
 msgid "Weekday"
-msgstr ""
-
-#: templates/js/_reporting_scheduled_js.html:11 templates/reporting.html:540
-#: templates/reporting.html:579
-msgid "Monday"
-msgstr ""
-
-#: templates/js/_reporting_scheduled_js.html:11 templates/reporting.html:540
-#: templates/reporting.html:579
-msgid "Tuesday"
 msgstr ""
 
 #: templates/js/_reporting_scheduled_js.html:11 templates/reporting.html:541
 #: templates/reporting.html:580
+msgid "Monday"
+msgstr ""
+
+#: templates/js/_reporting_scheduled_js.html:11 templates/reporting.html:541
+#: templates/reporting.html:580
+msgid "Tuesday"
+msgstr ""
+
+#: templates/js/_reporting_scheduled_js.html:11 templates/reporting.html:542
+#: templates/reporting.html:581
 msgid "Wednesday"
 msgstr ""
 
-#: templates/js/_reporting_scheduled_js.html:12 templates/reporting.html:541
-#: templates/reporting.html:580
+#: templates/js/_reporting_scheduled_js.html:12 templates/reporting.html:542
+#: templates/reporting.html:581
 msgid "Thursday"
 msgstr ""
 
-#: templates/js/_reporting_scheduled_js.html:12 templates/reporting.html:542
-#: templates/reporting.html:581
+#: templates/js/_reporting_scheduled_js.html:12 templates/reporting.html:543
+#: templates/reporting.html:582
 msgid "Friday"
 msgstr ""
 
-#: templates/js/_reporting_scheduled_js.html:12 templates/reporting.html:542
-#: templates/reporting.html:581
+#: templates/js/_reporting_scheduled_js.html:12 templates/reporting.html:543
+#: templates/reporting.html:582
 msgid "Saturday"
 msgstr ""
 
-#: templates/js/_reporting_scheduled_js.html:13 templates/reporting.html:543
-#: templates/reporting.html:582
+#: templates/js/_reporting_scheduled_js.html:13 templates/reporting.html:544
+#: templates/reporting.html:583
 msgid "Sunday"
 msgstr ""
 
-#: templates/reporting.html:544 templates/reporting.html:583
+#: templates/reporting.html:545 templates/reporting.html:584
 msgid "Day of month"
 msgstr ""
 
-#: templates/reporting.html:548
+#: templates/reporting.html:549
 msgid "Always"
 msgstr ""
 
-#: templates/reporting.html:549
+#: templates/reporting.html:550
 msgid "Only when the total is above…"
 msgstr ""
 
-#: templates/reporting.html:550
+#: templates/reporting.html:551
 msgid "Only when the total is at least…"
 msgstr ""
 
-#: templates/reporting.html:551
+#: templates/reporting.html:552
 msgid "Only when the total is below…"
 msgstr ""
 
-#: templates/reporting.html:552
+#: templates/reporting.html:553
 msgid "Only when the total is at most…"
 msgstr ""
 
-#: templates/reporting.html:553
+#: templates/reporting.html:554
 msgid "Threshold"
 msgstr ""
 
-#: templates/reporting.html:555
+#: templates/reporting.html:556
 msgid ""
 "The threshold is checked against the report's grand total (or its row "
 "count when the report has no measure)."
 msgstr ""
 
-#: templates/reporting.html:556
+#: templates/reporting.html:557
 msgid "Recipients (comma-separated)"
 msgstr ""
 
-#: templates/reporting.html:559
+#: templates/reporting.html:560
 msgid "Add schedule"
 msgstr ""
 
-#: templates/reporting.html:587
+#: templates/reporting.html:588
 msgid "Deliver to (comma-separated)"
 msgstr ""
 
-#: templates/reporting.html:592
+#: templates/reporting.html:593
 msgid "Create schedule"
 msgstr ""
 
-#: templates/reporting.html:617
+#: templates/reporting.html:618
 msgid "Database structure"
 msgstr ""
 
-#: templates/reporting.html:629
+#: templates/reporting.html:630
 msgid "List"
 msgstr ""
 
-#: templates/reporting.html:631
+#: templates/reporting.html:632
 msgid "Diagram"
 msgstr ""
 
-#: templates/reporting.html:644
+#: templates/reporting.html:645
 msgid "Filter tables and columns…"
 msgstr ""
 
-#: templates/reporting.html:650
+#: templates/reporting.html:651
 msgid "Zoom out"
 msgstr ""
 
-#: templates/reporting.html:653
+#: templates/reporting.html:654
 msgid "Fit"
 msgstr ""
 
-#: templates/reporting.html:654
+#: templates/reporting.html:655
 msgid "Zoom in"
 msgstr ""
 
@@ -5490,15 +5567,15 @@ msgstr ""
 msgid "Two-Factor Authentication - nexora"
 msgstr ""
 
-#: templates/verify_2fa.html:35
+#: templates/verify_2fa.html:55
 msgid "Two-Factor Authentication"
 msgstr ""
 
-#: templates/verify_2fa.html:37
+#: templates/verify_2fa.html:57
 msgid "Please enter the code from your authenticator app to continue."
 msgstr ""
 
-#: templates/verify_2fa.html:73
+#: templates/verify_2fa.html:94
 msgid "Verify Identity"
 msgstr ""
 
@@ -5562,7 +5639,7 @@ msgid "Date Range"
 msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:23
-#: templates/js/_reporting_simple_js.html:49
+#: templates/js/_reporting_simple_js.html:58
 #: templates/workitems_overview.html:170
 msgid "Custom"
 msgstr ""
@@ -5570,21 +5647,21 @@ msgstr ""
 #: templates/admin/logs.html:28 templates/admin/status.html:202
 #: templates/js/_reporting_dashboard_js.html:24
 #: templates/js/_reporting_drill_js.html:26 templates/js/_reporting_js.html:6
-#: templates/js/_reporting_simple_js.html:55
+#: templates/js/_reporting_simple_js.html:64
 #: templates/workitems_overview.html:171
 msgid "Today"
 msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:25
 #: templates/js/_reporting_drill_js.html:26 templates/js/_reporting_js.html:7
-#: templates/js/_reporting_simple_js.html:56
+#: templates/js/_reporting_simple_js.html:65
 #: templates/workitems_overview.html:172
 msgid "Yesterday"
 msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:26
 #: templates/js/_reporting_drill_js.html:27 templates/js/_reporting_js.html:8
-#: templates/js/_reporting_simple_js.html:57
+#: templates/js/_reporting_simple_js.html:66
 #: templates/workitems_overview.html:173
 msgid "This week"
 msgstr ""
@@ -5595,7 +5672,7 @@ msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:28
 #: templates/js/_reporting_drill_js.html:28 templates/js/_reporting_js.html:10
-#: templates/js/_reporting_simple_js.html:41
+#: templates/js/_reporting_simple_js.html:50
 #: templates/workitems_overview.html:175
 msgid "This month"
 msgstr ""
@@ -5611,14 +5688,14 @@ msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:43
 #: templates/js/_reporting_js.html:42
-#: templates/js/_reporting_simple_js.html:103
+#: templates/js/_reporting_simple_js.html:112
 #: templates/workitems_overview.html:239 templates/workitems_overview.html:298
 msgid "contains"
 msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:44
 #: templates/js/_reporting_js.html:43
-#: templates/js/_reporting_simple_js.html:104
+#: templates/js/_reporting_simple_js.html:113
 #: templates/workitems_overview.html:242 templates/workitems_overview.html:301
 msgid "starts with"
 msgstr ""
@@ -5710,7 +5787,7 @@ msgstr ""
 msgid "Optional extras"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:146
+#: templates/js/_reporting_simple_js.html:156
 #: templates/workitems_overview.html:552
 msgid "Document fields"
 msgstr ""
@@ -6186,7 +6263,7 @@ msgstr ""
 
 #: templates/admin/logs.html:96 templates/admin/logs.html:131
 #: templates/admin/user_detail.html:220
-#: templates/js/_reporting_simple_js.html:145
+#: templates/js/_reporting_simple_js.html:155
 msgid "Time"
 msgstr ""
 
@@ -7589,7 +7666,7 @@ msgid "Insert into SQL editor"
 msgstr ""
 
 #: templates/js/_reporting_ai_js.html:43 templates/js/_reporting_js.html:47
-#: templates/js/_reporting_simple_js.html:99
+#: templates/js/_reporting_simple_js.html:108
 msgid "Hide query"
 msgstr ""
 
@@ -7623,7 +7700,7 @@ msgid "Show it as a chart"
 msgstr ""
 
 #: templates/js/_reporting_ai_js.html:56
-#: templates/js/_reporting_simple_js.html:60
+#: templates/js/_reporting_simple_js.html:69
 msgid "Asking Eddard…"
 msgstr ""
 
@@ -7657,6 +7734,55 @@ msgstr ""
 
 #: templates/js/_reporting_ai_js.html:65
 msgid "Crunching the numbers…"
+msgstr ""
+
+#: templates/js/_reporting_contribution_js.html:4
+msgid "Why did it change?"
+msgstr ""
+
+#: templates/js/_reporting_contribution_js.html:5
+msgid "Contribution to the change vs. the prior period"
+msgstr ""
+
+#: templates/js/_reporting_contribution_js.html:6
+msgid "prior"
+msgstr ""
+
+#: templates/js/_reporting_contribution_js.html:7
+msgid "current"
+msgstr ""
+
+#: templates/js/_reporting_contribution_js.html:8
+msgid "change"
+msgstr ""
+
+#: templates/js/_reporting_contribution_js.html:9
+msgid "share of change"
+msgstr ""
+
+#: templates/js/_reporting_contribution_js.html:10
+msgid "(other)"
+msgstr ""
+
+#: templates/js/_reporting_contribution_js.html:11
+msgid "This source has no columns to break the change down by."
+msgstr ""
+
+#: templates/js/_reporting_contribution_js.html:12
+#, python-brace-format
+msgid "Not shown: {fields}"
+msgstr ""
+
+#: templates/js/_reporting_contribution_js.html:13
+msgid "Working out what changed…"
+msgstr ""
+
+#: templates/js/_reporting_contribution_js.html:14
+msgid "Could not explain this change."
+msgstr ""
+
+#: templates/js/_reporting_contribution_js.html:15
+msgid "Click a row to see the documents behind it."
 msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:6
@@ -7715,43 +7841,43 @@ msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:27
 #: templates/js/_reporting_drill_js.html:27 templates/js/_reporting_js.html:9
-#: templates/js/_reporting_simple_js.html:58
+#: templates/js/_reporting_simple_js.html:67
 msgid "Last week"
 msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:29
 #: templates/js/_reporting_drill_js.html:28 templates/js/_reporting_js.html:11
-#: templates/js/_reporting_simple_js.html:42
+#: templates/js/_reporting_simple_js.html:51
 msgid "Last month"
 msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:30
 #: templates/js/_reporting_drill_js.html:29 templates/js/_reporting_js.html:12
-#: templates/js/_reporting_simple_js.html:46
+#: templates/js/_reporting_simple_js.html:55
 msgid "This quarter"
 msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:31
 #: templates/js/_reporting_drill_js.html:29 templates/js/_reporting_js.html:13
-#: templates/js/_reporting_simple_js.html:47
+#: templates/js/_reporting_simple_js.html:56
 msgid "Last quarter"
 msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:32
 #: templates/js/_reporting_drill_js.html:30 templates/js/_reporting_js.html:14
-#: templates/js/_reporting_simple_js.html:43
+#: templates/js/_reporting_simple_js.html:52
 msgid "Last 3 months"
 msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:33
 #: templates/js/_reporting_drill_js.html:30 templates/js/_reporting_js.html:15
-#: templates/js/_reporting_simple_js.html:44
+#: templates/js/_reporting_simple_js.html:53
 msgid "This year"
 msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:34
 #: templates/js/_reporting_drill_js.html:31 templates/js/_reporting_js.html:16
-#: templates/js/_reporting_simple_js.html:45
+#: templates/js/_reporting_simple_js.html:54
 msgid "Last year"
 msgstr ""
 
@@ -7774,13 +7900,13 @@ msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:45
 #: templates/js/_reporting_js.html:44
-#: templates/js/_reporting_simple_js.html:105
+#: templates/js/_reporting_simple_js.html:114
 msgid "is empty"
 msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:46
 #: templates/js/_reporting_js.html:45
-#: templates/js/_reporting_simple_js.html:106
+#: templates/js/_reporting_simple_js.html:115
 msgid "is not empty"
 msgstr ""
 
@@ -7855,7 +7981,7 @@ msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:65
 #: templates/js/_reporting_drill_js.html:17
-#: templates/js/_reporting_simple_js.html:26
+#: templates/js/_reporting_simple_js.html:35
 msgid "Could not export this report."
 msgstr ""
 
@@ -7864,43 +7990,43 @@ msgid "No cards to export yet."
 msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:70
-#: templates/js/_reporting_simple_js.html:35
+#: templates/js/_reporting_simple_js.html:44
 msgid "Hide table"
 msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:71
-#: templates/js/_reporting_simple_js.html:137
+#: templates/js/_reporting_simple_js.html:147
 #, python-brace-format
 msgid "{n} rows"
 msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:83
-#: templates/js/_reporting_simple_js.html:11
+#: templates/js/_reporting_simple_js.html:20
 msgid "Forecast requires one date breakdown with a metric."
 msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:84
-#: templates/js/_reporting_simple_js.html:82
+#: templates/js/_reporting_simple_js.html:91
 msgid "Forecast is only drawn on line and bar charts."
 msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:87
-#: templates/js/_reporting_simple_js.html:79
+#: templates/js/_reporting_simple_js.html:88
 msgid "Left axis"
 msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:88
-#: templates/js/_reporting_simple_js.html:78
+#: templates/js/_reporting_simple_js.html:87
 msgid "Right axis"
 msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:89
-#: templates/js/_reporting_simple_js.html:80
+#: templates/js/_reporting_simple_js.html:89
 msgid "Left"
 msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:90
-#: templates/js/_reporting_simple_js.html:81
+#: templates/js/_reporting_simple_js.html:90
 msgid "Right"
 msgstr ""
 
@@ -7942,7 +8068,7 @@ msgid "Could not filter this selection — drill cancelled."
 msgstr ""
 
 #: templates/js/_reporting_drill_js.html:31
-#: templates/js/_reporting_simple_js.html:59
+#: templates/js/_reporting_simple_js.html:68
 #, python-brace-format
 msgid "Last {n} days"
 msgstr ""
@@ -7960,7 +8086,7 @@ msgid "Running your report…"
 msgstr ""
 
 #: templates/js/_reporting_js.html:28
-#: templates/js/_reporting_simple_js.html:110
+#: templates/js/_reporting_simple_js.html:119
 #, python-brace-format
 msgid "{rows} rows · {ms} ms"
 msgstr ""
@@ -7974,26 +8100,27 @@ msgid "SQL report"
 msgstr ""
 
 #: templates/js/_reporting_js.html:39
-#: templates/js/_reporting_simple_js.html:100
+#: templates/js/_reporting_simple_js.html:109
 msgid "between"
 msgstr ""
 
 #: templates/js/_reporting_js.html:40
-#: templates/js/_reporting_simple_js.html:101
+#: templates/js/_reporting_simple_js.html:110
 msgid "is one of"
 msgstr ""
 
 #: templates/js/_reporting_js.html:41
-#: templates/js/_reporting_simple_js.html:102
+#: templates/js/_reporting_simple_js.html:111
 msgid "is not one of"
 msgstr ""
 
 #: templates/js/_reporting_js.html:48
-#: templates/js/_reporting_simple_js.html:107
+#: templates/js/_reporting_simple_js.html:116
 msgid "Copied"
 msgstr ""
 
-#: templates/js/_reporting_js.html:49 templates/js/_reporting_simple_js.html:98
+#: templates/js/_reporting_js.html:49
+#: templates/js/_reporting_simple_js.html:107
 #, python-brace-format
 msgid ""
 "Showing the first {n} rows — narrow the filters or time range to see the "
@@ -8001,22 +8128,22 @@ msgid ""
 msgstr ""
 
 #: templates/js/_reporting_js.html:51
-#: templates/js/_reporting_simple_js.html:132
+#: templates/js/_reporting_simple_js.html:141
 msgid "Buckets"
 msgstr ""
 
 #: templates/js/_reporting_js.html:52
-#: templates/js/_reporting_simple_js.html:133
+#: templates/js/_reporting_simple_js.html:142
 msgid "Avg per bucket"
 msgstr ""
 
 #: templates/js/_reporting_js.html:53
-#: templates/js/_reporting_simple_js.html:134
+#: templates/js/_reporting_simple_js.html:143
 msgid "Avg per row"
 msgstr ""
 
 #: templates/js/_reporting_js.html:54
-#: templates/js/_reporting_simple_js.html:151
+#: templates/js/_reporting_simple_js.html:161
 msgid "AI"
 msgstr ""
 
@@ -8078,7 +8205,7 @@ msgid ""
 msgstr ""
 
 #: templates/js/_reporting_js.html:74
-#: templates/js/_reporting_simple_js.html:153
+#: templates/js/_reporting_simple_js.html:163
 msgid "shared"
 msgstr ""
 
@@ -8098,7 +8225,8 @@ msgstr ""
 msgid "Delete this saved report?"
 msgstr ""
 
-#: templates/js/_reporting_js.html:81 templates/js/_reporting_simple_js.html:95
+#: templates/js/_reporting_js.html:81
+#: templates/js/_reporting_simple_js.html:104
 msgid "Delete failed"
 msgstr ""
 
@@ -8378,310 +8506,338 @@ msgstr ""
 msgid "Query the first 100 rows"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:9
-msgid "Dotted line and shaded band are forecast values, not actuals."
-msgstr ""
-
-#: templates/js/_reporting_simple_js.html:10
-msgid "Not enough history to forecast this series."
+#: templates/js/_reporting_simple_js.html:11
+msgid "Alt+click a bar or point to annotate it."
 msgstr ""
 
 #: templates/js/_reporting_simple_js.html:12
-msgid "today"
-msgstr ""
-
-#: templates/js/_reporting_simple_js.html:13
-msgid "yesterday"
+msgid "Save the report to add annotations."
 msgstr ""
 
 #: templates/js/_reporting_simple_js.html:14
+msgid "Could not save the annotation."
+msgstr ""
+
+#: templates/js/_reporting_simple_js.html:15
+msgid "Could not delete the annotation."
+msgstr ""
+
+#: templates/js/_reporting_simple_js.html:16
+msgid "Delete annotation"
+msgstr ""
+
+#: templates/js/_reporting_simple_js.html:17
+msgid "Annotation"
+msgstr ""
+
+#: templates/js/_reporting_simple_js.html:18
+msgid "Dotted line and shaded band are forecast values, not actuals."
+msgstr ""
+
+#: templates/js/_reporting_simple_js.html:19
+msgid "Not enough history to forecast this series."
+msgstr ""
+
+#: templates/js/_reporting_simple_js.html:21
+msgid "today"
+msgstr ""
+
+#: templates/js/_reporting_simple_js.html:22
+msgid "yesterday"
+msgstr ""
+
+#: templates/js/_reporting_simple_js.html:23
 #: templates/js/admin/_sessions_js.html:22
 msgid "days ago"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:15
+#: templates/js/_reporting_simple_js.html:24
 msgid "week ago"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:16
+#: templates/js/_reporting_simple_js.html:25
 msgid "weeks ago"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:17
+#: templates/js/_reporting_simple_js.html:26
 msgid ""
 "You haven't saved any reports yet — click “New report” to build your "
 "first one."
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:18
+#: templates/js/_reporting_simple_js.html:27
 msgid "No reports have been shared with everyone yet."
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:19
+#: templates/js/_reporting_simple_js.html:28
 msgid "No reports have been shared with you yet."
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:23
+#: templates/js/_reporting_simple_js.html:32
 msgid "Could not load this report."
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:24
+#: templates/js/_reporting_simple_js.html:33
 msgid "Could not run this report."
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:25
+#: templates/js/_reporting_simple_js.html:34
 msgid "Could not save."
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:27
+#: templates/js/_reporting_simple_js.html:36
 msgid "You don't have access to the data behind this report."
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:28
+#: templates/js/_reporting_simple_js.html:37
 msgid "This report is outdated — open it in Advanced to fix it."
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:29
+#: templates/js/_reporting_simple_js.html:38
 msgid "No data for this report"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:30
+#: templates/js/_reporting_simple_js.html:39
 msgid "Widen the time range or remove a filter."
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:31
+#: templates/js/_reporting_simple_js.html:40
 msgid "Saved to My reports."
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:32
+#: templates/js/_reporting_simple_js.html:41
 msgid "Changes saved."
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:33
+#: templates/js/_reporting_simple_js.html:42
 #, python-brace-format
 msgid "{name} (copy)"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:36
+#: templates/js/_reporting_simple_js.html:45
 msgid "None — just the total"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:37
+#: templates/js/_reporting_simple_js.html:46
 msgid "No measures are configured yet — ask an administrator to add metrics."
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:38
+#: templates/js/_reporting_simple_js.html:47
 msgid "This source has no date field — showing all data."
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:39
+#: templates/js/_reporting_simple_js.html:48
 msgid "per"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:40
+#: templates/js/_reporting_simple_js.html:49
 msgid "by"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:48
+#: templates/js/_reporting_simple_js.html:57
 msgid "All time"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:50
+#: templates/js/_reporting_simple_js.html:59
 msgid "Eddard could not draft that report — try rephrasing."
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:51
+#: templates/js/_reporting_simple_js.html:60
 msgid "Eddard’s daily limit is reached — try again tomorrow."
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:54
+#: templates/js/_reporting_simple_js.html:63
 msgid "no filters"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:61
+#: templates/js/_reporting_simple_js.html:70
 msgid "Drafting your report…"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:62
+#: templates/js/_reporting_simple_js.html:71
 msgid "Checking the result…"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:65
+#: templates/js/_reporting_simple_js.html:74
 msgid "Cards"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:66
+#: templates/js/_reporting_simple_js.html:75
 msgid "Pick a time breakdown first to choose its granularity."
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:73
+#: templates/js/_reporting_simple_js.html:82
 msgid ""
 "No chart — this report is a single total. Adjust it in the wizard and "
 "pick a breakdown to get one."
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:74
+#: templates/js/_reporting_simple_js.html:83
 #, python-brace-format
 msgid "Chart shows the first 50 of {n} rows."
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:75
+#: templates/js/_reporting_simple_js.html:84
 msgid ""
 "Too many data points to chart — choose a coarser granularity or a shorter"
 " time range."
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:76
+#: templates/js/_reporting_simple_js.html:85
 #, python-brace-format
 msgid "Showing the {shown} largest of {n} series."
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:77
+#: templates/js/_reporting_simple_js.html:86
 msgid "The chart could not be drawn (chart library failed to load)."
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:83
+#: templates/js/_reporting_simple_js.html:92
 msgid "The current period is still running — its last bucket is incomplete."
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:84
+#: templates/js/_reporting_simple_js.html:93
 msgid "Gaps are periods without a backlog snapshot."
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:86
+#: templates/js/_reporting_simple_js.html:95
 msgid "Delete dashboard"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:87
+#: templates/js/_reporting_simple_js.html:96
 msgid "Report actions"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:88
+#: templates/js/_reporting_simple_js.html:97
 #, python-brace-format
 msgid "{label} down {pct} vs previous"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:89
+#: templates/js/_reporting_simple_js.html:98
 #, python-brace-format
 msgid "{label} up {pct} vs previous"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:90
+#: templates/js/_reporting_simple_js.html:99
 #, python-brace-format
 msgid "{label} peak — {bucket}"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:92
+#: templates/js/_reporting_simple_js.html:101
 msgid "1 report"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:93
+#: templates/js/_reporting_simple_js.html:102
 #, python-brace-format
 msgid "{n} reports"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:94
+#: templates/js/_reporting_simple_js.html:103
 #, python-brace-format
 msgid "Delete “{name}”? This cannot be undone."
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:108
+#: templates/js/_reporting_simple_js.html:117
 #, python-brace-format
 msgid ""
 "Only {n} of {m} selected processes provide this field — documents from "
 "the other processes show an empty value here. Provided by:"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:109
+#: templates/js/_reporting_simple_js.html:118
 #, python-brace-format
 msgid ""
 "Only {n} of {m} processes provide this field — the measure only counts "
 "documents from these processes:"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:111
+#: templates/js/_reporting_simple_js.html:120
 #, python-brace-format
 msgid "{rows} rows · {ms} ms · {when}"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:112
+#: templates/js/_reporting_simple_js.html:121
 msgid "run just now"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:117
+#: templates/js/_reporting_simple_js.html:126
 msgid "last bucket"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:118
+#: templates/js/_reporting_simple_js.html:127
 msgid "sum over the period"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:124
+#: templates/js/_reporting_simple_js.html:133
 msgid "Overall"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:125
+#: templates/js/_reporting_simple_js.html:134
 msgid "over every matching row"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:126
+#: templates/js/_reporting_simple_js.html:135
 msgid "periods in the range"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:127
+#: templates/js/_reporting_simple_js.html:136
 msgid "total ÷ buckets"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:130
+#: templates/js/_reporting_simple_js.html:139
 #, python-brace-format
 msgid "mean of {n} values"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:131
+#: templates/js/_reporting_simple_js.html:140
 msgid "grand total"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:135
+#: templates/js/_reporting_simple_js.html:144
 msgid "Peak"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:136
+#: templates/js/_reporting_simple_js.html:145
 msgid "vs"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:138
-#, python-brace-format
-msgid "Step {n} of 4"
-msgstr ""
-
-#: templates/js/_reporting_simple_js.html:139
-msgid "Measure"
-msgstr ""
-
-#: templates/js/_reporting_simple_js.html:141
-msgid "Breakdown"
-msgstr ""
-
-#: templates/js/_reporting_simple_js.html:144
-#, python-brace-format
-msgid "{n} of {m} selected"
+#: templates/js/_reporting_simple_js.html:146
+msgid "Why did this change?"
 msgstr ""
 
 #: templates/js/_reporting_simple_js.html:148
 #, python-brace-format
-msgid "Show advanced fields ({n})"
+msgid "Step {n} of 4"
 msgstr ""
 
 #: templates/js/_reporting_simple_js.html:149
+msgid "Measure"
+msgstr ""
+
+#: templates/js/_reporting_simple_js.html:151
+msgid "Breakdown"
+msgstr ""
+
+#: templates/js/_reporting_simple_js.html:154
+#, python-brace-format
+msgid "{n} of {m} selected"
+msgstr ""
+
+#: templates/js/_reporting_simple_js.html:158
+#, python-brace-format
+msgid "Show advanced fields ({n})"
+msgstr ""
+
+#: templates/js/_reporting_simple_js.html:159
 msgid "Or"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:150
+#: templates/js/_reporting_simple_js.html:160
 #, python-brace-format
 msgid "{n} of 3 picked"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:152
+#: templates/js/_reporting_simple_js.html:162
 msgid "Loading values…"
 msgstr ""
 
@@ -8697,15 +8853,15 @@ msgstr ""
 msgid "Invalid JSON"
 msgstr ""
 
-#: templates/js/_reporting_tabs_js.html:127
+#: templates/js/_reporting_tabs_js.html:133
 msgid "Structure"
 msgstr ""
 
-#: templates/js/_reporting_tabs_js.html:199
+#: templates/js/_reporting_tabs_js.html:207
 msgid "source"
 msgstr ""
 
-#: templates/js/_reporting_tabs_js.html:199
+#: templates/js/_reporting_tabs_js.html:207
 msgid "sources"
 msgstr ""
 

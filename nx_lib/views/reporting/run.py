@@ -17,7 +17,6 @@ from ...db import engine_nexora_db
 from ...extensions import limiter
 from ...i18n import get_locale
 from ...reporting.catalog import fetch_docprocessing_catalog
-from ...reporting.derived import compute_derived
 from ...reporting.contribution import (
     contribution_rows,
     fill_shares,
@@ -25,6 +24,7 @@ from ...reporting.contribution import (
     pick_dimensions,
     single_dimension_definition,
 )
+from ...reporting.derived import compute_derived
 from ...reporting.forecast import compute_forecast
 from ...reporting.query import QueryBuildError
 from ...reporting.sandbox import MAX_SQL_LEN, SqlSandboxError, humanize_sql_error
