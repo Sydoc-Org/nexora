@@ -116,10 +116,12 @@
                 <form id="tenantRecordForm" data-testid="tenant-record-form">
                     <input type="hidden" id="tenantRecordId" value="">
                     <div class="space-y-4">
-                        {% for f in fields if f.column != entity.id_column %}
+                        {% for f in fields if f.column != entity.id_column and f.semantic_role != 'person' %}
                         <div>
                             <label for="tenant-field-{{ f.column }}" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ f.labels.get(current_lang) or f.labels.get('en') or f.column }}</label>
-                            {% if f.semantic_role == 'date' %}
+                            {% if f.semantic_role == 'flag' %}
+                            <input type="checkbox" id="tenant-field-{{ f.column }}" data-column="{{ f.column }}" class="mt-0.5 h-4 w-4 rounded border-gray-300 text-[var(--nx-accent)] focus:ring-[var(--nx-accent)] cursor-pointer tenant-record-field" data-testid="tenant-record-field-{{ f.column }}">
+                            {% elif f.semantic_role == 'date' %}
                             <input type="date" id="tenant-field-{{ f.column }}" data-column="{{ f.column }}" class="nx-input tenant-record-field" data-testid="tenant-record-field-{{ f.column }}">
                             {% elif f.semantic_role in ('money', 'count') %}
                             <input type="number" step="{{ 'any' if f.semantic_role == 'money' else '1' }}" id="tenant-field-{{ f.column }}" data-column="{{ f.column }}" class="nx-input tenant-record-field" data-testid="tenant-record-field-{{ f.column }}">

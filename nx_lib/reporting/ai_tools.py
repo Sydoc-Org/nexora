@@ -130,12 +130,12 @@ TOOL_SPECS = [
         "name": "run_sql",
         "description": (
             "Execute a validated read-only SELECT on a read-only target and return "
-            "capped rows. Targets: 'statistics' or 'octopus'."
+            "capped rows. The target must be one of the SQL targets named in the system prompt."
         ),
         "parameters": {
             "type": "object",
             "properties": {
-                "target": {"type": "string", "enum": ["statistics", "octopus"]},
+                "target": {"type": "string"},
                 "sql": {"type": "string"},
             },
             "required": ["target", "sql"],

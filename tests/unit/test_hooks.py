@@ -362,9 +362,15 @@ def test_enforce_maintenance_lockout_api_returns_json_503(app):
         session["permissions"] = []
         resp = _enforce_maintenance_lockout()
         assert resp is not None
-        body, status = resp
-        assert status == 503
-        assert b"Maintenance" in body.get_data()
+        # A Response, not a (body, status) tuple: a tuple cannot carry the
+        # headers the outage monitor reads to tell a planned window from a
+        # dead site (#281).
+        assert resp.status_code == 503
+        assert b"Maintenance" in resp.get_data()
+        assert resp.headers["X-Nexora-Maintenance"] == "1"
+        # No endAt on this banner, so no Retry-After -- a missing header beats
+        # a wrong one.
+        assert "Retry-After" not in resp.headers
         # Session cleared
         assert "userid" not in session
 
@@ -395,8 +401,11 @@ def test_enforce_maintenance_lockout_html_returns_template_503(app):
         session["permissions"] = []
         resp = _enforce_maintenance_lockout()
         assert resp is not None
-        body, status = resp
-        assert status == 503
+        assert resp.status_code == 503
+        assert resp.headers["X-Nexora-Maintenance"] == "1"
+        # This banner has an endAt, so Retry-After is derived from it.
+        assert int(resp.headers["Retry-After"]) >= 0
+        assert b"Maintenance" in resp.get_data()
 
 
 # ---------- _log_every_request ----------

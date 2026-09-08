@@ -51,9 +51,10 @@
     RS.el('rsWizard').hidden = view !== 'wizard';
     RS.el('rsResult').hidden = view !== 'result';
     RS.el('rsDashboard').hidden = view !== 'dashboard';
+    RS.el('rsLayouts').hidden = view !== 'layouts';
     // The dashboard grid takes the whole viewport width: the workspace rail
     // and the shell's max-width step aside while it is open (reporting-console.css).
-    document.body.classList.toggle('rdb-fullbleed', view === 'dashboard');
+    document.body.classList.toggle('rdb-fullbleed', view === 'dashboard' || view === 'layouts');
     if (view !== 'result') {
       // Only the Chart.js instance is torn down; the rest of the result DOM
       // (KPI band, table, caption, chips, query card) stays rendered so the
@@ -69,12 +70,39 @@
   }
   RS.setView = setView;
 
+  // A report definition owns the whole result: the side column (Eddard,
+  // Anomalies, Query) only shows through the definition's panel tiles.
+  function toggleSideColumn(layoutActive) {
+    var side = document.querySelector('#rsResult .rs-result-side');
+    if (side) side.hidden = !!layoutActive;
+  }
+
   // Console "Results" nav: bring back the last rendered result from cache.
   // Returns false when this session has no rendered result yet.
   function restoreResult() {
     var cur = RS.state.current, lr = RS.state.lastRun;
     if (!cur || !lr) return false;
     setView('result');
+    var lgrid = RS.el('rsLayoutGrid');
+    if (lr.layout && window.ReportingLayoutView) {
+      lgrid.hidden = false;
+      lgrid.innerHTML = (lr.layout.tiles || []).map(function (t) {
+        return '<div class="rdb-card rl-tile" data-card-id="' + RS.esc(t.id) + '" data-type="' + RS.esc(t.type) + '" ' +
+          'style="' + RS.esc(window.ReportingGrid.geomStyle(t.span, t.rows)) + '" data-testid="rs-layout-tile">' +
+          '<div class="rdb-card-body" data-tile-body></div></div>';
+      }).join('');
+      window.ReportingLayoutView.render(lgrid, { layout: lr.layout, def: cur.def, columns: lr.columns, rows: lr.rows,
+        derived: lr.derived || {}, i18n: window.NX_I18N_REPORTING_LAYOUTS, live: true });
+      toggleSideColumn(true);
+      RS.el('rsKpiBand').hidden = true;
+      RS.el('rsChartCard').hidden = true;
+      RS.el('rsTableCard').hidden = true;
+      RS.el('rsTableToggle').hidden = true;
+      return true;
+    }
+    lgrid.hidden = true;
+    if (window.ReportingLayoutView) window.ReportingLayoutView.destroy(lgrid);
+    toggleSideColumn(false);
     if (lr.hasMetrics && lr.dims) {
       RS.mountChart(cur.def, lr.columns, lr.rows,
         (cur.def.forecast && cur.def.forecast.enabled) ? (lr.forecast || null) : null);
@@ -93,7 +121,7 @@
       if (restoreResult()) return;
       // Nothing rendered yet this session: open the most recent report so
       // Results never shows an empty RS.state.
-      var r = (RS.state.reports || []).filter(function (x) { return x.kind !== 'dashboard'; })[0];
+      var r = (RS.state.reports || []).filter(function (x) { return x.kind !== 'dashboard' && x.kind !== 'layout'; })[0];
       if (r) RS.openReport(r); else setView('library');
       return;
     }
@@ -103,6 +131,11 @@
       if (d) { RS.openDashboard(d); return; }
       setView('dashboard');
       window.ReportingDashboard.openNew();
+    }
+    if (screen === 'definitions') {
+      if (RS.state.view === 'layouts') return;
+      setView('layouts');
+      if (window.ReportingLayouts) window.ReportingLayouts.open();
     }
   }
 
@@ -251,6 +284,7 @@
   // one, so a slow report's late responses can't render under a newer
   // report's title (and a double-click renders only once).
   var runSeq = 0;
+  var fallbackToastFor = {};
 
   async function runCurrent() {
     var cur = RS.state.current;
@@ -343,7 +377,7 @@
       // the backend to also diff THIS zero-column clone's own prior period
       // would be a fully wasted extra query.
       var t = await RS.api('/api/reporting/run', { method: 'POST', body: JSON.stringify(totalDef) });
-      if (seq !== runSeq) return;
+      if (seq !== runSeq || RS.state.current !== cur) return;
       if (t.ok && t.data && t.data.rows && t.data.rows.length) {
         RS.setGrandTotals(t.data.rows[0]);
       }
@@ -357,7 +391,7 @@
       method: 'POST',
       body: JSON.stringify(Object.assign({}, def, { compare: true }))
     });
-    if (seq !== runSeq) return;
+    if (seq !== runSeq || RS.state.current !== cur) return;
     // Hide only after the staleness guard: a slow stale response must never
     // hide the indicator a newer run just showed.
     RS.el('rsRunLoading').hidden = true;
@@ -454,7 +488,37 @@
                       dims: dims, forecast: res.data.forecast || null };
     setAskEddard({ title: cur.name || def.title || '', definition: def,
                    columns: columns, rows: rows.slice(0, 5000),
-                   forecast: res.data.forecast || null });
+                   forecast: res.data.forecast || null,
+                   layout: res.data.layout || null, derived: res.data.derived || null });
+    // Report definition (layout): render the tile grid instead of band+chart+table.
+    var lgrid = RS.el('rsLayoutGrid');
+    if (res.data.layoutFallback && !fallbackToastFor[cur.reportId || 'new']) {
+      fallbackToastFor[cur.reportId || 'new'] = true;
+      window.NX.toast(RS.I18N.layoutFallback, 'warning');
+    }
+    if (res.data.layout && window.ReportingLayoutView) {
+      lgrid.hidden = false;
+      lgrid.innerHTML = (res.data.layout.tiles || []).map(function (t) {
+        return '<div class="rdb-card rl-tile" data-card-id="' + RS.esc(t.id) + '" data-type="' + RS.esc(t.type) + '" ' +
+          'style="' + RS.esc(window.ReportingGrid.geomStyle(t.span, t.rows)) + '" data-testid="rs-layout-tile">' +
+          '<div class="rdb-card-body" data-tile-body></div></div>';
+      }).join('');
+      window.ReportingLayoutView.render(lgrid, { layout: res.data.layout, def: def, columns: columns, rows: rows,
+        derived: res.data.derived || {}, i18n: window.NX_I18N_REPORTING_LAYOUTS, live: true });
+      RS.renderAnomalies(def, columns, rows);   // fills the Anomalies card if a panel tile adopted it
+      toggleSideColumn(true);
+      RS.el('rsKpiBand').hidden = true;   // the band host renderKpiBand writes into
+      RS.el('rsChartCard').hidden = true;
+      RS.el('rsTableCard').hidden = true;
+      RS.el('rsTableToggle').hidden = true;
+      RS.state.lastRun = { def: def, columns: columns, rows: rows, hasMetrics: hasMetrics, dims: dims,
+                           forecast: null, layout: res.data.layout, derived: res.data.derived || {} };
+      writePreviewCache(dims, hasMetrics, rows);
+      return;
+    }
+    lgrid.hidden = true;
+    if (window.ReportingLayoutView) window.ReportingLayoutView.destroy(lgrid);
+    toggleSideColumn(false);
     var charted = (hasMetrics && dims)
       ? !!RS.mountChart(def, columns, rows, res.data.forecast || null) : false;
     syncForecastCtl(def, res.data.forecast || null, charted);
@@ -761,6 +825,7 @@
       cur.reportId = (res.data && res.data.id) || null;
       cur.owned = true;
       cur.canEdit = true;
+      if (RS.annotations) RS.annotations.load(cur.reportId);
     }
     saveAsCopy = false;
     RS.el('rsSaveName').hidden = true;
@@ -937,6 +1002,7 @@
   // itself -- it announces intent via a custom event instead of reaching
   // into this module's functions (D3).
   document.addEventListener('rs:dashboard-closed', exitToLibrary);
+  document.addEventListener('rs:layouts-closed', exitToLibrary);
 
   RS.el('rsRunAgain').addEventListener('click', function () {
     if (RS.state.current) runCurrent();

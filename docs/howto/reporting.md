@@ -27,10 +27,13 @@ Beta chip, the run's `N rows · M ms` timing badge, a sources sync line,
 content area. `templates/js/_reporting_tabs_js.html` is the nav controller
 (still exported as `window.ReportingTabs` for compat).
 
-- **Workspace nav**: `Library`, `Results`, `Dashboards`, `Scheduled`
-  (perm-gated on `reporting.schedule`), `Advanced`. The first three map into
-  the old Simple pane's internal views (`window.ReportingSimple.navTo`);
-  `Scheduled` and `Advanced` are their own containers. The `?tab=` URL param
+- **Workspace nav**: `Library`, `Results`, `Dashboards`, `Report definitions`,
+  `Scheduled` (perm-gated on `reporting.schedule`), `Advanced`. The first four
+  map into the old Simple pane's internal views
+  (`window.ReportingSimple.navTo`) — `Report definitions` opens the `layouts`
+  view (see **Report layouts** below); `/reporting/definitions` redirects
+  into it (`?tab=definitions`). `Scheduled` and `Advanced` are their own
+  containers. The `?tab=` URL param
   and the `nx.reporting.tab` storage key keep their historical names and now
   carry the screen name (`simple` stays accepted as an alias for `library`);
   `rp:tabshown` still fires with `simple|advanced` for the Simple pane's
@@ -39,8 +42,11 @@ content area. `templates/js/_reporting_tabs_js.html` is the nav controller
   last rendered result from `state.lastRun` without re-querying (only the
   Chart.js instance is re-mounted — the rest of the result DOM never left).
   With nothing rendered yet this session it opens the most recent report.
-- **Sources rail**: one card per accessible source (`/api/reporting/sources`
-  for the list, **`GET /api/reporting/sources/health`** for the green pulse
+- **Sources rail**: one card per **database** — accessible sources
+  (`/api/reporting/sources`, each carrying its `engine`) are collapsed on the
+  probe's database name, or on the engine code while the probe is down, so
+  six Generali table sources still make one Generali card
+  (**`GET /api/reporting/sources/health`** for the green pulse
   dot, the probe latency and the real database name — one timed
   `SELECT DB_NAME()` per distinct engine, shared across sources; the URL
   carries no database attribute because the engines are built from
@@ -372,6 +378,31 @@ current value vs. the same stat over `comparison.rows`:
 > legitimately see different numbers, or a friendly "you don't have access"
 > message. This is existing run-path behavior, surfaced honestly in the UI.
 
+## Chart annotations (#284)
+
+A report **owner** can pin a short note on one bucket of the Simple-tab chart —
+"new client onboarded", "mailroom outage" — so the chart explains its own bumps.
+Everyone who can open the report sees the note as an amber triangle at the foot
+of that bucket (hover for the text) and in the **Annotations** list under the
+chart.
+
+- **Add:** Alt+click a bar/point, or **Add annotation** in the list header (then
+  pick the bucket). Plain click still drills through. Unsaved results (wizard,
+  Eddard) have no Add — save first.
+- **Delete:** the `×` on the row (owner only). There is no in-place edit.
+- **Storage:** `dbo.ReportAnnotations` (migration `0123`) — `ReportID`,
+  `BucketKey` (the chart's own label string, `2026-09-01` for a month bucket),
+  `Text` ≤ 500, `CreatedBy`, `CreatedAt`. Cascades with the report.
+- **API:** `GET/POST /api/reporting/reports/<id>/annotations`,
+  `DELETE …/annotations/<aid>` — reads gated by `_can_view_report` (owner,
+  shared, or explicit share), writes by `_is_report_owner`. No permission code.
+- **Render:** `static/js/reporting_simple_annotations.js` feeds
+  `chartConfigFor(..., {annotations})` a bucket→texts map; the marker is a second
+  Chart.js dataset tagged `_nxAnnotations` (skipped by legend and drill). Only
+  the Simple tab draws it — Advanced and dashboard cards don't (yet).
+- **Not verified server-side:** the bucket string is stored as sent; a note on a
+  bucket outside the charted window is simply not drawn.
+
 ## Forecast
 
 Any result shaped like **exactly one date-grained breakdown plus one or more
@@ -592,12 +623,128 @@ render a "remove and add the piece again" notice and never run.
   (the breakdown run plus the zero-column totals clone, skipped when the
   report has no dimension); `chart`/`table` cards fire one.
 
+The drag/resize grid engine lives in `static/js/reporting_grid.js`
+(`window.ReportingGrid.attach(gridEl, hooks)`), extracted out of this module
+so **Report layouts** (below) can reuse it with zero behaviour change here.
+
 Migration history: the dashboard builder **supersedes**
 `docs/superpowers/plans/2026-07-15-reporting-pin-to-dashboard.md` (a
 different, never-executed design that would have added a `dbo.ReportingPins`
 table and a "pin a report to the dashboard" affordance) — that plan is
 stamped superseded; this multi-card dashboard covers the same underlying
 need ("my saved reports as live tiles") without any new table.
+
+## Report layouts ("Report definitions")
+
+A **layout** (user-facing: **Report definition**) is a saved report whose
+definition has `kind: 'layout'` instead of the usual curated/SQL/dashboard
+shape — same trick as dashboards: no schema change, no new CRUD endpoint. It
+bundles a set of **derived measures** (statistics computed over the run
+result) and a drag-and-drop 12-column **tile grid** that renders them. A
+report picks a layout via `layoutId` (see **Report-definition v1 JSON**
+above); the built-in **Standard** is "no layout" and renders exactly as
+today's fixed KPI band + chart + table.
+
+**Definition shape (`schemaVersion: 1`):**
+
+```json
+{
+  "kind": "layout",
+  "schemaVersion": 1,
+  "title": "Monthly throughput",
+  "measures": [
+    { "id": "m1", "op": "current" },
+    { "id": "m2", "op": "mean" },
+    { "id": "m3", "op": "percentile", "q": 0.9 }
+  ],
+  "tiles": [
+    { "id": "t1", "type": "kpi", "measure": "m1", "sparkline": true, "span": 3, "rows": 2 },
+    { "id": "t2", "type": "chart", "chart": "bar", "span": 9, "rows": 4 },
+    { "id": "t3", "type": "table", "span": 12, "rows": 4 }
+  ]
+}
+```
+
+**Measures.** Each has a stable `id` (referenced by `kpi` tiles), an `op` and,
+for `percentile`, a `q` in (0, 1). All six ops resolve over the first
+declared metric column, or else the first column whose non-null cells are
+all numeric (`nx_lib/reporting/derived.py`, `compute_derived`):
+
+| op | semantics |
+|---|---|
+| `current` | Sum of the measured column; when the report has exactly one date-grain dimension, the latest bucket's value instead |
+| `mean` | Arithmetic mean (`statistics.fmean`) |
+| `minmax` | `{"min", "max"}` — both ends of the range |
+| `range` | `max − min` |
+| `stddev` | Sample standard deviation (`statistics.stdev`); `0.0` with fewer than two values |
+| `percentile` | The `q`-th percentile (linear interpolation) |
+
+A measure resolves to `{"op", "value", "n"}` (`minmax` → `min`/`max` instead
+of `value`) or `{"op", "unavailable": "no_rows" | "no_numeric_column" |
+"too_many_rows"}` — a data problem never raises and never takes the whole run
+down. `too_many_rows` mirrors the KPI band's `MAX_STATS_ROWS` cap. A
+malformed layout (unknown op) raises `ValueError`; callers validate first
+with `schema.validate_layout_definition`.
+
+**Tiles.** `type` is `kpi` (references one `measure` id, optional
+`sparkline` boolean), `chart` (one of `bar`, `stacked_bar`, `line`, `area`,
+`pie`, `doughnut`, `gauge`) or `table`. Every tile has an integer `span`
+(1–12 grid columns) and `rows` (1–8). A layout allows at most 24 measures and
+24 tiles (`LAYOUT_MAX_MEASURES` / `LAYOUT_MAX_TILES` in
+`nx_lib/reporting/schema.py`). `validate_layout_definition` whitelists every
+op, tile type and chart type, and checks that every `kpi` tile's `measure`
+resolves to a declared measure id.
+
+**Ownership.** Layouts are **private** — `_load_owned_layout` in
+`nx_lib/views/reporting/_shared.py` only resolves a `layoutId` against rows
+`OwnerUserID`-owned by the caller; a foreign or missing id resolves to
+`None` regardless of sharing (shares and `Visibility: 'shared'` do not
+count). Deleting a layout leaves every report that references it alone —
+the next run of any of them just gets `layoutFallback: "missing"` and
+renders Standard.
+
+**Validated on save, not just on run.** `POST /api/reporting/reports` and
+`PUT /api/reporting/reports/<id>` run `validate_layout_definition` for
+`kind: 'layout'` definitions and reject a malformed one with 400 — the same
+gap dashboards still have (nothing validates a `kind: 'dashboard'`
+definition server-side).
+
+**Editor preview (`static/js/reporting_layouts.js`).** The Report
+definitions editor lives in the Simple pane's `#rsLayouts` view, built on the
+shared `window.ReportingGrid` drag/resize engine (see the note at the end of
+**Dashboards** above). Because an in-progress layout is not saved yet, the
+editor previews it against a real saved report the user picks from their own
+library (any report that is not `sql`/`dashboard`/`layout`) by POSTing
+`/api/reporting/run` with the draft layout **inlined** as `layout` rather
+than `layoutId` — `_layout_block` accepts either, with `layoutId` taking
+precedence when both are present. Tile rendering (`kpi`/`chart`/`table`,
+shared between this preview and a real report's result view) lives in
+`static/js/reporting_layout_view.js`; chart tiles draw straight from
+`(columns, rows)` with Chart.js — the first column becomes labels, every
+numeric metric column one dataset — rather than reusing `RS.mountChart` /
+`ReportingViz.mountChart`, which are both welded to their own pane's DOM.
+
+**Export.** `nx_lib/reporting/export.py`'s `derived_export_rows` appends a
+two-column **Measures** block (label → value, `minmax` expands to separate
+`min`/`max` rows, an unavailable measure shows `—`) underneath the data table
+in both the Excel and CSV export, whenever the run response carried
+`derived`. The Ask-Eddard assistant sees the same `derived` block because it
+posts the run payload as-is.
+
+**Scheduled mail does not get this (yet).** `runner.py::execute_definition`
+is a separate pipeline from `/api/reporting/run` — it already skips forecast
+too — so a scheduled report that references a layout still mails the
+Standard rendering. Wiring `derived` into scheduled mail is a follow-up, not
+covered here.
+
+**File map:** `nx_lib/reporting/derived.py` (the six ops),
+`nx_lib/reporting/schema.py`'s `validate_layout_definition` (shape/geometry
+whitelist), `nx_lib/views/reporting/_shared.py`'s `_layout_block` /
+`_load_owned_layout` (run-time resolution + ownership),
+`static/js/reporting_grid.js` (shared drag/resize engine),
+`static/js/reporting_layout_view.js` (tile renderer, shared by the editor
+preview and the real result view), `static/js/reporting_layouts.js` (the
+editor itself).
 
 ## What the page does
 
@@ -843,6 +990,45 @@ export), wired into `static/js/reporting_simple.js` (Simple: chart
 (Advanced: chart `onElementClick` + grid-row clicks), with drawer markup/CSS
 in `templates/reporting.html` and `static/css/reporting.css`.
 
+### Contribution analysis ("Why did it move?")
+
+When the Simple KPI band shows a **Total** delta chip (see *Comparison & delta
+chips*), the chip is a button. Clicking it POSTs the current definition
+(tokens intact) to `POST /api/reporting/contribution` and opens the drill
+slide-over with one tab per dimension, each listing the values ranked by
+their contribution to the change vs. the same shifted prior window the chip
+used. Dashboard whole-report cards get the same button because they render
+the Simple KPI band.
+
+- **Dimensions** are picked automatically (`pick_dimensions` in
+  `nx_lib/reporting/contribution.py`): `processname` first when the source
+  has it, then string-typed catalog columns in catalog order, never
+  `workitem_id`, never a field an `eq` filter already pins, never an
+  `advanced` column. Candidates are probed in order until three are useful:
+  a dimension with 50+ distinct values whose shown top rows explain ≤ 10 % of
+  the gross movement (an ID, a file name — one row per value) is
+  **degenerate** (`is_degenerate`) and lands in `skipped` instead.
+- **Rows** are the first metric grouped by that one column, run once for the
+  current window and once for the prior one through the ordinary
+  `_prepare_run` path (same grants, source permission and process scope as
+  the report), joined on value, sorted by `|delta|`, top 8 plus `(other)`.
+  `share` is `delta / (currentTotal − priorTotal)`; it is `null` for ratio
+  metrics (`avg`, `min`, `max`, `count_distinct`) and when the total did not
+  change. Header totals come from the zero-column clone (`total_definition`),
+  so they always equal the band's Total.
+- A dimension whose query fails is dropped and listed under `skipped`
+  (footer note "Not shown: …"); the endpoint never 500s because one column
+  is unqueryable. 400 without metrics or without exactly one relative-date
+  token filter; 403 without the source permission.
+- Clicking a row opens the normal drill-through for that value on the
+  current window (`eq`, or `is_null` for "(empty)"); `(other)` is not
+  clickable.
+
+Code: `nx_lib/reporting/contribution.py` (pure), `api_contribution` in
+`nx_lib/views/reporting/run.py`, `static/js/reporting_contribution.js` +
+shim `templates/js/_reporting_contribution_js.html`, wired in
+`static/js/reporting_simple_result.js` and `static/js/reporting_dashboard.js`.
+
 ### Export (Excel / CSV, and what you see)
 
 Pick the format (**Excel** or **CSV**) next to the **Export** button. The Simple
@@ -930,9 +1116,21 @@ This is the shape saved in `dbo.Reports.DefinitionJSON` and sent to
     { "metric": "doc_count" }
   ],
   "forecast": { "enabled": true, "horizon": "auto" },
+  "layoutId": 57,
   "rowLimit": 5000
 }
 ```
+
+**`layoutId` (optional).** A positive integer naming a `kind: 'layout'`
+saved report (see **Report layouts** below) that the *caller* owns — the
+report itself stays a normal curated/SQL definition; `layoutId` only says
+"render my result through this tile grid instead of Standard". The validator
+accepts any positive integer without resolving it (resolution is a run-time
+concern); `/api/reporting/run`'s response then carries `layout` (the
+resolved layout definition) plus `derived` (the computed measures) when the
+id resolves, or a `layoutFallback: "missing" | "invalid"` note instead when
+it does not — the client renders Standard either way. Absent `layoutId`
+never touches this path.
 
 **Metrics (optional, semantic layer — Slice 1).** When `metrics` is present and
 non-empty, the report runs in **aggregate mode**: the selected `columns` become
@@ -1046,7 +1244,19 @@ three Generali examples). Not combinable with date-anchored metrics. `0119` regi
 **Documents** over `dbo.v_ReportJobJoinDefinitions` (the ReportJob feed with
 lookup labels joined; measures `Documents` / `Cases`) and **CSV Imports** over
 `dbo.CSVImportLog` — relabels ISS to "Reporting", and moves the Generali block
-to `SortOrder` 200+ so platform sources lead. The wizard's measure step walks
+to `SortOrder` 200+ so platform sources lead. `0127` registers two Statistics-DB
+tables the same way: **Bucherer — EasyTax** (`bucherer_easytax` over
+`dbo.Bucherer_EasyTax`, one row per document; *Exported documents* is a
+conditional count over `ExportTime IS NOT NULL`, `Pages` a sum) and **Frigemo —
+Documents** (`frigemo` over `dbo.Frigemo`, one row per day of already-summed
+counters, so every measure is a `sum`; `Date` grainable). `SortOrder` 300/310. `0124` registers **Sydoc — Project Hours**
+(`bps_projects` over `dbo.BPS_ProjectReport`, the bpsuite Projektbericht export
+loaded by the `nx-sources/bps/bps_project_report.py` collector; measures `Hours`,
+`Bookings`, and `Absence hours` = hours where `Kunde = 'Absences'`). `0126` registers **MediaMarkt — Batches**
+(`mediamarkt_batches` over `SYDOC_Statistik.dbo.MediaMarkt_Batches`, the table behind the
+generated `/t/sydoc/mediamarkt` CRUD page; measures `Pieces scanned` = sum of
+`Pieces`, `Batches` = row count; `ScanDate` grainable, `DocType` K/D/KA and `Visum`
+as dimensions). The wizard's measure step walks
 sources in `SortOrder` and splits a `Tenant — Thing` label at the em dash: one
 uppercase heading per tenant, a `.rs-choice-group-sublabel` per source. The
 tenant's lookup tables carry no measures and are not registered. Each source is gated by its own
@@ -1077,23 +1287,20 @@ source `em_field_quality` → `field_quality`; `0111` narrows it to onboarded
 processes and drops the two count measures. It is a curated `table` source
 gated by `reporting.source.field_quality`.
 
-**Onboarded processes only (`0111`).** The process picker was offering Octo's
-raw `PROCESS` values straight off the telemetry — `BuchererFields`,
-`PriveraPostFields`, `01_Garantiekarten`, `01_Invoice_1` — none of which nexora
-reports on anywhere else. The view now keeps only rows whose process is
+**Onboarded customers only (`0111`, relaxed by `0125`).** The process picker
+was offering Octo's raw `PROCESS` values straight off the telemetry, including
+customers nexora has never onboarded. `0111` kept only rows whose process is
 registered in `dbo.ProcessSources`, matched on **both** the organization and the
-process name. Name alone would be wrong: `02_Invoice` belongs to
-*elektromaterial* **and** to *privera*, so onboarding one would silently admit
-the other — which is why each stream carries its
-`dbo.Organizations.organizationcode` in the CTE. Same data-driven contract as
-`MappedInNexoraPct`: **to bring a process back, add a `dbo.ProcessSources` row,
-don't edit the view.**
+process name; that also hid telemetry of fully onboarded customers
+(ElektroMaterial's legacy `01_Invoice_1`, 59% of EM's rows, and Privera's
+`PriveraPostFields`). Since `0125` the gate is the **organization alone**: a
+customer with any `dbo.ProcessSources` row reports on all of its field telemetry,
+every process. Each stream carries its `dbo.Organizations.organizationcode` in
+the CTE for that compare. Same data-driven contract as `MappedInNexoraPct`:
+**to bring a customer in, add its `dbo.ProcessSources` row, don't edit the view.**
 
-On INT that leaves 57,149 of 69,576 rows and exactly four processes
-(`01_Invoice_SAP`, `02_Invoice`, `02_Posteingang`, `03_Invoice_New`). Bucherer
-and Geberit leave the source entirely — they have no `dbo.Organizations` row at
-all, so they cannot match — and so does Privera's `02_Invoice` stream, which is
-onboarded for EM but not for Privera.
+On INT that leaves 68,716 of 69,576 rows. Bucherer and Geberit leave the source
+entirely — they have no `dbo.Organizations` row at all, so they cannot match.
 
 **One source with a `Customer` dimension, not seven sources.** All seven tables
 are column-identical, and `dbo.FieldAliases` is a *flat, global* map — so
@@ -1105,7 +1312,7 @@ duplicated measure rows to keep in step.
 
 | dimension  | values |
 |---|---|
-| `Customer` | `Compass`, `ElektroMaterial`, `Privera` today — matching `dbo.Organizations.Organization`. Hardcoded as literals in the view *on purpose*: joining `Organizations` would couple it to the tenancy tables being reshaped in #255, to earn a few labels. The union still carries Bucherer and Geberit; the `0111` process filter is what keeps them out until they are onboarded. |
+| `Customer` | `Compass`, `ElektroMaterial`, `Privera` today — matching `dbo.Organizations.Organization`. Hardcoded as literals in the view *on purpose*: joining `Organizations` would couple it to the tenancy tables being reshaped in #255, to earn a few labels. The union still carries Bucherer and Geberit; the `0111`/`0125` organization filter is what keeps them out until they are onboarded. |
 | `Stream`   | one per telemetry table (`em`, `compass`, `priverainvoice2025`, …). Privera has three, of which two survive the process filter. |
 | `Process`  | Octo's own process name, straight off the row. |
 
@@ -1200,9 +1407,9 @@ changes. The `0110` union was checked the same way and left EM untouched:
 same figures to three decimals as the EM-only view.
 
 Those EM figures are the *whole-table* ones and are what the equivalence check
-compares. Since `0111` the source itself reports EM on its onboarded process
-only (`02_Invoice`, 7,091 rows → 48.26% correct), because `01_Invoice_1` — 59%
-of EM's telemetry — is a legacy process that was never onboarded. Re-run the
+compares. Between `0111` and `0125` the source reported EM on its onboarded process
+only (`02_Invoice`, 7,091 rows → 48.26% correct); since `0125` the legacy
+`01_Invoice_1` rows are back and the view matches the whole table for EM. Re-run the
 equivalence check against the raw table, not the view, or the populations will
 not line up.
 

@@ -10,6 +10,7 @@ from datetime import datetime
 from flask import (
     current_app,
     jsonify,
+    make_response,
     redirect,
     render_template,
     request,
@@ -27,6 +28,7 @@ from .maintenance import (
     _get_blocking_maintenance,
     _user_has_maintenance_bypass,
 )
+from .outage import MAINTENANCE_HEADER
 from .security import (
     PermissionDenied,
     has_permission,
@@ -205,9 +207,49 @@ def _enforce_maintenance_lockout():
     # Drop their session so they can't keep working anywhere
     if "userid" in session:
         session.clear()
-    if request.path.startswith("/api/") or request.is_json:
-        return jsonify({"error": "Maintenance", "maintenance": blocking}), 503
-    return render_template("maintenance.html", maintenance=blocking), 503
+    # Mark the 503 as deliberate. Without this a planned window is
+    # indistinguishable from a dead site: the outage monitor probes
+    # unauthenticated, decides health on `status_code < 400`, and mailed the
+    # helpdesk for work somebody scheduled on purpose (#281). A header rather
+    # than a body marker because the two branches below return different
+    # content types, and Retry-After because that is what it is for.
+    wants_json = request.path.startswith("/api/") or request.is_json
+    resp = make_response(
+        jsonify({"error": "Maintenance", "maintenance": blocking})
+        if wants_json
+        else render_template("maintenance.html", maintenance=blocking),
+        503,
+    )
+    resp.headers[MAINTENANCE_HEADER] = "1"
+    retry_after = maintenance_retry_after(blocking, datetime.now())
+    if retry_after is not None:
+        resp.headers["Retry-After"] = str(retry_after)
+    return resp
+
+
+def maintenance_retry_after(blocking, now):
+    """Seconds until the window's ``endAt``, for a ``Retry-After`` header.
+
+    ``None`` when there is no parseable end time -- a missing header is better
+    than a wrong one. Never negative: _get_blocking_maintenance already filters
+    on ``EndAt >= GETDATE()``, so a window in the past cannot reach here, but a
+    clock skew of a second should not emit ``Retry-After: -1``.
+    """
+    raw = (blocking or {}).get("endAt")
+    if not raw:
+        return None
+    text = str(raw).strip().replace(" ", "T", 1)
+    # SQL Server datetime2 renders 7 fractional digits; fromisoformat takes 3 or 6.
+    if "." in text:
+        head, _, frac = text.partition(".")
+        text = f"{head}.{frac[:6]}"
+    try:
+        end = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if end.tzinfo is not None:
+        end = end.replace(tzinfo=None)
+    return max(0, int((end - now).total_seconds()))
 
 
 def _log_every_request(response):

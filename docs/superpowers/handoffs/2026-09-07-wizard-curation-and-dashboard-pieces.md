@@ -1,3 +1,5 @@
+> **Newer handoff (same date):** [`2026-09-07-report-layouts-definitions-plan.md`](2026-09-07-report-layouts-definitions-plan.md) — report-layouts spec + plan, execute in worktree `plan-report-layouts`.
+
 # Handoff — the wizard's breakdown step is curated, and dashboard cards became pieces of saved reports
 
 **Date:** 2026-09-07 · **Branch:** `refactor/255-admin-nav-tenancy-labels` (main checkout

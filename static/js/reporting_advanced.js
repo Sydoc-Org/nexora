@@ -45,6 +45,7 @@
   // api: shared with nx_core.js (Task 11) -- this file's api() throws on a
   // non-2xx response, so it aliases NX.api, not NX.apiSafe.
   const api = window.NX.api;
+  const esc = window.NX.esc;
 
   // ---- Process scope (client / process picker) -------------------------------
   // Processes are '<client>.<process>'; the client is the text before the first
@@ -268,6 +269,8 @@
       sqlTarget: null,
     };
     if (state.forecast && state.forecast.enabled) d.forecast = state.forecast;
+    var lp = document.getElementById('rpLayoutPick');
+    if (lp && lp.value) d.layoutId = Number(lp.value);
     return d;
   }
 
@@ -434,6 +437,7 @@
   function resetViews(hasData) {
     state._chartMounted = false;
     state._pivotMounted = false;
+    if (window.ReportingViz) ReportingViz.destroyChart();
     document.getElementById('rpViewToggle').hidden = !hasData;
     // A prior run's caption only ever fires on chart mount, but it must not
     // linger once a NEW run lands — whether that run's grid has data, is
@@ -697,7 +701,9 @@
   function renderKpiBand(def, rows, columns) {
     var band = document.getElementById('rpKpiBand');
     if (!band) return;
-    var kpi = computeKpiBand(def, rows);
+    // A sandbox SELECT has no metric; totalling its first numeric column
+    // (an ID, say) is noise.
+    var kpi = (def && def.kind === 'sql') ? null : computeKpiBand(def, rows);
     band.innerHTML = '';
     if (!kpi) { band.hidden = true; return; }
     // Every figure names its measure — "Total" alone never said total of what,
@@ -786,6 +792,28 @@
       }
     }
     resetViews(!!(data.rows && data.rows.length));
+    // Report definition (layout): render the tile grid instead of KPI band +
+    // chart/grid/pivot. Must run after resetViews() above, which un-hides
+    // #rpResults via setView('grid') -- this block re-hides it when a layout
+    // is present, same ordering the Simple pane's runCurrent() follows.
+    var lgrid = document.getElementById('rpLayoutGrid');
+    if (data.layoutFallback) window.NX.toast(I18N.layoutFallback, 'warning');
+    if (data.layout && window.ReportingLayoutView && lgrid) {
+      lgrid.hidden = false;
+      lgrid.innerHTML = (data.layout.tiles || []).map(function (t) {
+        return '<div class="rdb-card rl-tile" data-card-id="' + esc(t.id) + '" data-type="' + esc(t.type) + '" ' +
+          'style="' + esc(window.ReportingGrid.geomStyle(t.span, t.rows)) + '" data-testid="reporting-layout-tile">' +
+          '<div class="rdb-card-body" data-tile-body></div></div>';
+      }).join('');
+      window.ReportingLayoutView.render(lgrid, { layout: data.layout, def: state.lastDef, columns: data.columns || [],
+        rows: data.rows || [], derived: data.derived || {}, i18n: window.NX_I18N_REPORTING_LAYOUTS });
+      document.getElementById('rpResults').hidden = true;
+      document.getElementById('rpChart').hidden = true;
+      document.getElementById('rpKpiBand').hidden = true;
+      document.getElementById('rpViewToggle').hidden = true;
+      return;
+    }
+    if (lgrid) { lgrid.hidden = true; if (window.ReportingLayoutView) window.ReportingLayoutView.destroy(lgrid); }
     var wrap = document.getElementById('rpResults');
     wrap.innerHTML = '';
     if (!data.rows.length) {
@@ -1012,7 +1040,11 @@
   // "Running…" screen-reader announcement the old visible label gave.
   function showRunLoading() {
     document.getElementById('rpRun').disabled = true;
-    document.getElementById('rpViewToggle').hidden = true;
+    ['rpViewToggle', 'rpKpiBand', 'rpShowSql', 'rpSqlPeek', 'rpSqlView', 'reportingTiming']
+      .forEach(function (id) {
+        var e = document.getElementById(id);
+        if (e) e.hidden = true;
+      });
     setView('grid');
     var wrap = document.getElementById('rpResults');
     wrap.innerHTML = '';
@@ -1295,7 +1327,9 @@
     });
   }
 
+  var runSeq = 0;
   function run() {
+    var seq = ++runSeq;
     showRunLoading();
     // A new run supersedes any open drill drawer — it shows rows behind the
     // PREVIOUS result and would sit stale over the new one.
@@ -1308,12 +1342,16 @@
     return api('/api/reporting/run', { method: 'POST', body: JSON.stringify(def) })
       .then(function (res) { return res.json(); })
       .then(function (data) {
+        if (seq !== runSeq) return;   // a newer run superseded this one
         endRunLoading();
         state.lastDef = def;
         renderResults(data);
         showTiming(data.rowCount, performance.now() - runT0);
       })
-      .catch(function (e) { endRunLoading(); showError(e.message, e.detail); });
+      .catch(function (e) {
+        if (seq !== runSeq) return;
+        endRunLoading(); showError(e.message, e.detail);
+      });
   }
 
   function addFilter() {
@@ -1588,6 +1626,7 @@
           else if (r.owned && (r.visibility === 'shared' || r.sharedCount))
             suffix += ' · ' + I18N.sharedSuffix;
           opt.textContent = r.name + suffix;
+          opt.dataset.name = r.name;
           opt.dataset.owned = r.owned ? '1' : '0';
           opt.dataset.canEdit = r.canEdit ? '1' : '0';
           group.appendChild(opt);
@@ -1595,9 +1634,21 @@
         // D17: dashboards can't be represented by the Advanced builder's
         // definition shape (unlike sql-kind reports, which just get an
         // ' (SQL)' suffix above and stay pickable) -- drop the row entirely.
-        var buildable = (reports || []).filter(function (r) { return r.kind !== 'dashboard'; });
+        var buildable = (reports || []).filter(function (r) { return r.kind !== 'dashboard' && r.kind !== 'layout'; });
         var mine = buildable.filter(function (r) { return r.owned; });
         var shared = buildable.filter(function (r) { return !r.owned; });
+        // Report definition (layout) picker: only the caller's own layouts
+        // (a shared layout isn't guaranteed to fit this def's columns/metrics),
+        // same contract as the Simple wizard's rsLayoutPick.
+        var pick = document.getElementById('rpLayoutPick');
+        if (pick) {
+          var pickCurrent = pick.value;
+          var layoutsMine = (reports || []).filter(function (r) { return r.kind === 'layout' && r.owned; });
+          pick.innerHTML = '<option value="">' + esc(I18N.layoutStandard) + '</option>' +
+            layoutsMine.map(function (r) { return '<option value="' + r.id + '">' + esc(r.name) + '</option>'; }).join('');
+          pick.hidden = !layoutsMine.length;
+          if (pickCurrent) pick.value = pickCurrent;
+        }
         if (mine.length) {
           var g1 = document.createElement('optgroup');
           g1.label = I18N.myReports;
@@ -1671,6 +1722,8 @@
     state.forecast = (def.forecast && def.forecast.enabled)
       ? { enabled: true, horizon: def.forecast.horizon || 'auto' } : null;
     document.getElementById('rpSubtitle').value = def.subtitle || '';
+    var lp = document.getElementById('rpLayoutPick');
+    if (lp) lp.value = def.layoutId ? String(def.layoutId) : '';
     renderFields();
     renderWells();
     renderFilters();
@@ -1709,7 +1762,8 @@
     var sel = document.getElementById('rpSavedReports');
     var id = sel.value;
     if (!id) return;
-    var current = sel.options[sel.selectedIndex].textContent.replace(/ \(SQL\)$/, '');
+    var opt = sel.options[sel.selectedIndex];
+    var current = opt.dataset.name || opt.textContent.replace(/ \(SQL\)$/, '');
     promptName(I18N.newName, current).then(function (name) {
       if (!name || name === current) return;
       // Name-only change; PUT requires the definition too, so fetch it first.

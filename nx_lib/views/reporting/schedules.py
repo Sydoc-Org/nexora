@@ -86,12 +86,28 @@ def api_reports_schedules_get(report_id):
         conn.close()
 
 
+def _report_kind(report_id):
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT JSON_VALUE(DefinitionJSON, '$.kind') FROM dbo.Reports WHERE ReportID = ?",
+            (report_id,),
+        )
+        row = cur.fetchone()
+        return (row[0] if row else None) or "table"
+    finally:
+        conn.close()
+
+
 @require_permission("reporting.schedule")
 @limiter.limit("60 per minute")
 def api_reports_schedules_create(report_id):
     userid = session.get("userid")
     if not _is_report_owner(report_id, userid):
         return jsonify({"error": _("Not found")}), 404
+    if _report_kind(report_id) in ("dashboard", "layout"):
+        return jsonify({"error": _("Dashboards and report definitions cannot be scheduled.")}), 400
     p = request.get_json(silent=True) or {}
     err = validate_schedule(p)
     if err:

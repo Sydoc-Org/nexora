@@ -13,7 +13,7 @@
 // nx.reporting.tab storage key keep their historical names; 'simple' is an
 // accepted alias for 'library'.
 (function () {
-  var SCREENS = ['library', 'results', 'dashboards', 'scheduled', 'advanced'];
+  var SCREENS = ['library', 'results', 'dashboards', 'definitions', 'scheduled', 'advanced'];
   var csrf = document.querySelector('meta[name="csrf-token"]').content;
   var API_PREFIX = window.API_PREFIX;
   var current = null;
@@ -80,7 +80,7 @@
   document.addEventListener('rs:viewchanged', function (e) {
     if (current === 'scheduled' || current === 'advanced') return;
     var v = e.detail.view;
-    var screen = v === 'result' ? 'results' : v === 'dashboard' ? 'dashboards' : 'library';
+    var screen = v === 'result' ? 'results' : v === 'dashboard' ? 'dashboards' : v === 'layouts' ? 'definitions' : 'library';
     current = screen;
     highlight(screen);
     try { localStorage.setItem('nx.reporting.tab', screen); } catch (e2) {}
@@ -96,9 +96,11 @@
   document.addEventListener('rs:libraryloaded', function (e) {
     var reports = e.detail.reports || [];
     var dash = reports.filter(function (r) { return r.kind === 'dashboard'; }).length;
+    var lay = reports.filter(function (r) { return r.kind === 'layout'; }).length;
     var lib = el('rcNavLibraryCount'), db = el('rcNavDashboardsCount');
-    if (lib) lib.textContent = String(reports.length - dash);
+    if (lib) lib.textContent = String(reports.length - dash - lay);
     if (db) db.textContent = dash ? String(dash) : '';
+    var ld = el('rcNavDefinitionsCount'); if (ld) ld.textContent = String(lay);
   });
   document.addEventListener('rc:schedloaded', function (e) {
     var c = el('rcNavScheduledCount');
@@ -106,6 +108,12 @@
   });
 
   // ---------- Sources rail ----------
+  // Database names for the engine/target codes, used only while the health
+  // probe (which reports the real DB_NAME()) is unavailable — one card per
+  // database must hold even when the database itself is unreachable.
+  var ENGINE_LABELS = { nexora: 'nexora', statistics: 'Statistics', generali: 'Generali',
+                        octopus: 'Octo', statistics_ro: 'Statistics', octo_ro: 'Octo',
+                        generali_ro: 'Generali' };
   // Card per accessible source (GET /api/reporting/sources). The card names
   // the real database behind the source (from /api/reporting/sources/health)
   // rather than the registry label, plus a connected dot and probe latency;
@@ -113,7 +121,7 @@
   function sourceCardHtml(s, health) {
     var h = health && health[s.id];
     var dot = h ? '<span class="rc-src-dot' + (h.ok ? ' rc-src-dot--ok src-pulse' : ' rc-src-dot--warn') + '"></span>' : '';
-    var name = (h && h.db) || s.label;
+    var name = (h && h.db) || ENGINE_LABELS[s.engine || s.target] || s.label;
     // With reporting.sources.schema.view the card opens the source visualizer
     // (static/js/reporting_schema.js); without it there is no panel on the
     // page, so it stays a plain div.
@@ -166,12 +174,14 @@
     // hit RuntimeDatabase) -- one card per distinct database. A *reachable*
     // source wins the slot: otherwise an unprovisioned Live SQL target (its RO
     // engine is None, so it probes as down) would turn a perfectly healthy
-    // database's card amber just by sorting first.
+    // database's card amber just by sorting first. Without a probe result the
+    // engine/target code stands in for the database, so six Generali table
+    // sources still make one Generali card.
     var slot = {};
     var order = [];
     res.forEach(function (s) {
       var h = byId && byId[s.id];
-      var key = (h && h.db) || s.label;
+      var key = (h && h.db) || ENGINE_LABELS[s.engine || s.target] || s.engine || s.target || s.label;
       var ok = !!(h && h.ok);
       if (!(key in slot)) {
         slot[key] = { src: s, ok: ok };

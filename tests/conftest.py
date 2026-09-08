@@ -15,12 +15,27 @@ os.environ.setdefault("ENVIRONMENT", "TEST")
 # inherits this environment too). tests/unit/test_user_cache.py covers it.
 os.environ.setdefault("NEXORA_USER_CACHE_TTL", "0")
 
-import pyotp
-import pytest
-from sqlalchemy import text
+# Every pytest process gets its OWN database, NEXORA_TEST_<user>_<pid>, created
+# in pytest_sessionstart and dropped in pytest_sessionfinish (#235). Two runs
+# never share state, so nothing needs to lock or wait. The name must be in the
+# environment BEFORE nx_lib is imported -- nx_lib.db builds the engine from
+# DB_NEXORA at import time, and the e2e server subprocess inherits it. A
+# DB_NEXORA already set in the environment is respected as-is (no create, no
+# drop): `DB_NEXORA=NEXORA_TEST pytest ...` runs against the shared database
+# after a hand reset, the way it used to.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from scripts import test_db_reset as _tdb
 
-from nx_lib import create_app
-from nx_lib.db import engine_nexora_db
+_PER_RUN_DB = "DB_NEXORA" not in os.environ
+if _PER_RUN_DB:
+    os.environ["DB_NEXORA"] = _tdb.fresh_db_name()
+
+import pyotp  # noqa: E402
+import pytest  # noqa: E402
+from sqlalchemy import text  # noqa: E402
+
+from nx_lib import create_app  # noqa: E402
+from nx_lib.db import engine_nexora_db  # noqa: E402
 
 # Pinned TOTP secrets — must match sql/test/seed.sql exactly.
 TOTP_SECRETS = {
@@ -33,50 +48,41 @@ TOTP_SECRETS = {
 TEST_PASSWORD = "Test1234!"
 
 
-@pytest.fixture(scope="session", autouse=True)
-def _shared_test_db_lock(request):
-    """Serialise this whole pytest session against other runs (#235).
+def pytest_sessionstart(session):
+    """Create this run's private database and load schema + seed (~1.5 s).
 
-    One NEXORA_TEST is shared by CI and every local run, and both sides reset
-    it. Holding the lock for the session -- not just the reset -- is the point:
-    the collisions that cost a day were a peer's reset landing in the middle of
-    a suite, not two resets racing.
-
-    Fails OPEN when the database is unreachable. A run that cannot connect
-    cannot corrupt anyone, and pure-unit runs should not start needing a
-    server. Anything that genuinely needs the DB fails later on its own terms.
+    Fails OPEN when the server is unreachable: pure-unit runs should not need a
+    database, and anything that genuinely does fails later on its own terms.
     """
-    try:
-        from scripts.db_lock import hold
-        from scripts.test_db_reset import connect_test_db
-    except ImportError as e:  # pragma: no cover - repo layout changed
-        print(f"[db-lock] helper unavailable, not serialising: {e}", file=sys.stderr)
-        yield
+    if not _PER_RUN_DB:
         return
-
+    name = os.environ["DB_NEXORA"]
     try:
-        conn = connect_test_db()
+        _tdb.create_database(name)
+        with _tdb.connect_test_db(name) as conn:
+            _tdb.apply_schema_and_seed(conn.cursor())
+        # Sweep orphans from killed runs while we are here; never fatal.
+        try:
+            _tdb.prune_databases()
+        except Exception as e:  # pragma: no cover - server hiccup
+            print(f"[test-db] prune skipped: {e}", file=sys.stderr)
     except Exception as e:
-        print(f"[db-lock] no NEXORA_TEST connection, not serialising: {e}", file=sys.stderr)
-        yield
+        print(f"[test-db] could not prepare {name}: {e}", file=sys.stderr)
+    else:
+        print(f"[test-db] using {name}", file=sys.stderr)
+
+
+def pytest_sessionfinish(session, exitstatus):
+    if not _PER_RUN_DB:
         return
-
-    # pytest captures stderr, so hold()'s "waiting for a peer" line would never
-    # reach the terminal and a 20-minute wait would look like a freeze.
-    capman = request.config.pluginmanager.getplugin("capturemanager")
-
-    def notify(msg):
-        if capman is None:
-            print(msg, file=sys.stderr, flush=True)
-            return
-        with capman.global_and_fixture_disabled():
-            print(msg, file=sys.stderr, flush=True)
-
+    engine_nexora_db.dispose()
     try:
-        with hold(conn, label="pytest", notify=notify):
-            yield
-    finally:
-        conn.close()
+        _tdb.drop_database(os.environ["DB_NEXORA"])
+    except Exception as e:
+        print(
+            f"[test-db] drop failed, `python scripts/test_db_reset.py --prune` cleans up: {e}",
+            file=sys.stderr,
+        )
 
 
 @pytest.fixture(scope="session")

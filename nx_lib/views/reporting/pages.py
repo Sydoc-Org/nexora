@@ -8,7 +8,7 @@ package's overall shape.
 
 import re
 
-from flask import current_app, render_template, session
+from flask import current_app, redirect, render_template, session, url_for
 from markdown_it import MarkdownIt
 
 from ...config import REPO_ROOT
@@ -88,6 +88,16 @@ def reporting():
     )
 
 
+@require_permission("reporting.view")
+def reporting_definitions():
+    """The report-definitions editor lives inside the Console shell as a
+    Simple-pane view (like dashboards); this URL just opens that screen."""
+    return redirect(url_for("reporting", tab="definitions"))
+
+
 def register_routes(app):
     app.add_url_rule("/reporting", endpoint="reporting", view_func=reporting)
     app.add_url_rule("/reporting/guide", endpoint="reporting_guide", view_func=reporting_guide)
+    app.add_url_rule(
+        "/reporting/definitions", endpoint="reporting_definitions", view_func=reporting_definitions
+    )

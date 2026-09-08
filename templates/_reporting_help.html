@@ -14,6 +14,8 @@
         <li>{{ _("Watch the coverage badge (e.g. 2/5) on measures and categories: only part of the processes provide that field, and documents from the others land in the empty bucket. Hover it to see which. If a number looks too low, check the badge first.") }}</li>
         <li>{{ _("Everything in one empty bucket? The breakdown field is not filled in for the processes you selected.") }}</li>
         <li>{{ _("Not sure what a result means? Press “Ask Eddard about this report” under the insight card — Eddard then answers about the report on screen, not in general.") }}</li>
+        <li>{{ _("Pick a Report definition in the wizard footer to see your own measures and tile layout instead of the standard result — create them under Report definitions in the rail.") }}</li>
+        <li>{{ _("A report definition owns the whole result: add Eddard insight, Ask Eddard, Anomalies or Query as panel tiles if you want them, and pick a saved report under “Preview with” to build against real numbers.") }}</li>
         <li>{{ _("Not sure which table a source really reads? Click its card in the Sources rail: List shows the tables it uses and their columns, Diagram draws the relationships between them.") }}</li>
         <li>{{ _("Relative presets stay relative: a report saved with “This month” shows the current month on every run and in every scheduled mail. Schedule times are UTC.") }}</li>
         <li>{{ _("To see which document fields extraction gets right, pick the “Field extraction quality” measure “Extraction correct %%” and break down by “Field”. Sort ascending and the worst field is the top row.") }}</li>
@@ -21,6 +23,7 @@
         <li>{{ _("That source covers every customer whose process is onboarded in nexora. Break down by “Client” to compare them, or filter to one. Field names are translated to a shared vocabulary first, so whatever each client calls its invoice number lands on the same row — that is what makes the comparison meaningful. The process list only offers processes nexora has onboarded; Octo’s own internal process names are not reportable.") }}</li>
         <li>{{ _("A field whose “Avg. 2nd-candidate confidence %%” sits close to its best-candidate confidence means the extractor was torn between two readings — usually more worth fixing than a field that is simply never found.") }}</li>
         <li>{{ _("The chips above a result are editable: the Processes chip and any “is one of” filter open a checkbox picker — ticking everything removes the restriction.") }}</li>
+        <li>{{ _("Need more than a date range? “Filters (optional)” on the wizard’s Time step adds field/operator/value rows — contains, starts with, is empty and the rest. Each one lands on the result as a chip you can edit or remove without rebuilding the report, and “+ Add filter” at the end of that chip row adds one to a result already on screen.") }}</li>
         <li>{{ _("Imports, exports and backlog in one chart: pick “Documents imported”, “Documents exported” and “Backlog” together, then break down by “Date” — one line per measure on a shared time axis.") }}</li>
         <li>{{ _("The breakdown step shows the everyday fields first; “Show advanced fields” unfolds the rare and diagnostic ones (raw Octo names, validation statuses, owner and property numbers). The result table is always shown under the chart — “Hide table” collapses it.") }}</li>
         <li>{{ _("Time charts stop at today: the period that contains today is faded/dashed because it is still filling up, months that haven’t happened aren’t drawn, and a backlog period nobody measured is a gap, not a zero. Backlog’s Total is the newest snapshot.") }}</li>
@@ -31,6 +34,8 @@
       <h4>{{ _("Checking a number") }}</h4>
       <ul>
         <li>{{ _("Click a chart bar or a table row to open the documents behind that number; the “Query” card beside the chart shows exactly how it was computed.") }}</li>
+        <li>{{ _("Click the ↑/↓ chip on the total to see which processes or categories drove the change since the previous period.") }}</li>
+        <li>{{ _("Own the report? Alt+click a bar to pin a note on that period (“mailroom outage”). It shows as a small triangle on the chart and in the Annotations list below for everyone the report is shared with.") }}</li>
         <li>{{ _("Each measure gets its own total card, named after it — “Total · Documents imported”, “Total · Documents exported”. There is no combined number: the same document can be counted in both, so adding them up would not count anything real.") }}</li>
         <li>{{ _("A card headed “Overall” instead of “Total” holds a rate or an average, which cannot be added up. It is the real figure across every document behind the report — not the chart’s numbers summed.") }}</li>
         <li>{{ _("“Buckets” counts periods, not table rows. Break down by month and by field and each month contributes one row per field, so the average card switches to “Avg per row” and names how many values it averaged.") }}</li>

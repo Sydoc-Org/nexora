@@ -104,6 +104,15 @@
           <p class="reporting-simple-hint" id="rsAllTimeHint" hidden data-testid="rs-alltime-hint">{{ _("“All time” scans the whole history — pick a shorter range for faster results.") }}</p>
           <label id="rsTimeFieldWrap" class="reporting-simple-inline" hidden>{{ _("Date field") }}
             <select id="rsTimeField" class="reporting-input"></select></label>
+          {# Optional extra filters (same field/op/value shape as the Advanced
+             tab's filter well). They land in the definition, so the result's
+             existing chip row renders them editable/removable. #}
+          <div class="rs-wiz-filters">
+            <h4 class="reporting-simple-h">{{ _("Filters (optional)") }}</h4>
+            <div id="rsFilterList" data-testid="rs-filter-list"></div>
+            <button type="button" id="rsAddFilter" class="reporting-link" data-testid="rs-add-filter">+ {{ _("Add filter") }}</button>
+            <p class="reporting-simple-hint">{{ _("Filters appear as chips on the result — adjust or remove them there without rebuilding the report.") }}</p>
+          </div>
         </div>
         {# Task 6: shared footer for all four steps -- the accordion never
            re-hides an earlier step (see the JS partial), so more than one of
@@ -115,6 +124,10 @@
         <div class="rs-wizard-footer">
           <button id="rsWizardBack" class="nx-btn nx-btn--ghost" data-testid="rs-wizard-back">&larr; {{ _("Back") }}</button>
           <span class="rs-wizard-footer-spacer"></span>
+          <label class="rs-layout-pick" title="{{ _('Report definition') }}">
+            <i class="fas fa-sliders" aria-hidden="true"></i>
+            <select id="rsLayoutPick" class="rc-select" data-testid="rs-layout-pick"></select>
+          </label>
           <span id="rsPickedCount" class="rs-picked-count" data-testid="rs-picked-count"></span>
           <button type="button" id="rsMeasureNext" class="nx-btn nx-btn--primary" hidden data-testid="rs-measure-next">{{ _("Continue") }}</button>
           <button type="button" id="rsScopeNext" class="nx-btn nx-btn--primary" data-testid="rs-scope-next">{{ _("Continue") }}</button>
@@ -221,6 +234,7 @@
       <div id="rsKpiBand" class="reporting-ledger-kpis nx-rise" hidden data-testid="rs-kpi-band"></div>
     </div>
     <div class="rs-result-main">
+      <div id="rsLayoutGrid" class="rdb-grid rl-grid" hidden data-testid="rs-layout-grid"></div>
       <div class="nx-card nx-card--pad reporting-simple-chartcard nx-rise-2" id="rsChartCard" hidden data-testid="rs-chart-card">
         <div class="reporting-simple-charttools" id="rsChartTools" hidden data-testid="rs-chart-tools">
           <span id="rsChartTitle" class="rs-chart-title" data-testid="rs-chart-title"></span>
@@ -256,6 +270,24 @@
         {# Fixed-position wrapper so Chart.js's responsive resize can't enter
            a grow-forever feedback loop inside the stretched flex card. #}
         <div class="rs-chart-body"><canvas id="rsChartCanvas"></canvas></div>
+        {# Chart annotations (#284): owner-only Add + popover, read-only list
+           for everyone else. Filled by static/js/reporting_simple_annotations.js. #}
+        <div id="rsAnnotations" class="rs-annotations" hidden data-testid="rs-annotations">
+          <div class="rs-annotations-head">
+            <span class="rs-annotations-title">{{ _("Annotations") }}</span>
+            <button type="button" class="reporting-link" id="rsAnnotationAdd" hidden data-testid="rs-annotation-add">{{ _("Add annotation") }}</button>
+          </div>
+          <ul id="rsAnnotationsList" class="rs-annotations-list"></ul>
+        </div>
+        <div id="rsAnnotationPop" class="rs-annotation-pop" hidden role="dialog" aria-labelledby="rsAnnotationBucket" data-testid="rs-annotation-pop">
+          <div class="rs-annotation-pop-bucket" id="rsAnnotationBucket"></div>
+          <select id="rsAnnotationBucketSelect" class="rs-annotation-bucket-select" hidden aria-label="{{ _('Bucket') }}" data-testid="rs-annotation-bucket-select"></select>
+          <input type="text" id="rsAnnotationText" maxlength="500" placeholder="{{ _('What happened here? (e.g. “mailroom outage”)') }}" aria-label="{{ _('Annotation text') }}" data-testid="rs-annotation-text">
+          <div class="rs-annotation-pop-actions">
+            <button type="button" class="reporting-link" id="rsAnnotationCancel" data-testid="rs-annotation-cancel">{{ _("Cancel") }}</button>
+            <button type="button" class="reporting-btn" id="rsAnnotationSave" data-testid="rs-annotation-save">{{ _("Save") }}</button>
+          </div>
+        </div>
       </div>
       <div class="rs-result-side nx-rise-2">
         {# Auto AI caption ("AI insight" card), fired after every successful
@@ -316,6 +348,11 @@
      owns rendering its header/filter-bar/grid into this container. #}
   <div id="rsDashboard" class="reporting-dashboard" hidden data-testid="rs-dashboard"
        data-can-export="{{ 1 if has_permission('reporting.export') else 0 }}"></div>
+
+  {# Report-definitions editor (kind:'layout' saved reports). Empty by design:
+     window.ReportingLayouts (js/_reporting_layouts_js.html) renders into it. #}
+  <div id="rsLayouts" class="reporting-layouts" hidden data-testid="rs-layouts"></div>
 </section>
 {% include 'js/_reporting_simple_js.html' %}
 {% include 'js/_reporting_dashboard_js.html' %}
+{% include 'js/_reporting_layouts_js.html' %}

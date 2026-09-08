@@ -276,7 +276,8 @@ def _parse_pagination(args):
 def _validate_values(entity, fields, data):
     """(values, errors) for entity's writable columns -- each raw JSON value
     is converted/validated by its field's SemanticRole: 'date' -> ISO date
-    parse, 'money'/'count' -> numeric, anything else -> text. ``errors`` is a
+    parse, 'money'/'count' -> numeric, 'flag' -> 0/1, 'person' -> the current
+    username (server-stamped, client value ignored), anything else -> text. ``errors`` is a
     list of translated messages; empty means every value converted cleanly
     and ``values`` has one entry per writable column."""
     fields_by_column = {f.column: f for f in fields}
@@ -285,11 +286,19 @@ def _validate_values(entity, fields, data):
     for column in _writable_columns(entity, fields):
         field = fields_by_column[column]
         label = field.labels.get("en") or column
+        role = field.semantic_role
+        if role == "person":
+            # The visum column: stamped from the login on every write (who
+            # recorded / last edited the row), never typed by the client.
+            values[column] = session.get("username") or ""
+            continue
+        if role == "flag":
+            values[column] = 1 if data.get(column) in (True, 1, "1", "true", "on") else 0
+            continue
         if column not in data:
             errors.append(_("Missing value for %(field)s.", field=label))
             continue
         raw = data[column]
-        role = field.semantic_role
         if role == "date":
             parsed = _parse_date(raw)
             if parsed is None:
@@ -297,6 +306,9 @@ def _validate_values(entity, fields, data):
             else:
                 values[column] = parsed.isoformat()
         elif role in ("money", "count"):
+            if raw in ("", None):
+                values[column] = None  # optional numeric -> NULL, never 0
+                continue
             try:
                 values[column] = int(raw) if role == "count" else float(raw)
             except (TypeError, ValueError):

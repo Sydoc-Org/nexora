@@ -4,7 +4,7 @@ DROP VIEW [dbo].[vFieldExtractionQuality]
 GO
 SET ANSI_NULLS ON
 GO
-SET QUOTED_IDENTIFIER ON
+SET QUOTED_IDENTIFIER OFF
 GO
 
 CREATE   VIEW [dbo].[vFieldExtractionQuality] AS
@@ -52,9 +52,7 @@ LEFT JOIN dbo.FieldLabels  fl ON fl.FieldKey = LOWER(fa.TargetKey)
 WHERE EXISTS (
         SELECT 1
         FROM dbo.ProcessSources ps
-        WHERE ps.ClientCode        = 'default'
-          AND ps.OrganizationCode  = cfa.OrgCode
-          AND SUBSTRING(ps.ProcessName, CHARINDEX('.', ps.ProcessName) + 1, 200)
-              = cfa.PROCESS COLLATE DATABASE_DEFAULT
+        WHERE ps.ClientCode       = 'default'
+          AND ps.OrganizationCode = cfa.OrgCode
       );
 GO

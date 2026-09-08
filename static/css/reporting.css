@@ -226,6 +226,12 @@
   flex: 1 0 100%;
 }
 
+.rs-wiz-filters { margin-top: 14px; }
+.rs-wiz-filters h4 { margin-bottom: 6px; }
+/* The wizard step card is wide, so the narrow-well rule above (field name on
+   its own line) is wrong here -- keep field/op/value on one row. */
+.rs-wiz-filters .reporting-filter-row > select:first-child { flex: 1 0 auto; }
+
 .reporting-filter-row select,
 .reporting-filter-row input {
   flex: 1;
@@ -1293,6 +1299,8 @@ body.nx-app {
   cursor: pointer;
 }
 .rs-chip--empty { cursor: default; opacity: .7; }
+/* Reads as an action, not as an active filter. */
+.rs-chip--add { border-style: dashed; }
 .rs-chip .rs-chip-x { font-weight: 700; padding: 0 .15rem; }
 /* Inline chip editors — a small popover-style card instead of raw controls. */
 .rs-chip-editor {
@@ -2569,6 +2577,41 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 .rdb-card-body--error { display: flex; align-items: center; justify-content: center; min-height: 80px; }
 .rdb-card-error { margin: 0; font: 12.5px var(--nx-font); color: var(--nx-text-meta); text-align: center; }
 
+/* ---- Report definitions editor (reporting_layouts.js) — shares the rdb-* grid ---- */
+.reporting-layouts { max-width: none; padding: 4px 0 60px; }
+.rl-body { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 18px; align-items: start; }
+.rl-rail { position: sticky; top: 12px; display: flex; flex-direction: column; gap: 6px; }
+.rl-rail-h { margin: 8px 0 2px; font: 600 11px var(--nx-font); letter-spacing: .06em; text-transform: uppercase; color: var(--nx-text-meta); }
+.rl-pal { text-align: left; padding: 6px 10px; border: 1px solid var(--nx-border); border-radius: 8px; background: var(--nx-card); color: var(--nx-text); cursor: pointer; }
+.rl-pal:disabled { opacity: .5; cursor: default; }
+.rl-measures { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; }
+.rl-measures li { display: flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 6px; background: var(--nx-accent-soft); }
+.rl-q { width: 64px; }
+.rl-x { margin-left: auto; border: 0; background: none; cursor: pointer; color: var(--nx-text-meta); }
+.rl-previewbar { display: flex; justify-content: flex-end; margin-bottom: 10px; font-size: 12.5px; color: var(--nx-text-meta); }
+.rl-tile .rdb-card-body { display: flex; flex-direction: column; }
+.rl-kpi { display: flex; flex-direction: column; gap: 4px; }
+.rl-tile { container-type: inline-size; }
+.rl-kpi-value { font: 600 clamp(15px, 13cqw, 26px) var(--nx-font); letter-spacing: -.5px; color: var(--nx-text); }
+.rl-kpi-sub { font-size: 11px; color: var(--nx-text-meta); }
+.rl-kpi-spark { height: 28px; margin-top: 4px; }
+.rl-chart { position: relative; flex: 1 1 auto; min-height: 120px; }
+.rl-chart canvas { position: absolute; inset: 0; }
+.rl-table { overflow: auto; font-size: 12.5px; }
+.rl-table table { width: 100%; border-collapse: collapse; }
+.rl-table th, .rl-table td { padding: 4px 8px; border-bottom: 1px solid var(--nx-border); text-align: left; white-space: nowrap; }
+.rl-placeholder { flex: 1; display: grid; place-items: center; color: var(--nx-text-meta); font-size: 12px; }
+.rl-kpi--up .rl-kpi-value { color: var(--nx-success, #15803d); }
+.rl-kpi--down .rl-kpi-value { color: var(--nx-danger, #b91c1c); }
+.rl-tile[data-type="panel"] .rdb-card-body > * { width: 100%; }
+.rl-overview { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.rl-card { display: flex; flex-direction: column; gap: 4px; text-align: left; padding: 14px 16px; border: 1px solid var(--nx-border); border-radius: 12px; background: var(--nx-card); color: var(--nx-text); cursor: pointer; min-height: 96px; }
+.rl-card:hover { border-color: var(--nx-accent); }
+.rl-card--new { justify-content: center; align-items: center; border-style: dashed; color: var(--nx-text-meta); }
+.rl-card-title { font: 600 14px var(--nx-font); }
+.rl-card-meta { font-size: 11.5px; color: var(--nx-text-meta); }
+.rl-card-measures { font-size: 12px; color: var(--nx-text-meta); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 /* ---- KPI ---------------------------------------------------------------- */
 
 /* KPI trend (Task 15/D8): "+x.y% vs previous period", only rendered when a
@@ -2935,3 +2978,53 @@ body.reporting-console .rdb-card .rdb-card-tools, .rdb-card .rdb-card-tools {
    there sets padding: 4px 0 60px and out-ranked the :fullscreen rule, which
    left a wall screen border-on-border. */
 body.reporting-console.rdb-fullbleed .reporting-dashboard:fullscreen { padding: 40px max(48px, 3vw) 72px; }
+/* ---- Contribution analysis ("Why did it move?") — the Total delta chip is
+   a button; the drawer body reuses the drill shell (#rdPanel). ---- */
+.rp-delta--why {
+  cursor: pointer;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 0 .45rem;
+  background: transparent;
+  font: inherit;
+  font-size: .72rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+.rp-delta--why:hover,
+.rp-delta--why:focus-visible { background: color-mix(in srgb, currentColor 12%, transparent); outline: none; }
+
+.reporting-contrib-head { margin: 0 0 .75rem; font-size: .9rem; }
+.reporting-contrib-tabs { display: flex; gap: .25rem; margin-bottom: .5rem; flex-wrap: wrap; }
+.reporting-contrib-tab {
+  font: inherit; font-size: .8rem; padding: .25rem .6rem; border-radius: 999px;
+  border: 1px solid var(--nx-border); background: transparent; cursor: pointer;
+}
+.reporting-contrib-tab.is-active { background: var(--nx-accent); color: #fff; border-color: var(--nx-accent); }
+.reporting-contrib-row {
+  display: grid; grid-template-columns: minmax(6rem, 1fr) 2fr auto; gap: .5rem;
+  align-items: center; padding: .35rem .25rem; border-bottom: 1px solid var(--nx-border);
+}
+.reporting-contrib-row[tabindex]:hover,
+.reporting-contrib-row[tabindex]:focus-visible { background: var(--nx-accent-tint); cursor: pointer; outline: none; }
+.reporting-contrib-row.is-other { opacity: .7; }
+.reporting-contrib-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.reporting-contrib-bar { height: .6rem; background: color-mix(in srgb, currentColor 12%, transparent); border-radius: 999px; overflow: hidden; }
+.reporting-contrib-bar i { display: block; height: 100%; background: currentColor; border-radius: 999px; }
+.reporting-contrib-nums { font-variant-numeric: tabular-nums; font-size: .8rem; white-space: nowrap; }
+.reporting-contrib-nums small { color: var(--nx-text-meta); }
+/* Chart annotations (#284) -- list under the Simple chart + add popover. */
+.rs-annotations { margin-top: 8px; font-size: 13px; }
+.rs-annotations-head { display: flex; align-items: center; gap: 10px; color: var(--nx-text-meta); }
+.rs-annotations-title { font-weight: 600; }
+.rs-annotations-list { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.rs-annotations-list li { display: flex; align-items: baseline; gap: 8px; }
+.rs-annotation-bucket { color: var(--nx-text-meta); white-space: nowrap; }
+.rs-annotation-author { color: var(--nx-text-meta); margin-left: auto; white-space: nowrap; }
+.rs-annotation-delete { background: none; border: 0; color: var(--nx-text-meta); cursor: pointer; padding: 0 4px; }
+.rs-annotation-delete:hover { color: var(--nx-danger, #b91c1c); }
+.rs-annotation-pop { position: absolute; z-index: 30; width: min(320px, 90vw); padding: 10px; background: var(--nx-card); border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 8px); box-shadow: 0 8px 24px rgba(0,0,0,.12); display: flex; flex-direction: column; gap: 8px; }
+.rs-annotation-pop-bucket { font-weight: 600; }
+.rs-annotation-pop input, .rs-annotation-bucket-select { width: 100%; box-sizing: border-box; }
+.rs-annotation-pop-actions { display: flex; justify-content: flex-end; gap: 8px; }
+#rsChartCard { position: relative; }

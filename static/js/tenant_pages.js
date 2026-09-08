@@ -71,6 +71,7 @@
     function formatCell(field, value) {
         if (value === null || value === undefined || value === '') return '—';
         if (field.role === 'date') return esc(formatDate(value));
+        if (field.role === 'flag') return Number(value) ? '✓' : '—';
         return esc(String(value));
     }
 
@@ -196,6 +197,7 @@
                 var input = el('tenant-field-' + f.column);
                 if (!input) return;
                 var value = row ? row[f.column] : null;
+                if (input.type === 'checkbox') { input.checked = !!Number(value); return; }
                 input.value = value === null || value === undefined ? '' : value;
             });
         }
@@ -227,7 +229,7 @@
             var data = {};
             cfg.fields.forEach(function (f) {
                 var input = el('tenant-field-' + f.column);
-                if (input) data[f.column] = input.value;
+                if (input) data[f.column] = input.type === 'checkbox' ? input.checked : input.value;
             });
             var id = idInput.value;
             var res = await api(id ? recordPath(id) : LIST_PATH, { method: 'POST', body: JSON.stringify(data) });

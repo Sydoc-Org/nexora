@@ -1,8 +1,9 @@
-"""Serialise access to the shared NEXORA_TEST database (#235).
+"""Serialise hand resets of the shared NEXORA_TEST database (#235).
 
-There is exactly one NEXORA_TEST, on INTSQL01, shared by CI and every local
-test run. Both the pre-push gate and CI's `test` job start by resetting it, so
-an overlapping pair corrupts each other: whichever runs second re-seeds
+pytest itself no longer needs this: every run creates a private
+NEXORA_TEST_<user>_<pid> (tests/conftest.py). The shared NEXORA_TEST remains
+for hand-driven TEST servers, and two scripts/test_db_reset.py runs resetting
+it at once would corrupt each other: whichever runs second re-seeds
 dbo.Users under the one already going, and a random login fixture dies with
 `KeyError: 'userid'` or a stray 401. The failure is never the same test twice
 and always passes in isolation, so it reads as "that test is flaky" rather

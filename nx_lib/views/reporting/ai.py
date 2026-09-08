@@ -69,6 +69,7 @@ from ._shared import (
     _effective_sources,
     _get_effective_source,
     _has_acked,
+    _json_safe,
     _load_db_metrics,
     _load_field_col_maps,
     _load_process_configs,
@@ -584,6 +585,15 @@ def api_ai_build():
     )
 
 
+def _json_safe_deep(obj):
+    """_json_safe over a nested tool trace (raw pyodbc rows sit inside it)."""
+    if isinstance(obj, dict):
+        return {k: _json_safe_deep(v) for k, v in obj.items()}
+    if isinstance(obj, list | tuple):
+        return [_json_safe_deep(v) for v in obj]
+    return _json_safe(obj)
+
+
 def _extract_agent_artifacts(tool_trace):
     """Pull the last validated definition / SQL out of the loop's tool trace.
 
@@ -882,7 +892,7 @@ def api_ai_agent():
             "answer": answer,
             "definition": definition,
             "sql": sql,
-            "toolTrace": result.tool_trace,
+            "toolTrace": _json_safe_deep(result.tool_trace),
             "turns": result.turns,
             "stoppedReason": result.stopped_reason,
             "explainData": explain,
@@ -967,7 +977,7 @@ def api_ai_agent():
                         + "\n"
                     )
                     return
-                yield json.dumps({"done": True, **_finish(result)}) + "\n"
+                yield json.dumps({"done": True, **_finish(result)}, default=str) + "\n"
 
             return Response(
                 stream_with_context(emit()),

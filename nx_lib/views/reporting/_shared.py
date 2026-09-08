@@ -44,7 +44,11 @@ from ...reporting.sandbox import (
     validate_select,
     wrap_with_cap,
 )
-from ...reporting.schema import ReportDefinitionError, validate_report_definition
+from ...reporting.schema import (
+    ReportDefinitionError,
+    validate_layout_definition,
+    validate_report_definition,
+)
 from ...reporting.semantic import resolve_metrics
 from ...reporting.sources import (
     DEFAULT_ROW_LIMIT,
@@ -311,6 +315,50 @@ def _has_acked(userid):
         conn.close()
 
 
+def _load_owned_layout(layout_id, userid):
+    """The parsed kind:'layout' definition `userid` owns under `layout_id`, else None.
+    Layouts are private (spec D-ownership): shares and Visibility='shared' do not count."""
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT r.DefinitionJSON FROM dbo.Reports r "
+            "WHERE r.ReportID = ? AND r.OwnerUserID = ? "
+            "  AND JSON_VALUE(r.DefinitionJSON, '$.kind') = 'layout'",
+            (layout_id, userid),
+        )
+        row = cur.fetchone()
+    finally:
+        conn.close()
+    if not row:
+        return None
+    try:
+        return json.loads(row[0])
+    except (TypeError, ValueError):
+        return None
+
+
+def _layout_block(rd, userid):
+    """(layout, fallback) for a run request. `layoutId` wins over an inline
+    `layout` (the editor's unsaved-preview path). fallback is 'missing' when the
+    id resolves to nothing the caller owns, 'invalid' when the layout fails
+    validation, None otherwise."""
+    layout_id = rd.get("layoutId")
+    if layout_id is not None:
+        layout = _load_owned_layout(layout_id, userid)
+        if layout is None:
+            return None, "missing"
+    else:
+        layout = rd.get("layout")
+        if layout is None:
+            return None, None
+    try:
+        validate_layout_definition(layout)
+    except ReportDefinitionError:
+        return None, "invalid"
+    return layout, None
+
+
 def _audit_sql(userid, username, target, sql_text, rows_returned, status, duration_ms):
     try:
         conn = engine_nexora_db.raw_connection()
@@ -526,6 +574,21 @@ def _resolve_definition_tokens_or_error(rd):
         raise ReportDefinitionError(str(e)) from e
 
 
+def _latest_of(resolved, source_metrics, catalog):
+    """The single grainable date column a 'latest'-mode metric set pins to, or None.
+
+    Shared by the interactive run and the session-less runner (scheduler, AI
+    run_definition) so both aggregate the newest snapshot, not every snapshot.
+    """
+    if not resolved:
+        return None
+    modes = {(source_metrics.get(m["code"]) or {}).get("total_mode", "sum") for m in resolved}
+    date_candidates = [f["field"] for f in catalog if f.get("grainable")]
+    if modes == {"latest"} and len(date_candidates) == 1:
+        return date_candidates[0]
+    return None
+
+
 def _prepare_run(rd):
     """Validate + build a query for a curated report.
 
@@ -629,14 +692,7 @@ def _prepare_run(rd):
             if rd.get("metrics")
             else None
         )
-        latest_of = None
-        if resolved:
-            modes = {
-                (source_metrics.get(m["code"]) or {}).get("total_mode", "sum") for m in resolved
-            }
-            date_candidates = [f["field"] for f in catalog if f.get("grainable")]
-            if modes == {"latest"} and len(date_candidates) == 1:
-                latest_of = date_candidates[0]
+        latest_of = _latest_of(resolved, source_metrics, catalog)
         sql, params = build_generic_query(
             rd,
             source.get("baseObject"),
