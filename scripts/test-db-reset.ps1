@@ -1,6 +1,7 @@
 <#
 .SYNOPSIS
-    Resets NEXORA_TEST to a known state.
+    Resets the shared NEXORA_TEST to a known state (pytest itself uses a
+    private per-run database and does not need this).
 
 .DESCRIPTION
     Thin wrapper around scripts/test_db_reset.py (pyodbc-based, no sqlcmd

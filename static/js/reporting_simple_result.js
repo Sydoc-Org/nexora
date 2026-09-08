@@ -12,6 +12,7 @@
 // functions is actually invoked (a user action), every file has already run.
 (function () {
   window.RS = window.RS || {};
+  RS.el = RS.el || window.NX.el;
   // Defensive fallback (see reporting_simple.js's top-of-file comment for
   // the RS.state/RS.el/RS.esc/RS.api/RS.I18N contract, and
   // reporting_simple_wizard.js's top-of-file comment for why this matters
@@ -52,6 +53,8 @@
 
   function showResultError(msg, opts) {
     RS.el('rsRunLoading').hidden = true;
+    var lgrid = document.getElementById('rsLayoutGrid');
+    if (lgrid) lgrid.hidden = true;   // a previous layout result must not sit under the error
     if (RS.el('rsChips')) RS.el('rsChips').hidden = true;
     RS.setView('result');
     RS.hideTimingBadge();
@@ -213,14 +216,20 @@
     return { dir: pct > 0 ? 'up' : 'down', pct: Math.abs(pct) };
   }
 
-  function deltaChipHtml(current, prior, priorStart, priorEnd) {
+  function deltaChipHtml(current, prior, priorStart, priorEnd, asButton) {
     if (prior == null || !isFinite(current)) return '';
     var d = computeDelta(current, prior);
     var arrow = d.dir === 'up' ? '↑' : d.dir === 'down' ? '↓' : '—';
     var title = RS.I18N.deltaVs + ' ' + priorStart + ' – ' + priorEnd;
-    return '<span class="rp-delta rp-delta--' + d.dir + '" data-testid="rp-delta"' +
-      ' title="' + RS.esc(title) + '" aria-label="' + RS.esc(title) + '">' +
-      arrow + ' ' + Math.round(d.pct) + '%</span>';
+    var body = arrow + ' ' + Math.round(d.pct) + '%';
+    if (!asButton) {
+      return '<span class="rp-delta rp-delta--' + d.dir + '" data-testid="rp-delta"' +
+        ' title="' + RS.esc(title) + '" aria-label="' + RS.esc(title) + '">' + body + '</span>';
+    }
+    return '<button type="button" class="rp-delta rp-delta--' + d.dir + ' rp-delta--why"' +
+      ' data-testid="rp-delta" data-why="1"' +
+      ' title="' + RS.esc(title + ' · ' + RS.I18N.whyLabel) + '"' +
+      ' aria-label="' + RS.esc(RS.I18N.whyLabel + ' ' + title) + '">' + body + '</button>';
   }
 
   // Inline sparkline (Task 11): a hand-rolled SVG polyline of the metric
@@ -344,7 +353,11 @@
     var totalDelta = '', avgDelta = '', peakDelta = '', deltaNote = '';
     if (priorKpi) {
       deltaNote = RS.I18N.deltaVs + ' ' + comparison.priorStart + ' – ' + comparison.priorEnd;
-      totalDelta = deltaChipHtml(kpi.total, priorKpi.total, comparison.priorStart, comparison.priorEnd);
+      // Contribution drawer sums the whole window; for a 'latest' metric the
+      // chip itself is the latest-bucket snapshot (see applyLatestTotal), so
+      // the drawer's sum can't explain it -- keep a plain span there, not a
+      // "Why?" button.
+      totalDelta = deltaChipHtml(kpi.total, priorKpi.total, comparison.priorStart, comparison.priorEnd, metricTotalModeFor(def) !== 'latest');
       // Bucket-count mismatch guard: shifted_definition_for_comparison shifts
       // the prior window back by the CURRENT window's length in DAYS, not by
       // an integer number of grain periods -- for a window whose day-length
@@ -433,6 +446,19 @@
     });
   }
   RS.renderKpiBand = renderKpiBand;
+
+  // "Why?" — the Total delta chip opens the contribution drawer with the
+  // definition that produced this band (tokens intact) and its catalog.
+  var band = RS.el('rsKpiBand');
+  if (band) band.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-why]');
+    if (!btn || !window.ReportingContribution) return;
+    var cur = RS.state && RS.state.current;
+    if (!cur || !cur.def) return;
+    var src = (RS.state.sources || []).find(function (s) { return s.id === cur.def.source; });
+    ReportingContribution.open(cur.def, (src && src.fields) || [],
+      { header: cur.name || cur.def.title || '' });
+  });
 
   // Console "Anomalies" card: cheap client-side outlier notes over the rows
   // already rendered — the latest complete bucket's swing per series, plus

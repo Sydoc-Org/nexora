@@ -156,6 +156,7 @@ def execute_definition(definition, owner_perms, owner_id, owner_username, locale
             catalog,
             row_cap=definition.get("rowLimit", DEFAULT_ROW_LIMIT),
             resolved_metrics=resolved,
+            latest_of=rv._shared._latest_of(resolved, source_metrics, catalog),
         )
         engine = rv._CURATED_ENGINES.get(source.get("engine"))
         if engine is None:

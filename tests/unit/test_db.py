@@ -37,9 +37,23 @@ def test_get_db_url_encodes_password_in_odbc_string():
 
 
 def test_ping_db_probe_works_on_live_engine():
-    """Direct probe path — no timeout wrapper. Should succeed on NEXORA_TEST."""
+    """Direct probe path — no timeout wrapper. Should succeed on the test DB."""
     # No assertion needed; just must not raise.
     _ping_db_probe(engine_nexora_db)
+
+
+def test_engine_points_at_this_runs_database():
+    """conftest hands every pytest process its own NEXORA_TEST_* database via
+    DB_NEXORA before nx_lib loads; the engine must actually be on it, or two
+    runs are silently back to sharing one (#235)."""
+    import os
+
+    from sqlalchemy import text
+
+    with engine_nexora_db.connect() as conn:
+        live = conn.execute(text("SELECT DB_NAME()")).scalar()
+    assert live == os.environ["DB_NEXORA"]
+    assert live.upper().startswith("NEXORA_TEST")
 
 
 def test_ping_dbs_parallel_runs_concurrently():

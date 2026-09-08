@@ -80,6 +80,8 @@ guide as an app page.
 
 - Click a chart bar or a table row to open the documents behind that number;
   the **Query** card beside the chart shows exactly how it was computed.
+- Click the ↑/↓ chip on the total to see which processes or categories drove
+  the change since the previous period.
 - The ↑/↓ comparison chips compare a window shifted back by your range's
   length in days — not the previous calendar period. Hover a chip for the
   exact dates.
@@ -146,7 +148,11 @@ flat table with dates, so "over time" breakdowns work.
 In the Simple wizard's measure list they form one **Generali** block: Documents
 (the same document feed the Generali dashboard charts — break it down by document
 type, input channel, language, post-check…), Attendance, Base Services, Project
-Management, Reporting and CSV Imports. Clicking a source card in the rail opens its
+Management, Reporting and CSV Imports. Sydoc staff also see **Bucherer — EasyTax**
+(imported and exported documents, pages) and **Frigemo — Documents** (daily
+imported/exported documents and pages, deleted documents, invoices) and **Sydoc — Project Hours** (hours booked in
+bpsuite by customer, project package, task and user) and **MediaMarkt — Batches**
+(pieces scanned per batch, entered on the Sydoc tenant page). Clicking a source card in the rail opens its
 database **structure**, not a report — start reports with **New report**.
 
 **Click a source card** to look inside the database behind it (needs the
@@ -228,11 +234,24 @@ deleting anything you saved.
    shows *this* month every time it is opened or emailed — it does not freeze on
    the month you built it in.
 
+   **Filters (optional)** on the same step narrow the report beyond the date
+   range and the process scope: *Add filter*, pick a field, an operator
+   (`=`, `≠`, contains, starts with, `>`, `<`, is empty …) and type a value.
+   Add as many as you need; each one becomes an editable chip above the result,
+   so you can change or drop it there without reopening the wizard. Date fields
+   are not offered here — the time range above already covers them.
+
 Then **Show result**. To change something afterwards, hit **Adjust** — the
 wizard reopens with all your answers still selected. The chips above the
 result are editable too: clicking the **Processes** chip or any *is one of*
 filter chip opens a checkbox picker of the known values — no typing needed.
 Ticking everything simply removes the restriction.
+
+**+ Add filter** at the end of that chip row adds a filter to the result you
+are already looking at — pick a field, an operator and a value, hit Apply and
+the report re-runs. It works on any result, including a saved report someone
+shared with you or an answer from Eddard; the added filter is yours until you
+save the report.
 
 #### About those "2/5" badges
 
@@ -433,6 +452,27 @@ number. A hint line tells you when this is available.
 - On a distinct-count measure, the drawer says so: you may see more rows than
   the number, because the same value can appear on several rows.
 
+### Click the arrow on the total to see what drove the change
+
+When a report with a time preset shows a small **↑ / ↓ percentage** next to its
+total, that chip is a button. Click it and a panel explains the change: one
+tab per breakdown (process first, then the source's other categories), each
+listing which values moved the number most, with the previous and current
+figure, the change, and its share of the total change.
+
+- Click a row to jump to the documents behind that value.
+- "(other)" gathers everything outside the top eight.
+- Averages and distinct counts show the change but no share — a share of an
+  average has no meaning.
+
+### Pin a note on the chart
+
+If you own the report, **Alt+click** a bar or point (or use **Add annotation**
+under the chart) to pin a short note on that period — "mailroom outage", "new
+client onboarded". It shows as a small triangle at the foot of that bar and in
+the Annotations list below; everyone you share the report with sees it. Delete
+with the `×` on the row. A result you haven't saved yet can't be annotated.
+
 ---
 
 ## Saving, sharing, finding again
@@ -525,6 +565,70 @@ not the recipients'.
 
 ---
 
+## Report definitions
+
+A **report definition** is a saved bundle of measures and a tile layout that
+a report can render its result through, instead of the usual chart + table.
+It is the reporting equivalent of a template: build it once, then pick it for
+any report where you want that shape.
+
+**Creating one.** Open **Report definitions** in the left navigation. The
+screen opens on an **overview** — one card per definition you own, with its
+measures and tile count — plus a **New definition** card. Click a card to open
+it; the **back arrow** returns to the overview, and from there to the Library.
+
+- **Add a measure** for each number you want, then pick what it computes (see
+  the measures below).
+- **Add a tile** — a KPI tile (one measure, optionally with a small
+  sparkline), a chart (bar, stacked bar, line, area, pie, doughnut or gauge)
+  or a table.
+- **Add a panel** — the result's side cards as tiles: **Eddard insight**,
+  **Ask Eddard**, **Anomalies** and **Query**. A definition owns the whole
+  result: whatever you do not place as a panel is not shown when a report
+  renders through it.
+- **Drag** tiles to arrange them and **resize** by their corner grip, the same
+  way a dashboard card works.
+- **Preview with** a saved report to see real numbers while you build. The
+  preview re-runs on every change, so a new measure fills in at once.
+- **Done** saves it.
+
+**The measures, in plain words:**
+
+| Measure | Shows |
+|---|---|
+| Current | The latest value — for a report broken down by time, the most recent bucket; otherwise the total. |
+| Total | The sum over every bucket — the standard result's **Total**. |
+| Delta vs previous period | Total now minus the total of the period before (same length, shifted back), with the percent change. Needs a report with exactly one relative date filter, e.g. *This month*. |
+| Buckets | How many periods (rows) the result has. |
+| Avg per bucket | Total divided by buckets. |
+| Mean | The average across every bucket. |
+| Median | The middle value — half the buckets are above it, half below. |
+| Min / max | The smallest and largest values seen. |
+| Range | The gap between the smallest and the largest. |
+| Standard deviation | How spread out the values are around the average. |
+| Percentile | The value below which a chosen percentage of the data falls (e.g. the 90th percentile). |
+
+A chart tile draws a report with **two breakdowns** (e.g. month and customer)
+as one series per second-breakdown value, the same as the standard chart.
+
+**Using one.** Pick a report definition at the top of the guided builder, or
+next to **Saved reports** in the Advanced builder — do this before you run,
+same as picking a source. Running the report then draws your tiles instead of
+the standard chart and table. Pick **Standard** to go back to the usual view.
+
+**It is private.** A report definition you create is yours alone — sharing a
+report that uses one does not share the definition with the recipient; they
+just see the standard view instead.
+
+**If you delete one**, every report that was using it quietly falls back to
+the standard view next time it runs — nothing else breaks.
+
+**Exporting** a report that uses a definition adds a small **Measures**
+block underneath the data in the Excel/CSV file, listing each measure and its
+value.
+
+---
+
 ## Dashboards
 
 **New dashboard** builds a page of live cards out of your saved reports. A
@@ -614,6 +718,8 @@ A dashboard saves, shares and deletes exactly like any other report.
 | **Scope** | The processes a report is allowed to include. |
 | **Bucket** | One bar/point of the chart — one month, one category, … |
 | **Drill-through** | Clicking a number to see the individual documents behind it. |
+| **Report definition** | A saved bundle of measures and a tile layout a report can render its result through, in place of the standard chart + table. |
+| **Measure (definition)** | One computed number inside a report definition — current, total, delta vs previous period, buckets, avg per bucket, mean, median, min/max, range, standard deviation or percentile. |
 
 ---
 

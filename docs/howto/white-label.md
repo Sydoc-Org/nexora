@@ -86,6 +86,14 @@ Note the last one is Octo-specific: `dbo.ProcessSources` describes Octo processe
 tenant (a plain table or view, `TenantEntities.Kind = 'entries'`/`'lookup'`) needs an axis-1 client
 row and tenant descriptors but no process source at all.
 
+Worked example, migration `0126`: the MediaMarkt scan protocol. One `entries` entity over
+`SYDOC_Statistik.dbo.MediaMarkt_Batches` (`EngineRole = 'stats'` on the `default` client), ten
+`TenantFields`, one `crud` page — `/t/sydoc/mediamarkt` exists with no page code. Two field roles
+carry behaviour on generated CRUD pages: **`person`** is never typed, `nx_lib/views/tenant.py`
+stamps it with the current username on every insert and update (the "Visum" column); **`flag`**
+renders as a checkbox and stores `0`/`1`. `date` gives a date picker and the list's date-range
+filter, `count`/`money` a numeric input, everything else a text input.
+
 **Since migration `0090` (#257) the organization is the hub that ties the axes together.**
 `dbo.Organizations` carries `TenantCode` (axis 3) and is referenced by
 `ProcessSources.OrganizationCode` and `AccessProfile.OrganizationCode`. Which axis-1 connections an

@@ -281,6 +281,7 @@
       // D17: a dashboard-kind report routes to the builder view instead of
       // the normal single-report result view.
       if (r.kind === 'dashboard') { openDashboard(r); return; }
+      if (r.kind === 'layout') { RS.setView('layouts'); window.ReportingLayouts.openLayout(r); return; }
       openReport(r);
     });
     wrap.appendChild(b);
@@ -369,6 +370,7 @@
     // second instead of trickling in card by card.
     var idx = 0;
     list.forEach(function (r) {
+      if (r.kind === 'layout') return;
       if (q && r.name.toLowerCase().indexOf(q) === -1) return;
       var g = r.visibility === 'shared' ? 'shared' : (r.owned ? 'mine' : 'direct');
       var c = card(r);
@@ -412,7 +414,8 @@
     if (!RS.state.sources) RS.loadSourcesCatalog().then(renderLibrary);
     // …and again when the rail's health probe reports the real database names,
     // which is what the cards would rather show than the registry label.
-    if (!window.ReportingSourceDb) {
+    if (!window.ReportingSourceDb && !RS._healthOnce) {
+      RS._healthOnce = true;
       document.addEventListener('rc:sourcehealth', function once() {
         document.removeEventListener('rc:sourcehealth', once);
         if (RS.state.reports) renderLibrary();
@@ -435,6 +438,7 @@
       owned: !!res.data.owned, canEdit: !!res.data.canEdit, fromWizard: false,
       origin: 'library'
     };
+    if (RS.annotations) RS.annotations.load(r.id);
     RS.runCurrent();
   }
 
@@ -447,6 +451,7 @@
       def: def, name: name || def.title || '', reportId: null,
       owned: true, canEdit: true, fromWizard: false, origin: 'ai'
     };
+    if (RS.annotations) RS.annotations.load(null);
     RS.runCurrent();
   }
 

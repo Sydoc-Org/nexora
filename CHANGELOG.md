@@ -6,10 +6,81 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **Private test database per pytest run.** `tests/conftest.py` creates
+  `NEXORA_TEST_<user>_<pid>` from `sql/test/schema.sql` + `seed.sql` at session
+  start (~1.5 s) and drops it at the end; the e2e server takes a free port. The
+  shared `NEXORA_TEST` and its application lock are only for hand resets now,
+  so parallel local runs and CI never wait on each other (#235).
+  `scripts/test_db_reset.py --prune` drops orphans a killed run left behind;
+  CI's "Reset NEXORA_TEST database" step is gone.
+  Ops: the TEST login was added to the `dbcreator` server role on INTSQL01.
+- **Filters in the Simple wizard** — the Time step gained an optional
+  *Filters* block: `Add filter` builds field/operator/value rows (the same ops
+  the Advanced tab offers, minus the date presets, which the time range above
+  already covers). Each filter lands in the report definition and renders as an
+  editable chip above the result, so it can be adjusted or removed without
+  reopening the wizard, and *Adjust* now maps such reports back into the wizard
+  instead of falling back to Advanced. The chip row itself gained
+  **+ Add filter**: field, operator, value and Apply re-runs, so any result on
+  screen — a saved report, a shared one, an Eddard answer — can be narrowed
+  without going near the builder.
+- **Report definitions grow up** — the Definitions screen opens on an overview
+  of your definitions (cards with measures and tile count) with a back arrow
+  to the overview and the Library; five new measures (*Total*, *Delta vs
+  previous period*, *Buckets*, *Avg per bucket*, *Median*) mirror the standard
+  KPI band; the result's side cards (Eddard insight, Ask Eddard, Anomalies,
+  Query) become optional **panel tiles**, so a definition owns the whole result
+  and nothing bleeds in beside it; the editor preview re-runs on every change.
+
+### Fixed
+- **Definition chart tiles said "Not available"** for decimal measures (hours,
+  amounts): the run API serialises them as strings, which the tile renderer
+  rejected. Numeric strings now count, and a report with two breakdowns pivots
+  the second one into series like the standard chart.
+
+- **MediaMarkt scan protocol moves off Excel** — the Sydoc tenant gets a generated
+  CRUD page `/t/sydoc/mediamarkt` (migration `0126`) over the new
+  `SYDOC_Statistik.dbo.MediaMarkt_Batches` table: one row per scanned batch with
+  date, batch number, pieces, type K/D/KA, done, correction batches, corrections,
+  corrections received, remarks. The visum is stamped from the login. The 2026
+  workbook is back-filled by `nx-sources/mediamarkt/import_protocol.py`. Same
+  table is the reporting source **MediaMarkt — Batches** with *Pieces scanned* and
+  *Batches* measures (`reporting.source.mediamarkt_batches.use`).
+- **Generated CRUD pages learn two roles** — a `person` field is no longer typed:
+  it is stamped server-side with the current username on every write. A `flag`
+  field renders as a checkbox and stores 0/1.
+- **Field quality covers every process of an onboarded customer** — migration
+  `0125` relaxes the `0111` gate on `vFieldExtractionQuality` from
+  (organization, process) to organization only, so ElektroMaterial's legacy
+  `01_Invoice_1` and Privera's `PriveraPostFields` telemetry count again.
+  Bucherer and Geberit stay out until they have an organization.
+- **Bucherer & Frigemo reporting sources** — migration `0127` registers
+  **Bucherer — EasyTax** (`dbo.Bucherer_EasyTax` on the Statistics DB, one row
+  per document: measures *Imported documents*, *Exported documents* = rows with
+  an export time, *Pages*) and **Frigemo — Documents** (`dbo.Frigemo`, daily
+  counters summed: imported/exported documents and pages, deleted, invoices).
+  Generic `table` sources, no code; one `reporting.source.<code>.use` permission
+  each, held by Enterprise Admin only until granted.
+- **Sydoc — Project Hours reporting source** — migration `0124` registers the
+  bpsuite Projektbericht feed (`dbo.BPS_ProjectReport` on the Statistics DB,
+  loaded by `nx-sources/bps/bps_project_report.py`): customer, project package,
+  task, user, date, hours. Measures **Hours**, **Bookings** and **Absence hours**
+  (hours on the `Absences` pseudo-customer). `reporting.source.bps_projects.use`.
+
 Work toward the next release.
 
 ### Added
 
+- **Report definitions (layouts).** A new *Report definitions* screen in the reporting rail
+  lets a user save named bundles of derived measures — current value, mean, min/max, range,
+  standard deviation, percentile — and a drag-and-drop 12-column tile layout (KPI tiles with
+  optional sparkline, bar / stacked bar / line / area / pie / doughnut / gauge charts, table).
+  Pick one at the top of the wizard or next to Saved reports in Advanced; the report stores
+  `layoutId`, `/api/reporting/run` returns `layout` + `derived`, and the result renders as
+  that tile grid. Exports append a Measures block. Layouts are private per user; a deleted
+  one falls back to Standard. `/reporting/definitions` opens the screen. The dashboard's
+  drag/resize engine moved to `static/js/reporting_grid.js` and is shared.
 - **Live SQL reaches every reporting database, and names them.** The sandbox gained a
   third target — the **Generali** tenant DB (`reporting.sql.target.generali.use`,
   migration `0121`, own `db_datareader` login `DB_REPORTING_GENERALI_RO_*`) — so it
@@ -40,6 +111,23 @@ Work toward the next release.
   fixed row height used to clip the fifth KPI tile and the table toggle).
 
 ### Fixed
+- **Reporting bug hunt** — Eddard's streamed answer no longer dies when a tool
+  result carries dates/decimals; scheduled and AI runs of *latest*-mode metrics
+  aggregate the newest snapshot like the screen does; the `run_sql` tool accepts
+  every configured SQL target (Generali included); *current value* layout tiles
+  read decimal metrics; the forecast fit window is half-open like the visible one;
+  a failing schedule advances to its next slot instead of retrying every tick;
+  dashboards and report definitions can no longer be scheduled (picker + server);
+  "Why did it move?" skips `advanced` columns and dimensions that explain nothing
+  (IDs, file names — one row per value) and probes the next candidate instead.
+  Advanced: no stale chart PNG in the next Excel export, no stale KPI band / SQL
+  peek left over an error, rename keeps the plain report name, forecast toggles
+  can't race a run, SQL-sandbox results get no KPI band, drill export buttons come
+  back after a contribution drawer. Simple: annotations of one report never land
+  on another, pie charts hide the Add-annotation affordance, forecast/colour
+  toggles keep their pressed state, a late run response after Back/Delete no
+  longer yanks the view or throws, and a failed layout run hides the previous tile
+  grid.
 
 - **Sydoc-tenant users no longer see a Prepared Documents link that always fails.**
   `0094` copied Mobscn's three tenant pages onto the new `sydoc` tenant, but Prepared
@@ -168,6 +256,14 @@ Work toward the next release.
 - **Enterprise Admin holds every permission** (migration `0106`) — granted
   today and kept that way by a trigger on `dbo.Permission`, so a code added
   later by migration or from the admin grid lands on the profile at once.
+
+- **Chart annotations.** The owner of a saved report can Alt+click a bar or
+  point on the Simple-tab chart (or use *Add annotation* under it) to pin a
+  short dated note — "mailroom outage", "new client onboarded". Everyone the
+  report is shared with sees it as a marker on the chart and in a list below.
+  New `dbo.ReportAnnotations` (migration `0123`) and
+  `/api/reporting/reports/<id>/annotations`. Simple tab only for now. #284
+
 ### Fixed
 
 - **The outage monitor no longer alarms on planned maintenance** (#281).
@@ -243,8 +339,20 @@ exora\Prune Sessions"
   someone's memory of clicking through Task Scheduler. Four tests cover it,
   including that the file keeps its UTF-16 LE encoding: Task Scheduler refuses
   UTF-8, and an editor silently "fixing" it is invisible until an import fails.
+- **Reporting explains a change ("Why did it move?").** The Total delta chip on
+  the Simple KPI band (and on dashboard whole-report cards) is now a button.
+  It opens a drawer decomposing the change vs. the prior window by process and
+  the source's categorical columns, ranked by contribution, with click-through
+  to the documents. New `POST /api/reporting/contribution`; no new permission.
 
 ### Changed
+- **Pushing is fast again.** The pre-push hook no longer runs the test suite
+  (it duplicated CI's fast tier against the same shared `NEXORA_TEST`, ~10 min
+  per push and one more contender for the database lock); it only guards branch
+  names now. In CI the e2e browser tier moves off the PR path to a nightly run on
+  `main` (weekdays 03:00 UTC) plus on-demand `workflow_dispatch`, with a
+  25-minute hard timeout so a hung browser can no longer hold the test-DB lock
+  for hours. The fast tier still gates every PR and merge commit.
 
 - **Advanced is back in the Reporting rail.** The **Advanced** nav entry (parked
   `hidden` on 2026-08-26) sits last in the Workspace group again, so the
@@ -458,6 +566,11 @@ exora\Prune Sessions"
 
 ### Fixed
 
+- **The Sources rail stays one card per database when the database is down.**
+  Cards were collapsed on the health probe's `DB_NAME()`, so an unreachable SQL
+  Server made every registered source its own card (six Generali boxes).
+  `/api/reporting/sources` now carries each source's `engine` and the rail
+  falls back to it — one Generali card, probe or no probe.
 - **The last eight hardcoded-English strings are out of
   `static/js/reporting_schema.js`** (#246). Each was the fallback half of
   `I18N.key || '<English default>'`, kept for the case the shim was missing.

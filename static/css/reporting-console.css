@@ -947,6 +947,11 @@ body.reporting-console #rsKpiBand .rs-kpi-value-wrap { align-items: baseline; }
 .rs-result-main:has(> #rsTableCard[hidden]) .rs-chart-body { flex: 1; height: auto; }
 .rs-result-main:has(> #rsChartCard[hidden]) { grid-template-columns: minmax(0, 1fr); }
 .rs-result-main:has(> .rs-result-side:empty) { grid-template-columns: minmax(0, 1fr); }
+/* A report definition renders the whole result as tiles: the side column steps
+   aside (its cards live inside panel tiles) and the tile grid takes the row. */
+.rs-result-side[hidden] { display: none; }
+.rs-result-main:has(> .rs-result-side[hidden]) { grid-template-columns: minmax(0, 1fr); }
+.rs-result-main > #rsLayoutGrid { grid-column: 1 / -1; }
 body.reporting-console .reporting-simple-chartcard {
   display: flex;
   flex-direction: column;
@@ -1712,7 +1717,8 @@ body.reporting-console.rdb-fullbleed .reporting-shell { max-width: none; padding
 body.reporting-console.rdb-fullbleed .rc-body { grid-template-columns: minmax(0, 1fr); }
 body.reporting-console.rdb-fullbleed .rc-rail { display: none; }
 body.reporting-console.rdb-fullbleed .reporting-simple { max-width: none; padding-inline: 0; }
-body.reporting-console.rdb-fullbleed .reporting-dashboard { max-width: none; padding: 4px 0 60px; }
+body.reporting-console.rdb-fullbleed .reporting-dashboard,
+body.reporting-console.rdb-fullbleed .reporting-layouts { max-width: none; padding: 4px 0 60px; }
 
 /* Present: the dashboard element is the fullscreen element. Page background,
    room to breathe, no chrome that only makes sense in the app. */
