@@ -200,6 +200,32 @@
         return out;
       });
     }
+    // Chart annotations (#284): one marker dataset, a triangle at y=0 on each
+    // annotated bucket. Tagged _nxAnnotations so the legend filter and the
+    // drill click-handler treat it like _band/_forecast. Never on pie/doughnut.
+    var annMap = (opts && opts.annotations) || null;
+    if (annMap && !circular) {
+      var annData = d.labels.map(function (lbl, i) {
+        return (i < (d.forecastStart == null ? d.labels.length : d.forecastStart) && annMap[lbl]) ? 0 : null;
+      });
+      if (annData.some(function (v) { return v !== null; })) {
+        datasets = datasets.concat([{
+          _nxAnnotations: true,
+          label: RS.I18N.annotationMarker,
+          type: 'line',
+          showLine: false,
+          data: annData,
+          pointStyle: 'triangle',
+          pointRadius: 7,
+          pointHoverRadius: 9,
+          pointBackgroundColor: '#f59e0b',
+          pointBorderColor: '#b45309',
+          pointBorderWidth: 1,
+          yAxisID: 'y',
+          order: -1
+        }]);
+      }
+    }
     // A level's NULL bucket is a gap in knowledge, not a cliff — bridge it.
     if (chartJsType === 'line') datasets.forEach(function (ds) { ds.spanGaps = true; });
     // Axis ownership cues: each Y axis is titled with its series and, when it
@@ -303,13 +329,16 @@
                                         // the legend (and drill — see the _forecast/_band guard
                                         // in the drill click-handler below).
                                         var ds = data.datasets[item.datasetIndex] || {};
-                                        return !(ds._band || ds._forecast);
+                                        return !(ds._band || ds._forecast || ds._nxAnnotations);
                                       } } },
                             tooltip: {
                               callbacks: {
                                 // Reuse the module's own number formatter (fmtChartTooltip)
                                 // instead of Chart.js's raw float — mirrors mountChart's tooltip.
                                 label: function (ctx) {
+                                  if (ctx.dataset._nxAnnotations) {
+                                    return ((annMap || {})[ctx.label] || []).join(' · ');
+                                  }
                                   var raw = ctx.parsed;
                                   var v = (raw && typeof raw === 'object') ? raw.y : raw;
                                   var name = circular ? (ctx.label || '') : (ctx.dataset.label || '');
@@ -323,6 +352,11 @@
                    var dsHit = (this.data.datasets || [])[els[0].datasetIndex] || {};
                    if (dsHit._forecast || dsHit._band) return;
                    if (d.forecastStart != null && d.forecast && els[0].index >= d.forecastStart) return;
+                   var onAnnotate = opts && opts.onAnnotate;
+                   if (onAnnotate && (dsHit._nxAnnotations || (evt.native && evt.native.altKey))) {
+                     onAnnotate(els[0].index); return;
+                   }
+                   if (dsHit._nxAnnotations) return;
                    onDrill(els[0].index, els[0].datasetIndex);
                  },
                  onHover: function (evt, els) {
@@ -337,7 +371,9 @@
     if (!d) return;
     destroyChart();
     var built = chartConfigFor(d, type, (RS.state.current && RS.state.current.def) || {},
-                               { onDrill: RS.drillFromChart });
+                               { onDrill: RS.drillFromChart,
+                                 annotations: RS.annotations ? RS.annotations.byBucket() : null,
+                                 onAnnotate: RS.annotations ? RS.annotations.onChartAnnotate : null });
     type = built.type;
     RS.state.chartType = type;
     var multi = built.multi, circular = built.circular;
@@ -618,6 +654,7 @@
     RS.el('rsChartCard').hidden = false;
     RS.el('rsChartTools').hidden = false;
     renderChart(RS.state.chartData.type);
+    if (RS.annotations) RS.annotations.renderList();
     return true;
   }
 
