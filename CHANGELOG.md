@@ -10,6 +10,20 @@ Work toward the next release.
 
 ### Fixed
 
+- **The deploy now registers the scheduled tasks itself** — a new *Register
+  scheduled tasks* step in `deploy.yml` imports `ops/outage-monitor-task.xml`
+  and `ops/cleanup/prune-active-sessions-task.xml` on every push to `main`,
+  idempotently (`schtasks /create ... /f`) and with a `/query` afterwards to
+  verify. Robocopy mirrors a task XML but Windows does not read definitions off
+  disk: the prune's XML sat in `D:\sydoc
+exora\ops\cleanup` for twelve
+  hours while `dbo.ActiveSessions` kept growing, because a task only exists
+  once it is registered. The outage monitor had the same latent gap — it
+  happened to be registered, but a rebuilt SYAPP01 would have lost it silently.
+  The step runs last, after the app pool and tunnels are back up, so a failure
+  is loud without holding the site down. `/f` also means a hand-disabled task
+  returns on the next deploy; to stop a job for good, remove its XML.
+
 - **The `dbo.ActiveSessions` prune now has a way to be scheduled.** #227
   shipped `ops/cleanup/prune_active_sessions.py` and a docstring asking someone
   to register a task by hand; nothing in the repo executed it, so merging and
