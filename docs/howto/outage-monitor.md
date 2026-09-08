@@ -82,6 +82,39 @@ A warning storm is labelled `warn storm @ <site>` rather than `log storm`, and a
 signature seen at both levels is judged at the *error* bar -- one stray WARNING
 must not raise an error storm's threshold.
 
+## Mail rate cap
+
+Per-component hysteresis stops one incident re-alerting, but it does not limit
+the **total**. With a 5-minute poll and 13 probes the worst case was two mails a
+run -- 24 an hour -- and every deploy restart and maintenance window trips the
+HTTP probes, so routine work arrived at the helpdesk as alerts (#282).
+
+`nx_lib.outage.mail_budget()` caps alert mail at **4 per rolling hour**
+(`DEFAULT_MAIL_MAX_PER_WINDOW` / `DEFAULT_MAIL_WINDOW_S`). The budget lives in
+`var/outage-state.json` next to the component state, because each monitor run is
+a fresh process -- an in-memory counter would reset every 5 minutes and cap
+nothing.
+
+Three properties worth knowing:
+
+- **The first mail is never suppressed.** A real outage alerts promptly however
+  quiet the hour has been; the cap only bites on the fifth.
+- **Suppressed mails are counted and reported** in the next one that does go
+  out ("*N further alert mail(s) were suppressed*"). Silence that cannot be told
+  apart from health would be worse than the spam it replaces.
+- **`max_per_window=0` disables it**, for an incident where every mail is
+  wanted.
+
+The run summary reports throttling, so the log shows it too:
+
+```
+outage monitor: 13 probes, 2 event(s), 1 mail(s), 1 throttled, 4 incident(s) open
+```
+
+Fixing #281 (the monitor treats planned maintenance as an outage) removes a large
+share of these mails at source. The cap is the backstop for the rest: genuine
+flapping, log storms and deploy restarts.
+
 On a **dev box** expect the log-storm probe to fire constantly: the unit suite
 deliberately logs errors ("boom", "DB down", …) into the same `app.log`, so a
 run right after `pytest` opens dozens of incidents. That is why `SUPPORT_MAIL`

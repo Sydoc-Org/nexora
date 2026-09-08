@@ -35,6 +35,18 @@ DEFAULT_FAIL_THRESHOLD = 2
 DEFAULT_RECOVER_THRESHOLD = 2
 DEFAULT_MIN_HOLD_S = 30 * 60
 
+# --- Alert mail budget --------------------------------------------------------
+# Per-component hysteresis above stops an incident re-alerting, but nothing
+# capped the TOTAL. With a 5 minute poll and 13 probes the worst case is two
+# mails a run -- 24 an hour -- and deploys and maintenance windows trip the HTTP
+# probes every time, so routine work reached the helpdesk as alerts (#282).
+#
+# 4 an hour still delivers a real outage promptly (the first mail is never
+# suppressed) while making a storm of transitions cost four mails instead of
+# twenty-four.
+DEFAULT_MAIL_MAX_PER_WINDOW = 4
+DEFAULT_MAIL_WINDOW_S = 60 * 60
+
 # --- Log-storm defaults -------------------------------------------------------
 # The reference case (issue #166) was `Invalid object name 'dbo.WorkitemTags'`
 # repeating for hours while every DB ping stayed green -- logic-level breakage
@@ -245,6 +257,55 @@ def update_component(
     return state, event
 
 
+def mail_budget(
+    budget,
+    now,
+    max_per_window=DEFAULT_MAIL_MAX_PER_WINDOW,
+    window_s=DEFAULT_MAIL_WINDOW_S,
+):
+    """Decide whether one more alert mail may go out, and fold the decision in.
+
+    Returns ``(allowed, suppressed, new_budget)``. ``suppressed`` is how many
+    mails were held back since the last one that went, and is only meaningful
+    when ``allowed`` -- the caller reports it in that mail so a throttled period
+    is visible rather than silent. Silence that cannot be distinguished from
+    health is worse than the spam it replaces.
+
+    The budget must be persisted with the component state: every monitor run is
+    a fresh process, so an in-memory counter would reset every 5 minutes and cap
+    nothing at all.
+
+    A window of ``0`` or a non-positive ``max_per_window`` disables the cap,
+    which is the escape hatch for an incident where you want every mail.
+    """
+    budget = dict(budget or {})
+    sent = [s for s in budget.get("sent", []) if isinstance(s, str)]
+    suppressed = budget.get("suppressed", 0)
+    if not isinstance(suppressed, int) or suppressed < 0:
+        suppressed = 0
+
+    if max_per_window <= 0 or window_s <= 0:
+        return True, suppressed, {"sent": [], "suppressed": 0}
+
+    # Keep only sends inside the rolling window. Unparseable entries are
+    # dropped rather than raising: a hand-edited or half-written state file
+    # must not stop the monitor from alerting.
+    fresh = []
+    for stamp in sent:
+        try:
+            when = datetime.fromisoformat(stamp)
+        except ValueError:
+            continue
+        if (now - when).total_seconds() < window_s:
+            fresh.append(stamp)
+
+    if len(fresh) >= max_per_window:
+        return False, suppressed, {"sent": fresh, "suppressed": suppressed + 1}
+
+    fresh.append(now.isoformat())
+    return True, suppressed, {"sent": fresh, "suppressed": 0}
+
+
 def prune_state(state, now, max_age_days=7):
     """Drop closed components untouched for ``max_age_days``.
 
@@ -322,13 +383,17 @@ def _subject_names(events):
     return f"{head} (+{len(names) - _SUBJECT_MAX_NAMES} more)"
 
 
-def render_alert(events, environment, now):
+def render_alert(events, environment, now, suppressed=0):
     """Build ``(subject, html_body)`` for a batch of same-kind events.
 
     Batched on purpose: one DB server going down trips every DB component plus
     the HTTP probe, and support wants one ticket for that, not five.
     ``events`` is ``[{component, kind, first_seen, detail, excerpt}]`` and must
     be non-empty and all the same ``kind``.
+
+    ``suppressed`` is the number of alert mails the budget held back since the
+    last one that went out (see ``mail_budget``). It is stated in the body so a
+    throttled period is visible to whoever reads the mail.
     """
     kind = events[0]["kind"]
     names = _subject_names(events)
@@ -358,6 +423,12 @@ def render_alert(events, environment, now):
                 "<pre style='background:#f5f5f5;padding:8px;overflow:auto'>"
                 f"{_esc(e['excerpt'])}</pre>"
             )
+    if suppressed:
+        parts.append(
+            f"<p><strong>{suppressed}</strong> further alert mail(s) were "
+            f"suppressed by the rate cap since the last one. Check "
+            f"<code>ops/outage_monitor.py --check</code> for the full state.</p>"
+        )
     parts.append(
         f"<p style='color:#888'>Generated {_esc(now.strftime('%Y-%m-%d %H:%M:%S'))} UTC "
         f"by ops/outage_monitor.py.</p>"

@@ -317,3 +317,118 @@ def test_render_alert_escapes_log_excerpt():
     ]
     _subject, body = outage.render_alert(events, "PROD", NOW)
     assert "<script>" not in body and "&lt;script&gt;" in body
+
+
+# --------------------------------------------------------------------------- #
+# Alert mail budget (#282). Per-component hysteresis stops one incident
+# re-alerting; this caps the total, which is what actually reached the helpdesk.
+# --------------------------------------------------------------------------- #
+
+MAIL_NOW = datetime(2026, 9, 8, 12, 0, 0, tzinfo=UTC)
+
+
+def test_first_mail_is_never_suppressed():
+    """A real outage must alert promptly however quiet the hour has been."""
+    allowed, suppressed, budget = outage.mail_budget(None, MAIL_NOW)
+    assert allowed is True
+    assert suppressed == 0
+    assert len(budget["sent"]) == 1
+
+
+def test_cap_stops_the_fifth_mail_in_an_hour():
+    budget = None
+    for i in range(4):
+        allowed, _, budget = outage.mail_budget(budget, MAIL_NOW + timedelta(minutes=i))
+        assert allowed is True, f"mail {i + 1} of 4 should send"
+    allowed, _, budget = outage.mail_budget(budget, MAIL_NOW + timedelta(minutes=5))
+    assert allowed is False, "the fifth mail inside the window must be held"
+    assert budget["suppressed"] == 1
+
+
+def test_window_rolls_so_the_cap_is_not_permanent():
+    """Sends older than the window stop counting -- otherwise four alerts would
+    silence the monitor forever."""
+    budget = None
+    for i in range(4):
+        allowed, _, budget = outage.mail_budget(budget, MAIL_NOW + timedelta(minutes=i))
+    blocked, _, budget = outage.mail_budget(budget, MAIL_NOW + timedelta(minutes=10))
+    assert blocked is False
+
+    # Partly rolled: at +61 min only the first two of the four sends have aged
+    # out, so the cap lifts while the window still remembers the rest.
+    later, _, budget = outage.mail_budget(budget, MAIL_NOW + timedelta(hours=1, minutes=1))
+    assert later is True, "the window should have rolled far enough to allow one"
+    assert len(budget["sent"]) == 3
+
+    # Fully rolled: nothing from the original burst is in range any more.
+    fresh, _, budget = outage.mail_budget(budget, MAIL_NOW + timedelta(hours=3))
+    assert fresh is True
+    assert len(budget["sent"]) == 1, "old sends should have aged out entirely"
+
+
+def test_suppressed_count_is_reported_then_reset():
+    """The next mail that goes out has to say how many were held back, or a
+    throttled period is indistinguishable from a healthy one."""
+    budget = None
+    for i in range(4):
+        _, _, budget = outage.mail_budget(budget, MAIL_NOW + timedelta(minutes=i))
+    for i in range(3):
+        allowed, _, budget = outage.mail_budget(budget, MAIL_NOW + timedelta(minutes=10 + i))
+        assert allowed is False
+    assert budget["suppressed"] == 3
+
+    allowed, suppressed, budget = outage.mail_budget(
+        budget, MAIL_NOW + timedelta(hours=1, minutes=30)
+    )
+    assert allowed is True
+    assert suppressed == 3, "the held-back count must reach the caller"
+    assert budget["suppressed"] == 0, "and must not be reported twice"
+
+
+def test_render_alert_states_the_suppressed_count():
+    events = [{"component": "db:NexoraDB", "kind": "open", "detail": "timeout"}]
+    _, body = outage.render_alert(events, "PROD", MAIL_NOW, suppressed=7)
+    assert "7" in body
+    assert "suppressed" in body.lower()
+
+    _, quiet = outage.render_alert(events, "PROD", MAIL_NOW)
+    assert "suppressed" not in quiet.lower(), "no note when nothing was held"
+
+
+def test_cap_can_be_disabled():
+    """The escape hatch for an incident where every mail is wanted."""
+    budget = {"sent": [MAIL_NOW.isoformat()] * 99, "suppressed": 5}
+    allowed, _, budget = outage.mail_budget(budget, MAIL_NOW, max_per_window=0)
+    assert allowed is True
+    assert budget["sent"] == []
+
+
+def test_a_corrupt_budget_does_not_stop_alerting():
+    """A hand-edited or half-written state file must not silence the monitor."""
+    for junk in ({"sent": "not-a-list"}, {"sent": ["garbage", None, 42]}, {"suppressed": -1}, {}):
+        allowed, suppressed, budget = outage.mail_budget(junk, MAIL_NOW)
+        assert allowed is True, f"{junk!r} should still allow a mail"
+        assert suppressed == 0
+        assert isinstance(budget["sent"], list)
+
+
+def test_budget_survives_the_state_file(tmp_path):
+    """The crux: every monitor run is a fresh process, so a budget that does not
+    round-trip through the state file would reset every 5 minutes and cap
+    nothing. load_state must preserve the key alongside `components`."""
+    path = tmp_path / "outage-state.json"
+    state = {"components": {"db:X": {"fail_streak": 0}}}
+    _, _, state["mail"] = outage.mail_budget(None, MAIL_NOW)
+    outage.save_state(str(path), state)
+
+    reloaded = outage.load_state(str(path))
+    assert reloaded["components"] == state["components"]
+    assert reloaded["mail"]["sent"] == state["mail"]["sent"], "budget lost on reload"
+
+    # and the cap keeps counting across the boundary
+    budget = reloaded["mail"]
+    for i in range(3):
+        allowed, _, budget = outage.mail_budget(budget, MAIL_NOW + timedelta(minutes=i + 1))
+        assert allowed is True
+    allowed, _, budget = outage.mail_budget(budget, MAIL_NOW + timedelta(minutes=5))
+    assert allowed is False, "the reloaded budget did not count toward the cap"
