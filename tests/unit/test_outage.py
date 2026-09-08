@@ -320,6 +320,103 @@ def test_render_alert_escapes_log_excerpt():
 
 
 # --------------------------------------------------------------------------- #
+# Planned maintenance (#281). A maintenance 503 is still a 503, so before this
+# every window somebody scheduled mailed the helpdesk as an outage.
+# --------------------------------------------------------------------------- #
+
+
+def test_excused_probe_does_not_open_an_incident():
+    """The whole point: a deliberate window must not alert."""
+    comp = {}
+    for i in range(6):  # well past fail_threshold
+        comp, event = outage.update_component(
+            comp, None, "planned maintenance", NOW + timedelta(minutes=5 * i)
+        )
+        assert event is None, f"maintenance opened an incident on probe {i + 1}"
+    assert comp["open_since"] is None
+
+
+def test_excused_probe_does_not_recover_an_open_incident():
+    """A maintenance page proves nothing about the component behind it, so it
+    must not be read as recovery either -- otherwise taking the site down for
+    maintenance would close every incident that was already open."""
+    comp = {}
+    comp, _ = outage.update_component(comp, False, "down", NOW)
+    comp, event = outage.update_component(comp, False, "down", NOW + timedelta(minutes=5))
+    assert event == "open"
+    open_since = comp["open_since"]
+
+    for i in range(4):
+        comp, event = outage.update_component(
+            comp, None, "planned maintenance", NOW + timedelta(minutes=10 + 5 * i)
+        )
+        assert event is None
+    assert comp["open_since"] == open_since, "maintenance silently closed a real incident"
+
+
+def test_streaks_are_frozen_while_excused():
+    comp = {}
+    comp, _ = outage.update_component(comp, False, "down", NOW)
+    frozen = dict(comp)
+    comp, _ = outage.update_component(comp, None, "maintenance", NOW + timedelta(minutes=5))
+    assert comp["fail_streak"] == frozen["fail_streak"]
+    assert comp["ok_streak"] == frozen["ok_streak"]
+    assert comp["last_detail"] == "maintenance", "detail should still refresh so --check is honest"
+
+
+def test_a_window_left_open_stops_excusing_and_alerts():
+    """A monitor that stays silent for days is not a monitor. The app cannot 503
+    past EndAt, but a window can be extended or opened with an EndAt days out."""
+    comp = {}
+    comp, event = outage.update_component(comp, None, "maintenance", NOW)
+    assert event is None
+    # still inside the allowance
+    comp, event = outage.update_component(comp, None, "maintenance", NOW + timedelta(hours=3))
+    assert event is None
+    # past it: judged as failing, and the second consecutive failure opens
+    comp, event = outage.update_component(comp, None, "maintenance", NOW + timedelta(hours=5))
+    assert event is None, "first failure only starts the streak"
+    comp, event = outage.update_component(
+        comp, None, "maintenance", NOW + timedelta(hours=5, minutes=5)
+    )
+    assert event == "open", "an indefinite window must eventually alert"
+
+
+def test_recovery_after_maintenance_clears_the_marker():
+    comp = {}
+    comp, _ = outage.update_component(comp, None, "maintenance", NOW)
+    assert comp.get("maintenance_since")
+    comp, _ = outage.update_component(comp, True, "HTTP 200", NOW + timedelta(minutes=5))
+    assert not comp.get("maintenance_since"), "marker outlived the window"
+
+
+def test_true_and_false_behave_exactly_as_before():
+    """Regression guard: the third state must not perturb the existing two."""
+    comp = {}
+    comp, e1 = outage.update_component(comp, False, "down", NOW)
+    comp, e2 = outage.update_component(comp, False, "down", NOW + timedelta(minutes=5))
+    assert (e1, e2) == (None, "open")
+    comp, e3 = outage.update_component(comp, True, "up", NOW + timedelta(minutes=40))
+    comp, e4 = outage.update_component(comp, True, "up", NOW + timedelta(minutes=45))
+    assert (e3, e4) == (None, "recover")
+
+
+def test_the_app_and_the_monitor_agree_on_the_header_name():
+    """Two files, one string. If nx_lib/hooks.py stopped setting the header the
+    monitor looks for, maintenance would silently alarm again -- and nothing
+    else would fail."""
+    from pathlib import Path
+
+    repo = Path(__file__).resolve().parents[2]
+    hooks = (repo / "nx_lib" / "hooks.py").read_text(encoding="utf-8")
+    monitor = (repo / "ops" / "outage_monitor.py").read_text(encoding="utf-8")
+    assert "MAINTENANCE_HEADER" in hooks, "the app no longer marks its maintenance 503"
+    assert "MAINTENANCE_HEADER" in monitor, "the probe no longer looks for the marker"
+    assert (
+        "from .outage import MAINTENANCE_HEADER" in hooks
+    ), "hooks must import the constant, not restate the string"
+
+
 # Alert mail budget (#282). Per-component hysteresis stops one incident
 # re-alerting; this caps the total, which is what actually reached the helpdesk.
 # --------------------------------------------------------------------------- #

@@ -170,6 +170,18 @@ Work toward the next release.
   later by migration or from the admin grid lands on the profile at once.
 ### Fixed
 
+- **The outage monitor no longer alarms on planned maintenance** (#281).
+  `nx_lib/hooks.py` marks its maintenance 503 with `X-Nexora-Maintenance: 1`
+  and a `Retry-After` derived from the window's `EndAt`; the HTTP probe reads
+  the marker and returns a third state, *excused*, which freezes the component
+  instead of opening an incident. It does not recover one either — a
+  maintenance page proves nothing about the component behind it, so taking the
+  site down would otherwise close every open incident. The excuse expires after
+  4 hours so a window left open cannot silence the monitor. Previously any
+  window over ~15 minutes was guaranteed to mail the helpdesk: three
+  consecutive HTTP failures open an incident and the 30-minute min-hold keeps
+  it open past the window closing.
+
 - **The outage monitor now caps how much it can mail** (#282). Per-component
   hysteresis already stopped one incident re-alerting, but nothing limited the
   total: with a 5-minute poll and 13 probes the worst case was two mails a run,
