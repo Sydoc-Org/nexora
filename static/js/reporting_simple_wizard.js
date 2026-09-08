@@ -357,6 +357,70 @@
     openChipEditor(chipEl, box);
   }
 
+  // Fields an added filter may target: same rule as the wizard's own filter
+  // rows (see wizFilterFields) -- filterable, and not a grainable date field,
+  // since the date range has its own chip with the token presets.
+  function addableFilterFields(def) {
+    var src = (RS.state.sources || []).find(function (s) { return s.id === def.source; });
+    return ((src && src.fields) || [])
+      .filter(function (f) { return f.filterable && !f.grainable; });
+  }
+
+  // "+ Add filter" chip: the wizard builds filters up front, this adds one to
+  // a result already on screen (an opened library report, an Eddard answer).
+  // Unlike the edit editors it also picks field and op -- an existing chip
+  // knows both already.
+  function addFilterChipEditor(cur, chipEl) {
+    var fields = addableFilterFields(cur.def);
+    var box = document.createElement('span');
+    box.className = 'rs-chip rs-chip-editor';
+    box.setAttribute('data-testid', 'rs-chip-addfilter');
+
+    var fld = document.createElement('select');
+    fields.forEach(function (x) {
+      var o = document.createElement('option');
+      o.value = x.field; o.textContent = x.label || x.field;
+      fld.appendChild(o);
+    });
+
+    var op = document.createElement('select');
+    WIZ_FILTER_OPS.forEach(function (o) {
+      var opt = document.createElement('option');
+      opt.value = o;                        // payload contract: raw op code
+      opt.textContent = OP_LABELS[o] || o;  // label localizes, value doesn't
+      op.appendChild(opt);
+    });
+
+    var input = document.createElement('input');
+    input.className = 'reporting-input';
+    input.setAttribute('data-testid', 'rs-chip-addfilter-value');
+    input.placeholder = RS.I18N.filterValue;
+    op.onchange = function () {
+      input.hidden = op.value === 'is_null' || op.value === 'is_not_null';
+    };
+
+    var ok = document.createElement('button');
+    ok.className = 'reporting-btn';
+    ok.setAttribute('data-testid', 'rs-chip-addfilter-apply');
+    ok.textContent = RS.I18N.chipApply;
+    ok.addEventListener('click', function () {
+      var valueless = op.value === 'is_null' || op.value === 'is_not_null';
+      var v = input.value.trim();
+      if (!valueless && !v) return;         // an empty value would match nothing
+      cur.def.filters = cur.def.filters || [];
+      cur.def.filters.push(valueless
+        ? { field: fld.value, op: op.value }
+        : { field: fld.value, op: op.value, value: v });
+      RS.runCurrent();
+    });
+
+    box.appendChild(fld);
+    box.appendChild(op);
+    box.appendChild(input);
+    box.appendChild(ok);
+    openChipEditor(chipEl, box);
+  }
+
   function renderAiChips(cur) {
     var wrap = RS.el('rsChips');
     if (!wrap) return;
@@ -421,6 +485,13 @@
         function (chipEl) { processChipEditor(cur, chipEl); },
         null
       ));
+    }
+    if (addableFilterFields(def).length) {
+      var addChip = chip(RS.I18N.addFilter,
+        function (chipEl) { addFilterChipEditor(cur, chipEl); }, null);
+      addChip.classList.add('rs-chip--add');
+      addChip.setAttribute('data-testid', 'rs-chip-add');
+      wrap.appendChild(addChip);
     }
     var grainedCol = (def.columns || []).find(function (c) { return c.grain; });
     if (!grainedCol) {

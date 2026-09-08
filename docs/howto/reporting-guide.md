@@ -247,6 +247,12 @@ result are editable too: clicking the **Processes** chip or any *is one of*
 filter chip opens a checkbox picker of the known values — no typing needed.
 Ticking everything simply removes the restriction.
 
+**+ Add filter** at the end of that chip row adds a filter to the result you
+are already looking at — pick a field, an operator and a value, hit Apply and
+the report re-runs. It works on any result, including a saved report someone
+shared with you or an answer from Eddard; the added filter is yours until you
+save the report.
+
 #### About those "2/5" badges
 
 Some measures and categories carry a small **coverage badge** like `2/5`, with a

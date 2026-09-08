@@ -13,7 +13,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   already covers). Each filter lands in the report definition and renders as an
   editable chip above the result, so it can be adjusted or removed without
   reopening the wizard, and *Adjust* now maps such reports back into the wizard
-  instead of falling back to Advanced.
+  instead of falling back to Advanced. The chip row itself gained
+  **+ Add filter**: field, operator, value and Apply re-runs, so any result on
+  screen — a saved report, a shared one, an Eddard answer — can be narrowed
+  without going near the builder.
 - **Report definitions grow up** — the Definitions screen opens on an overview
   of your definitions (cards with measures and tile count) with a back arrow
   to the overview and the Library; five new measures (*Total*, *Delta vs

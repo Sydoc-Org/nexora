@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-08 18:59+0200\n"
+"POT-Creation-Date: 2026-09-08 19:40+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -1618,9 +1618,9 @@ msgstr "Quelle konnte nicht gespeichert werden (Code bereits vorhanden?)"
 #: nx_lib/views/reporting/annotations.py:78
 #: nx_lib/views/reporting/annotations.py:107
 #: nx_lib/views/reporting/annotations.py:118
-#: nx_lib/views/reporting/reports.py:203 nx_lib/views/reporting/reports.py:300
-#: nx_lib/views/reporting/reports.py:322 nx_lib/views/reporting/reports.py:418
-#: nx_lib/views/reporting/reports.py:428 nx_lib/views/reporting/reports.py:478
+#: nx_lib/views/reporting/reports.py:206 nx_lib/views/reporting/reports.py:303
+#: nx_lib/views/reporting/reports.py:325 nx_lib/views/reporting/reports.py:421
+#: nx_lib/views/reporting/reports.py:431 nx_lib/views/reporting/reports.py:481
 #: nx_lib/views/reporting/schedules.py:70
 #: nx_lib/views/reporting/schedules.py:94
 #: nx_lib/views/reporting/schedules.py:143
@@ -1857,51 +1857,51 @@ msgstr "Diese Datenbank ist nicht erreichbar."
 msgid "Could not read this database's schema."
 msgstr "Das Schema dieser Datenbank konnte nicht gelesen werden."
 
-#: nx_lib/views/reporting/reports.py:178
+#: nx_lib/views/reporting/reports.py:181
 msgid "Could not list reports"
 msgstr "Berichte konnten nicht aufgelistet werden"
 
-#: nx_lib/views/reporting/reports.py:216
+#: nx_lib/views/reporting/reports.py:219
 msgid "Could not load report"
 msgstr "Bericht konnte nicht geladen werden"
 
-#: nx_lib/views/reporting/reports.py:231
+#: nx_lib/views/reporting/reports.py:234
 msgid "This report definition is invalid."
 msgstr "Diese Berichtsdefinition ist ungültig."
 
-#: nx_lib/views/reporting/reports.py:243 nx_lib/views/reporting/reports.py:277
+#: nx_lib/views/reporting/reports.py:246 nx_lib/views/reporting/reports.py:280
 msgid "name and definition are required"
 msgstr "Name und Definition sind erforderlich"
 
-#: nx_lib/views/reporting/reports.py:249 nx_lib/views/reporting/reports.py:283
+#: nx_lib/views/reporting/reports.py:252 nx_lib/views/reporting/reports.py:286
 msgid "Report definition too large"
 msgstr "Berichtsdefinition zu groß"
 
-#: nx_lib/views/reporting/reports.py:264
+#: nx_lib/views/reporting/reports.py:267
 msgid "Could not save report"
 msgstr "Bericht konnte nicht gespeichert werden"
 
-#: nx_lib/views/reporting/reports.py:304
+#: nx_lib/views/reporting/reports.py:307
 msgid "Could not update report"
 msgstr "Bericht konnte nicht aktualisiert werden"
 
-#: nx_lib/views/reporting/reports.py:326
+#: nx_lib/views/reporting/reports.py:329
 msgid "Could not delete report"
 msgstr "Bericht konnte nicht gelöscht werden"
 
-#: nx_lib/views/reporting/reports.py:436
+#: nx_lib/views/reporting/reports.py:439
 msgid "Invalid visibility"
 msgstr "Ungültige Sichtbarkeit"
 
-#: nx_lib/views/reporting/reports.py:445
+#: nx_lib/views/reporting/reports.py:448
 msgid "User not found"
 msgstr "Benutzer nicht gefunden"
 
-#: nx_lib/views/reporting/reports.py:447
+#: nx_lib/views/reporting/reports.py:450
 msgid "Cannot share a report with yourself"
 msgstr "Sie können einen Bericht nicht mit sich selbst teilen"
 
-#: nx_lib/views/reporting/reports.py:468 nx_lib/views/reporting/reports.py:489
+#: nx_lib/views/reporting/reports.py:471 nx_lib/views/reporting/reports.py:492
 msgid "Could not update sharing"
 msgstr "Freigabe konnte nicht aktualisiert werden"
 
@@ -2350,12 +2350,15 @@ msgid ""
 "Need more than a date range? “Filters (optional)” on the wizard’s Time "
 "step adds field/operator/value rows — contains, starts with, is empty and"
 " the rest. Each one lands on the result as a chip you can edit or remove "
-"without rebuilding the report."
+"without rebuilding the report, and “+ Add filter” at the end of that chip"
+" row adds one to a result already on screen."
 msgstr ""
 "Mehr als ein Zeitraum nötig? „Filter (optional)“ im Schritt Zeitraum des "
 "Assistenten ergänzt Zeilen aus Feld/Operator/Wert — enthält, beginnt mit, "
 "ist leer und so weiter. Jeder Filter landet als Chip beim Ergebnis und "
-"lässt sich dort bearbeiten oder entfernen, ohne den Bericht neu zu bauen."
+"lässt sich dort bearbeiten oder entfernen, ohne den Bericht neu zu bauen; "
+"„+ Filter hinzufügen“ am Ende der Chip-Zeile ergänzt einen Filter direkt "
+"beim angezeigten Ergebnis."
 
 #: templates/_reporting_help.html:27
 msgid ""
@@ -2828,7 +2831,7 @@ msgstr ""
 " zur farbigen Datenreihe."
 
 #: templates/_reporting_simple.html:99 templates/dashboard.html:69
-#: templates/js/_reporting_simple_js.html:153
+#: templates/js/_reporting_simple_js.html:154
 msgid "Time range"
 msgstr "Zeitraum"
 
@@ -2887,7 +2890,7 @@ msgid "Show result"
 msgstr "Ergebnis anzeigen"
 
 #: templates/_reporting_simple.html:142
-#: templates/js/_reporting_simple_js.html:154
+#: templates/js/_reporting_simple_js.html:155
 msgid "So far"
 msgstr "Bisher"
 
@@ -4295,7 +4298,7 @@ msgstr "Tägliches Verarbeitungsvolumen"
 #: templates/js/_generali_dashboard_js.html:25
 #: templates/js/_reporting_js.html:50
 #: templates/js/_reporting_layouts_js.html:37
-#: templates/js/_reporting_simple_js.html:123
+#: templates/js/_reporting_simple_js.html:124
 #: templates/js/_reporting_viz_js.html:18 templates/prepared_documents.html:51
 #: templates/workitems_overview.html:74
 msgid "Total"
@@ -4714,7 +4717,7 @@ msgid "Search by ID, policy, damage number…"
 msgstr "Suche nach ID, Police, Schadennummer…"
 
 #: templates/generali_documents.html:204
-#: templates/js/_reporting_simple_js.html:158 templates/reporting.html:117
+#: templates/js/_reporting_simple_js.html:159 templates/reporting.html:117
 #: templates/workitems_overview.html:345
 msgid "Advanced"
 msgstr "Erweitert"
@@ -5614,7 +5617,7 @@ msgstr "Quelle"
 
 #: templates/js/_reporting_dashboard_js.html:19
 #: templates/js/_reporting_simple_js.html:62
-#: templates/js/_reporting_simple_js.html:151 templates/reporting.html:364
+#: templates/js/_reporting_simple_js.html:152 templates/reporting.html:364
 msgid "Processes"
 msgstr "Prozesse"
 
@@ -6391,7 +6394,7 @@ msgstr "Workitem-ID, Status, Stufe, Letzte Bewegung"
 msgid "Optional extras"
 msgstr "Optionale Extras"
 
-#: templates/js/_reporting_simple_js.html:157
+#: templates/js/_reporting_simple_js.html:158
 #: templates/workitems_overview.html:552
 msgid "Document fields"
 msgstr ""
@@ -6899,7 +6902,7 @@ msgstr "Enddatum"
 
 #: templates/admin/logs.html:96 templates/admin/logs.html:131
 #: templates/admin/user_detail.html:220
-#: templates/js/_reporting_simple_js.html:156
+#: templates/js/_reporting_simple_js.html:157
 msgid "Time"
 msgstr "Zeit"
 
@@ -8703,7 +8706,7 @@ msgid "Hide table"
 msgstr "Tabelle ausblenden"
 
 #: templates/js/_reporting_dashboard_js.html:71
-#: templates/js/_reporting_simple_js.html:148
+#: templates/js/_reporting_simple_js.html:149
 #, python-brace-format
 msgid "{n} rows"
 msgstr "{n} Zeilen"
@@ -8800,7 +8803,7 @@ msgid "Running your report…"
 msgstr "Ihr Bericht wird ausgeführt…"
 
 #: templates/js/_reporting_js.html:28
-#: templates/js/_reporting_simple_js.html:120
+#: templates/js/_reporting_simple_js.html:121
 #, python-brace-format
 msgid "{rows} rows · {ms} ms"
 msgstr "{rows} Zeilen · {ms} ms"
@@ -8829,7 +8832,7 @@ msgid "is not one of"
 msgstr "ist keines von"
 
 #: templates/js/_reporting_js.html:48
-#: templates/js/_reporting_simple_js.html:117
+#: templates/js/_reporting_simple_js.html:118
 msgid "Copied"
 msgstr "Kopiert"
 
@@ -8845,23 +8848,23 @@ msgstr ""
 
 #: templates/js/_reporting_js.html:51
 #: templates/js/_reporting_layouts_js.html:39
-#: templates/js/_reporting_simple_js.html:142
+#: templates/js/_reporting_simple_js.html:143
 msgid "Buckets"
 msgstr "Gruppen"
 
 #: templates/js/_reporting_js.html:52
 #: templates/js/_reporting_layouts_js.html:40
-#: templates/js/_reporting_simple_js.html:143
+#: templates/js/_reporting_simple_js.html:144
 msgid "Avg per bucket"
 msgstr "Ø pro Gruppe"
 
 #: templates/js/_reporting_js.html:53
-#: templates/js/_reporting_simple_js.html:144
+#: templates/js/_reporting_simple_js.html:145
 msgid "Avg per row"
 msgstr "Ø pro Zeile"
 
 #: templates/js/_reporting_js.html:54
-#: templates/js/_reporting_simple_js.html:162
+#: templates/js/_reporting_simple_js.html:163
 msgid "AI"
 msgstr "KI"
 
@@ -8929,7 +8932,7 @@ msgstr ""
 "Standard-Layout angezeigt."
 
 #: templates/js/_reporting_js.html:74
-#: templates/js/_reporting_simple_js.html:164
+#: templates/js/_reporting_simple_js.html:165
 msgid "shared"
 msgstr "geteilt"
 
@@ -9514,7 +9517,11 @@ msgstr "«{name}» löschen? Das kann nicht rückgängig gemacht werden."
 msgid "value"
 msgstr "Wert"
 
-#: templates/js/_reporting_simple_js.html:118
+#: templates/js/_reporting_simple_js.html:117
+msgid "+ Add filter"
+msgstr "+ Filter hinzufügen"
+
+#: templates/js/_reporting_simple_js.html:119
 #, python-brace-format
 msgid ""
 "Only {n} of {m} selected processes provide this field — documents from "
@@ -9523,7 +9530,7 @@ msgstr ""
 "Nur {n} von {m} ausgewählten Prozessen liefern dieses Feld — Dokumente "
 "der übrigen Prozesse erscheinen hier mit leerem Wert. Geliefert von:"
 
-#: templates/js/_reporting_simple_js.html:119
+#: templates/js/_reporting_simple_js.html:120
 #, python-brace-format
 msgid ""
 "Only {n} of {m} processes provide this field — the measure only counts "
@@ -9532,93 +9539,93 @@ msgstr ""
 "Nur {n} von {m} Prozessen liefern dieses Feld — die Kennzahl zählt nur "
 "Dokumente dieser Prozesse:"
 
-#: templates/js/_reporting_simple_js.html:121
+#: templates/js/_reporting_simple_js.html:122
 #, python-brace-format
 msgid "{rows} rows · {ms} ms · {when}"
 msgstr "{rows} Zeilen · {ms} ms · {when}"
 
-#: templates/js/_reporting_simple_js.html:122
+#: templates/js/_reporting_simple_js.html:123
 msgid "run just now"
 msgstr "gerade eben"
 
-#: templates/js/_reporting_simple_js.html:127
+#: templates/js/_reporting_simple_js.html:128
 msgid "last bucket"
 msgstr "letzte Gruppe"
 
-#: templates/js/_reporting_simple_js.html:128
+#: templates/js/_reporting_simple_js.html:129
 msgid "sum over the period"
 msgstr "Summe über den Zeitraum"
 
-#: templates/js/_reporting_simple_js.html:134
+#: templates/js/_reporting_simple_js.html:135
 msgid "Overall"
 msgstr "Gesamt"
 
-#: templates/js/_reporting_simple_js.html:135
+#: templates/js/_reporting_simple_js.html:136
 msgid "over every matching row"
 msgstr "über alle passenden Zeilen"
 
-#: templates/js/_reporting_simple_js.html:136
+#: templates/js/_reporting_simple_js.html:137
 msgid "periods in the range"
 msgstr "Zeitabschnitte im Bereich"
 
-#: templates/js/_reporting_simple_js.html:137
+#: templates/js/_reporting_simple_js.html:138
 msgid "total ÷ buckets"
 msgstr "Summe ÷ Abschnitte"
 
-#: templates/js/_reporting_simple_js.html:140
+#: templates/js/_reporting_simple_js.html:141
 #, python-brace-format
 msgid "mean of {n} values"
 msgstr "Mittel aus {n} Werten"
 
-#: templates/js/_reporting_simple_js.html:141
+#: templates/js/_reporting_simple_js.html:142
 msgid "grand total"
 msgstr "Gesamtsumme"
 
-#: templates/js/_reporting_simple_js.html:145
+#: templates/js/_reporting_simple_js.html:146
 msgid "Peak"
 msgstr "Spitzenwert"
 
-#: templates/js/_reporting_simple_js.html:146
+#: templates/js/_reporting_simple_js.html:147
 msgid "vs"
 msgstr "vs."
 
-#: templates/js/_reporting_simple_js.html:147
+#: templates/js/_reporting_simple_js.html:148
 msgid "Why did this change?"
 msgstr "Warum hat sich das geändert?"
 
-#: templates/js/_reporting_simple_js.html:149
+#: templates/js/_reporting_simple_js.html:150
 #, python-brace-format
 msgid "Step {n} of 4"
 msgstr "Schritt {n} von 4"
 
-#: templates/js/_reporting_simple_js.html:150
+#: templates/js/_reporting_simple_js.html:151
 msgid "Measure"
 msgstr "Kennzahl"
 
-#: templates/js/_reporting_simple_js.html:152
+#: templates/js/_reporting_simple_js.html:153
 msgid "Breakdown"
 msgstr "Aufschlüsselung"
 
-#: templates/js/_reporting_simple_js.html:155
+#: templates/js/_reporting_simple_js.html:156
 #, python-brace-format
 msgid "{n} of {m} selected"
 msgstr "{n} von {m} ausgewählt"
 
-#: templates/js/_reporting_simple_js.html:159
+#: templates/js/_reporting_simple_js.html:160
 #, python-brace-format
 msgid "Show advanced fields ({n})"
 msgstr "Erweiterte Felder anzeigen ({n})"
 
-#: templates/js/_reporting_simple_js.html:160
+#: templates/js/_reporting_simple_js.html:161
 msgid "Or"
 msgstr "Oder"
 
-#: templates/js/_reporting_simple_js.html:161
+#: templates/js/_reporting_simple_js.html:162
 #, python-brace-format
 msgid "{n} of 3 picked"
 msgstr "{n} von 3 ausgewählt"
 
-#: templates/js/_reporting_simple_js.html:163
+#: templates/js/_reporting_simple_js.html:164
 msgid "Loading values…"
 msgstr "Werte werden geladen…"
 

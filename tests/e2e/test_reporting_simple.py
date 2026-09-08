@@ -4844,3 +4844,53 @@ def test_wizard_optional_filter_lands_in_definition_and_chips(nexora_server, pag
     assert {"field": "doctype", "op": "contains", "value": "invoice"} in filters, filters
 
     expect(page.get_by_test_id("rs-chips")).to_contain_text("Doc type contains invoice")
+
+
+def test_result_add_filter_chip_reruns_with_the_new_filter(nexora_server, page):
+    """The chip row's "+ Add filter" adds a filter to a result already on
+    screen: field + operator + value, Apply re-runs, and the new filter comes
+    back as its own editable chip."""
+    _login(page, nexora_server)
+    _stub_catalogs(page)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+
+    captured = []
+
+    def handler(route):
+        captured.append(route.request.post_data_json)
+        route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "columns": [{"field": "stub_count", "header": "Stub count"}],
+                    "rows": [[42]],
+                    "truncated": False,
+                    "rowCount": 1,
+                    "sql": None,
+                    "params": [],
+                    "resolvedDates": [],
+                }
+            ),
+        )
+
+    page.route("**/api/reporting/run", handler)
+
+    page.get_by_test_id("rs-new-report").click()
+    page.get_by_test_id("rs-measure-list").get_by_text("Stub count").click()
+    page.get_by_test_id("rs-measure-next").click()
+    page.get_by_test_id("rs-breakdown-next").click()
+    page.get_by_test_id("rs-wizard-run").click()
+    expect(page.get_by_test_id("rs-result")).to_be_visible()
+    assert captured and not captured[-1]["filters"], captured[-1]["filters"]
+
+    page.get_by_test_id("rs-chip-add").click()
+    box = page.get_by_test_id("rs-chip-addfilter")
+    box.locator("select").nth(1).select_option("starts_with")
+    page.get_by_test_id("rs-chip-addfilter-value").fill("INV")
+    page.get_by_test_id("rs-chip-addfilter-apply").click()
+
+    expect(page.get_by_test_id("rs-chips")).to_contain_text("Doc type starts with INV")
+    assert {"field": "doctype", "op": "starts_with", "value": "INV"} in captured[-1][
+        "filters"
+    ], captured[-1]["filters"]

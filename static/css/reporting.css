@@ -1299,6 +1299,8 @@ body.nx-app {
   cursor: pointer;
 }
 .rs-chip--empty { cursor: default; opacity: .7; }
+/* Reads as an action, not as an active filter. */
+.rs-chip--add { border-style: dashed; }
 .rs-chip .rs-chip-x { font-weight: 700; padding: 0 .15rem; }
 /* Inline chip editors — a small popover-style card instead of raw controls. */
 .rs-chip-editor {
