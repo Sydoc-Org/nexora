@@ -10,6 +10,19 @@ Work toward the next release.
 
 ### Fixed
 
+- **`dbo.Logs` now has a retention period: 180 days** (#283). It held one row
+  per request forever, and each row carries the request IP, the username, the
+  path and the query arguments -- a per-user behavioural trail, and personal
+  data. Nothing deleted from it. `ops/cleanup/prune_request_log.py` enforces
+  `REQUEST_LOG_RETENTION` from `nx_lib/config.py`, registered as a daily
+  03:45 task (offset from the session prune's 03:30 so the two never contend).
+  Six months is expressed as 180 days deliberately: a calendar month varies and
+  the window must be deterministic, because the same figure gets quoted in the
+  privacy notice (#260). Unlike the session prune this deletes in committed
+  batches -- the table is unbounded, and a single statement over millions of
+  rows would hold a long lock on a table the admin log viewer reads.
+  Dry-run on INT: 19,460 of 24,225 rows outside the window.
+
 - **The deploy now registers the scheduled tasks itself** — a new *Register
   scheduled tasks* step in `deploy.yml` imports `ops/outage-monitor-task.xml`
   and `ops/cleanup/prune-active-sessions-task.xml` on every push to `main`,

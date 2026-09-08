@@ -432,7 +432,9 @@ jobs:
             @{ Name = '\sydoc\nexora\Outage Monitor'
                Xml  = 'D:\sydoc\nexora\ops\outage-monitor-task.xml' },
             @{ Name = '\sydoc\nexora\Prune Sessions'
-               Xml  = 'D:\sydoc\nexora\ops\cleanup\prune-active-sessions-task.xml' }
+               Xml  = 'D:\sydoc\nexora\ops\cleanup\prune-active-sessions-task.xml' },
+            @{ Name = '\sydoc\nexora\Prune Request Log'
+               Xml  = 'D:\sydoc\nexora\ops\cleanup\prune-request-log-task.xml' }
           )
 
           $failed = @()
