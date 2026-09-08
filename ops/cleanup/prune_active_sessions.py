@@ -33,25 +33,28 @@ USAGE
 ENVIRONMENT selects the target database, exactly as it does for the app
 (ENVIRONMENT=PROD on the scheduled run).
 
-SCHEDULING -- ONE MANUAL STEP ON THE APP HOST
-Deploying this file changes nothing on its own: nothing in the repo executes
-it. prune-active-sessions-task.xml next to this script is a ready-to-import
-Task Scheduler definition (daily at 03:30, SYSTEM, ENVIRONMENT=PROD, output to
-var/logs/system/prune_active_sessions.log). Import it once in an elevated shell
-on the app host:
+SCHEDULING
+prune-active-sessions-task.xml next to this script is the Task Scheduler
+definition (daily at 03:30, SYSTEM, ENVIRONMENT=PROD, output to
+var/logs/system/prune_active_sessions.log), and deploy.yml's "Register
+scheduled tasks" step imports it on every push to main. No manual step.
 
-    schtasks /create /xml "D:\sydoc\nexora\ops\cleanup\prune-active-sessions-task.xml" /tn "\sydoc\nexora\Prune Sessions"
+It did need one once, and that is why the step exists: robocopy mirrors the XML
+but Windows does not read task definitions off disk, so the file sat in
+D:\sydoc\nexora\ops\cleanup for twelve hours while dbo.ActiveSessions kept
+growing. Same failure mode as env/PROD.env in CLAUDE.md -- the repo change
+lands, the server side was hand-work, and forgetting was silent.
 
-    schtasks /run /tn "\sydoc\nexora\Prune Sessions"
+To check it is running, or to force a run:
+
+    schtasks /query /tn "\sydoc\nexora\Prune Sessions" /fo LIST
+    schtasks /run   /tn "\sydoc\nexora\Prune Sessions"
     Get-Content D:\sydoc\nexora\var\logs\system\prune_active_sessions.log
 
-Or Task Scheduler -> Import Task... -> pick the XML. Same pattern as
-ops/outage-monitor-task.xml (docs/howto/outage-monitor.md).
+The log file's absence is the tell: no log means the task has never run.
 
-Until that task exists no row is ever deleted, and the retention must not be
-stated anywhere user-facing -- the privacy page (#260) made exactly that
-mistake. Same failure mode as env/PROD.env in CLAUDE.md: the repo change lands,
-the server side is hand-work, and forgetting is silent.
+Until the task is running the retention must not be stated anywhere
+user-facing -- the privacy page (#260) made exactly that mistake.
 
     ENVIRONMENT=PROD python ops/cleanup/prune_active_sessions.py --dry-run
 """
