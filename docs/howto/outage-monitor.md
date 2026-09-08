@@ -207,19 +207,27 @@ it needs the same `GRAPH_*` credentials the scheduled reports already use.
 
 ## Wiring on SYAPP01
 
-`ops/outage-monitor-task.xml` is a ready-to-import Task Scheduler definition
-(every 5 minutes, matching the hysteresis defaults). Import it in an elevated
-shell on SYAPP01:
+`ops/outage-monitor-task.xml` is the Task Scheduler definition (every 5
+minutes, matching the hysteresis defaults), and **`deploy.yml` registers it on
+every push to `main`** — the "Register scheduled tasks" step, which also
+registers the session prune. Nothing to import by hand.
+
+That step exists because mirroring an XML is not the same as having a task:
+Windows does not read definitions off disk. This task happened to be registered
+already, but a rebuilt SYAPP01 would have lost it silently, and nobody notices a
+monitor that stopped watching.
+
+To check it, or to force a run:
 
 ```powershell
-schtasks /create /xml "D:\sydoc\nexora\ops\outage-monitor-task.xml" /tn "\sydoc\nexora\Outage Monitor"
-
-# run it once immediately and read the result
-schtasks /run /tn "\sydoc\nexora\Outage Monitor"
+schtasks /query /tn "\sydoc\nexora\Outage Monitor" /fo LIST
+schtasks /run   /tn "\sydoc\nexora\Outage Monitor"
 Get-Content D:\sydoc\nexora\var\logs\system\outage_monitor.log
 ```
 
-Or: Task Scheduler → **Import Task…** → pick the XML.
+`/f` on the deploy's `schtasks /create` makes it idempotent, which also means a
+task disabled by hand comes back on the next deploy. To stop a job for good,
+remove its XML.
 
 Three things in that XML are deliberate:
 
