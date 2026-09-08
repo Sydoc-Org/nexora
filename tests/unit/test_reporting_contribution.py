@@ -5,6 +5,7 @@ import pytest
 from nx_lib.reporting.contribution import (
     contribution_rows,
     fill_shares,
+    is_degenerate,
     is_ratio_metric,
     pick_dimensions,
     single_dimension_definition,
@@ -60,6 +61,28 @@ def test_pick_dimensions_skips_non_filterable_entries():
         {"field": "open", "type": "string"},
     ]
     assert [d["field"] for d in pick_dimensions(cat, [])] == ["open"]
+
+
+def test_pick_dimensions_skips_advanced_and_cap_none_returns_all():
+    cat = [_f("a"), dict(_f("raw"), advanced=True), _f("b"), _f("c"), _f("d")]
+    assert [d["field"] for d in pick_dimensions(cat, [], cap=None)] == ["a", "b", "c", "d"]
+    assert [d["field"] for d in pick_dimensions(cat, [])] == ["a", "b", "c"]
+
+
+def test_is_degenerate_flags_one_row_per_value_dimensions():
+    # 60 unique IDs: all new this period, all gone from the prior one.
+    cur = [(f"id{i}", 1) for i in range(60)]
+    pri = [(f"old{i}", 1) for i in range(60)]
+    assert is_degenerate(cur, pri, contribution_rows(cur, pri, top=8))
+    # Few groups are never degenerate, however spread out.
+    cur2 = [("a", 10), ("b", 20), ("c", 30)]
+    assert not is_degenerate(cur2, [], contribution_rows(cur2, [], top=8))
+    # Many groups but the top rows carry the change -> useful.
+    cur3 = [("big", 1000)] + [(f"c{i}", 1) for i in range(80)]
+    assert not is_degenerate(cur3, [], contribution_rows(cur3, [], top=8))
+    # Nothing moved at all -> not degenerate (nothing to explain either way).
+    same = [(f"c{i}", 1) for i in range(80)]
+    assert not is_degenerate(same, same, contribution_rows(same, same, top=8))
 
 
 def test_single_dimension_definition_is_a_clean_deep_copy():

@@ -103,6 +103,23 @@ Work toward the next release.
   fixed row height used to clip the fifth KPI tile and the table toggle).
 
 ### Fixed
+- **Reporting bug hunt** — Eddard's streamed answer no longer dies when a tool
+  result carries dates/decimals; scheduled and AI runs of *latest*-mode metrics
+  aggregate the newest snapshot like the screen does; the `run_sql` tool accepts
+  every configured SQL target (Generali included); *current value* layout tiles
+  read decimal metrics; the forecast fit window is half-open like the visible one;
+  a failing schedule advances to its next slot instead of retrying every tick;
+  dashboards and report definitions can no longer be scheduled (picker + server);
+  "Why did it move?" skips `advanced` columns and dimensions that explain nothing
+  (IDs, file names — one row per value) and probes the next candidate instead.
+  Advanced: no stale chart PNG in the next Excel export, no stale KPI band / SQL
+  peek left over an error, rename keeps the plain report name, forecast toggles
+  can't race a run, SQL-sandbox results get no KPI band, drill export buttons come
+  back after a contribution drawer. Simple: annotations of one report never land
+  on another, pie charts hide the Add-annotation affordance, forecast/colour
+  toggles keep their pressed state, a late run response after Back/Delete no
+  longer yanks the view or throws, and a failed layout run hides the previous tile
+  grid.
 
 - **Sydoc-tenant users no longer see a Prepared Documents link that always fails.**
   `0094` copied Mobscn's three tenant pages onto the new `sydoc` tenant, but Prepared

@@ -21,8 +21,10 @@ def pick_dimensions(catalog, filters, *, cap=3):
     """Catalog entries to decompose by: processname first when present, then
     string-typed entries in catalog order; never workitem_id, never a field a
     single-value `eq` filter already pins, never an entry explicitly marked
-    `filterable: False` (its rows can't drill into a filter). At most `cap`
-    entries."""
+    `filterable: False` (its rows can't drill into a filter), never an
+    `advanced` (raw/diagnostic) column. At most `cap` entries; `cap=None`
+    returns every candidate so the caller can keep probing past degenerate
+    ones (see is_degenerate)."""
     pinned = {
         f.get("field") for f in (filters or []) if isinstance(f, dict) and f.get("op") == "eq"
     }
@@ -32,17 +34,39 @@ def pick_dimensions(catalog, filters, *, cap=3):
     if proc and "processname" not in pinned and proc.get("filterable") is not False:
         out.append(proc)
     for c in catalog or []:
-        if len(out) >= cap:
+        if cap is not None and len(out) >= cap:
             break
         f = c.get("field")
         if f in ("processname", "workitem_id") or f in pinned:
             continue
-        if c.get("type") != "string":
+        if c.get("type") != "string" or c.get("advanced"):
             continue
         if c.get("filterable") is False:
             continue
         out.append(c)
-    return out[:cap]
+    return out if cap is None else out[:cap]
+
+
+def is_degenerate(current_rows, prior_rows, folded, *, min_groups=50, other_share=0.9):
+    """True when a dimension explains nothing: many distinct values (an ID or a
+    file name -- one row per value) and the shown top rows account for almost
+    none of the gross movement, so they are noise and '(other)' is the story.
+    Gross = sum of per-value |delta| before folding (folding nets rises against
+    falls, which would hide exactly this case). Few groups are never degenerate.
+
+    ponytail: one-shot threshold; make min_groups/other_share catalog-tunable
+    if a real source needs it.
+    """
+    per_value: dict[str, float] = {}
+    for v, m in current_rows or []:
+        per_value[_label(v)] = per_value.get(_label(v), 0.0) + _num(m)
+    for v, m in prior_rows or []:
+        per_value[_label(v)] = per_value.get(_label(v), 0.0) - _num(m)
+    if len(per_value) < min_groups:
+        return False
+    gross = sum(abs(d) for d in per_value.values())
+    explained = sum(abs(r["delta"]) for r in folded if r["value"] != OTHER_LABEL)
+    return bool(gross) and explained <= (1.0 - other_share) * gross
 
 
 def single_dimension_definition(rd, field, metric_code):

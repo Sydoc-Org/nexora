@@ -574,6 +574,21 @@ def _resolve_definition_tokens_or_error(rd):
         raise ReportDefinitionError(str(e)) from e
 
 
+def _latest_of(resolved, source_metrics, catalog):
+    """The single grainable date column a 'latest'-mode metric set pins to, or None.
+
+    Shared by the interactive run and the session-less runner (scheduler, AI
+    run_definition) so both aggregate the newest snapshot, not every snapshot.
+    """
+    if not resolved:
+        return None
+    modes = {(source_metrics.get(m["code"]) or {}).get("total_mode", "sum") for m in resolved}
+    date_candidates = [f["field"] for f in catalog if f.get("grainable")]
+    if modes == {"latest"} and len(date_candidates) == 1:
+        return date_candidates[0]
+    return None
+
+
 def _prepare_run(rd):
     """Validate + build a query for a curated report.
 
@@ -677,14 +692,7 @@ def _prepare_run(rd):
             if rd.get("metrics")
             else None
         )
-        latest_of = None
-        if resolved:
-            modes = {
-                (source_metrics.get(m["code"]) or {}).get("total_mode", "sum") for m in resolved
-            }
-            date_candidates = [f["field"] for f in catalog if f.get("grainable")]
-            if modes == {"latest"} and len(date_candidates) == 1:
-                latest_of = date_candidates[0]
+        latest_of = _latest_of(resolved, source_metrics, catalog)
         sql, params = build_generic_query(
             rd,
             source.get("baseObject"),

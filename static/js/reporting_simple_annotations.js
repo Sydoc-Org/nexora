@@ -35,6 +35,7 @@
     A.list = [];
     if (reportId) {
       var res = await RS.api('/api/reporting/reports/' + reportId + '/annotations');
+      if (A.reportId !== reportId) return;   // user opened another report meanwhile
       // 403/404 (unshared meanwhile) reads as "no annotations" -- no toast.
       if (res.ok && Array.isArray(res.data)) A.list = res.data;
     }
@@ -50,7 +51,9 @@
   A.renderList = function () {
     var box = RS.el('rsAnnotations'), ul = RS.el('rsAnnotationsList');
     var editable = canEdit();
-    RS.el('rsAnnotationAdd').hidden = !editable;
+    var ct = RS.state.chartType || (RS.state.chartData && RS.state.chartData.type);
+    var circular = ct === 'pie' || ct === 'doughnut';
+    RS.el('rsAnnotationAdd').hidden = !editable || circular;
     ul.innerHTML = A.list.map(function (a) {
       return '<li data-testid="rs-annotation-row" data-id="' + a.id + '">' +
         '<span class="rs-annotation-bucket">' + RS.esc(a.bucket) + '</span>' +
@@ -62,7 +65,7 @@
         '</li>';
     }).join('');
     // Hidden unless there is something to show: rows, or the owner's Add button.
-    box.hidden = !(A.list.length || (editable && chartBuckets().length));
+    box.hidden = !(A.list.length || (editable && !circular && chartBuckets().length));
   };
 
   // ----- popover -----

@@ -179,6 +179,7 @@ def run_once(dry_run=False):
         invalidate_reporting_sources()
         invalidate_reporting_metrics()
         conn = engine_nexora_db.raw_connection()
+        due = []
         try:
             due = _due_schedules(conn, now)
             for row in due:
@@ -192,6 +193,14 @@ def run_once(dry_run=False):
                     failed += 1
                     app.logger.error(f"scheduled report {row.ScheduleID} failed: {e}")
                     print(f"[error] schedule {row.ScheduleID}: {e}")
+                    # Move on to the next slot anyway: a broken definition must
+                    # not be retried (and error-logged) on every tick forever.
+                    try:
+                        _advance(conn, row, now)
+                        conn.commit()
+                    except Exception as e2:
+                        conn.rollback()
+                        app.logger.error(f"schedule {row.ScheduleID}: could not advance: {e2}")
         finally:
             conn.close()
     print(f"scheduled reports: {sent} sent, {failed} failed, {len(due)} due")

@@ -437,6 +437,7 @@
   function resetViews(hasData) {
     state._chartMounted = false;
     state._pivotMounted = false;
+    if (window.ReportingViz) ReportingViz.destroyChart();
     document.getElementById('rpViewToggle').hidden = !hasData;
     // A prior run's caption only ever fires on chart mount, but it must not
     // linger once a NEW run lands — whether that run's grid has data, is
@@ -700,7 +701,9 @@
   function renderKpiBand(def, rows, columns) {
     var band = document.getElementById('rpKpiBand');
     if (!band) return;
-    var kpi = computeKpiBand(def, rows);
+    // A sandbox SELECT has no metric; totalling its first numeric column
+    // (an ID, say) is noise.
+    var kpi = (def && def.kind === 'sql') ? null : computeKpiBand(def, rows);
     band.innerHTML = '';
     if (!kpi) { band.hidden = true; return; }
     // Every figure names its measure — "Total" alone never said total of what,
@@ -1037,7 +1040,11 @@
   // "Running…" screen-reader announcement the old visible label gave.
   function showRunLoading() {
     document.getElementById('rpRun').disabled = true;
-    document.getElementById('rpViewToggle').hidden = true;
+    ['rpViewToggle', 'rpKpiBand', 'rpShowSql', 'rpSqlPeek', 'rpSqlView', 'reportingTiming']
+      .forEach(function (id) {
+        var e = document.getElementById(id);
+        if (e) e.hidden = true;
+      });
     setView('grid');
     var wrap = document.getElementById('rpResults');
     wrap.innerHTML = '';
@@ -1320,7 +1327,9 @@
     });
   }
 
+  var runSeq = 0;
   function run() {
+    var seq = ++runSeq;
     showRunLoading();
     // A new run supersedes any open drill drawer — it shows rows behind the
     // PREVIOUS result and would sit stale over the new one.
@@ -1333,12 +1342,16 @@
     return api('/api/reporting/run', { method: 'POST', body: JSON.stringify(def) })
       .then(function (res) { return res.json(); })
       .then(function (data) {
+        if (seq !== runSeq) return;   // a newer run superseded this one
         endRunLoading();
         state.lastDef = def;
         renderResults(data);
         showTiming(data.rowCount, performance.now() - runT0);
       })
-      .catch(function (e) { endRunLoading(); showError(e.message, e.detail); });
+      .catch(function (e) {
+        if (seq !== runSeq) return;
+        endRunLoading(); showError(e.message, e.detail);
+      });
   }
 
   function addFilter() {
@@ -1613,6 +1626,7 @@
           else if (r.owned && (r.visibility === 'shared' || r.sharedCount))
             suffix += ' · ' + I18N.sharedSuffix;
           opt.textContent = r.name + suffix;
+          opt.dataset.name = r.name;
           opt.dataset.owned = r.owned ? '1' : '0';
           opt.dataset.canEdit = r.canEdit ? '1' : '0';
           group.appendChild(opt);
@@ -1748,7 +1762,8 @@
     var sel = document.getElementById('rpSavedReports');
     var id = sel.value;
     if (!id) return;
-    var current = sel.options[sel.selectedIndex].textContent.replace(/ \(SQL\)$/, '');
+    var opt = sel.options[sel.selectedIndex];
+    var current = opt.dataset.name || opt.textContent.replace(/ \(SQL\)$/, '');
     promptName(I18N.newName, current).then(function (name) {
       if (!name || name === current) return;
       // Name-only change; PUT requires the definition too, so fetch it first.

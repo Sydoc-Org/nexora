@@ -414,7 +414,8 @@
     if (!RS.state.sources) RS.loadSourcesCatalog().then(renderLibrary);
     // …and again when the rail's health probe reports the real database names,
     // which is what the cards would rather show than the registry label.
-    if (!window.ReportingSourceDb) {
+    if (!window.ReportingSourceDb && !RS._healthOnce) {
+      RS._healthOnce = true;
       document.addEventListener('rc:sourcehealth', function once() {
         document.removeEventListener('rc:sourcehealth', once);
         if (RS.state.reports) renderLibrary();

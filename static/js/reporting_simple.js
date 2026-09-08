@@ -377,7 +377,7 @@
       // the backend to also diff THIS zero-column clone's own prior period
       // would be a fully wasted extra query.
       var t = await RS.api('/api/reporting/run', { method: 'POST', body: JSON.stringify(totalDef) });
-      if (seq !== runSeq) return;
+      if (seq !== runSeq || RS.state.current !== cur) return;
       if (t.ok && t.data && t.data.rows && t.data.rows.length) {
         RS.setGrandTotals(t.data.rows[0]);
       }
@@ -391,7 +391,7 @@
       method: 'POST',
       body: JSON.stringify(Object.assign({}, def, { compare: true }))
     });
-    if (seq !== runSeq) return;
+    if (seq !== runSeq || RS.state.current !== cur) return;
     // Hide only after the staleness guard: a slow stale response must never
     // hide the indicator a newer run just showed.
     RS.el('rsRunLoading').hidden = true;

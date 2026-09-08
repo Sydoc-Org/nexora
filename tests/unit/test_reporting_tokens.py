@@ -282,10 +282,12 @@ def test_widened_definition_extends_day_grain_window():
     today = datetime.date(2026, 8, 6)
     out = widened_definition_for_forecast(rd, today=today)
     assert out is not None and "compare" not in out
-    f = out["filters"][0]
-    assert f["op"] == "between"
-    # this_month resolves to [2026-08-01, 2026-08-31]; day lookback = 56 days
-    assert f["value"] == ["2026-06-06", "2026-08-31"]
+    # Half-open like the visible window: this_month resolves to
+    # [2026-08-01, 2026-08-31], day lookback = 56 days, end exclusive.
+    assert out["filters"] == [
+        {"field": "import_date", "op": "gte", "value": "2026-06-06"},
+        {"field": "import_date", "op": "lt", "value": "2026-09-01"},
+    ]
     # original untouched
     assert rd["filters"][0]["value"] == {"token": "this_month"}
 

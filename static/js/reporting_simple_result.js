@@ -53,6 +53,8 @@
 
   function showResultError(msg, opts) {
     RS.el('rsRunLoading').hidden = true;
+    var lgrid = document.getElementById('rsLayoutGrid');
+    if (lgrid) lgrid.hidden = true;   // a previous layout result must not sit under the error
     if (RS.el('rsChips')) RS.el('rsChips').hidden = true;
     RS.setView('result');
     RS.hideTimingBadge();

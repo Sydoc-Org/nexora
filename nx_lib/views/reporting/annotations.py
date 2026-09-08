@@ -36,8 +36,10 @@ def _validate(p):
     """
     bucket = str(p.get("bucket") or "").strip()
     text = str(p.get("text") or "").strip()
-    if not bucket or len(bucket) > BUCKET_MAX:
+    if not bucket:
         raise ValueError(_("Pick a bucket on the chart."))
+    if len(bucket) > BUCKET_MAX:
+        raise ValueError(_("This bucket label is too long to annotate."))
     if not text:
         raise ValueError(_("Annotation text is required."))
     if len(text) > TEXT_MAX:

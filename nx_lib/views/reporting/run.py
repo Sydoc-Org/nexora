@@ -9,6 +9,8 @@ produce the same forecast, #178). Split out of
 package's overall shape.
 """
 
+from typing import Any
+
 import pyodbc
 from flask import current_app, jsonify, request, session
 from flask_babel import gettext as _
@@ -20,6 +22,7 @@ from ...reporting.catalog import fetch_docprocessing_catalog
 from ...reporting.contribution import (
     contribution_rows,
     fill_shares,
+    is_degenerate,
     is_ratio_metric,
     pick_dimensions,
     single_dimension_definition,
@@ -333,8 +336,12 @@ def api_contribution():
 
     metric_def = source_metrics.get(metric_code) or {}
     is_ratio = is_ratio_metric(metric_def)
-    dimensions, skipped = [], []
-    for dim in pick_dimensions(catalog, rd.get("filters") or []):
+    dimensions: list[dict[str, Any]] = []
+    skipped: list[str] = []
+    # Every candidate, in order; stop at three that actually explain something.
+    for dim in pick_dimensions(catalog, rd.get("filters") or [], cap=None):
+        if len(dimensions) >= 3:
+            break
         field = dim["field"]
         try:
             c_cols, c_sql, c_params, c_engine = _prepare_run(
@@ -350,6 +357,11 @@ def api_contribution():
             return jsonify({"error": _("Not authorized for this source")}), 403
         except Exception as e:  # one unqueryable column must not sink the drawer
             current_app.logger.warning(f"/api/reporting/contribution skipped {field}: {e}")
+            skipped.append(field)
+            continue
+        if is_degenerate(c_rows, p_rows, rows):
+            # e.g. WorkItemID / an import file name: one row per value, so the
+            # top 8 are arbitrary and "(other)" carries the whole change.
             skipped.append(field)
             continue
         dimensions.append(

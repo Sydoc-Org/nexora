@@ -392,7 +392,7 @@
     RS.el('rsChartTools').querySelector('[data-type="stacked"]').hidden = !multi;
     RS.el('rsChartCanvas').dataset.series = String(d.datasets.length);
     Array.prototype.forEach.call(
-      RS.el('rsChartTools').querySelectorAll('button'), function (b) {
+      RS.el('rsChartTools').querySelectorAll('button[data-type]'), function (b) {
         b.classList.toggle('is-selected', b.dataset.type === type);
         b.setAttribute('aria-pressed', b.dataset.type === type ? 'true' : 'false');
       });
