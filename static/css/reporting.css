@@ -2906,3 +2906,19 @@ html.dark .rdb-add-tile:hover { background: var(--nx-accent-soft); }
 .rdb-report-tablebar { display: flex; justify-content: flex-end; margin-top: 10px; }
 .rdb-report-table.reporting-table-wrap { min-height: 0; max-height: 420px; overflow: auto; margin-top: 8px; }
 @media (max-width: 900px) { .rdb-report { grid-template-columns: 1fr; } }
+
+/* Chart annotations (#284) -- list under the Simple chart + add popover. */
+.rs-annotations { margin-top: 8px; font-size: 13px; }
+.rs-annotations-head { display: flex; align-items: center; gap: 10px; color: var(--nx-text-meta); }
+.rs-annotations-title { font-weight: 600; }
+.rs-annotations-list { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.rs-annotations-list li { display: flex; align-items: baseline; gap: 8px; }
+.rs-annotation-bucket { color: var(--nx-text-meta); white-space: nowrap; }
+.rs-annotation-author { color: var(--nx-text-meta); margin-left: auto; white-space: nowrap; }
+.rs-annotation-delete { background: none; border: 0; color: var(--nx-text-meta); cursor: pointer; padding: 0 4px; }
+.rs-annotation-delete:hover { color: var(--nx-danger, #b91c1c); }
+.rs-annotation-pop { position: absolute; z-index: 30; width: min(320px, 90vw); padding: 10px; background: var(--nx-card); border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 8px); box-shadow: 0 8px 24px rgba(0,0,0,.12); display: flex; flex-direction: column; gap: 8px; }
+.rs-annotation-pop-bucket { font-weight: 600; }
+.rs-annotation-pop input, .rs-annotation-bucket-select { width: 100%; box-sizing: border-box; }
+.rs-annotation-pop-actions { display: flex; justify-content: flex-end; gap: 8px; }
+#rsChartCard { position: relative; }
