@@ -29,11 +29,12 @@
                     {'label': _('Username')},
                     {'label': _('User ID'), 'width': '140px'},
                     {'label': _('IP Address'), 'width': '200px'},
-                    {'label': _('Logged in'), 'width': '200px'},
+                    {'label': _('Last seen'), 'width': '160px'},
+                    {'label': _('Logged in'), 'width': '160px'},
                     {'label': _('Actions'), 'align': 'right', 'width': '130px'}
                 ]) }}
                 <tbody id="active-sessions-body">
-                    {{ a.empty_state('fa-spinner fa-spin', _('Loading...'), colspan=5) }}
+                    {{ a.empty_state('fa-spinner fa-spin', _('Loading...'), colspan=6) }}
                 </tbody>
             </table>
         </div>

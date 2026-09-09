@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-09 09:39+0200\n"
+"POT-Creation-Date: 2026-09-09 14:40+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -18,11 +18,11 @@ msgstr ""
 msgid "Error fetching activity instance"
 msgstr "Fehler beim Abrufen der Aktivitätsinstanz"
 
-#: nx_lib/security.py:204
+#: nx_lib/security.py:209
 msgid "Invalid date"
 msgstr "Ungültiges Datum"
 
-#: nx_lib/security.py:206
+#: nx_lib/security.py:211
 msgid "Date is outside the allowed entry window"
 msgstr "Datum liegt außerhalb des erlaubten Erfassungszeitraums"
 
@@ -762,7 +762,7 @@ msgid "An unexpected error occurred"
 msgstr "Ein unerwarteter Fehler ist aufgetreten"
 
 #: nx_lib/views/dashboard.py:941 templates/appearance.html:357
-#: templates/dashboard.html:117
+#: templates/dashboard.html:115
 msgid "Backlog"
 msgstr "Rückstand"
 
@@ -879,29 +879,29 @@ msgstr "%(field)s muss numerisch sein."
 
 #: nx_lib/views/admin/clients.py:154 nx_lib/views/admin/organizations.py:128
 #: nx_lib/views/admin/processes.py:420 nx_lib/views/admin/processes.py:573
-#: nx_lib/views/admin/users.py:158 nx_lib/views/tenant.py:535
-#: nx_lib/views/tenant.py:599 nx_lib/views/tenant.py:644
-#: nx_lib/views/tenant.py:679 nx_lib/views/tenant.py:718
+#: nx_lib/views/admin/users.py:158 nx_lib/views/tenant.py:533
+#: nx_lib/views/tenant.py:597 nx_lib/views/tenant.py:642
+#: nx_lib/views/tenant.py:677 nx_lib/views/tenant.py:716
 msgid "An unexpected error occurred."
 msgstr "Ein unerwarteter Fehler ist aufgetreten."
 
-#: nx_lib/views/tenant.py:581 nx_lib/views/tenant.py:623
+#: nx_lib/views/tenant.py:579 nx_lib/views/tenant.py:621
 msgid "This entity has no writable fields."
 msgstr "Diese Entität hat keine beschreibbaren Felder."
 
-#: nx_lib/views/tenant.py:596
+#: nx_lib/views/tenant.py:594
 msgid "Record created successfully."
 msgstr "Datensatz erfolgreich erstellt."
 
-#: nx_lib/views/tenant.py:640 nx_lib/views/tenant.py:675
+#: nx_lib/views/tenant.py:638 nx_lib/views/tenant.py:673
 msgid "Record not found."
 msgstr "Datensatz nicht gefunden."
 
-#: nx_lib/views/tenant.py:641
+#: nx_lib/views/tenant.py:639
 msgid "Record updated successfully."
 msgstr "Datensatz erfolgreich aktualisiert."
 
-#: nx_lib/views/tenant.py:676
+#: nx_lib/views/tenant.py:674
 msgid "Record deleted successfully."
 msgstr "Datensatz erfolgreich gelöscht."
 
@@ -1541,7 +1541,7 @@ msgstr "Benutzer erfolgreich gelöscht."
 msgid "Could not fetch logs"
 msgstr "Protokolle konnten nicht abgerufen werden"
 
-#: nx_lib/views/admin/users.py:661
+#: nx_lib/views/admin/users.py:667
 msgid "Could not fetch sessions"
 msgstr "Sitzungen konnten nicht abgerufen werden"
 
@@ -2072,7 +2072,7 @@ msgstr "Entwicklung"
 msgid "API Documentation"
 msgstr "API-Dokumentation"
 
-#: templates/_header.html:171 templates/dashboard.html:34
+#: templates/_header.html:171 templates/dashboard.html:32
 msgid "Global Dashboard"
 msgstr "Globales Dashboard"
 
@@ -2837,7 +2837,7 @@ msgstr ""
 "Wählen Sie bis zu drei — die erste ist die Diagrammachse, die zweite wird"
 " zur farbigen Datenreihe."
 
-#: templates/_reporting_simple.html:99 templates/dashboard.html:69
+#: templates/_reporting_simple.html:99 templates/dashboard.html:67
 #: templates/js/_reporting_simple_js.html:154
 msgid "Time range"
 msgstr "Zeitraum"
@@ -4012,7 +4012,7 @@ msgstr "Live-Vorschau"
 msgid "Replay"
 msgstr "Erneut abspielen"
 
-#: templates/appearance.html:338 templates/dashboard.html:32
+#: templates/appearance.html:338 templates/dashboard.html:30
 #: templates/generali_documents.html:41 templates/generali_reporting.html:56
 #: templates/js/_header_js.html:30 templates/js/_header_js.html:36
 msgid "Dashboard"
@@ -4022,7 +4022,7 @@ msgstr "Dashboard"
 msgid "Today at a glance"
 msgstr "Heute im Überblick"
 
-#: templates/appearance.html:350 templates/dashboard.html:81
+#: templates/appearance.html:350 templates/dashboard.html:79
 msgid "Processed today"
 msgstr "Heute verarbeitet"
 
@@ -4030,7 +4030,7 @@ msgstr "Heute verarbeitet"
 msgid "Workitem"
 msgstr "Workitem"
 
-#: templates/appearance.html:370 templates/dashboard.html:47
+#: templates/appearance.html:370 templates/dashboard.html:45
 #: templates/generali_importstatus.html:103
 msgid "Updated"
 msgstr "Aktualisiert"
@@ -4047,76 +4047,76 @@ msgstr "Filter"
 msgid "Dashboard - nexora"
 msgstr "Dashboard - nexora"
 
-#: templates/dashboard.html:30
+#: templates/dashboard.html:28
 #, python-format
 msgid "%(tenant)s Dashboard"
 msgstr "%(tenant)s Dashboard"
 
-#: templates/dashboard.html:41
+#: templates/dashboard.html:39
 #, python-format
 msgid "Signed in as %(name)s"
 msgstr "Angemeldet als %(name)s"
 
-#: templates/dashboard.html:41
+#: templates/dashboard.html:39
 #, python-format
 msgid "last sign-in %(when)s"
 msgstr "letzte Anmeldung %(when)s"
 
-#: templates/dashboard.html:47
+#: templates/dashboard.html:45
 msgid "next in"
 msgstr "neu in"
 
-#: templates/admin/sessions.html:22 templates/dashboard.html:50
+#: templates/admin/sessions.html:22 templates/dashboard.html:48
 #: templates/maintenance.html:154
 msgid "Refresh"
 msgstr "Aktualisieren"
 
-#: templates/dashboard.html:56 templates/workitems_overview.html:99
+#: templates/dashboard.html:54 templates/workitems_overview.html:99
 msgid "Process"
 msgstr "Prozess"
 
-#: templates/dashboard.html:65 templates/reporting.html:371
+#: templates/dashboard.html:63 templates/reporting.html:371
 #: templates/workitems_overview.html:110
 msgid "Filter by client and process"
 msgstr "Nach Kunde und Prozess filtern"
 
-#: templates/dashboard.html:73
+#: templates/dashboard.html:71
 msgid "d"
 msgstr "T"
 
-#: templates/dashboard.html:80
+#: templates/dashboard.html:78
 msgid "Imported today"
 msgstr "Heute importiert"
 
-#: templates/dashboard.html:82
+#: templates/dashboard.html:80
 msgid "Current backlog"
 msgstr "Aktueller Rückstand"
 
-#: templates/dashboard.html:83
+#: templates/dashboard.html:81
 msgid "Avg. processing time"
 msgstr "Durchschn. Verarbeitungszeit"
 
-#: templates/dashboard.html:99 templates/js/_dashboard_js.html:16
+#: templates/dashboard.html:97 templates/js/_dashboard_js.html:16
 msgid "Documents processed over time"
 msgstr "Verarbeitete Dokumente im Zeitverlauf"
 
-#: templates/dashboard.html:103
+#: templates/dashboard.html:101
 msgid "Over time"
 msgstr "Im Zeitverlauf"
 
-#: templates/dashboard.html:104
+#: templates/dashboard.html:102
 msgid "Today by hour"
 msgstr "Heute nach Stunde"
 
-#: templates/dashboard.html:111
+#: templates/dashboard.html:109
 msgid "No documents processed yet today."
 msgstr "Heute noch keine Dokumente verarbeitet."
 
-#: templates/dashboard.html:118
+#: templates/dashboard.html:116
 msgid "open items"
 msgstr "offen"
 
-#: templates/dashboard.html:122
+#: templates/dashboard.html:120
 msgid "Trend"
 msgstr "Verlauf"
 
@@ -4503,7 +4503,7 @@ msgstr "Erfasst am"
 
 #: templates/admin/access_control.html:92 templates/admin/clients.html:57
 #: templates/admin/maintenance.html:39 templates/admin/organizations.html:34
-#: templates/admin/processes.html:78 templates/admin/sessions.html:33
+#: templates/admin/processes.html:78 templates/admin/sessions.html:34
 #: templates/admin/tenants_manage.html:41
 #: templates/admin/tenants_manage.html:79
 #: templates/generali_additionalservices.html:167
@@ -6541,7 +6541,7 @@ msgid "Overrides"
 msgstr "Überschreibungen"
 
 #: templates/admin/access_control.html:96 templates/admin/logs.html:106
-#: templates/admin/sessions.html:36 templates/admin/user_detail.html:128
+#: templates/admin/sessions.html:37 templates/admin/user_detail.html:128
 #: templates/admin/user_detail.html:226 templates/js/admin/_sessions_js.html:37
 #: templates/js/admin/_user_detail_js.html:443
 #: templates/js/admin/_user_detail_js.html:556
@@ -7333,6 +7333,10 @@ msgid "IP Address"
 msgstr "IP-Adresse"
 
 #: templates/admin/sessions.html:32
+msgid "Last seen"
+msgstr "Zuletzt gesehen"
+
+#: templates/admin/sessions.html:33
 msgid "Logged in"
 msgstr "Angemeldet"
 
@@ -8116,7 +8120,7 @@ msgstr "Fehler beim Speichern des Eintrags."
 #: templates/js/_generali_pdqm_js.html:524
 #: templates/js/_generali_project_management_js.html:217
 #: templates/js/_generali_project_management_js.html:282
-#: templates/js/admin/_sessions_js.html:130
+#: templates/js/admin/_sessions_js.html:138
 msgid "Network error."
 msgstr "Netzwerkfehler."
 
@@ -10217,23 +10221,23 @@ msgstr "vor Sekunden"
 msgid "No active sessions found."
 msgstr "Keine aktiven Sitzungen gefunden."
 
-#: templates/js/admin/_sessions_js.html:88
+#: templates/js/admin/_sessions_js.html:96
 msgid "Revoke this session"
 msgstr "Diese Sitzung beenden"
 
-#: templates/js/admin/_sessions_js.html:94
+#: templates/js/admin/_sessions_js.html:102
 msgid "Revoke"
 msgstr "Beenden"
 
-#: templates/js/admin/_sessions_js.html:103
+#: templates/js/admin/_sessions_js.html:111
 msgid "Could not load sessions."
 msgstr "Sitzungen konnten nicht geladen werden."
 
-#: templates/js/admin/_sessions_js.html:116
+#: templates/js/admin/_sessions_js.html:124
 msgid "Revoke the active session for"
 msgstr "Aktive Sitzung beenden für"
 
-#: templates/js/admin/_sessions_js.html:126
+#: templates/js/admin/_sessions_js.html:134
 msgid "Could not revoke session."
 msgstr "Sitzung konnte nicht beendet werden."
 
