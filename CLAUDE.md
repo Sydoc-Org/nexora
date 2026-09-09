@@ -67,6 +67,15 @@ Documentation is part of the change, not a follow-up. Add, rename, or remove a C
 - **Stale docs:** fix drift you notice in the same commit. Prefer correcting or deleting a superseded doc over adding a parallel one.
 - **Confluence:** `docs/howto/*`, `docs/design/*`, `README.md`, `CONTRIBUTING.md`, `CHANGELOG.md` auto-publish on push to `main`. Never edit those pages in Confluence — the sync overwrites them.
 
+**The footer is how you tell what PROD is running** — `nexora v{{ nexora_version }}`
+plus the deploy's build stamp (short SHA + UTC date, written by `deploy.yml`).
+Every merge to `main` deploys, but the version only moves when someone cuts a
+release, so between releases the **build stamp** is what identifies the running
+code, not the version. If you need PROD to *name* a new release, bump
+`nx_lib/version.py` + `pyproject.toml`, run `uv lock` (all three must agree or
+`tests/unit/test_version.py` fails), fold `[Unreleased]` into a dated section,
+merge, then tag. **Recipe: `CONTRIBUTING.md` → "Releases".**
+
 ## Architectural conventions
 
 One line each; **the full detail lives in `docs/design/architecture-conventions.md`** — read it before changing any of these subsystems.

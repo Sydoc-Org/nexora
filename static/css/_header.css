@@ -553,6 +553,17 @@ html.dark textarea {
     color: #f1f5f9 !important;
 }
 
+/* The native calendar button is a dark glyph, invisible on the dark field
+   above. admin-tokens.css carried this keyed on .admin-input, a class no
+   template uses any more -- and that sheet is not loaded by admin/logs.html
+   or tenant/page.html, the two pages with native date inputs. Keyed on the
+   input type here, in the globally loaded sheet, so it actually applies. */
+html.dark input[type="date"]::-webkit-calendar-picker-indicator,
+html.dark input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+html.dark input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.85);
+}
+
 /* Table rows */
 html.dark table thead tr   { background-color: #0f172a !important; }
 html.dark table tbody tr:hover { background-color: rgba(30,41,59,0.7) !important; }

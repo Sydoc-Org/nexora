@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-09 09:14+0200\n"
+"POT-Creation-Date: 2026-09-09 09:39+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -751,10 +751,10 @@ msgstr "Nicht autorisiert"
 #: nx_lib/views/dashboard.py:781 nx_lib/views/dashboard.py:851
 #: nx_lib/views/dashboard.py:905 nx_lib/views/dashboard.py:967
 #: nx_lib/views/generali/_crud.py:186 nx_lib/views/generali/attendance.py:98
-#: nx_lib/views/generali/documents.py:288
-#: nx_lib/views/generali/documents.py:327
-#: nx_lib/views/generali/documents.py:503
-#: nx_lib/views/generali/documents.py:537
+#: nx_lib/views/generali/documents.py:316
+#: nx_lib/views/generali/documents.py:355
+#: nx_lib/views/generali/documents.py:531
+#: nx_lib/views/generali/documents.py:565
 #: nx_lib/views/generali/importstatus.py:119 nx_lib/views/generali/pdqm.py:102
 #: nx_lib/views/generali/reporting.py:260
 #: nx_lib/views/generali/reporting.py:321 nx_lib/views/workitems.py:1386
@@ -6366,8 +6366,8 @@ msgstr "Gelöscht"
 msgid "Table or document view"
 msgstr "Tabellen- oder Dokumentenansicht"
 
-#: templates/js/_generali_dashboard_js.html:138
-#: templates/js/_generali_dashboard_js.html:214
+#: templates/js/_generali_dashboard_js.html:172
+#: templates/js/_generali_dashboard_js.html:248
 #: templates/workitems_overview.html:336
 msgid "Documents"
 msgstr "Dokumente"

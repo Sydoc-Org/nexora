@@ -415,6 +415,30 @@ a.nx-card:hover, .nx-card--link:hover {
 .nx-table thead th.text-center { text-align: center; }
 .nx-table thead th.text-right { text-align: right; }
 
+/* Dark-mode table legibility.
+   The shared tokens are tuned for the light palette, where --nx-divider and
+   --nx-alt sit a comfortable distance from the white card. In dark they land
+   within a few steps of --nx-card (#273449 against #1e293b), so row rules, the
+   header band and row hover all but disappear, and header text on
+   --nx-text-meta measures roughly 3:1 — under AA for 11px uppercase.
+   Separate the surfaces explicitly here rather than moving the tokens, which
+   would repaint every other component that depends on them. */
+html.dark .nx-table thead th {
+  background: #16212f;
+  color: var(--nx-text-sec);
+  border-bottom: 1px solid var(--nx-border-strong);
+}
+html.dark .nx-table tbody td { border-bottom-color: #33425a; }
+html.dark .nx-table tbody tr.is-clickable:hover,
+html.dark .nx-table tbody tr:not(.details-row):hover { background: #2b3a52; }
+html.dark .nx-table-wrap { border-color: var(--nx-border-strong); }
+/* Striping is a ratio of --nx-alt, which is nearly --nx-card in dark; give it
+   its own step so alternating rows are actually distinguishable. */
+html.dark.nx-stripes .nx-table tbody tr:not(.details-row):nth-child(even) td,
+html.dark.nx-stripes .admin-table tbody tr:not(.details-row):nth-child(even) td {
+  background: #223046;
+}
+
 /* Skeleton loading bars (workitems loader, #189) — accent-tinted shimmer;
    the global reduced-motion kill-switch above freezes the animation. */
 .nx-skel {
@@ -1007,3 +1031,212 @@ body.admin-page main {
 .perm-holders { list-style: none; padding: 0; margin: 0; font-size: 13px; }
 .perm-holders li { padding: 4px 0; border-bottom: 1px solid var(--nx-border); }
 .nx-btn:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+
+/* ============================================================
+   11. DATE PICKER (flatpickr)
+   flatpickr serves one light-only stylesheet from the CDN, so a calendar
+   opened on a dark page renders white with near-black text. These rules
+   repaint it from the --nx-* tokens rather than importing flatpickr's own
+   dark theme, so it follows the user's accent, contrast and density prefs
+   for free.
+
+   WHY IT LIVES HERE, not in a page stylesheet: it used to sit in
+   dashboard.css, which only dashboard.html and generali-dashboard.html
+   load -- so of the eleven pages that open a calendar, ten rendered the
+   light-only version. This file is loaded by every one of them.
+
+   WHY EVERY SELECTOR IS PREFIXED `html`: the pages link this sheet in
+   <head> BEFORE the flatpickr CDN sheet, so on equal specificity flatpickr
+   would win. (It happens to work anyway today, because _header.html links
+   this file a second time from inside <body> -- an accident, not a design,
+   and not something to rely on.) The bare `html` adds one element to each
+   selector, putting every rule below strictly above flatpickr's own
+   (.flatpickr-calendar is (0,1,0), .flatpickr-months .flatpickr-month is
+   (0,2,0)), so load order stops mattering. Specificity, not !important,
+   so a page can still override with a class.
+
+   Colours are token-driven in BOTH modes rather than light-by-default with
+   a dark override bolted on: the old base block hardcoded #111827 text,
+   which is the only reason the dark rules had to exist. Only what genuinely
+   differs in dark is repeated at the end.
+
+   Consumers (11): generali-dashboard, generali_documents,
+   generali_baseservices, generali_importstatus, generali_projectmanagement,
+   generali_pdqm, generali_additionalservices, generali_reporting,
+   reporting, workitems_overview, admin/maintenance.
+   ============================================================ */
+html .flatpickr-calendar {
+  font-family: 'Inter', sans-serif;
+  border: none;
+  border-radius: 1rem;
+  padding: 0.5rem;
+  background: var(--nx-card);
+  color: var(--nx-text);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+}
+
+html .flatpickr-day {
+  color: var(--nx-text);
+  border-radius: 0.5rem;
+  transition: background-color 0.2s ease;
+}
+html .flatpickr-day.selected,
+html .flatpickr-day.startRange,
+html .flatpickr-day.endRange {
+  background: var(--nx-accent, #4f46e5);
+  border-color: var(--nx-accent, #4f46e5);
+  box-shadow: 0 4px 6px -1px color-mix(in srgb, var(--nx-accent) 30%, transparent);
+}
+html .flatpickr-day:hover { background: var(--nx-accent-tint, #eef2ff); }
+html .flatpickr-day.today { border-color: var(--nx-accent); }
+
+/* Month header, year spinner and the month dropdown. */
+html .flatpickr-months .flatpickr-month,
+html .flatpickr-current-month .numInputWrapper,
+html .flatpickr-current-month input.cur-year,
+html .flatpickr-current-month .flatpickr-monthDropdown-months {
+  color: var(--nx-text);
+  fill: var(--nx-text);
+  background: transparent;
+}
+html .flatpickr-current-month .flatpickr-monthDropdown-months option {
+  background: var(--nx-card);
+  color: var(--nx-text);
+}
+
+html .flatpickr-months .flatpickr-prev-month svg,
+html .flatpickr-months .flatpickr-next-month svg { fill: var(--nx-text-sec); }
+html .flatpickr-months .flatpickr-prev-month:hover svg,
+html .flatpickr-months .flatpickr-next-month:hover svg { fill: var(--nx-accent); }
+
+/* --nx-text-sec, not --nx-text-meta: meta measures about 3:1 on the dark
+   card -- the same under-AA contrast #259 flagged on table headers. Its
+   light value is #6b7280, exactly what this rule used before. */
+html span.flatpickr-weekday {
+  color: var(--nx-text-sec);
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+/* Out-of-range days must read as unavailable, not merely dim: the pickers
+   block future dates and any end before the start. */
+html .flatpickr-day.flatpickr-disabled,
+html .flatpickr-day.prevMonthDay,
+html .flatpickr-day.nextMonthDay { color: var(--nx-text-meta); opacity: 0.45; }
+html .flatpickr-day.flatpickr-disabled:hover { background: transparent; }
+
+/* --- Header row: month, year and the two nav arrows ---------------------
+   flatpickr absolutely positions the arrows at top:0 of the months bar and
+   pads the month/year text down by ~7px, so the arrows land above the text's
+   optical centre. The bar is already `display: flex`; taking the three cells
+   out of the absolute layer lets them align to each other instead. */
+html .flatpickr-months {
+  align-items: center;
+  padding: 4px 2px 10px;
+}
+html .flatpickr-months .flatpickr-month {
+  margin-bottom: 0;
+  height: auto;
+  flex: 1 1 auto;
+  overflow: visible;
+}
+html .flatpickr-months .flatpickr-prev-month,
+html .flatpickr-months .flatpickr-next-month {
+  position: static;
+  flex: 0 0 auto;
+  height: auto;
+  padding: 5px 7px;
+  border-radius: 0.5rem;
+  line-height: 0;
+}
+html .flatpickr-months .flatpickr-prev-month:hover,
+html .flatpickr-months .flatpickr-next-month:hover { background: var(--nx-alt); }
+
+/* Centre month and year as one unit. Left alone, the month <select> is
+   ~118px wide and the year wrapper ~63px, both left-aligned inside their
+   boxes, which opens a dead gap between the two words. */
+html .flatpickr-current-month {
+  /* flatpickr gives this `position: absolute; width: 75%; left: 12.5%`.
+     Going static ignores `left` but NOT `width`, which would keep the cell
+     at three quarters of the row and pull the centring off. */
+  position: static;
+  width: auto;
+  left: auto;
+  height: auto;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 1.05rem;
+}
+html .flatpickr-current-month .numInputWrapper { width: auto; }
+html .flatpickr-current-month input.cur-year { width: 4.5ch; padding-left: 0; }
+
+/* The month is a <select> and the year an <input type="number">, so
+   _header.css's global `html.dark select {...}` reaches one and not the
+   other: the month rendered #f1f5f9 inside a bordered #1e293b box, the year
+   #e2e8f0 with no box. Both are token-driven and boxless here. !important
+   only because the rule being corrected uses it -- specificity cannot beat
+   it otherwise. */
+html .flatpickr-current-month .flatpickr-monthDropdown-months,
+html .flatpickr-current-month input.cur-year {
+  color: var(--nx-text) !important;
+  background: transparent !important;
+  border: 0 !important;
+  font-weight: 500;
+  font-size: inherit;
+}
+/* A native select sizes to its widest option, so every month shorter than
+   "September" sat left-aligned with the chevron stranded to its right.
+   Centring the text spreads that slack evenly instead. */
+html .flatpickr-current-month .flatpickr-monthDropdown-months {
+  text-align: center;
+  cursor: pointer;
+}
+
+/* --- Breathing room ----------------------------------------------------
+   307.875px is flatpickr's own fixed width, pinned via min/max on the day
+   container, so growing the calendar means releasing all three. */
+/* Size the panel from the day cell rather than flatpickr's hardcoded
+   307.875px. It has to stay an explicit width: the day cells are
+   `flex-basis: 14.2857%` of the grid, so a shrink-to-fit parent makes the
+   sizing circular and the grid collapses (it came out at 241px, clipping
+   Friday and Saturday). Two tokens and the arithmetic is readable. */
+html .flatpickr-calendar {
+  --nx-fp-day: 42px;
+  --nx-fp-pad: 14px;
+  padding: var(--nx-fp-pad);
+  width: calc(var(--nx-fp-day) * 7 + var(--nx-fp-pad) * 2);
+}
+html .flatpickr-days,
+html .flatpickr-days .dayContainer,
+html .flatpickr-calendar.hasTime .flatpickr-time {
+  width: calc(var(--nx-fp-day) * 7);
+  min-width: calc(var(--nx-fp-day) * 7);
+  max-width: calc(var(--nx-fp-day) * 7);
+}
+html .flatpickr-day {
+  height: var(--nx-fp-day);
+  line-height: var(--nx-fp-day);
+  max-width: var(--nx-fp-day);
+}
+html .flatpickr-weekdays { height: 30px; }
+html .flatpickr-time input { color: var(--nx-text); }
+html .flatpickr-time .flatpickr-time-separator,
+html .flatpickr-time .flatpickr-am-pm { color: var(--nx-text-sec); }
+html .flatpickr-time input:hover,
+html .flatpickr-time input:focus,
+html .flatpickr-time .flatpickr-am-pm:hover { background: var(--nx-alt); }
+
+/* Dark-only. A 0.1-alpha shadow vanishes on a dark ground, the calendar
+   arrow is a bordered pseudo-element flatpickr paints white, and the day
+   hover tint wants the neutral surface rather than the accent wash. */
+html.dark .flatpickr-calendar {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+}
+html.dark .flatpickr-calendar.arrowTop::before,
+html.dark .flatpickr-calendar.arrowTop::after { border-bottom-color: var(--nx-card); }
+html.dark .flatpickr-calendar.arrowBottom::before,
+html.dark .flatpickr-calendar.arrowBottom::after { border-top-color: var(--nx-card); }
+html.dark .flatpickr-day:hover { background: var(--nx-alt); }

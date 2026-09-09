@@ -48,9 +48,10 @@ class _FakeStatsCursor:
     dicts.
     """
 
-    def __init__(self, kpi_row, trend_rows):
+    def __init__(self, kpi_row, trend_rows, latest_day=None):
         self._kpi_row = kpi_row
         self._trend_rows = trend_rows
+        self._latest_day = latest_day
         self._result = []
 
     def execute(self, sql, params=None):
@@ -59,6 +60,8 @@ class _FakeStatsCursor:
             self._result = [self._kpi_row]
         elif "GROUP BY CAST(DOC_SCANDATUM AS DATE)" in normalized:
             self._result = list(self._trend_rows)
+        elif "MAX(CAST(DOC_SCANDATUM AS DATE))" in normalized:
+            self._result = [(self._latest_day,)] if self._latest_day else []
         else:
             self._result = []
 
@@ -91,8 +94,8 @@ class _FakeEngine:
         return self._conn
 
 
-def _wire(monkeypatch, kpi_row, trend_rows):
-    cursor = _FakeStatsCursor(kpi_row, trend_rows)
+def _wire(monkeypatch, kpi_row, trend_rows, latest_day=None):
+    cursor = _FakeStatsCursor(kpi_row, trend_rows, latest_day)
     monkeypatch.setattr(gv, "engine_generali_db", _FakeEngine(_FakeConn(cursor)))
 
 
@@ -182,3 +185,72 @@ def test_rows_outside_the_range_are_dropped_not_fatal(user_client, monkeypatch):
     assert len(body["trend"]["labels"]) == 10
     assert "2026-08-01" not in body["trend"]["labels"]
     assert sum(body["trend"]["values"]) == 300
+
+
+def test_latest_data_day_is_reported(user_client, monkeypatch):
+    """The UI warns when a range runs past the newest imported day."""
+    _grant_perms(monkeypatch, ["tenant.generali.view"])
+    _wire(monkeypatch, _KPI_ROW, _TREND_ROWS, latest_day=date(2026, 7, 8))
+
+    kpis = _get(user_client)["kpis"]
+
+    assert kpis["latest_data_day"] == "2026-07-08"
+
+
+def test_latest_data_day_is_none_when_unknown(user_client, monkeypatch):
+    """No rows in the probe window must not break the payload."""
+    _grant_perms(monkeypatch, ["tenant.generali.view"])
+    _wire(monkeypatch, _KPI_ROW, _TREND_ROWS)
+
+    kpis = _get(user_client)["kpis"]
+
+    assert kpis["latest_data_day"] is None
+
+
+def test_dashboard_page_renders(user_client, monkeypatch):
+    """The page and its JS partial must actually render.
+
+    A msgid written with a %(day)s placeholder made flask_babel's gettext()
+    run %-formatting with no variables and raise KeyError, 500-ing the whole
+    dashboard. Every API test still passed, because none of them render the
+    template -- hence this one.
+    """
+    _grant_perms(monkeypatch, ["tenant.generali.view", "tenant.generali.documents.view"])
+
+    resp = user_client.get("/generali-dashboard")
+
+    assert resp.status_code == 200, resp.get_data(as_text=True)[:400]
+    body = resp.get_data(as_text=True)
+    assert "filterStartDate" in body
+
+    # Every element the JS partial writes to must exist. Dropping the range
+    # notice also deleted the "Total Documents" card and the KPI grid wrapper
+    # around it, which left the partial doing
+    # `document.getElementById('kpi-total').textContent = ...` against null --
+    # a TypeError that aborted the whole KPI render, so *every* figure stayed
+    # blank. The page still returned 200, so nothing here noticed.
+    for element_id in ("kpi-total", "kpi-avg"):
+        assert f'id="{element_id}"' in body, f"{element_id} is missing from the page"
+    assert 'class="grid grid-cols-2 md:grid-cols-5' in body, "KPI grid wrapper is missing"
+
+
+def test_days_after_the_last_import_count_as_pending_not_empty(user_client, monkeypatch):
+    """Un-imported days must not be reported as days that produced nothing.
+
+    A range running to today trails off into days the daily import has not
+    reached. Counting those as empty made the warning read as an outage and
+    kept it up until the end date was dragged back behind them.
+    """
+    _grant_perms(monkeypatch, ["tenant.generali.view"])
+    # data lands on 07-01 and 07-02; import has only reached 07-04, so
+    # 07-05..07-10 are pending and only 07-03/07-04 are genuinely empty.
+    _wire(monkeypatch, _KPI_ROW, _TREND_ROWS, latest_day=date(2026, 7, 4))
+
+    kpis = _get(user_client)["kpis"]
+
+    assert kpis["days_in_range"] == 10
+    assert kpis["days_settled"] == 4
+    assert kpis["days_pending"] == 6
+    assert kpis["days_with_data"] == 2
+    # genuinely empty = settled minus those with data, NOT 8
+    assert kpis["days_settled"] - kpis["days_with_data"] == 2

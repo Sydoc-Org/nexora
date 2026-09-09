@@ -70,6 +70,21 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and nothing bleeds in beside it; the editor preview re-runs on every change.
 
 ### Fixed
+- **The date picker is readable in dark mode on every page that has one, not
+  just the dashboard.** The flatpickr overrides sat in `static/css/dashboard.css`,
+  which only two templates load, while eleven templates open a calendar — so
+  ten of them (Generali documents, base services, import status, project
+  management, PDQM, additional services, reporting, plus Reporting,
+  Workitems overview and Admin → Maintenance) drew the library's light-only
+  calendar on a dark page: white panel, near-black text. Moved to
+  `nexora-ui.css`, which every page loads. The colours now come from the
+  `--nx-*` tokens in both modes rather than being hardcoded light with a dark
+  patch on top, so the calendar also follows the user's accent choice, and
+  weekday headers moved off `--nx-text-meta` (about 3:1 on the dark card) onto
+  `--nx-text-sec`. The native browser date inputs on Admin → Logs and tenant
+  pages get their calendar button inverted in dark too — that rule existed but
+  was keyed on a class no template uses any more, in a stylesheet neither page
+  loads. Dashboard also stopped downloading flatpickr, which it never called.
 - **Pushes failed on `main`'s own content** (#287). The `mixed-line-ending`
   pre-commit hook rewrote 108 files on a clean checkout of `origin/main`, so it
   modified the tree and the pre-push scan rejected the push — for anybody, on any
@@ -689,6 +704,33 @@ exora\Prune Sessions"
   default. The block moved to `templates/_ui_prefs_prepaint.html`, included
   verbatim by `_header.html`, so two copies of the accent derivation cannot
   drift apart.
+- **The Generali dashboard's date filter is usable again.** The time fields
+  defaulted to the current clock, so picking a day quietly truncated it and
+  there was no obvious way to ask for the whole thing. The picker is now
+  date-only and supplies the boundaries itself: midnight to 23:59:59, except
+  when the end is today, where it follows the wall clock rather than asking
+  for hours that have not happened. The two fields also constrain each other
+  -- the end can no longer precede the start -- and neither accepts a future
+  date.
+
+- **The Generali stats response reports data coverage.** `days_settled`,
+  `days_pending` and `latest_data_day` beside `days_with_data`, so a day
+  still awaiting the daily import can be told apart from a day that was
+  imported and genuinely held nothing. No UI consumes them yet -- an
+  on-page warning was tried and removed: it counted Sundays, which produce
+  nothing routinely, so on any month-long range it fired every time. The
+  lag itself is deliberate -- Generali review the documents before sending
+  them, because they are sensitive -- so it is expected rather than a
+  fault, and is deliberately not surfaced at all (#265, closed).
+
+- **The date picker and tables are legible in dark mode.** flatpickr ships a
+  light-only stylesheet and the existing overrides pinned near-black text, so
+  the calendar stayed white on a dark page; it is now painted from the
+  `--nx-*` tokens and follows the accent. In tables, `--nx-divider` and
+  `--nx-alt` sit within a few steps of `--nx-card` in dark, leaving row rules,
+  the header band and hover nearly invisible with header text around 3:1 --
+  those surfaces are now separated for `html.dark` rather than by moving the
+  shared tokens, which would repaint every component that depends on them.
 
 ## [3.2.4] - 2026-09-03
 
