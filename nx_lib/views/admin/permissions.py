@@ -105,6 +105,17 @@ def admin_permissions_page():
         ]
         cur.execute("SELECT AccessID, PermissionID FROM dbo.AccessProfilePermission")
         grants = [[r[0], r[1]] for r in cur.fetchall()]
+        # Per (profile, permission) override counts (#275): how many users of
+        # that profile have a personal allow/deny override on that permission,
+        # e.g. "Privera user overrides a foreign process" — surfaced as a
+        # badge on the grid cell instead of only via the holders side panel.
+        cur.execute(
+            """SELECT u.AccessID, uo.PermissionID, uo.Effect, COUNT(*) AS Cnt
+               FROM dbo.UserPermissionOverride uo
+               JOIN dbo.Users u ON u.userID = uo.UserID
+               GROUP BY u.AccessID, uo.PermissionID, uo.Effect"""
+        )
+        overrides = [[r[0], r[1], r[2], r[3]] for r in cur.fetchall()]
     finally:
         conn.close()
     return render_template(
@@ -112,6 +123,7 @@ def admin_permissions_page():
         groups=group_permissions(perms),
         profiles=profiles,
         grants=grants,
+        overrides=overrides,
         can_edit=has_permission("admin.profiles.edit"),
         can_edit_catalog=has_permission("admin.permissions.edit"),
         page_visibility=page_visibility(),

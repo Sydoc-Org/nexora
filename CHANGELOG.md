@@ -7,6 +7,12 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Permissions grid: column picker + override badges** (#275) — a "Columns"
+  control on `/admin/permissions` shows/hides and reorders profile columns
+  (per-viewer, `localStorage`); a small badge on each cell now counts users
+  of that profile with a personal allow/deny override on that permission
+  (`dbo.UserPermissionOverride`), instead of only showing through the
+  per-permission holders panel.
 - **Workitems overview: console redesign (part 2)** — the inline detail panel
   (shared with the reporting drill drawer and prepared_documents' preview
   modal) restyled to match part 1 (#299). Stage stepper redrawn as accent
