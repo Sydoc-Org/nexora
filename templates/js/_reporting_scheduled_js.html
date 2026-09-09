@@ -142,7 +142,7 @@
     el('rcSchedError').hidden = true;
     var res = await api('/api/reporting/reports');
     var owned = (res.ok && Array.isArray(res.data))
-      ? res.data.filter(function (r) { return r.owned && r.kind !== 'sql'; }) : [];
+      ? res.data.filter(function (r) { return r.owned && ['sql', 'dashboard', 'layout'].indexOf(r.kind) === -1; }) : [];
     var sel = el('rcSchedReport');
     sel.innerHTML = owned.map(function (r) {
       return '<option value="' + r.id + '">' + esc(r.name) + '</option>';

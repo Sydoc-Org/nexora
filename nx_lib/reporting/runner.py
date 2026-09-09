@@ -23,17 +23,12 @@ from .sources import DEFAULT_ROW_LIMIT, MAX_ROW_LIMIT
 from .table_query import build_generic_query, table_source_catalog
 from .tokens import date_fields_from_catalog, resolve_definition_tokens
 
-_SCOPE_PREFIX = "reporting.scope.process."
-
 
 def _allowed_processes_from_perms(perms):
-    return sorted(
-        {
-            ".".join(p[len(_SCOPE_PREFIX) :].rsplit(".", 1))
-            for p in perms
-            if p.startswith(_SCOPE_PREFIX)
-        }
-    )
+    """The owner's processes in either code shape (see process_helpers)."""
+    from ..process_helpers import process_grants  # local: keeps this module import-light
+
+    return sorted(process_grants(perms))
 
 
 def _normalize_columns(definition, resolved_metrics=None, source_metrics=None):
@@ -161,6 +156,7 @@ def execute_definition(definition, owner_perms, owner_id, owner_username, locale
             catalog,
             row_cap=definition.get("rowLimit", DEFAULT_ROW_LIMIT),
             resolved_metrics=resolved,
+            latest_of=rv._shared._latest_of(resolved, source_metrics, catalog),
         )
         engine = rv._CURATED_ENGINES.get(source.get("engine"))
         if engine is None:

@@ -227,12 +227,6 @@ body.admin-page main {
 /* Confirm-delete modal background (used inline on userDetail) */
 .dark #confirmDeleteModal > div { background: var(--a-card) !important; color: var(--a-text); }
 
-/* Native date inputs render with white-on-black calendar icon by default;
-   force the calendar picker to invert in dark for visibility. */
-.dark .admin-input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: invert(0.85);
-}
-
 /* ============================================================
    ADMIN MODAL DARK OVERRIDES
    The modal HTML is full of raw Tailwind utility classes

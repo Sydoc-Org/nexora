@@ -8,7 +8,7 @@ package's overall shape.
 
 import re
 
-from flask import current_app, render_template, session
+from flask import current_app, redirect, render_template, session, url_for
 from markdown_it import MarkdownIt
 
 from ...config import REPO_ROOT
@@ -77,17 +77,27 @@ def reporting():
         fullname=session.get("fullname"),
         page_visibility=page_visibility(),
         ai_enabled=has_permission("reporting.ai.use"),
-        ai_caption_enabled=has_permission("reporting.ai.explain_data"),
+        ai_caption_enabled=has_permission("reporting.ai.explain.use"),
         # The composer only offers Quick/Balanced/Deep when the configured
         # model can actually honour it (GPT-5 family, Claude Opus/Sonnet 5).
         ai_effort_enabled=_ai_effort_enabled(),
         ai_effort_default=EFFORT_AGENT,
-        details_images_perm=has_permission("workitems.details.view.images"),
-        details_audit_perm=has_permission("workitems.details.view.audit"),
-        details_fields_perm=has_permission("workitems.details.view.fields"),
+        details_images_perm=has_permission("workitems.details.images.view"),
+        details_audit_perm=has_permission("workitems.details.audit.view"),
+        details_fields_perm=has_permission("workitems.details.fields.view"),
     )
+
+
+@require_permission("reporting.view")
+def reporting_definitions():
+    """The report-definitions editor lives inside the Console shell as a
+    Simple-pane view (like dashboards); this URL just opens that screen."""
+    return redirect(url_for("reporting", tab="definitions"))
 
 
 def register_routes(app):
     app.add_url_rule("/reporting", endpoint="reporting", view_func=reporting)
     app.add_url_rule("/reporting/guide", endpoint="reporting_guide", view_func=reporting_guide)
+    app.add_url_rule(
+        "/reporting/definitions", endpoint="reporting_definitions", view_func=reporting_definitions
+    )

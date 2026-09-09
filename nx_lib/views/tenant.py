@@ -5,10 +5,12 @@ cached registry (``nx_lib/tenant/registry.py``, Task 2) and the
 descriptor->SQL builders (``nx_lib/tenant/queries.py``, Task 3) -- no
 per-tenant view code, no Blueprints (house rule: routes register via
 ``add_url_rule`` so every ``url_for(...)`` in templates keeps working
-unchanged). Permission is dynamic -- the tenant code lives in the URL, so the
-permission code (``tenant.<code>.view`` / ``.edit``) is dynamic too -- so it
-is checked *inside* each view, never via ``@require_permission``, which only
-ever takes a static string literal.
+unchanged). Access is dynamic -- the tenant code lives in the URL -- so it is
+checked *inside* each view (``can_view_tenant``), never via ``@require_permission``,
+which only ever takes a static string literal. Viewing is *membership or
+grant*: a user whose organization belongs to the tenant
+(``Organizations.TenantCode``) sees it by right; anyone else needs
+``tenant.<code>.view``. Editing stays an explicit ``tenant.<code>.edit`` grant.
 
 Security invariant this module owns (carried from Task 3's dispatch note):
 ``queries.py``'s filter/sort column names are identifier-valid but never
@@ -43,6 +45,7 @@ from ..i18n import get_locale
 from ..security import PermissionDenied, has_permission, page_visibility
 from ..tenant import entity_for, fields_for, pages_for, registry, tenant
 from ..tenant.queries import build_delete, build_insert, build_list_query, build_update
+from ..tenant.registry import organization_tenant
 
 _DEFAULT_LIMIT = 50
 _MAX_LIMIT = 200
@@ -81,12 +84,58 @@ def _dialect_for_role(client, role):
     return client.dialect
 
 
-def _resolve_client_engine(t, entity):
-    """(engine, dialect) for ``entity``'s ``engine_role`` on tenant ``t``'s
-    client -- ``(None, None)`` when the client row itself or its engine for
-    that role is unavailable (K3: engines resolve via import-time CLIENTS,
-    same degrade-to-None contract as every other engine in this codebase)."""
-    client = CLIENTS.get(t.client_code)
+def can_view_tenant(tenant_code):
+    """Membership or grant (0096): the session user's organization belongs to
+    the tenant, or the session holds ``tenant.<code>.view``. Also used by the
+    dashboard's ``?tenant=`` scope (0097)."""
+    return organization_tenant(session.get("organizationcode")) == tenant_code or has_permission(
+        f"tenant.{tenant_code}.view"
+    )
+
+
+def apply_tenant_scope():
+    """Which tenant is the current page about? Remembered in
+    ``session['tenant_scope']`` so the page's API calls narrow the same way
+    (``nx_lib/process_helpers.py::granted_processes``).
+
+    ``?tenant=<code>`` picks one -- a mounted tenant page links that way;
+    ``?tenant=`` (present, empty) is the global view -- the global sidebar
+    entries link that way; **no parameter keeps the current scope** (the
+    workitems page rewrites its own URL with the filter state, and a
+    dashboard chip may link into the list -- neither must drop the tenant).
+    Without a scope a user inside a tenant defaults to their own, anyone
+    else gets the global view. An explicit unknown tenant -> 404, one the
+    session may not view -> 403; a remembered scope that no longer resolves
+    is dropped silently. Returns the Tenant or None. Call it *before* a
+    view's catch-all ``try`` so the 404/403 are not swallowed."""
+    raw = request.args.get("tenant")
+    explicit = raw is not None
+    if raw is not None:
+        code = raw.strip() or None
+    else:
+        code = session.get("tenant_scope") or organization_tenant(session.get("organizationcode"))
+    if not code:
+        session.pop("tenant_scope", None)
+        return None
+    t = tenant(code)
+    if t is None or not can_view_tenant(code):
+        if explicit:
+            if t is None:
+                abort(404)
+            raise PermissionDenied()
+        session.pop("tenant_scope", None)
+        return None
+    session["tenant_scope"] = code
+    return t
+
+
+def _resolve_client_engine(entity):
+    """(engine, dialect) for ``entity``'s ``engine_role`` on the entity's own
+    client (``TenantEntities.ClientCode``, 0096) -- ``(None, None)`` when the
+    client row itself or its engine for that role is unavailable (K3: engines
+    resolve via import-time CLIENTS, same degrade-to-None contract as every
+    other engine in this codebase)."""
+    client = CLIENTS.get(entity.client_code)
     if client is None:
         return None, None
     engine = _engine_for_role(client, entity.engine_role)
@@ -227,7 +276,8 @@ def _parse_pagination(args):
 def _validate_values(entity, fields, data):
     """(values, errors) for entity's writable columns -- each raw JSON value
     is converted/validated by its field's SemanticRole: 'date' -> ISO date
-    parse, 'money'/'count' -> numeric, anything else -> text. ``errors`` is a
+    parse, 'money'/'count' -> numeric, 'flag' -> 0/1, 'person' -> the current
+    username (server-stamped, client value ignored), anything else -> text. ``errors`` is a
     list of translated messages; empty means every value converted cleanly
     and ``values`` has one entry per writable column."""
     fields_by_column = {f.column: f for f in fields}
@@ -236,11 +286,19 @@ def _validate_values(entity, fields, data):
     for column in _writable_columns(entity, fields):
         field = fields_by_column[column]
         label = field.labels.get("en") or column
+        role = field.semantic_role
+        if role == "person":
+            # The visum column: stamped from the login on every write (who
+            # recorded / last edited the row), never typed by the client.
+            values[column] = session.get("username") or ""
+            continue
+        if role == "flag":
+            values[column] = 1 if data.get(column) in (True, 1, "1", "true", "on") else 0
+            continue
         if column not in data:
             errors.append(_("Missing value for %(field)s.", field=label))
             continue
         raw = data[column]
-        role = field.semantic_role
         if role == "date":
             parsed = _parse_date(raw)
             if parsed is None:
@@ -248,6 +306,9 @@ def _validate_values(entity, fields, data):
             else:
                 values[column] = parsed.isoformat()
         elif role in ("money", "count"):
+            if raw in ("", None):
+                values[column] = None  # optional numeric -> NULL, never 0
+                continue
             try:
                 values[column] = int(raw) if role == "count" else float(raw)
             except (TypeError, ValueError):
@@ -255,6 +316,16 @@ def _validate_values(entity, fields, data):
         else:
             values[column] = "" if raw is None else str(raw)
     return values, errors
+
+
+def _layout_query(layout):
+    """Optional ``query`` object of a custom page's LayoutJSON -- string keys
+    and values only -- passed to ``url_for`` as query args (0097: the mounted
+    Dashboard links ``/dashboard?tenant=<code>``). Anything else is ignored."""
+    q = layout.get("query")
+    if not isinstance(q, dict):
+        return {}
+    return {k: v for k, v in q.items() if isinstance(k, str) and isinstance(v, str)}
 
 
 def _tenant_nav_page(code, p, locale):
@@ -288,11 +359,12 @@ def _tenant_nav_page(code, p, locale):
     tracked gap, not a crash.
     """
     if p.page_type == "custom":
-        endpoint = (p.layout or {}).get("endpoint")
+        layout = p.layout or {}
+        endpoint = layout.get("endpoint")
         if not endpoint:
             return None
         try:
-            url = url_for(endpoint)
+            url = url_for(endpoint, **_layout_query(layout))
         except BuildError:
             current_app.logger.warning(
                 f"visible_tenant_nav: tenant {code!r} page {p.key!r} custom endpoint "
@@ -304,7 +376,12 @@ def _tenant_nav_page(code, p, locale):
             "page_type": p.page_type,
             "endpoint": endpoint,
             "url": url,
-            "label": p.key,
+            # Optional presentation keys (#257, Generali): a human label, a
+            # Font Awesome icon class and the active_page value the target
+            # page sets (which need not equal its endpoint name).
+            "label": layout.get("label") or p.key,
+            "icon": layout.get("icon") or "fa-arrow-up-right-from-square",
+            "active": layout.get("active") or endpoint,
         }
 
     # list/crud pages always link the generated tenant_page route, which only
@@ -325,7 +402,7 @@ def _tenant_nav_page(code, p, locale):
 
 def visible_tenant_nav() -> list[dict]:
     """[{"code", "label", "pages": [...]}] for every tenant the current
-    session holds ``tenant.<code>.view`` for -- [] when the registry itself
+    session can view (``can_view_tenant``: membership or grant) -- [] when the registry itself
     is unavailable (never a partial/unsafe result, same fail-closed contract
     as the registry module itself). Consumed by Task 6's sidebar nav context
     processor; each page entry carries an already-resolved ``url`` (never
@@ -339,7 +416,7 @@ def visible_tenant_nav() -> list[dict]:
     nav = []
     for code in sorted(reg.tenants):
         t = reg.tenants[code]
-        if not has_permission(f"tenant.{code}.view"):
+        if not can_view_tenant(code):
             continue
         pages = [
             entry
@@ -354,7 +431,7 @@ def visible_tenant_nav() -> list[dict]:
 
 
 def tenant_page(tenant_code, page_key):
-    if not has_permission(f"tenant.{tenant_code}.view"):
+    if not can_view_tenant(tenant_code):
         raise PermissionDenied()
 
     reg = registry()
@@ -421,14 +498,14 @@ def tenant_page(tenant_code, page_key):
 
 
 def api_tenant_list(tenant_code, page_key):
-    if not has_permission(f"tenant.{tenant_code}.view"):
+    if not can_view_tenant(tenant_code):
         raise PermissionDenied()
 
     unavailable, t, _page, entity, fields = _resolve_page_entity(tenant_code, page_key)
     if unavailable:
         return jsonify({"success": False, "unavailable": True}), 503
 
-    engine, dialect = _resolve_client_engine(t, entity)
+    engine, dialect = _resolve_client_engine(entity)
     if engine is None:
         return jsonify({"success": False, "unavailable": True}), 503
 
@@ -495,7 +572,7 @@ def api_tenant_add(tenant_code, page_key):
     if unavailable:
         return jsonify({"success": False, "unavailable": True}), 503
 
-    engine, dialect = _resolve_client_engine(t, entity)
+    engine, dialect = _resolve_client_engine(entity)
     if engine is None:
         return jsonify({"success": False, "unavailable": True}), 503
 
@@ -537,7 +614,7 @@ def api_tenant_edit(tenant_code, page_key, record_id):
     if unavailable:
         return jsonify({"success": False, "unavailable": True}), 503
 
-    engine, dialect = _resolve_client_engine(t, entity)
+    engine, dialect = _resolve_client_engine(entity)
     if engine is None:
         return jsonify({"success": False, "unavailable": True}), 503
 
@@ -582,7 +659,7 @@ def api_tenant_delete(tenant_code, page_key, record_id):
     if unavailable:
         return jsonify({"success": False, "unavailable": True}), 503
 
-    engine, dialect = _resolve_client_engine(t, entity)
+    engine, dialect = _resolve_client_engine(entity)
     if engine is None:
         return jsonify({"success": False, "unavailable": True}), 503
 
@@ -608,14 +685,14 @@ def api_tenant_delete(tenant_code, page_key, record_id):
 
 
 def api_tenant_export(tenant_code, page_key):
-    if not has_permission(f"tenant.{tenant_code}.view"):
+    if not can_view_tenant(tenant_code):
         raise PermissionDenied()
 
     unavailable, t, page, entity, fields = _resolve_page_entity(tenant_code, page_key)
     if unavailable:
         return jsonify({"success": False, "unavailable": True}), 503
 
-    engine, dialect = _resolve_client_engine(t, entity)
+    engine, dialect = _resolve_client_engine(entity)
     if engine is None:
         return jsonify({"success": False, "unavailable": True}), 503
 

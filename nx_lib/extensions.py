@@ -21,21 +21,21 @@ babel = Babel()
 
 
 def client_ip():
-    """Rate-limit key: leftmost X-Forwarded-For hop, else the socket peer.
+    """Rate-limit key: rightmost X-Forwarded-For hop, else the socket peer.
 
     Behind the PROD chain (ngrok edge -> IIS/HttpPlatformHandler -> waitress)
     the socket peer is always 127.0.0.1, so keying on it would put every user
     in ONE bucket -- ten logins a minute for the whole company. Same rule
     hooks.get_ip() applies to the CSV request log.
+
+    Rightmost, not leftmost: the LEFT end of the chain is whatever the client
+    typed into the header, so keying on it let a spoofer dodge his own limit
+    or burn a chosen victim's bucket. The RIGHT end is the hop the nearest
+    proxy appended. On PROD waitress (--trusted-proxy=127.0.0.1, count 1)
+    already trims the header to that single trusted hop before Flask sees it.
     """
-    # ponytail: leftmost hop is client-controlled — a spoofer can dodge his own
-    # limit AND burn a chosen victim's bucket (targeted 429s). Kept anyway:
-    # switching to a rightmost/trusted-hop scheme with the WRONG hop count puts
-    # every public user in one bucket (company-wide 429s). Tighten to
-    # hops[-TRUSTED_PROXY_COUNT] once the SYAPP01 chain (ngrok/IIS XFF
-    # appends per path) is confirmed.
     forwarded = request.headers.get("X-Forwarded-For", "")
-    return forwarded.split(",")[0].strip() or get_remote_address()
+    return forwarded.rsplit(",", 1)[-1].strip() or get_remote_address()
 
 
 # In-memory counter: PROD is a single waitress process (see web.config), so the

@@ -59,9 +59,26 @@ def test_header_dark_mode_toggle(nexora_server, page):
 def test_header_admin_nav_expands_and_navigates(nexora_server, page):
     _login(page, nexora_server)
     page.click('[data-testid="header-nav-admin-toggle"]')
-    link = page.locator('[data-testid="header-nav-admin-organizations"]')
+    link = page.locator('[data-testid="header-nav-admin-overview"]')
     expect(link).to_be_visible()
     link.click()
+    page.wait_for_url("**/admin")
+
+
+@pytest.mark.flaky_e2e
+def test_header_admin_tenants_subgroup_expands_and_navigates(nexora_server, page):
+    """Customers/Data Connections/Document Fields live in a nested collapsible
+    group (#255). Asserted on the group's own open class, not on Playwright
+    visibility: the subitems are hidden by a max-height/overflow clip, and a
+    clipped child still reports a non-empty box, so to_be_hidden() never holds.
+    """
+    _login(page, nexora_server)
+    page.click('[data-testid="header-nav-admin-toggle"]')
+    group = page.locator("#adminTenantsNavGroup")
+    expect(group).not_to_have_class(re.compile(r"nx-nav-open"))
+    page.click('[data-testid="header-nav-admin-tenants-toggle"]')
+    expect(group).to_have_class(re.compile(r"nx-nav-open"))
+    page.click('[data-testid="header-nav-admin-organizations"]')
     page.wait_for_url("**/admin/organizations")
 
 

@@ -68,23 +68,57 @@
         charts = {};
     }
 
+    // Local calendar date / wall clock. toISOString() would shift both into
+    // UTC, which puts "today" on the wrong side of midnight for CET evenings.
+    const pad2 = n => String(n).padStart(2, '0');
+    function todayISO() {
+        const d = new Date();
+        return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+    }
+    function nowClock() {
+        const d = new Date();
+        return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
+    }
+
     function getDateRange() {
         const start = document.getElementById('filterStartDate').value;
         const end = document.getElementById('filterEndDate').value;
         const params = new URLSearchParams();
-        if (start) params.set('startDate', start);
-        if (end) params.set('endDate', end);
+        // The picker is date-only. The endpoint filters DOC_SCANDATUM with
+        // >= start and <= end, so each bound is widened to cover its whole
+        // day -- an end of 00:00:00 would silently drop everything scanned
+        // on the end date itself.
+        //
+        // Today is the exception: the day is still running, so the window
+        // closes at the current time rather than at 23:59:59. Asking for
+        // hours that have not happened yet would report them as a quiet
+        // stretch instead of as a day still in progress.
+        if (start) params.set('startDate', start + ' 00:00:00');
+        if (end) params.set('endDate', end + ' ' + (end === todayISO() ? nowClock() : '23:59:59'));
         return params.toString();
     }
 
     let fpStart, fpEnd;
 
+    // Keep the two pickers from producing an impossible range: the end can
+    // never precede the start, and neither can be in the future.
+    function syncRangeLimits() {
+        if (!fpStart || !fpEnd) return;
+        const s = fpStart.selectedDates[0];
+        const e = fpEnd.selectedDates[0];
+        if (s) fpEnd.set('minDate', s);
+        if (e) fpStart.set('maxDate', e);
+    }
+
     function setDefaultDates() {
-        const now = new Date();
-        const past = new Date();
-        past.setDate(now.getDate() - 30);
-        if (fpStart) fpStart.setDate(past, false);
-        if (fpEnd)   fpEnd.setDate(now, false);
+        const end = new Date();
+        const start = new Date();
+        start.setDate(end.getDate() - 30);
+        // Clear the cross-limits first, or the old selection's bounds can
+        // reject the new defaults (e.g. a start later than the new end).
+        if (fpStart) { fpStart.set('maxDate', 'today'); fpStart.setDate(start, false); }
+        if (fpEnd)   { fpEnd.set('minDate', null);      fpEnd.setDate(end, false); }
+        syncRangeLimits();
     }
 
     async function loadStats() {
@@ -465,9 +499,18 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-        const fpOpts = { dateFormat: 'Y-m-d H:i:S', enableTime: true, enableSeconds: true, allowInput: true, time_24hr: true, onClose: () => loadStats() };
-        fpStart = flatpickr('#filterStartDate', fpOpts);
-        fpEnd   = flatpickr('#filterEndDate',   fpOpts);
+        // Date-only: a scan-volume range is always whole days, and the time
+        // fields defaulted to "now", which quietly truncated the first and
+        // last day of every range. getDateRange() supplies the boundaries.
+        const fpOpts = { dateFormat: 'Y-m-d', allowInput: true, maxDate: 'today', onClose: () => loadStats() };
+        fpStart = flatpickr('#filterStartDate', {
+            ...fpOpts,
+            onChange: (dates) => { if (dates[0] && fpEnd) fpEnd.set('minDate', dates[0]); }
+        });
+        fpEnd = flatpickr('#filterEndDate', {
+            ...fpOpts,
+            onChange: (dates) => { if (dates[0] && fpStart) fpStart.set('maxDate', dates[0]); }
+        });
 
         setupTrendToggles();
         renderTrendToggles();

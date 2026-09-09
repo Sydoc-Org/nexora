@@ -13,11 +13,11 @@ from ...db import engine_nexora_db
 from ...security import has_permission, page_visibility, require_permission
 
 
-@require_permission("admin.view.clients")
+@require_permission("admin.clients.view")
 def admin_clients_view():
     """List of dbo.Clients -- runtime sources (default/ms02), not customers
     (see dbo.Organizations). The add/edit/delete affordances are rendered only
-    for ``admin.edit.clients`` (``can_edit``); the endpoints re-check it."""
+    for ``admin.clients.edit`` (``can_edit``); the endpoints re-check it."""
     conn = None
     cursor = None
     try:
@@ -45,7 +45,7 @@ def admin_clients_view():
             "admin/clients.html",
             clients=clients,
             registry_degraded_reason=clients_registry.REGISTRY_DEGRADED_REASON,
-            can_edit=has_permission("admin.edit.clients"),
+            can_edit=has_permission("admin.clients.edit"),
             logged_in_user=session.get("username"),
             userid=session.get("userid"),
             page_visibility=page_visibility(),
@@ -111,7 +111,7 @@ def _validate_client_payload(data, *, require_code):
     return errors
 
 
-@require_permission("admin.edit.clients")
+@require_permission("admin.clients.edit")
 def api_admin_clients_add():
     """Add a dbo.Clients row (migration 0079) -- a runtime source (default/
     ms02: which DB/dialect/Octo tenant serves a client), not a customer
@@ -159,7 +159,7 @@ def api_admin_clients_add():
             conn.close()
 
 
-@require_permission("admin.edit.clients")
+@require_permission("admin.clients.edit")
 def api_admin_clients_edit(clientcode):
     data = request.get_json() or {}
     errors = _validate_client_payload(data, require_code=False)
@@ -205,7 +205,7 @@ def api_admin_clients_edit(clientcode):
             conn.close()
 
 
-@require_permission("admin.edit.clients")
+@require_permission("admin.clients.edit")
 def api_admin_clients_delete(clientcode):
     """Refuses (409) a ClientCode still referenced by dbo.ProcessSources (migration
     0074) instead of deleting it out from under the mapping-config registry

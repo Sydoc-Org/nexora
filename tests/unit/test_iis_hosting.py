@@ -31,8 +31,16 @@ def test_waitress_is_a_runtime_dependency():
 def test_limiter_keys_on_forwarded_client_not_proxy_peer(app):
     from nx_lib.extensions import client_ip
 
+    # waitress (--trusted-proxy=127.0.0.1, count 1) trims X-Forwarded-For to
+    # the single hop IIS appended before Flask sees it; a client-typed prefix
+    # is exactly what must NOT win.
     with app.test_request_context(
-        headers={"X-Forwarded-For": "203.0.113.9, 127.0.0.1"},
+        headers={"X-Forwarded-For": "203.0.113.9"},
+        environ_base={"REMOTE_ADDR": "127.0.0.1"},
+    ):
+        assert client_ip() == "203.0.113.9"
+    with app.test_request_context(
+        headers={"X-Forwarded-For": "6.6.6.6, 203.0.113.9"},
         environ_base={"REMOTE_ADDR": "127.0.0.1"},
     ):
         assert client_ip() == "203.0.113.9"

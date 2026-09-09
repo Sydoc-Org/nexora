@@ -24,6 +24,11 @@ on:
       - "!.claude/**"
       - "!.claudeignore"
       - "docs/howto/reporting-guide.md"
+  # e2e cadence: nightly on main and on demand (Actions -> Deploy -> Run
+  # workflow), not on every PR -- see the "Run E2E tests" step.
+  schedule:
+    - cron: "0 3 * * 1-5"
+  workflow_dispatch:
 
 jobs:
   test:
@@ -115,16 +120,15 @@ jobs:
             throw "env/TEST.env must contain 'ENVIRONMENT=TEST'. Found: '$envLine'"
           }
 
-      - name: Reset NEXORA_TEST database
-        shell: powershell
-        run: .\scripts\test-db-reset.ps1
+      # No database reset step: pytest creates its own NEXORA_TEST_<user>_<pid>
+      # from sql/test/schema.sql + seed.sql and drops it (tests/conftest.py).
 
       # Two tiers, cheap first: default collection order is alphabetical, so
       # `pytest tests` used to run the 10-minute e2e suite BEFORE unit tests —
       # a trivial unit failure surfaced last. Fast tier covers everything
       # except tests/e2e (including root-level test files).
       #
-      # The fast tier runs on both events; e2e is PR-only (see its `if`).
+      # The fast tier runs on every event; e2e is nightly / on demand (see its `if`).
       - name: Run unit + integration tests
         shell: powershell
         env:
@@ -137,14 +141,16 @@ jobs:
             --junitxml=var/test-results/junit-fast.xml `
             --html=var/test-results/report-fast.html
 
-      # e2e is ~15 min of the ~21 min test job, and every commit reaching main
-      # arrives through a PR that already ran it. Running it a second time on
-      # the merge commit doubled the deploy path for no new information, so it
-      # is PR-only. The fast tier above still guards the merge commit itself
-      # (the one thing the PR run never saw) — if a merge silently breaks
-      # something only e2e catches, it lands on PROD; revert and fix forward.
+      # e2e is ~15 min of the ~21 min test job, so it no longer runs on every
+      # PR (each pytest run creates its own NEXORA_TEST_* database): nightly on main
+      # (schedule) and on demand (workflow_dispatch). The fast tier still gates
+      # every PR and every merge commit. If a merge breaks something only e2e
+      # catches, the nightly run says so the next morning; revert and fix
+      # forward. The step has a hard timeout: a hung browser used to hold the
+      # database lock for hours and stall every other push and CI run.
       - name: Run E2E tests
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        timeout-minutes: 25
         shell: powershell
         env:
           ENVIRONMENT: TEST
@@ -404,3 +410,63 @@ jobs:
               Write-Host "Service '$tunnel' is Running."
             }
           }
+
+      # Scheduled maintenance jobs. Robocopy mirrors the task XMLs but Windows
+      # does not read them off disk -- a task only exists once it is registered,
+      # so before this step every definition needed a human to remember to
+      # import it. #227 shipped the prune that way and it ran zero times: the
+      # XML sat in D:\sydoc\nexora\ops\cleanup for twelve hours while
+      # dbo.ActiveSessions kept growing. The outage monitor had the same latent
+      # gap -- registered today, but a rebuilt SYAPP01 would have lost it
+      # silently, and nobody notices a monitor that stopped watching.
+      #
+      # Runs LAST, after the pool and tunnels are up, because registering a task
+      # has nothing to do with serving requests: a failure here must be loud
+      # without holding the site down. It throws rather than warns, since a
+      # silently unregistered task is the bug being closed.
+      #
+      # /f overwrites an existing task, which makes the step idempotent -- and
+      # also means a task an admin deliberately disabled comes back on the next
+      # deploy. That is the intended direction (the repo is the source of truth
+      # for what should be scheduled); to stop a job for good, remove its XML.
+      - name: Register scheduled tasks
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $tasks = @(
+            @{ Name = '\sydoc\nexora\Outage Monitor'
+               Xml  = 'D:\sydoc\nexora\ops\outage-monitor-task.xml' },
+            @{ Name = '\sydoc\nexora\Prune Sessions'
+               Xml  = 'D:\sydoc\nexora\ops\cleanup\prune-active-sessions-task.xml' },
+            @{ Name = '\sydoc\nexora\Prune Request Log'
+               Xml  = 'D:\sydoc\nexora\ops\cleanup\prune-request-log-task.xml' }
+          )
+
+          $failed = @()
+          foreach ($t in $tasks) {
+            if (-not (Test-Path -LiteralPath $t.Xml)) {
+              $failed += "$($t.Name): definition not found at $($t.Xml)"
+              continue
+            }
+            # schtasks is a native exe: check $LASTEXITCODE, not $?. Do not
+            # redirect its stderr -- in PS 5.1 that turns output into
+            # NativeCommandError records even on a zero exit.
+            schtasks /create /xml $t.Xml /tn $t.Name /f
+            if ($LASTEXITCODE -ne 0) {
+              $failed += "$($t.Name): schtasks /create exited $LASTEXITCODE"
+              continue
+            }
+            # Registering and being registered are different claims; verify.
+            schtasks /query /tn $t.Name /fo LIST | Out-Null
+            if ($LASTEXITCODE -ne 0) {
+              $failed += "$($t.Name): created but /query exited $LASTEXITCODE"
+              continue
+            }
+            Write-Host "Registered scheduled task: $($t.Name)"
+          }
+
+          if ($failed.Count -gt 0) {
+            throw ("scheduled task registration failed -- " + ($failed -join '; '))
+          }
+          Write-Host "All $($tasks.Count) scheduled task(s) registered."

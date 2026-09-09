@@ -88,6 +88,7 @@
     document.getElementById('rpmLabelIt').value = r.labelIt || '';
     document.getElementById('rpmAggregation').value = r.aggregation;
     document.getElementById('rpmBaseField').value = r.baseField || '';
+    document.getElementById('rpmFilter').value = r.filter || '';
     document.getElementById('rpmFormat').value = r.format || '';
     document.getElementById('rpmSortOrder').value = r.sortOrder;
     document.getElementById('rpmEnabled').checked = !!r.enabled;
@@ -98,7 +99,7 @@
   function reset() {
     editingId = null;
     document.getElementById('rpmFormTitle').textContent = '{{ _("Add metric") }}';
-    ['rpmCode', 'rpmLabel', 'rpmLabelDe', 'rpmLabelFr', 'rpmLabelIt', 'rpmBaseField']
+    ['rpmCode', 'rpmLabel', 'rpmLabelDe', 'rpmLabelFr', 'rpmLabelIt', 'rpmBaseField', 'rpmFilter']
       .forEach(function (i) { document.getElementById(i).value = ''; });
     if (sources.length) document.getElementById('rpmSource').value = sources[0].id;
     document.getElementById('rpmAggregation').value = 'count';
@@ -119,6 +120,7 @@
       labelIt: val('rpmLabelIt') || null,
       aggregation: val('rpmAggregation'),
       baseField: val('rpmBaseField') || null,
+      filter: val('rpmFilter') || null,
       format: val('rpmFormat') || null,
       enabled: document.getElementById('rpmEnabled').checked,
       sortOrder: parseInt(val('rpmSortOrder'), 10) || 100,

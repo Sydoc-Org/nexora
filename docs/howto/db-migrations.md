@@ -296,13 +296,78 @@ IF NOT EXISTS (SELECT 1 FROM dbo.Permissions WHERE Code = 'generali.pdqm.export'
 GO
 ```
 
+**Reaching another database on the same server.** Database *names* differ per
+environment (`SYDOC_Statistik` on INT, `sydoc_stat` on PROD), so never hardcode
+one. `db-migrate.py` passes the configured names to sqlcmd as `-v` variables;
+reference them as `$(Name)`:
+
+| variable | comes from |
+|---|---|
+| `$(NexoraDb)` | `DB_NEXORA` |
+| `$(StatisticsDb)` | `DB_STATISTICS` |
+| `$(GeneraliDb)` | `DB_GENERALI` |
+| `$(OctoDb)` | `DB_OCTO_RUNTIME` |
+
+```sql
+-- sql/_migrations/NexoraDB/00NN_view_over_statistics.sql
+GO
+CREATE OR ALTER VIEW dbo.vFieldQuality AS
+SELECT f.FIELD, f.CONF_BEST_CANDIDATE
+FROM [$(StatisticsDb)].dbo.Em_Collect_Field_Attributes f;
+GO
+```
+
+A variable whose env var is unset is not passed at all, so sqlcmd fails loudly
+on `$(Name)` rather than silently substituting an empty database name. Worked
+example: `0107_em_field_extraction_quality.sql`.
+
+### Touching a column a *lower-numbered* migration may drop
+
+Applied order is filename order, not the order you wrote things in. Work on a
+long-lived branch and a colleague's migration can land with a **lower** number
+than yours, so on a fresh database it runs **first** — and a column you relied
+on may already be gone by the time your file executes. Your migration passed on
+INT (where the column still existed when you ran it) and then fails on the PROD
+deploy, which is the worst place to find out.
+
+`IF COL_LENGTH(...) IS NOT NULL` alone does **not** save you. SQL Server binds
+every column name in a batch *before executing any of it*, so a statement inside
+the untaken branch still fails to compile and takes the whole batch with it. Put
+each variant in `sp_executesql` so only the string matching the live schema is
+ever parsed:
+
+```sql
+IF COL_LENGTH('dbo.AccessProfilePermission', 'Effect') IS NOT NULL
+    EXEC sp_executesql N'INSERT INTO dbo.AccessProfilePermission
+                             (AccessID, PermissionID, Effect) ... ''A'' ...';
+ELSE
+    EXEC sp_executesql N'INSERT INTO dbo.AccessProfilePermission
+                             (AccessID, PermissionID) ...';
+```
+
+Worked example: the permission grant in `0107_em_field_extraction_quality.sql`,
+written before `0086_permission_cleanup_and_rank.sql` retired
+`AccessProfilePermission.Effect`.
+
+This is the one case where **editing an applied migration is the right call**.
+The usual rule — immutable once applied, fix it with a new one — cannot help
+here: the failure happens *inside* the old file, so nothing that runs later ever
+gets a turn. Edit it, prove the new form works against the post-drop schema, and
+`--rebless` the checksum.
+
+Prevention: run `python scripts/db-migrate.py --dry-run` before picking a number,
+and remember it only sees files in *your* worktree — a parallel branch's numbers
+are invisible to it. Duplicate numbers across branches are survivable (the ledger
+keys on the full filename and sorting stays deterministic); a duplicate number
+that also *depends* on the other's schema change is not.
+
 ## Troubleshooting
 
 | Symptom | Cause / fix |
 |---------|-------------|
 | `sqlcmd not found on PATH or in common install dirs` | Install SQL Server Command Line Utilities (ships with SSMS / mssql-tools). The runner also probes well-known install dirs; if you just installed it, restart the shell. |
 | `mssql-scripter not found` | `pip install -r sql/requirements.txt`. |
-| Commit blocked: `N migration(s) edited after being applied` | You changed a file that's already in `dbo.SchemaMigrations`. Revert the edit and add a *new* migration instead — migrations are immutable. |
+| Commit blocked: `N migration(s) edited after being applied` | You changed a file that's already in `dbo.SchemaMigrations`. Revert the edit and add a *new* migration instead — migrations are immutable. The one exception is a file that will *fail on a fresh database* (see **Touching a column a lower-numbered migration may drop**): nothing added later can rescue it, so fix it in place and `--rebless`. |
 | Commit blocked: `sql/ drifted from INT` | INT changed without (or beyond) what your migration captured. Run `python sql/sync-from-db.py`, review, `git add sql/`, re-commit. |
 | Hook tries to re-apply a migration I ran in SSMS and errors | It wasn't recorded. `python scripts/db-migrate.py --env INT --mark-applied`, then re-commit. (Or make the migration idempotent with `IF NOT EXISTS` guards.) |
 | `Missing DB_SERVER_PRD / DB_UID / DB_PWD in env` | `env/<ENV>.env` isn't populated. See `env/<ENV>.env.example`. |

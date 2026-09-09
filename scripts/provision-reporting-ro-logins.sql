@@ -1,7 +1,7 @@
 /* ============================================================================
    provision-reporting-ro-logins.sql
 
-   One-shot provisioning of the two READ-ONLY (db_datareader) SQL logins the
+   One-shot provisioning of the three READ-ONLY (db_datareader) SQL logins the
    Reporting page needs for its live SQL sandbox, scheduled reports, and the
    AI assistant's schema grounding:
 
@@ -9,10 +9,11 @@
      |------------|-----------------------|-----------------------------------------------|
      | Statistics | $(StatisticsDb)       | DB_REPORTING_RO_USER  / DB_REPORTING_RO_PWD   |
      | Octopus    | $(OctopusDb)          | DB_REPORTING_OCTO_RO_USER / DB_REPORTING_OCTO_RO_PWD |
+     | Generali   | $(GeneraliDb)         | DB_REPORTING_GENERALI_RO_USER / DB_REPORTING_GENERALI_RO_PWD |
 
-   Both databases live on DB_SERVER_PRD (see nx_lib/db.py: get_ro_db_url defaults
+   All three databases live on DB_SERVER_PRD (see nx_lib/db.py: get_ro_db_url defaults
    the server to cfg.DB_SERVER_PRD). Run this ONCE, connected to DB_SERVER_PRD,
-   as a login with ALTER ANY LOGIN (server) + db_owner on both databases
+   as a login with ALTER ANY LOGIN (server) + db_owner on all three databases
    (typically sysadmin). It is idempotent — re-running is safe, and re-running
    with a different password ROTATES the login's password (the server is reset
    to the :setvar value via ALTER LOGIN). So the server always matches the
@@ -24,8 +25,8 @@
    ----------------------------------------------------------------------------
    1. Open this file in SSMS connected to DB_SERVER_PRD.
    2. Enable SQLCMD Mode:  Query menu -> "SQLCMD Mode".
-   3. Edit the six :setvar lines below — set the real database names and pick
-      STRONG passwords for the two logins. Do NOT commit the filled-in copy.
+   3. Edit the nine :setvar lines below — set the real database names and pick
+      STRONG passwords for the three logins. Do NOT commit the filled-in copy.
    4. Execute (F5).
    5. Put the same login names + passwords into BOTH env/INT.env and
       env/PROD.env (INT and PROD reference the same DB_SERVER_PRD logins):
@@ -34,18 +35,22 @@
         DB_REPORTING_RO_PWD=<StatisticsRoPwd>
         DB_REPORTING_OCTO_RO_USER=<OctopusRoLogin>
         DB_REPORTING_OCTO_RO_PWD=<OctopusRoPwd>
+        DB_REPORTING_GENERALI_RO_USER=<GeneraliRoLogin>
+        DB_REPORTING_GENERALI_RO_PWD=<GeneraliRoPwd>
 
    6. Restart nexora so config.py reloads the env (bin\nx.ps1 -r). Until the env
       vars are present, each target's RO engine stays None and a run against it
       returns 503 "SQL source is not configured".
 
    NOTE: this script is intentionally NOT a sql/_migrations/ migration. It runs
-   against StatisticsDB / OctopusDB, which are vendor/runtime surfaces we do not
-   track (see CLAUDE.md "Databases"). It carries secrets (passwords) only in the
+   against StatisticsDB / OctopusDB / GeneraliDB, which are vendor/runtime and
+   tenant surfaces this script only grants READ on -- it creates no objects, so
+   it is not schema history (see CLAUDE.md "Databases"). It carries secrets
+   (passwords) only in the
    owner's local edited copy, never in the repo.
    ============================================================================ */
 
--- ====== EDIT THESE SIX VALUES (SQLCMD Mode required) ========================
+-- ====== EDIT THESE NINE VALUES (SQLCMD Mode required) ======================
 :setvar StatisticsDb      "sydoc_stat"
 :setvar StatisticsRoLogin "nexora_reporting_ro"
 :setvar StatisticsRoPwd   "CHANGE-ME-strong-password-1"
@@ -53,6 +58,10 @@
 :setvar OctopusDb         "REPLACE_WITH_OCTOPUS_DB_NAME"
 :setvar OctopusRoLogin    "nexora_reporting_octo_ro"
 :setvar OctopusRoPwd      "CHANGE-ME-strong-password-2"
+
+:setvar GeneraliDb        "Generali"
+:setvar GeneraliRoLogin   "nexora_reporting_generali_ro"
+:setvar GeneraliRoPwd     "CHANGE-ME-strong-password-3"
 -- ===========================================================================
 
 SET NOCOUNT ON;
@@ -93,6 +102,23 @@ BEGIN
 END
 GO
 
+IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'$(GeneraliRoLogin)')
+BEGIN
+    CREATE LOGIN [$(GeneraliRoLogin)]
+        WITH PASSWORD = N'$(GeneraliRoPwd)',
+             CHECK_POLICY = ON,
+             DEFAULT_DATABASE = [$(GeneraliDb)];
+    PRINT 'Created login $(GeneraliRoLogin)';
+END
+ELSE
+BEGIN
+    -- Login already exists: reset its password to the :setvar value so the
+    -- server always matches DB_REPORTING_GENERALI_RO_PWD (re-run to rotate).
+    ALTER LOGIN [$(GeneraliRoLogin)] WITH PASSWORD = N'$(GeneraliRoPwd)';
+    PRINT 'Login $(GeneraliRoLogin) already existed - password reset to the :setvar value';
+END
+GO
+
 /* --- 2. Statistics DB: user + db_datareader (read-only) -------------------- */
 USE [$(StatisticsDb)];
 GO
@@ -121,5 +147,19 @@ GO
 ALTER ROLE db_datareader ADD MEMBER [$(OctopusRoLogin)];      -- read-only; safe to repeat
 GO
 
-PRINT 'Done. Now set the four DB_REPORTING_*_RO_* vars in env/INT.env + env/PROD.env and restart nexora.';
+/* --- 4. Generali DB: user + db_datareader (read-only) ---------------------- */
+USE [$(GeneraliDb)];
+GO
+IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = N'$(GeneraliRoLogin)')
+BEGIN
+    CREATE USER [$(GeneraliRoLogin)] FOR LOGIN [$(GeneraliRoLogin)];
+    PRINT 'Created user $(GeneraliRoLogin) in $(GeneraliDb)';
+END
+ELSE
+    PRINT 'User $(GeneraliRoLogin) already exists in $(GeneraliDb)';
+GO
+ALTER ROLE db_datareader ADD MEMBER [$(GeneraliRoLogin)];     -- read-only; safe to repeat
+GO
+
+PRINT 'Done. Now set the six DB_REPORTING_*_RO_* vars in env/INT.env + env/PROD.env and restart nexora.';
 GO

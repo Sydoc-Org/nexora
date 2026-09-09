@@ -58,6 +58,7 @@ MIN_COVERAGE = {
     "views/workitems.py": 35,
     # views/generali.py intentionally excluded — covered by the Generali
     # phase-2 plan.
+    "reporting/derived.py": 90,
 }
 
 

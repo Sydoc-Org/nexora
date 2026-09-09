@@ -8,8 +8,6 @@
   <link rel="stylesheet" href="{{ static_v('css/nexora-ui.css') }}">
   <title>{{ _("Dashboard - nexora") }} </title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css" integrity="sha384-RkASv+6KfBMW9eknReJIJ6b3UnjKOKC5bOUaNgIY778NFbQ8MtWq9Lr/khUgqtTt" crossorigin="anonymous">
-  <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13" integrity="sha384-5JqMv4L/Xa0hfvtF06qboNdhvuYXUku9ZrhZh3bSk8VXF0A/RuSLHpLsSV9Zqhl6" crossorigin="anonymous"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous" />
   <link rel="stylesheet" href="{{ static_v('css/dashboard.css') }}">
@@ -17,26 +15,43 @@
 </head>
 
 <body class="nx-app">
-  {% set active_page = 'dashboard' %} {% include '_header.html' %}
+  {# 0097: a tenant-scoped dashboard marks the tenant's own mounted page active, never the global entry. #}
+  {% set active_page = ('tenant_' ~ dashboard_tenant.code ~ '_dashboard') if dashboard_tenant else 'dashboard' %} {% include '_header.html' %}
 
   <main class="nx-main">
-    <div class="nx-page-head nx-rise">
-      <div class="nx-page-head__main">
-        <div class="nx-page-head__title">
-          <span class="nx-page-icon"><i class="fas fa-gauge-high"></i></span>
-          <div>
-            <h1 class="nx-title">{{ _("Dashboard") }}</h1>
-            <p class="nx-subtitle">{{ _("Here's a real-time overview of your document processing activity.") }}</p>
-            {% if login_at %}
-            <p class="nx-subtitle [font-size:12px]! [opacity:0.75]!" data-testid="dashboard-signin-note">{{ _("Signed in as %(name)s", name="<strong>"|safe ~ fullname|e ~ "</strong>"|safe)|safe }}{% if prev_login_at %} — {{ _("Last sign-in: %(when)s", when=prev_login_at|datetimeformat('dd.MM.yyyy HH:mm')) }}{% endif %}</p>
-            {% endif %}
-          </div>
-        </div>
+    <div class="nx-dash-head nx-rise">
+      <span class="nx-page-icon"><i class="fas fa-gauge-high"></i></span>
+      <div>
+        {# tenant_solo: a member of just this tenant sees a plain "Dashboard" --
+           for them there is no other one to tell it apart from (#255). #}
+        {% if dashboard_tenant and not tenant_solo %}
+        <h1 class="nx-title" data-testid="dashboard-title">{{ _("%(tenant)s Dashboard", tenant=dashboard_tenant.display_name) }}</h1>
+        {% elif dashboard_tenant %}
+        <h1 class="nx-title" data-testid="dashboard-title">{{ _("Dashboard") }}</h1>
+        {% else %}
+        <h1 class="nx-title" data-testid="dashboard-title">{{ _("Global Dashboard") }}</h1>
+        {% endif %}
+        {# One muted line replaces the marketing subtitle. The name MUST stay
+           |e-escaped -- test_dashboard_signin_escape.py pins this expression
+           (security audit #193, finding 9). The login_at guard keeps the note a
+           once-per-login greeting (#146), not permanent chrome. #}
+        {% if login_at %}
+        <p class="nx-dash-head__meta" data-testid="dashboard-signin-note">{{ _("Signed in as %(name)s", name="<strong>"|safe ~ fullname|e ~ "</strong>"|safe)|safe }}{% if prev_login_at %} · {{ _("last sign-in %(when)s", when=prev_login_at|datetimeformat('dd.MM.yyyy HH:mm')) }}{% endif %}</p>
+        {% endif %}
+      </div>
+      <div class="nx-dash-head__right">
+        <span class="nx-dash-head__live nx-dash-head__meta">
+          <span class="nx-live-dot"></span>
+          <span>{{ _("Updated") }} <span id="dash-live-time">—</span> · {{ _("next in") }} <span id="dash-countdown">30</span>s</span>
+        </span>
+        <button type="button" class="nx-btn nx-btn--secondary nx-btn--sm" id="dash-refresh" data-testid="dashboard-refresh">
+          <i class="fas fa-rotate" aria-hidden="true"></i> {{ _("Refresh") }}
+        </button>
       </div>
     </div>
 
-    <div class="nx-filter mb-8 [display:flex]! [flex-wrap:wrap]! [align-items:center]! [gap:16px]!">
-      <span id="prcfDLabel" class="nx-meta">{{ _("Process") }}</span>
+    <div class="nx-dash-filter">
+      <span id="prcfDLabel" class="nx-eyebrow">{{ _("Process") }}</span>
       <div class="nx-scope nx-scope--inline" data-testid="dashboard-process-filter">
         <input type="text" id="prcfD" name="prcfD" class="hidden" value="{{ process_name }}" readonly
                tabindex="-1" data-testid="dashboard-process-filter-value">
@@ -48,76 +63,62 @@
         <div class="nx-scope-menu" hidden role="group" aria-label="{{ _('Filter by client and process') }}"
              data-testid="dashboard-process-filter-menu"></div>
       </div>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      <div class="nx-card nx-card--pad nx-stat nx-rise-2">
-        <div>
-          <p class="nx-stat__label">{{ _("Imported Today") }}</p>
-          <p class="nx-stat__value" id="imported-today"><span class="skeleton-shimmer block w-16 h-8 rounded-lg"></span></p>
-        </div>
-        <div class="nx-stat__chip nx-stat__chip--indigo"><i class="fas fa-file-arrow-down"></i></div>
-      </div>
-      <div class="nx-card nx-card--pad nx-stat nx-rise-2">
-        <div>
-          <p class="nx-stat__label">{{ _("Processed Today") }}</p>
-          <p class="nx-stat__value" id="processed-today"><span class="skeleton-shimmer block w-16 h-8 rounded-lg"></span></p>
-        </div>
-        <div class="nx-stat__chip nx-stat__chip--blue"><i class="fas fa-file-arrow-up"></i></div>
-      </div>
-      <div class="nx-card nx-card--pad nx-stat nx-rise-2">
-        <div>
-          <p class="nx-stat__label">{{ _("Current Backlog") }}</p>
-          <p class="nx-stat__value" id="current-backlog"><span class="skeleton-shimmer block w-16 h-8 rounded-lg"></span></p>
-        </div>
-        <div class="nx-stat__chip nx-stat__chip--amber"><i class="fas fa-layer-group"></i></div>
-      </div>
-      <div class="nx-card nx-card--pad nx-stat nx-rise-2">
-        <div>
-          <p class="nx-stat__label">{{ _("Avg. Processing Time") }}</p>
-          <p class="nx-stat__value" id="avg-processing-time"><span class="skeleton-shimmer block w-20 h-8 rounded-lg"></span></p>
-        </div>
-        <div class="nx-stat__chip nx-stat__chip--green"><i class="fas fa-stopwatch"></i></div>
+      <span class="nx-dash-filter__spacer"></span>
+      <div class="nx-segmented" id="dash-range" role="group" aria-label="{{ _('Time range') }}"
+           data-testid="dashboard-range">
+        {% for days in (14, 30, 90) %}
+        <button type="button" class="nx-segmented__btn{% if days == dash_range %} is-active{% endif %}"
+                data-range="{{ days }}" aria-pressed="{{ 'true' if days == dash_range else 'false' }}">{{ days }} {{ _("d") }}</button>
+        {% endfor %}
       </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <div class="lg:col-span-2 space-y-8">
-        <div class="nx-card nx-card--pad h-full nx-rise-3">
-          <h3 class="nx-section [display:flex]! [align-items:center]! [gap:8px]! [margin-bottom:24px]!">
-            <i class="fa-solid fa-chart-line [color:var(--nx-accent)]!"></i>
-            {{ _("Documents Processed Over Time") }}
-          </h3>
-          <div class="h-85"><canvas id="processedOverTimeChart"></canvas></div>
-        </div>
-      </div>
-
-      <div class="lg:col-span-1">
-        <div class="nx-card nx-card--pad h-full nx-rise-3">
-          <h3 class="nx-section [display:flex]! [align-items:center]! [gap:8px]! [margin-bottom:24px]!">
-            <i class="fa-solid fa-bolt [color:var(--nx-warning)]!"></i>
-            {{ _("Recent Validations") }}
-          </h3>
-          <div id="activity-feed" class="space-y-3">
-            <!-- Skeleton rows while loading -->
-            <div class="skeleton-shimmer h-20 rounded-xl"></div>
-            <div class="skeleton-shimmer h-20 rounded-xl"></div>
-            <div class="skeleton-shimmer h-16 rounded-xl"></div>
+    <div class="nx-kpi-strip nx-rise-2">
+      {% for kid, label in [
+           ('imported',  _("Imported today")),
+           ('processed', _("Processed today")),
+           ('backlog',   _("Current backlog")),
+           ('avgtime',   _("Avg. processing time")) ] %}
+      <div class="nx-kpi" id="kpi-{{ kid }}">
+        <p class="nx-kpi__label">{{ label }}</p>
+        <div class="nx-kpi__body">
+          <div>
+            <p class="nx-kpi__value"><span class="skeleton-shimmer block w-16 h-8 rounded-lg"></span></p>
+            <p class="nx-kpi__delta"></p>
           </div>
+          <svg class="nx-kpi__spark" viewBox="0 0 120 36" preserveAspectRatio="none" aria-hidden="true"></svg>
         </div>
       </div>
+      {% endfor %}
     </div>
 
-    <div class="nx-card nx-card--pad mt-8">
-      <h3 class="nx-section [display:flex]! [align-items:center]! [gap:8px]! [margin-bottom:24px]!">
-        <i class="fa-solid fa-clock [color:var(--nx-success)]!"></i>
-        {{ _("Documents Processed by Hour (Today)") }}
-      </h3>
-      <div class="h-56" id="hourlyChartWrap"><canvas id="hourlyChart"></canvas></div>
+    <div class="nx-dash-chart nx-rise-3">
+      <div class="nx-chart-head">
+        <h3 class="nx-chart-head__title" id="chart-title">{{ _("Documents processed over time") }}</h3>
+        <span class="nx-chart-head__meta" id="chart-meta"></span>
+        <span class="nx-chart-head__spacer"></span>
+        <div class="nx-tabs nx-tabs--slim" id="dash-view-tabs" role="tablist" data-testid="dashboard-view-tabs">
+          <button type="button" class="nx-tab is-active" data-view="time" role="tab" aria-selected="true">{{ _("Over time") }}</button>
+          <button type="button" class="nx-tab" data-view="hour" role="tab" aria-selected="false">{{ _("Today by hour") }}</button>
+        </div>
+      </div>
+      <div class="nx-dash-chart__body" id="chart-body-time"><canvas id="processedOverTimeChart"></canvas></div>
+      <div class="nx-dash-chart__body [display:none]!" id="chart-body-hour"><canvas id="hourlyChart"></canvas></div>
       <div class="nx-empty [display:none]!" id="hourlyChartEmpty">
         <div class="nx-empty__art"><i class="fa-solid fa-chart-column"></i></div>
         <p class="nx-empty__title">{{ _("No documents processed yet today.") }}</p>
       </div>
+    </div>
+
+    <div class="nx-dash-backlog nx-section-rule nx-rise-3">
+      <div class="nx-chart-head">
+        <h3 class="nx-chart-head__title">{{ _("Backlog") }}</h3>
+        <span class="nx-chart-head__meta"><span id="backlog-total">—</span> {{ _("open items") }} · <span id="backlog-delta"></span></span>
+        <span class="nx-chart-head__spacer"></span>
+        <div class="nx-legend" id="backlog-legend"></div>
+      </div>
+      <p class="nx-eyebrow" id="backlog-eyebrow">{{ _("Trend") }}</p>
+      <div class="nx-dash-backlog__body"><canvas id="backlogTrendChart"></canvas></div>
     </div>
   </main>
 

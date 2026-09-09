@@ -47,6 +47,30 @@ guide as an app page.
 - Relative presets stay relative: a report saved with "This month" shows the
   current month on every run and in every scheduled mail. Schedule times are
   UTC.
+- To see **which document fields extraction gets right**, pick the "Field
+  extraction quality" measure **"Extraction correct %"** and break down by
+  **Field**. Sort by the measure ascending and the worst field is the top row.
+- That source covers **every customer whose process is onboarded in nexora**, so
+  break down by **Customer** to compare them, or add a Customer filter to look at
+  one. Field names are translated to a shared vocabulary first, which is what
+  makes the comparison meaningful: whatever each customer calls its invoice
+  number, it lands on the same "Invoice number" row. **Stream** splits a customer
+  that runs more than one document flow.
+- The measure list is grouped by source, and the process list only offers
+  processes nexora has actually onboarded — Octo's own internal process names
+  are not reportable. If a process you expect is missing, it needs onboarding;
+  it is not a display filter you can switch off.
+- Two traps on that source. Use **"Extraction correct %"**, not "Extracted %":
+  the latter only asks whether the machine put *anything* in the box, and
+  everything Octo fills in automatically comes back fully extracted. And stay
+  on **Field** rather than "Field (incl. unmapped)" or "Field (Octo raw
+  name)": those two list all ~630 names Octo emits, 230 of which are internal
+  bookkeeping pinned at the maximum, so a chart of them is just flat lines
+  along the top and tells you nothing. "Field" is the ~20 fields nexora knows
+  about, plus one empty bucket for the rest.
+- A field with a **high "Avg. 2nd-candidate confidence %"** sitting close to its
+  best-candidate confidence means the extractor was torn between two readings —
+  usually a better thing to fix than a field that is simply never found.
 - The palette button in the chart toolbar recolours each series and the
   title, and puts a series on its own right-hand axis — Backlog starts there
   by default so a few hundred stays readable next to tens of thousands. Picks
@@ -56,6 +80,8 @@ guide as an app page.
 
 - Click a chart bar or a table row to open the documents behind that number;
   the **Query** card beside the chart shows exactly how it was computed.
+- Click the ↑/↓ chip on the total to see which processes or categories drove
+  the change since the previous period.
 - The ↑/↓ comparison chips compare a window shifted back by your range's
   length in days — not the previous calendar period. Hover a chip for the
   exact dates.
@@ -63,6 +89,14 @@ guide as an app page.
   the viewer's own data access.
 - Charts cap at 50 axis values and 12 series — past the cap you get a partial
   chart or none at all; the table and exports always carry the full data.
+- Need exact control the wizard can't give? **Advanced** in the left navigation
+  opens the three-panel builder, and its **SQL** tab runs a read-only query
+  when even that is not enough. A failed query names the reason from the
+  database, and switching between **Table** and **SQL** clears the result so
+  you never read the other mode's numbers.
+- Fastest way to look inside a table: click its source card under **Sources**,
+  expand the table, then **Query the first 100 rows**. The SQL tab opens on the
+  right database with the query written and already run.
 
 **Saving and sharing**
 
@@ -107,6 +141,19 @@ The page is a small workspace with a fixed navigation on the left:
 
 Under the navigation, the **Sources** list shows each data source you can
 report on, with a green dot and its current response time.
+Which sources you see depends on your permissions. Generali users typically get
+the tenant's own tables here — **Documents**, **Attendance**, **Base Services**,
+**Project Management**, **Reporting**, **CSV Imports** and **PDQM Report** — each a
+flat table with dates, so "over time" breakdowns work.
+In the Simple wizard's measure list they form one **Generali** block: Documents
+(the same document feed the Generali dashboard charts — break it down by document
+type, input channel, language, post-check…), Attendance, Base Services, Project
+Management, Reporting and CSV Imports. Sydoc staff also see **Bucherer — EasyTax**
+(imported and exported documents, pages) and **Frigemo — Documents** (daily
+imported/exported documents and pages, deleted documents, invoices) and **Sydoc — Project Hours** (hours booked in
+bpsuite by customer, project package, task and user) and **MediaMarkt — Batches**
+(pieces scanned per batch, entered on the Sydoc tenant page). Clicking a source card in the rail opens its
+database **structure**, not a report — start reports with **New report**.
 
 **Click a source card** to look inside the database behind it (needs the
 "browse source structure" permission — see [For administrators](#for-administrators-internal)):
@@ -153,7 +200,7 @@ deleting anything you saved.
 
    **The imports / exports / backlog view:** pick *Documents imported*,
    *Documents exported* and *Backlog* together (or the *Pages …* variants),
-   break down *Over time (Date)*, and you get one line per measure on a
+   break down by *Date*, and you get one line per measure on a
    shared time axis — imports counted on their import date, exports on their
    export date, backlog as the point-in-time level. These "anchored" measures
    can't be mixed with the plain ones (the incompatible pills grey out).
@@ -166,8 +213,11 @@ deleting anything you saved.
    processes you have access to are offered).
 
 3. **Break it down by…**
-   - *Over time* — pick a **Granularity** (Week / Month / Quarter / Year).
-   - *A category* — e.g. **Process**, Document Source, Document Type, Owner no.
+   - *Time* — a date field such as **Import date** or **Export date**; pick a
+     **Granularity** (Week / Month / Quarter / Year).
+   - *Document fields* — the everyday ones: **Process**, Page Count, Document
+     Type, Document Source, Creditor Name. **Show advanced fields** unfolds the
+     rest (Owner no., Forwarding, raw Octo names, validation statuses …).
    - *None — just the total* — one big number, no chart.
 
    You can pick up to **three** breakdowns. The first one becomes the chart's
@@ -184,11 +234,24 @@ deleting anything you saved.
    shows *this* month every time it is opened or emailed — it does not freeze on
    the month you built it in.
 
+   **Filters (optional)** on the same step narrow the report beyond the date
+   range and the process scope: *Add filter*, pick a field, an operator
+   (`=`, `≠`, contains, starts with, `>`, `<`, is empty …) and type a value.
+   Add as many as you need; each one becomes an editable chip above the result,
+   so you can change or drop it there without reopening the wizard. Date fields
+   are not offered here — the time range above already covers them.
+
 Then **Show result**. To change something afterwards, hit **Adjust** — the
 wizard reopens with all your answers still selected. The chips above the
 result are editable too: clicking the **Processes** chip or any *is one of*
 filter chip opens a checkbox picker of the known values — no typing needed.
 Ticking everything simply removes the restriction.
+
+**+ Add filter** at the end of that chip row adds a filter to the result you
+are already looking at — pick a field, an operator and a value, hit Apply and
+the report re-runs. It works on any result, including a saved report someone
+shared with you or an answer from Eddard; the added filter is yours until you
+save the report.
 
 #### About those "2/5" badges
 
@@ -272,9 +335,24 @@ could not run otherwise.
   no single number combining them: a document that was imported and later
   exported would be counted twice, so adding the two together would not be a
   count of anything real.
-- Below them, **number of buckets, average per bucket and peak** for the first
+- A measure that is a **rate or an average** (an extraction-correct %, say) is
+  not something you can add up, so its card is headed **`Overall · …`** and
+  says *over every matching row* underneath. That figure is the real overall
+  rate across every document behind the report — not the numbers in the chart
+  added together, which for a percentage would give you something like 4,655%.
+- Below them, **number of buckets, average and peak** for the first
   measure — the card says which one it is describing. A report with no
   breakdown (*just the total*) has no buckets, so these are not shown.
+- **Buckets counts periods, not rows.** If you break down by a date *and*
+  something else — per month *and* per field — each month contributes one row
+  per field, so the table has many more rows than there are months. Buckets
+  still counts the months. The average card then reads **`Avg per row`** and
+  tells you how many values it averaged, because with a breakdown the average
+  is across the cells of the table rather than across the periods.
+- **Rows with no date are left out** of these figures, and the chart leaves
+  them out too. If some of your documents have no export date they cannot sit
+  in any month, so counting them would move every figure without appearing
+  anywhere you can see. Eddard's summary tells you how many were set aside.
 
 **Delta chips (↑ 12%)** appear on those cards when your report uses exactly one
 relative date preset. They compare against the period *immediately before* the
@@ -303,7 +381,7 @@ result with several breakdowns) shows no chart at all with a hint to pick a
 coarser granularity or a shorter range. The table and exports always carry the
 full data.
 
-**Show table** reveals the data rows. The **Query** card beside the chart
+The data rows show under the chart; **Hide table** collapses them. The **Query** card beside the chart
 always shows the actual database query behind the number, formatted and
 copyable — useful when you want to prove where a figure came from.
 
@@ -373,6 +451,27 @@ number. A hint line tells you when this is available.
   pivot cells, and hand-written SQL results.
 - On a distinct-count measure, the drawer says so: you may see more rows than
   the number, because the same value can appear on several rows.
+
+### Click the arrow on the total to see what drove the change
+
+When a report with a time preset shows a small **↑ / ↓ percentage** next to its
+total, that chip is a button. Click it and a panel explains the change: one
+tab per breakdown (process first, then the source's other categories), each
+listing which values moved the number most, with the previous and current
+figure, the change, and its share of the total change.
+
+- Click a row to jump to the documents behind that value.
+- "(other)" gathers everything outside the top eight.
+- Averages and distinct counts show the change but no share — a share of an
+  average has no meaning.
+
+### Pin a note on the chart
+
+If you own the report, **Alt+click** a bar or point (or use **Add annotation**
+under the chart) to pin a short note on that period — "mailroom outage", "new
+client onboarded". It shows as a small triangle at the foot of that bar and in
+the Annotations list below; everyone you share the report with sees it. Delete
+with the `×` on the row. A result you haven't saved yet can't be annotated.
 
 ---
 
@@ -466,39 +565,124 @@ not the recipients'.
 
 ---
 
+## Report definitions
+
+A **report definition** is a saved bundle of measures and a tile layout that
+a report can render its result through, instead of the usual chart + table.
+It is the reporting equivalent of a template: build it once, then pick it for
+any report where you want that shape.
+
+**Creating one.** Open **Report definitions** in the left navigation. The
+screen opens on an **overview** — one card per definition you own, with its
+measures and tile count — plus a **New definition** card. Click a card to open
+it; the **back arrow** returns to the overview, and from there to the Library.
+
+- **Add a measure** for each number you want, then pick what it computes (see
+  the measures below).
+- **Add a tile** — a KPI tile (one measure, optionally with a small
+  sparkline), a chart (bar, stacked bar, line, area, pie, doughnut or gauge)
+  or a table.
+- **Add a panel** — the result's side cards as tiles: **Eddard insight**,
+  **Ask Eddard**, **Anomalies** and **Query**. A definition owns the whole
+  result: whatever you do not place as a panel is not shown when a report
+  renders through it.
+- **Drag** tiles to arrange them and **resize** by their corner grip, the same
+  way a dashboard card works.
+- **Preview with** a saved report to see real numbers while you build. The
+  preview re-runs on every change, so a new measure fills in at once.
+- **Done** saves it.
+
+**The measures, in plain words:**
+
+| Measure | Shows |
+|---|---|
+| Current | The latest value — for a report broken down by time, the most recent bucket; otherwise the total. |
+| Total | The sum over every bucket — the standard result's **Total**. |
+| Delta vs previous period | Total now minus the total of the period before (same length, shifted back), with the percent change. Needs a report with exactly one relative date filter, e.g. *This month*. |
+| Buckets | How many periods (rows) the result has. |
+| Avg per bucket | Total divided by buckets. |
+| Mean | The average across every bucket. |
+| Median | The middle value — half the buckets are above it, half below. |
+| Min / max | The smallest and largest values seen. |
+| Range | The gap between the smallest and the largest. |
+| Standard deviation | How spread out the values are around the average. |
+| Percentile | The value below which a chosen percentage of the data falls (e.g. the 90th percentile). |
+
+A chart tile draws a report with **two breakdowns** (e.g. month and customer)
+as one series per second-breakdown value, the same as the standard chart.
+
+**Using one.** Pick a report definition at the top of the guided builder, or
+next to **Saved reports** in the Advanced builder — do this before you run,
+same as picking a source. Running the report then draws your tiles instead of
+the standard chart and table. Pick **Standard** to go back to the usual view.
+
+**It is private.** A report definition you create is yours alone — sharing a
+report that uses one does not share the definition with the recipient; they
+just see the standard view instead.
+
+**If you delete one**, every report that was using it quietly falls back to
+the standard view next time it runs — nothing else breaks.
+
+**Exporting** a report that uses a definition adds a small **Measures**
+block underneath the data in the Excel/CSV file, listing each measure and its
+value.
+
+---
+
 ## Dashboards
 
-**New dashboard** builds a page of live tiles instead of a single report. Each
-tile is its own small report: **KPI** (one number), **line**, **bar**, **donut**
-or **table** — or a **Whole report** tile.
+**New dashboard** builds a page of live cards out of your saved reports. A
+card is a **piece of a report** — one KPI tile, the chart, the table, or the
+whole report — shown exactly as the report itself shows it. Change the report
+and every card built from it follows.
 
-- **Edit / Done** toggles edit mode: drag tiles to rearrange or resize them, add,
-  duplicate or remove them, and set the **global filters**.
-- **Add a card** (header button, or the dashed tile at the end of the grid) opens
-  one dialog that asks everything at once: which of your saved reports to show,
-  how to draw it (KPI / chart / donut / table / whole report), its title, and how
-  big it should be — a width in grid columns and a height in rows, sketched as
-  you move the sliders. The tile lands ready, already showing its data. Leave the
-  report unpicked to drop a blank tile and configure it later.
-- **Moving and resizing.** In edit mode a tile is grabbable anywhere: drag it and
-  the grid reflows live, the dashed outline showing where it will land. Drag the
-  little corner grip at its bottom right to resize — the width snaps to the 12
-  columns of the grid, the height to whole rows (up to 6). Both are saved with
-  the dashboard on **Done**.
-- Global filters apply to every tile *except* tiles that override that field —
-  those are marked "This card overrides the global filters".
-- A KPI tile shows a "vs previous period" change when its filters contain
-  exactly one date range that can be shifted back (this month → last month, and
-  so on). Anything more ambiguous shows no trend rather than guessing.
-- Tiles drill through exactly like a normal report — click one and the document
-  drawer opens. (Donut tiles are the exception: their "Other" grouping breaks
-  the mapping.)
-- **Export** is per tile: the header menu lists the tiles, pick one.
-- **Whole report** imports a saved report exactly as the Simple tab shows it:
-  the KPI band with one labelled total per measure, the chart with its colours,
-  right axis and forecast, and the full table behind **Show table** (rows drill
-  through like everywhere else). Global filters still apply. The tile is
-  read-only — change colours, chart type or forecast in the report itself.
+- A dashboard takes the **whole width of the window** — the workspace rail
+  slides away while it is open and comes back when you return to the Library.
+  **Present** shows it fullscreen for a wall screen or a meeting (Esc leaves).
+- **Edit / Done** toggles edit mode: drag cards to rearrange or resize them,
+  add, duplicate or remove them, and set the **global filters**.
+- **Add a card** (header button, or the dashed tile at the end of the grid):
+  pick one of your saved reports and it opens in front of you, complete —
+  the KPI band, the chart, the table. Hover a KPI tile or the chart and click
+  **Add to dashboard**; the table has its own button; **Add whole report** in
+  the header takes everything. Take as many pieces as you like, then close.
+  Each card lands at a sensible size, ready to move or resize.
+- **Moving and resizing.** In edit mode a card is grabbable anywhere: drag it
+  and the grid reflows live — the other cards slide out of the way and the
+  dashed outline shows where it will land.
+  Drag the little corner grip at its bottom right to resize — the width snaps
+  to the 12 columns of the grid, the height to whole rows (up to 6). Both are
+  saved with the dashboard on **Done**.
+- **The Results tab's chart tools, per card.** In edit mode every card that
+  shows a chart carries the same small toolbar the Results tab has: chart
+  type (bar, line, stacked, pie, doughnut), download as image, **Forecast**
+  with its horizon, and **Colours & axes** (a colour per series, left/right
+  axis, reset). Changes apply to *this card only* and are saved with the
+  dashboard on **Done** — the report itself is untouched, so the same report
+  can be a bar chart on one card and a forecast line on another. In view mode
+  the toolbar is hidden. Forecast needs a report with exactly one date
+  breakdown (same rule as the Results tab); on other reports the button is
+  greyed out and clicking it tells you why.
+- **A whole-report card looks like the report.** KPI strip on top, full-width
+  chart, table behind *Show table*, and the card grows with its content instead
+  of clipping.
+- **Global filters are the reports' own filters.** The bar shows one chip per
+  field your cards' reports already filter on — *Date · This month*,
+  *Processes · All processes*, *Status · open* — with the value the reports
+  use ("mixed" if they disagree). Click a chip to change it: a date chip
+  offers the usual presets (this / last month, quarter, year …) or a custom
+  range, a list chip a checkbox picker. The new value replaces the reports'
+  own on every card; the chip turns coloured and its ↺ goes back to what the
+  reports say. The small "+" adds a filter on a field no report uses. A card
+  can still override a field — it shows "This card overrides the global
+  filters".
+- KPI cards carry the same "vs previous period" chip the report's own KPI band
+  shows.
+- Cards drill through exactly like a normal report — click a chart element or
+  a table row and the document drawer opens.
+- **Export** is per card: the header menu lists the cards, pick one.
+- A card whose report was deleted says so. Cards from dashboards built before
+  this version show a note asking you to remove them and add the piece again.
 
 A dashboard saves, shares and deletes exactly like any other report.
 
@@ -534,6 +718,8 @@ A dashboard saves, shares and deletes exactly like any other report.
 | **Scope** | The processes a report is allowed to include. |
 | **Bucket** | One bar/point of the chart — one month, one category, … |
 | **Drill-through** | Clicking a number to see the individual documents behind it. |
+| **Report definition** | A saved bundle of measures and a tile layout a report can render its result through, in place of the standard chart + table. |
+| **Measure (definition)** | One computed number inside a report definition — current, total, delta vs previous period, buckets, avg per bucket, mean, median, min/max, range, standard deviation or percentile. |
 
 ---
 
@@ -551,7 +737,7 @@ different pages. Ask an administrator to grant what you need:
 | Ask Eddard | AI assistant access |
 | Set up email delivery | Scheduling permission |
 | Write your own SQL | SQL sandbox access (below) |
-| Click a source card to see its tables | Browse source structure (`reporting.sources.schema`) |
+| Click a source card to see its tables | Browse source structure (`reporting.sources.schema.view`) |
 
 ---
 
@@ -567,7 +753,7 @@ table-shaped source.
 **Measures** (`/reporting/metrics`) — the list the wizard's first step offers.
 Adding a row here widens the guided builder for everyone, without a release.
 
-**Source structure** — `reporting.sources.schema` turns the Sources rail cards
+**Source structure** — `reporting.sources.schema.view` turns the Sources rail cards
 into buttons that open the tables, columns and foreign keys of the database
 behind a source. It reads structure only (no rows), on the same connection the
 source already uses, and still requires the source's own permission — so it
@@ -575,11 +761,20 @@ widens *what you see of* a database, never *which* databases you reach.
 
 **Live SQL sandbox** — the **SQL** tab in the Advanced builder, for when the
 builder cannot express the query. It runs a single read-only `SELECT` against a
-chosen target (Statistics, and the Octo runtime database with the extra
-permission). Guard rails: the statement is parsed and rejected unless it is a
-single `SELECT`, it runs on a read-only login, results cap at 50,000 rows,
+chosen database. The **Target** picker names the real databases — the same names
+as the Sources rail cards (`SYDOC_Statistik`, `RuntimeDatabase`, `Generali`) —
+with `SYDOC_Statistik` on the base permission and each other database behind its
+own extra grant. The nexora database itself is not a target: it holds the
+password hashes. A quicker way in: open a source's **Structure**, expand a table,
+and press **Query the first 100 rows** — it drops you into the SQL tab with
+`SELECT TOP (100) * FROM …` already written and run. Guard rails: the statement
+is parsed and rejected unless it is a single `SELECT`, it runs on a read-only
+login, results cap at 50,000 rows,
 statements time out at ~30 seconds, and every run is audited. First use requires
-a one-time acknowledgement.
+a one-time acknowledgement. When a query fails, the reason from the database
+("Invalid object name 'Workitem'.") is shown under the error. Switching between
+**Table** and **SQL** clears the result area, so you never look at the other
+mode's rows or query.
 
 Setup, permission codes, endpoints, database schema and everything else
 technical: [`reporting.md`](reporting.md).

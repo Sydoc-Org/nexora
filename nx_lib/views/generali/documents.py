@@ -62,7 +62,7 @@ def _cacheable_response(rv):
     return status < 400
 
 
-@require_permission("generali.dashboard.view")
+@require_permission("tenant.generali.view")
 def generali_evaluation():
     try:
         if "username" not in session:
@@ -78,7 +78,7 @@ def generali_evaluation():
         return render_template("handlers/500.html"), 500
 
 
-@require_permission("generali.documentlist.view")
+@require_permission("tenant.generali.documents.view")
 def generali_documents():
     try:
         if "username" not in session:
@@ -94,7 +94,7 @@ def generali_documents():
         return render_template("handlers/500.html"), 500
 
 
-@require_permission("generali.dashboard.view")
+@require_permission("tenant.generali.view")
 @cache.cached(
     timeout=120,
     key_prefix=_generali_stats_cache_key,  # type: ignore[arg-type]  # callable prefix, stubs say str
@@ -201,7 +201,35 @@ def api_generali_stats():
         # Coverage of the selected range, so the UI can qualify the average
         # rather than presenting a gap-inflated number as comparable.
         kpis["days_in_range"] = len(labels)
-        kpis["days_with_data"] = len(observed.intersection(labels))
+        # days_with_data is narrowed to the settled days a few lines below,
+        # once the newest imported day is known.
+
+        # Newest day the dashboard has any data for. The CSV import runs daily
+        # and lags reality by a couple of days, so a range ending "today"
+        # always trails off into days that are not in yet -- which reads as a
+        # drop in volume rather than as data that has not arrived. Bounded to
+        # 90 days so this stays an index-friendly probe, not a full scan.
+        cursor.execute(
+            """
+            SELECT MAX(CAST(DOC_SCANDATUM AS DATE))
+            FROM [dbo].[v_ReportJobJoinDefinitions]
+            WHERE DOC_SCANDATUM >= DATEADD(day, -90, GETDATE())
+        """
+        )
+        latest_row = cursor.fetchone()
+        latest_day = latest_row[0] if latest_row else None
+        kpis["latest_data_day"] = str(latest_day)[:10] if latest_day else None
+
+        # "Not imported yet" and "that day produced nothing" are different
+        # facts and must not be conflated. A range running to today trails off
+        # into days the daily import has not reached; counting those as empty
+        # days reported them as an outage, and kept the warning up until the
+        # end date was dragged back behind the last genuinely empty day.
+        latest_str = kpis["latest_data_day"]
+        settled = [d for d in labels if d <= latest_str] if latest_str else list(labels)
+        kpis["days_settled"] = len(settled)
+        kpis["days_pending"] = len(labels) - len(settled)
+        kpis["days_with_data"] = len(observed.intersection(settled))
 
         cursor.execute(
             f"""
@@ -291,7 +319,7 @@ def api_generali_stats():
             conn.close()
 
 
-@require_permission("generali.documentlist.view")
+@require_permission("tenant.generali.documents.view")
 @cache.cached(
     timeout=120,
     key_prefix=_generali_filter_options_cache_key,  # type: ignore[arg-type]  # callable prefix, stubs say str
@@ -330,7 +358,7 @@ def api_generali_filter_options():
             conn.close()
 
 
-@require_permission("generali.documentlist.view")
+@require_permission("tenant.generali.documents.view")
 def api_generali_documents():
     conn = None
     try:
@@ -506,7 +534,7 @@ def api_generali_documents():
             conn.close()
 
 
-@require_permission("generali.documentlist.view")
+@require_permission("tenant.generali.documents.view")
 def api_generali_document_detail(doc_id):
     conn = None
     try:

@@ -39,7 +39,7 @@ def test_search_placeholder_starts_clear_of_the_magnifier(nexora_server, page):
     page.goto(f"{nexora_server}/workitems")
     expect(page.locator('[data-testid="workitems-search"]')).to_be_visible()
 
-    icon = _box(page, '[data-testid="workitems-search"] ~ span i, .relative span.absolute i')
+    icon = _box(page, ".nx-wi-search i")
     field = _box(page, '[data-testid="workitems-search"]')
     text_starts_at = field["x"] + page.eval_on_selector(
         '[data-testid="workitems-search"]',
@@ -61,7 +61,7 @@ def test_clicking_the_magnifier_focuses_the_search_field(nexora_server, page):
     page.goto(f"{nexora_server}/workitems")
     expect(page.locator('[data-testid="workitems-search"]')).to_be_visible()
 
-    icon = _box(page, ".relative span.absolute i")
+    icon = _box(page, ".nx-wi-search i")
     page.mouse.click(icon["x"] + icon["width"] / 2, icon["y"] + icon["height"] / 2)
 
     focused = page.evaluate("document.activeElement && document.activeElement.id")

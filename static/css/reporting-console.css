@@ -947,6 +947,11 @@ body.reporting-console #rsKpiBand .rs-kpi-value-wrap { align-items: baseline; }
 .rs-result-main:has(> #rsTableCard[hidden]) .rs-chart-body { flex: 1; height: auto; }
 .rs-result-main:has(> #rsChartCard[hidden]) { grid-template-columns: minmax(0, 1fr); }
 .rs-result-main:has(> .rs-result-side:empty) { grid-template-columns: minmax(0, 1fr); }
+/* A report definition renders the whole result as tiles: the side column steps
+   aside (its cards live inside panel tiles) and the tile grid takes the row. */
+.rs-result-side[hidden] { display: none; }
+.rs-result-main:has(> .rs-result-side[hidden]) { grid-template-columns: minmax(0, 1fr); }
+.rs-result-main > #rsLayoutGrid { grid-column: 1 / -1; }
 body.reporting-console .reporting-simple-chartcard {
   display: flex;
   flex-direction: column;
@@ -1367,14 +1372,6 @@ body.reporting-console .reporting-modal-box {
   border-radius: calc(var(--nx-radius-scale, 1) * 12px);
   box-shadow: 0 24px 64px rgba(16, 22, 35, 0.25);
 }
-/* Share modal: the design system's appearance:none radios/checkbox leave
-   sizing to the caller — without it they collapse to invisible dots. */
-body.reporting-console .reporting-share-vis input[type="radio"],
-body.reporting-console .reporting-share-canedit input[type="checkbox"] {
-  width: 15px;
-  height: 15px;
-  flex-shrink: 0;
-}
 body.reporting-console .reporting-share-vis label {
   align-items: center;
   font-size: 12.5px;
@@ -1520,6 +1517,21 @@ body.reporting-console .reporting-share-add .reporting-input {
 .rc-schema-key--fk { color: var(--nx-accent); cursor: pointer; }
 .rc-schema-empty { padding: 24px 4px; font-size: 12.5px; color: var(--nx-text-meta); }
 
+/* Per-table quick query: sits under the expanded column list and hands the
+   table to Advanced's SQL mode (rc:sqlquery). Only drawn when Live SQL can
+   actually reach this database -- see canQuery() in reporting_schema.js. */
+.rc-schema-item-foot { margin: 0 0 12px 20px; }
+.rc-schema-query {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border: 1px solid var(--nx-border);
+  border-radius: calc(var(--nx-radius-scale, 1) * 8px);
+  background: var(--nx-card); color: var(--nx-text-sec);
+  font: inherit; font-size: 11.5px; cursor: pointer;
+  transition: background var(--nx-dur) var(--nx-ease), color var(--nx-dur) var(--nx-ease);
+}
+.rc-schema-query i { font-size: 9px; color: var(--nx-accent); }
+.rc-schema-query:hover { background: var(--nx-alt); color: var(--nx-text); }
+
 .rc-schema-diagram { flex: 1; min-width: 0; position: relative; }
 .rc-schema-diagram[hidden] { display: none; }
 .rc-schema-svg { width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
@@ -1559,3 +1571,171 @@ body.reporting-console .reporting-share-add .reporting-input {
 @media (max-width: 900px) {
   .rc-schema-panel { width: 100vw; }
 }
+
+/* ============================================================
+   Dashboard cards -- same surfaces as the Results tab. A card is one piece
+   of a report (kpi / chart / table / report); the card chrome is the Console
+   card, the KPI tile is the Console KPI tile, chart and table sit flush in
+   the card instead of as a bordered card inside a bordered card.
+   ============================================================ */
+body.reporting-console .rdb-card {
+  border-radius: calc(var(--nx-radius-scale, 1) * 10px);
+  box-shadow: var(--nx-shadow);
+  padding: 12px 14px;
+}
+body.reporting-console .rdb-card-head { margin-bottom: 8px; min-height: 18px; }
+body.reporting-console .rdb-card-title {
+  font-size: 12.5px; font-weight: 700; letter-spacing: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+}
+body.reporting-console .rdb-card-meta {
+  font-size: 11px; color: var(--nx-text-meta); font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+body.reporting-console .rdb-card-meta:empty { display: none; }
+body.reporting-console .rdb-card-inherit { font-size: 10.5px; white-space: nowrap; }
+body.reporting-console .rdb-card-body--error { min-height: 60px; }
+
+/* --- KPI card: the card IS the tile. The head only shows when it carries an
+   override chip; the tile's own caption names the measure. --- */
+body.reporting-console .rdb-card[data-type="kpi"] .rdb-card-head:not(:has(.rdb-card-filter-chip)) { display: none; }
+body.reporting-console .rdb-card[data-type="kpi"] .rdb-card-body { display: flex; align-items: center; overflow: hidden; }
+body.reporting-console .rdb-report--kpi .rdb-report,
+body.reporting-console .rdb-report--kpi .rdb-report-side,
+body.reporting-console .rdb-report--kpi .rdb-report-kpis { display: block; width: 100%; padding: 0; }
+body.reporting-console .rdb-report--kpi .rdb-report-kpis .rs-kpi-stats-card { display: contents; }
+body.reporting-console .rdb-report--kpi .rdb-report-kpis .rs-kpi-total-card,
+body.reporting-console .rdb-report--kpi .rdb-report-kpis .reporting-ledger-kpi {
+  display: grid;
+  grid-template-rows: auto auto auto;
+  align-content: center;
+  gap: 6px;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+  margin: 0;
+  color: var(--nx-text);
+  min-width: 0;
+}
+body.reporting-console .rdb-report--kpi .rdb-report-kpis .reporting-ledger-caption {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--nx-text-meta); line-height: 1.3;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+body.reporting-console .rdb-report--kpi .rdb-report-kpis .rs-kpi-value-wrap { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+body.reporting-console .rdb-report--kpi .rdb-report-kpis .reporting-ledger-kpi-value {
+  font-size: 30px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1;
+  font-variant-numeric: tabular-nums; color: var(--nx-text);
+  background: none; -webkit-text-fill-color: currentColor;
+}
+body.reporting-console .rdb-report--kpi .rdb-report-kpis .reporting-ledger-kpi-sub {
+  position: static; margin: 0; font-size: 11px; color: var(--nx-text-meta); text-align: left;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+body.reporting-console .rdb-report--kpi .rdb-report-kpis .rp-sparkline { display: none; }
+
+/* --- Chart card: the chart fills the card; no inner card chrome. --- */
+body.reporting-console .rdb-report--chart .rdb-report { display: block; height: 100%; }
+body.reporting-console .rdb-report--chart .rdb-report-chartcard {
+  background: transparent; border: 0; box-shadow: none; padding: 0; border-radius: 0;
+  min-height: 0; height: 100%; display: flex; flex-direction: column;
+}
+body.reporting-console .rdb-report--chart .rdb-report-note { font-size: 11px; margin: 0 0 6px; }
+body.reporting-console .rdb-report--chart .rdb-report-chart { flex: 1; height: auto; min-height: 120px; }
+body.reporting-console .rdb-report--chart .rdb-report-chart canvas {
+  position: absolute; inset: 0; width: 100% !important; height: 100% !important;
+}
+
+/* --- Table card: head as a divider row, rows flush to the card edge. --- */
+body.reporting-console .rdb-card[data-type="table"] { padding: 0; overflow: hidden; }
+body.reporting-console .rdb-card[data-type="table"] .rdb-card-head {
+  margin: 0; padding: 10px 14px; border-bottom: 1px solid var(--nx-divider);
+}
+body.reporting-console .rdb-card[data-type="table"] .rdb-card-controls { right: 10px; }
+body.reporting-console .rdb-report--table .rdb-report { display: block; }
+body.reporting-console .rdb-report--table .rdb-report-table.reporting-table-wrap {
+  margin: 0; border: 0; border-radius: 0; max-height: none; min-height: 0;
+}
+body.reporting-console .rdb-report--table .rdb-report-table table { width: 100%; border-collapse: collapse; }
+
+/* --- Whole-report cards and the add-card overlay: the Results tab's flat KPI
+   strip (stacked in the 250px side column), the chart in a Console card. --- */
+body.reporting-console .rdb-report-kpis { gap: 10px; }
+body.reporting-console .rdb-report-kpis .rs-kpi-stats-card { display: contents; }
+body.reporting-console .rdb-report-kpis .rs-kpi-stats-title { display: none; }
+body.reporting-console .rdb-report-kpis .rs-kpi-total-card,
+body.reporting-console .rdb-report-kpis .reporting-ledger-kpi {
+  display: grid;
+  grid-template-rows: 28px 26px 14px;
+  align-content: start;
+  gap: 4px;
+  background: var(--nx-card);
+  border: 1px solid var(--nx-border);
+  border-radius: calc(var(--nx-radius-scale, 1) * 10px);
+  padding: 12px 14px;
+  box-shadow: var(--nx-shadow);
+  color: var(--nx-text);
+  margin: 0;
+  position: relative;
+}
+body.reporting-console .rdb-report-kpis .reporting-ledger-caption {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--nx-text-meta); line-height: 1.25; align-self: end;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+body.reporting-console .rdb-report-kpis .rs-kpi-value-wrap { display: flex; align-items: baseline; gap: 8px; }
+body.reporting-console .rdb-report-kpis .reporting-ledger-kpi-value {
+  font-size: 21px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;
+  color: var(--nx-text); background: none; -webkit-text-fill-color: currentColor;
+}
+body.reporting-console .rdb-report-kpis .reporting-ledger-kpi-sub {
+  position: static; margin: 0; font-size: 10.5px; color: var(--nx-text-meta); text-align: left;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+body.reporting-console .rdb-report-kpis .rp-sparkline { display: none; }
+body.reporting-console .rdb-report-chartcard {
+  border-radius: calc(var(--nx-radius-scale, 1) * 10px);
+  box-shadow: var(--nx-shadow);
+}
+body.reporting-console .rdb-report-table.reporting-table-wrap { margin-top: 8px; }
+/* Pick buttons sit top-right of each tile; the tile rows above are already
+   position:relative. Table button lives in the table bar, in flow. */
+body.reporting-console .rdb-pick-host .rdb-pick-btn { top: 6px; right: 6px; }
+/* KPI tiles: bottom-right, clear of the two-line caption row. */
+body.reporting-console .rdb-pick-host .rs-kpi-total-card .rdb-pick-btn,
+body.reporting-console .rdb-pick-host .reporting-ledger-kpi .rdb-pick-btn { top: auto; bottom: 6px; }
+
+/* ============================================================
+   Full-bleed dashboard. While the dashboard view is open (body.rdb-fullbleed,
+   toggled by the Simple pane's setView) the workspace rail steps aside and
+   every width cap on the way down -- shell, body grid, the dashboard's own
+   1240px -- lets go, so the 12-column grid spans the viewport.
+   ============================================================ */
+body.reporting-console.rdb-fullbleed .rc-shell,
+body.reporting-console.rdb-fullbleed .reporting-shell { max-width: none; padding-inline: 28px; }
+body.reporting-console.rdb-fullbleed .rc-body { grid-template-columns: minmax(0, 1fr); }
+body.reporting-console.rdb-fullbleed .rc-rail { display: none; }
+body.reporting-console.rdb-fullbleed .reporting-simple { max-width: none; padding-inline: 0; }
+body.reporting-console.rdb-fullbleed .reporting-dashboard,
+body.reporting-console.rdb-fullbleed .reporting-layouts { max-width: none; padding: 4px 0 60px; }
+
+/* Present: the dashboard element is the fullscreen element. Page background,
+   room to breathe, no chrome that only makes sense in the app. */
+.reporting-dashboard:fullscreen {
+  background: var(--nx-page);
+  overflow: auto;
+  max-width: none;
+  /* A wall screen wants breathing room at the edges: ~3% of the width as
+     side margin, a little less top, more bottom for the scroll tail. */
+  padding: 40px max(48px, 3vw) 72px;
+  box-sizing: border-box;
+}
+.reporting-dashboard:fullscreen #rdbBack,
+.reporting-dashboard:fullscreen #rdbAddCard,
+.reporting-dashboard:fullscreen #rdbExport,
+.reporting-dashboard:fullscreen #rdbRenamePencil,
+.reporting-dashboard:fullscreen .rdb-filterbar-hint,
+.reporting-dashboard:fullscreen .rdb-add-tile { display: none; }
+.reporting-dashboard:fullscreen #rdbPresent i::before { content: "\f066"; }  /* fa-compress */
+.reporting-dashboard:fullscreen .rdb-grid { --rdb-row: 132px; }

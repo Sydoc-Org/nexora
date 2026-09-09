@@ -97,6 +97,20 @@ html.sidebar-pinned #nexora-sidebar .sidebar-label {
     pointer-events: auto;
 }
 
+/* ---------- Flat tenant workspace (a user inside exactly one tenant) ---------- */
+.sidebar-section-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 8px 4px;
+    color: #9aa1a9;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+.sidebar-section-label .sidebar-nav-icon { opacity: 0.6; }
+
 /* ---------- Logo area ---------- */
 .sidebar-logo-area {
     display: flex;
@@ -236,18 +250,21 @@ html.sidebar-pinned #nexora-sidebar .sidebar-logo-area .flex.flex-col {
     max-height: 0;
     transition: max-height 0.25s ease;
 }
-#nexora-sidebar:is(:hover, .pinned) #generaliNavGroup.generali-open .sidebar-nav-subitems,
-html.sidebar-pinned #nexora-sidebar #generaliNavGroup.generali-open .sidebar-nav-subitems {
+/* Every expand rule below uses `>` so it applies to the group's OWN subitems
+   container only. As a descendant selector it also matched a nested group's
+   container (Tenants inside Admin, #255) and held it open when closed. */
+#nexora-sidebar:is(:hover, .pinned) #generaliNavGroup.generali-open > .sidebar-nav-subitems,
+html.sidebar-pinned #nexora-sidebar #generaliNavGroup.generali-open > .sidebar-nav-subitems {
     max-height: var(--generali-subitems-height, 9999px);
 }
 /* Admin group expand (mirrors generali rules) */
-#nexora-sidebar:is(:hover, .pinned) #adminNavGroup.admin-open .sidebar-nav-subitems,
-html.sidebar-pinned #nexora-sidebar #adminNavGroup.admin-open .sidebar-nav-subitems {
+#nexora-sidebar:is(:hover, .pinned) #adminNavGroup.admin-open > .sidebar-nav-subitems,
+html.sidebar-pinned #nexora-sidebar #adminNavGroup.admin-open > .sidebar-nav-subitems {
     max-height: var(--admin-subitems-height, 9999px);
 }
 /* Development group expand (mirrors generali/admin rules) */
-#nexora-sidebar:is(:hover, .pinned) #devNavGroup.dev-open .sidebar-nav-subitems,
-html.sidebar-pinned #nexora-sidebar #devNavGroup.dev-open .sidebar-nav-subitems {
+#nexora-sidebar:is(:hover, .pinned) #devNavGroup.dev-open > .sidebar-nav-subitems,
+html.sidebar-pinned #nexora-sidebar #devNavGroup.dev-open > .sidebar-nav-subitems {
     max-height: var(--dev-subitems-height, 9999px);
 }
 /* Generic group expand, additive -- for nav groups rendered dynamically
@@ -255,8 +272,8 @@ html.sidebar-pinned #nexora-sidebar #devNavGroup.dev-open .sidebar-nav-subitems 
    above because their ids aren't known at build time. Keyed on the shared
    nx-nav-open class (static/js/header.js's generic wiring block) rather
    than a per-group class name. Does not replace the three rules above. */
-#nexora-sidebar:is(:hover, .pinned) .sidebar-nav-group.nx-nav-open .sidebar-nav-subitems,
-html.sidebar-pinned #nexora-sidebar .sidebar-nav-group.nx-nav-open .sidebar-nav-subitems {
+#nexora-sidebar:is(:hover, .pinned) .sidebar-nav-group.nx-nav-open > .sidebar-nav-subitems,
+html.sidebar-pinned #nexora-sidebar .sidebar-nav-group.nx-nav-open > .sidebar-nav-subitems {
     max-height: var(--nx-nav-subitems-height, 9999px);
 }
 .sidebar-nav-subitem {
@@ -280,6 +297,23 @@ html.sidebar-pinned #nexora-sidebar .sidebar-nav-group.nx-nav-open .sidebar-nav-
 #devNavGroup.dev-open .sidebar-generali-chevron {
     transform: rotate(90deg);
 }
+/* Nested group (Tenants inside Admin, #255). The parent's max-height was
+   measured while this group was closed, so an opening nested group is clipped
+   by exactly its own height. Lift the parent's cap while a nested group inside
+   it is open -- the parent is already expanded and its height is
+   content-driven there, so nothing jumps; the nested group keeps its own
+   animated max-height. The three parent ids are spelled out because the
+   #<id>.<state>-open rules above carry two ids: a generic
+   .sidebar-nav-group:has(...) selector loses to them on specificity and the
+   parent stays clipped. */
+#nexora-sidebar:is(:hover, .pinned) :is(#generaliNavGroup.generali-open, #adminNavGroup.admin-open, #devNavGroup.dev-open):has(.sidebar-nav-group.nx-nav-open) > .sidebar-nav-subitems,
+html.sidebar-pinned #nexora-sidebar :is(#generaliNavGroup.generali-open, #adminNavGroup.admin-open, #devNavGroup.dev-open):has(.sidebar-nav-group.nx-nav-open) > .sidebar-nav-subitems {
+    max-height: 9999px;
+}
+.sidebar-nav-group--nested > .sidebar-nav-subitems > .sidebar-nav-subitem {
+    padding-left: 34px;
+}
+
 /* Generic group chevron, additive -- pairs with the generic expand rule
    above. */
 .sidebar-nav-group.nx-nav-open .sidebar-generali-chevron {
@@ -519,6 +553,17 @@ html.dark textarea {
     color: #f1f5f9 !important;
 }
 
+/* The native calendar button is a dark glyph, invisible on the dark field
+   above. admin-tokens.css carried this keyed on .admin-input, a class no
+   template uses any more -- and that sheet is not loaded by admin/logs.html
+   or tenant/page.html, the two pages with native date inputs. Keyed on the
+   input type here, in the globally loaded sheet, so it actually applies. */
+html.dark input[type="date"]::-webkit-calendar-picker-indicator,
+html.dark input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+html.dark input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.85);
+}
+
 /* Table rows */
 html.dark table thead tr   { background-color: #0f172a !important; }
 html.dark table tbody tr:hover { background-color: rgba(30,41,59,0.7) !important; }
@@ -614,19 +659,22 @@ html.dark .sidebar-toggle-btn {
         opacity: 1;
         pointer-events: auto;
     }
-    #nexora-sidebar.open #generaliNavGroup.generali-open .sidebar-nav-subitems {
+    #nexora-sidebar.open #generaliNavGroup.generali-open > .sidebar-nav-subitems {
         max-height: var(--generali-subitems-height, 9999px);
     }
-    #nexora-sidebar.open #adminNavGroup.admin-open .sidebar-nav-subitems {
+    #nexora-sidebar.open #adminNavGroup.admin-open > .sidebar-nav-subitems {
         max-height: var(--admin-subitems-height, 9999px);
     }
-    #nexora-sidebar.open #devNavGroup.dev-open .sidebar-nav-subitems {
+    #nexora-sidebar.open #devNavGroup.dev-open > .sidebar-nav-subitems {
         max-height: var(--dev-subitems-height, 9999px);
     }
     /* Generic group expand (mobile drawer), additive -- mirrors the three
        rules above for dynamically-rendered nav groups (see the desktop
        hover/pinned rule earlier in this file for the full explanation). */
-    #nexora-sidebar.open .sidebar-nav-group.nx-nav-open .sidebar-nav-subitems {
+    #nexora-sidebar.open :is(#generaliNavGroup.generali-open, #adminNavGroup.admin-open, #devNavGroup.dev-open):has(.sidebar-nav-group.nx-nav-open) > .sidebar-nav-subitems {
+        max-height: 9999px;
+    }
+    #nexora-sidebar.open .sidebar-nav-group.nx-nav-open > .sidebar-nav-subitems {
         max-height: var(--nx-nav-subitems-height, 9999px);
     }
 

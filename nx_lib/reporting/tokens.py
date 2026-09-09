@@ -207,16 +207,12 @@ def widened_definition_for_forecast(rd, today=None):
     f = token_filters[0]
     start, end = resolve_token(f["value"], today)
     new_filters = [x for x in filters if x is not f]
-    new_filters.append(
-        {
-            "field": f["field"],
-            "op": "between",
-            "value": [
-                (start - datetime.timedelta(days=lookback)).isoformat(),
-                end.isoformat(),
-            ],
-        }
-    )
+    # Same half-open shape as resolve_definition_tokens, so the fit's last bucket
+    # sees the end day's intraday rows exactly like the visible series does.
+    fit_start = start - datetime.timedelta(days=lookback)
+    end_excl = end + datetime.timedelta(days=1)
+    new_filters.append({"field": f["field"], "op": "gte", "value": fit_start.isoformat()})
+    new_filters.append({"field": f["field"], "op": "lt", "value": end_excl.isoformat()})
     out = dict(rd)
     out["filters"] = new_filters
     out.pop("compare", None)

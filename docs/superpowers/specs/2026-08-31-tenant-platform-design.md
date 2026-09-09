@@ -139,7 +139,8 @@ Rides the existing provider-agnostic reporting-AI plumbing. Three assists, one r
 
 - Creating a tenant auto-provisions `tenant.<code>.view` and `tenant.<code>.edit` in
   `dbo.Permission` (idempotent `WHERE NOT EXISTS`, granted to nobody — the white-label D7 idiom).
-  Granting stays a deliberate act at `/admin/access-control`.
+  Granting stays a deliberate act at `/admin/permissions`. The `tenant.generali.*` codes already
+  exist since #238 renamed the former `generali.*` family into that shape.
 - The sidebar gains one section per tenant the viewer can see, gated through `page_visibility()`.
 - Tenant admin surfaces extend the existing admin center (`/admin/clients` grows tenant rows;
   a new `/admin/tenants/<code>` holds the box editor in sub-project 2).
@@ -193,3 +194,23 @@ design authority.
 - **E2E:** one MS02 pilot page end-to-end against INT.
 - **House guards stay binding:** `test_no_inline_event_handlers`, `test_template_url_prefix`,
   `test_translations` (all tenant-page chrome is translated de/fr/it).
+
+## Amendment 2026-09-03 — a tenant is a portal, not a connection (migration `0096`)
+
+The three-layer table above says a tenant "references exactly one data connection". Three tenants
+later that was the wrong cut: every `ClientCode` pointer (`Tenants`, `Organizations`,
+`ProcessSources`) agreed in every row; the `sydoc` tenant excluded the two organizations (SYDC,
+SSIX) that ride its connection; and "tenant" meant a partner (Mobscn), a customer (Generali) and an
+operator (Sydoc) in three rows. Decision, owner and Claude, 2026-09-03:
+
+- **Tenant** = the organizations that share one navigation group, look and permission group
+  (`Organizations.TenantCode`). `dbo.Tenants` is `TenantCode`, `DisplayName`, `IsActive` — nothing
+  else.
+- **Connection** lives on the thing that reads it: `ProcessSources.ClientCode` (unchanged, its PK)
+  and `TenantEntities.ClientCode` (new — a table lives in exactly one database). A tenant may span
+  connections; a connection may serve several tenants.
+- **Visibility = membership or grant.** Members see their tenant by right;
+  `tenant.<code>.view` survives only as the grant for non-members (sydoc staff on Generali).
+  `tenant.<code>.edit` stays an explicit grant.
+- **Dropped:** `Tenants.ClientCode`, `Tenants.OrganizationCode`, `Organizations.ClientCode`.
+  The Organizations overview derives an organization's connections from its process configurations.

@@ -22,9 +22,11 @@ import uuid
 
 from flask import current_app, session
 
+from ... import config as cfg
 from ... import mapping_config
 from ...db import (
     engine_generali_db,
+    engine_generali_ro,
     engine_nexora_db,
     engine_octo_db,
     engine_octo_ro,
@@ -33,6 +35,7 @@ from ...db import (
 )
 from ...extensions import cache
 from ...i18n import get_locale
+from ...process_helpers import process_grants
 from ...reporting.catalog import fetch_docprocessing_catalog
 from ...reporting.query import build_table_query
 from ...reporting.sandbox import (
@@ -41,7 +44,11 @@ from ...reporting.sandbox import (
     validate_select,
     wrap_with_cap,
 )
-from ...reporting.schema import ReportDefinitionError, validate_report_definition
+from ...reporting.schema import (
+    ReportDefinitionError,
+    validate_layout_definition,
+    validate_report_definition,
+)
 from ...reporting.semantic import resolve_metrics
 from ...reporting.sources import (
     DEFAULT_ROW_LIMIT,
@@ -56,20 +63,31 @@ from ...reporting.table_query import build_generic_query, table_source_catalog
 from ...reporting.tokens import date_fields_from_catalog, resolve_definition_tokens
 from ...security import has_permission
 
-_SCOPE_PREFIX = "reporting.scope.process."
-
 _SQL_TARGET_ENGINES = {
     "statistics": engine_statistics_ro,
     "octopus": engine_octo_ro,
+    "generali": engine_generali_ro,
 }
 _SQL_TARGETS = set(_SQL_TARGET_ENGINES)
 
 # Per-target permission. The base reporting.sql.run gate (on the routes) covers
-# the Statistics target; Octopus — the runtime DB — additionally requires its
-# own grant so SQL access and runtime-DB access can be separated.
+# the Statistics target; every other database — the Octo runtime, the Generali
+# tenant DB — additionally requires its own grant, so SQL access and access to
+# a particular database stay separable. NexoraDB is deliberately absent: it
+# holds the password hashes and TOTP secrets, so it is not a query target at
+# any permission level.
 _SQL_TARGET_PERMISSION = {
     "statistics": "reporting.sql.run",
-    "octopus": "reporting.sql.target.octopus",
+    "octopus": "reporting.sql.target.octopus.use",
+    "generali": "reporting.sql.target.generali.use",
+}
+
+# The database each target actually reads, for the UI's target picker. Resolved
+# from config so INT and PROD each show their own real name.
+_SQL_TARGET_DB = {
+    "statistics": cfg.DB_STATISTICS,
+    "octopus": cfg.DB_OCTO_RUNTIME,
+    "generali": cfg.DB_GENERALI,
 }
 
 
@@ -177,12 +195,22 @@ def _load_db_metrics():
         cur.execute(
             "SELECT Code, SourceId, Label, GermanLabel, FrenchLabel, ItalianLabel, "
             "Aggregation, BaseField, Description, Format, Enabled, SortOrder, TotalMode, "
-            "DateAnchor "
+            "DateAnchor, FilterJson "
             "FROM dbo.ReportingMetrics WHERE Enabled = 1"
         )
         out = {}
         for r in cur.fetchall():
+            filt = None
+            if getattr(r, "FilterJson", None):
+                try:
+                    filt = json.loads(r.FilterJson)
+                except ValueError:
+                    # A malformed condition must not silently widen the metric to
+                    # "everything": the resolver rejects a non-list, so the metric
+                    # errors loudly at run time instead.
+                    filt = "malformed"
             out[r.Code] = {
+                "filter": filt,
                 "code": r.Code,
                 "source_id": r.SourceId,
                 "label": r.Label,
@@ -224,6 +252,7 @@ def _metrics_for_source(source_id, locale=None):
             "base_field": m["base_field"],
             "total_mode": m.get("total_mode", "sum"),
             "anchor": m.get("anchor"),
+            "filter": m.get("filter"),
             "label": (m.get(attr) if attr else None) or m["label"],
         }
         for code, m in _load_db_metrics().items()
@@ -284,6 +313,50 @@ def _has_acked(userid):
         return cur.fetchone() is not None
     finally:
         conn.close()
+
+
+def _load_owned_layout(layout_id, userid):
+    """The parsed kind:'layout' definition `userid` owns under `layout_id`, else None.
+    Layouts are private (spec D-ownership): shares and Visibility='shared' do not count."""
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT r.DefinitionJSON FROM dbo.Reports r "
+            "WHERE r.ReportID = ? AND r.OwnerUserID = ? "
+            "  AND JSON_VALUE(r.DefinitionJSON, '$.kind') = 'layout'",
+            (layout_id, userid),
+        )
+        row = cur.fetchone()
+    finally:
+        conn.close()
+    if not row:
+        return None
+    try:
+        return json.loads(row[0])
+    except (TypeError, ValueError):
+        return None
+
+
+def _layout_block(rd, userid):
+    """(layout, fallback) for a run request. `layoutId` wins over an inline
+    `layout` (the editor's unsaved-preview path). fallback is 'missing' when the
+    id resolves to nothing the caller owns, 'invalid' when the layout fails
+    validation, None otherwise."""
+    layout_id = rd.get("layoutId")
+    if layout_id is not None:
+        layout = _load_owned_layout(layout_id, userid)
+        if layout is None:
+            return None, "missing"
+    else:
+        layout = rd.get("layout")
+        if layout is None:
+            return None, None
+    try:
+        validate_layout_definition(layout)
+    except ReportDefinitionError:
+        return None, "invalid"
+    return layout, None
 
 
 def _audit_sql(userid, username, target, sql_text, rows_returned, status, duration_ms):
@@ -374,19 +447,15 @@ def _run_sql(target, sql, *, userid, username):
     return columns, rows
 
 
-def _allowed_processes():
-    """Processes the caller may include, from reporting.scope.process.* perms.
+_SCOPE_PREFIX = "reporting.scope.process."
 
-    Code shape: reporting.scope.process.<client>.<process> -> '<client>.<process>'.
-    """
-    perms = session.get("permissions", [])
-    return sorted(
-        {
-            ".".join(p[len(_SCOPE_PREFIX) :].rsplit(".", 1))
-            for p in perms
-            if p.startswith(_SCOPE_PREFIX)
-        }
-    )
+
+def _allowed_processes():
+    """Processes the caller may include: ``process.<client>.<process>.view``
+    grants (0087) or the legacy ``reporting.scope.process.*`` family. Reporting
+    is not a tenant-scoped page, so this deliberately skips the tenant scope
+    ``granted_processes`` applies for the dashboard and workitems."""
+    return sorted(process_grants(session.get("permissions", []), _SCOPE_PREFIX))
 
 
 def _load_process_configs(target_processes):
@@ -464,7 +533,7 @@ def _effective_scope(rd, allowed):
     is in scope when its client is listed in `scope.clients` OR it is named in
     `scope.processes`. Empty clients AND empty processes means "all allowed"
     (the default). Anything requested that the caller isn't granted is silently
-    dropped — the `reporting.scope.process.*` grant is the security boundary.
+    dropped — the `process.<client>.<name>.view` grant is the security boundary.
     """
     scope = rd.get("scope") or {}
     requested_procs = set(scope.get("processes") or [])
@@ -503,6 +572,21 @@ def _resolve_definition_tokens_or_error(rd):
         return resolve_definition_tokens(rd)
     except ValueError as e:
         raise ReportDefinitionError(str(e)) from e
+
+
+def _latest_of(resolved, source_metrics, catalog):
+    """The single grainable date column a 'latest'-mode metric set pins to, or None.
+
+    Shared by the interactive run and the session-less runner (scheduler, AI
+    run_definition) so both aggregate the newest snapshot, not every snapshot.
+    """
+    if not resolved:
+        return None
+    modes = {(source_metrics.get(m["code"]) or {}).get("total_mode", "sum") for m in resolved}
+    date_candidates = [f["field"] for f in catalog if f.get("grainable")]
+    if modes == {"latest"} and len(date_candidates) == 1:
+        return date_candidates[0]
+    return None
 
 
 def _prepare_run(rd):
@@ -608,14 +692,7 @@ def _prepare_run(rd):
             if rd.get("metrics")
             else None
         )
-        latest_of = None
-        if resolved:
-            modes = {
-                (source_metrics.get(m["code"]) or {}).get("total_mode", "sum") for m in resolved
-            }
-            date_candidates = [f["field"] for f in catalog if f.get("grainable")]
-            if modes == {"latest"} and len(date_candidates) == 1:
-                latest_of = date_candidates[0]
+        latest_of = _latest_of(resolved, source_metrics, catalog)
         sql, params = build_generic_query(
             rd,
             source.get("baseObject"),

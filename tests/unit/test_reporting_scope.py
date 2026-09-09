@@ -3,8 +3,8 @@
 
 `_effective_scope` is pure: it takes a report definition's `scope` and the
 caller's allowed `<client>.<process>` list and returns the processes actually in
-scope. The `reporting.scope.process.*` grant (the `allowed` arg) is the security
-boundary — anything requested but not granted is dropped.
+scope. The `process.<client>.<name>.view` grant (the `allowed` arg) is the
+security boundary — anything requested but not granted is dropped.
 """
 
 import pytest

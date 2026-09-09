@@ -306,6 +306,10 @@ window.ReportingDrill = (function () {
     var dd = buildDrillDefinition(opts.definition, opts.fields, opts.clicked);
     if (!dd) { toast(I18N.cannotFilter, true); return; }
     current = { definition: dd };
+    // ReportingContribution hides these while it owns the shell; make sure a
+    // drill always gets them back whichever path closed the drawer.
+    if (el('rdExportCsv')) el('rdExportCsv').hidden = false;
+    if (el('rdExportXlsx')) el('rdExportXlsx').hidden = false;
     var token = current;                          // guards against a stale response
                                                     // from an earlier open() call winning
                                                     // the race once current is reassigned

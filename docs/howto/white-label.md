@@ -7,19 +7,109 @@ the branding section at the bottom).
 
 Design background: `docs/superpowers/specs/2026-08-27-white-label-admin-ui-design.md`.
 
-## The two axes
+## The three axes
 
-Two different things are both informally called "the client", and conflating them is the easiest way
+Three different things get informally called "the client", and conflating them is the easiest way
 to get this wrong.
 
 **Axis 1 — `ClientCode` (runtime source).** Answers *"which runtime DB, which SQL dialect, which
-Octo tenant?"*. Values today: `default`, `ms02`. Infrastructure-level, changes almost never. Lives in
-`dbo.Clients` (migration `0079`) and is read into `nx_lib/clients.py::CLIENTS` at app start. It is
-also the `ClientCode` column on `dbo.ProcessSources`, `dbo.ProcessFieldMappings` and
-`dbo.WorkitemSourceCache`.
+Octo tenant?"*. Values today: `default`, `ms02`, `generali`. Infrastructure-level, changes almost
+never. Lives in `dbo.Clients` (migration `0079`) and is read into `nx_lib/clients.py::CLIENTS` at
+app start. It is also the `ClientCode` column on `dbo.ProcessSources`, `dbo.ProcessFieldMappings`,
+`dbo.WorkitemSourceCache` and, since `0096`, `dbo.TenantEntities` — a generated entity's table
+lives in exactly one database, so the entity names it.
 
 **Axis 2 — `Organizations.organizationcode` (the customer).** Answers *"who does this user work
 for?"* — `PRVR`, `LKTR`, … Self-service today at `/admin/organizations`.
+
+**Axis 3 — `Tenants.TenantCode` (the portal).** Answers *"which organizations share one branded
+navigation, and which pages does it show?"*. A tenant is **not** a data connection: since migration
+`0096` a `dbo.Tenants` row is just `TenantCode`, `DisplayName`, `IsActive`, and the organizations
+whose `Organizations.TenantCode` points at it are its members. Its `TenantEntities`/`TenantFields`/
+`TenantPages` children describe the generated `/t/<code>/<page>` surface, and each entity names the
+axis-1 connection its table lives in (`TenantEntities.ClientCode`) — so one tenant may span
+connections and one connection may serve several tenants. Three tenants exist on INT: `ms02`
+**Mobscn** (PDBS), `generali` (GNRL) and `sydoc` (ElektroMaterial, Privera, Compass). Tenants, their
+members and their custom pages are edited at `/admin/tenants/manage`; entities and fields are still
+seeded by migration. Full detail: `docs/design/ms02-multisource.md`.
+
+**Who sees a tenant — membership or grant.** A user whose organization belongs to the tenant sees
+its sidebar group and its generated pages by right (`nx_lib/views/tenant.py::_can_view`); anyone
+else — sydoc staff working Generali, say — needs `tenant.<code>.view`. Editing generated records is
+always the explicit `tenant.<code>.edit` grant. A tenant-scoped user (`tenant_scoped`, set in
+`nx_lib/hooks.py`) sees only their tenant group in place of the global Dashboard / Reporting /
+Workitems links. Since `0104` sydoc AG (SYDC) is a member of the `sydoc` tenant and ISS (SSIX) of
+`generali`; sydoc staff keep every tenant group and the Global entries through their
+`tenant.<code>.view` grants and page permissions, so only `demo` (DMEO) sits outside a tenant.
+
+**A tenant's own users never see it named.** `tenant_solo` (also from `_inject_tenant_nav`) is true
+for a user who belongs to exactly one tenant and holds no grant on another. For them the tenant *is*
+the portal, so the UI never spells it out: the sidebar renders the mounted pages flat with no label,
+and the pages title themselves "Dashboard" / "Workitems" rather than "`<Tenant>` Dashboard" /
+"`<Tenant>` Workitems". Staff and cross-tenant members keep the names — they have several tenants to
+tell apart. Adding a name back to a page a solo member can reach is a regression, not a feature.
+
+**Mounted pages and the tenant dashboard.** A `custom` row in `dbo.TenantPages` carries a
+`LayoutJSON` with `endpoint` (an argument-less GET route), `label`, `icon`, an optional `active`
+marker (the `active_page` value the target sets) and an optional `query` object of string pairs that
+becomes the link's query string. The mounted **Dashboard** and **Workitems** pages use exactly that:
+since migrations `0097`/`0098` they link `/dashboard?tenant=<code>` and `/workitems?tenant=<code>`.
+`nx_lib/views/tenant.py::apply_tenant_scope` resolves the tenant (404 unknown, 403 not viewable),
+stores it in `session['tenant_scope']`, and every process allow-list on both pages — the dashboard
+KPIs, the workitems list, field config, suggestions, import — comes through
+`nx_lib/process_helpers.py::granted_processes`, which intersects the user's process grants
+(`process.<client>.<name>.view` since migration `0087`, or the legacy `*.filter.process.*` codes)
+with the processes whose organization belongs to that tenant
+(`nx_lib/tenant/registry.py::tenant_processes`; an unresolvable scope narrows to nothing). A user
+inside a tenant lands on their tenant's pages by default; staff without a pick get the **Global
+Dashboard** / **Global Workitems** (every process they may see, across tenants). The scope is
+sticky: a URL without the parameter keeps it (the workitems page rewrites its own URL with the
+filter state), the global sidebar entries clear it with an explicit empty `?tenant=`, and a
+remembered tenant that no longer resolves is dropped silently. The scoped pages render
+`active_page = tenant_<code>_dashboard` /
+`tenant_<code>_workitems`, so only that tenant's entry lights up in the sidebar. Prepared Documents
+is MS02's own intake register with no process filter, so it is not scoped.
+
+**The admin UI names these by role, not by table (#255).** The routes, `data-testid`s, permission
+codes and DB columns keep their original names; only the labels changed, and the three pages now sit
+in a collapsible **Tenants** group in the admin sidebar:
+
+| Route | UI label | Axis |
+|---|---|---|
+| `/admin/tenants/manage` | **Manage** (Tenants) | create/edit tenants, their organizations and mounted pages (`admin.tenants.view` / `admin.tenants.edit`, migration `0095`); entities/fields stay migration-only |
+| `/admin/tenants` | **Overview** (Tenants) | read-only join of all three: tenant → organizations → users, access profiles, data connection, process configurations; plus pages; plus what is not in a tenant (#256 phase 1) |
+| `/admin/organizations` | **Organizations** (name kept) | 2 — who the users work for |
+| `/admin/clients` | **Data Connections** | 1 — where the data lives |
+| `/admin/processes` | **Process Configurations** | Octo process sources + their field mappings |
+
+Note the last one is Octo-specific: `dbo.ProcessSources` describes Octo processes, so a **data-only**
+tenant (a plain table or view, `TenantEntities.Kind = 'entries'`/`'lookup'`) needs an axis-1 client
+row and tenant descriptors but no process source at all.
+
+Worked example, migration `0126`: the MediaMarkt scan protocol. One `entries` entity over
+`SYDOC_Statistik.dbo.MediaMarkt_Batches` (`EngineRole = 'stats'` on the `default` client), ten
+`TenantFields`, one `crud` page — `/t/sydoc/mediamarkt` exists with no page code. Two field roles
+carry behaviour on generated CRUD pages: **`person`** is never typed, `nx_lib/views/tenant.py`
+stamps it with the current username on every insert and update (the "Visum" column); **`flag`**
+renders as a checkbox and stores `0`/`1`. `date` gives a date picker and the list's date-range
+filter, `count`/`money` a numeric input, everything else a text input.
+
+**Since migration `0090` (#257) the organization is the hub that ties the axes together.**
+`dbo.Organizations` carries `TenantCode` (axis 3) and is referenced by
+`ProcessSources.OrganizationCode` and `AccessProfile.OrganizationCode`. Which axis-1 connections an
+organization rides is **derived, never stored**: it is the set of `ClientCode`s on its process
+configurations (migration `0096` dropped the `Organizations.ClientCode` copy, together with
+`Tenants.ClientCode` and the pre-0090 `Tenants.OrganizationCode` pointer — all three agreed with the
+process sources in every row and only waited to drift). A profile bound to an organization is
+assignable only to that organization's users (`nx_lib/views/admin/users.py::_profile_org_mismatch`);
+a profile with `OrganizationCode = NULL` is global (`Global Admin`, `Enterprise Admin`,
+`Sydoc Supervisor`). Profile names follow `<Organization> <Role>` since migration `0105`. `/admin/tenants` renders exactly this tree and flags what is still unassigned.
+
+**Data-only connections.** A `dbo.Clients` row without an Octo domain is a *data-only* connection
+(Generali: `generali` → `engine_generali_db`, migration `0091`): it loads into `CLIENTS` with
+`octo_domain = None` and serves tenant pages, but `nx_lib/clients.py::workitem_clients()` excludes it
+from workitem routing. Only `default` still needs a domain. Adding a new database means one line in
+`_engines()` plus a `dbo.Clients` row.
 
 **Most customers ride the shared `default` runtime.** Privera, ElektroMaterial and Compass all do.
 A customer needs a new `ClientCode` only when they bring their own database — so far that has
@@ -29,8 +119,8 @@ DB at all, and it does so through the admin UI, not a migration.
 
 ## `/admin/clients` — runtime sources
 
-Permissions: `admin.view.clients` (read), `admin.edit.clients` (add/edit/delete). Both are granted to
-`enterpriseAdmin` and `globalAdmin` by migration `0080`.
+Permissions: `admin.clients.view` (read), `admin.clients.edit` (add/edit/delete). Both are granted to
+`Enterprise Admin` and `Global Admin` by migration `0080`.
 
 The table lists five columns per `dbo.Clients` row — `ClientCode`, `DisplayName`, `Dialect`
 (`tsql` | `postgres`), `RuntimeEngineKey` and `IsActive`. The add/edit modal covers all ten writable
@@ -80,8 +170,8 @@ decision; this only makes the degradation visible.
 
 ## `/admin/processes` — process sources and field mappings
 
-Permissions: `admin.view.processes` (read), `admin.edit.processes` (add/edit/delete). Both granted to
-`enterpriseAdmin` and `globalAdmin` by migration `0080`.
+Permissions: `admin.processes.view` (read), `admin.processes.edit` (add/edit/delete). Both granted to
+`Enterprise Admin` and `Global Admin` by migration `0080`.
 
 Reads and writes `dbo.ProcessSources` and `dbo.ProcessFieldMappings` (migration `0074`) entirely
 through the cached registry in `nx_lib/mapping_config.py` — never raw SQL for reads. The page groups
@@ -113,7 +203,7 @@ its permission, and yielding config that can never resolve.
 
 This used to be described as "customer-prefixed by convention only". That is **wrong**, and the
 admin UI made the mistake reachable. The permission auto-provisioned for a process is
-`workitems.filter.process.<ProcessName>`, and every consumer reconstructs the process name out of
+`process.<ProcessName>.view`, and every consumer reconstructs the process name out of
 that code as **exactly the last two dot-segments** (`nx_lib/views/workitems.py`,
 `nx_lib/process_helpers.py`: `parts[-2], parts[-1]`). So the name must be two segments — no more, no
 fewer:
@@ -133,10 +223,10 @@ process names that reduce alike share one entitlement. `FieldKey` keeps the loos
 `_FIELD_KEY_RE` shape: it never becomes a permission code.
 
 **Adding a process source auto-provisions its permission.** Saving a new `(ClientCode, ProcessName)`
-row also creates a `workitems.filter.process.<ProcessName>` permission row in the same request, in
+row also creates a `process.<ProcessName>.view` permission row in the same request, in
 one transaction — otherwise step 3 of the onboarding table below would still require a migration and
 the whole point of this page would be lost. The permission is created **granted to nobody**: granting
-it to a user or access profile stays a deliberate, separate step at `/admin/access-control`. Deleting
+it to a user or access profile stays a deliberate, separate step at `/admin/permissions`. Deleting
 a process source does **not** delete its permission row — that would silently revoke access nobody
 asked to change; re-adding the same process later reuses the existing permission (the insert is
 idempotent, mirroring migration `0059`'s shape).
@@ -144,18 +234,18 @@ idempotent, mirroring migration `0059`'s shape).
 Deleting a process source is refused with **409** while it still has field mappings — remove those
 first.
 
-### `admin.edit.processes` is a high-trust permission
+### `admin.processes.edit` is a high-trust permission
 
 Read the identifier validation above as *injection* hardening, not as a security boundary between
-customers. It is not one. `admin.edit.processes` lets a holder rewrite `TableName` on an **existing**
+customers. It is not one. `admin.processes.edit` lets a holder rewrite `TableName` on an **existing**
 process source, and `_IDENT` accepts any qualified identifier in either dialect. A holder can
-therefore repoint an already-granted `workitems.filter.process.privera.02_Posteingang` at a different
+therefore repoint an already-granted `process.privera.02_Posteingang.view` at a different
 customer's statistik table: no new grant is needed, no permission changes, and nothing is audited.
 The practical meaning of the permission is **"can point any granted process at any table in the
 runtime database"** — which is inherent to an editable config surface, not a defect to be patched.
 
 Grant it accordingly. Migration `0080` hands it to every access profile that already holds
-`admin.view.organizations` (`enterpriseAdmin`, `globalAdmin`); treat adding anyone else to that set
+`admin.organizations.view` (`Enterprise Admin`, `Global Admin`); treat adding anyone else to that set
 as the cross-tenant data-access decision it is.
 
 ### Scope limits — deliberately not editable here
@@ -179,10 +269,10 @@ For the common case — a new customer riding the shared `default` runtime, no n
    existing clients), `ProcessName` in the **required** `<customer>.<process>` shape, e.g.
    `acme.01_Invoice` (see the hard rule above — any other shape is rejected), and its
    table/column mapping. This
-   step auto-creates the `workitems.filter.process.acme.01_Invoice` permission, granted to nobody.
+   step auto-creates the `process.acme.01_Invoice.view` permission, granted to nobody.
 4. **Add field mappings** for that process source on the same page, one row per doc-field.
-5. **Grant the permission** at `/admin/access-control` — attach
-   `workitems.filter.process.acme.01_Invoice` to the users or access profiles who should see that
+5. **Grant the permission** at `/admin/permissions` — tick
+   `process.acme.01_Invoice.view` to the users or access profiles who should see that
    customer's workitems. Nothing is visible to anyone until this step happens.
 
 No SQL migration, no deploy, no app-pool recycle for this path — the whole thing is admin-UI writes
@@ -310,9 +400,9 @@ The stored filename is derived from the organization code, never from the upload
 
 ### Editing a brand
 
-The branding panel on `/admin/organizations` sits behind **`admin.edit.organization.branding`**
-(seeded by migration `0080`, granted to `enterpriseAdmin` and `globalAdmin`). A viewer holding only
-`admin.view.organizations` never sees the panel or its per-row button. `POST
+The branding panel on `/admin/organizations` sits behind **`admin.organizations.branding.edit`**
+(seeded by migration `0080`, granted to `Enterprise Admin` and `Global Admin`). A viewer holding only
+`admin.organizations.view` never sees the panel or its per-row button. `POST
 /admin/organizations/<organizationcode>/branding` accepts JSON (name + accent only) or
 `multipart/form-data` (plus `logo`); a save without an upload leaves the stored logo untouched.
 Every successful save calls `invalidate_branding()`.

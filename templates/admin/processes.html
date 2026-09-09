@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     {% include '_theme_prepaint.html' %}
     <link rel="stylesheet" href="{{ static_v('css/nexora-ui.css') }}">
-    <title>{{ _("Processes - nexora") }}</title>
+    <title>{{ _("Process Configurations - nexora") }}</title>
     <link rel="stylesheet" href="{{ static_v('css/admin.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous" />
 </head>
@@ -16,8 +16,8 @@
 
     <main class="nx-main">
         {{ a.page_header(
-            title=_('Processes'),
-            subtitle=_('Process sources and field mappings per client (dbo.ProcessSources / dbo.ProcessFieldMappings)'),
+            title=_('Process Configurations'),
+            subtitle=_('Process sources and their document-field mappings per client (dbo.ProcessSources / dbo.ProcessFieldMappings)'),
             back_url=url_for('admin_dashboard'),
             actions=[{'label': _('Add process source'), 'icon': 'fa-plus', 'onclick': 'openAddProcessSourceModal()', 'variant': 'primary', 'testid': 'add-process-source'}] if can_edit else None,
             icon='fa-diagram-project'
@@ -25,13 +25,13 @@
 
         <p class="nx-c-meta" style="font-size:0.85rem;margin:-8px 0 8px" data-testid="admin-processes-help">
             <i class="fas fa-circle-info"></i>
-            {{ _("\"Client\" here is a runtime source (default/ms02, see Clients) -- not a customer organization. A process name must be exactly <customer>.<process> (e.g. privera.02_Posteingang): the permission that grants access to it is derived from those two parts, so any other shape can never be granted.") }}
+            {{ _("\"Client\" here is a runtime source (default/ms02, see Data Connections) -- not an organization. A process name must be exactly &lt;customer&gt;.&lt;process&gt; (e.g. privera.02_Posteingang): the permission that grants access to it is derived from those two parts, so any other shape can never be granted.") }}
         </p>
 
         {% if can_edit %}
         <p class="nx-c-meta" style="font-size:0.85rem;margin:0 0 16px" data-testid="admin-processes-help-writes">
             <i class="fas fa-shield-halved"></i>
-            {{ _("Adding a process source also creates its workitems.filter.process.<name> permission, granted to nobody -- grant it under Access Control. The join condition, time filters and extra condition are free-form SQL fragments and stay read-only here: they are editable only by a database migration.") }}
+            {{ _("Adding a process source also creates its process.<client>.<name>.view permission, granted to nobody -- grant it under Access Control. The join condition, time filters and extra condition are free-form SQL fragments and stay read-only here: they are editable only by a database migration.") }}
         </p>
         {% endif %}
 
@@ -52,11 +52,12 @@
                 </h2>
 
                 {% for process in group.processes %}
-                <div data-search="{{ (group.client ~ ' ' ~ process.process)|lower }}" style="margin-bottom:16px" data-testid="admin-processes-row-{{ group.client }}-{{ process.process }}">
+                <div data-search="{{ (group.client ~ ' ' ~ process.process ~ ' ' ~ (process.organization or ''))|lower }}" style="margin-bottom:16px" data-testid="admin-processes-row-{{ group.client }}-{{ process.process }}">
                     <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
                         <h3 class="nx-subtitle" style="margin:0">{{ process.process }}</h3>
                         <span class="nx-c-meta" style="font-size:0.8rem">
                             {{ _('Table:') }} <span class="nx-mono">{{ process.table or '—' }}</span>
+                                {% if process.organization %}<span class="nx-mono nx-c-meta" title="{{ _('Organization') }}" data-testid="admin-processes-org-{{ group.client }}-{{ process.process }}"><i class="fas fa-building"></i> {{ process.organization }}</span>{% endif %}
                         </span>
                         {% if can_edit %}
                         <span>
@@ -154,6 +155,24 @@
                     <div>
                         <label for="ProcessName" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Process Name") }}</label>
                         <input type="text" id="ProcessName" name="ProcessName" class="nx-input" pattern="[A-Za-z0-9_\-]{1,49}\.[A-Za-z0-9_\-]{1,50}" title="{{ _('Exactly <customer>.<process> -- two parts separated by a single dot, e.g. acme.01_Invoice.') }}" placeholder="privera.02_Posteingang" required data-testid="admin-process-source-process">
+                    </div>
+                    <div>
+                        <label for="OrganizationCode" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Organization") }}</label>
+                        <select id="OrganizationCode" name="OrganizationCode" class="nx-select" data-testid="admin-process-source-organization">
+                            <option value="">{{ _("Unassigned") }}</option>
+                            {% for o in organizations %}
+                            <option value="{{ o.code }}">{{ o.name }} ({{ o.code }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label for="OrganizationCode" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Organization") }}</label>
+                        <select id="OrganizationCode" name="OrganizationCode" class="nx-select" data-testid="admin-process-source-organization">
+                            <option value="">{{ _("Unassigned") }}</option>
+                            {% for o in organizations %}
+                            <option value="{{ o.code }}">{{ o.name }} ({{ o.code }})</option>
+                            {% endfor %}
+                        </select>
                     </div>
                     <div>
                         <label for="TableName" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Table Name") }}</label>

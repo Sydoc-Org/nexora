@@ -316,3 +316,38 @@ def test_build_distinct_query_label_with_pairs():
             "dbo.BacklogHistory",
             [{"field": "ProcessName", "filterable": True, "labelWith": "Nope"}],
         )
+
+
+def test_table_source_catalog_passes_advanced_flag_through():
+    cols = [
+        {"field": "Field", "type": "string", "advanced": True},
+        {"field": "FieldKey", "type": "string"},
+    ]
+    out = table_source_catalog(cols)
+    assert out[0]["advanced"] is True
+    assert "advanced" not in out[1]
+
+
+def test_generic_aggregate_conditional_metric_params_precede_where_params():
+    """SELECT-list CASE WHEN params bind before the WHERE params (positional ?)."""
+    cols = [
+        {"field": "Status", "label": "S", "type": "string", "filterable": True, "sortable": True},
+        {"field": "Region", "label": "R", "type": "string", "filterable": True, "sortable": True},
+    ]
+    rd = {
+        "columns": [{"field": "Region"}],
+        "filters": [{"field": "Region", "op": "ne", "value": "north"}],
+        "sort": [],
+    }
+    resolved = [
+        {
+            "code": "ok_rows",
+            "aggregation": "count",
+            "base_field": None,
+            "filter": [{"field": "Status", "op": "eq", "value": "ok"}],
+        }
+    ]
+    sql, params = build_generic_query(rd, "Db.dbo.T", cols, row_cap=50, resolved_metrics=resolved)
+    assert "COUNT(CASE WHEN [Status] = ? THEN 1 END) AS [ok_rows]" in sql
+    assert "WHERE [Region] <> ?" in sql
+    assert params == ["ok", "north"]

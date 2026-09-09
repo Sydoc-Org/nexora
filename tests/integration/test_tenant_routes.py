@@ -20,6 +20,7 @@ filter/sort column allow-list), not the registry's DB-loading code
 (``tests/unit/test_tenant_queries.py``).
 """
 
+import sys
 import types
 
 from flask import url_for
@@ -31,14 +32,8 @@ from nx_lib.tenant.registry import Tenant, TenantEntity, TenantField, TenantPage
 TENANT_CODE = "acme"
 
 
-def _tenant(client_code=TENANT_CODE):
-    return Tenant(
-        code=TENANT_CODE,
-        display_name="Acme Co",
-        organization_code="ACM",
-        client_code=client_code,
-        active=True,
-    )
+def _tenant():
+    return Tenant(code=TENANT_CODE, display_name="Acme Co", active=True)
 
 
 def _fake_registry(tenants):
@@ -67,6 +62,7 @@ def _entity(key="dossiers", kind="entries", engine_role="runtime", id_column="Id
         tenant=TENANT_CODE,
         key=key,
         source_object="dbo.Dossiers",
+        client_code=TENANT_CODE,
         kind=kind,
         engine_role=engine_role,
         id_column=id_column,
@@ -694,13 +690,7 @@ def test_visible_tenant_nav_empty_when_registry_unavailable(monkeypatch):
 
 def test_visible_tenant_nav_filters_by_view_permission(app, monkeypatch):
     acme = _tenant()
-    other = Tenant(
-        code="other",
-        display_name="Other Co",
-        organization_code="OTH",
-        client_code="other",
-        active=True,
-    )
+    other = Tenant(code="other", display_name="Other Co", active=True)
     monkeypatch.setattr(tv, "registry", lambda: _fake_registry({TENANT_CODE: acme, "other": other}))
     monkeypatch.setattr(
         tv, "pages_for", lambda code: [_page(key="dossiers")] if code == TENANT_CODE else []
@@ -752,6 +742,9 @@ def test_visible_tenant_nav_custom_page_carries_layout_endpoint(app, monkeypatch
             "endpoint": "dashboard",
             "url": expected_url,
             "label": "dash",
+            # presentation keys default when LayoutJSON carries none (07782e01)
+            "icon": "fa-arrow-up-right-from-square",
+            "active": "dashboard",
         }
     ]
 
@@ -907,3 +900,100 @@ def test_header_omits_custom_page_with_unresolvable_endpoint(user_client, monkey
     assert resp.status_code == 200
     assert f'id="tenantNavGroup-{TENANT_CODE}"'.encode() in resp.data
     assert f'data-testid="header-nav-tenant-{TENANT_CODE}-broken"'.encode() not in resp.data
+
+
+# ------------------------------------------------------------ membership (0096) --
+#
+# _can_view: a user whose organization belongs to the tenant sees it by right;
+# everyone else needs tenant.<code>.view. Membership is stubbed through the
+# module's own organization_tenant binding, the same way has_permission is.
+
+
+def test_tenant_page_200_for_member_without_view_permission(user_client, monkeypatch):
+    monkeypatch.setattr(tv, "has_permission", lambda code: False)
+    monkeypatch.setattr(tv, "organization_tenant", lambda org: TENANT_CODE)
+    _stub_registry(
+        monkeypatch,
+        tenant=_tenant(),
+        pages=[_page()],
+        entity=_entity(),
+        fields=[_field(column="Status")],
+    )
+    assert user_client.get(f"/t/{TENANT_CODE}/dossiers").status_code == 200
+
+
+def test_tenant_page_403_for_member_of_another_tenant(user_client, monkeypatch):
+    monkeypatch.setattr(tv, "has_permission", lambda code: False)
+    monkeypatch.setattr(tv, "organization_tenant", lambda org: "other")
+    assert user_client.get(f"/t/{TENANT_CODE}/dossiers").status_code == 403
+
+
+def test_visible_tenant_nav_includes_the_membership_tenant_without_a_grant(app, monkeypatch):
+    acme = _tenant()
+    other = Tenant(code="other", display_name="Other Co", active=True)
+    monkeypatch.setattr(tv, "registry", lambda: _fake_registry({TENANT_CODE: acme, "other": other}))
+    monkeypatch.setattr(tv, "pages_for", lambda code: [])
+    monkeypatch.setattr(tv, "has_permission", lambda code: False)
+    monkeypatch.setattr(tv, "organization_tenant", lambda org: TENANT_CODE)
+
+    with app.test_request_context("/"):
+        nav = tv.visible_tenant_nav()
+
+    assert [n["code"] for n in nav] == [TENANT_CODE]
+
+
+# ---------------------------------------------------- LayoutJSON query (0097) --
+
+
+def test_visible_tenant_nav_custom_page_query_becomes_url_args(app, monkeypatch):
+    acme = _tenant()
+    monkeypatch.setattr(tv, "registry", lambda: _fake_registry({TENANT_CODE: acme}))
+    monkeypatch.setattr(
+        tv,
+        "pages_for",
+        lambda code: [
+            _page(
+                key="dashboard",
+                page_type="custom",
+                entity=None,
+                layout={
+                    "endpoint": "dashboard",
+                    "query": {"tenant": TENANT_CODE, "bad": 1},
+                    "active": f"tenant_{TENANT_CODE}_dashboard",
+                },
+            )
+        ],
+    )
+    monkeypatch.setattr(tv, "has_permission", lambda code: True)
+
+    with app.test_request_context("/"):
+        (entry,) = tv.visible_tenant_nav()[0]["pages"]
+        expected_url = url_for("dashboard", tenant=TENANT_CODE)
+
+    assert entry["url"] == expected_url  # the non-string value is dropped
+    assert entry["active"] == f"tenant_{TENANT_CODE}_dashboard"
+
+
+def test_header_renders_a_single_tenant_flat_for_its_members(user_client, monkeypatch):
+    """A member of exactly one tenant gets its pages at top level -- no
+    collapsible group, no tenant label, no global entries."""
+    acme = _tenant()
+    monkeypatch.setattr(tv, "registry", lambda: _fake_registry({TENANT_CODE: acme}))
+    monkeypatch.setattr(tv, "pages_for", lambda code: [_page(key="dossiers")])
+    monkeypatch.setattr(tv, "has_permission", lambda code: False)  # membership, not a grant
+    monkeypatch.setattr(tv, "tenant", lambda code: acme)
+    monkeypatch.setattr(tv, "organization_tenant", lambda org: TENANT_CODE)
+    # nx_lib.tenant re-exports a *function* named registry, which shadows the
+    # submodule on attribute lookup -- patch the module object from sys.modules.
+    monkeypatch.setattr(
+        sys.modules["nx_lib.tenant.registry"], "organization_tenant", lambda org: TENANT_CODE
+    )
+    monkeypatch.setattr("nx_lib.process_helpers.tenant_processes", lambda code: set())
+
+    resp = user_client.get("/dashboard")
+
+    assert resp.status_code == 200
+    assert b"tenantNavGroup-" not in resp.data
+    assert f'data-testid="header-nav-tenant-{TENANT_CODE}-label"'.encode() not in resp.data
+    assert f'data-testid="header-nav-tenant-{TENANT_CODE}-dossiers"'.encode() in resp.data
+    assert b'data-testid="header-nav-item-' not in resp.data

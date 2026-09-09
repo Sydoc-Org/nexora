@@ -2,7 +2,19 @@
   // Jinja-rendered strings for static/js/reporting_simple.js (#191). Babel still
   // extracts from templates/**.html, so only the behaviour moved out.
   window.NX_I18N_REPORTING_SIMPLE = {
+    layoutStandard: {{ _("Standard")|tojson }},
+    layoutPick: {{ _("Report definition")|tojson }},
+    layoutFallback: {{ _("This report’s definition is not available anymore — showing the Standard layout.")|tojson }},
     forecastLabel: {{ _("Forecast")|tojson }},
+    annotationsTitle: {{ _("Annotations")|tojson }},
+    annotationAdd: {{ _("Add annotation")|tojson }},
+    annotationHint: {{ _("Alt+click a bar or point to annotate it.")|tojson }},
+    annotationSaveFirst: {{ _("Save the report to add annotations.")|tojson }},
+    annotationPlaceholder: {{ _("What happened here? (e.g. “mailroom outage”)")|tojson }},
+    annotationCouldNotSave: {{ _("Could not save the annotation.")|tojson }},
+    annotationCouldNotDelete: {{ _("Could not delete the annotation.")|tojson }},
+    annotationDelete: {{ _("Delete annotation")|tojson }},
+    annotationMarker: {{ _("Annotation")|tojson }},
     forecastNote: {{ _("Dotted line and shaded band are forecast values, not actuals.")|tojson }},
     forecastUnavailable: {{ _("Not enough history to forecast this series.")|tojson }},
     forecastNeedsShape: {{ _("Forecast requires one date breakdown with a metric.")|tojson }},
@@ -30,7 +42,6 @@
     copyOf: {{ _("{name} (copy)")|tojson }},
     showTable: {{ _("Show table")|tojson }},
     hideTable: {{ _("Hide table")|tojson }},
-    overTime: {{ _("Over time")|tojson }},
     justTotal: {{ _("None — just the total")|tojson }},
     noMeasures: {{ _("No measures are configured yet — ask an administrator to add metrics.")|tojson }},
     noDateField: {{ _("This source has no date field — showing all data.")|tojson }},
@@ -102,6 +113,8 @@
     opStartsWith: {{ _("starts with")|tojson }},
     opIsEmpty: {{ _("is empty")|tojson }},
     opIsNotEmpty: {{ _("is not empty")|tojson }},
+    filterValue: {{ _("value")|tojson }},
+    addFilter: {{ _("+ Add filter")|tojson }},
     copied: {{ _("Copied")|tojson }},
     chipCoverage: {{ _("Only {n} of {m} selected processes provide this field — documents from the other processes show an empty value here. Provided by:")|tojson }},
     measureCoverage: {{ _("Only {n} of {m} processes provide this field — the measure only counts documents from these processes:")|tojson }},
@@ -114,13 +127,25 @@
     // snapshot latest row -- "latest snapshot" overclaimed the precision.
     kpiLatestSuffix: {{ _("last bucket")|tojson }},
     kpiSumSub: {{ _("sum over the period")|tojson }},
+    // The headline figure is not always a sum. For an averaging or distinct-
+    // counting metric the server sends ONE authoritative aggregate over every
+    // matching row, so the caption becomes "Overall" and the sub-line says
+    // what it covers -- "Total ... sum over the period" claimed an addition
+    // nobody performed.
+    kpiOverall: {{ _("Overall")|tojson }},
+    kpiExactSub: {{ _("over every matching row")|tojson }},
     kpiBucketsSub: {{ _("periods in the range")|tojson }},
     kpiAvgSub: {{ _("total ÷ buckets")|tojson }},
+    // With a second dimension there are several rows per period, so the
+    // average is over the cells of the breakdown, not over the buckets.
+    kpiAvgCellSub: {{ _("mean of {n} values")|tojson }},
     statGrandTotal: {{ _("grand total")|tojson }},
     kpiBuckets: {{ _("Buckets")|tojson }},
     kpiAvg: {{ _("Avg per bucket")|tojson }},
+    kpiAvgCell: {{ _("Avg per row")|tojson }},
     kpiPeak: {{ _("Peak")|tojson }},
     deltaVs: {{ _("vs")|tojson }},
+    whyLabel: {{ _("Why did this change?")|tojson }},
     tableRowCount: {{ _("{n} rows")|tojson }},
     stepNof4: {{ _("Step {n} of 4")|tojson }},
     wizMeasure: {{ _("Measure")|tojson }},
@@ -131,6 +156,8 @@
     wizScopeCount: {{ _("{n} of {m} selected")|tojson }},
     groupTime: {{ _("Time")|tojson }},
     groupFields: {{ _("Document fields")|tojson }},
+    groupAdvanced: {{ _("Advanced")|tojson }},
+    showAdvanced: {{ _("Show advanced fields ({n})")|tojson }},
     groupOr: {{ _("Or")|tojson }},
     pickedCount: {{ _("{n} of 3 picked")|tojson }},
     aiChip: {{ _("AI")|tojson }},
@@ -143,6 +170,7 @@
      four RS-namespace files below only ever read from inside a function body
      (never at module-load time), so they don't need core to have run yet. -->
 <script src="{{ static_v('js/reporting_simple_chart.js') }}"></script>
+<script src="{{ static_v('js/reporting_simple_annotations.js') }}"></script>
 <script src="{{ static_v('js/reporting_simple_library.js') }}"></script>
 <script src="{{ static_v('js/reporting_simple_result.js') }}"></script>
 <script src="{{ static_v('js/reporting_simple_wizard.js') }}"></script>

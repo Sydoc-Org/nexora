@@ -46,6 +46,24 @@
   --nx-warning: #d97706;
   --nx-danger:  #dc2626;
 
+  /* Categorical chart series — deliberately independent of --nx-accent so a
+     multi-series chart stays readable under all seven accent picks. */
+  --nx-series-1: #d97706;
+  --nx-series-2: #7c3aed;
+  --nx-series-3: #0891b2;
+  --nx-series-4: #db2777;
+  --nx-series-5: #059669;
+
+  /* Slim-console control height + type ramp (dashboard console) */
+  --ctl-h:      29px;
+  --ctl-h-lg:   33px;
+  --fs-eyebrow: 10px;
+  --fs-micro:   11px;
+  --fs-meta:    11.5px;
+  --fs-control: 12.5px;
+  --fs-title:   15px;
+  --fs-kpi:     32px;
+
   /* — Label backgrounds (soft pastel + readable fg) — */
   --nx-l-indigo:    #eef2ff;  --nx-l-indigo-fg: #4338ca;
   --nx-l-green:     #d1fae5;  --nx-l-green-fg:  #065f46;
@@ -106,6 +124,13 @@ html.dark {
   --nx-warning: #fbbf24;
   --nx-danger:  #f87171;
 
+  /* Dark twins of the categorical chart series (kit tokens/themes.css). */
+  --nx-series-1: #fbbf24;
+  --nx-series-2: #a78bfa;
+  --nx-series-3: #22d3ee;
+  --nx-series-4: #f472b6;
+  --nx-series-5: #34d399;
+
   --nx-l-indigo: #312e81; --nx-l-indigo-fg: #c7d2fe;
   --nx-l-green:  #064e3b; --nx-l-green-fg:  #6ee7b7;
   --nx-l-amber:  #78350f; --nx-l-amber-fg:  #fcd34d;
@@ -150,10 +175,10 @@ body.nx-app {
    (unchecked, checked, indeterminate -- the process-filter dropdown's
    "some but not all selected" rows use indeterminate, see
    _process_multiselect_js.html) explicitly theme-aware instead of trusting
-   the browser. Sizing (h-4/w-4 etc.) is left to each checkbox's own
-   classes -- only chrome (border/background/checkmark) is set here, via
-   background-image so it scales with whatever box size the caller uses
-   instead of assuming one fixed pixel size. */
+   the browser. Sizing stays the caller's call (h-4/w-4, .nx-scope-row's
+   18px, ...) -- this rule only floors it at 16px and draws the chrome
+   (border/background/checkmark) via background-image, so the mark scales
+   with whatever box size the caller picks instead of assuming one. */
 body.nx-app input[type="checkbox"],
 body.nx-app input[type="radio"] {
   appearance: none;
@@ -166,6 +191,17 @@ body.nx-app input[type="radio"] {
   background-size: 68% 68%;
   cursor: pointer;
   transition: background-color 0.12s, border-color 0.12s;
+  /* appearance:none also drops the widget's *intrinsic size*, so any
+     checkbox/radio without its own h-/w- classes collapsed to a 2px speck
+     -- its border and nothing else (reporting's forecast + share controls,
+     the admin clients/tenants modals, user_detail's override radios: 15 of
+     them). Floored with min-*, not width/height, so a caller that sizes
+     itself still wins: Tailwind's h-4/w-4 live in @layer utilities and
+     would lose to this unlayered file.
+     ponytail: floor only -- a control wanting *smaller* than 16px needs its
+     own unlayered rule. */
+  min-width: 16px;
+  min-height: 16px;
 }
 body.nx-app input[type="checkbox"] { border-radius: 4px; }
 body.nx-app input[type="radio"] { border-radius: 50%; }
@@ -379,6 +415,30 @@ a.nx-card:hover, .nx-card--link:hover {
 .nx-table thead th.text-center { text-align: center; }
 .nx-table thead th.text-right { text-align: right; }
 
+/* Dark-mode table legibility.
+   The shared tokens are tuned for the light palette, where --nx-divider and
+   --nx-alt sit a comfortable distance from the white card. In dark they land
+   within a few steps of --nx-card (#273449 against #1e293b), so row rules, the
+   header band and row hover all but disappear, and header text on
+   --nx-text-meta measures roughly 3:1 — under AA for 11px uppercase.
+   Separate the surfaces explicitly here rather than moving the tokens, which
+   would repaint every other component that depends on them. */
+html.dark .nx-table thead th {
+  background: #16212f;
+  color: var(--nx-text-sec);
+  border-bottom: 1px solid var(--nx-border-strong);
+}
+html.dark .nx-table tbody td { border-bottom-color: #33425a; }
+html.dark .nx-table tbody tr.is-clickable:hover,
+html.dark .nx-table tbody tr:not(.details-row):hover { background: #2b3a52; }
+html.dark .nx-table-wrap { border-color: var(--nx-border-strong); }
+/* Striping is a ratio of --nx-alt, which is nearly --nx-card in dark; give it
+   its own step so alternating rows are actually distinguishable. */
+html.dark.nx-stripes .nx-table tbody tr:not(.details-row):nth-child(even) td,
+html.dark.nx-stripes .admin-table tbody tr:not(.details-row):nth-child(even) td {
+  background: #223046;
+}
+
 /* Skeleton loading bars (workitems loader, #189) — accent-tinted shimmer;
    the global reduced-motion kill-switch above freezes the animation. */
 .nx-skel {
@@ -433,6 +493,115 @@ a.nx-card:hover, .nx-card--link:hover {
 /* Tailwind v4 emits .hidden inside @layer utilities; unlayered .nx-flash wins the cascade
    and keeps an empty flash visible. Re-assert hidden for flash elements. */
 .nx-flash.hidden   { display: none; }
+
+/* ============================================================
+   Console kit — slim, borderless layout primitives shared by the
+   Dashboard console and (next) the other migrated pages.
+   Every colour rides the --nx-* tokens, so the user's accent pick,
+   dark mode and tenant branding apply for free. Prototype hexes are
+   NOT reproduced here: the design's amber IS --nx-accent.
+   ============================================================ */
+
+/* Uppercase group label, 10px/700 */
+.nx-eyebrow {
+  font-size: var(--fs-eyebrow); font-weight: 700; text-transform: uppercase;
+  letter-spacing: .09em; color: var(--nx-text-meta);
+}
+
+/* Hairline that separates two borderless sections */
+.nx-section-rule { border-top: 1px solid var(--nx-border); }
+
+/* Live/"fresh data" dot */
+.nx-live-dot {
+  width: 7px; height: 7px; border-radius: var(--nx-radius-pill);
+  background: var(--nx-success); flex-shrink: 0;
+}
+
+/* ---------- KPI strip: no cards, hairlines only ---------- */
+.nx-kpi-strip {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-bottom: 1px solid var(--nx-border);
+}
+.nx-kpi {
+  padding: 18px 30px 16px;
+  border-left: 1px solid var(--nx-divider);
+  min-width: 0;
+}
+.nx-kpi:first-child { border-left: none; }
+.nx-kpi__label {
+  font-size: var(--fs-eyebrow); font-weight: 700; text-transform: uppercase;
+  letter-spacing: .09em; color: var(--nx-text-meta); margin: 0;
+}
+.nx-kpi__body {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 16px; margin-top: 10px;
+}
+.nx-kpi__value {
+  font-family: var(--nx-mono); font-variant-numeric: tabular-nums;
+  font-size: var(--fs-kpi); font-weight: 600; letter-spacing: -1.4px;
+  line-height: 1; color: var(--nx-text); margin: 0;
+}
+.nx-kpi__delta {
+  font-size: var(--fs-micro); font-weight: 600; margin: 6px 0 0;
+  color: var(--nx-text-meta);
+}
+.nx-kpi__delta--good { color: var(--nx-success); }
+.nx-kpi__delta--bad  { color: var(--nx-accent-hover); }
+.nx-kpi__delta span { font-weight: 400; color: var(--nx-text-meta); }
+.nx-kpi__spark { width: 120px; height: 36px; opacity: .9; flex-shrink: 0; }
+.nx-kpi__spark path { stroke-linejoin: round; }
+
+@media (max-width: 1024px) {
+  .nx-kpi-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .nx-kpi { padding: 14px 18px 12px; }
+  .nx-kpi:nth-child(odd)  { border-left: none; }
+  .nx-kpi:nth-child(n+3)  { border-top: 1px solid var(--nx-divider); }
+}
+
+/* ---------- Segmented control ---------- */
+.nx-segmented {
+  display: inline-flex; height: var(--ctl-h); overflow: hidden;
+  border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 8px);
+  background: var(--nx-card);
+}
+.nx-segmented__btn {
+  border: none; border-left: 1px solid var(--nx-border); background: transparent;
+  padding: 0 10px; font-family: inherit; font-size: var(--fs-meta); font-weight: 600;
+  color: var(--nx-text-meta); cursor: pointer;
+}
+.nx-segmented__btn:first-child { border-left: none; }
+.nx-segmented__btn:hover { color: var(--nx-text); }
+.nx-segmented__btn.is-active { background: var(--nx-accent-tint); color: var(--nx-accent-hover); }
+.nx-segmented__btn:focus-visible {
+  outline: none; box-shadow: inset 0 0 0 2px var(--nx-accent);
+}
+
+/* ---------- Slim underline tabs (modifier on .nx-tabs/.nx-tab) ---------- */
+.nx-tabs--slim { gap: 16px; margin: 0; border-bottom: none; }
+.nx-tabs--slim .nx-tab { font-size: 12px; font-weight: 600; padding: 0 0 5px; margin-bottom: 0; }
+
+/* ---------- Chart header ---------- */
+.nx-chart-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.nx-chart-head__title {
+  font-size: var(--fs-title); font-weight: 700; letter-spacing: -0.02em;
+  color: var(--nx-text); margin: 0;
+}
+.nx-chart-head__meta {
+  font-size: var(--fs-micro); color: var(--nx-text-meta);
+  font-variant-numeric: tabular-nums;
+}
+.nx-chart-head__spacer { margin-left: auto; }
+
+/* ---------- Series legend ---------- */
+.nx-legend { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.nx-legend__item {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: var(--fs-micro); color: var(--nx-text-sec);
+}
+.nx-legend__swatch { width: 16px; height: 0; border-top: 2.5px solid currentColor; }
+.nx-legend__swatch--dashed { border-top-style: dashed; }
+.nx-legend__swatch--dotted { border-top-style: dotted; }
+.nx-legend__count { color: var(--nx-text-meta); font-variant-numeric: tabular-nums; }
 
 /* ============================================================
    4. SIGNATURE — brand-gradient text + on-load motion
@@ -656,6 +825,7 @@ html.nx-compact .nx-card--pad { padding: 14px 16px; }
 html.nx-compact .nx-filter { padding: 10px 14px; margin-bottom: 14px; }
 html.nx-compact .nx-page-head { margin-bottom: 16px; }
 html.nx-compact body.nx-app .nx-main { padding: 18px 28px; }
+html.nx-compact { --ctl-h: 27px; --ctl-h-lg: 30px; }
 html.nx-compact .admin-table thead th { padding: 6px 12px; }
 html.nx-compact .admin-table tbody td { padding: 7px 12px; }
 html.nx-compact .admin-card { padding: 12px; }
@@ -846,3 +1016,227 @@ body.admin-page main {
 .nx-scope-all + .nx-scope-client { border-top: 1px solid var(--nx-border); }
 .nx-scope-client { font-weight: 600; }
 .nx-scope-proc { padding-left: 26px; color: var(--nx-text-sec); }
+
+/* Admin > Permissions grid (#238) */
+.perms-grid th:first-child, .perms-grid td:first-child { position: sticky; left: 0; background: var(--nx-card); z-index: 1; min-width: 320px; }
+.perms-grid thead th:first-child { z-index: 3; }
+.perms-grid tr.perm-area td { background: var(--nx-alt); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--nx-text-sec); cursor: pointer; user-select: none; }
+.perms-grid tr.perm-object td { background: var(--nx-bg); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--nx-text-meta); }
+.perms-grid .perm-chevron { display: inline-block; transition: transform 0.15s; }
+.perms-grid .perm-area.collapsed .perm-chevron { transform: rotate(-90deg); }
+.perms-grid td.perm-dirty { outline: 2px solid var(--nx-accent); outline-offset: -2px; }
+.perms-grid .perm-actions { display: none; gap: 2px; margin-top: 4px; }
+.perms-grid tr.perm-row:hover .perm-actions { display: flex; }
+.perms-grid .perm-delete.is-armed { color: var(--nx-danger, #c0392b); }
+.perm-holders { list-style: none; padding: 0; margin: 0; font-size: 13px; }
+.perm-holders li { padding: 4px 0; border-bottom: 1px solid var(--nx-border); }
+.nx-btn:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+
+/* ============================================================
+   11. DATE PICKER (flatpickr)
+   flatpickr serves one light-only stylesheet from the CDN, so a calendar
+   opened on a dark page renders white with near-black text. These rules
+   repaint it from the --nx-* tokens rather than importing flatpickr's own
+   dark theme, so it follows the user's accent, contrast and density prefs
+   for free.
+
+   WHY IT LIVES HERE, not in a page stylesheet: it used to sit in
+   dashboard.css, which only dashboard.html and generali-dashboard.html
+   load -- so of the eleven pages that open a calendar, ten rendered the
+   light-only version. This file is loaded by every one of them.
+
+   WHY EVERY SELECTOR IS PREFIXED `html`: the pages link this sheet in
+   <head> BEFORE the flatpickr CDN sheet, so on equal specificity flatpickr
+   would win. (It happens to work anyway today, because _header.html links
+   this file a second time from inside <body> -- an accident, not a design,
+   and not something to rely on.) The bare `html` adds one element to each
+   selector, putting every rule below strictly above flatpickr's own
+   (.flatpickr-calendar is (0,1,0), .flatpickr-months .flatpickr-month is
+   (0,2,0)), so load order stops mattering. Specificity, not !important,
+   so a page can still override with a class.
+
+   Colours are token-driven in BOTH modes rather than light-by-default with
+   a dark override bolted on: the old base block hardcoded #111827 text,
+   which is the only reason the dark rules had to exist. Only what genuinely
+   differs in dark is repeated at the end.
+
+   Consumers (11): generali-dashboard, generali_documents,
+   generali_baseservices, generali_importstatus, generali_projectmanagement,
+   generali_pdqm, generali_additionalservices, generali_reporting,
+   reporting, workitems_overview, admin/maintenance.
+   ============================================================ */
+html .flatpickr-calendar {
+  font-family: 'Inter', sans-serif;
+  border: none;
+  border-radius: 1rem;
+  padding: 0.5rem;
+  background: var(--nx-card);
+  color: var(--nx-text);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+}
+
+html .flatpickr-day {
+  color: var(--nx-text);
+  border-radius: 0.5rem;
+  transition: background-color 0.2s ease;
+}
+html .flatpickr-day.selected,
+html .flatpickr-day.startRange,
+html .flatpickr-day.endRange {
+  background: var(--nx-accent, #4f46e5);
+  border-color: var(--nx-accent, #4f46e5);
+  box-shadow: 0 4px 6px -1px color-mix(in srgb, var(--nx-accent) 30%, transparent);
+}
+html .flatpickr-day:hover { background: var(--nx-accent-tint, #eef2ff); }
+html .flatpickr-day.today { border-color: var(--nx-accent); }
+
+/* Month header, year spinner and the month dropdown. */
+html .flatpickr-months .flatpickr-month,
+html .flatpickr-current-month .numInputWrapper,
+html .flatpickr-current-month input.cur-year,
+html .flatpickr-current-month .flatpickr-monthDropdown-months {
+  color: var(--nx-text);
+  fill: var(--nx-text);
+  background: transparent;
+}
+html .flatpickr-current-month .flatpickr-monthDropdown-months option {
+  background: var(--nx-card);
+  color: var(--nx-text);
+}
+
+html .flatpickr-months .flatpickr-prev-month svg,
+html .flatpickr-months .flatpickr-next-month svg { fill: var(--nx-text-sec); }
+html .flatpickr-months .flatpickr-prev-month:hover svg,
+html .flatpickr-months .flatpickr-next-month:hover svg { fill: var(--nx-accent); }
+
+/* --nx-text-sec, not --nx-text-meta: meta measures about 3:1 on the dark
+   card -- the same under-AA contrast #259 flagged on table headers. Its
+   light value is #6b7280, exactly what this rule used before. */
+html span.flatpickr-weekday {
+  color: var(--nx-text-sec);
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+/* Out-of-range days must read as unavailable, not merely dim: the pickers
+   block future dates and any end before the start. */
+html .flatpickr-day.flatpickr-disabled,
+html .flatpickr-day.prevMonthDay,
+html .flatpickr-day.nextMonthDay { color: var(--nx-text-meta); opacity: 0.45; }
+html .flatpickr-day.flatpickr-disabled:hover { background: transparent; }
+
+/* --- Header row: month, year and the two nav arrows ---------------------
+   flatpickr absolutely positions the arrows at top:0 of the months bar and
+   pads the month/year text down by ~7px, so the arrows land above the text's
+   optical centre. The bar is already `display: flex`; taking the three cells
+   out of the absolute layer lets them align to each other instead. */
+html .flatpickr-months {
+  align-items: center;
+  padding: 4px 2px 10px;
+}
+html .flatpickr-months .flatpickr-month {
+  margin-bottom: 0;
+  height: auto;
+  flex: 1 1 auto;
+  overflow: visible;
+}
+html .flatpickr-months .flatpickr-prev-month,
+html .flatpickr-months .flatpickr-next-month {
+  position: static;
+  flex: 0 0 auto;
+  height: auto;
+  padding: 5px 7px;
+  border-radius: 0.5rem;
+  line-height: 0;
+}
+html .flatpickr-months .flatpickr-prev-month:hover,
+html .flatpickr-months .flatpickr-next-month:hover { background: var(--nx-alt); }
+
+/* Centre month and year as one unit. Left alone, the month <select> is
+   ~118px wide and the year wrapper ~63px, both left-aligned inside their
+   boxes, which opens a dead gap between the two words. */
+html .flatpickr-current-month {
+  /* flatpickr gives this `position: absolute; width: 75%; left: 12.5%`.
+     Going static ignores `left` but NOT `width`, which would keep the cell
+     at three quarters of the row and pull the centring off. */
+  position: static;
+  width: auto;
+  left: auto;
+  height: auto;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 1.05rem;
+}
+html .flatpickr-current-month .numInputWrapper { width: auto; }
+html .flatpickr-current-month input.cur-year { width: 4.5ch; padding-left: 0; }
+
+/* The month is a <select> and the year an <input type="number">, so
+   _header.css's global `html.dark select {...}` reaches one and not the
+   other: the month rendered #f1f5f9 inside a bordered #1e293b box, the year
+   #e2e8f0 with no box. Both are token-driven and boxless here. !important
+   only because the rule being corrected uses it -- specificity cannot beat
+   it otherwise. */
+html .flatpickr-current-month .flatpickr-monthDropdown-months,
+html .flatpickr-current-month input.cur-year {
+  color: var(--nx-text) !important;
+  background: transparent !important;
+  border: 0 !important;
+  font-weight: 500;
+  font-size: inherit;
+}
+/* A native select sizes to its widest option, so every month shorter than
+   "September" sat left-aligned with the chevron stranded to its right.
+   Centring the text spreads that slack evenly instead. */
+html .flatpickr-current-month .flatpickr-monthDropdown-months {
+  text-align: center;
+  cursor: pointer;
+}
+
+/* --- Breathing room ----------------------------------------------------
+   307.875px is flatpickr's own fixed width, pinned via min/max on the day
+   container, so growing the calendar means releasing all three. */
+/* Size the panel from the day cell rather than flatpickr's hardcoded
+   307.875px. It has to stay an explicit width: the day cells are
+   `flex-basis: 14.2857%` of the grid, so a shrink-to-fit parent makes the
+   sizing circular and the grid collapses (it came out at 241px, clipping
+   Friday and Saturday). Two tokens and the arithmetic is readable. */
+html .flatpickr-calendar {
+  --nx-fp-day: 42px;
+  --nx-fp-pad: 14px;
+  padding: var(--nx-fp-pad);
+  width: calc(var(--nx-fp-day) * 7 + var(--nx-fp-pad) * 2);
+}
+html .flatpickr-days,
+html .flatpickr-days .dayContainer,
+html .flatpickr-calendar.hasTime .flatpickr-time {
+  width: calc(var(--nx-fp-day) * 7);
+  min-width: calc(var(--nx-fp-day) * 7);
+  max-width: calc(var(--nx-fp-day) * 7);
+}
+html .flatpickr-day {
+  height: var(--nx-fp-day);
+  line-height: var(--nx-fp-day);
+  max-width: var(--nx-fp-day);
+}
+html .flatpickr-weekdays { height: 30px; }
+html .flatpickr-time input { color: var(--nx-text); }
+html .flatpickr-time .flatpickr-time-separator,
+html .flatpickr-time .flatpickr-am-pm { color: var(--nx-text-sec); }
+html .flatpickr-time input:hover,
+html .flatpickr-time input:focus,
+html .flatpickr-time .flatpickr-am-pm:hover { background: var(--nx-alt); }
+
+/* Dark-only. A 0.1-alpha shadow vanishes on a dark ground, the calendar
+   arrow is a bordered pseudo-element flatpickr paints white, and the day
+   hover tint wants the neutral surface rather than the accent wash. */
+html.dark .flatpickr-calendar {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+}
+html.dark .flatpickr-calendar.arrowTop::before,
+html.dark .flatpickr-calendar.arrowTop::after { border-bottom-color: var(--nx-card); }
+html.dark .flatpickr-calendar.arrowBottom::before,
+html.dark .flatpickr-calendar.arrowBottom::after { border-top-color: var(--nx-card); }
+html.dark .flatpickr-day:hover { background: var(--nx-alt); }

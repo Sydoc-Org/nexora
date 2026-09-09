@@ -12,11 +12,35 @@ OS env > env-specific file > root .env.
 
 import os
 import warnings
+from datetime import timedelta
 from pathlib import Path
 
 from dotenv import dotenv_values, load_dotenv
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+
+# How long a signed-in session stays valid. Applied to Flask's
+# PERMANENT_SESSION_LIFETIME in create_app(), and read by
+# ops/cleanup/prune_active_sessions.py to derive its retention window. It lives
+# here rather than inline in create_app() so the cleanup cannot fall out of step
+# with it: a cleanup that deletes rows younger than a live session would log
+# people out (#227).
+SESSION_LIFETIME = timedelta(hours=24)
+
+# Grace added on top of SESSION_LIFETIME before an ActiveSessions row is pruned.
+# The row is only ever read within 30 minutes of LastSeenAt (the admin overview
+# count and the live-sessions list both filter to that), so this window is pure
+# slack for clock skew and suspended machines rather than anything functional.
+SESSION_ROW_RETENTION_GRACE = timedelta(days=7)
+
+# How long dbo.Logs keeps a request row. Each row carries the IP, the username,
+# the path and the query arguments, so it is personal data and cannot be kept
+# indefinitely (#283); nothing deleted from that table before.
+#
+# Six months, expressed in days on purpose: a calendar month varies in length
+# and this window has to be deterministic, because the same number is quoted in
+# the privacy notice (#260). Read by ops/cleanup/prune_request_log.py.
+REQUEST_LOG_RETENTION = timedelta(days=180)
 
 
 def _load_env_files(repo_root: Path, env_name: str) -> None:
@@ -120,6 +144,11 @@ DB_REPORTING_RO_PWD = os.environ.get("DB_REPORTING_RO_PWD")
 DB_REPORTING_OCTO_RO_USER = os.environ.get("DB_REPORTING_OCTO_RO_USER")
 DB_REPORTING_OCTO_RO_PWD = os.environ.get("DB_REPORTING_OCTO_RO_PWD")
 DB_GENERALI = os.environ.get("DB_GENERALI", "Generali")
+# Third read-only login for the SQL sandbox: db_datareader on the Generali
+# tenant DB only. Same graceful-degrade contract -- unset means that target
+# answers 503 rather than falling back to the app's read-write login.
+DB_REPORTING_GENERALI_RO_USER = os.environ.get("DB_REPORTING_GENERALI_RO_USER")
+DB_REPORTING_GENERALI_RO_PWD = os.environ.get("DB_REPORTING_GENERALI_RO_PWD")
 
 # SQL Server ODBC driver + TLS knobs (#193 finding 16). Defaults preserve
 # today's behavior (legacy unencrypted "{SQL Server}" driver) since flipping
@@ -201,6 +230,25 @@ MS02_DOCFIELDS_DB_USER = os.environ.get("MS02_DOCFIELDS_DB_USER", MS02_DB_USER)
 MS02_DOCFIELDS_DB_PWD = os.environ.get("MS02_DOCFIELDS_DB_PWD", MS02_DB_PWD)
 MS02_DOCFIELDS_DB_PORT = os.environ.get("MS02_DOCFIELDS_DB_PORT", MS02_DB_PORT)
 
+# Every third-party script/stylesheet the templates load, by exact CDN path.
+CDN_SCRIPTS = [
+    "https://cdn.tailwindcss.com",
+    "https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.0",
+    "https://cdn.jsdelivr.net/npm/@tailwindplus/elements@1.0.22",
+    "https://cdn.jsdelivr.net/npm/@tailwindplus/elements@1.0.22/",
+    "https://cdn.jsdelivr.net/npm/flatpickr@4.6.13",
+    "https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/",
+    "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js",
+    "https://cdn.jsdelivr.net/npm/chart.js@4.5.1",
+    "https://cdn.jsdelivr.net/npm/motion@12.40.0/dist/motion.js",
+    "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/",
+]
+CDN_STYLES = [
+    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css",
+    "https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css",
+    "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/",
+]
+
 CSP = {
     "default-src": "'self'",
     "base-uri": "'self'",
@@ -213,32 +261,36 @@ CSP = {
         # onclick/onchange/... attribute handlers are not covered by a
         # script-src nonce, so those were converted to addEventListener
         # bindings rather than allowed via 'unsafe-hashes'.
-        "https://cdn.tailwindcss.com",
-        "https://cdnjs.cloudflare.com",
-        "https://cdn.jsdelivr.net",
+        #
+        # Exact library paths, not whole CDN origins: allowing all of
+        # cdnjs/jsdelivr would let any HTML injection pull an arbitrary
+        # library from there without a nonce, which is most of what the
+        # nonce is supposed to prevent. A path ending in "/" is a prefix,
+        # anything else is an exact match (query string ignored). Bumping a
+        # CDN version in a template means bumping it here too -- the
+        # test_csp_cdn_allowlist unit test keeps the two in sync.
+        *CDN_SCRIPTS,
     ],
     "style-src": [
         "'self'",
         "'unsafe-inline'",
         "https://fonts.googleapis.com",
-        "https://cdnjs.cloudflare.com",
-        "https://cdn.jsdelivr.net",
+        *CDN_STYLES,
     ],
     "font-src": [
         "'self'",
         "https://fonts.gstatic.com",
-        "https://cdnjs.cloudflare.com",
+        "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/webfonts/",
     ],
     "img-src": [
         "'self'",
         "data:",
         "blob:",
-        "https://cdn.tailwindcss.com",
     ],
     "connect-src": [
         "'self'",
+        # tailwind's browser build fetches nothing, but keep the play CDN
+        # here: it XHRs its own plugin manifests when ?plugins= is used.
         "https://cdn.tailwindcss.com",
-        "https://cdnjs.cloudflare.com",
-        "https://cdn.jsdelivr.net",
     ],
 }

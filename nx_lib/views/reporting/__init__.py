@@ -3,7 +3,7 @@
 Routes:
   GET  /reporting                     builder page
   GET  /reporting/guide               in-app user guide (docs/howto/reporting-guide.md rendered)
-  GET  /reporting/sources             source-registry admin page (reporting.admin.sources)
+  GET  /reporting/sources             source-registry admin page (reporting.sources.manage)
   GET  /api/reporting/sources         sources + field catalog the caller may use
   GET/POST/PUT/DELETE /api/reporting/admin/sources[/<id>]  registry CRUD (admin)
   POST /api/reporting/run             run a curated report definition -> rows
@@ -20,6 +20,7 @@ Routes:
   POST /api/reporting/reports/<id>/shares          owner: set visibility / add share
   DELETE /api/reporting/reports/<id>/shares/<uid>  owner: remove a share
   GET/POST/PUT/DELETE /api/reporting/reports/<id>/schedules[/<sid>]  owner: schedules
+  GET/POST/DELETE /api/reporting/reports/<id>/annotations[/<aid>]  owner/view: annotations
 
 Split into a package (beautify-phase-2a, Tasks 1-3): the shared run/registry
 core (SQL-target constants, source/metric registry, run pipeline, auth/audit)
@@ -41,13 +42,24 @@ re-export rather than any use in this module's own code.
 """
 
 from ...db import engine_statistics_db
-from . import admin_registry, ai, catalog, export, health, pages, reports, run, schedules
+from . import (
+    admin_registry,
+    ai,
+    annotations,
+    catalog,
+    export,
+    health,
+    pages,
+    reports,
+    run,
+    schedules,
+)
 from ._shared import (
     _CURATED_ENGINES,
     _METRIC_LABEL_ATTRS,
     _METRICS_CACHE_KEY,
-    _SCOPE_PREFIX,
     _SOURCES_CACHE_KEY,
+    _SQL_TARGET_DB,
     _SQL_TARGET_ENGINES,
     _SQL_TARGET_PERMISSION,
     _SQL_TARGETS,
@@ -151,9 +163,9 @@ __all__ = [
     "_rows_json_safe",
     "_run_sql",
     "_sandbox_error_message",
-    "_SCOPE_PREFIX",
     "_SOURCES_CACHE_KEY",
     "_METRICS_CACHE_KEY",
+    "_SQL_TARGET_DB",
     "_SQL_TARGET_ENGINES",
     "_SQL_TARGET_PERMISSION",
     "_SQL_TARGETS",
@@ -176,4 +188,5 @@ def register_routes(app):
     export.register_routes(app)
     reports.register_routes(app)
     schedules.register_routes(app)
+    annotations.register_routes(app)
     health.register_routes(app)

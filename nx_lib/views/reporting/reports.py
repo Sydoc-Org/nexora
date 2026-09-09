@@ -15,6 +15,7 @@ from flask_babel import gettext as _
 
 from ...db import engine_nexora_db
 from ...extensions import limiter
+from ...reporting.schema import ReportDefinitionError, validate_layout_definition
 from ...security import require_permission
 
 
@@ -46,6 +47,17 @@ def _preview_summary(defn):
                 s = 6
             mini.append({"t": t, "s": max(1, min(12, s))})
         return {"cards": mini, "cardCount": len(cards)}
+    if defn.get("kind") == "layout":
+        # Definitions overview card: measure ops + tile count.
+        ms_raw, tiles_raw = defn.get("measures"), defn.get("tiles")
+        ms: list = ms_raw if isinstance(ms_raw, list) else []
+        tiles: list = tiles_raw if isinstance(tiles_raw, list) else []
+        return {
+            "measures": [
+                m["op"] for m in ms if isinstance(m, dict) and isinstance(m.get("op"), str)
+            ],
+            "tiles": len(tiles),
+        }
     cols_raw = defn.get("columns")
     cols = cols_raw if isinstance(cols_raw, list) else []
     grain = ""
@@ -209,6 +221,20 @@ def api_reports_get(report_id):
         conn.close()
 
 
+def _layout_error(rd):
+    """400 body for a malformed kind:'layout' definition, else None. Dashboards
+    and report definitions are (still) not validated on save — the run path
+    validates them; layouts are validated here because nothing else runs them
+    before a report references them."""
+    if not isinstance(rd, dict) or rd.get("kind") != "layout":
+        return None
+    try:
+        validate_layout_definition(rd)
+    except ReportDefinitionError as e:
+        return jsonify({"error": _("This report definition is invalid."), "detail": str(e)}), 400
+    return None
+
+
 @require_permission("reporting.view")
 @limiter.limit("60 per minute")
 def api_reports_create():
@@ -218,6 +244,9 @@ def api_reports_create():
     rd = payload.get("definition")
     if not name or not isinstance(rd, dict):
         return jsonify({"error": _("name and definition are required")}), 400
+    bad = _layout_error(rd)
+    if bad:
+        return bad
     definition_json = json.dumps(rd, ensure_ascii=False)
     if len(definition_json) > 64_000:
         return jsonify({"error": _("Report definition too large")}), 400
@@ -249,6 +278,9 @@ def api_reports_update(report_id):
     rd = payload.get("definition")
     if not name or not isinstance(rd, dict):
         return jsonify({"error": _("name and definition are required")}), 400
+    bad = _layout_error(rd)
+    if bad:
+        return bad
     definition_json = json.dumps(rd, ensure_ascii=False)
     if len(definition_json) > 64_000:
         return jsonify({"error": _("Report definition too large")}), 400
@@ -306,6 +338,26 @@ def _is_report_owner(report_id, userid):
         cur.execute(
             "SELECT 1 FROM dbo.Reports WHERE ReportID = ? AND OwnerUserID = ?",
             (report_id, userid),
+        )
+        return cur.fetchone() is not None
+    finally:
+        conn.close()
+
+
+def _can_view_report(report_id, userid):
+    """True when ``userid`` may open the report: owner, ``Visibility='shared'``,
+    or an explicit ``dbo.ReportShares`` grant. Same rule ``api_reports_get``
+    applies in its WHERE clause; annotations (#284) read through this."""
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT 1 FROM dbo.Reports r "
+            "LEFT JOIN dbo.ReportShares s "
+            "       ON s.ReportID = r.ReportID AND s.SharedWithUserID = ? "
+            "WHERE r.ReportID = ? "
+            "  AND (r.OwnerUserID = ? OR r.Visibility = 'shared' OR s.SharedWithUserID = ?)",
+            (userid, report_id, userid, userid),
         )
         return cur.fetchone() is not None
     finally:

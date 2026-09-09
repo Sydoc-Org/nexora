@@ -61,5 +61,5 @@ def test_merge_none_values_do_not_clobber_defaults():
 
 def test_accessible_filters_effective_by_permission():
     eff = merge_sources(code_sources(), [])
-    assert accessible(eff, {"reporting.source.docprocessing"})
+    assert accessible(eff, {"reporting.source.docprocessing.use"})
     assert accessible(eff, {"reporting.view"}) == []

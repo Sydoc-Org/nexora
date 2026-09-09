@@ -10,6 +10,7 @@ from datetime import datetime
 from flask import (
     current_app,
     jsonify,
+    make_response,
     redirect,
     render_template,
     request,
@@ -27,6 +28,7 @@ from .maintenance import (
     _get_blocking_maintenance,
     _user_has_maintenance_bypass,
 )
+from .outage import MAINTENANCE_HEADER
 from .security import (
     PermissionDenied,
     has_permission,
@@ -55,7 +57,9 @@ _SESSION_ENFORCE_SKIP_PATHS = (
 
 def get_ip():
     if request.headers.getlist("X-Forwarded-For"):
-        return request.headers.getlist("X-Forwarded-For")[0].split(",")[0]
+        # Rightmost hop = the one the nearest proxy appended (see
+        # extensions.client_ip); the leftmost is client-supplied.
+        return request.headers.getlist("X-Forwarded-For")[-1].rsplit(",", 1)[-1].strip()
     return request.remote_addr or "Unknown"
 
 
@@ -203,9 +207,49 @@ def _enforce_maintenance_lockout():
     # Drop their session so they can't keep working anywhere
     if "userid" in session:
         session.clear()
-    if request.path.startswith("/api/") or request.is_json:
-        return jsonify({"error": "Maintenance", "maintenance": blocking}), 503
-    return render_template("maintenance.html", maintenance=blocking), 503
+    # Mark the 503 as deliberate. Without this a planned window is
+    # indistinguishable from a dead site: the outage monitor probes
+    # unauthenticated, decides health on `status_code < 400`, and mailed the
+    # helpdesk for work somebody scheduled on purpose (#281). A header rather
+    # than a body marker because the two branches below return different
+    # content types, and Retry-After because that is what it is for.
+    wants_json = request.path.startswith("/api/") or request.is_json
+    resp = make_response(
+        jsonify({"error": "Maintenance", "maintenance": blocking})
+        if wants_json
+        else render_template("maintenance.html", maintenance=blocking),
+        503,
+    )
+    resp.headers[MAINTENANCE_HEADER] = "1"
+    retry_after = maintenance_retry_after(blocking, datetime.now())
+    if retry_after is not None:
+        resp.headers["Retry-After"] = str(retry_after)
+    return resp
+
+
+def maintenance_retry_after(blocking, now):
+    """Seconds until the window's ``endAt``, for a ``Retry-After`` header.
+
+    ``None`` when there is no parseable end time -- a missing header is better
+    than a wrong one. Never negative: _get_blocking_maintenance already filters
+    on ``EndAt >= GETDATE()``, so a window in the past cannot reach here, but a
+    clock skew of a second should not emit ``Retry-After: -1``.
+    """
+    raw = (blocking or {}).get("endAt")
+    if not raw:
+        return None
+    text = str(raw).strip().replace(" ", "T", 1)
+    # SQL Server datetime2 renders 7 fractional digits; fromisoformat takes 3 or 6.
+    if "." in text:
+        head, _, frac = text.partition(".")
+        text = f"{head}.{frac[:6]}"
+    try:
+        end = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if end.tzinfo is not None:
+        end = end.replace(tzinfo=None)
+    return max(0, int((end - now).total_seconds()))
 
 
 def _log_every_request(response):
@@ -313,7 +357,8 @@ def _inject_brand():
 
 def _inject_tenant_nav():
     """Sidebar data source for the per-tenant nav group (Task 6): the
-    registry's tenants the current session holds ``tenant.<code>.view`` for,
+    registry's tenants the current session can view -- its own organization's
+    tenant by membership, any other by a ``tenant.<code>.view`` grant --
     each with its own page list -- ``[]`` when the registry itself is
     unavailable or nobody is logged in. ``visible_tenant_nav()`` lives in
     ``nx_lib/views/tenant.py`` (the tenant kernel's route module, which
@@ -324,10 +369,25 @@ def _inject_tenant_nav():
     ``nx_lib.views.tenant`` to resolve while ``nx_lib.hooks`` is still mid
     -import."""
     if "userid" not in session:
-        return {"tenant_nav": []}
+        return {"tenant_nav": [], "tenant_scoped": None, "tenant_solo": False}
+    from .tenant.registry import organization_tenant
     from .views.tenant import visible_tenant_nav
 
-    return {"tenant_nav": visible_tenant_nav()}
+    # A user whose organization belongs to a tenant lives inside that tenant:
+    # the sidebar shows the tenant group(s) instead of the global workspace
+    # links (#257). Users of organizations outside any tenant (sydoc staff)
+    # keep the global navigation.
+    nav = visible_tenant_nav()
+    scoped = organization_tenant(session.get("organizationcode"))
+    # A member of exactly one tenant and nothing else: the tenant IS their
+    # portal, so the UI never names it (no sidebar label, no "<Tenant>
+    # Dashboard" heading) -- naming it only leaks an internal concept (#255).
+    # Staff, and members holding grants on other tenants, need the names.
+    return {
+        "tenant_nav": nav,
+        "tenant_scoped": scoped,
+        "tenant_solo": bool(scoped) and len(nav) == 1 and nav[0]["code"] == scoped,
+    }
 
 
 def _utility_processor():

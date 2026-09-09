@@ -53,7 +53,8 @@ GO
 -- Organizations (parent of Users)
 CREATE TABLE dbo.Organizations (
     organizationcode NVARCHAR(5) NOT NULL PRIMARY KEY,
-    Organization NVARCHAR(200) NULL
+    Organization NVARCHAR(200) NULL,
+    TenantCode NVARCHAR(50) NULL    -- 0090; no dbo.Tenants on TEST, so no FK here (ClientCode dropped by 0096)
 );
 GO
 
@@ -61,7 +62,9 @@ GO
 CREATE TABLE dbo.AccessProfile (
     AccessID INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
     Name NVARCHAR(50) NOT NULL UNIQUE,
-    Description NVARCHAR(200) NULL
+    Description NVARCHAR(200) NULL,
+    OrganizationCode NVARCHAR(5) NULL,  -- 0090: bound to one organization; NULL = global
+    Rank INT NOT NULL DEFAULT 0
 );
 GO
 
@@ -113,7 +116,6 @@ GO
 CREATE TABLE dbo.AccessProfilePermission (
     AccessID INT NOT NULL FOREIGN KEY REFERENCES dbo.AccessProfile(AccessID),
     PermissionID INT NOT NULL FOREIGN KEY REFERENCES dbo.Permission(PermissionID),
-    Effect CHAR(1) NOT NULL CHECK (Effect IN ('A', 'D')),
     PRIMARY KEY (AccessID, PermissionID)
 );
 GO
@@ -153,31 +155,13 @@ BEGIN
     SELECT @PermID = PermissionID FROM dbo.Permission WHERE Code = @PermCode;
 
     IF @PermID IS NULL RETURN 0;
-
-    IF EXISTS (
-        SELECT 1 FROM dbo.UserPermissionOverride
-        WHERE UserID = @UserID AND PermissionID = @PermID AND Effect = 'D'
-    ) RETURN 0;
-
-    IF EXISTS (
-        SELECT 1 FROM dbo.UserPermissionOverride
-        WHERE UserID = @UserID AND PermissionID = @PermID AND Effect = 'A'
-    ) RETURN 1;
-
-    IF EXISTS (
-        SELECT 1
-        FROM dbo.Users u
-        JOIN dbo.AccessProfilePermission ap ON ap.AccessID = u.accessID
-        WHERE u.userID = @UserID AND ap.PermissionID = @PermID AND ap.Effect = 'D'
-    ) RETURN 0;
-
-    IF EXISTS (
-        SELECT 1
-        FROM dbo.Users u
-        JOIN dbo.AccessProfilePermission ap ON ap.AccessID = u.accessID
-        WHERE u.userID = @UserID AND ap.PermissionID = @PermID AND ap.Effect = 'A'
-    ) RETURN 1;
-
+    IF EXISTS (SELECT 1 FROM dbo.UserPermissionOverride
+               WHERE UserID = @UserID AND PermissionID = @PermID AND Effect = 'D') RETURN 0;
+    IF EXISTS (SELECT 1 FROM dbo.UserPermissionOverride
+               WHERE UserID = @UserID AND PermissionID = @PermID AND Effect = 'A') RETURN 1;
+    IF EXISTS (SELECT 1 FROM dbo.Users u
+               JOIN dbo.AccessProfilePermission ap ON ap.AccessID = u.accessid
+               WHERE u.userID = @UserID AND ap.PermissionID = @PermID) RETURN 1;
     RETURN 0;
 END;
 GO
@@ -188,9 +172,15 @@ CREATE PROCEDURE dbo.spGetUserPermissions
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT DISTINCT p.Code
+    SELECT p.Code
     FROM dbo.Permission p
-    WHERE dbo.fnUserHasPermission(@UserID, p.Code) = 1;
+    WHERE NOT EXISTS (SELECT 1 FROM dbo.UserPermissionOverride o
+                      WHERE o.UserID = @UserID AND o.PermissionID = p.PermissionID AND o.Effect = 'D')
+      AND ( EXISTS (SELECT 1 FROM dbo.UserPermissionOverride o
+                    WHERE o.UserID = @UserID AND o.PermissionID = p.PermissionID AND o.Effect = 'A')
+         OR EXISTS (SELECT 1 FROM dbo.Users u
+                    JOIN dbo.AccessProfilePermission ap ON ap.AccessID = u.accessid
+                    WHERE u.userID = @UserID AND ap.PermissionID = p.PermissionID) );
 END;
 GO
 
@@ -271,6 +261,25 @@ BEGIN
         CONSTRAINT CK_ReportSchedules_Frequency CHECK (Frequency IN ('daily', 'weekly', 'monthly'))
     );
     CREATE INDEX IX_ReportSchedules_Due ON dbo.ReportSchedules(Enabled, NextRunAt);
+END;
+GO
+
+-- Chart annotations (mirrors 0123_report_annotations.sql).
+IF OBJECT_ID(N'dbo.ReportAnnotations', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.ReportAnnotations (
+        AnnotationID INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_ReportAnnotations PRIMARY KEY,
+        ReportID     INT NOT NULL,
+        BucketKey    NVARCHAR(64) NOT NULL,
+        Text         NVARCHAR(500) NOT NULL,
+        CreatedBy    INT NOT NULL,
+        CreatedAt    DATETIME2(0) NOT NULL CONSTRAINT DF_ReportAnnotations_CreatedAt DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT FK_ReportAnnotations_Reports FOREIGN KEY (ReportID)
+            REFERENCES dbo.Reports(ReportID) ON DELETE CASCADE,
+        CONSTRAINT FK_ReportAnnotations_Users FOREIGN KEY (CreatedBy)
+            REFERENCES dbo.Users(userID)
+    );
+    CREATE INDEX IX_ReportAnnotations_Report ON dbo.ReportAnnotations(ReportID, BucketKey);
 END;
 GO
 

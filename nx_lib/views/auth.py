@@ -110,7 +110,11 @@ def _build_reset_email_message(email, invite=False):
 
     def get_link():
         salt = "user-invite-salt" if invite else "password-reset-salt"
-        return url_for("reset_password", token=s.dumps(email, salt=salt), _external=True)
+        # The token carries a fingerprint of the CURRENT password hash, so a
+        # successful set-password (which always changes the hash) invalidates
+        # it everywhere, not just in this process's cache.
+        payload = [email, _password_fingerprint(email)]
+        return url_for("reset_password", token=s.dumps(payload, salt=salt), _external=True)
 
     link = get_link()
     if invite:
@@ -395,10 +399,37 @@ def verify_2fa():
 
         secret, username, fullname, email, org_code, user_locale = row
 
-        totp = pyotp.TOTP(secret)
-        # valid_window=1 also accepts the adjacent 30s windows (clock skew /
-        # window roll-over between code generation and verification).
-        if totp.verify(code, valid_window=1):
+        # Account-level lockout for the TOTP step, same table/threshold as the
+        # password step but under its own key: login() clears the password
+        # counter on a correct password, and the 2FA brute-forcer already has
+        # that. Without this the per-IP limiter was the only ceiling on a
+        # 6-digit code (x3 for valid_window=1).
+        lock_key = f"2fa:{user_id}"
+        conn = engine_nexora_db.raw_connection()
+        cursor = conn.cursor()
+        try:
+            if _login_locked_until(cursor, lock_key):
+                flash(
+                    _(
+                        "Too many failed attempts. Try again in %(minutes)d minute(s).",
+                        minutes=_LOCKOUT_MINUTES,
+                    ),
+                    "error",
+                )
+                return redirect(url_for("verify_2fa"))
+            totp = pyotp.TOTP(secret)
+            # valid_window=1 also accepts the adjacent 30s windows (clock skew /
+            # window roll-over between code generation and verification).
+            ok = totp.verify(code, valid_window=1)
+            if ok:
+                _clear_login_lockout(conn, cursor, lock_key)
+            else:
+                _record_login_failure(conn, cursor, lock_key)
+        finally:
+            cursor.close()
+            conn.close()
+
+        if ok:
             session.clear()
             _rotate_session_id()
             session["userid"] = user_id
@@ -431,10 +462,10 @@ def init_reset_password():
             return render_template("init_reset.html", error=_("Passwords do not match"))
         if not new_password or not confirm_password:
             return render_template("init_reset.html", error=_("All Fields must be filled"))
-        if not re.search(r"^\S{8,200}$", new_password):
+        if not re.search(r"^\S{12,200}$", new_password):
             return render_template(
                 "init_reset.html",
-                error=_("New password has to be atleast 8 characters long, with no whitespaces"),
+                error=_("New password has to be at least 12 characters long, with no whitespaces"),
             )
 
         conn = engine_nexora_db.raw_connection()
@@ -776,10 +807,10 @@ def set_new_password():
             return render_template(_set_password_template(), error=_("Passwords do not match"))
         if not new_password or not confirm_password:
             return render_template(_set_password_template(), error=_("All Fields must be filled"))
-        if not re.search(r"^\S{8,200}$", new_password):
+        if not re.search(r"^\S{12,200}$", new_password):
             return render_template(
                 _set_password_template(),
-                error=_("New password has to be atleast 8 characters long, with no whitespaces"),
+                error=_("New password has to be at least 12 characters long, with no whitespaces"),
             )
 
         conn = engine_nexora_db.raw_connection()
@@ -865,17 +896,47 @@ RESET_TOKEN_MAX_AGE = 900
 INVITE_TOKEN_MAX_AGE = 7 * 24 * 3600
 
 
+def _password_fingerprint(email):
+    """Short non-reversible fingerprint of the user's current password hash
+    (empty hash for a never-logged-in invitee). Baked into reset/invite
+    tokens: once the password changes the fingerprint no longer matches and
+    the token is dead -- survives app-pool recycles, unlike the cache mark."""
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT password FROM Users WHERE Email = ?", (email,))
+        row = cursor.fetchone()
+        cursor.close()
+    finally:
+        conn.close()
+    current = row[0] if row and row[0] else ""
+    return hashlib.sha256(str(current).encode("utf-8")).hexdigest()[:16]
+
+
 def _load_reset_token(token):
     """Unseal a set-password token, whichever kind it is. -> (email, is_invite)
 
     Two salts, two lifetimes: self-service reset (15 min) and admin invite
-    (7 days). Both are verified signatures -- an expired or forged token
-    raises out of here and the caller bounces to /.
+    (7 days). Both are verified signatures -- an expired, forged, or already
+    spent (password changed since minting) token raises out of here and the
+    caller bounces to /.
     """
     try:
-        return s.loads(token, salt="password-reset-salt", max_age=RESET_TOKEN_MAX_AGE), False
+        payload, is_invite = (
+            s.loads(token, salt="password-reset-salt", max_age=RESET_TOKEN_MAX_AGE),
+            False,
+        )
     except Exception:
-        return s.loads(token, salt="user-invite-salt", max_age=INVITE_TOKEN_MAX_AGE), True
+        payload, is_invite = (
+            s.loads(token, salt="user-invite-salt", max_age=INVITE_TOKEN_MAX_AGE),
+            True,
+        )
+    if isinstance(payload, str):  # token minted before the fingerprint existed
+        return payload, is_invite
+    email, fingerprint = payload
+    if fingerprint != _password_fingerprint(email):
+        raise ValueError("reset token already spent")
+    return email, is_invite
 
 
 def _set_password_template():
