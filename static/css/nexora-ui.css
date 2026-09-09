@@ -1099,7 +1099,6 @@ html .flatpickr-current-month .flatpickr-monthDropdown-months {
   fill: var(--nx-text);
   background: transparent;
 }
-html .flatpickr-months .flatpickr-month { margin-bottom: 0.5rem; }
 html .flatpickr-current-month .flatpickr-monthDropdown-months option {
   background: var(--nx-card);
   color: var(--nx-text);
@@ -1125,6 +1124,110 @@ html .flatpickr-day.flatpickr-disabled,
 html .flatpickr-day.prevMonthDay,
 html .flatpickr-day.nextMonthDay { color: var(--nx-text-meta); opacity: 0.45; }
 html .flatpickr-day.flatpickr-disabled:hover { background: transparent; }
+
+/* --- Header row: month, year and the two nav arrows ---------------------
+   flatpickr absolutely positions the arrows at top:0 of the months bar and
+   pads the month/year text down by ~7px, so the arrows land above the text's
+   optical centre. The bar is already `display: flex`; taking the three cells
+   out of the absolute layer lets them align to each other instead. */
+html .flatpickr-months {
+  align-items: center;
+  padding: 4px 2px 10px;
+}
+html .flatpickr-months .flatpickr-month {
+  margin-bottom: 0;
+  height: auto;
+  flex: 1 1 auto;
+  overflow: visible;
+}
+html .flatpickr-months .flatpickr-prev-month,
+html .flatpickr-months .flatpickr-next-month {
+  position: static;
+  flex: 0 0 auto;
+  height: auto;
+  padding: 5px 7px;
+  border-radius: 0.5rem;
+  line-height: 0;
+}
+html .flatpickr-months .flatpickr-prev-month:hover,
+html .flatpickr-months .flatpickr-next-month:hover { background: var(--nx-alt); }
+
+/* Centre month and year as one unit. Left alone, the month <select> is
+   ~118px wide and the year wrapper ~63px, both left-aligned inside their
+   boxes, which opens a dead gap between the two words. */
+html .flatpickr-current-month {
+  /* flatpickr gives this `position: absolute; width: 75%; left: 12.5%`.
+     Going static ignores `left` but NOT `width`, which would keep the cell
+     at three quarters of the row and pull the centring off. */
+  position: static;
+  width: auto;
+  left: auto;
+  height: auto;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 1.05rem;
+}
+html .flatpickr-current-month .numInputWrapper { width: auto; }
+html .flatpickr-current-month input.cur-year { width: 4.5ch; padding-left: 0; }
+
+/* The month is a <select> and the year an <input type="number">, so
+   _header.css's global `html.dark select {...}` reaches one and not the
+   other: the month rendered #f1f5f9 inside a bordered #1e293b box, the year
+   #e2e8f0 with no box. Both are token-driven and boxless here. !important
+   only because the rule being corrected uses it -- specificity cannot beat
+   it otherwise. */
+html .flatpickr-current-month .flatpickr-monthDropdown-months,
+html .flatpickr-current-month input.cur-year {
+  color: var(--nx-text) !important;
+  background: transparent !important;
+  border: 0 !important;
+  font-weight: 500;
+  font-size: inherit;
+}
+/* A native select sizes to its widest option, so every month shorter than
+   "September" sat left-aligned with the chevron stranded to its right.
+   Centring the text spreads that slack evenly instead. */
+html .flatpickr-current-month .flatpickr-monthDropdown-months {
+  text-align: center;
+  cursor: pointer;
+}
+
+/* --- Breathing room ----------------------------------------------------
+   307.875px is flatpickr's own fixed width, pinned via min/max on the day
+   container, so growing the calendar means releasing all three. */
+/* Size the panel from the day cell rather than flatpickr's hardcoded
+   307.875px. It has to stay an explicit width: the day cells are
+   `flex-basis: 14.2857%` of the grid, so a shrink-to-fit parent makes the
+   sizing circular and the grid collapses (it came out at 241px, clipping
+   Friday and Saturday). Two tokens and the arithmetic is readable. */
+html .flatpickr-calendar {
+  --nx-fp-day: 42px;
+  --nx-fp-pad: 14px;
+  padding: var(--nx-fp-pad);
+  width: calc(var(--nx-fp-day) * 7 + var(--nx-fp-pad) * 2);
+}
+html .flatpickr-days,
+html .flatpickr-days .dayContainer,
+html .flatpickr-calendar.hasTime .flatpickr-time {
+  width: calc(var(--nx-fp-day) * 7);
+  min-width: calc(var(--nx-fp-day) * 7);
+  max-width: calc(var(--nx-fp-day) * 7);
+}
+html .flatpickr-day {
+  height: var(--nx-fp-day);
+  line-height: var(--nx-fp-day);
+  max-width: var(--nx-fp-day);
+}
+html .flatpickr-weekdays { height: 30px; }
+html .flatpickr-time input { color: var(--nx-text); }
+html .flatpickr-time .flatpickr-time-separator,
+html .flatpickr-time .flatpickr-am-pm { color: var(--nx-text-sec); }
+html .flatpickr-time input:hover,
+html .flatpickr-time input:focus,
+html .flatpickr-time .flatpickr-am-pm:hover { background: var(--nx-alt); }
 
 /* Dark-only. A 0.1-alpha shadow vanishes on a dark ground, the calendar
    arrow is a bordered pseudo-element flatpickr paints white, and the day
