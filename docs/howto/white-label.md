@@ -52,7 +52,12 @@ tell apart. Adding a name back to a page a solo member can reach is a regression
 **Mounted pages and the tenant dashboard.** A `custom` row in `dbo.TenantPages` carries a
 `LayoutJSON` with `endpoint` (an argument-less GET route), `label`, `icon`, an optional `active`
 marker (the `active_page` value the target sets) and an optional `query` object of string pairs that
-becomes the link's query string. The mounted **Dashboard** and **Workitems** pages use exactly that:
+becomes the link's query string. `LayoutJSON` carries no permission key: a mounted page needs
+`tenant.<code>.view` *and* whatever the target route itself declares (`dashboard.view`,
+`workitems.view`, ...), which `_tenant_nav_page` reads off the view function via the
+`required_permissions` attribute `require_permission`/`require_any_permission` stamp on it, dropping
+the sidebar entry when the user holds none of them (#300) — a mounted page never offers a link that
+403s on click. The mounted **Dashboard** and **Workitems** pages use exactly that:
 since migrations `0097`/`0098` they link `/dashboard?tenant=<code>` and `/workitems?tenant=<code>`.
 `nx_lib/views/tenant.py::apply_tenant_scope` resolves the tenant (404 unknown, 403 not viewable),
 stores it in `session['tenant_scope']`, and every process allow-list on both pages — the dashboard
