@@ -9,40 +9,64 @@
 
   window.fieldConfig = window.fieldConfig || { search_options: {}, labels: {} };
 
+  // 4 real stages (nx_lib/views/workitems.py's WORKITEM_STAGES), not the
+  // design handoff prototype's fictional 5-step Imported/Classified/.../
+  // Exported pipeline -- the icons below are the closest fit per stage.
+  const STAGES = ['Import', 'Extraction', 'Validation', 'Delivery'];
+  const STAGE_ICONS = ['fa-file-import', 'fa-wand-magic-sparkles', 'fa-circle-check', 'fa-file-export'];
+
   function buildPanelMarkup(workitemid, status, currentStage, perms, readOnly) {
     const imagesBlock = perms.images
-      ? `<div id="image-container-${workitemid}" class="flex-1 flex justify-center items-center overflow-y-scroll p-2 border-2 border-dashed border-gray-200 rounded-2xl bg-white"><p class="text-gray-500 text-center px-2">${I18N.clickToggleAgain}</p></div>`
-      : `<div class="flex-1 flex justify-center items-center p-2 border-2 border-gray-100 rounded-2xl bg-gray-50"><div class="text-center"><i class="fas fa-eye-slash text-gray-400 text-3xl mb-2"></i><p class="text-gray-500">${I18N.mediaPreviewRestricted}</p></div></div>`;
+      ? `<div class="wi-doc-col">
+           <div class="wi-doc-col__head">
+             <p class="nx-eyebrow" id="doc-heading-${workitemid}">${I18N.document}</p>
+             <button type="button" class="wi-doc-fullbtn" id="doc-fullbtn-${workitemid}" data-workitemid="${workitemid}" data-testid="workitem-full-mode">
+               <i class="fas fa-expand"></i>${I18N.fullMode}
+             </button>
+           </div>
+           <div id="image-container-${workitemid}" class="wi-doc-main">
+             <p class="text-gray-500 text-center px-2">${I18N.clickToggleAgain}</p>
+           </div>
+           <div id="doc-thumbs-${workitemid}" class="wi-doc-thumbs"></div>
+           <p id="doc-meta-${workitemid}" class="wi-doc-meta"></p>
+           <div id="doc-full-${workitemid}" class="wi-doc-full" hidden></div>
+         </div>`
+      : `<div class="wi-doc-col"><div class="wi-doc-main wi-doc-main--restricted"><div class="text-center"><i class="fas fa-eye-slash text-gray-400 text-3xl mb-2"></i><p class="text-gray-500">${I18N.mediaPreviewRestricted}</p></div></div></div>`;
     const historyBlock = perms.audit
-      ? `<div id="history-container-${workitemid}" class="flex-grow overflow-y-auto pr-2"><p class="text-gray-500 italic">${I18N.loadingHistory}</p></div>`
-      : `<div class="flex-grow flex items-center justify-center bg-gray-50 rounded"><p class="text-gray-400"><i class="fas fa-lock mr-2"></i>${I18N.auditHistoryRestricted}</p></div>`;
+      ? `<div id="history-container-${workitemid}" class="wi-audit-list"><p class="text-gray-500 italic">${I18N.loadingHistory}</p></div>`
+      : `<div class="wi-panel-restricted"><p class="text-gray-400"><i class="fas fa-lock mr-2"></i>${I18N.auditHistoryRestricted}</p></div>`;
     const fieldsBlock = perms.fields
       ? `<div id="fields-container-${workitemid}" data-src-wid="${workitemid}" class="flex-grow pr-2"><p class="text-gray-500 italic">${I18N.loadingDetails}</p></div>`
-      : `<div class="flex-grow flex items-center justify-center bg-gray-50 rounded"><p class="text-gray-400 italic"><i class="fas fa-lock mr-2"></i>${I18N.documentFieldsRestricted}</p></div>`;
+      : `<div class="wi-panel-restricted"><p class="text-gray-400 italic"><i class="fas fa-lock mr-2"></i>${I18N.documentFieldsRestricted}</p></div>`;
+    const showSourcesBtn = perms.images
+      ? `<button type="button" class="wi-show-sources-btn" data-workitemid="${workitemid}" data-testid="workitem-show-sources"><i class="fas fa-magnifying-glass-location"></i>${I18N.showSources}</button>`
+      : '';
     return `
-      <div class="details-content-wrapper p-4 bg-gray-100 flex flex-col gap-6">
+      <div class="details-content-wrapper wi-detail-panel">
         <div id="detail-panel-header-${workitemid}" class="detail-panel-header"></div>
-        ${readOnly ? '' : `<div id="timeline-container-${workitemid}" class="relative bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-gray-100" data-current-stage="${currentStage}" data-status="${status}">
-          <div class="relative flex justify-between items-center">
-            <div class="absolute top-1/2 h-1 -translate-y-1/2 bg-gray-200 rounded-full" style="left: 28px; right: 28px;"></div>
-            <div class="progress-line absolute top-1/2 h-1 -translate-y-1/2 bg-[var(--nx-accent)] rounded-full" style="left: 28px; right: 28px; transform: scaleX(0); transform-origin: left; transition: transform 0.8s ease-in-out;"></div>
-            <div class="process-step z-10 flex flex-col items-center text-center"><div class="step-icon-wrapper flex items-center justify-center w-14 h-14 bg-white border-2 border-gray-300 rounded-full"><i class="fas fa-cloud-arrow-up text-xl text-gray-400"></i></div><p class="step-label mt-3 font-semibold text-gray-500 text-sm">Import</p></div>
-            <div class="process-step z-10 flex flex-col items-center text-center"><div class="step-icon-wrapper flex items-center justify-center w-14 h-14 bg-white border-2 border-gray-300 rounded-full"><i class="fas fa-gears text-xl text-gray-400"></i></div><p class="step-label mt-3 font-semibold text-gray-500 text-sm">Extraction</p></div>
-            <div class="process-step z-10 flex flex-col items-center text-center"><div class="step-icon-wrapper flex items-center justify-center w-14 h-14 bg-white border-2 border-gray-300 rounded-full"><i class="fas fa-shield-halved text-xl text-gray-400"></i></div><p class="step-label mt-3 font-semibold text-gray-500 text-sm">Validation</p></div>
-            <div class="process-step z-10 flex flex-col items-center text-center"><div class="step-icon-wrapper flex items-center justify-center w-14 h-14 bg-white border-2 border-gray-300 rounded-full"><i class="fas fa-paper-plane text-xl text-gray-400"></i></div><p class="step-label mt-3 font-semibold text-gray-500 text-sm">Delivery</p></div>
-          </div>
+        ${readOnly ? '' : `<div id="timeline-container-${workitemid}" class="wi-stepper" data-current-stage="${currentStage}" data-status="${status}">
+          ${STAGES.map((label, i) => `
+            <span class="wi-stepper__step">
+              <span class="step-icon-wrapper wi-stepper__icon"><i class="fas ${STAGE_ICONS[i]}"></i></span>
+              <span class="step-label wi-stepper__label">${label}</span>
+            </span>
+            ${i < STAGES.length - 1 ? '<span class="wi-stepper__line"></span>' : ''}
+          `).join('')}
         </div>`}
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-          <div class="flex flex-col gap-6 h-[50rem]">
-            ${imagesBlock}
-            <div class="flex-1 flex flex-col bg-white rounded-2xl p-5 border border-gray-100 shadow-sm overflow-hidden">
-              <h4 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3 border-b border-gray-100 pb-3">${I18N.history}</h4>
-              ${historyBlock}
+        <div class="wi-detail-grid">
+          ${imagesBlock}
+          <div class="wi-detail-grid__rule"></div>
+          <div class="wi-detail-col">
+            <div class="wi-detail-col__head">
+              <p class="nx-eyebrow">${I18N.documentDetails}</p>
+              ${showSourcesBtn}
             </div>
-          </div>
-          <div class="flex flex-col bg-white rounded-2xl p-5 border border-gray-100 shadow-sm h-[50rem] overflow-y-auto">
-            <h4 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3 border-b border-gray-100 pb-3">${I18N.documentDetails}</h4>
             ${fieldsBlock}
+          </div>
+          <div class="wi-detail-grid__rule"></div>
+          <div class="wi-detail-col">
+            <p class="nx-eyebrow" style="margin-bottom:8px">${I18N.audit}</p>
+            ${historyBlock}
           </div>
         </div>
         ${perms.fields ? `<div id="tables-container-${workitemid}" data-src-wid="${workitemid}" class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm" hidden></div>` : ''}
@@ -79,38 +103,33 @@
             if (historyData.length === 0) {
                 historyContainer.innerHTML = `<p class="text-gray-500">${I18N.noHistory}</p>`;
             } else {
-                const timeline = document.createElement('div');
-                timeline.className = 'border-l-2 border-[var(--nx-card-hover-border)] ml-2';
+                // Newest-first (the API returns oldest-first); the latest
+                // dot is only accent while the workitem is still in flight --
+                // once Done every step already crossed, nothing is "current".
+                const timelineEl = document.getElementById(`timeline-container-${workitemId}`);
+                const inFlight = timelineEl && timelineEl.dataset.status !== 'Done';
+                const newestFirst = [...historyData].reverse();
 
-                historyData.forEach(item => {
-                    const eventElement = document.createElement('div');
-                    eventElement.className = 'relative mb-4 pl-6';
-
-                    const dot = document.createElement('div');
-                    dot.className = 'absolute -left-[7px] top-1 h-3 w-3 rounded-full bg-[var(--nx-accent)]';
-                    eventElement.appendChild(dot);
-
-                    const eventText = document.createElement('p');
-                    eventText.className = 'text-sm text-gray-800';
-                    eventText.innerHTML = `<strong class="font-semibold">${NX.esc(item.Step)}:</strong> ${NX.esc(item.Activity)}`;
-                    eventElement.appendChild(eventText);
-
-                    const detailsText = document.createElement('p');
-                    detailsText.className = 'text-xs text-gray-500 mt-1';
+                newestFirst.forEach((item, i) => {
+                    const isLast = i === newestFirst.length - 1;
                     const eventDate = new Date(item.DateTime);
                     const formattedDate = eventDate.toLocaleString(undefined, {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit'
+                        year: 'numeric', month: '2-digit', day: '2-digit',
+                        hour: '2-digit', minute: '2-digit',
                     });
-                    detailsText.textContent = formattedDate;
-                    eventElement.appendChild(detailsText);
-
-                    timeline.appendChild(eventElement);
+                    const el = document.createElement('div');
+                    el.className = 'wi-audit-item';
+                    el.innerHTML = `
+                        <span class="wi-audit-item__rail">
+                            <span class="wi-audit-item__dot${i === 0 && inFlight ? ' is-latest' : ''}"></span>
+                            ${isLast ? '' : '<span class="wi-audit-item__tail"></span>'}
+                        </span>
+                        <span class="wi-audit-item__body">
+                            <span class="wi-audit-item__step"><strong>${srcEsc(item.Step)}</strong> · ${srcEsc(item.Activity)}</span>
+                            <span class="wi-audit-item__meta">${srcEsc(formattedDate)}</span>
+                        </span>`;
+                    historyContainer.appendChild(el);
                 });
-                historyContainer.appendChild(timeline);
             }
             historyContainer.dataset.loaded = 'true';
         } catch (error) {
@@ -124,81 +143,138 @@
 
         const currentStage = container.dataset.currentStage;
         const status = container.dataset.status;
-        const progressLine = container.querySelector('.progress-line');
-        const stepElements = container.querySelectorAll('.process-step');
+        const stepElements = container.querySelectorAll('.wi-stepper__step');
+        const lineElements = container.querySelectorAll('.wi-stepper__line');
+        const stageIndex = STAGES.indexOf(currentStage);
+        // done = every stage up to (Done) or before (in-flight) the current
+        // one; current = the in-flight stage only, never set once status is
+        // Done (that state has no "current", every step already crossed).
+        const doneCount = status === 'Done' ? STAGES.length : Math.max(0, stageIndex);
 
-        const stages = ['Import', 'Extraction', 'Validation', 'Delivery'];
-        const stageIndex = stages.indexOf(currentStage);
-        const scaleFactors = {
-            0: 0,
-            1: 0.3334,
-            2: 0.6667,
-            3: 1
-        };
-
-        const progressValues = {
-            0: '0%',
-            1: '33%',
-            2: '66%',
-            3: '100%'
-        };
-
-        stepElements.forEach(step => {
-            step.querySelector('.step-icon-wrapper').classList.remove('active', 'completed');
-            step.querySelector('.step-label').classList.remove('active', 'completed');
-        });
-
-        if (status === 'Done') {
-            stepElements.forEach(step => {
-                step.querySelector('.step-icon-wrapper').classList.add('completed');
-                step.querySelector('.step-label').classList.add('completed');
-            });
-            progressLine.style.transform = `scaleX(1)`;
-        } else if (stageIndex !== -1) {
-            for (let i = 0; i < stageIndex; i++) {
-                stepElements[i].querySelector('.step-icon-wrapper').classList.add('completed');
-                stepElements[i].querySelector('.step-label').classList.add('completed');
+        stepElements.forEach((step, i) => {
+            const icon = step.querySelector('.wi-stepper__icon');
+            const label = step.querySelector('.wi-stepper__label');
+            icon.classList.remove('is-done', 'is-current');
+            label.classList.remove('is-done', 'is-current');
+            if (i < doneCount) {
+                icon.classList.add('is-done');
+                label.classList.add('is-done');
+            } else if (status !== 'Done' && i === stageIndex) {
+                icon.classList.add('is-current');
+                label.classList.add('is-current');
             }
-            stepElements[stageIndex].querySelector('.step-icon-wrapper').classList.add('active');
-            stepElements[stageIndex].querySelector('.step-label').classList.add('active');
-            progressLine.style.transform = `scaleX(${scaleFactors[stageIndex]})`;
-        } else {
-            progressLine.style.transform = `scaleX(0)`;
-        }
+        });
+        lineElements.forEach((line, i) => line.classList.toggle('is-done', i < doneCount));
 
         container.dataset.rendered = 'true';
     }
 
-  function loadImagesInBatch(container, workitemid, totalImages) {
-        const existingBtn = container.querySelector('.load-more-btn');
-        if (existingBtn) {
-            existingBtn.remove();
-        }
+  function loadImagesInBatch(container, workitemid, totalImages, batchSize) {
+        const thumbs = document.getElementById(`doc-thumbs-${workitemid}`);
+        const existingBtn = thumbs && thumbs.querySelector('.load-more-btn');
+        if (existingBtn) existingBtn.remove();
 
         const loadedCount = parseInt(container.dataset.loadedCount || '0', 10);
-        const batchSize = 7;
-        const endIndex = Math.min(loadedCount + batchSize, totalImages);
+        const endIndex = Math.min(loadedCount + (batchSize || 7), totalImages);
 
         for (let i = loadedCount; i < endIndex; i++) {
-            loadImage(container, workitemid, i);
+            loadImage(container, workitemid, i, i === 0);
         }
 
         container.dataset.loadedCount = endIndex;
 
-        if (endIndex < totalImages) {
+        if (thumbs && endIndex < totalImages) {
             const loadMoreBtn = document.createElement('button');
-            loadMoreBtn.className = 'load-more-btn col-span-full text-center w-full mt-4 px-4 py-2 bg-[var(--nx-accent)] text-white rounded-lg hover:bg-[var(--nx-accent-hover)] transition';
-            loadMoreBtn.textContent = `${I18N.loadMore} (${endIndex} / ${totalImages})`;
+            loadMoreBtn.type = 'button';
+            loadMoreBtn.className = 'load-more-btn wi-doc-thumb wi-doc-thumb--more';
+            loadMoreBtn.textContent = `+${totalImages - endIndex}`;
+            loadMoreBtn.title = `${I18N.loadMore} (${endIndex} / ${totalImages})`;
             loadMoreBtn.dataset.workitemid = workitemid;
             loadMoreBtn.dataset.totalImages = totalImages;
-            container.appendChild(loadMoreBtn);
+            thumbs.appendChild(loadMoreBtn);
         }
+        return endIndex;
+    }
+
+    // Load every remaining page (Full mode needs all of them side by side,
+    // not the lazy 7-at-a-time trickle the thumbnail strip is happy with).
+    async function loadAllImages(workitemid, totalImages) {
+        const container = document.getElementById(`image-container-${workitemid}`);
+        if (!container) return;
+        let loaded = parseInt(container.dataset.loadedCount || '0', 10);
+        while (loaded < totalImages) {
+            loaded = loadImagesInBatch(container, workitemid, totalImages, totalImages);
+        }
+    }
+
+    function updateDocMeta(workitemid, index, total) {
+        const meta = document.getElementById(`doc-meta-${workitemid}`);
+        if (meta) meta.textContent = I18N.pageOf.replace('%(page)s', index + 1).replace('%(total)s', total);
+    }
+
+    function setActiveThumb(workitemid, index) {
+        const container = document.getElementById(`image-container-${workitemid}`);
+        const thumbs = document.getElementById(`doc-thumbs-${workitemid}`);
+        if (!container) return;
+        container.querySelectorAll('.workitem-image').forEach(img => {
+            img.classList.toggle('wi-main-active', parseInt(img.dataset.pageIndex, 10) === index);
+        });
+        if (thumbs) {
+            thumbs.querySelectorAll('.wi-doc-thumb').forEach(t => {
+                t.classList.toggle('is-active', parseInt(t.dataset.pageIndex, 10) === index);
+            });
+        }
+        const total = container.dataset.totalImages;
+        if (total) updateDocMeta(workitemid, index, total);
+    }
+
+    function toggleFullMode(workitemid, totalImages) {
+        const btn = document.getElementById(`doc-fullbtn-${workitemid}`);
+        const main = document.getElementById(`image-container-${workitemid}`);
+        const thumbs = document.getElementById(`doc-thumbs-${workitemid}`);
+        const meta = document.getElementById(`doc-meta-${workitemid}`);
+        const full = document.getElementById(`doc-full-${workitemid}`);
+        const heading = document.getElementById(`doc-heading-${workitemid}`);
+        const grid = main && main.closest('.wi-detail-grid');
+        if (!btn || !main || !full) return;
+        const enteringFull = full.hidden;
+        if (grid) grid.classList.toggle('is-full-mode', enteringFull);
+        if (heading) heading.textContent = enteringFull
+            ? I18N.documentPages.replace('%(n)s', totalImages) : I18N.document;
+        if (enteringFull) {
+            loadAllImages(workitemid, totalImages).then(() => {
+                full.innerHTML = '';
+                main.querySelectorAll('.workitem-image').forEach(img => {
+                    const clone = document.createElement('img');
+                    clone.src = img.src;
+                    clone.alt = img.alt;
+                    clone.className = 'wi-doc-full__page';
+                    full.appendChild(clone);
+                });
+            });
+            btn.innerHTML = `<i class="fas fa-compress"></i>${I18N.compact}`;
+        } else {
+            btn.innerHTML = `<i class="fas fa-expand"></i>${I18N.fullMode}`;
+        }
+        full.hidden = !enteringFull;
+        main.hidden = enteringFull;
+        if (thumbs) thumbs.hidden = enteringFull;
+        if (meta) meta.hidden = enteringFull;
     }
 
   // Escape values interpolated into innerHTML. Field/cell values + column
   // names are extracted document content (attacker-influenceable via a crafted
   // document), so they must never be injected raw. (Box .title is set via the
   // DOM property, which is already safe.)
+  // Small fill bar next to the confidence percentage (#299 console redesign);
+  // reuses window.srcConfClass's bucket (already computed at each call site)
+  // for color, so it always agrees with the badge/highlight-box color.
+  function _confBarHtml(confCls, confidence) {
+    const pct = Math.round(Math.max(0, Math.min(1, confidence)) * 100);
+    return `<span class="src-conf-bar" title="${I18N.extractionConfidence}">`
+      + `<span class="src-conf-bar__fill ${confCls}" style="width:${pct}%"></span></span>`;
+  }
+
   function srcEsc(s) {
         return String(s == null ? '' : s)
             .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -267,7 +343,7 @@
                     const page = hasLoc ? c.locations[0].page : '';
                     const confCls = window.srcConfClass(c.confidence);
                     const confBadge = confCls
-                        ? ` <span class="src-conf-badge ${confCls}" title="${I18N.extractionConfidence}">${window.srcConfPct(c.confidence)}</span>`
+                        ? ` ${_confBarHtml(confCls, c.confidence)}<span class="src-conf-badge ${confCls}" title="${I18N.extractionConfidence}">${window.srcConfPct(c.confidence)}</span>`
                         : '';
                     // ponytail: no per-cell "no source location" badge -- one badge per cell
                     // buries the values it annotates. The pointer/hover affordance on
@@ -314,7 +390,7 @@
                         ? ` title="${I18N.clickToLocate}"` : '';
                     const confCls = src ? window.srcConfClass(src.confidence) : '';
                     const confBadge = confCls
-                        ? ` <span class="src-conf-badge ${confCls}" title="${I18N.extractionConfidence}">${window.srcConfPct(src.confidence)}</span>`
+                        ? ` ${_confBarHtml(confCls, src.confidence)}<span class="src-conf-badge ${confCls}" title="${I18N.extractionConfidence}">${window.srcConfPct(src.confidence)}</span>`
                         : '';
                     fieldsHtml += `
                         <div class="${rowCls}" data-key="${key}" data-page="${page}"${titleAttr}>
@@ -369,16 +445,17 @@
         });
     }
 
-  async function loadImage(container, workitemid, index) {
+  // `container` is the wi-doc-main box (id="image-container-<wid>"): every
+  // loaded page lives there inside its own .src-thumb wrap (required by the
+  // source-highlight overlay -- renderThumbOverlay draws boxes over
+  // img.workitem-image inside that specific wrapper), CSS-hidden except the
+  // one page flagged .wi-main-active. The small strip under it
+  // (doc-thumbs-<wid>) holds separate, lightweight <img> clones that just
+  // switch which page is active -- they don't need their own overlay boxes.
+  async function loadImage(container, workitemid, index, makeActive) {
         const placeholder = document.createElement('div');
         placeholder.className = 'flex justify-center items-center w-40 h-40 bg-gray-200 rounded animate-pulse';
-
-        const loadMoreButton = container.querySelector('.load-more-btn');
-        if (loadMoreButton) {
-            container.insertBefore(placeholder, loadMoreButton);
-        } else {
-            container.appendChild(placeholder);
-        }
+        container.appendChild(placeholder);
         try {
             const apiUrl = `${API_PREFIX}api/get_media_raw/${workitemid}/${index}${_clientQS(workitemid, '?')}`;
             const response = await fetch(apiUrl, {headers: {
@@ -396,8 +473,9 @@
             const imgElement = document.createElement('img');
             imgElement.src = imageUrl;
             imgElement.alt = `${I18N.media} ${index + 1} ${I18N.forWorkitem}${workitemid}`;
+            imgElement.dataset.pageIndex = String(index);
             // object-contain (not cover) shows the whole page so source boxes map correctly.
-            imgElement.className = 'w-40 h-40 object-contain rounded shadow-lg workitem-image cursor-pointer bg-gray-50';
+            imgElement.className = 'wi-doc-page workitem-image cursor-pointer bg-gray-50';
 
             const thumbWrap = document.createElement('div');
             thumbWrap.className = 'src-thumb';
@@ -406,8 +484,11 @@
             thumbWrap.appendChild(imgElement);
 
             imgElement.onload = () => {
-                placeholder.replaceWith(thumbWrap);
+                placeholder.remove();
+                container.appendChild(thumbWrap);
+                if (makeActive) setActiveThumb(workitemid, index);
                 renderThumbOverlay(thumbWrap, imgElement, String(workitemid), index);
+                _appendThumbStripEntry(workitemid, index, imageUrl);
             };
 
             imgElement.onerror = () => {
@@ -423,6 +504,45 @@
             placeholder.classList.add('bg-red-100', 'border', 'border-red-400');
         }
     }
+
+  function _appendThumbStripEntry(workitemid, index, imageUrl) {
+    const thumbs = document.getElementById(`doc-thumbs-${workitemid}`);
+    if (!thumbs) return;
+    const moreBtn = thumbs.querySelector('.load-more-btn');
+    const thumb = document.createElement('img');
+    thumb.src = imageUrl;
+    thumb.alt = `${I18N.media} ${index + 1}`;
+    thumb.className = 'wi-doc-thumb' + (index === 0 ? ' is-active' : '');
+    thumb.dataset.workitemid = String(workitemid);
+    thumb.dataset.pageIndex = String(index);
+    if (moreBtn) thumbs.insertBefore(thumb, moreBtn);
+    else thumbs.appendChild(thumb);
+  }
+
+  // Delegated: the thumbnail strip, the "+N" load-more thumb, the Full mode
+  // button and the Document details column's Show sources button are all
+  // rendered by buildPanelMarkup, shared across workitems/reporting/prepared
+  // documents -- one document-level listener covers every instance.
+  document.addEventListener('click', (event) => {
+    const thumb = event.target.closest('.wi-doc-thumb:not(.load-more-btn)');
+    if (thumb) {
+      setActiveThumb(thumb.dataset.workitemid, parseInt(thumb.dataset.pageIndex, 10));
+      return;
+    }
+    const moreBtn = event.target.closest('.load-more-btn');
+    if (moreBtn) {
+      const container = document.getElementById(`image-container-${moreBtn.dataset.workitemid}`);
+      if (container) loadImagesInBatch(container, moreBtn.dataset.workitemid, parseInt(moreBtn.dataset.totalImages, 10));
+      return;
+    }
+    const fullBtn = event.target.closest('.wi-doc-fullbtn');
+    if (fullBtn) {
+      const container = document.getElementById(`image-container-${fullBtn.dataset.workitemid}`);
+      const total = container ? parseInt(container.dataset.totalImages || '0', 10) : 0;
+      toggleFullMode(fullBtn.dataset.workitemid, total);
+      return;
+    }
+  });
 
   async function loadDetailData(workitemid, perms) {
     const imageContainer = document.getElementById(`image-container-${workitemid}`);
@@ -463,11 +583,12 @@
         imageContainer.dataset.loaded = 'true';
         if (imageCount === 0) {
           imageContainer.innerHTML = `<p class="text-gray-500">${I18N.noMediaFound}</p>`;
+          const fullbtn = document.getElementById(`doc-fullbtn-${workitemid}`);
+          if (fullbtn) fullbtn.hidden = true;
         } else {
           imageContainer.innerHTML = '';
-          imageContainer.classList.remove('justify-center', 'items-center');
-          imageContainer.classList.add('flex-wrap', 'gap-4', 'justify-start');
           imageContainer.dataset.loadedCount = '0';
+          imageContainer.dataset.totalImages = String(imageCount);
           loadImagesInBatch(imageContainer, workitemid, imageCount);
         }
       }
@@ -738,6 +859,16 @@
                 openModalForWorkitem(workitemid, clickedIndex, null);
             }
         }
+    });
+
+    // "Show sources" (Document details column header) -> open the lightbox
+    // at page 1 with source boxes already on, via THIS instance's own
+    // ensureSourcesOn/openModalForWorkitem closures.
+    document.addEventListener('click', (event) => {
+        const btn = event.target.closest('.wi-show-sources-btn');
+        if (!btn) return;
+        ensureSourcesOn();
+        openModalForWorkitem(btn.dataset.workitemid, 0, null);
     });
 
     // Click a field value with a known location -> open the page + pulse its box.

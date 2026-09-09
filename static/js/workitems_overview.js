@@ -283,12 +283,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (toggleBtn && advancedContainer) {
         toggleBtn.addEventListener('click', () => {
             advancedContainer.classList.toggle('hidden');
+            toggleBtn.classList.toggle('is-open', !advancedContainer.classList.contains('hidden'));
         });
         // Auto-open when the URL restored an advanced filter, so
         // active-but-hidden filters can't silently narrow the list.
         if (['startDate', 'endDate', 'docFieldFilter', 'docValueInput']
             .some(id => document.getElementById(id)?.value)) {
             advancedContainer.classList.remove('hidden');
+            toggleBtn.classList.add('is-open');
         }
     }
 
@@ -817,6 +819,9 @@ modalConfirmBtn.addEventListener('click', () => {
             try { renderDegradedBanner(data.degradedSources || []); } catch (bannerErr) { console.warn('renderDegradedBanner error:', bannerErr); }
             renderTable(data.workitems);
             renderPagination(data.pagination);
+            const liveTime = document.getElementById('wiLiveTime');
+            if (liveTime) liveTime.textContent = new Date().toLocaleTimeString();
+            fetchStatusCounts();
 
         } catch (error) {
             if (seq !== fetchAndUpdateWorkitems._seq) return;
@@ -936,6 +941,50 @@ modalConfirmBtn.addEventListener('click', () => {
         }
     }
 
+    // ---- Quiet status dots + stage ticks (#299 console redesign) ----
+    const STAGES = NX_WO.stages || [];
+    const STATUS_DOT = {
+        'Ready':       { dot: '#9ca3af', halo: 'rgba(156,163,175,.18)' },
+        'In Progress': { dot: 'var(--nx-accent)', halo: 'var(--nx-accent-soft)' },
+        'Done':        { dot: '#059669', halo: 'rgba(5,150,105,.15)' },
+        'Deleted':     { dot: '#dc2626', halo: 'rgba(220,38,38,.15)' },
+    };
+    function statusDotInfo(status) {
+        return STATUS_DOT[status] || { dot: '#9ca3af', halo: 'rgba(156,163,175,.18)' };
+    }
+    function stageIndex(currentStage) {
+        const i = STAGES.indexOf(currentStage);
+        return i === -1 ? 0 : i + 1;
+    }
+    function stageTicksHtml(n, size) {
+        return STAGES.map((_s, i) => `<span class="nx-wi-tick" style="width:${size}px;background:${i < n ? 'var(--nx-accent)' : 'var(--nx-border)'}"></span>`).join('');
+    }
+    function movedAgo(iso) {
+        if (!iso) return '';
+        const mins = Math.max(1, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+        if (mins < 60) return I18N.minAgo.replace('%(n)s', mins);
+        const hrs = Math.round(mins / 60);
+        if (hrs < 24) return I18N.hAgo.replace('%(n)s', hrs);
+        return I18N.dAgo.replace('%(n)s', Math.round(hrs / 24));
+    }
+    function movedTimeText(iso) {
+        return iso ? new Date(iso).toISOString().slice(0, 19).replace('T', ' ') : '';
+    }
+    function rowKeyOf(workitem) { return `${workitem.client || 'default'}-${workitem.workitemid}`; }
+
+    function renderEmptyState(container, colspan) {
+        const cell = colspan
+            ? `<tr><td colspan="${colspan}">${_emptyMarkup()}</td></tr>`
+            : _emptyMarkup();
+        container.innerHTML = cell;
+    }
+    function _emptyMarkup() {
+        return `<div class="nx-empty">
+            <div class="nx-empty__art"><i class="fas fa-magnifying-glass"></i></div>
+            <p class="nx-empty__title">${I18N.noWorkitemsFound}</p>
+        </div>`;
+    }
+
     function renderTable(workitems) {
         _inRegisterByWid = {};
         const tbody = document.getElementById('workitemsTbody');
@@ -944,46 +993,46 @@ modalConfirmBtn.addEventListener('click', () => {
         selectedWorkitemIds.clear();
         updateBulkBar();
 
+        const meta = document.getElementById('wiListMeta');
+        if (meta) meta.textContent = I18N.shownSortedByLastMovement.replace('%(count)s', workitems.length);
+
         if (workitems.length === 0) {
-            const emptyColspan = 5;
-            tbody.innerHTML = `
-                <tr><td colspan="${emptyColspan}">
-                    <div class="nx-empty">
-                        <div class="nx-empty__art"><i class="fas fa-inbox"></i></div>
-                        <p class="nx-empty__title">${I18N.noWorkitemsFound}</p>
-                        <p class="nx-empty__sub">${I18N.noWorkitemsHint}</p>
-                    </div>
-                </td></tr>`;
+            renderEmptyState(tbody, 5);
+            renderCards([]);
             return;
         }
 
         workitems.forEach(workitem => {
-            const statusBadge = {
-                'Ready':       '<span class="nx-label nx-label--blue">Ready</span>',
-                'In Progress': '<span class="nx-label nx-label--amber">In Progress</span>',
-                'Done':        '<span class="nx-label nx-label--green">Done</span>',
-                'Deleted':     '<span class="nx-label nx-label--red">Deleted</span>',
-            }[workitem.status] || `<span class="nx-label nx-label--gray">${workitem.status}</span>`;
-
-            // Workitem ids are only unique WITHIN a client, so every DOM id
-            // is keyed on client+id -- two rows sharing a bare id produced
-            // duplicate element ids, and getElementById then resolved both
-            // rows' toggles to whichever came first.
-            const rowKey = `${workitem.client || 'default'}-${workitem.workitemid}`;
+            const rowKey = rowKeyOf(workitem);
+            const dot = statusDotInfo(workitem.status);
+            const n = stageIndex(workitem.current_stage);
             const rowHtml = `
-             <tr class="hover:bg-gray-50 transition-colors duration-200 workitem-row" data-status="${workitem.status}" id="row-${rowKey}">
-                <td class="px-4 py-4 text-center w-10">
+             <tr class="workitem-row" data-status="${workitem.status}" id="row-${rowKey}">
+                <td class="nx-wi-table__check">
                     <input type="checkbox" class="row-checkbox h-4 w-4 rounded border-gray-300 text-[var(--nx-accent)] focus:ring-[var(--nx-accent)] cursor-pointer"
                         data-id="${rowKey}" data-testid="workitems-row-checkbox-${workitem.workitemid}">
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-center"><div class="nx-mono font-medium">${workitem.workitemid}</div></td>
-                <td class="px-6 py-4 whitespace-nowrap text-center">${statusBadge}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-center"><div class="nx-mono" style="color:var(--nx-text-sec)">${workitem.modifiedat ? new Date(workitem.modifiedat).toISOString().slice(0, 19).replace('T', ' ') : ''}</div></td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
+                <td data-sort="${workitem.workitemid}">
+                    <div class="nx-wi-cell-id">${workitem.workitemid}</div>
+                    <div class="nx-wi-cell-stage">
+                        <span class="nx-wi-ticks">${stageTicksHtml(n, 13)}</span>
+                        <span>${workitem.current_stage || ''}</span>
+                    </div>
+                </td>
+                <td>
+                    <span class="nx-wi-statusdot">
+                        <span class="nx-wi-dot" style="background:${dot.dot};box-shadow:0 0 0 3px ${dot.halo}"></span>${workitem.status}
+                    </span>
+                </td>
+                <td data-sort="${movedTimeText(workitem.modifiedat)}">
+                    <div class="nx-wi-cell-time">${movedTimeText(workitem.modifiedat)}</div>
+                    <div class="nx-wi-cell-ago">${movedAgo(workitem.modifiedat)}</div>
+                </td>
+                <td class="text-right">
                     <button class="details-toggle-button text-[var(--nx-accent)] hover:text-[var(--nx-accent-hover)]"
                         data-workitemid="${workitem.workitemid}" data-rowkey="${rowKey}"
                         data-testid="workitems-details-toggle-${workitem.workitemid}">
-                        <i class="indicator fas fa-chevron-down"></i>
+                        <i class="indicator fas fa-chevron-right"></i>
                     </button>
                 </td>
             </tr>
@@ -1005,9 +1054,125 @@ modalConfirmBtn.addEventListener('click', () => {
             cb.addEventListener('change', () => {
                 if (cb.checked) selectedWorkitemIds.add(cb.dataset.id);
                 else selectedWorkitemIds.delete(cb.dataset.id);
+                cb.closest('tr')?.classList.toggle('is-selected', cb.checked);
                 updateBulkBar();
+                syncCardSelection();
             });
         });
+
+        renderCards(workitems);
+    }
+
+    // ---- Documents (card grid) view -- shares selection with the table.
+    // v1 renders a placeholder page icon rather than a live thumbnail:
+    // fetching /api/get_media_raw for every card on a 40+ item page is a
+    // real cost this pass doesn't take on. Real first-page thumbnails are a
+    // follow-up (#299 handoff calls for them explicitly).
+    function renderCards(workitems) {
+        const grid = document.getElementById('wiDocumentsView');
+        if (!grid) return;
+        grid.innerHTML = '';
+        if (workitems.length === 0) {
+            renderEmptyState(grid, null);
+            return;
+        }
+        workitems.forEach(workitem => {
+            const rowKey = rowKeyOf(workitem);
+            const dot = statusDotInfo(workitem.status);
+            const n = stageIndex(workitem.current_stage);
+            const checked = selectedWorkitemIds.has(rowKey);
+            const card = document.createElement('div');
+            card.className = 'nx-wi-card' + (checked ? ' is-selected' : '');
+            card.dataset.rowkey = rowKey;
+            card.innerHTML = `
+                <span class="nx-wi-card__check">
+                    <input type="checkbox" class="row-checkbox card-checkbox h-4 w-4 rounded border-gray-300 text-[var(--nx-accent)] cursor-pointer"
+                        data-id="${rowKey}" ${checked ? 'checked' : ''}>
+                </span>
+                <div class="nx-wi-card__thumb"><div class="nx-wi-card__sheet"></div></div>
+                <div class="nx-wi-card__body">
+                    <div class="nx-wi-card__line1">
+                        <span class="nx-wi-cell-id">${workitem.workitemid}</span>
+                        <span class="nx-wi-dot" title="${workitem.status}" style="background:${dot.dot};box-shadow:0 0 0 3px ${dot.halo}"></span>
+                    </div>
+                    <div class="nx-wi-card__line2">
+                        <span class="nx-wi-ticks">${stageTicksHtml(n, 9)}</span>
+                        <span class="nx-wi-card__stage">${workitem.current_stage || ''}</span>
+                        <span class="nx-wi-card__ago">${movedAgo(workitem.modifiedat)}</span>
+                    </div>
+                </div>`;
+            card.querySelector('.card-checkbox').addEventListener('change', (e) => {
+                e.stopPropagation();
+                if (e.target.checked) selectedWorkitemIds.add(rowKey);
+                else selectedWorkitemIds.delete(rowKey);
+                card.classList.toggle('is-selected', e.target.checked);
+                const tblCb = document.querySelector(`.row-checkbox[data-id="${rowKey}"]:not(.card-checkbox)`);
+                if (tblCb) tblCb.checked = e.target.checked;
+                updateBulkBar();
+            });
+            card.addEventListener('click', (e) => {
+                if (e.target.closest('.nx-wi-card__check')) return;
+                document.querySelector(`.details-toggle-button[data-rowkey="${rowKey}"]`)?.click();
+                document.getElementById('wiViewToggle').querySelector('[data-view="table"]').click();
+                document.getElementById(`row-${rowKey}`)?.scrollIntoView({ block: 'center' });
+            });
+            grid.appendChild(card);
+        });
+    }
+    function syncCardSelection() {
+        document.querySelectorAll('#wiDocumentsView .nx-wi-card').forEach(card => {
+            const checked = selectedWorkitemIds.has(card.dataset.rowkey);
+            card.classList.toggle('is-selected', checked);
+            const cb = card.querySelector('.card-checkbox');
+            if (cb) cb.checked = checked;
+        });
+    }
+    // ---- Status tabs + table/documents view toggle (#299) ----
+    function syncStatusTabs() {
+        const current = document.getElementById('statusFilter').value || '';
+        document.querySelectorAll('#statusTabs .nx-tab').forEach(tab => {
+            const active = tab.dataset.status === current;
+            tab.classList.toggle('is-active', active);
+            tab.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+    }
+    document.querySelectorAll('#statusTabs .nx-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.getElementById('statusFilter').value = tab.dataset.status;
+            syncStatusTabs();
+            fetchAndUpdateWorkitems();
+        });
+    });
+    document.querySelectorAll('#wiViewToggle .nx-segmented__btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('#wiViewToggle .nx-segmented__btn').forEach(b => b.classList.remove('is-active'));
+            btn.classList.add('is-active');
+            const isDocs = btn.dataset.view === 'documents';
+            document.getElementById('wiTableView').classList.toggle('hidden', isDocs);
+            document.getElementById('wiDocumentsView').classList.toggle('hidden', !isDocs);
+        });
+    });
+    async function fetchStatusCounts() {
+        const filterForm = document.getElementById('filterForm');
+        const params = new URLSearchParams();
+        for (const el of filterForm.elements) {
+            if (!el.name || el.disabled || el.type === 'file' || el.type === 'hidden' || el.name === 'status') continue;
+            if ((el.type === 'checkbox' || el.type === 'radio') && !el.checked) continue;
+            params.append(el.name, el.value);
+        }
+        try {
+            const resp = await fetch(`${API_PREFIX}api/workitems/status_counts?${params.toString()}`, {
+                headers: { 'X-CSRFToken': csrfToken }
+            });
+            if (!resp.ok) return;
+            const counts = await resp.json();
+            document.querySelectorAll('#statusTabs .nx-tab-count').forEach(span => {
+                const key = span.dataset.count;
+                if (counts[key] !== undefined) span.textContent = counts[key];
+            });
+        } catch (e) {
+            console.warn('status counts fetch failed:', e);
+        }
     }
 
     function renderPagination(pagination) {
@@ -1027,21 +1192,24 @@ modalConfirmBtn.addEventListener('click', () => {
 
         if (totalPages <= 1) return;
 
-        const prevDisabled = currentPage === 1 ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-50 hover:border-gray-300';
-        const nextDisabled = currentPage === totalPages ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-50 hover:border-gray-300';
+        // A window of at most 5 numbered pages centered on the current one,
+        // plus prev/next -- matches the segmented pager in the handoff spec
+        // (prev / numbered / next) rather than every page ever rendered.
+        const windowSize = 5;
+        let start = Math.max(1, currentPage - Math.floor(windowSize / 2));
+        let end = Math.min(totalPages, start + windowSize - 1);
+        start = Math.max(1, end - windowSize + 1);
 
-        const paginationHtml = `
-        <a href="#" data-page="${currentPage - 1}" class="pagination-link px-4 py-2 border border-gray-200 rounded-xl text-sm font-medium transition-colors bg-white text-gray-600 ${prevDisabled}" data-testid="workitems-pagination-prev">
-            <i class="fas fa-chevron-left mr-1 text-xs"></i> ${I18N.previous}
-        </a>
-        <span class="px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-xl">
-            ${currentPage} / ${totalPages}
-        </span>
-        <a href="#" data-page="${currentPage + 1}" class="pagination-link px-4 py-2 border border-gray-200 rounded-xl text-sm font-medium transition-colors bg-white text-gray-600 ${nextDisabled}" data-testid="workitems-pagination-next">
-            ${I18N.next} <i class="fas fa-chevron-right ml-1 text-xs"></i>
-        </a>
-    `;
-        controlsContainer.innerHTML = paginationHtml;
+        const btn = (page, label, disabled, testid) => `
+            <button type="button" data-page="${page}" ${disabled ? 'disabled' : ''}
+                class="nx-segmented__btn pagination-link" data-testid="${testid}">${label}</button>`;
+
+        let html = btn(currentPage - 1, '<i class="fas fa-chevron-left"></i>', currentPage === 1, 'workitems-pagination-prev');
+        for (let p = start; p <= end; p++) {
+            html += `<button type="button" data-page="${p}" class="nx-segmented__btn pagination-link${p === currentPage ? ' is-active' : ''}">${p}</button>`;
+        }
+        html += btn(currentPage + 1, '<i class="fas fa-chevron-right"></i>', currentPage === totalPages, 'workitems-pagination-next');
+        controlsContainer.innerHTML = html;
     }
 
     let sortState = {
@@ -1073,8 +1241,11 @@ modalConfirmBtn.addEventListener('click', () => {
             const bCell = b.mainRow.cells[columnIndex];
             if (!aCell || !bCell) return 0;
 
-            const aText = aCell.textContent.trim();
-            const bText = bCell.textContent.trim();
+            // Cells 1 and 3 are two-line (id+stage, time+relative-ago) since
+            // the console redesign; data-sort carries the single value that
+            // actually matters instead of the concatenated display text.
+            const aText = (aCell.dataset.sort ?? aCell.textContent).trim();
+            const bText = (bCell.dataset.sort ?? bCell.textContent).trim();
 
             let comparison = 0;
             if (columnIndex === 3) {
@@ -1139,12 +1310,17 @@ modalConfirmBtn.addEventListener('click', () => {
         fetchAndUpdateWorkitems();
     });
 
-    ['prcfW', 'stageFilter', 'statusFilter', 'startDate', 'endDate', 'filterPerPage'].forEach(id => {
+    ['prcfW', 'stageFilter', 'startDate', 'endDate', 'filterPerPage'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('change', () => fetchAndUpdateWorkitems());
     });
     const searchInput = document.getElementById('searchInput');
     if (searchInput) searchInput.addEventListener('input', () => debounceSearch(() => fetchAndUpdateWorkitems()));
+
+    document.getElementById('resetFilterBtn')?.addEventListener('click', (e) => {
+        window.location.href = e.currentTarget.dataset.resetUrl;
+    });
+    syncStatusTabs();
 
     const paginationContainer = document.getElementById('paginationContainer');
     if (paginationContainer) {
@@ -1195,10 +1371,12 @@ modalConfirmBtn.addEventListener('click', () => {
             const checkboxes = document.querySelectorAll('.row-checkbox');
             checkboxes.forEach(cb => {
                 cb.checked = selectAllCb.checked;
+                cb.closest('tr')?.classList.toggle('is-selected', cb.checked);
                 if (selectAllCb.checked) selectedWorkitemIds.add(cb.dataset.id);
                 else selectedWorkitemIds.delete(cb.dataset.id);
             });
             updateBulkBar();
+            syncCardSelection();
         });
     }
 
@@ -1213,10 +1391,11 @@ modalConfirmBtn.addEventListener('click', () => {
     if (bulkDeselectBtn) {
         bulkDeselectBtn.addEventListener('click', () => {
             selectedWorkitemIds.clear();
-            document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = false);
+            document.querySelectorAll('.row-checkbox').forEach(cb => { cb.checked = false; cb.closest('tr')?.classList.remove('is-selected'); });
             const sAll = document.getElementById('selectAllCheckbox');
             if (sAll) { sAll.checked = false; sAll.indeterminate = false; }
             updateBulkBar();
+            syncCardSelection();
         });
     }
     if (exportCsvBtn) {
@@ -1570,6 +1749,7 @@ modalConfirmBtn.addEventListener('click', () => {
         document.getElementById('searchInput').value = one('search');
         document.getElementById('stageFilter').value = one('stage');
         document.getElementById('statusFilter').value = one('status');
+        syncStatusTabs();
         if (datePreset) datePreset.value = '';
         ['startDate', 'endDate'].forEach(id => {
             const el = document.getElementById(id);

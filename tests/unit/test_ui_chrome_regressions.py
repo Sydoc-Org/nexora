@@ -23,6 +23,7 @@ CSS = REPO_ROOT / "static" / "css"
 
 # Tailwind spacing scale -> rem, for the handful of steps the search field uses.
 _SPACING_REM = {"3": 0.75, "3.5": 0.875, "10": 2.5}
+_PX_REM = 1 / 16  # workitems_overview.css's .nx-wi-search uses plain px, not Tailwind steps.
 
 
 def _rule_body(css_text, selector):
@@ -53,12 +54,21 @@ def _declaration(block, prop):
 
 def _search_field_markup():
     text = (TEMPLATES / "workitems_overview.html").read_text(encoding="utf-8")
-    # The icon span and the input live in the same .relative wrapper; grab the
-    # slice between the label and the closing wrapper so the assertions below
-    # cannot accidentally read another field's classes.
-    start = text.index('for="searchInput"')
+    # The icon <i> and the input live inside the same .nx-wi-search wrapper
+    # (#299 console redesign); grab that slice so the assertions below cannot
+    # accidentally read another field's classes.
+    start = text.index('<div class="nx-wi-search"')
     end = text.index('data-testid="workitems-search"', start)
     return text[start:end]
+
+
+def _search_field_css_rule(prop):
+    css_text = (CSS / "workitems_overview.css").read_text(encoding="utf-8")
+    block = _rule_body(css_text, ".nx-wi-search i")
+    assert block is not None, ".nx-wi-search i rule disappeared from workitems_overview.css"
+    value = _declaration(block, prop)
+    assert value is not None, f".nx-wi-search i lost its {prop} declaration"
+    return value
 
 
 def test_workitems_search_icon_fits_inside_the_input_padding():
@@ -66,29 +76,32 @@ def test_workitems_search_icon_fits_inside_the_input_padding():
     left padding has to clear the icon's left offset plus the glyph itself.
     When they were both set from the same 'looks about right' guess the glyph
     and the placeholder overlapped."""
-    markup = _search_field_markup()
+    icon_left = float(_search_field_css_rule("left").rstrip("px")) * _PX_REM
 
-    icon_pad = re.search(r"pl-([\d.]+) text-gray-400", markup)
-    input_pad = re.search(r"nx-input h-11 pl-([\d.]+)", markup)
-    assert icon_pad and input_pad, f"search field lost its padding classes:\n{markup}"
+    css_text = (CSS / "workitems_overview.css").read_text(encoding="utf-8")
+    input_block = _rule_body(css_text, ".nx-wi-search .nx-input")
+    assert (
+        input_block is not None
+    ), ".nx-wi-search .nx-input rule disappeared from workitems_overview.css"
+    input_pad = _declaration(input_block, "padding-left")
+    assert input_pad is not None, ".nx-wi-search .nx-input lost its padding-left"
+    input_rem = float(input_pad.rstrip("px")) * _PX_REM
 
-    icon_rem = _SPACING_REM[icon_pad.group(1)]
-    input_rem = _SPACING_REM[input_pad.group(1)]
-    # A 14px (0.875rem) glyph plus a little air. If the input's padding stops
-    # short of that, text starts underneath the icon.
-    assert input_rem >= icon_rem + 0.875, (
+    # A 10px (~0.625rem) glyph plus a little air. If the input's padding
+    # stops short of that, text starts underneath the icon.
+    assert input_rem >= icon_left + 0.625, (
         f"input padding-left ({input_rem}rem) does not clear the icon "
-        f"(offset {icon_rem}rem + ~0.875rem glyph); the placeholder will "
+        f"(offset {icon_left}rem + ~0.625rem glyph); the placeholder will "
         f"render under the magnifier."
     )
 
 
 def test_workitems_search_icon_does_not_swallow_clicks():
-    """The icon overlays the input's click target. Without pointer-events-none
+    """The icon overlays the input's click target. Without pointer-events:none
     a click on the glyph does not focus the field."""
-    assert "pointer-events-none" in _search_field_markup(), (
-        "the search magnifier lost pointer-events-none; clicking it no longer " "focuses the input"
-    )
+    assert (
+        _search_field_css_rule("pointer-events") == "none"
+    ), "the search magnifier lost pointer-events:none; clicking it no longer focuses the input"
 
 
 # --------------------------------------------------------------------------
