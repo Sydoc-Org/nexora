@@ -38,29 +38,76 @@
 {%- endmacro %}
 
 {# "Eddard builds a report" (design handoff behaviour 2): he flings each piece
-   of a report onto the card -- title, KPI, bars, trend line -- then pops a
-   green Ready badge and clears back to an empty page. Decorative placeholder
-   content (it is a loading animation, not the real report), hence aria-hidden
-   and untranslated copy.
+   of a report onto the card, then pops a green Ready badge and clears back to
+   an empty page. Decorative placeholder content (it is a loading animation,
+   not the real report), hence aria-hidden and untranslated copy.
+
+   Three report variants take turns, one per build loop (#272, design
+   docs/design/eddard_animation_variety): 0 = KPI + bars + trend line tossed in
+   from the lower left, 1 = a measures table + donut dropped in from above,
+   2 = big number + progress bars + sparkline flung in from the right.
 
    The stage is inert markup: js/_eddard_js.html walks the build counter and
-   unhides the slots, each of which plays its entrance animation on reveal. #}
+   unhides the slots, each of which plays its entrance animation on reveal.
+   Each slot declares when it belongs on the card:
+     data-ed-step  lowest build step at which it shows
+     data-ed-var   which variant owns it (absent = every variant)
+     data-ed-preview  which streamed value overwrites it (see setPreview)
+   ponytail: the handoff's per-step status row is left out -- the ticker above
+   the stage already shows the agent's real step labels. #}
 {% macro stage(testid='') -%}
 <div class="ed-stage" {% if testid %}data-testid="{{ testid }}" {% endif %}aria-hidden="true">
   {{ mark(72, state='working', cls='ed-stage__mascot') }}
-  <div class="ed-rc">
+  <div class="ed-rc" data-ed-var="0">
     <div class="ed-rc-empty" data-ed-slot="empty">Empty report</div>
-    <div class="ed-rc-title" data-ed-slot="title" hidden>Monthly report</div>
-    <div class="ed-rc-kpi" data-ed-slot="kpi" hidden>
-      <span class="ed-rc-kpi__num">&euro;1.24M</span><span class="ed-rc-kpi__delta">&#9650; 8.3%</span>
+
+    {# variant 0 -- documents imported #}
+    <div class="ed-rc-title" data-ed-slot="title" data-ed-var="0" data-ed-step="1" data-ed-preview="title" hidden>Documents imported</div>
+    <div class="ed-rc-kpi" data-ed-slot="kpi" data-ed-var="0" data-ed-step="2" hidden>
+      <span class="ed-rc-kpi__num" data-ed-preview="total">3,482</span><span class="ed-rc-kpi__delta">&#9650; 8.3%</span>
     </div>
-    <div class="ed-rc-bars" data-ed-slot="bars" hidden>
+    <div class="ed-rc-bars" data-ed-slot="bars" data-ed-var="0" data-ed-step="3" data-ed-preview="bars" hidden>
       {% for h in [34, 52, 26, 44, 58, 38] %}<i style="height: {{ h }}px; animation-delay: {{ 0.15 + loop.index0 * 0.1 }}s"></i>{% endfor %}
     </div>
-    <svg class="ed-rc-line" data-ed-slot="line" viewBox="0 0 260 44" preserveAspectRatio="none" fill="none" hidden focusable="false">
+    <svg class="ed-rc-line" data-ed-slot="line" data-ed-var="0" data-ed-step="4" data-ed-preview="line" viewBox="0 0 260 44" preserveAspectRatio="none" fill="none" hidden focusable="false">
       <polyline points="0,38 44,26 88,30 132,14 176,20 220,6 260,12" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
-    <span class="ed-rc-badge" data-ed-slot="badge" hidden>Ready</span>
+
+    {# variant 1 -- pipeline measures #}
+    <div class="ed-rc-title" data-ed-slot="titleT" data-ed-var="1" data-ed-step="1" data-ed-preview="title" hidden>Pipeline measures</div>
+    <div class="ed-rc-rows" data-ed-slot="rows1" data-ed-var="1" data-ed-step="2" hidden>
+      <span><i>Backlog</i><b data-ed-preview="total">214</b></span>
+      <span><i>Documents imported</i><b>3,482</b></span>
+    </div>
+    <div class="ed-rc-rows" data-ed-slot="rows2" data-ed-var="1" data-ed-step="3" hidden>
+      <span><i>Documents exported</i><b>3,190</b></span>
+      <span class="ed-rc-rows__total"><i>Field extraction</i><b>96.4%</b></span>
+    </div>
+    <div class="ed-rc-donut" data-ed-slot="donut" data-ed-var="1" data-ed-step="4" hidden>
+      <svg viewBox="0 0 60 60" fill="none" focusable="false">
+        <circle class="ed-rc-donut__track" cx="30" cy="30" r="24" stroke-width="9"/>
+        <circle class="ed-rc-donut__arc" cx="30" cy="30" r="24" stroke-width="9" pathLength="100"
+                stroke-dasharray="100" stroke-linecap="round" transform="rotate(-90 30 30)"/>
+      </svg>
+      <span><i>Extracted 96%</i><i class="is-rest">Pending 4%</i></span>
+    </div>
+
+    {# variant 2 -- weekly digest #}
+    <div class="ed-rc-title" data-ed-slot="titleD" data-ed-var="2" data-ed-step="1" data-ed-preview="title" hidden>Weekly digest</div>
+    <div class="ed-rc-big" data-ed-slot="bignum" data-ed-var="2" data-ed-step="2" hidden>
+      <span class="ed-rc-big__num" data-ed-preview="total">214</span><span class="ed-rc-big__label">documents in backlog</span>
+    </div>
+    <div class="ed-rc-prog" data-ed-slot="progress" data-ed-var="2" data-ed-step="3" data-ed-preview="progress" hidden>
+      {% for label, pct in [('Imported', 82), ('Exported', 54), ('Field extraction', 96)] %}
+      <span><i>{{ label }}</i><b><u style="width: {{ pct }}%; animation-delay: {{ 0.05 + loop.index0 * 0.1 }}s"></u></b></span>
+      {% endfor %}
+    </div>
+    <svg class="ed-rc-spark" data-ed-slot="spark" data-ed-var="2" data-ed-step="4" data-ed-preview="spark" viewBox="0 0 200 32" preserveAspectRatio="none" fill="none" hidden focusable="false">
+      <polyline points="0,26 33,18 66,22 100,8 133,16 166,4 200,10" pathLength="100" stroke-dasharray="100"
+                stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+
+    <span class="ed-rc-badge" data-ed-slot="badge" data-ed-step="5" hidden>Ready</span>
   </div>
 </div>
 {%- endmacro %}

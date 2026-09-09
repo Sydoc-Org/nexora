@@ -227,6 +227,73 @@
   animation: edBadge .5s cubic-bezier(.34, 1.56, .64, 1) both;
 }
 
+/* --- variant 1: measures table + donut (drops in from above) -------------- */
+/* The group itself stays put -- each row drops in on its own, staggered. */
+.ed-rc-rows { display: flex; flex-direction: column; animation: none !important; }
+.ed-rc-rows > span {
+  display: flex; justify-content: space-between; gap: 8px; padding: 3px 0;
+  border-bottom: 1px solid var(--nx-border, #eef0f3);
+  font: 400 10px var(--nx-font, Inter, sans-serif);
+  animation: edTossTop .55s cubic-bezier(.34, 1.4, .6, 1) .05s both;
+}
+.ed-rc-rows > span:nth-child(2) { animation-delay: .15s; }
+.ed-rc-rows > span i { font-style: normal; font-weight: 600; color: var(--nx-text-sec, #57617a); }
+.ed-rc-rows > span b { font-weight: 700; color: var(--nx-text, #101623); }
+.ed-rc-rows > span.ed-rc-rows__total { border-bottom: 0; padding-bottom: 0; }
+.ed-rc-rows > span.ed-rc-rows__total i { color: var(--nx-text, #101623); font-weight: 700; }
+.ed-rc-rows > span.ed-rc-rows__total b { color: var(--nx-accent, #4f46e5); font-weight: 800; }
+
+.ed-rc-donut { display: flex; align-items: center; gap: 10px; }
+.ed-rc-donut svg { width: 36px; height: 36px; flex: none; }
+.ed-rc-donut__track { stroke: var(--nx-border, #eef0f3); }
+.ed-rc-donut__arc {
+  stroke: var(--nx-accent, #4f46e5);
+  stroke-dashoffset: 47;              /* ~53% sweep, per the handoff */
+  animation: edDraw100 .8s ease-out both;
+}
+.ed-rc-donut > span { display: flex; flex-direction: column; gap: 3px; }
+.ed-rc-donut > span i {
+  font: 600 9px var(--nx-font, Inter, sans-serif); font-style: normal;
+  color: var(--nx-text-sec, #57617a);
+}
+.ed-rc-donut > span i::before {
+  content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 5px;
+  border-radius: 50%; background: var(--nx-accent, #4f46e5);
+}
+.ed-rc-donut > span i.is-rest::before { background: var(--nx-border, #eef0f3); }
+
+/* --- variant 2: big number + progress bars + sparkline (flung from right) -- */
+.ed-rc-big { display: flex; align-items: baseline; gap: 6px; }
+.ed-rc-big__num { font: 800 18px var(--nx-font, Inter, sans-serif); color: var(--nx-text, #101623); }
+.ed-rc-big__label { font: 600 9px var(--nx-font, Inter, sans-serif); color: var(--nx-text-sec, #57617a); }
+
+.ed-rc-prog { display: flex; flex-direction: column; gap: 5px; }
+.ed-rc-prog > span { display: flex; align-items: center; gap: 6px; }
+.ed-rc-prog > span i {
+  flex: none; width: 68px; font-style: normal; white-space: nowrap;
+  font: 600 9px var(--nx-font, Inter, sans-serif); color: var(--nx-text-sec, #57617a);
+}
+.ed-rc-prog > span b {
+  flex: 1; height: 5px; border-radius: 3px; overflow: hidden;
+  background: var(--nx-border, #eef0f3);
+}
+.ed-rc-prog > span b u {
+  display: block; height: 100%; border-radius: 3px;
+  background: var(--nx-accent, #4f46e5);
+  transform-origin: left; animation: edGrowX .5s ease-out both;
+}
+
+.ed-rc-spark { width: 100%; height: 24px; }
+.ed-rc-spark polyline { stroke: var(--nx-accent, #4f46e5); animation: edDraw100 .9s ease-out both; }
+
+/* Each variant throws its pieces in from its own direction (handoff 8a). */
+.ed-rc[data-ed-var="1"] > [data-ed-step] { animation-name: edTossTop; }
+.ed-rc[data-ed-var="2"] > [data-ed-step] { animation-name: edTossR; }
+/* ...except the donut, which pops in like the Ready badge. */
+.ed-rc[data-ed-var="1"] > .ed-rc-donut {
+  animation: edBadge .5s cubic-bezier(.34, 1.56, .64, 1) both;
+}
+
 /* Tiny settle bounce of the card as each piece lands (retriggered per piece). */
 .ed-rc.ed-rc--settle { animation: edSettle .3s ease-out; }
 @keyframes edSettle {
@@ -240,8 +307,24 @@
   72%  { transform: translate(6px, -5px) scale(1.06) rotate(4deg); }
   100% { transform: translate(0, 0) scale(1) rotate(0); opacity: 1; }
 }
+@keyframes edTossTop {
+  0%   { transform: translateY(-58px) scale(.55); opacity: 0; }
+  55%  { opacity: 1; }
+  72%  { transform: translateY(4px) scale(1.05); }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+@keyframes edTossR {
+  0%   { transform: translate(150px, 10px) scale(.4) rotate(10deg); opacity: 0; }
+  55%  { opacity: 1; }
+  72%  { transform: translate(-4px, -3px) scale(1.06) rotate(-2deg); }
+  100% { transform: translate(0, 0) scale(1) rotate(0); opacity: 1; }
+}
 @keyframes edGrow  { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes edGrowX { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes edDraw  { from { stroke-dashoffset: 240; } to { stroke-dashoffset: 0; } }
+/* pathLength="100", so this one is viewBox-size independent. The donut holds
+   its ~53% sweep, hence the per-element stroke-dashoffset it settles on. */
+@keyframes edDraw100 { from { stroke-dashoffset: 100; } }
 @keyframes edBadge {
   0%   { transform: scale(0); opacity: 0; }
   60%  { transform: scale(1.15); opacity: 1; }
@@ -253,6 +336,11 @@
 @media (prefers-reduced-motion: reduce) {
   .ed-rc,
   .ed-rc > *,
+  .ed-rc-rows > span,
+  .ed-rc-prog > span,
   .ed-rc-bars i,
-  .ed-rc-line polyline { animation: none !important; }
+  .ed-rc-prog u,
+  .ed-rc-line polyline,
+  .ed-rc-spark polyline,
+  .ed-rc-donut__arc { animation: none !important; }
 }
