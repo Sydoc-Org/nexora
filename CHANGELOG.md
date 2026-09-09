@@ -7,6 +7,15 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Eddard builds three different reports** (#272) — the reporting
+  assistant's waiting animation now cycles through three report layouts
+  instead of replaying one: the KPI card (bars + trend line, tossed in from
+  the lower left), a pipeline-measures table with a donut (dropped in from
+  above), and a weekly digest with progress bars and a sparkline (flung in
+  from the right). Each wrap of the build counter hands over to the next, so
+  a long wait keeps changing. The live preview of the agent's real numbers
+  (#212) now writes into whichever layout is on screen. Design:
+  `docs/design/eddard_animation_variety/`.
 - **Workitems overview: console redesign (part 2)** — the inline detail panel
   (shared with the reporting drill drawer and prepared_documents' preview
   modal) restyled to match part 1 (#299). Stage stepper redrawn as accent
