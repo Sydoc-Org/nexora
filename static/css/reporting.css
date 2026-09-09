@@ -860,6 +860,11 @@ body.nx-app {
 /* View toggle (Grid / Chart / Pivot) → segmented, matches mode toggle */
 .reporting-view-toggle {
   display: inline-flex;
+  /* Wrap, don't overflow (#285). The middle grid track collapses to ~200px at
+     1280px wide, while this cluster needs ~273px; nowrap made it spill 94px
+     into the .reporting-wells column, which is later in DOM order and so
+     painted over the Forecast checkbox and swallowed its clicks. */
+  flex-wrap: wrap;
   gap: 3px; padding: 3px;
   background: var(--nx-sunken);
   border: 1px solid var(--nx-border);

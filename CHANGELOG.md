@@ -70,6 +70,15 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and nothing bleeds in beside it; the editor preview re-runs on every change.
 
 ### Fixed
+- **The Forecast checkbox in the Advanced reporting toolbar was unclickable at
+  narrower window widths** (#285). The builder is a `260px 1fr 300px` grid, and
+  at a 1280px-wide window the middle results column collapses to 200px while the
+  Grid/Chart/Pivot + Forecast cluster needs 273px. It was `inline-flex` with
+  `flex-wrap: nowrap`, so it could neither shrink nor wrap and spilled 94px into
+  the wells column, which is later in the DOM and therefore painted over the
+  checkbox and swallowed its clicks. The cluster wraps now. This was filed as an
+  e2e failure and the test skipped, but it affected real users at that width too
+  — 1280 is an ordinary laptop viewport.
 - **The date picker is readable in dark mode on every page that has one, not
   just the dashboard.** The flatpickr overrides sat in `static/css/dashboard.css`,
   which only two templates load, while eleven templates open a calendar — so
