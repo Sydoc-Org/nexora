@@ -1,0 +1,22 @@
+<!-- @dsCard group="Colors" viewport="700x130" name="Chart series" subtitle="Four separable hues, each with its own line style" -->
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; padding: 16px 18px; background: var(--nx-card); font-family: var(--nx-font); color: var(--nx-text); }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; }
+  .sw { display: flex; flex-direction: column; gap: 6px; width: 96px; }
+  .chip { height: 44px; border-radius: 8px; border: 1px solid var(--nx-border); }
+  .name { font-size: 10.5px; font-weight: 600; color: var(--nx-text); }
+  .hex { font-family: var(--nx-mono); font-size: 9.5px; color: var(--nx-text-meta); }
+  .cap { font-size: 9.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--nx-text-meta); }
+  table { border-collapse: collapse; font-size: 11.5px; }
+  td { padding: 3px 14px 3px 0; color: var(--nx-text-sec); }
+  td.k { font-family: var(--nx-mono); color: var(--nx-text); }
+</style>
+
+<div style="display:flex;flex-direction:column;gap:10px">
+  <div style="display:flex;align-items:center;gap:10px"><span style="width:52px;height:0;border-top:2.5px solid var(--nx-series-1)"></span><span class="name">series-1 solid</span><span class="hex">#d97706</span></div>
+  <div style="display:flex;align-items:center;gap:10px"><span style="width:52px;height:0;border-top:2.5px dashed var(--nx-series-2)"></span><span class="name">series-2 dashed</span><span class="hex">#7c3aed</span></div>
+  <div style="display:flex;align-items:center;gap:10px"><span style="width:52px;height:0;border-top:2.5px dotted var(--nx-series-3)"></span><span class="name">series-3 dotted</span><span class="hex">#0891b2</span></div>
+  <div style="display:flex;align-items:center;gap:10px"><span style="width:52px;height:0;border-top:2.5px solid var(--nx-series-4)"></span><span class="name">series-4 solid thin</span><span class="hex">#db2777</span></div>
+</div>

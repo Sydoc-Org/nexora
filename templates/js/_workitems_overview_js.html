@@ -9,6 +9,7 @@
       audit:  {{ details_audit_perm|tojson }},
       fields: {{ details_fields_perm|tojson }}
     },
+    stages: {{ workitem_stages|tojson }},
     docfield: {{ (docfield or '')|tojson }},
     i18n: {
       pleaseSelectValidPdf: {{ _("Please select valid PDF files.")|tojson }},
@@ -26,8 +27,17 @@
       selectedWillExport: {{ _("selected workitems will be exported")|tojson }},
       allWillExport: {{ _("All workitems matching current filters will be exported")|tojson }},
       exportFailed: {{ _("Export failed. Please try again.")|tojson }},
-      noWorkitemsFound: {{ _("No workitems found")|tojson }},
-      noWorkitemsHint: {{ _("Try adjusting your filters or resetting the search.")|tojson }},
+      noWorkitemsFound: {{ _("No workitems match the current filters.")|tojson }},
+      {# count=/n= echo their own placeholder token: gettext's %-substitution
+         always runs (jinja2.ext, unlike flask_babel's, doesn't skip it for
+         zero variables), so a bare %(count)s with no kwarg raises KeyError.
+         Substituting the token for itself keeps ".po" msgids readable for
+         translators while leaving the literal token in place for JS's own
+         .replace() to fill in per render. #}
+      shownSortedByLastMovement: {{ _("%(count)s shown · sorted by last movement", count="%(count)s")|tojson }},
+      minAgo: {{ _("%(n)s min ago", n="%(n)s")|tojson }},
+      hAgo: {{ _("%(n)s h ago", n="%(n)s")|tojson }},
+      dAgo: {{ _("%(n)s d ago", n="%(n)s")|tojson }},
       previous: {{ _("Previous")|tojson }},
       next: {{ _("Next")|tojson }},
       deselectView: {{ _("Deselect view")|tojson }},

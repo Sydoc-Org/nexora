@@ -107,6 +107,7 @@
 
   function destroyChart() {
     if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+    lastChartCanvas = null;   // chartPngDataUrl() must not export a dead chart
   }
 
   // opts: {onElementClick?: function(index, datasetIndex)} — a caller-supplied

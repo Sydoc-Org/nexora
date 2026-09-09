@@ -1,0 +1,194 @@
+    <script nonce="{{ csp_nonce() }}">
+        // Tenant management (#256 phase 2): tenants, their organizations, mounted pages.
+        const API_PREFIX = window.API_PREFIX;
+        const showNotification = window.NX.toast;
+
+        const tenantModal = document.getElementById('tenantModal');
+        const tenantModalTitle = document.getElementById('tenantModalTitle');
+        const tenantForm = document.getElementById('tenantForm');
+        const tenantOriginalCode = document.getElementById('tenantOriginalCode');
+        const tenantCodeInput = document.getElementById('TenantCode');
+
+        const confirmationModal = document.getElementById('confirmationModal');
+        const confirmMessage = document.getElementById('confirmMessage');
+        const confirmBtn = document.getElementById('confirmBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
+
+        function openModal() {
+            tenantModal.classList.remove('hidden');
+            setTimeout(() => {
+                tenantModal.classList.remove('opacity-0');
+                tenantModal.querySelector('.modal-content').classList.remove('scale-95');
+            }, 10);
+        }
+        function closeModal(event) {
+            if (event && event.target !== tenantModal) return;
+            tenantModal.classList.add('opacity-0');
+            tenantModal.querySelector('.modal-content').classList.add('scale-95');
+            setTimeout(() => tenantModal.classList.add('hidden'), 300);
+        }
+        tenantModal.addEventListener('click', closeModal);
+        document.getElementById('tenantModalCancelBtn')?.addEventListener('click', () => closeModal());
+
+        // Organization checkboxes: tick the members, flag the ones another tenant owns.
+        function setOrganizations(selected, ownCode) {
+            tenantForm.querySelectorAll('input[name="organizations"]').forEach(cb => {
+                cb.checked = selected.includes(cb.value);
+                const elsewhere = cb.dataset.currentTenant && cb.dataset.currentTenant !== ownCode;
+                const hint = cb.closest('label').querySelector('.org-elsewhere');
+                hint.classList.toggle('hidden', !elsewhere);
+                if (elsewhere) hint.querySelector('.org-elsewhere-name').textContent = cb.dataset.currentTenant;
+            });
+        }
+
+        window.openAddTenantModal = function () {
+            tenantForm.reset();
+            tenantModalTitle.textContent = `{{ _("Add a new Tenant") }}`;
+            tenantOriginalCode.value = '';
+            tenantCodeInput.disabled = false;
+            document.getElementById('IsActive').checked = true;
+            setOrganizations([], '');
+            openModal();
+        };
+
+        function openEditTenantModal(t) {
+            tenantForm.reset();
+            tenantModalTitle.textContent = `{{ _("Edit Tenant") }}`;
+            tenantOriginalCode.value = t.TenantCode;
+            tenantCodeInput.value = t.TenantCode;
+            // TenantCode is the primary key and the middle of tenant.<code>.view -- not editable.
+            tenantCodeInput.disabled = true;
+            document.getElementById('DisplayName').value = t.DisplayName || '';
+            document.getElementById('IsActive').checked = !!t.IsActive;
+            setOrganizations(t.organizations || [], t.TenantCode);
+            openModal();
+        }
+
+        async function send(url, method, body, forbiddenMsg) {
+            try {
+                const response = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                    body: body === undefined ? undefined : JSON.stringify(body)
+                });
+                if (response.status === 403) { showNotification(forbiddenMsg, 'error'); return false; }
+                const result = await response.json();
+                if (response.ok) { showNotification(result.message || `{{ _("Success") }}`); return true; }
+                showNotification(`{{ _("Error:") }} ${result.message}`, 'error');
+                return false;
+            } catch (error) {
+                console.error('request failed:', error);
+                showNotification(`{{ _("An unexpected network error occurred.") }}`, 'error');
+                return false;
+            }
+        }
+        // Server-rendered page: reload to pick up the new state (same as Data Connections).
+        const reload = () => window.location.reload();
+
+        tenantForm.addEventListener('submit', async function (event) {
+            event.preventDefault();
+            const data = {
+                TenantCode: tenantCodeInput.value,
+                DisplayName: document.getElementById('DisplayName').value,
+                IsActive: document.getElementById('IsActive').checked,
+                organizations: Array.from(tenantForm.querySelectorAll('input[name="organizations"]:checked')).map(cb => cb.value),
+            };
+            const original = tenantOriginalCode.value;
+            const url = original
+                ? `${API_PREFIX}admin/tenants/edit/${encodeURIComponent(original)}`
+                : `${API_PREFIX}admin/tenants/add`;
+            if (await send(url, 'POST', data, `{{ _("You do not have permission to perform this action.") }}`)) {
+                closeModal(null);
+                reload();
+            }
+        });
+
+        let confirmCallback = null;
+        function showConfirmationModal(message, onConfirm) {
+            confirmMessage.textContent = message;
+            confirmCallback = onConfirm;
+            confirmationModal.classList.remove('hidden');
+            setTimeout(() => {
+                confirmationModal.classList.remove('opacity-0');
+                confirmationModal.querySelector('.modal-content').classList.remove('scale-95');
+            }, 10);
+        }
+        function hideConfirmationModal() {
+            confirmationModal.classList.add('opacity-0');
+            confirmationModal.querySelector('.modal-content').classList.add('scale-95');
+            setTimeout(() => confirmationModal.classList.add('hidden'), 300);
+        }
+        confirmBtn.addEventListener('click', () => { if (confirmCallback) confirmCallback(); hideConfirmationModal(); });
+        cancelBtn.addEventListener('click', hideConfirmationModal);
+
+        const forbidden = `{{ _("You do not have permission to perform this action.") }}`;
+
+        document.addEventListener('click', async (e) => {
+            const edit = e.target.closest('.edit-tenant-btn');
+            if (edit) { openEditTenantModal(JSON.parse(edit.dataset.tenant)); return; }
+
+            const pages = e.target.closest('.pages-tenant-btn');
+            if (pages) {
+                document.querySelectorAll('.tenant-pages-panel').forEach(p => p.classList.add('hidden'));
+                const panel = document.getElementById(`pages-panel-${pages.dataset.tenant}`);
+                panel?.classList.remove('hidden');
+                panel?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                return;
+            }
+
+            const del = e.target.closest('.delete-tenant-btn');
+            if (del) {
+                showConfirmationModal(`{{ _("Delete this tenant and its page descriptors? Organizations must be moved out first.") }}`, async () => {
+                    if (await send(`${API_PREFIX}admin/tenants/delete/${encodeURIComponent(del.dataset.tenant)}`, 'DELETE', undefined, forbidden)) reload();
+                });
+                return;
+            }
+
+            const toggle = e.target.closest('.toggle-page-btn');
+            if (toggle) {
+                const url = `${API_PREFIX}admin/tenants/${encodeURIComponent(toggle.dataset.tenant)}/pages/${encodeURIComponent(toggle.dataset.page)}/status`;
+                if (await send(url, 'POST', { Status: toggle.dataset.next }, forbidden)) reload();
+                return;
+            }
+
+            const delPage = e.target.closest('.delete-page-btn');
+            if (delPage) {
+                showConfirmationModal(`{{ _("Remove this page from the tenant?") }}`, async () => {
+                    const url = `${API_PREFIX}admin/tenants/${encodeURIComponent(delPage.dataset.tenant)}/pages/${encodeURIComponent(delPage.dataset.page)}`;
+                    if (await send(url, 'DELETE', undefined, forbidden)) reload();
+                });
+            }
+        });
+
+        document.querySelectorAll('.add-page-form').forEach(form => {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const data = Object.fromEntries(new FormData(form).entries());
+                delete data.csrf_token;
+                const url = `${API_PREFIX}admin/tenants/${encodeURIComponent(form.dataset.tenant)}/pages/add`;
+                if (await send(url, 'POST', data, forbidden)) reload();
+            });
+        });
+
+        // Remember which pages panel was open across the reloads the writes trigger.
+        document.addEventListener('click', (e) => {
+            const pages = e.target.closest('.pages-tenant-btn');
+            if (pages) { try { sessionStorage.setItem('nx-tenant-pages-open', pages.dataset.tenant); } catch (_) {} }
+        });
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                const open = sessionStorage.getItem('nx-tenant-pages-open');
+                if (open) document.getElementById(`pages-panel-${open}`)?.classList.remove('hidden');
+            } catch (_) {}
+
+            const input = document.getElementById('tenantManageSearch');
+            const tbody = document.getElementById('tenants-tbody');
+            if (!input || !tbody) return;
+            input.addEventListener('input', () => {
+                const q = input.value.trim().toLowerCase();
+                tbody.querySelectorAll('tr[data-search]').forEach(tr => {
+                    tr.style.display = !q || tr.dataset.search.includes(q) ? '' : 'none';
+                });
+            });
+        });
+    </script>

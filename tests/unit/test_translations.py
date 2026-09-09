@@ -159,7 +159,9 @@ def _translations_map(catalog):
         if not msg.id:
             continue
         key = (msg.id if isinstance(msg.id, str) else tuple(msg.id), msg.context)
-        if isinstance(msg.string, tuple):
+        # read_po hands plural msgstrs back as a tuple, read_mo as a list --
+        # normalise, or the first ngettext() string in the app fails this test.
+        if isinstance(msg.string, tuple | list):
             if not any(msg.string):
                 continue
             out[key] = tuple(msg.string)
@@ -225,3 +227,83 @@ def test_mo_files_up_to_date(locale):
             if len(mismatched) > 10:
                 lines.append(f"  ... and {len(mismatched) - 10} more")
         pytest.fail("\n".join(lines))
+
+
+# --- 4. Template strings must survive Jinja's format pass -------------------
+#
+# jinja2's gettext alias ends with `return rv % variables` -- unconditionally,
+# even when the call passes no variables. So a bare `%` in a translated string
+# is not a cosmetic issue: `"Extraction correct %" % {}` raises ValueError and
+# the whole page 500s. A literal percent sign must be written `%%`.
+#
+# This bit #254 in dd57cfbf: three reporting tips quoted measure labels ending
+# in `%`, and /reporting was a hard 500 until they were escaped. It went
+# unnoticed because Jinja caches templates for the process lifetime, so the
+# dev server kept serving the pre-edit copy.
+#
+# Checked for msgstr too, not just msgid: a translator writing a bare `%`
+# breaks that one locale only, which is exactly the kind of bug nobody sees
+# until a French-speaking user opens the page.
+
+
+class _AnyKey:
+    """A mapping that answers every key, so `%(name)s` placeholders resolve.
+
+    Named placeholders are legitimate -- the caller supplies them. Only a
+    malformed conversion (a bare `%`) should fail, and that raises ValueError
+    regardless of what the mapping holds.
+    """
+
+    def __getitem__(self, key):
+        return 0  # works for %s, %d and %f alike
+
+
+def _formats_cleanly(text):
+    """True if Jinja's `rv % variables` would not raise on this string."""
+    try:
+        text % _AnyKey()
+    except (ValueError, TypeError):
+        return False
+    return True
+
+
+def _template_msgids():
+    """msgids that come from a template, i.e. the ones Jinja renders."""
+    catalog = _read_catalog(POT_PATH)
+    out = []
+    for msg in catalog:
+        if not msg.id:
+            continue
+        if any(str(fname).startswith("templates") for fname, _lineno in msg.locations):
+            # ngettext ids arrive as (singular, plural); each half renders on its own
+            out.extend(msg.id if isinstance(msg.id, tuple) else (msg.id,))
+    return out
+
+
+def test_template_msgids_survive_jinja_percent_formatting():
+    ids = _template_msgids()
+    assert ids, "no template msgids found -- is messages.pot stale?"
+    bad = [mid for mid in ids if not _formats_cleanly(mid)]
+    assert not bad, (
+        "these template strings contain an unescaped '%' and will raise "
+        "ValueError inside jinja2's gettext (a 500 on the page). "
+        "Write a literal percent sign as '%%':\n" + "\n".join(f"  - {mid!r}" for mid in bad)
+    )
+
+
+@pytest.mark.parametrize("locale", LOCALES)
+def test_translated_template_strings_survive_jinja_percent_formatting(locale):
+    template_ids = set(_template_msgids())
+    catalog = _read_catalog(TRANSLATIONS_DIR / locale / "LC_MESSAGES" / "messages.po")
+    bad = []
+    for msg in catalog:
+        ids = msg.id if isinstance(msg.id, tuple) else (msg.id,)
+        if not msg.id or not any(i in template_ids for i in ids):
+            continue
+        strings = msg.string if isinstance(msg.string, tuple) else (msg.string,)
+        bad.extend(text for text in strings if text and not _formats_cleanly(text))
+    assert not bad, (
+        f"[{locale}] these translations contain an unescaped '%' and will "
+        "raise inside jinja2's gettext, 500ing the page for this locale only. "
+        "Write a literal percent sign as '%%':\n" + "\n".join(f"  - {text!r}" for text in bad)
+    )

@@ -548,7 +548,7 @@ def ask(
 # Surface D — auto AI captions over a result grid (Task 12). Unlike ask() /
 # ask_definition() (schema-only egress), `rows` here are the actual values a
 # Simple/Advanced result is displaying, so callers must gate this behind
-# reporting.ai.explain_data (the same data-egress grant used for run_sql /
+# reporting.ai.explain.use (the same data-egress grant used for run_sql /
 # compute_stats in the agentic loop).
 # ---------------------------------------------------------------------------
 
@@ -557,6 +557,137 @@ def ask(
 # prompt carries. Before (cap 50, rows[:50] of an ascending time series) the
 # model saw the NULL-date bucket plus 2020 and called it "a clear outlier".
 CAPTION_MAX_ROWS = 5000
+
+# "Ask Eddard about this report": bound on the grounding block that describes
+# the report the user is looking at (definition summary + fact sheet).
+REPORT_CONTEXT_MAX_CHARS = 6000
+
+
+def report_context_text(report, *, metrics, source_label, include_rows):
+    """Grounding text for the report currently on the user's screen.
+
+    `report` is the client payload {title, definition, columns, rows}. The
+    definition summary (source, grouping, measures with their registry
+    descriptions, filters) is schema-level and always included; the fact sheet
+    over the rows is data egress and only included when `include_rows` (the
+    caller holds reporting.ai.explain.use). Rows never reach the model raw --
+    caption_facts.build_facts reduces them, same as the auto-caption. Returns
+    "" for anything that is not a usable report object.
+    """
+    if not isinstance(report, dict):
+        return ""
+    definition = report.get("definition")
+    if not isinstance(definition, dict):
+        return ""
+    lines = ["The user is currently looking at this report:"]
+    title = str(report.get("title") or definition.get("title") or "").strip()
+    if title:
+        lines.append(f"Title: {title[:200]}")
+    if source_label:
+        lines.append(f"Source: {source_label} (id {definition.get('source')})")
+    cols = [c for c in definition.get("columns") or [] if isinstance(c, dict) and c.get("field")]
+    if cols:
+        lines.append(
+            "Grouped by: "
+            + ", ".join(
+                f"{c['field']}" + (f" (per {c['grain']})" if c.get("grain") else "") for c in cols
+            )
+        )
+    mets = [m.get("metric") for m in definition.get("metrics") or [] if isinstance(m, dict)]
+    if mets:
+        parts = []
+        for code in mets:
+            spec = (metrics or {}).get(code) or {}
+            desc = spec.get("description")
+            label = spec.get("label") or code
+            agg = spec.get("aggregation")
+            base = spec.get("base_field")
+            how = f"{agg}" + (f" of {base}" if base else "") if agg else ""
+            parts.append(
+                f"{label} [{code}]" + (f": {how}" if how else "") + (f" -- {desc}" if desc else "")
+            )
+        lines.append("Measures: " + "; ".join(parts))
+    filters = [f for f in definition.get("filters") or [] if isinstance(f, dict) and f.get("field")]
+    if filters:
+        lines.append(
+            "Filters: "
+            + ", ".join(f"{f['field']} {f.get('op')} {f.get('value')!r}" for f in filters)
+        )
+    fc = definition.get("forecast")
+    if isinstance(fc, dict) and fc.get("enabled"):
+        lines.append(f"Forecast: turned ON by the user (horizon {fc.get('horizon') or 'auto'}).")
+        fc_result = report.get("forecast")
+        if isinstance(fc_result, dict):
+            if fc_result.get("unavailable"):
+                lines.append(f"Forecast is unavailable here: {fc_result['unavailable']}.")
+            elif include_rows:
+                lines.append(
+                    "The chart/table already show the projected buckets appended after the "
+                    "real data — describe them as the forecast, not as more actuals."
+                )
+    layout = report.get("layout")
+    if isinstance(layout, dict) and isinstance(layout.get("measures"), list) and layout["measures"]:
+        if include_rows:
+            derived = report.get("derived") if isinstance(report.get("derived"), dict) else {}
+            op_labels = {
+                "current": "current value",
+                "mean": "average",
+                "minmax": "min/max",
+                "range": "range",
+                "stddev": "standard deviation",
+                "percentile": "percentile",
+            }
+            parts = []
+            for m in layout["measures"]:
+                if not isinstance(m, dict) or not m.get("id"):
+                    continue
+                op = m.get("op")
+                op_str = op if isinstance(op, str) else "measure"
+                label = op_labels.get(op_str, op_str)
+                entry = derived.get(m["id"]) if isinstance(derived, dict) else None
+                if not isinstance(entry, dict) or entry.get("unavailable"):
+                    parts.append(f"{label}: —")
+                elif "value" in entry:
+                    parts.append(f"{label}: {entry['value']:g}")
+                elif "min" in entry and "max" in entry:
+                    parts.append(f"{label}: {entry['min']:g}-{entry['max']:g}")
+                else:
+                    parts.append(f"{label}: —")
+            if parts:
+                lines.append(
+                    "Layout measures (this report is shown as a tile layout): " + "; ".join(parts)
+                )
+        else:
+            lines.append(
+                "This report is shown as a tile layout with computed measures; their values "
+                "are not shared with you."
+            )
+    if include_rows:
+        columns = report.get("columns")
+        rows = report.get("rows")
+        if isinstance(columns, list) and columns and isinstance(rows, list):
+            rows = [
+                list(r) if isinstance(r, list | tuple) else [r] for r in rows[:CAPTION_MAX_ROWS]
+            ]
+            lines.append("What the result shows (fact sheet):")
+            lines.append(build_facts(columns, rows))
+    else:
+        lines.append(
+            "(The result rows are not shared with you; describe the report from its definition.)"
+        )
+    lines.append(
+        'When the question is about this report ("what am I seeing", "what is <measure>", '
+        '"why is X higher"), answer from this block and the source catalog in plain language '
+        "WITHOUT calling tools: three to five sentences, use the measure and column labels "
+        "(never the codes in brackets), lead with what the numbers say. Only build or run "
+        "something new when the user asks for a different report. The user is already looking "
+        "at this report, so do not open by naming or describing which report you used (no "
+        '"Reading: ..." preamble) -- that disclosure is only for when you had to pick an '
+        "interpretation yourself; here the report is given, not guessed."
+    )
+    text = "\n".join(lines)
+    return text[:REPORT_CONTEXT_MAX_CHARS]
+
 
 _CAPTION_SYSTEM = (
     "You are a concise data analyst for an internal reporting tool. You get a "
@@ -662,7 +793,7 @@ def caption(
 # cap. Provider tool-calling parsing lives in `_make_agent_step`; both layers are
 # unit-tested offline via injected seams (`agent_step` / `transport`). Egress
 # stays schema-only: result rows fetched by run_sql are NOT sent back to the
-# model here — narration over rows is Phase 3e (gated reporting.ai.explain_data).
+# model here — narration over rows is Phase 3e (gated reporting.ai.explain.use).
 # ---------------------------------------------------------------------------
 
 # 10 turns: with the data tools bound a full run is commonly build_definition
@@ -797,7 +928,7 @@ _AGENT_SYSTEM = (
     " presentation-only follow-up is wrong."
 )
 
-# Appended to the system prompt only when the caller holds reporting.ai.explain_data
+# Appended to the system prompt only when the caller holds reporting.ai.explain.use
 # (Phase 3e). It unlocks the data-returning tools: run_sql feeds real result rows
 # back to the model, run_definition executes a build_definition-shaped definition
 # for real, and compute_stats gives exact aggregates over them, so the model may

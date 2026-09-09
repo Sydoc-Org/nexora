@@ -7,9 +7,11 @@ dashboard route tests.
 """
 
 import io
+import json
 from datetime import date, datetime, time, timedelta
 from unittest.mock import patch
 
+import pyodbc
 from openpyxl import load_workbook
 
 from nx_lib.db import engine_nexora_db
@@ -38,14 +40,14 @@ def test_reporting_page_renders_chat_panel_when_ai_enabled(admin_client):
 
 def test_reporting_page_caption_slots_need_only_explain_data(admin_client):
     """Regression for the Phase 4 review finding: the caption <div>s must be
-    gated on reporting.ai.explain_data alone (D-CAPTION), not on the
+    gated on reporting.ai.explain.use alone (D-CAPTION), not on the
     ai_explain_enabled AND-combo (which also requires reporting.sql.run --
     that extra requirement is for Surface C's live-SQL tool binding, an
     unrelated concern). A caller with explain_data but NOT sql.run must still
     see both #rpCaption (Advanced) and #rsCaption (Simple)."""
 
     def _perm(code):
-        return code in ("reporting.view", "reporting.ai.explain_data")
+        return code in ("reporting.view", "reporting.ai.explain.use")
 
     with (
         patch("nx_lib.security.has_permission", side_effect=_perm),
@@ -103,6 +105,47 @@ def test_sql_run_octopus_target_without_perm_403(user_client):
     # The base reporting.sql.run gate blocks before the Octopus target check.
     resp = user_client.post("/api/reporting/sql/run", json={"target": "octopus", "sql": "SELECT 1"})
     assert resp.status_code in (400, 403)
+
+
+def test_sql_run_generali_target_without_perm_403(user_client):
+    # Same shape as the Octopus target: its own reporting.sql.target.generali.use
+    # grant on top of the base gate (migration 0121).
+    resp = user_client.post(
+        "/api/reporting/sql/run", json={"target": "generali", "sql": "SELECT 1"}
+    )
+    assert resp.status_code in (400, 403)
+
+
+def test_sql_run_nexora_is_not_a_target(admin_client):
+    """NexoraDB holds the password hashes and TOTP secrets -- it must not be
+    reachable from the sandbox at ANY permission level, so an admin asking for
+    it gets the unknown-target 400, not a query."""
+    with (
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.run._has_acked", return_value=True),
+    ):
+        resp = admin_client.post(
+            "/api/reporting/sql/run", json={"target": "nexora", "sql": "SELECT 1"}
+        )
+    assert resp.status_code == 400
+    assert "nexora" not in (resp.get_json().get("detail") or "").split("allowed targets:")[-1]
+
+
+def test_sources_sql_entries_name_their_database(admin_client):
+    """The target picker names the real database, so every sql source carries
+    `db` (from config) and a `configured` flag telling the UI whether that
+    target's read-only login exists yet."""
+    with patch("nx_lib.security.has_permission", return_value=True):
+        resp = admin_client.get("/api/reporting/sources")
+    assert resp.status_code == 200
+    sql = [s for s in resp.get_json() if s.get("kind") == "sql"]
+    assert sql, "no live-SQL sources registered"
+    # Which targets a caller sees depends on their grants (the TEST seed has no
+    # reporting.sql.target.generali.use row), so the registry side is asserted
+    # in tests/unit/test_reporting_sql_targets.py -- here only the shape.
+    for s in sql:
+        assert "db" in s, s
+        assert isinstance(s["configured"], bool), s
 
 
 def test_sql_run_serializes_binary_and_time_cells(user_client):
@@ -652,7 +695,7 @@ def test_runner_dry_run_processes_due_table_report(admin_client):
             "code": "sched_users",
             "kind": "curated",
             "label": "Sched Users",
-            "permission": "reporting.source.docprocessing",
+            "permission": "reporting.source.docprocessing.use",
             "provider": "table",
             "engine": "nexora",
             "baseObject": "dbo.Users",
@@ -726,7 +769,7 @@ def test_zero_dim_latest_metric_run_constrains_to_latest_bucket(admin_client):
             "code": "latest_test_src",
             "kind": "curated",
             "label": "Latest Test Src",
-            "permission": "reporting.source.docprocessing",
+            "permission": "reporting.source.docprocessing.use",
             "provider": "table",
             "engine": "nexora",
             "baseObject": "dbo.Users",
@@ -807,7 +850,7 @@ def test_runner_alert_skips_mail_and_advances(admin_client):
             "code": "alert_users",
             "kind": "curated",
             "label": "Alert Users",
-            "permission": "reporting.source.docprocessing",
+            "permission": "reporting.source.docprocessing.use",
             "provider": "table",
             "engine": "nexora",
             "baseObject": "dbo.Users",
@@ -989,7 +1032,7 @@ def test_table_source_end_to_end(admin_client):
             "code": "e2e_users",
             "kind": "curated",
             "label": "E2E Users",
-            "permission": "reporting.source.docprocessing",
+            "permission": "reporting.source.docprocessing.use",
             "provider": "table",
             "engine": "nexora",
             "baseObject": "dbo.Users",
@@ -1408,6 +1451,32 @@ def test_sql_run_generic_500_detail_is_humanized(admin_client):
     assert "Hint:" in body["detail"]
 
 
+def test_sql_run_driver_rejection_is_400_with_reason(admin_client):
+    # A statement the sandbox lets through but the server refuses (unknown
+    # table/column) is bad user input, not a server fault: 400, and the driver
+    # message survives as `detail` so the UI can say what was actually wrong.
+    odbc_text = (
+        "('42S02', \"[42S02] [Microsoft][ODBC SQL Server Driver][SQL Server]"
+        "Invalid object name 'Workitem'. (208) (SQLExecDirectW)\")"
+    )
+    with (
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.run._has_acked", return_value=True),
+        patch("nx_lib.views.reporting.run._authorize_sql_target"),
+        patch(
+            "nx_lib.views.reporting.run._run_sql",
+            side_effect=pyodbc.ProgrammingError(odbc_text),
+        ),
+    ):
+        resp = admin_client.post(
+            "/api/reporting/sql/run", json={"target": "statistics", "sql": "SELECT 1"}
+        )
+    assert resp.status_code == 400
+    body = resp.get_json()
+    assert body["detail"] == "Invalid object name 'Workitem'."
+    assert body["error"] != body["detail"]
+
+
 # --- forecast: definition toggle (issue #168) ---
 
 _FC_DEF = {
@@ -1544,9 +1613,10 @@ def test_run_forecast_fits_on_widened_history_not_visible_window(admin_client):
     assert body["rows"] == _FC_WIDE_VISIBLE_ROWS
     assert mock_prepare.call_count == 2
     widened_rd = mock_prepare.call_args_list[1].args[0]
-    widened_filter = widened_rd["filters"][0]
-    assert widened_filter["op"] == "between"
-    assert isinstance(widened_filter["value"], list) and len(widened_filter["value"]) == 2
+    # Half-open fit window, same shape as resolve_definition_tokens: gte start, lt end+1.
+    ops = [(f["op"], f["value"]) for f in widened_rd["filters"]]
+    assert [op for op, _ in ops] == ["gte", "lt"], ops
+    assert all(isinstance(v, str) for _, v in ops), ops
     assert "compare" not in widened_rd
     fc = body.get("forecast")
     assert fc and fc.get("method") == "trend_seasonal"
@@ -1578,7 +1648,8 @@ def test_export_forecast_fits_on_widened_history_not_visible_window(admin_client
     assert resp.status_code == 200
     assert mock_widen_prepare.call_count == 1
     widened_rd = mock_widen_prepare.call_args_list[0].args[0]
-    assert widened_rd["filters"][0]["op"] == "between"
+    # Half-open fit window, same shape as api_run's widened rerun.
+    assert [f["op"] for f in widened_rd["filters"]] == ["gte", "lt"]
     assert "compare" not in widened_rd
     text = resp.data.decode("utf-8-sig")
     # horizon 3 (explicit in _FC_WIDE_DEF) -> 3 marker rows; only reachable if
@@ -1597,7 +1668,7 @@ def test_runner_forecast_export_rows_failure_still_sends_mail(admin_client):
             "code": "sched_fc_users",
             "kind": "curated",
             "label": "Sched Forecast Users",
-            "permission": "reporting.source.docprocessing",
+            "permission": "reporting.source.docprocessing.use",
             "provider": "table",
             "engine": "nexora",
             "baseObject": "dbo.Users",
@@ -1679,7 +1750,7 @@ def test_runner_forecast_export_rows_failure_still_sends_mail(admin_client):
 def _create_field_values_source(admin_client):
     """A 'backlog_history'-shaped table source (#178), created dynamically
     since the TEST NexoraDB fixture doesn't seed the real migration-0053 row.
-    Reuses the already-granted reporting.source.docprocessing permission,
+    Reuses the already-granted reporting.source.docprocessing.use permission,
     same idiom as test_zero_dim_latest_metric_run_constrains_to_latest_bucket."""
     src = admin_client.post(
         "/api/reporting/admin/sources",
@@ -1687,7 +1758,7 @@ def _create_field_values_source(admin_client):
             "code": "field_values_test_src",
             "kind": "curated",
             "label": "Field Values Test Src",
-            "permission": "reporting.source.docprocessing",
+            "permission": "reporting.source.docprocessing.use",
             "provider": "table",
             "engine": "nexora",
             "baseObject": "dbo.Users",
@@ -1777,3 +1848,178 @@ def test_field_values_without_perm_403(user_client):
         json={"source": "field_values_test_src", "field": "username"},
     )
     assert resp.status_code == 403
+
+
+# --- Task 3: Layout validation on save ---
+
+
+_LAYOUT_OK = {
+    "kind": "layout",
+    "schemaVersion": 1,
+    "title": "Ops standard",
+    "measures": [{"id": "m1", "op": "mean"}],
+    "tiles": [{"id": "t1", "type": "kpi", "measure": "m1", "span": 3, "rows": 2}],
+}
+
+
+def test_reports_create_layout_is_validated(admin_client):
+    bad = dict(_LAYOUT_OK, measures=[{"id": "m1", "op": "nope"}])
+    resp = admin_client.post("/api/reporting/reports", json={"name": "L", "definition": bad})
+    assert resp.status_code == 400
+    assert "nope" in resp.get_json()["detail"]
+
+
+def test_reports_create_layout_ok_then_update_is_validated(admin_client):
+    resp = admin_client.post("/api/reporting/reports", json={"name": "L", "definition": _LAYOUT_OK})
+    assert resp.status_code == 200
+    rid = resp.get_json()["id"]
+    try:
+        bad = dict(_LAYOUT_OK, tiles=[{"id": "t1", "type": "table", "span": 99, "rows": 1}])
+        upd = admin_client.put(
+            f"/api/reporting/reports/{rid}", json={"name": "L", "definition": bad}
+        )
+        assert upd.status_code == 400
+        assert "span" in upd.get_json()["detail"]
+    finally:
+        admin_client.delete(f"/api/reporting/reports/{rid}")
+
+
+def _create_layout(client, layout=_LAYOUT_OK):
+    resp = client.post("/api/reporting/reports", json={"name": "L", "definition": layout})
+    assert resp.status_code == 200
+    return resp.get_json()["id"]
+
+
+def test_run_with_owned_layout_returns_layout_and_derived(admin_client):
+    rid = _create_layout(admin_client)
+    try:
+        body = dict(_FC_DEF, layoutId=rid)
+        with (
+            patch(
+                "nx_lib.views.reporting.run._prepare_run",
+                return_value=(_FC_COLS, "SELECT 1", [], None),
+            ),
+            patch("nx_lib.views.reporting.run._execute", return_value=_FC_ROWS),
+        ):
+            resp = admin_client.post("/api/reporting/run", json=body)
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["layout"]["kind"] == "layout"
+        assert data["derived"]["m1"]["op"] == "mean" and "value" in data["derived"]["m1"]
+        assert "layoutFallback" not in data
+    finally:
+        admin_client.delete(f"/api/reporting/reports/{rid}")
+
+
+def test_run_with_missing_layout_falls_back(admin_client):
+    body = dict(_FC_DEF, layoutId=999_999_999)
+    with (
+        patch(
+            "nx_lib.views.reporting.run._prepare_run", return_value=(_FC_COLS, "SELECT 1", [], None)
+        ),
+        patch("nx_lib.views.reporting.run._execute", return_value=_FC_ROWS),
+    ):
+        resp = admin_client.post("/api/reporting/run", json=body)
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["layoutFallback"] == "missing"
+    assert "layout" not in data and "derived" not in data
+
+
+def test_run_with_foreign_layout_falls_back(admin_client):
+    # admin_client and user_client both derive from tests/conftest.py's single
+    # cached `client` fixture (re-logged-in per derived fixture, last login
+    # wins), so they can't be used as two live sessions in one test; and
+    # user@test.local lacks reporting.view entirely (test_run_invalid_json_
+    # returns_400_or_403 relies on that 403). Instead the layout is created
+    # directly via SQL owned by user@test.local, mirroring
+    # test_shared_report_visible_to_non_owner above, and run as admin (who has
+    # reporting.view but is not the owner).
+    conn = engine_nexora_db.raw_connection()
+    rid = None
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT userID FROM dbo.Users WHERE username = 'user@test.local'")
+        owner = cur.fetchone()[0]
+        cur.execute(
+            "INSERT INTO dbo.Reports (OwnerUserID, Name, DefinitionJSON) "
+            "OUTPUT INSERTED.ReportID VALUES (?, ?, ?)",
+            (owner, "L", json.dumps(_LAYOUT_OK)),
+        )
+        rid = cur.fetchone()[0]
+        conn.commit()
+
+        body = dict(_FC_DEF, layoutId=rid)
+        with (
+            patch(
+                "nx_lib.views.reporting.run._prepare_run",
+                return_value=(_FC_COLS, "SELECT 1", [], None),
+            ),
+            patch("nx_lib.views.reporting.run._execute", return_value=_FC_ROWS),
+        ):
+            resp = admin_client.post("/api/reporting/run", json=body)
+        assert resp.status_code == 200
+        assert resp.get_json()["layoutFallback"] == "missing"
+    finally:
+        if rid is not None:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM dbo.Reports WHERE ReportID = ?", (rid,))
+            conn.commit()
+        conn.close()
+
+
+def test_run_with_inline_layout_previews_without_saving(admin_client):
+    body = dict(_FC_DEF, layout=_LAYOUT_OK)
+    with (
+        patch(
+            "nx_lib.views.reporting.run._prepare_run", return_value=(_FC_COLS, "SELECT 1", [], None)
+        ),
+        patch("nx_lib.views.reporting.run._execute", return_value=_FC_ROWS),
+    ):
+        resp = admin_client.post("/api/reporting/run", json=body)
+    assert resp.status_code == 200
+    assert resp.get_json()["derived"]["m1"]["op"] == "mean"
+
+
+def test_run_with_invalid_inline_layout_falls_back_invalid(admin_client):
+    body = dict(_FC_DEF, layout=dict(_LAYOUT_OK, measures=[{"id": "m1", "op": "nope"}]))
+    with (
+        patch(
+            "nx_lib.views.reporting.run._prepare_run", return_value=(_FC_COLS, "SELECT 1", [], None)
+        ),
+        patch("nx_lib.views.reporting.run._execute", return_value=_FC_ROWS),
+    ):
+        resp = admin_client.post("/api/reporting/run", json=body)
+    assert resp.status_code == 200
+    assert resp.get_json()["layoutFallback"] == "invalid"
+
+
+def test_export_csv_appends_measures_block_for_layout(admin_client):
+    rid = _create_layout(admin_client)
+    try:
+        body = dict(_FC_DEF, format="csv", layoutId=rid)
+        with (
+            patch(
+                "nx_lib.views.reporting.export._prepare_run",
+                return_value=(_FC_COLS, "SELECT 1", [], None),
+            ),
+            patch("nx_lib.views.reporting.export._execute", return_value=_FC_ROWS),
+        ):
+            resp = admin_client.post("/api/reporting/export", json=body)
+        assert resp.status_code == 200
+        text = resp.data.decode("utf-8-sig")
+        assert "Measures" in text and "\nmean," in text.replace("\r", "")
+    finally:
+        admin_client.delete(f"/api/reporting/reports/{rid}")
+
+
+def test_reporting_definitions_redirects_into_the_console(admin_client):
+    resp = admin_client.get("/reporting/definitions")
+    assert resp.status_code == 302
+    assert resp.headers["Location"].endswith("/reporting?tab=definitions")
+
+
+def test_reporting_definitions_requires_reporting_view(client):
+    resp = client.get("/reporting/definitions")
+    assert resp.status_code in (302, 401, 403)
+    assert "tab=definitions" not in (resp.headers.get("Location") or "")

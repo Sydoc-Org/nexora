@@ -59,8 +59,9 @@ The installer is pre-staged on the server:
 2. Verify through the test hostname:
    - `https://nexora-test.sydoc.ch/nexora/login` → 200, log in, click around.
    - CSV log (`var/logs/user/...`) shows your real client IP (Cloudflare
-     appends it to `X-Forwarded-For`; the app reads the leftmost hop —
-     unchanged from ngrok, see `nx_lib/extensions.py`).
+     appends it to `X-Forwarded-For`; waitress trims the header to that one
+     trusted hop and the app reads the rightmost — unchanged from ngrok, see
+     `nx_lib/extensions.py`).
    - One `/api/v1/*` call with a real API key.
 3. **Cutover:** add public hostname `nexora.sydoc.ch` → `http://localhost:80`.
    The dashboard warns it will replace the existing (ngrok) CNAME — confirm.

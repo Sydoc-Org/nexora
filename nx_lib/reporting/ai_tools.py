@@ -130,12 +130,12 @@ TOOL_SPECS = [
         "name": "run_sql",
         "description": (
             "Execute a validated read-only SELECT on a read-only target and return "
-            "capped rows. Targets: 'statistics' or 'octopus'."
+            "capped rows. The target must be one of the SQL targets named in the system prompt."
         ),
         "parameters": {
             "type": "object",
             "properties": {
-                "target": {"type": "string", "enum": ["statistics", "octopus"]},
+                "target": {"type": "string"},
                 "sql": {"type": "string"},
             },
             "required": ["target", "sql"],
@@ -190,7 +190,7 @@ class ToolRegistry:
     """Dispatch tool calls to bound implementations.
 
     ``run_sql`` is a callable ``(target, sql) -> (columns, rows)`` (bound only when
-    the caller holds reporting.ai.sql). ``validate_definition`` is a callable
+    the caller holds reporting.ai.sql.use). ``validate_definition`` is a callable
     ``(definition) -> (ok, error)`` (the Surface-A validator). ``run_definition`` is
     a callable ``(definition) -> (columns, rows)`` that executes a definition for
     real (bound only alongside run_sql — both feed live rows back to the model).
@@ -254,7 +254,7 @@ class ToolRegistry:
         if self._run_definition is None:
             return {
                 "ok": False,
-                "error": "run_definition is not available (needs reporting.ai.explain_data)",
+                "error": "run_definition is not available (needs reporting.ai.explain.use)",
             }
         definition = self._coerce_definition_arg(args)
         if not isinstance(definition, dict):

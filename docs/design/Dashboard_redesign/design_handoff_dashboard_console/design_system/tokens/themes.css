@@ -1,0 +1,76 @@
+/* Dark mode, accent presets and density — the app writes html.dark /
+   html[data-accent] / html.nx-compact pre-paint from stored UI prefs.
+   Values copied from nexora-ui.css so a design built here survives the switch. */
+html.dark {
+  --nx-page:   #0f172a;
+  --nx-card:   #1e293b;
+  --nx-alt:    #273449;
+  --nx-sunken: #273449;
+  --nx-border:        #334155;
+  --nx-border-strong: #475569;
+  --nx-divider:       #273449;
+  --nx-text:      #e2e8f0;
+  --nx-text-sec:  #94a3b8;
+  --nx-text-meta: #64748b;
+  --nx-accent:       #fbbf24;
+  --nx-accent-hover: #fcd34d;
+  --nx-accent-soft:  rgba(251,191,36,0.20);
+  --nx-accent-tint:  #78350f;
+  --nx-violet:       #fb923c;
+  --nx-brand-grad:   linear-gradient(135deg, #fbbf24 0%, #fb923c 100%);
+  --nx-success: #34d399;
+  --nx-warning: #fbbf24;
+  --nx-danger:  #f87171;
+  --nx-l-indigo: #312e81; --nx-l-indigo-fg: #c7d2fe;
+  --nx-l-green:  #064e3b; --nx-l-green-fg:  #6ee7b7;
+  --nx-l-amber:  #78350f; --nx-l-amber-fg:  #fcd34d;
+  --nx-l-red:    #7f1d1d; --nx-l-red-fg:    #fca5a5;
+  --nx-l-gray:   #334155; --nx-l-gray-fg:   #cbd5e1;
+  --nx-l-blue:   #1e3a8a; --nx-l-blue-fg:   #bfdbfe;
+  --nx-series-1: #fbbf24; --nx-series-2: #a78bfa; --nx-series-3: #22d3ee;
+  --nx-series-4: #f472b6; --nx-series-5: #34d399;
+  --nx-shadow:      0 1px 2px rgba(0,0,0,0.4);
+  --nx-shadow-menu: 0 12px 32px rgba(0,0,0,0.5);
+}
+
+html[data-accent="indigo"] {
+  --nx-accent: #4f46e5; --nx-accent-hover: #4338ca;
+  --nx-accent-soft: rgba(79,70,229,0.12); --nx-accent-tint: #eef2ff;
+  --nx-violet: #7c3aed;
+  --nx-brand-grad: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+}
+html.dark[data-accent="indigo"] {
+  --nx-accent: #818cf8; --nx-accent-hover: #a5b4fc;
+  --nx-accent-soft: rgba(129,140,248,0.20); --nx-accent-tint: #312e81;
+  --nx-violet: #a78bfa;
+  --nx-brand-grad: linear-gradient(135deg, #818cf8 0%, #a78bfa 100%);
+}
+html[data-accent="emerald"] {
+  --nx-accent: #059669; --nx-accent-hover: #047857;
+  --nx-accent-soft: rgba(5,150,105,0.12); --nx-accent-tint: #ecfdf5;
+  --nx-violet: #0d9488;
+  --nx-brand-grad: linear-gradient(135deg, #059669 0%, #0d9488 100%);
+}
+html[data-accent="sky"] {
+  --nx-accent: #0284c7; --nx-accent-hover: #0369a1;
+  --nx-accent-soft: rgba(2,132,199,0.12); --nx-accent-tint: #f0f9ff;
+  --nx-violet: #0891b2;
+  --nx-brand-grad: linear-gradient(135deg, #0284c7 0%, #0891b2 100%);
+}
+html[data-accent="rose"] {
+  --nx-accent: #e11d48; --nx-accent-hover: #be123c;
+  --nx-accent-soft: rgba(225,29,72,0.12); --nx-accent-tint: #fff1f2;
+  --nx-violet: #db2777;
+  --nx-brand-grad: linear-gradient(135deg, #e11d48 0%, #db2777 100%);
+}
+
+/* Corner style + density prefs */
+html[data-radius="sharp"] { --nx-radius-scale: 0.35; }
+html[data-radius="round"] { --nx-radius-scale: 1.6; }
+html[data-animspeed="relaxed"] { --nx-anim-speed: 1.8; }
+html[data-animspeed="snappy"]  { --nx-anim-speed: 0.55; }
+html.nx-compact { --ctl-h: 27px; --ctl-h-lg: 30px; --sp-6: 10px; --page-inset-y: 18px; }
+html.nx-contrast {
+  --nx-border: #cbd5e1; --nx-border-strong: #94a3b8; --nx-divider: #e2e8f0;
+  --nx-text-sec: #4b5563; --nx-text-meta: #6b7280;
+}

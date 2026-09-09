@@ -1,8 +1,9 @@
 """The shared-database lock must actually exclude a second holder (#235).
 
-Uses a throwaway resource name per test, not the real `nexora_test_suite` --
-the session fixture in conftest.py is already holding that one, so contending
-on it would deadlock against ourselves.
+Only scripts/test_db_reset.py still takes the real `nexora_test_suite` (when
+resetting the shared NEXORA_TEST by hand); pytest runs on a private per-run
+database since #235 and needs no lock. Throwaway resource names keep these
+tests independent of whatever else is running.
 """
 
 from __future__ import annotations

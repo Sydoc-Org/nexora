@@ -76,7 +76,10 @@ html.dark .log-method--DELETE { color: #f87171; }
 .sev-warning  { background: var(--nx-l-amber);  color: var(--nx-l-amber-fg); }
 .sev-critical { background: var(--nx-l-red);    color: var(--nx-l-red-fg); }
 .ml-toggle { position: relative; display: inline-block; width: 36px; height: 20px; }
-.ml-toggle input { opacity: 0; width: 0; height: 0; }
+/* Deliberately collapsed -- the .ml-toggle-slider span is the visible control.
+   Needs body.nx-app to outweigh nexora-ui.css's global min-size floor on
+   checkbox/radio, which would otherwise re-inflate this to 16px. */
+body.nx-app label.ml-toggle input[type="checkbox"] { opacity: 0; width: 0; height: 0; min-width: 0; min-height: 0; }
 .ml-toggle-slider { position: absolute; cursor: pointer; inset: 0; background: var(--nx-sunken); border: 1px solid var(--nx-border); border-radius: var(--nx-radius-pill); transition: 0.2s; }
 .ml-toggle-slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 2px; top: 2px; background: var(--nx-card); border-radius: var(--nx-radius-pill); transition: 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.15); }
 .ml-toggle input:checked + .ml-toggle-slider { background: var(--nx-accent); border-color: var(--nx-accent); }
@@ -223,3 +226,51 @@ html.dark .log-method--DELETE { color: #f87171; }
 
 /* Access control permission drawer: row hover (can't use nx-table here — drawer uses raw <table>) */
 .permission-row:hover { background: var(--nx-alt); }
+
+/* Tenants overview (#256): one card per tenant, its four connections side by
+   side. Column titles reuse .nx-meta; the tree feel comes from the thin left
+   rule on each column, not from extra chrome. */
+.tenant-card { margin-bottom: 20px; }
+.tenant-card__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.tenant-card__title { margin: 0; display: flex; align-items: center; gap: 8px; }
+.tenant-card__badges { display: flex; align-items: center; gap: 10px; font-size: 12px; }
+.tenant-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+.tenant-grid--orphans { align-items: start; }
+.tenant-col { padding-left: 14px; border-left: 2px solid var(--nx-border); min-width: 0; }
+.tenant-col h3, .tenant-pages h3, .tenant-orphan h4 { margin: 0 0 8px; }
+.tenant-col__lead { margin: 0 0 8px; font-weight: 600; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.tenant-col__lead a, .tenant-list a { color: inherit; text-decoration: none; }
+.tenant-col__lead a:hover, .tenant-list a:hover { text-decoration: underline; }
+.tenant-col__foot { margin: 10px 0 0; font-size: 12px; }
+.tenant-col__foot a { color: var(--nx-accent); text-decoration: none; }
+.tenant-col__foot a:hover { text-decoration: underline; }
+.tenant-dim { color: var(--nx-text-meta); font-size: 12px; }
+.tenant-hint { margin: 8px 0 0; line-height: 1.6; }
+.tenant-profile { color: inherit; text-decoration: none; border-bottom: 1px dotted var(--nx-text-meta); }
+.tenant-profile:hover { border-bottom-style: solid; }
+.tenant-list { list-style: none; margin: 0; padding: 0; font-size: 13px; line-height: 1.7; }
+.tenant-list li { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.tenant-list__icon { font-size: 10px; width: 14px; color: var(--nx-text-meta); }
+.tenant-facts { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 0; font-size: 12px; }
+.tenant-facts dt { color: var(--nx-text-meta); }
+.tenant-facts dd { margin: 0; }
+.tenant-pages { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--nx-border); }
+.tenant-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.tenant-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid var(--nx-border); border-radius: 999px; font-size: 12px; color: inherit; text-decoration: none; transition: border-color 150ms ease, background 150ms ease; }
+.tenant-chip:hover { border-color: var(--nx-accent); }
+.tenant-chip__type { font-size: 10px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--nx-text-meta); }
+.tenant-orphans__title { margin: 28px 0 12px; }
+.tenant-orphan + .tenant-orphan { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--nx-border); }
+@media (prefers-reduced-motion: reduce) { .tenant-chip { transition: none; } }
+
+/* Tenants overview, organization-centric (#257): one block per organization
+   with its four boxes; blocks stack inside the tenant card. */
+.tenant-org + .tenant-org { margin-top: 18px; padding-top: 18px; border-top: 1px dashed var(--nx-border); }
+.tenant-org__title { margin: 0 0 10px; font-size: 15px; font-weight: 600; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.tenant-org__title a { color: inherit; text-decoration: none; }
+.tenant-org__title a:hover { text-decoration: underline; }
+.tenant-grid--four { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.tenant-chip--mini { padding: 1px 7px; font-size: 10px; line-height: 1.4; }
+
+/* Tenant management (#256): organization picker in the tenant modal */
+.tenant-org-picker { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px 14px; max-height: 220px; overflow: auto; padding: 8px 10px; border: 1px solid var(--nx-border); border-radius: 8px; }

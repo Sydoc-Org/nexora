@@ -1,7 +1,5 @@
 ﻿USE [nexora]
 GO
-ALTER TABLE [dbo].[AccessProfilePermission] DROP CONSTRAINT [CK_AccessProfilePermission_Effect]
-GO
 ALTER TABLE [dbo].[AccessProfilePermission] DROP CONSTRAINT [FK_AccessProfilePermission_Permission]
 GO
 ALTER TABLE [dbo].[AccessProfilePermission] DROP CONSTRAINT [FK_AccessProfilePermission_AccessProfile]
@@ -15,7 +13,6 @@ GO
 CREATE TABLE [dbo].[AccessProfilePermission](
 	[AccessID] [int] NOT NULL,
 	[PermissionID] [int] NOT NULL,
-	[Effect] [char](1) NOT NULL,
  CONSTRAINT [PK_AccessProfilePermission] PRIMARY KEY CLUSTERED 
 (
 	[AccessID] ASC,
@@ -32,8 +29,4 @@ ALTER TABLE [dbo].[AccessProfilePermission]  WITH CHECK ADD  CONSTRAINT [FK_Acce
 REFERENCES [dbo].[Permission] ([PermissionID])
 GO
 ALTER TABLE [dbo].[AccessProfilePermission] CHECK CONSTRAINT [FK_AccessProfilePermission_Permission]
-GO
-ALTER TABLE [dbo].[AccessProfilePermission]  WITH CHECK ADD  CONSTRAINT [CK_AccessProfilePermission_Effect] CHECK  (([Effect]='D' OR [Effect]='A'))
-GO
-ALTER TABLE [dbo].[AccessProfilePermission] CHECK CONSTRAINT [CK_AccessProfilePermission_Effect]
 GO

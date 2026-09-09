@@ -14,7 +14,8 @@ from flask import Response, current_app, jsonify, request, session
 from flask_babel import gettext as _
 
 from ...extensions import limiter
-from ...reporting.export import rows_to_csv, rows_to_xlsx
+from ...reporting.derived import compute_derived
+from ...reporting.export import derived_export_rows, rows_to_csv, rows_to_xlsx
 from ...reporting.forecast import forecast_export_rows
 from ...reporting.query import QueryBuildError
 from ...reporting.sandbox import SqlSandboxError
@@ -28,6 +29,7 @@ from ._shared import (
     _authorize_sql_target,
     _execute,
     _has_acked,
+    _layout_block,
     _prepare_run,
     _run_sql,
 )
@@ -64,12 +66,14 @@ def _parse_chart_image(value):
     return raw
 
 
-def _serialize_export(columns, rows, title, fmt, chart_png=None, forecast_start=None):
+def _serialize_export(
+    columns, rows, title, fmt, chart_png=None, forecast_start=None, extra_rows=None
+):
     """Build a Flask download Response for `rows` in the requested format."""
     name = _safe_report_name(title)
     if fmt == "csv":
         return Response(
-            rows_to_csv(columns, rows),
+            rows_to_csv(columns, rows, extra_rows=extra_rows),
             mimetype="text/csv; charset=utf-8",
             headers={"Content-Disposition": f'attachment; filename="{name}.csv"'},
         )
@@ -80,6 +84,7 @@ def _serialize_export(columns, rows, title, fmt, chart_png=None, forecast_start=
             title=title or "Report",
             chart_png=chart_png,
             forecast_start=forecast_start,
+            extra_rows=extra_rows,
         ),
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f'attachment; filename="{name}.xlsx"'},
@@ -134,6 +139,11 @@ def api_export():
     except Exception as e:
         current_app.logger.error(f"/api/reporting/export error: {e}")
         return jsonify({"error": _("Could not export report")}), 500
+    # Snapshot the actual-only columns/rows before any forecast reassignment
+    # below, so the layout's Measures block is computed over the same input
+    # /api/reporting/run would use — not the forecast-augmented rows (which
+    # append predicted rows + a __forecast marker column for the data table).
+    measure_columns, measure_rows = columns, rows
     forecast_start = None
     fc_req = rd.get("forecast")
     if isinstance(fc_req, dict) and fc_req.get("enabled"):
@@ -145,6 +155,20 @@ def api_export():
                 )
         except Exception as e:
             current_app.logger.warning(f"/api/reporting/export forecast skipped: {e}")
+    extra_rows = None
+    try:
+        layout, fallback = _layout_block(rd, session.get("userid"))
+    except Exception as e:
+        current_app.logger.warning(f"/api/reporting/export layout skipped: {e}")
+        layout, fallback = None, None
+    if layout is not None:
+        try:
+            derived = compute_derived(layout, rd, measure_columns, measure_rows)
+            extra_rows = derived_export_rows(layout, derived, header_label=_("Measures"))
+        except Exception as e:
+            current_app.logger.warning(f"/api/reporting/export derived skipped: {e}")
+    elif fallback:
+        current_app.logger.info(f"/api/reporting/export layout fallback: {fallback}")
     return _serialize_export(
         columns,
         rows,
@@ -152,6 +176,7 @@ def api_export():
         fmt,
         chart_png=chart_png,
         forecast_start=forecast_start,
+        extra_rows=extra_rows,
     )
 
 

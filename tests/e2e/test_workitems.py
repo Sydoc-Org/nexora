@@ -29,7 +29,7 @@ def test_workitems_filter_controls_present(nexora_server, page):
     _login(page, nexora_server)
     page.goto(f"{nexora_server}/workitems")
     expect(page.locator('[data-testid="workitems-search"]')).to_be_visible()
-    expect(page.locator('[data-testid="workitems-status-filter"]')).to_be_visible()
+    expect(page.locator('[data-testid="workitems-status-tabs"]')).to_be_visible()
     expect(page.locator('[data-testid="workitems-process-filter"]')).to_be_visible()
     expect(page.locator('[data-testid="workitems-per-page"]')).to_be_visible()
 
@@ -234,7 +234,7 @@ def test_workitems_saved_filter_view_roundtrip(nexora_server, page):
 
     # Build a state and save it as a named view.
     page.fill('[data-testid="workitems-search"]', "4711")
-    page.select_option('[data-testid="workitems-status-filter"]', "Done")
+    page.click('[data-testid="workitems-status-tabs"] [data-status="Done"]')
     page.click('[data-testid="workitems-save-view"]')
     name_input = page.locator('[data-testid="workitems-view-name-input"]')
     expect(name_input).to_be_visible()
@@ -252,7 +252,7 @@ def test_workitems_saved_filter_view_roundtrip(nexora_server, page):
     expect(page.locator('[data-testid="workitems-search"]')).to_have_value("")
     chip.locator("button").first.click()
     expect(page.locator('[data-testid="workitems-search"]')).to_have_value("4711")
-    expect(page.locator('[data-testid="workitems-status-filter"]')).to_have_value("Done")
+    expect(page.locator('[data-testid="workitems-status-filter-value"]')).to_have_value("Done")
 
     # Rename via the pencil (chip buttons: 0 = apply/deselect, 1 = pencil,
     # 2 = deselect-x, shown on the active chip only).

@@ -1,0 +1,23 @@
+<!-- @dsCard group="Spacing" viewport="700x130" name="Radii" subtitle="8px controls, 10px raised surfaces, 12px icon chips, pill for dots" -->
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; padding: 16px 18px; background: var(--nx-card); font-family: var(--nx-font); color: var(--nx-text); }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; }
+  .sw { display: flex; flex-direction: column; gap: 6px; width: 96px; }
+  .chip { height: 44px; border-radius: 8px; border: 1px solid var(--nx-border); }
+  .name { font-size: 10.5px; font-weight: 600; color: var(--nx-text); }
+  .hex { font-family: var(--nx-mono); font-size: 9.5px; color: var(--nx-text-meta); }
+  .cap { font-size: 9.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--nx-text-meta); }
+  table { border-collapse: collapse; font-size: 11.5px; }
+  td { padding: 3px 14px 3px 0; color: var(--nx-text-sec); }
+  td.k { font-family: var(--nx-mono); color: var(--nx-text); }
+</style>
+
+<div class="row" style="align-items:flex-end">
+  <div class="sw" style="width:80px"><div class="chip" style="border-radius:var(--nx-radius-ctl)"></div><span class="name">ctl · 8</span></div>
+  <div class="sw" style="width:80px"><div class="chip" style="border-radius:var(--nx-radius)"></div><span class="name">raised · 10</span></div>
+  <div class="sw" style="width:80px"><div class="chip" style="border-radius:var(--nx-radius-lg)"></div><span class="name">chip · 12</span></div>
+  <div class="sw" style="width:80px"><div class="chip" style="border-radius:var(--nx-radius-pill)"></div><span class="name">pill</span></div>
+  <p style="font-size:11px;color:var(--nx-text-meta);max-width:250px;margin:0 0 6px">All radii ride <span class="hex">--nx-radius-scale</span>, so the user's "sharp / round" corner preference still applies.</p>
+</div>

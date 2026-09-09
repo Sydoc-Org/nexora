@@ -10,7 +10,7 @@ def test_login_page_renders(client):
     assert b"<form" in resp.data.lower()
 
 
-def test_login_valid_creds_and_2fa(client, totp_for):
+def test_login_valid_creds_and_2fa(client, totp_for, clear_2fa_lockout):
     # Step 1: post creds — seed users all have InitReset=1 and twoFA=1,
     # so a valid login redirects (302) straight to /verify_2fa.
     resp = client.post(

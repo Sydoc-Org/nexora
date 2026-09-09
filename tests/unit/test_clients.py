@@ -75,13 +75,14 @@ def test_engine_keys_cannot_drift_from_the_engine_dict():
     assert tuple(clients._engines()) == clients._ENGINE_KEYS
 
 
-def test_engine_keys_cover_todays_five_engines():
+def test_engine_keys_cover_todays_six_engines():
     assert set(clients._ENGINE_KEYS) == {
         "engine_octo_db",
         "engine_statistics_db",
         "engine_ms02_pg",
         "engine_ms02_stats_pg",
         "engine_ms02_docfields_pg",
+        "engine_generali_db",
     }
 
 
@@ -157,10 +158,10 @@ def test_build_clients_skips_row_whose_engine_is_none(monkeypatch):
     assert set(result.keys()) == {"default"}
 
 
-def test_build_clients_skips_row_with_no_resolvable_octo_domain(monkeypatch):
-    """Falsy-domain half of the skip guard: a non-default row whose DB OctoDomain
-    is NULL and whose SecretRef-prefixed env domain is also unset must be skipped,
-    even though its runtime engine resolves fine."""
+def test_build_clients_loads_domainless_non_default_row_as_data_only(monkeypatch):
+    """A non-default row without any resolvable Octo domain is a data-only
+    connection (#257, Generali): it loads with octo_domain None and stays out
+    of workitem routing (workitem_clients), instead of being skipped."""
     monkeypatch.setattr(clients, "engine_octo_db", "ENGINE_OCTO")
     monkeypatch.setattr(clients, "engine_statistics_db", "ENGINE_STATS")
     monkeypatch.setattr(clients, "engine_ms02_pg", "ENGINE_MS02")
@@ -185,7 +186,10 @@ def test_build_clients_skips_row_with_no_resolvable_octo_domain(monkeypatch):
 
     result = clients._build_clients()
 
-    assert set(result.keys()) == {"default"}
+    assert set(result.keys()) == {"default", "ms02"}
+    assert result["ms02"].octo_domain is None
+    monkeypatch.setattr(clients, "CLIENTS", result)
+    assert clients.workitem_clients() == ["default"]
 
 
 def test_default_survives_engine_and_domain_degradation(monkeypatch):

@@ -73,8 +73,16 @@
                         <div class="profile-appearance-row">
                             <div class="profile-appearance-info">
                                 <span class="profile-appearance-label">{{ _("Accent color") }}</span>
-                                <span class="profile-appearance-hint">{{ _("Pick a preset or choose any color you like.") }}</span>
+                                <span class="profile-appearance-hint">{% if brand and brand.accent_hex %}{{ _("Your organization's branding sets the accent color.") }}{% else %}{{ _("Pick a preset or choose any color you like.") }}{% endif %}</span>
                             </div>
+                            {% if brand and brand.accent_hex %}
+                            {# Branded organization: the accent is not the user's to pick (see the
+                               pre-paint resolver in _header.html). Show the swatch, name the owner. #}
+                            <div class="profile-accents" data-testid="appearance-accent-branded">
+                                <span class="profile-accent is-active" style="--swatch: {{ brand.accent_hex }}" aria-hidden="true"></span>
+                                <span class="profile-appearance-hint">{{ _("Set by the %(org)s branding. An administrator changes it under Organizations.", org=(brand.name or _('organization'))) }}</span>
+                            </div>
+                            {% else %}
                             <div class="profile-accents" role="group" aria-label="{{ _('Accent color') }}">
                                 <button type="button" class="profile-accent" data-uipref="accent" data-value="indigo"
                                     style="--swatch: linear-gradient(135deg,#4f46e5,#7c3aed)" title="{{ _('Classic') }}" aria-label="{{ _('Classic') }}" data-testid="appearance-accent-indigo"></button>
@@ -94,6 +102,7 @@
                                     <i class="fas fa-eye-dropper"></i>
                                 </span>
                             </div>
+                            {% endif %}
                         </div>
 
                         <div class="profile-appearance-row">

@@ -124,13 +124,7 @@
       const btn = event.target.closest('[data-testid="prepared-docs-preview"]');
       if (btn) { event.preventDefault(); openPreview(btn.dataset.wid, btn.dataset.status, btn.dataset.currentStage, btn.dataset.client); return; }
 
-      const loadMoreButton = event.target.closest('.load-more-btn');
-      if (loadMoreButton && window.loadImagesInBatch) {
-        const workitemid = loadMoreButton.dataset.workitemid;
-        const totalImages = parseInt(loadMoreButton.dataset.totalImages, 10);
-        const imageContainer = document.getElementById(`image-container-${workitemid}`);
-        if (imageContainer) loadImagesInBatch(imageContainer, workitemid, totalImages);
-      }
+      // .load-more-btn is handled once, by the shared detail panel's document listener.
     });
     previewClose?.addEventListener("click", closePreview);
     previewModal?.addEventListener("click", (e) => { if (e.target === previewModal) closePreview(); });

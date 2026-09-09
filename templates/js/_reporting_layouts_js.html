@@ -1,0 +1,63 @@
+<script nonce="{{ csp_nonce() }}">
+  // Jinja-rendered strings for static/js/reporting_layouts.js (#191).
+  window.NX_I18N_REPORTING_LAYOUTS = {
+    title: {{ _("Report definitions")|tojson }},
+    intro: {{ _("A report definition is a set of measures and a tile layout you pick before building a report. Standard is the built-in one.")|tojson }},
+    newDefinition: {{ _("New definition")|tojson }},
+    untitled: {{ _("Untitled definition")|tojson }},
+    edit: {{ _("Edit")|tojson }},
+    done: {{ _("Done")|tojson }},
+    delete_: {{ _("Delete")|tojson }},
+    confirmDelete: {{ _("Delete this report definition? Reports using it fall back to Standard.")|tojson }},
+    saved: {{ _("Definition saved")|tojson }},
+    saveFailed: {{ _("Could not save the definition")|tojson }},
+    measures: {{ _("Measures")|tojson }},
+    tiles: {{ _("Tiles")|tojson }},
+    addChart: {{ _("Add chart")|tojson }},
+    addTable: {{ _("Add table")|tojson }},
+    previewWith: {{ _("Preview with")|tojson }},
+    previewNone: {{ _("No saved report to preview with — build one in the Library first.")|tojson }},
+    previewFailed: {{ _("Preview could not run — the layout still saves.")|tojson }},
+    removeTile: {{ _("Remove tile")|tojson }},
+    resizeTile: {{ _("Drag to resize")|tojson }},
+    sparkline: {{ _("Sparkline")|tojson }},
+    percentileQ: {{ _("Percentile")|tojson }},
+    tilesMeta: {{ _("{n} tiles · drag to rearrange · drag a corner to resize")|tojson }},
+    library: {{ _("Library")|tojson }},
+    panels: {{ _("Panels")|tojson }},
+    cardMeta: {{ _("{m} measures · {t} tiles")|tojson }},
+    panel: {
+      caption: {{ _("Eddard insight")|tojson }},
+      ask: {{ _("Ask Eddard")|tojson }},
+      anomalies: {{ _("Anomalies")|tojson }},
+      sql: {{ _("Query")|tojson }}
+    },
+    op: {
+      current: {{ _("Current value")|tojson }},
+      total: {{ _("Total")|tojson }},
+      delta: {{ _("Delta vs previous period")|tojson }},
+      buckets: {{ _("Buckets")|tojson }},
+      avg_bucket: {{ _("Avg per bucket")|tojson }},
+      median: {{ _("Median")|tojson }},
+      mean: {{ _("Mean")|tojson }},
+      minmax: {{ _("Min / Max")|tojson }},
+      range: {{ _("Range")|tojson }},
+      stddev: {{ _("Standard deviation")|tojson }},
+      percentile: {{ _("Percentile")|tojson }}
+    },
+    chart: {
+      bar: {{ _("Bar")|tojson }},
+      stacked_bar: {{ _("Stacked bar")|tojson }},
+      line: {{ _("Line")|tojson }},
+      area: {{ _("Area")|tojson }},
+      pie: {{ _("Pie")|tojson }},
+      doughnut: {{ _("Doughnut")|tojson }},
+      gauge: {{ _("Gauge")|tojson }}
+    },
+    table: {{ _("Table")|tojson }},
+    unavailable: {{ _("Not available for this report")|tojson }},
+    standard: {{ _("Standard")|tojson }}
+  };
+</script>
+<script src="{{ static_v('js/reporting_layout_view.js') }}"></script>
+<script src="{{ static_v('js/reporting_layouts.js') }}"></script>

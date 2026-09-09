@@ -82,6 +82,72 @@ A warning storm is labelled `warn storm @ <site>` rather than `log storm`, and a
 signature seen at both levels is judged at the *error* bar -- one stray WARNING
 must not raise an error storm's threshold.
 
+## Planned maintenance
+
+A maintenance 503 is still a 503, so before #281 every window somebody
+scheduled arrived at the helpdesk as an outage: the HTTP probes fail together,
+three consecutive failures open an incident, and the 30-minute min-hold keeps it
+open past the window closing. Any window longer than ~15 minutes alarmed.
+
+`nx_lib/hooks.py` now marks the maintenance response with
+**`X-Nexora-Maintenance: 1`** plus a `Retry-After` derived from the window's
+`EndAt`. A header rather than a body marker because the two branches return
+different content types -- HTML for a page, JSON for `/api/`.
+
+The probe reads that marker and returns `ok=None`, a third state meaning
+*excused*. `update_component` then **freezes** the component: no incident opens,
+and equally none recovers, because a maintenance page proves nothing about the
+component behind it -- otherwise taking the site down would silently close every
+incident that was already open.
+
+Two safeguards:
+
+- **Maintenance is not health.** The component holds its previous state and its
+  detail reads `planned maintenance, ends in Ns`, so `--check` and the run log
+  show what is happening rather than a false all-clear.
+- **The excuse expires** after `DEFAULT_MAINTENANCE_MAX_S` (4 hours), after
+  which the component is judged as failing. `_get_blocking_maintenance` filters
+  on `EndAt >= GETDATE()` so the app cannot 503 past its window -- but a window
+  can be extended (one was, from 08:30 to 09:30, on the morning this was
+  written) or opened with an `EndAt` days out, and a monitor that stays silent
+  for days is not a monitor.
+
+Fixing this removes most of the mail at source. #282's rate cap is the backstop
+for the rest.
+
+## Mail rate cap
+
+Per-component hysteresis stops one incident re-alerting, but it does not limit
+the **total**. With a 5-minute poll and 13 probes the worst case was two mails a
+run -- 24 an hour -- and every deploy restart and maintenance window trips the
+HTTP probes, so routine work arrived at the helpdesk as alerts (#282).
+
+`nx_lib.outage.mail_budget()` caps alert mail at **4 per rolling hour**
+(`DEFAULT_MAIL_MAX_PER_WINDOW` / `DEFAULT_MAIL_WINDOW_S`). The budget lives in
+`var/outage-state.json` next to the component state, because each monitor run is
+a fresh process -- an in-memory counter would reset every 5 minutes and cap
+nothing.
+
+Three properties worth knowing:
+
+- **The first mail is never suppressed.** A real outage alerts promptly however
+  quiet the hour has been; the cap only bites on the fifth.
+- **Suppressed mails are counted and reported** in the next one that does go
+  out ("*N further alert mail(s) were suppressed*"). Silence that cannot be told
+  apart from health would be worse than the spam it replaces.
+- **`max_per_window=0` disables it**, for an incident where every mail is
+  wanted.
+
+The run summary reports throttling, so the log shows it too:
+
+```
+outage monitor: 13 probes, 2 event(s), 1 mail(s), 1 throttled, 4 incident(s) open
+```
+
+Fixing #281 (the monitor treats planned maintenance as an outage) removes a large
+share of these mails at source. The cap is the backstop for the rest: genuine
+flapping, log storms and deploy restarts.
+
 On a **dev box** expect the log-storm probe to fire constantly: the unit suite
 deliberately logs errors ("boom", "DB down", …) into the same `app.log`, so a
 run right after `pytest` opens dozens of incidents. That is why `SUPPORT_MAIL`
@@ -174,19 +240,27 @@ it needs the same `GRAPH_*` credentials the scheduled reports already use.
 
 ## Wiring on SYAPP01
 
-`ops/outage-monitor-task.xml` is a ready-to-import Task Scheduler definition
-(every 5 minutes, matching the hysteresis defaults). Import it in an elevated
-shell on SYAPP01:
+`ops/outage-monitor-task.xml` is the Task Scheduler definition (every 5
+minutes, matching the hysteresis defaults), and **`deploy.yml` registers it on
+every push to `main`** — the "Register scheduled tasks" step, which also
+registers the session prune. Nothing to import by hand.
+
+That step exists because mirroring an XML is not the same as having a task:
+Windows does not read definitions off disk. This task happened to be registered
+already, but a rebuilt SYAPP01 would have lost it silently, and nobody notices a
+monitor that stopped watching.
+
+To check it, or to force a run:
 
 ```powershell
-schtasks /create /xml "D:\sydoc\nexora\ops\outage-monitor-task.xml" /tn "\sydoc\nexora\Outage Monitor"
-
-# run it once immediately and read the result
-schtasks /run /tn "\sydoc\nexora\Outage Monitor"
+schtasks /query /tn "\sydoc\nexora\Outage Monitor" /fo LIST
+schtasks /run   /tn "\sydoc\nexora\Outage Monitor"
 Get-Content D:\sydoc\nexora\var\logs\system\outage_monitor.log
 ```
 
-Or: Task Scheduler → **Import Task…** → pick the XML.
+`/f` on the deploy's `schtasks /create` makes it idempotent, which also means a
+task disabled by hand comes back on the next deploy. To stop a job for good,
+remove its XML.
 
 Three things in that XML are deliberate:
 

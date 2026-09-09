@@ -6,7 +6,7 @@ import zipfile
 
 from openpyxl import load_workbook
 
-from nx_lib.reporting.export import _safe_cell, rows_to_csv, rows_to_xlsx
+from nx_lib.reporting.export import _safe_cell, derived_export_rows, rows_to_csv, rows_to_xlsx
 
 
 def test_rows_to_xlsx_uses_custom_headers_and_title():
@@ -221,3 +221,42 @@ def test_xlsx_forecast_rows_styled_italic():
     fc_cell = ws.cell(row=7, column=1)
     assert fc_cell.font.italic
     assert ws.cell(row=7, column=3).value == "forecast"
+
+
+def test_derived_export_rows_lists_measures_in_layout_order():
+    layout = {
+        "measures": [
+            {"id": "a", "op": "mean"},
+            {"id": "b", "op": "minmax"},
+            {"id": "c", "op": "percentile", "q": 0.9},
+        ]
+    }
+    derived = {
+        "a": {"op": "mean", "value": 2.5, "n": 4},
+        "b": {"op": "minmax", "min": 1.0, "max": 4.0, "n": 4},
+        "c": {"op": "percentile", "unavailable": "no_rows"},
+    }
+    rows = derived_export_rows(layout, derived, header_label="Measures")
+    assert rows[0] == ["Measures", ""]
+    assert rows[1] == ["mean", 2.5]
+    assert rows[2] == ["min", 1.0] and rows[3] == ["max", 4.0]
+    assert rows[4] == ["percentile 0.9", "—"]
+
+
+def test_rows_to_csv_appends_extra_rows_after_blank_line():
+    columns = [{"field": "a", "header": "A"}]
+    text = rows_to_csv(columns, [[1]], extra_rows=[["Measures", ""], ["mean", 1.0]]).decode(
+        "utf-8-sig"
+    )
+    lines = text.splitlines()
+    assert lines[0] == "A" and lines[1] == "1"
+    assert lines[2] == "" and lines[3].startswith("Measures") and lines[4].startswith("mean")
+
+
+def test_rows_to_xlsx_appends_extra_rows():
+    columns = [{"field": "a", "header": "A"}]
+    data = rows_to_xlsx(columns, [[1]], title="T", extra_rows=[["Measures", ""], ["mean", 1.0]])
+    ws = load_workbook(io.BytesIO(data)).active
+    # header row 4, data row 5, blank 6, block from 7
+    assert ws["A7"].value == "Measures" and ws["A7"].font.bold
+    assert ws["A8"].value == "mean" and ws["B8"].value == 1.0

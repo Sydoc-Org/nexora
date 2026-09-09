@@ -44,7 +44,7 @@
       try {
         var tab = new URLSearchParams(window.location.search).get('tab')
           || localStorage.getItem('nx.reporting.tab') || 'library';
-        var SCREENS = ['library', 'results', 'dashboards', 'scheduled', 'advanced'];
+        var SCREENS = ['library', 'results', 'dashboards', 'definitions', 'scheduled', 'advanced'];
         window.__rpInitialTab = tab === 'simple' ? 'library'
           : (SCREENS.indexOf(tab) !== -1 ? tab : 'library');
         // In-app motion pref (issue #155): the _header.html head script runs
@@ -104,19 +104,20 @@
           <i class="fas fa-chart-line" aria-hidden="true"></i>{{ _("Results") }}</button>
         <button type="button" id="rcNavDashboards" class="rc-nav" data-screen="dashboards" data-testid="rc-nav-dashboards">
           <i class="fas fa-table-cells-large" aria-hidden="true"></i>{{ _("Dashboards") }}<span class="rc-nav-count" id="rcNavDashboardsCount"></span></button>
+        <button type="button" id="rcNavDefinitions" class="rc-nav" data-screen="definitions" data-testid="rc-nav-definitions">
+          <i class="fas fa-sliders" aria-hidden="true"></i>{{ _("Report definitions") }}<span class="rc-nav-count" id="rcNavDefinitionsCount"></span></button>
         {% if has_permission('reporting.schedule') %}
         <button type="button" id="rcNavScheduled" class="rc-nav" data-screen="scheduled" data-testid="rc-nav-scheduled">
           <i class="fas fa-clock-rotate-left" aria-hidden="true"></i>{{ _("Scheduled") }}<span class="rc-nav-count" id="rcNavScheduledCount"></span></button>
         {% endif %}
-        {# Hidden for now (owner call 2026-08-26): the Advanced pane stays
-           fully functional via ?tab=advanced, Open-in-Advanced and
-           ReportingTabs.show('advanced') — only the nav entry is parked. #}
+        {# Advanced builder: back in the rail (#255 follow-up). Still also
+           reachable via ?tab=advanced and Open-in-Advanced. #}
         <button type="button" id="rcNavAdvanced" class="rc-nav rc-nav--advanced" data-screen="advanced"
-                data-testid="reporting-tab-advanced" hidden>
+                data-testid="reporting-tab-advanced">
           <i class="fas fa-sliders" aria-hidden="true"></i>{{ _("Advanced") }}</button>
 
         <span class="rc-rail-label rc-rail-label--sources">{{ _("Sources") }}
-          {% if has_permission('reporting.admin.sources') %}
+          {% if has_permission('reporting.sources.manage') %}
           <a href="{{ url_for('reporting_sources_admin') }}" class="rc-rail-gear" data-testid="reporting-sources-link"
              title="{{ _('Manage data sources') }}" aria-label="{{ _('Manage data sources') }}">
             <i class="fas fa-gear" aria-hidden="true"></i></a>
@@ -163,6 +164,7 @@
   </aside>
   {% include "js/_reporting_catalog_js.html" %}
   {% include "js/_reporting_drill_js.html" %}
+  {% include "js/_reporting_contribution_js.html" %}
 
   {# AI chat panel: a NON-MODAL floating tool window (issue #205). Unlike the
      drill drawer above it has no backdrop -- the page stays lit and clickable
@@ -384,6 +386,7 @@
           <select id="rpSavedReports" data-testid="reporting-saved-reports">
             <option value="">{{ _("Saved reports…") }}</option>
           </select>
+          <select id="rpLayoutPick" class="rc-select" data-testid="reporting-layout-pick"></select>
           <button id="rpLoad" class="reporting-btn nx-btn nx-btn--secondary" data-testid="reporting-load">{{ _("Load") }}</button>
           <span class="reporting-saved-links">
             <button id="rpRename" class="reporting-link nx-btn nx-btn--ghost nx-btn--sm" data-testid="reporting-rename">{{ _("Rename") }}</button>
@@ -436,6 +439,7 @@
         </select>
       </div>
       <div id="rpKpiBand" class="reporting-ledger-kpis" hidden data-testid="reporting-kpi-band"></div>
+      <div id="rpLayoutGrid" class="rdb-grid rl-grid" hidden data-testid="reporting-layout-grid"></div>
       <div id="rpResults" class="reporting-table-wrap" data-testid="reporting-results">
         <div class="nx-empty reporting-empty-state" data-testid="reporting-empty-state">
           <div class="nx-empty__art"><i class="fas fa-chart-column" aria-hidden="true"></i></div>
@@ -445,7 +449,7 @@
       </div>
       <div id="rpChart" class="reporting-viz" hidden data-testid="reporting-chart"></div>
       {# Task 13 -- auto AI caption, fired on chart mount (fireCaption() in the
-         JS partial). Only present for a reporting.ai.explain_data holder --
+         JS partial). Only present for a reporting.ai.explain.use holder --
          the div's mere absence is how a user without the permission never
          sees the feature at all. #}
       {% if ai_caption_enabled %}
@@ -604,7 +608,7 @@
     </div>
   </div>
 
-  {% if has_permission('reporting.sources.schema') %}
+  {% if has_permission('reporting.sources.schema.view') %}
   {# Source visualizer: click a card in the Sources rail (js/_reporting_tabs_js.html)
      to inspect the database behind it -- table list + ER diagram, both fed by
      GET /api/reporting/sources/<id>/schema. Same slide-over shell as the
@@ -671,7 +675,7 @@
   {% endif %}
   {# Tabs controller LAST: its initial show() dispatches rp:tabshown, which the
      Simple pane's IIFE (included inside _reporting_simple.html) listens for. #}
-  {% if has_permission('reporting.sources.schema') %}
+  {% if has_permission('reporting.sources.schema.view') %}
   {% include 'js/_reporting_schema_js.html' %}
   {% endif %}
   {% include 'js/_reporting_tabs_js.html' %}

@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<script src="./image-slot.js"></script>
+<style>
+body{margin:0;background:#fff;color:#1f2937;font-family:'Schibsted Grotesk',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#4f46e5}a:hover{color:#3d38b8}
+button{font-family:inherit}
+::placeholder{color:#9ca3af;opacity:1}
+</style>
+</helmet>
+<div style="min-height:100vh;background:#fff;--acc:{{ acc }};--acc-tint:{{ accTint }}" data-screen-label="Workitems — console">
+  <div style="max-width:1180px;margin:0 auto;padding:20px 22px 90px;box-sizing:border-box">
+
+    <div style="display:flex;align-items:center;gap:12px">
+      <span style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--acc,#4f46e5) 0%,{{ accDeep }} 100%);color:#fff;font-size:15px;box-shadow:0 8px 20px -6px {{ accShadow }};flex-shrink:0"><i class="fas fa-layer-group"></i></span>
+      <span style="font-size:22px;font-weight:600;letter-spacing:-0.5px;color:#1f2937">Global Workitems</span>
+      <span style="font-size:11.5px;color:#9ca3af">Every workitem you may see, across all tenants</span>
+      <span style="flex:1"></span>
+      <span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:#9ca3af;font-variant-numeric:tabular-nums"><span style="width:7px;height:7px;border-radius:99px;background:#059669;display:inline-block"></span>Total <span style="color:#6b7280;font-weight:600">1,038</span> · updated 06:47:12</span>
+      <button style="display:inline-flex;align-items:center;gap:6px;height:31px;padding:0 11px;border-radius:8px;font-size:12.5px;font-weight:600;background:#fff;color:#1f2937;border:1px solid #e5e7eb;cursor:pointer" style-hover="border-color:#d1d5db" onClick="{{ openExport }}"><i class="fas fa-download" style="color:#9ca3af"></i>Export CSV</button>
+      <button style="display:inline-flex;align-items:center;gap:6px;height:31px;padding:0 12px;border-radius:8px;font-size:12.5px;font-weight:600;background:var(--acc,#4f46e5);color:#fff;border:1px solid transparent;cursor:pointer"><i class="fas fa-upload" style="font-size:11px"></i>Import</button>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;margin-top:18px;padding-bottom:14px;border-bottom:1px solid #e5e7eb">
+      <span style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#9ca3af;margin-right:2px">Process</span>
+      <div style="position:relative;min-width:240px">
+        <button onClick="{{ toggleScope }}" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;height:29px;padding:0 9px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;font-size:12.5px;font-weight:500;font-family:inherit;color:#1f2937;cursor:pointer;box-sizing:border-box" style-hover="border-color:rgba(79,70,229,0.35)">
+          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ scopeSummary }}</span>
+          <i class="fas fa-chevron-down" style="font-size:10px;color:#9ca3af"></i>
+        </button>
+        <sc-if value="{{ scopeOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;z-index:20;left:0;right:0;margin-top:4px;padding:4px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;box-shadow:0 8px 24px rgba(16,24,40,0.12)">
+            <sc-for list="{{ scopeRows }}" as="sr" hint-placeholder-count="5">
+              <label style="display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;font-size:12.5px;cursor:pointer;color:{{ sr.color }};font-weight:{{ sr.weight }};padding-left:{{ sr.indent }}" style-hover="background:var(--acc-tint,#edf0ff)">
+                <input type="checkbox" checked="{{ sr.checked }}" onChange="{{ sr.toggle }}" style="width:15px;height:15px;margin:0;accent-color:var(--acc,#4f46e5);flex-shrink:0">
+                <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ sr.name }}</span>
+                <span style="flex:1"></span>
+                <span style="font-size:11px;color:#9ca3af;font-variant-numeric:tabular-nums">{{ sr.today }}</span>
+              </label>
+            </sc-for>
+          </div>
+        </sc-if>
+      </div>
+      <span style="position:relative;width:220px">
+        <i class="fas fa-magnifying-glass" style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:#9ca3af;font-size:10px"></i>
+        <input style="width:100%;height:29px;box-sizing:border-box;border:1px solid #e5e7eb;border-radius:8px;padding:0 9px 0 26px;font-size:12.5px;font-family:inherit;background:#fff;color:#1f2937;outline:none" placeholder="Search workitem…" onChange="{{ setSearch }}">
+      </span>
+      <select style="border:1px solid #e5e7eb;border-radius:8px;padding:0 8px;height:29px;box-sizing:border-box;font-size:12.5px;font-weight:500;font-family:inherit;background:#fff;color:#6b7280;outline:none;cursor:pointer" onChange="{{ setStage }}">
+        <option value="">All stages</option><option>Imported</option><option>Classified</option><option>Extracted</option><option>Validated</option><option>Exported</option>
+      </select>
+      <button style="border:none;background:transparent;padding:0 0 2px;font-size:12px;font-weight:600;cursor:pointer;color:{{ advFg }};border-bottom:2px solid {{ advBorder }}" onClick="{{ toggleAdv }}">Advanced</button>
+      <span style="flex:1"></span>
+      <button style="display:inline-flex;align-items:center;gap:6px;height:29px;padding:0 11px;border-radius:8px;font-size:12px;font-weight:600;background:#fff;color:#6b7280;border:1px solid #e5e7eb;cursor:pointer" style-hover="border-color:#d1d5db"><i class="fas fa-bookmark" style="font-size:10px;color:#9ca3af"></i>Save view</button>
+      <button style="border:none;background:transparent;padding:0;font-size:12px;font-weight:600;color:#9ca3af;cursor:pointer" style-hover="color:#6b7280" onClick="{{ resetAll }}">Reset</button>
+    </div>
+
+    <sc-if value="{{ advOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:16px 0 18px;border-bottom:1px solid #e5e7eb">
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px">
+          <div>
+            <p style="margin:0 0 6px;font-size:10px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:#9ca3af">Date range</p>
+            <select style="width:100%;border:1px solid #e5e7eb;border-radius:8px;padding:0 8px;height:29px;box-sizing:border-box;font-size:12.5px;font-family:inherit;background:#fff;color:#6b7280;outline:none;cursor:pointer"><option>Custom</option><option>Today</option><option>Yesterday</option><option>This week</option><option>Last 7 days</option><option>This month</option></select>
+          </div>
+          <div>
+            <p style="margin:0 0 6px;font-size:10px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:#9ca3af">From</p>
+            <input style="width:100%;height:29px;box-sizing:border-box;border:1px solid #e5e7eb;border-radius:8px;padding:0 9px;font-size:12px;font-family:ui-monospace,Menlo,monospace;background:#fff;color:#1f2937;outline:none" placeholder="yyyy-mm-dd hh:mm:ss">
+          </div>
+          <div>
+            <p style="margin:0 0 6px;font-size:10px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:#9ca3af">To</p>
+            <input style="width:100%;height:29px;box-sizing:border-box;border:1px solid #e5e7eb;border-radius:8px;padding:0 9px;font-size:12px;font-family:ui-monospace,Menlo,monospace;background:#fff;color:#1f2937;outline:none" placeholder="yyyy-mm-dd hh:mm:ss">
+          </div>
+        </div>
+        <p style="margin:16px 0 2px;font-size:10px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:#9ca3af">Document value search</p>
+        <sc-for list="{{ docRows }}" as="dr" hint-placeholder-count="1">
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+            <sc-if value="{{ dr.showComb }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;align-items:center;gap:10px">
+                <span style="display:inline-flex;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;height:23px">
+                  <button style="border:none;padding:0 10px;font-size:10px;font-weight:700;letter-spacing:0.05em;cursor:pointer;background:{{ dr.andBg }};color:{{ dr.andC }}" onClick="{{ dr.setAnd }}">AND</button>
+                  <button style="border:none;border-left:1px solid #e5e7eb;padding:0 10px;font-size:10px;font-weight:700;letter-spacing:0.05em;cursor:pointer;background:{{ dr.orBg }};color:{{ dr.orC }}" onClick="{{ dr.setOr }}">OR</button>
+                </span>
+                <span style="flex:1;height:1px;background:#f3f4f6"></span>
+              </div>
+            </sc-if>
+            <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px">
+              <input style="width:100%;height:29px;box-sizing:border-box;border:1px solid #e5e7eb;border-radius:8px;padding:0 9px;font-size:12.5px;font-family:inherit;background:#fff;color:#1f2937;outline:none" placeholder="All fields">
+              <select style="border:1px solid #e5e7eb;border-radius:8px;padding:0 8px;height:29px;box-sizing:border-box;font-size:12.5px;font-family:inherit;background:#fff;color:#6b7280;outline:none;cursor:pointer"><option>contains</option><option>=</option><option>≠</option><option>starts with</option><option>ends with</option><option>does not contain</option></select>
+              <span style="position:relative">
+                <input style="width:100%;height:29px;box-sizing:border-box;border:1px solid #e5e7eb;border-radius:8px;padding:0 28px 0 9px;font-size:12.5px;font-family:inherit;background:#fff;color:#1f2937;outline:none" placeholder="Type to search…">
+                <span role="button" tabindex="0" style="position:absolute;right:0;top:0;height:29px;display:inline-flex;align-items:center;padding:0 9px;color:#9ca3af;cursor:pointer;font-size:10px" onClick="{{ dr.remove }}"><i class="fas fa-times"></i></span>
+              </span>
+            </div>
+          </div>
+        </sc-for>
+        <button style="display:inline-flex;align-items:center;gap:6px;margin-top:12px;padding:0;border:none;background:none;font-size:12px;font-weight:600;color:var(--acc,#4f46e5);cursor:pointer" onClick="{{ addDocRow }}"><i class="fas fa-circle-plus" style="font-size:11px"></i>Add filter</button>
+      </div>
+    </sc-if>
+
+    <div style="padding:16px 0 0;margin-top:2px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <h3 style="margin:0;font-size:15px;font-weight:700;letter-spacing:-0.02em;color:#1f2937">Workitems</h3>
+        <span style="font-size:11px;color:#9ca3af;font-variant-numeric:tabular-nums">{{ metaLine }}</span>
+        <span style="flex:1"></span>
+        <div style="display:inline-flex;gap:16px">
+          <sc-for list="{{ tabs }}" as="tb" hint-placeholder-count="4">
+            <button style="border:none;background:transparent;padding:0 0 5px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;color:{{ tb.fg }};border-bottom:2px solid {{ tb.border }}" onClick="{{ tb.pick }}">{{ tb.label }} <span style="font-weight:500;color:#9ca3af;font-variant-numeric:tabular-nums">{{ tb.count }}</span></button>
+          </sc-for>
+        </div>
+        <div style="display:inline-flex;border:1px solid #e5e7eb;border-radius:8px;background:#fff;overflow:hidden;height:27px;margin-left:6px">
+          <button title="Table" style="border:none;padding:0 10px;font-size:11px;cursor:pointer;background:{{ tblBtnBg }};color:{{ tblBtnC }}" onClick="{{ setTable }}"><i class="fas fa-list"></i></button>
+          <button title="Documents" style="border:none;border-left:1px solid #e5e7eb;padding:0 10px;font-size:11px;cursor:pointer;background:{{ galBtnBg }};color:{{ galBtnC }}" onClick="{{ setGallery }}"><i class="fas fa-table-cells-large"></i></button>
+        </div>
+      </div>
+
+      <sc-if value="{{ isGallery }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;margin-top:14px">
+          <sc-for list="{{ rows }}" as="g" hint-placeholder-count="10">
+            <div style="position:relative;border:1px solid {{ g.cardBorder }};border-radius:10px;background:#fff;overflow:hidden;cursor:pointer" style-hover="border-color:#d1d5db;box-shadow:0 4px 14px -6px rgba(31,41,55,0.18)" onClick="{{ g.openDetail }}">
+              <span style="position:absolute;top:8px;left:8px;z-index:2;display:inline-flex"><input type="checkbox" checked="{{ g.checked }}" onChange="{{ g.toggle }}" style="width:15px;height:15px;margin:0;accent-color:var(--acc,#4f46e5);cursor:pointer"></span>
+              <div style="aspect-ratio:5/4;background:#f3f4f6;border-bottom:1px solid #eceef1;display:flex;align-items:center;justify-content:center;padding:14px 20px 0;box-sizing:border-box">
+                <div style="width:100%;height:100%;background:#fff;border:1px solid #e5e7eb;border-radius:3px 3px 0 0;box-shadow:0 2px 8px rgba(31,41,55,0.08);padding:12px 12px 0;box-sizing:border-box;overflow:hidden">
+                  <span style="display:block;width:46%;height:5px;border-radius:2px;background:#d1d5db"></span>
+                  <span style="display:block;width:30%;height:4px;border-radius:2px;background:#e5e7eb;margin-top:5px"></span>
+                  <span style="display:block;width:100%;height:3px;border-radius:2px;background:#f3f4f6;margin-top:12px"></span>
+                  <span style="display:block;width:92%;height:3px;border-radius:2px;background:#f3f4f6;margin-top:4px"></span>
+                  <span style="display:block;width:96%;height:3px;border-radius:2px;background:#f3f4f6;margin-top:4px"></span>
+                  <span style="display:block;width:64%;height:3px;border-radius:2px;background:#f3f4f6;margin-top:4px"></span>
+                  <span style="display:block;width:38%;height:4px;border-radius:2px;background:#e5e7eb;margin-top:11px;margin-left:auto"></span>
+                </div>
+              </div>
+              <div style="padding:9px 11px 10px">
+                <div style="display:flex;align-items:center;gap:7px">
+                  <span style="font-size:12px;font-weight:600;color:#1f2937;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">{{ g.id }}</span>
+                  <span title="{{ g.status }}" style="margin-left:auto;width:7px;height:7px;border-radius:99px;background:{{ g.stDot }};box-shadow:0 0 0 3px {{ g.stHalo }};flex-shrink:0"></span>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:5px">
+                  <span style="display:inline-flex;align-items:center;gap:2px;flex-shrink:0">
+                    <sc-for list="{{ g.stageSegs }}" as="gs" hint-placeholder-count="5">
+                      <span style="width:9px;height:3px;border-radius:2px;background:{{ gs.bg }}"></span>
+                    </sc-for>
+                  </span>
+                  <span style="font-size:10.5px;color:#9ca3af;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ g.stage }}</span>
+                  <span style="margin-left:auto;font-size:10.5px;color:#9ca3af;white-space:nowrap;flex-shrink:0">{{ g.movedAgo }}</span>
+                </div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isTable }}" hint-placeholder-val="{{ true }}">
+      <div style="display:grid;grid-template-columns:36px minmax(0,1fr) 150px 190px 32px;align-items:center;margin-top:10px">
+        <div style="grid-column:1/-1;display:grid;grid-template-columns:subgrid;align-items:center;border-bottom:1px solid #e5e7eb">
+          <span style="display:flex;justify-content:center;padding:7px 0"><input type="checkbox" checked="{{ allChecked }}" onChange="{{ toggleAll }}" style="width:15px;height:15px;margin:0;accent-color:var(--acc,#4f46e5);cursor:pointer"></span>
+          <span role="button" tabindex="0" style="padding:7px 0;font-size:10px;font-weight:700;letter-spacing:0.09em;color:#9ca3af;text-transform:uppercase;cursor:pointer" style-hover="color:#6b7280">Workitem <i class="fas fa-sort" style="font-size:9px;color:#d1d5db"></i></span>
+          <span role="button" tabindex="0" style="padding:7px 0;font-size:10px;font-weight:700;letter-spacing:0.09em;color:#9ca3af;text-transform:uppercase;cursor:pointer" style-hover="color:#6b7280">Status <i class="fas fa-sort" style="font-size:9px;color:#d1d5db"></i></span>
+          <span role="button" tabindex="0" style="padding:7px 0;font-size:10px;font-weight:700;letter-spacing:0.09em;color:#9ca3af;text-transform:uppercase;cursor:pointer">Last movement <i class="fas fa-sort-down" style="font-size:9px;color:var(--acc,#4f46e5)"></i></span>
+          <span></span>
+        </div>
+        <sc-for list="{{ rows }}" as="r" hint-placeholder-count="10">
+          <div style="grid-column:1/-1;display:grid;grid-template-columns:subgrid;align-items:center;border-bottom:{{ r.rowBorder }};background:{{ r.rowBg }};cursor:pointer" style-hover="background:#f9fafb" onClick="{{ r.openDetail }}">
+            <span style="display:flex;justify-content:center;padding:13px 0"><input type="checkbox" checked="{{ r.checked }}" onChange="{{ r.toggle }}" style="width:15px;height:15px;margin:0;accent-color:var(--acc,#4f46e5);cursor:pointer"></span>
+            <span style="padding:13px 12px 13px 0;min-width:0">
+              <span style="display:block;font-size:13px;font-weight:600;color:#1f2937;font-variant-numeric:tabular-nums">{{ r.id }}</span>
+              <span style="display:flex;align-items:center;gap:7px;margin-top:4px">
+                <span style="display:inline-flex;align-items:center;gap:3px;flex-shrink:0">
+                  <sc-for list="{{ r.stageSegs }}" as="sg" hint-placeholder-count="5">
+                    <span style="width:13px;height:3px;border-radius:2px;background:{{ sg.bg }}"></span>
+                  </sc-for>
+                </span>
+                <span style="font-size:11px;color:#9ca3af">{{ r.stage }}</span>
+              </span>
+            </span>
+            <span style="padding:13px 12px 13px 0"><span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:500;color:#6b7280"><span style="width:7px;height:7px;border-radius:99px;background:{{ r.stDot }};box-shadow:0 0 0 3px {{ r.stHalo }}"></span>{{ r.status }}</span></span>
+            <span style="padding:13px 12px 13px 0;min-width:0">
+              <span style="display:block;font-size:12.5px;color:#1f2937;font-variant-numeric:tabular-nums">{{ r.movedTime }}</span>
+              <span style="display:block;font-size:11px;color:#9ca3af;margin-top:2px">{{ r.movedAgo }}</span>
+            </span>
+            <span style="display:flex;justify-content:center;padding:13px 0"><i class="fas fa-chevron-right" style="font-size:10px;color:{{ r.chevC }};transform:rotate({{ r.chevRot }});transition:transform 0.15s ease"></i></span>
+          </div>
+          <sc-if value="{{ r.open }}" hint-placeholder-val="{{ false }}">
+            <div style="grid-column:1/-1;border-bottom:1px solid #e5e7eb;background:#f9fafb;padding:18px 20px 20px">
+              <div style="display:flex;align-items:center;gap:10px">
+                <span style="font-size:13px;font-weight:700;color:#1f2937;font-variant-numeric:tabular-nums">{{ r.id }}</span>
+                <a href="#detail" style="display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:var(--acc,#4f46e5);text-decoration:none">In register <i class="fas fa-arrow-up-right-from-square" style="font-size:9px"></i></a>
+                <span style="flex:1"></span>
+              </div>
+              <div style="display:flex;align-items:center;gap:0;margin-top:16px;padding-bottom:16px;border-bottom:1px solid #eceef1">
+                <sc-for list="{{ r.steps }}" as="st" hint-placeholder-count="5">
+                  <span style="display:inline-flex;align-items:center;gap:7px">
+                    <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:99px;background:{{ st.bg }};color:{{ st.c }};border:1.5px solid {{ st.border }};font-size:9px;flex-shrink:0"><i class="fas {{ st.icon }}"></i></span>
+                    <span style="font-size:11px;font-weight:{{ st.w }};color:{{ st.lc }};white-space:nowrap">{{ st.label }}</span>
+                  </span>
+                  <sc-if value="{{ st.line }}" hint-placeholder-val="{{ true }}"><span style="flex:1;height:1.5px;background:{{ st.lineBg }};margin:0 10px;min-width:24px"></span></sc-if>
+                </sc-for>
+              </div>
+              <sc-if value="{{ fullMedia }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;align-items:center;gap:10px;margin-top:16px">
+                  <p style="margin:0;font-size:10px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:#9ca3af">Document · 3 pages</p>
+                  <span style="flex:1"></span>
+                  <button style="display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 8px;border-radius:7px;font-size:11px;font-weight:600;background:var(--acc-tint,#edf0ff);color:var(--acc,#4f46e5);border:1px solid transparent;cursor:pointer" onClick="{{ toggleFull }}"><i class="fas fa-compress" style="font-size:9px"></i>Compact</button>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:10px">
+                  <div>
+                    <p style="margin:0 0 6px;font-size:10px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:#9ca3af">Page 1</p>
+                    <div style="width:100%;aspect-ratio:172/222;border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;background:#fff;box-shadow:0 2px 8px rgba(31,41,55,0.08)"><image-slot id="wi-doc-page" shape="rect" fit="contain" placeholder="Drop page 1"></image-slot></div>
+                  </div>
+                  <div>
+                    <p style="margin:0 0 6px;font-size:10px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:#9ca3af">Page 2</p>
+                    <div style="width:100%;aspect-ratio:172/222;border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;background:#fff;box-shadow:0 2px 8px rgba(31,41,55,0.08)"><image-slot id="wi-doc-t2" shape="rect" fit="contain" placeholder="Drop page 2"></image-slot></div>
+                  </div>
+                  <div>
+                    <p style="margin:0 0 6px;font-size:10px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:#9ca3af">Page 3</p>
+                    <div style="width:100%;aspect-ratio:172/222;border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;background:#fff;box-shadow:0 2px 8px rgba(31,41,55,0.08)"><image-slot id="wi-doc-t3" shape="rect" fit="contain" placeholder="Drop page 3"></image-slot></div>
+                  </div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ compactMedia }}" hint-placeholder-val="{{ true }}">
+              <div style="display:grid;grid-template-columns:172px minmax(0,1.3fr) 1px minmax(0,1fr);gap:22px;margin-top:16px">
+                <div>
+                  <div style="display:flex;align-items:center;margin-bottom:8px;width:172px">
+                    <p style="margin:0;font-size:10px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:#9ca3af">Document</p>
+                    <button title="Full mode" style="margin-left:auto;display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 8px;border-radius:7px;font-size:11px;font-weight:600;background:#fff;color:#6b7280;border:1px solid #e5e7eb;cursor:pointer" style-hover="border-color:#d1d5db;color:#1f2937" onClick="{{ toggleFull }}"><i class="fas fa-expand" style="font-size:9px;color:#9ca3af"></i>Full mode</button>
+                  </div>
+                  <div style="width:172px;height:222px;border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;background:#fff;box-shadow:0 2px 8px rgba(31,41,55,0.08)">
+                    <image-slot id="wi-doc-page" shape="rect" fit="contain" placeholder="Drop a document scan"></image-slot>
+                  </div>
+                  <div style="display:flex;gap:6px;margin-top:8px;width:172px">
+                    <span style="flex:1;height:52px;border:1.5px solid var(--acc,#4f46e5);border-radius:5px;overflow:hidden;background:#fff;cursor:pointer;box-sizing:border-box"><image-slot id="wi-doc-t1" shape="rect" placeholder="p.1"></image-slot></span>
+                    <span style="flex:1;height:52px;border:1px solid #e5e7eb;border-radius:5px;overflow:hidden;background:#fff;cursor:pointer;box-sizing:border-box" style-hover="border-color:#d1d5db"><image-slot id="wi-doc-t2" shape="rect" placeholder="p.2"></image-slot></span>
+                    <span style="flex:1;height:52px;border:1px solid #e5e7eb;border-radius:5px;overflow:hidden;background:#fff;cursor:pointer;box-sizing:border-box" style-hover="border-color:#d1d5db"><image-slot id="wi-doc-t3" shape="rect" placeholder="p.3"></image-slot></span>
+                  </div>
+                  <p style="margin:7px 0 0;font-size:10.5px;color:#9ca3af;font-variant-numeric:tabular-nums">Page 1 of 3 · 240 KB</p>
+                </div>
+                <div>
+                  <div style="display:flex;align-items:center;margin-bottom:8px">
+                    <p style="margin:0;font-size:10px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:#9ca3af">Document details</p>
+                    <button style="margin-left:auto;display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 8px;border-radius:7px;font-size:11px;font-weight:600;background:#fff;color:#6b7280;border:1px solid #e5e7eb;cursor:pointer" style-hover="border-color:#d1d5db;color:#1f2937"><i class="fas fa-magnifying-glass-location" style="font-size:9px;color:#9ca3af"></i>Show sources</button>
+                  </div>
+                  <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 22px">
+                    <sc-for list="{{ r.fields }}" as="f" hint-placeholder-count="6">
+                      <span role="button" tabindex="0" title="Click to locate on the document" style="display:flex;align-items:center;gap:8px;padding:6px 6px;margin:0 -6px;border-radius:6px;cursor:pointer" style-hover="background:#fff">
+                        <span style="width:104px;flex-shrink:0;font-size:11px;color:#9ca3af;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ f.k }}</span>
+                        <span style="flex:1;min-width:0;font-size:12px;font-weight:500;color:#1f2937;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums">{{ f.v }}</span>
+                        <span title="Extraction confidence" style="width:30px;height:3px;border-radius:2px;background:#e5e7eb;overflow:hidden;flex-shrink:0"><span style="display:block;height:3px;border-radius:2px;background:{{ f.confC }};width:{{ f.conf }}"></span></span>
+                        <span style="width:32px;text-align:right;font-size:10.5px;font-weight:600;color:{{ f.confC }};font-variant-numeric:tabular-nums;flex-shrink:0">{{ f.conf }}</span>
+                      </span>
+                    </sc-for>
+                  </div>
+                </div>
+                <div style="background:#eceef1"></div>
+                <div>
+                  <p style="margin:0 0 8px;font-size:10px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:#9ca3af">Audit</p>
+                  <sc-for list="{{ r.history }}" as="h" hint-placeholder-count="4">
+                    <div style="display:flex;gap:9px;padding:4px 0">
+                      <span style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;width:9px">
+                        <span style="width:7px;height:7px;border-radius:99px;background:{{ h.dot }};margin-top:4px"></span>
+                        <sc-if value="{{ h.tail }}" hint-placeholder-val="{{ true }}"><span style="flex:1;width:1.5px;background:#e5e7eb;margin-top:3px"></span></sc-if>
+                      </span>
+                      <span style="min-width:0;padding-bottom:6px">
+                        <span style="display:block;font-size:11.5px;color:#1f2937"><span style="font-weight:600">{{ h.step }}</span> · {{ h.act }}</span>
+                        <span style="display:block;font-size:10.5px;color:#9ca3af;margin-top:1px;font-variant-numeric:tabular-nums">{{ h.when }} · {{ h.who }}</span>
+                      </span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+              </sc-if>
+            </div>
+          </sc-if>
+        </sc-for>
+      </div>
+      </sc-if>
+      <sc-if value="{{ emptyResults }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:40px;text-align:center;border-bottom:1px solid #f3f4f6">
+          <div style="font-size:20px;color:#d1d5db"><i class="fas fa-magnifying-glass"></i></div>
+          <p style="margin:10px 0 0;font-size:12.5px;color:#9ca3af">No workitems match the current filters.</p>
+        </div>
+      </sc-if>
+
+      <div style="display:flex;align-items:center;margin-top:12px">
+        <span style="font-size:11.5px;color:#9ca3af;font-variant-numeric:tabular-nums">Showing <span style="color:#6b7280;font-weight:600">{{ shownCount }}</span> of <span style="color:#6b7280;font-weight:600">{{ totalCount }}</span> results</span>
+        <span style="flex:1"></span>
+        <select style="border:1px solid #e5e7eb;border-radius:8px;padding:0 8px;height:27px;box-sizing:border-box;font-size:11.5px;font-family:inherit;background:#fff;color:#6b7280;outline:none;cursor:pointer;margin-right:10px"><option>40 / page</option><option>100 / page</option><option>200 / page</option></select>
+        <div style="display:inline-flex;border:1px solid #e5e7eb;border-radius:8px;background:#fff;overflow:hidden;height:27px">
+          <button style="border:none;padding:0 9px;font-size:10px;background:#fff;color:#d1d5db;cursor:default"><i class="fas fa-chevron-left"></i></button>
+          <button style="border:none;border-left:1px solid #e5e7eb;padding:0 11px;font-size:11.5px;font-weight:600;background:var(--acc-tint,#edf0ff);color:var(--acc,#4f46e5);cursor:pointer;font-variant-numeric:tabular-nums">1</button>
+          <button style="border:none;border-left:1px solid #e5e7eb;padding:0 11px;font-size:11.5px;font-weight:500;background:#fff;color:#9ca3af;cursor:pointer;font-variant-numeric:tabular-nums">2</button>
+          <button style="border:none;border-left:1px solid #e5e7eb;padding:0 11px;font-size:11.5px;font-weight:500;background:#fff;color:#9ca3af;cursor:pointer;font-variant-numeric:tabular-nums">3</button>
+          <button style="border:none;border-left:1px solid #e5e7eb;padding:0 9px;font-size:10px;background:#fff;color:#9ca3af;cursor:pointer"><i class="fas fa-chevron-right"></i></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <sc-if value="{{ anySelected }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:50;display:flex;align-items:center;gap:12px;background:#1f2937;color:#fff;padding:10px 16px;border-radius:12px;box-shadow:0 12px 32px -8px rgba(31,41,55,0.45)">
+      <span style="font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums">{{ selCount }} selected</span>
+      <span style="width:1px;height:16px;background:rgba(255,255,255,0.2)"></span>
+      <button style="display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;padding:6px 11px;border:none;border-radius:8px;background:rgba(255,255,255,0.1);color:#fff;cursor:pointer" style-hover="background:rgba(255,255,255,0.2)" onClick="{{ openExport }}"><i class="fas fa-download" style="font-size:10px"></i>Export CSV</button>
+      <button style="display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;padding:6px 11px;border:none;border-radius:8px;background:rgba(255,255,255,0.1);color:#fff;cursor:pointer" style-hover="background:rgba(255,255,255,0.2)" onClick="{{ deselectAll }}"><i class="fas fa-times" style="font-size:10px"></i>Deselect</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showExport }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;background:rgba(31,41,55,0.4);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px" onClick="{{ closeExport }}">
+      <div style="background:#fff;border-radius:12px;box-shadow:0 24px 60px -12px rgba(31,41,55,0.4);width:100%;max-width:460px;overflow:hidden" onClick="{{ stop }}">
+        <div style="padding:16px 20px;border-bottom:1px solid #e5e7eb">
+          <h3 style="margin:0;font-size:15px;font-weight:700;letter-spacing:-0.02em;color:#1f2937">Export workitems</h3>
+          <p style="margin:3px 0 0;font-size:11.5px;color:#9ca3af">{{ exportSubtitle }}</p>
+        </div>
+        <div style="padding:16px 20px">
+          <p style="margin:0 0 6px;font-size:10px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:#9ca3af">Always included</p>
+          <p style="margin:0;font-size:12px;color:#6b7280"><i class="fas fa-lock" style="font-size:10px;color:#d1d5db;margin-right:6px"></i>Workitem ID, Status, Stage, Last movement</p>
+          <p style="margin:16px 0 6px;font-size:10px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:#9ca3af">Optional extras</p>
+          <sc-for list="{{ exportOpts }}" as="eo" hint-placeholder-count="3">
+            <label style="display:flex;align-items:flex-start;gap:9px;padding:6px 0;cursor:pointer">
+              <input type="checkbox" checked="{{ eo.on }}" onChange="{{ eo.toggle }}" style="width:15px;height:15px;margin:1px 0 0;accent-color:var(--acc,#4f46e5);flex-shrink:0">
+              <span>
+                <span style="display:block;font-size:12.5px;font-weight:600;color:#1f2937">{{ eo.label }}</span>
+                <span style="display:block;font-size:11px;color:#9ca3af;margin-top:1px">{{ eo.sub }}</span>
+              </span>
+            </label>
+          </sc-for>
+          <p style="margin:14px 0 0;font-size:11px;color:#9ca3af"><i class="fas fa-info-circle" style="margin-right:5px"></i>All workitems matching the current filters will be exported, not just this page.</p>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;padding:14px 20px;border-top:1px solid #e5e7eb">
+          <button style="height:31px;padding:0 12px;border-radius:8px;font-size:12.5px;font-weight:600;background:#fff;color:#6b7280;border:1px solid #e5e7eb;cursor:pointer" onClick="{{ closeExport }}">Cancel</button>
+          <button style="display:inline-flex;align-items:center;gap:6px;height:31px;padding:0 13px;border-radius:8px;font-size:12.5px;font-weight:600;background:var(--acc,#4f46e5);color:#fff;border:1px solid transparent;cursor:pointer" onClick="{{ closeExport }}"><i class="fas fa-download" style="font-size:10px"></i>Export CSV</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;accent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#d97706&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;options&quot;:[&quot;#4f46e5&quot;,&quot;#d97706&quot;,&quot;#0891b2&quot;,&quot;#059669&quot;]}}">
+class Component extends DCLogic {
+  state = { checked: [], tab: 'all', advOpen: false, scopeOpen: false, scopeSel: [], docRows: 1, showExport: false, search: '', stage: '', exportOn: [] };
+
+  renderVals() {
+    const acc = this.props.accent ?? '#4f46e5';
+    const m = /^#([0-9a-f]{6})$/i.exec(acc) || [null, '4f46e5'];
+    const rgb = [parseInt(m[1].slice(0,2),16), parseInt(m[1].slice(2,4),16), parseInt(m[1].slice(4,6),16)];
+    const accTint = 'rgba(' + rgb.join(',') + ',0.09)';
+    const accShadow = 'rgba(' + rgb.join(',') + ',0.5)';
+    const accDeep = '#' + rgb.map(v => Math.max(0, Math.round(v*0.72)).toString(16).padStart(2,'0')).join('');
+
+    const STAGES = ['Imported','Classified','Extracted','Validated','Exported'];
+    const data = [
+      ['WI-104882','Ready','privera.03_Invoice_New',1,'2026-09-01 06:41:22'],
+      ['WI-104881','In Progress','privera.02_Posteingang',2,'2026-09-01 06:38:05'],
+      ['WI-104880','In Progress','elektromaterial.02_Invoice',3,'2026-09-01 06:35:49'],
+      ['WI-104879','Done','compass.01_Invoice_SAP',5,'2026-09-01 06:31:12'],
+      ['WI-104878','Ready','privera.03_Invoice_New',1,'2026-09-01 06:28:57'],
+      ['WI-104877','In Progress','privera.02_InitialScan',4,'2026-09-01 06:24:31'],
+      ['WI-104876','Done','elektromaterial.02_Invoice',5,'2026-09-01 06:19:08'],
+      ['WI-104875','Done','compass.01_Invoice_SAP',5,'2026-09-01 06:12:44'],
+      ['WI-104874','In Progress','privera.02_Posteingang',3,'2026-09-01 06:07:19'],
+      ['WI-104873','Ready','privera.03_Invoice_New',1,'2026-09-01 05:58:02'],
+      ['WI-104872','Done','privera.02_Posteingang',5,'2026-09-01 05:52:40'],
+      ['WI-104871','In Progress','elektromaterial.02_Invoice',2,'2026-09-01 05:47:15']
+    ];
+    const stMap = {
+      'Ready': { dot: '#9ca3af', halo: 'rgba(156,163,175,0.18)' },
+      'In Progress': { dot: '#d97706', halo: 'rgba(217,119,6,0.15)' },
+      'Done': { dot: '#059669', halo: 'rgba(5,150,105,0.15)' }
+    };
+    const ago = ts => {
+      const mins = Math.max(1, Math.round((new Date('2026-09-01 06:47:12') - new Date(ts)) / 60000));
+      return mins < 60 ? mins + ' min ago' : Math.round(mins / 60) + ' h ago';
+    };
+    const tab = this.state.tab;
+    const search = (this.state.search || '').toLowerCase();
+    const stage = this.state.stage;
+    const filtered = data.filter(d =>
+      (tab === 'all' || d[1] === tab) &&
+      (!search || d[0].toLowerCase().includes(search)) &&
+      (!stage || STAGES[d[3]-1] === stage));
+    const checked = this.state.checked;
+    const stepIcons = ['fa-file-import','fa-tags','fa-wand-magic-sparkles','fa-circle-check','fa-file-export'];
+    const seedN = s => { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h; };
+    const mkFields = id => {
+      const h = seedN(id);
+      return [
+        ['Invoice number', 'RE-2026-' + (4000 + h % 5000), 98],
+        ['Amount', ((h % 9000) / 10 + 120).toFixed(2), 96],
+        ['Currency', 'CHF', 99],
+        ['Vendor', ['Helion Energy AG','Bouygues E&S','Meier Tobler AG','Debrunner Acifer'][h % 4], 84 + h % 14],
+        ['IBAN', 'CH' + String(10 + h % 80) + ' 3000 0000 ' + String(1000 + h % 9000), 91],
+        ['Invoice date', '2026-08-' + String(10 + h % 19).padStart(2, '0'), 95]
+      ].map(f => ({
+        k: f[0], v: f[1], conf: f[2] + '%',
+        confC: f[2] >= 90 ? '#059669' : '#d97706'
+      }));
+    };
+    const mkHistory = d => {
+      const n = d[3];
+      const steps = STAGES.slice(0, n);
+      return steps.map((s, i) => ({
+        step: s,
+        act: ['PDF received via import','Process assigned automatically','12 fields extracted','Checked and released','Sent to target system'][i],
+        when: d[4].slice(0, 11) + String(5 + i).padStart(2, '0') + ':' + String(10 + i * 7) + ':04',
+        who: i === 3 ? 'b.streich' : 'system',
+        dot: i === steps.length - 1 && n < 5 ? 'var(--acc,#4f46e5)' : '#d1d5db',
+        tail: i < steps.length - 1
+      })).reverse();
+    };
+    const openId = this.state.openId;
+    const rows = filtered.map(d => {
+      const isChk = checked.includes(d[0]);
+      const isOpen = openId === d[0];
+      return {
+        open: isOpen,
+        openDetail: () => this.setState({ openId: isOpen ? null : d[0] }),
+        chevC: isOpen ? 'var(--acc,#4f46e5)' : '#d1d5db',
+        cardBorder: isChk ? 'var(--acc,#4f46e5)' : '#e5e7eb',
+        chevRot: isOpen ? '90deg' : '0deg',
+        rowBorder: isOpen ? '1px solid transparent' : '1px solid #f3f4f6',
+        steps: STAGES.map((s, i) => ({
+          label: s, icon: stepIcons[i],
+          line: i < STAGES.length - 1,
+          lineBg: i < d[3] - 1 ? 'var(--acc,#4f46e5)' : '#e5e7eb',
+          bg: i < d[3] - 1 ? 'var(--acc,#4f46e5)' : (i === d[3] - 1 ? '#fff' : '#fff'),
+          c: i < d[3] - 1 ? '#fff' : (i === d[3] - 1 ? 'var(--acc,#4f46e5)' : '#d1d5db'),
+          border: i < d[3] ? 'var(--acc,#4f46e5)' : '#e5e7eb',
+          lc: i === d[3] - 1 ? '#1f2937' : (i < d[3] - 1 ? '#6b7280' : '#c2c7cf'),
+          w: i === d[3] - 1 ? '700' : '500'
+        })),
+        fields: mkFields(d[0]),
+        history: mkHistory(d),
+        id: d[0], status: d[1], proc: d[2],
+        movedTime: d[4], movedAgo: ago(d[4]),
+        stage: STAGES[d[3]-1],
+        stDot: stMap[d[1]].dot, stHalo: stMap[d[1]].halo,
+        checked: isChk,
+        rowBg: isChk ? 'var(--acc-tint,#edf0ff)' : 'transparent',
+        toggle: e => { e.stopPropagation(); this.setState(s => ({ checked: isChk ? s.checked.filter(x => x !== d[0]) : [...s.checked, d[0]] })); },
+        stageSegs: STAGES.map((_, i) => ({ bg: i < d[3] ? 'var(--acc,#4f46e5)' : '#e5e7eb' }))
+      };
+    });
+    const counts = { all: data.length, Ready: 0, 'In Progress': 0, Done: 0 };
+    data.forEach(d => counts[d[1]]++);
+    const tabs = [
+      { k: 'all', label: 'All', count: counts.all },
+      { k: 'Ready', label: 'Ready', count: counts.Ready },
+      { k: 'In Progress', label: 'In progress', count: counts['In Progress'] },
+      { k: 'Done', label: 'Done', count: counts.Done }
+    ].map(t => ({
+      ...t,
+      fg: tab === t.k ? '#1f2937' : '#9ca3af',
+      border: tab === t.k ? 'var(--acc,#4f46e5)' : 'transparent',
+      pick: () => this.setState({ tab: t.k })
+    }));
+
+    const procs = ['privera.03_Invoice_New','privera.02_Posteingang','elektromaterial.02_Invoice','compass.01_Invoice_SAP','privera.02_InitialScan'];
+    const sel = this.state.scopeSel;
+    const scopeRows = procs.map((p, i) => ({
+      name: p, color: '#1f2937', weight: '500', indent: '8px',
+      today: [214, 187, 96, 61, 12][i],
+      checked: sel.length === 0 || sel.includes(p),
+      toggle: () => this.setState(s => {
+        const cur = s.scopeSel.length === 0 ? [...procs] : [...s.scopeSel];
+        const next = cur.includes(p) ? cur.filter(x => x !== p) : [...cur, p];
+        return { scopeSel: next.length === procs.length ? [] : next };
+      })
+    }));
+
+    const nDoc = this.state.docRows;
+    const comb = this.state.comb || 'and';
+    const docRows = Array.from({ length: nDoc }, (_, i) => ({
+      showComb: i > 0,
+      andBg: comb === 'and' ? 'var(--acc-tint,#edf0ff)' : '#fff',
+      andC: comb === 'and' ? 'var(--acc,#4f46e5)' : '#9ca3af',
+      orBg: comb === 'or' ? 'var(--acc-tint,#edf0ff)' : '#fff',
+      orC: comb === 'or' ? 'var(--acc,#4f46e5)' : '#9ca3af',
+      setAnd: () => this.setState({ comb: 'and' }),
+      setOr: () => this.setState({ comb: 'or' }),
+      remove: () => this.setState(s => ({ docRows: Math.max(1, s.docRows - 1) }))
+    }));
+
+    const exportLabels = [
+      { label: 'Document fields', sub: 'Index fields — selections of up to 10 workitems' },
+      { label: 'Audit history', sub: 'Full timeline of all stages — up to 10 workitems' },
+      { label: 'Images as base64', sub: 'Up to 5 images per workitem — up to 10 workitems' }
+    ];
+    const exportOn = this.state.exportOn;
+    const nSel = checked.length;
+
+    return {
+      acc, accTint, accShadow, accDeep,
+      countdown: 30,
+      scopeSummary: sel.length === 0 ? 'All processes' : sel.length + ' of ' + procs.length + ' processes',
+      scopeOpen: this.state.scopeOpen,
+      toggleScope: () => this.setState(s => ({ scopeOpen: !s.scopeOpen })),
+      scopeRows,
+      setSearch: e => this.setState({ search: e.target.value }),
+      setStage: e => this.setState({ stage: e.target.value }),
+      advOpen: this.state.advOpen,
+      toggleAdv: () => this.setState(s => ({ advOpen: !s.advOpen })),
+      advFg: this.state.advOpen ? '#1f2937' : '#9ca3af',
+      advBorder: this.state.advOpen ? 'var(--acc,#4f46e5)' : 'transparent',
+      resetAll: () => this.setState({ search: '', stage: '', tab: 'all', scopeSel: [], docRows: 1, advOpen: false }),
+      docRows, addDocRow: () => this.setState(s => ({ docRows: s.docRows + 1 })),
+      metaLine: filtered.length + ' shown · sorted by last movement',
+      isTable: (this.state.viewMode || 'table') === 'table',
+      isGallery: this.state.viewMode === 'gallery',
+      setTable: () => this.setState({ viewMode: 'table' }),
+      setGallery: () => this.setState({ viewMode: 'gallery' }),
+      tblBtnBg: (this.state.viewMode || 'table') === 'table' ? 'var(--acc-tint,#edf0ff)' : '#fff',
+      tblBtnC: (this.state.viewMode || 'table') === 'table' ? 'var(--acc,#4f46e5)' : '#9ca3af',
+      galBtnBg: this.state.viewMode === 'gallery' ? 'var(--acc-tint,#edf0ff)' : '#fff',
+      galBtnC: this.state.viewMode === 'gallery' ? 'var(--acc,#4f46e5)' : '#9ca3af',
+      tabs, rows,
+      emptyResults: filtered.length === 0,
+      allChecked: filtered.length > 0 && filtered.every(r => checked.includes(r.id)),
+      toggleAll: () => this.setState(s => ({
+        checked: filtered.every(r => s.checked.includes(r.id)) ? [] : filtered.map(r => r.id)
+      })),
+      anySelected: nSel > 0, selCount: nSel,
+      deselectAll: () => this.setState({ checked: [] }),
+      shownCount: filtered.length, totalCount: '1,038',
+      showExport: this.state.showExport,
+      openExport: e => { if (e && e.stopPropagation) e.stopPropagation(); this.setState({ showExport: true }); },
+      closeExport: () => this.setState({ showExport: false }),
+      stop: e => e.stopPropagation(),
+      fullMedia: !!this.state.fullMedia,
+      compactMedia: !this.state.fullMedia,
+      toggleFull: e => { e.stopPropagation(); this.setState(s => ({ fullMedia: !s.fullMedia })); },
+      fullBtnLabel: this.state.fullMedia ? 'Compact' : 'Full mode',
+      fullBtnIcon: this.state.fullMedia ? 'fa-compress' : 'fa-expand',
+      fullBtnBg: this.state.fullMedia ? 'var(--acc-tint,#edf0ff)' : '#fff',
+      fullBtnC: this.state.fullMedia ? 'var(--acc,#4f46e5)' : '#6b7280',
+      fullBtnBorder: this.state.fullMedia ? 'transparent' : '#e5e7eb',
+      exportSubtitle: nSel > 0 ? nSel + ' selected workitems' : 'All workitems matching current filters',
+      exportOpts: exportLabels.map((o, i) => ({
+        ...o, on: exportOn.includes(i),
+        toggle: () => this.setState(s => ({ exportOn: s.exportOn.includes(i) ? s.exportOn.filter(x => x !== i) : [...s.exportOn, i] }))
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

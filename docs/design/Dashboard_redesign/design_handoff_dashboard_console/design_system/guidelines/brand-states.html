@@ -1,0 +1,27 @@
+<!-- @dsCard group="Brand" viewport="700x160" name="Interaction states" subtitle="Border darkens, background tints, focus rings in accent-soft" -->
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; padding: 16px 18px; background: var(--nx-card); font-family: var(--nx-font); color: var(--nx-text); }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; }
+  .sw { display: flex; flex-direction: column; gap: 6px; width: 96px; }
+  .chip { height: 44px; border-radius: 8px; border: 1px solid var(--nx-border); }
+  .name { font-size: 10.5px; font-weight: 600; color: var(--nx-text); }
+  .hex { font-family: var(--nx-mono); font-size: 9.5px; color: var(--nx-text-meta); }
+  .cap { font-size: 9.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--nx-text-meta); }
+  table { border-collapse: collapse; font-size: 11.5px; }
+  td { padding: 3px 14px 3px 0; color: var(--nx-text-sec); }
+  td.k { font-family: var(--nx-mono); color: var(--nx-text); }
+</style>
+
+<div style="display:flex;flex-direction:column;gap:12px">
+  <div class="row" style="align-items:center">
+    <button style="height:29px;padding:0 11px;font:600 12.5px var(--nx-font);border:1px solid var(--nx-border);border-radius:8px;background:var(--nx-card);color:var(--nx-text)">Ruhe</button>
+    <button style="height:29px;padding:0 11px;font:600 12.5px var(--nx-font);border:1px solid var(--nx-border-strong);border-radius:8px;background:var(--nx-card);color:var(--nx-text)">Hover — Rand dunkler</button>
+    <button style="height:29px;padding:0 11px;font:600 12.5px var(--nx-font);border:1px solid var(--nx-accent);border-radius:8px;background:var(--nx-card);color:var(--nx-text);box-shadow:0 0 0 3px var(--nx-accent-soft)">Fokus — 3px accent-soft</button>
+  </div>
+  <div style="display:flex;flex-direction:column">
+    <div style="display:flex;gap:14px;padding:8px 10px;font-size:12.5px;border-bottom:1px solid var(--nx-divider)"><span>Zeile in Ruhe</span></div>
+    <div style="display:flex;gap:14px;padding:8px 10px;font-size:12.5px;border-bottom:1px solid var(--nx-divider);background:var(--nx-alt);box-shadow:inset 2px 0 0 0 var(--nx-accent)"><span>Zeile im Hover — Akzent-Schiene links</span></div>
+  </div>
+</div>

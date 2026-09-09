@@ -153,6 +153,8 @@ def user_avatar(user_id):
     Not under static/ on purpose -- static/ is robocopy-mirrored from git on
     every deploy, which would delete every uploaded avatar on the next release.
     """
+    if "userid" not in session:
+        abort(401)
     avatars_dir = PATHS.uploads / "avatars"
     for filename in (f"{user_id}-icon.png", f"{user_id}-Icon.png"):
         if (avatars_dir / filename).exists():
@@ -188,9 +190,9 @@ def change_password():
             if not new_password or not confirm_password or not current_password:
                 flash(_("All fields must be filled"), "failure_changePW")
                 return redirect(url_for("profile"))
-            if not re.search(r"^\S{8,200}$", new_password):
+            if not re.search(r"^\S{12,200}$", new_password):
                 flash(
-                    _("New password has to be atleast 8 characters long, with no whitespaces"),
+                    _("New password has to be at least 12 characters long, with no whitespaces"),
                     "failure_changePW",
                 )
                 return redirect(url_for("profile"))

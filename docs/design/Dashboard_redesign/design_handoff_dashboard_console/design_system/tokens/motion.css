@@ -1,0 +1,13 @@
+:root {
+  --nx-anim-speed: 1;
+  --nx-ease: cubic-bezier(.4, 0, .2, 1);
+  --nx-dur:  calc(var(--nx-anim-speed, 1) * 150ms);
+  --nx-dur-entrance: calc(var(--nx-anim-speed, 1) * 0.6s);
+}
+@keyframes nx-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.nx-rise   { animation: nx-rise var(--nx-dur-entrance) var(--nx-ease) backwards; }
+.nx-rise-2 { animation: nx-rise var(--nx-dur-entrance) var(--nx-ease) calc(var(--nx-anim-speed, 1) * 0.095s) backwards; }
+.nx-rise-3 { animation: nx-rise var(--nx-dur-entrance) var(--nx-ease) calc(var(--nx-anim-speed, 1) * 0.19s) backwards; }
+@media (prefers-reduced-motion: reduce) {
+  .nx-rise, .nx-rise-2, .nx-rise-3 { animation: none; }
+}

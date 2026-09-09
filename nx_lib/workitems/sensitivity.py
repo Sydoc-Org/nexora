@@ -94,7 +94,7 @@ def sensitive_blocked_keys(has_sensitive_perm):
     """FieldKeys the caller may not use (empty if ``has_sensitive_perm``).
     Coerces a failed lookup (None) to set() -- in-app fail-open, unchanged.
     ``has_sensitive_perm`` is the caller's
-    ``workitems.filter.documentfields.sensitive`` permission, resolved by the
+    ``workitems.filter.docfields.sensitive.view`` permission, resolved by the
     Flask-aware caller (``has_permission(...)`` reads ``session``) and passed
     in explicitly so this module never touches session itself."""
     if has_sensitive_perm:

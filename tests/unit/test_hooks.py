@@ -39,12 +39,14 @@ def test_get_ip_prefers_x_forwarded_for(app):
         assert get_ip() == "1.2.3.4"
 
 
-def test_get_ip_uses_first_in_xff_list(app):
+def test_get_ip_uses_last_in_xff_list(app):
+    """Rightmost hop = the one the trusted proxy appended; the leftmost is
+    whatever the client typed (security sweep 2026-09)."""
     with app.test_request_context(
         "/",
         headers={"X-Forwarded-For": "1.2.3.4, 5.6.7.8"},
     ):
-        assert get_ip() == "1.2.3.4"
+        assert get_ip() == "5.6.7.8"
 
 
 def test_get_ip_returns_unknown_when_nothing_set(app):
@@ -360,9 +362,15 @@ def test_enforce_maintenance_lockout_api_returns_json_503(app):
         session["permissions"] = []
         resp = _enforce_maintenance_lockout()
         assert resp is not None
-        body, status = resp
-        assert status == 503
-        assert b"Maintenance" in body.get_data()
+        # A Response, not a (body, status) tuple: a tuple cannot carry the
+        # headers the outage monitor reads to tell a planned window from a
+        # dead site (#281).
+        assert resp.status_code == 503
+        assert b"Maintenance" in resp.get_data()
+        assert resp.headers["X-Nexora-Maintenance"] == "1"
+        # No endAt on this banner, so no Retry-After -- a missing header beats
+        # a wrong one.
+        assert "Retry-After" not in resp.headers
         # Session cleared
         assert "userid" not in session
 
@@ -393,8 +401,11 @@ def test_enforce_maintenance_lockout_html_returns_template_503(app):
         session["permissions"] = []
         resp = _enforce_maintenance_lockout()
         assert resp is not None
-        body, status = resp
-        assert status == 503
+        assert resp.status_code == 503
+        assert resp.headers["X-Nexora-Maintenance"] == "1"
+        # This banner has an endAt, so Retry-After is derived from it.
+        assert int(resp.headers["Retry-After"]) >= 0
+        assert b"Maintenance" in resp.get_data()
 
 
 # ---------- _log_every_request ----------
@@ -529,7 +540,11 @@ def test_inject_tenant_nav_empty_when_no_session(app):
     registry (has_permission() would read an empty session anyway, but this
     avoids the registry lookup entirely for anonymous requests)."""
     with app.test_request_context("/"):
-        assert _inject_tenant_nav() == {"tenant_nav": []}
+        assert _inject_tenant_nav() == {
+            "tenant_nav": [],
+            "tenant_scoped": None,
+            "tenant_solo": False,
+        }
 
 
 def test_inject_tenant_nav_delegates_to_visible_tenant_nav(app, monkeypatch):
@@ -540,11 +555,28 @@ def test_inject_tenant_nav_delegates_to_visible_tenant_nav(app, monkeypatch):
         "nx_lib.views.tenant.visible_tenant_nav",
         lambda: [{"code": "ms02", "label": "MS02", "pages": []}],
     )
+    # tenant_scoped: the tenant the session user's organization belongs to
+    # (0090 Organizations.TenantCode) -- None for organizations outside a tenant.
+    # nx_lib.tenant re-exports registry() as a *function*, so the dotted
+    # string form would resolve to that function -- patch the module object.
+    import sys
+
+    monkeypatch.setattr(
+        sys.modules["nx_lib.tenant.registry"],
+        "organization_tenant",
+        lambda org: {"PDBS": "ms02"}.get(org),
+    )
     with app.test_request_context("/"):
         session["userid"] = 1
+        session["organizationcode"] = "PDBS"
         assert _inject_tenant_nav() == {
-            "tenant_nav": [{"code": "ms02", "label": "MS02", "pages": []}]
+            "tenant_nav": [{"code": "ms02", "label": "MS02", "pages": []}],
+            "tenant_scoped": "ms02",
+            # member of exactly this one tenant -> the UI never names it (#255)
+            "tenant_solo": True,
         }
+        session["organizationcode"] = "SYDC"
+        assert _inject_tenant_nav()["tenant_scoped"] is None
 
 
 def test_inject_brand_is_gated_on_a_logged_in_session(app, monkeypatch):

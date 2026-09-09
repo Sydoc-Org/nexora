@@ -148,7 +148,7 @@ def _source_used_tables(src):
     return names
 
 
-@require_permission("reporting.sources.schema")
+@require_permission("reporting.sources.schema.view")
 def api_source_schema(source_id):
     """Tables, columns and foreign keys of the database behind one source.
 
