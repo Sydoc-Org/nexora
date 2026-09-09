@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-09 13:14+0200\n"
+"POT-Creation-Date: 2026-09-09 16:14+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -18,11 +18,11 @@ msgstr ""
 msgid "Error fetching activity instance"
 msgstr "Fehler beim Abrufen der Aktivitätsinstanz"
 
-#: nx_lib/security.py:204
+#: nx_lib/security.py:209
 msgid "Invalid date"
 msgstr "Ungültiges Datum"
 
-#: nx_lib/security.py:206
+#: nx_lib/security.py:211
 msgid "Date is outside the allowed entry window"
 msgstr "Datum liegt außerhalb des erlaubten Erfassungszeitraums"
 
@@ -889,29 +889,29 @@ msgstr "%(field)s muss numerisch sein."
 
 #: nx_lib/views/admin/clients.py:154 nx_lib/views/admin/organizations.py:128
 #: nx_lib/views/admin/processes.py:420 nx_lib/views/admin/processes.py:573
-#: nx_lib/views/admin/users.py:158 nx_lib/views/tenant.py:535
-#: nx_lib/views/tenant.py:599 nx_lib/views/tenant.py:644
-#: nx_lib/views/tenant.py:679 nx_lib/views/tenant.py:718
+#: nx_lib/views/admin/users.py:158 nx_lib/views/tenant.py:533
+#: nx_lib/views/tenant.py:597 nx_lib/views/tenant.py:642
+#: nx_lib/views/tenant.py:677 nx_lib/views/tenant.py:716
 msgid "An unexpected error occurred."
 msgstr "Ein unerwarteter Fehler ist aufgetreten."
 
-#: nx_lib/views/tenant.py:581 nx_lib/views/tenant.py:623
+#: nx_lib/views/tenant.py:579 nx_lib/views/tenant.py:621
 msgid "This entity has no writable fields."
 msgstr "Diese Entität hat keine beschreibbaren Felder."
 
-#: nx_lib/views/tenant.py:596
+#: nx_lib/views/tenant.py:594
 msgid "Record created successfully."
 msgstr "Datensatz erfolgreich erstellt."
 
-#: nx_lib/views/tenant.py:640 nx_lib/views/tenant.py:675
+#: nx_lib/views/tenant.py:638 nx_lib/views/tenant.py:673
 msgid "Record not found."
 msgstr "Datensatz nicht gefunden."
 
-#: nx_lib/views/tenant.py:641
+#: nx_lib/views/tenant.py:639
 msgid "Record updated successfully."
 msgstr "Datensatz erfolgreich aktualisiert."
 
-#: nx_lib/views/tenant.py:676
+#: nx_lib/views/tenant.py:674
 msgid "Record deleted successfully."
 msgstr "Datensatz erfolgreich gelöscht."
 
@@ -1551,7 +1551,7 @@ msgstr "Benutzer erfolgreich gelöscht."
 msgid "Could not fetch logs"
 msgstr "Protokolle konnten nicht abgerufen werden"
 
-#: nx_lib/views/admin/users.py:661
+#: nx_lib/views/admin/users.py:667
 msgid "Could not fetch sessions"
 msgstr "Sitzungen konnten nicht abgerufen werden"
 
@@ -4513,7 +4513,7 @@ msgstr "Erfasst am"
 
 #: templates/admin/access_control.html:92 templates/admin/clients.html:57
 #: templates/admin/maintenance.html:39 templates/admin/organizations.html:34
-#: templates/admin/processes.html:78 templates/admin/sessions.html:33
+#: templates/admin/processes.html:78 templates/admin/sessions.html:34
 #: templates/admin/tenants_manage.html:41
 #: templates/admin/tenants_manage.html:79
 #: templates/generali_additionalservices.html:167
@@ -7005,7 +7005,7 @@ msgid "Overrides"
 msgstr "Überschreibungen"
 
 #: templates/admin/access_control.html:96 templates/admin/logs.html:106
-#: templates/admin/sessions.html:36 templates/admin/user_detail.html:128
+#: templates/admin/sessions.html:37 templates/admin/user_detail.html:128
 #: templates/admin/user_detail.html:226 templates/js/admin/_sessions_js.html:37
 #: templates/js/admin/_user_detail_js.html:443
 #: templates/js/admin/_user_detail_js.html:556
@@ -7797,6 +7797,10 @@ msgid "IP Address"
 msgstr "IP-Adresse"
 
 #: templates/admin/sessions.html:32
+msgid "Last seen"
+msgstr "Zuletzt gesehen"
+
+#: templates/admin/sessions.html:33
 msgid "Logged in"
 msgstr "Angemeldet"
 
@@ -8580,7 +8584,7 @@ msgstr "Fehler beim Speichern des Eintrags."
 #: templates/js/_generali_pdqm_js.html:524
 #: templates/js/_generali_project_management_js.html:217
 #: templates/js/_generali_project_management_js.html:282
-#: templates/js/admin/_sessions_js.html:130
+#: templates/js/admin/_sessions_js.html:138
 msgid "Network error."
 msgstr "Netzwerkfehler."
 
@@ -10681,23 +10685,23 @@ msgstr "vor Sekunden"
 msgid "No active sessions found."
 msgstr "Keine aktiven Sitzungen gefunden."
 
-#: templates/js/admin/_sessions_js.html:88
+#: templates/js/admin/_sessions_js.html:96
 msgid "Revoke this session"
 msgstr "Diese Sitzung beenden"
 
-#: templates/js/admin/_sessions_js.html:94
+#: templates/js/admin/_sessions_js.html:102
 msgid "Revoke"
 msgstr "Beenden"
 
-#: templates/js/admin/_sessions_js.html:103
+#: templates/js/admin/_sessions_js.html:111
 msgid "Could not load sessions."
 msgstr "Sitzungen konnten nicht geladen werden."
 
-#: templates/js/admin/_sessions_js.html:116
+#: templates/js/admin/_sessions_js.html:124
 msgid "Revoke the active session for"
 msgstr "Aktive Sitzung beenden für"
 
-#: templates/js/admin/_sessions_js.html:126
+#: templates/js/admin/_sessions_js.html:134
 msgid "Could not revoke session."
 msgstr "Sitzung konnte nicht beendet werden."
 
@@ -11654,134 +11658,4 @@ msgstr "Bis"
 
 #~ msgid "updated"
 #~ msgstr "Aktualisiert"
-
-#~ msgid "New password has to be atleast 8 characters long, with no whitespaces"
-#~ msgstr ""
-#~ "Das neue Passwort muss mindestens 8 "
-#~ "Zeichen lang sein und darf keine "
-#~ "Leerzeichen enthalten"
-
-#~ msgid ""
-#~ "Imports, exports and backlog in one "
-#~ "chart: pick “Documents imported”, “Documents"
-#~ " exported” and “Backlog” together, then "
-#~ "break down “Over time (Date)” — "
-#~ "one line per measure on a shared"
-#~ " time axis."
-#~ msgstr ""
-#~ "Importe, Exporte und Backlog in einem"
-#~ " Diagramm: „Dokumente importiert“, „Dokumente "
-#~ "exportiert“ und „Backlog“ zusammen auswählen,"
-#~ " dann „Über Zeit (Datum)“ aufschlüsseln "
-#~ "— eine Linie pro Kennzahl auf "
-#~ "gemeinsamer Zeitachse."
-
-#~ msgid "Last sign-in: %(when)s"
-#~ msgstr "Letzte Anmeldung: %(when)s"
-
-#~ msgid "Imported Today"
-#~ msgstr "Heute importiert"
-
-#~ msgid "Current Backlog"
-#~ msgstr "Aktueller Rückstand"
-
-#~ msgid "Avg. Processing Time"
-#~ msgstr "Durchschn. Verarbeitungszeit"
-
-#~ msgid "Documents Processed Over Time"
-#~ msgstr "Verarbeitete Dokumente im Zeitverlauf"
-
-#~ msgid "Documents Processed by Hour (Today)"
-#~ msgstr "Heute verarbeitete Dokumente nach Stunde"
-
-#~ msgid "At least 8 characters, no whitespace."
-#~ msgstr "Mindestens 8 Zeichen, keine Leerzeichen."
-
-#~ msgid "At least 8 characters, no spaces"
-#~ msgstr "Mindestens 8 Zeichen, keine Leerzeichen"
-
-#~ msgid "List of all workitems"
-#~ msgstr "Liste aller Workitems"
-
-#~ msgid "Last movement at"
-#~ msgstr "Letzte Bewegung am"
-
-#~ msgid "Save Changes"
-#~ msgstr "Änderungen speichern"
-
-#~ msgid "Tenant organizations and their codes"
-#~ msgstr "Mandanten-Organisationen und ihre Codes"
-
-#~ msgid "Clients - nexora"
-#~ msgstr "Clients - nexora"
-
-#~ msgid "Organization Management - nexora"
-#~ msgstr "Organisationsverwaltung - nexora"
-
-#~ msgid "Permission Matrix - nexora"
-#~ msgstr "Berechtigungsmatrix - nexora"
-
-#~ msgid ""
-#~ "Process sources and field mappings per"
-#~ " client (dbo.ProcessSources / "
-#~ "dbo.ProcessFieldMappings)"
-#~ msgstr ""
-#~ "Prozessquellen und Feldzuordnungen pro Client"
-#~ " (dbo.ProcessSources / dbo.ProcessFieldMappings)"
-
-#~ msgid ""
-#~ "\"Client\" here is a runtime source "
-#~ "(default/ms02, see Clients) -- not a "
-#~ "customer organization. A process name "
-#~ "must be exactly <customer>.<process> (e.g. "
-#~ "privera.02_Posteingang): the permission that "
-#~ "grants access to it is derived "
-#~ "from those two parts, so any other"
-#~ " shape can never be granted."
-#~ msgstr ""
-#~ "\"Client\" bedeutet hier eine Laufzeitquelle"
-#~ " (default/ms02, siehe Clients) – keine "
-#~ "Kundenorganisation. Ein Prozessname muss genau"
-#~ " <Kunde>.<Prozess> lauten (z. B. "
-#~ "privera.02_Posteingang): Die Berechtigung, die "
-#~ "den Zugriff darauf gewährt, wird aus "
-#~ "diesen beiden Teilen abgeleitet; jede "
-#~ "andere Form kann daher nie vergeben "
-#~ "werden."
-
-#~ msgid ""
-#~ "Adding a process source also creates "
-#~ "its workitems.filter.process.<name> permission, "
-#~ "granted to nobody -- grant it "
-#~ "under Access Control. The join "
-#~ "condition, time filters and extra "
-#~ "condition are free-form SQL fragments"
-#~ " and stay read-only here: they "
-#~ "are editable only by a database "
-#~ "migration."
-#~ msgstr ""
-#~ "Das Hinzufügen einer Prozessquelle legt "
-#~ "auch deren Berechtigung "
-#~ "workitems.filter.process.<name> an, die niemandem"
-#~ " zugewiesen ist -- weisen Sie sie "
-#~ "unter Zugriffskontrolle zu. Join-Bedingung,"
-#~ " Zeitfilter und Zusatzbedingung sind freie"
-#~ " SQL-Fragmente und bleiben hier "
-#~ "schreibgeschützt: Sie sind nur über eine"
-#~ " Datenbankmigration änderbar."
-
-#~ msgid "Documents Processed"
-#~ msgstr "Verarbeitete Dokumente"
-
-#~ msgid "At least 8 characters required"
-#~ msgstr "Mindestens 8 Zeichen erforderlich"
-
-#~ msgid "Whole report"
-#~ msgstr "Ganzer Bericht"
-
-#~ msgid "Requires view permission"
-#~ msgstr "Erfordert Anzeigeberechtigung"
-
-#~ msgid "No one holds this permission."
-#~ msgstr "Niemand besitzt diese Berechtigung."
 

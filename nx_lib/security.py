@@ -145,6 +145,10 @@ def require_permission(code):
                 raise PermissionDenied()
             return f(*args, **kwargs)
 
+        # Read by nx_lib/views/tenant.py's nav builder so a tenant 'custom'
+        # page can be hidden when the caller lacks the *target* route's
+        # permission (#300). Any-of semantics, hence the tuple.
+        wrapper.required_permissions = (code,)  # type: ignore[attr-defined]
         return wrapper
 
     return decorator
@@ -160,6 +164,7 @@ def require_any_permission(*codes):
                 raise PermissionDenied()
             return f(*args, **kwargs)
 
+        wrapper.required_permissions = codes  # type: ignore[attr-defined]  # see #300
         return wrapper
 
     return decorator

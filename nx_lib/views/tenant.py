@@ -341,27 +341,25 @@ def _tenant_nav_page(code, p, locale):
     try/except, and a page whose endpoint doesn't resolve is dropped (returns
     ``None``) rather than handed to the template with a broken/absent URL.
 
-    Gap (a) -- a 'custom' page's target endpoint can require its own
-    permission beyond ``tenant.<code>.view`` (e.g. MS02's seeded 'workitems'
-    page points at ``workitems_overview``, gated on ``workitems.view``, which
-    the ``tenant.ms02.view``/``.edit`` pair migration 0085 provisions does
-    NOT grant) -- this function does NOT check that. There is no
-    descriptor-level field for it yet: ``TenantPage``/``LayoutJSON`` (migration
-    0085, immutable) only ever carries ``{"endpoint": ...}``, no permission
-    key, so there is nothing here to check against without inventing an
-    unfounded lookup mechanism (e.g. hardcoding endpoint->permission pairs
-    for the two seeded custom pages) that would silently rot the moment a
-    third custom page is seeded. TODO (sub-project 2, admin UI): let
-    LayoutJSON declare a "permission" key so a custom page's own required
-    permission can be checked here too, alongside ``tenant.<code>.view``.
-    Until then a real MS02-tenant-only user can see a 'workitems'/'prepared'
-    sidebar link that 403s if they lack the target permission -- a known,
-    tracked gap, not a crash.
+    A 'custom' page's target endpoint usually requires its own permission
+    beyond ``tenant.<code>.view`` (e.g. the seeded sydoc/MS02 'workitems'
+    pages point at ``workitems_overview``, gated on ``workitems.view``, which
+    the ``tenant.<code>.view``/``.edit`` pair those migrations provision does
+    NOT grant). That permission is read off the target view function, which
+    ``require_permission``/``require_any_permission`` stamp as
+    ``required_permissions``, and the entry is dropped when the caller holds
+    none of them (#300) -- so the sidebar no longer offers a link that 403s.
+    Deliberately not a ``LayoutJSON`` key: the route already declares its own
+    permission, and a second copy in the descriptor would just rot.
     """
     if p.page_type == "custom":
         layout = p.layout or {}
         endpoint = layout.get("endpoint")
         if not endpoint:
+            return None
+        # Hide the entry when the target route's own permission is missing.
+        needed = getattr(current_app.view_functions.get(endpoint), "required_permissions", ())
+        if needed and not any(has_permission(c) for c in needed):
             return None
         try:
             url = url_for(endpoint, **_layout_query(layout))

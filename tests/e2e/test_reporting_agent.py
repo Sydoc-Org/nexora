@@ -458,6 +458,44 @@ def test_chat_ticker_shows_eddard_building_a_report(nexora_server, page):
     assert steps[0] == "empty", steps
     assert steps[-1] == "title,kpi,bars,line,badge", steps
 
+    # Variety (#272): each wrap of the build counter hands over to the next of
+    # the three report layouts, so a long wait never replays one card. 10s
+    # covers a full 0->5 walk plus the wrap at the 1300ms beat.
+    cycle = page.evaluate("""() => new Promise((resolve) => {
+        const stage = document.getElementById('rpChatWorkingMascot').content.cloneNode(true)
+            .querySelector('.ed-stage');
+        document.getElementById('rpChatThread').appendChild(stage);
+        const card = stage.querySelector('.ed-rc');
+        const seen = [];
+        window.NexoraEddard.startBuild(stage);
+        const t = setInterval(() => {
+            const now = card.dataset.edVar + ':' + Array.from(
+                stage.querySelectorAll('[data-ed-slot]'))
+                .filter((el) => el.getBoundingClientRect().height > 0)
+                .map((el) => el.dataset.edSlot).join(',');
+            if (seen[seen.length - 1] !== now) seen.push(now);
+            if (now.startsWith('1:') && now.includes('donut')) {
+                clearInterval(t);
+                window.NexoraEddard.stopBuild(stage);
+                stage.remove();
+                resolve(seen);
+            }
+        }, 100);
+        setTimeout(() => {
+            clearInterval(t);
+            window.NexoraEddard.stopBuild(stage);
+            stage.remove();
+            resolve(seen);
+        }, 14000);
+    })""")
+    # variant 0 builds its own pieces, then variant 1 takes over with its own
+    variants = [s.split(":")[0] for s in cycle]
+    assert variants[0] == "0" and "1" in variants, cycle
+    assert any(s.startswith("0:") and "kpi" in s for s in cycle), cycle
+    assert any(s.startswith("1:") and "rows1" in s for s in cycle), cycle
+    # no slot leaks across variants -- variant 1 never shows variant 0's pieces
+    assert not any(s.startswith("1:") and ("kpi" in s or "bars" in s) for s in cycle), cycle
+
     # Live preview + choreography (#212 follow-up): setPreview swaps the mock
     # report's hardcoded copy for the streamed real numbers (title, compact
     # total, per-value bars, no fake delta), and the celebrate class carries

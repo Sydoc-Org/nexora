@@ -865,13 +865,38 @@ def test_header_shows_custom_page_link_with_resolved_url(user_client, monkeypatc
             _page(key="dash", page_type="custom", entity=None, layout={"endpoint": "dashboard"})
         ],
     )
-    monkeypatch.setattr(tv, "has_permission", lambda code: code == f"tenant.{TENANT_CODE}.view")
+    monkeypatch.setattr(
+        tv,
+        "has_permission",
+        lambda code: code in (f"tenant.{TENANT_CODE}.view", "dashboard.view"),
+    )
 
     resp = user_client.get("/dashboard")
 
     assert resp.status_code == 200
     assert f'data-testid="header-nav-tenant-{TENANT_CODE}-dash"'.encode() in resp.data
     assert b'href="/dashboard"' in resp.data
+
+
+def test_header_omits_custom_page_without_target_route_permission(user_client, monkeypatch):
+    """#300: tenant.<code>.view alone must not surface a custom page whose
+    target route is gated on a permission the user lacks -- the sidebar used
+    to offer a 'Workitems'/'Dashboard' link that 403'd on click."""
+    acme = _tenant()
+    monkeypatch.setattr(tv, "registry", lambda: _fake_registry({TENANT_CODE: acme}))
+    monkeypatch.setattr(
+        tv,
+        "pages_for",
+        lambda code: [
+            _page(key="dash", page_type="custom", entity=None, layout={"endpoint": "dashboard"})
+        ],
+    )
+    monkeypatch.setattr(tv, "has_permission", lambda code: code == f"tenant.{TENANT_CODE}.view")
+
+    resp = user_client.get("/dashboard")
+
+    assert resp.status_code == 200
+    assert f'data-testid="header-nav-tenant-{TENANT_CODE}-dash"'.encode() not in resp.data
 
 
 def test_header_omits_custom_page_with_unresolvable_endpoint(user_client, monkeypatch):

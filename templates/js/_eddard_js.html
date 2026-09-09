@@ -70,16 +70,16 @@
   /* "Eddard builds a report" (handoff behaviour 2). The build counter walks
      0->5 every 1300ms and wraps, unhiding one more report slot each step; the
      entrance animations are pure CSS and (re)fire because the slot goes from
-     display:none to shown. Callers own the lifetime -- start it when a request
-     goes out, stop it when the answer lands. */
+     display:none to shown. Each wrap also advances to the next of the three
+     report variants (#272), so a long wait doesn't replay one layout forever.
+     Callers own the lifetime -- start it when a request goes out, stop it when
+     the answer lands. */
   window.NexoraEddard = (function () {
     var REDUCED = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     var timers = new WeakMap();
+    var VARIANTS = 3;
 
-    // Lowest build step at which each slot is on the page.
-    var SLOTS = { title: 1, kpi: 2, bars: 3, line: 4, badge: 5 };
-
-    // toggleAttribute, not el.hidden: the trend line is an <svg>, and the
+    // toggleAttribute, not el.hidden: several slots are <svg>, and the
     // `hidden` IDL property is HTMLElement-only -- assigning it there sets a
     // dead expando and the element stays display:none.
     // Returns whether the slot just appeared, so paint() can fire the
@@ -99,12 +99,21 @@
       el.classList.add(cls);
     }
 
-    function paint(stage, build) {
+    // A slot is on the card when the build has reached its step and the
+    // variant it belongs to is the one playing (no data-ed-var = all of them).
+    function paint(stage, build, variant) {
+      var card = stage.querySelector(".ed-rc");
+      card.dataset.edVar = variant;
       show(stage, "empty", build === 0);
       var appeared = false;
-      Object.keys(SLOTS).forEach(function (name) {
-        if (show(stage, name, name === "badge" ? build === 5 : build >= SLOTS[name])) appeared = true;
-      });
+      var slots = stage.querySelectorAll("[data-ed-step]");
+      for (var i = 0; i < slots.length; i++) {
+        var el = slots[i];
+        var own = el.dataset.edVar;
+        var on = build >= +el.dataset.edStep && (own === undefined || +own === variant);
+        if (on && el.hasAttribute("hidden")) appeared = true;
+        el.toggleAttribute("hidden", !on);
+      }
       // Choreography: he flings each piece (edThrow) while working, settles
       // the card under it, and celebrates the Ready badge (handoff build
       // table: lean+glow on 1-4, hop-up pose on 5).
@@ -121,49 +130,77 @@
     // tool result into {title?, total?, series?} (stage_preview server-side),
     // and the mock report shows THOSE numbers instead of the hardcoded ones --
     // the animation becomes a preview of the actual answer.
+    // Every variant tags the pieces it can show real data in with
+    // data-ed-preview, so this writes to all three and whichever one is on
+    // screen when the event lands shows the live numbers (#272). The donut
+    // keeps its canned ratio -- a series is not a share.
+    function each(stage, name, fn) {
+      Array.prototype.forEach.call(
+        stage.querySelectorAll('[data-ed-preview="' + name + '"]'), fn);
+    }
+
+    // Rewrite a polyline to the series, in whatever viewBox it was drawn in.
+    function drawLine(svg, series, max) {
+      var box = svg.viewBox.baseVal;
+      var pts = series.map(function (v, idx) {
+        var x = Math.round(box.width * idx / (series.length - 1));
+        var y = Math.round(box.height * 0.86 - box.height * 0.73 * Math.max(0, v) / max);
+        return x + "," + y;
+      }).join(" ");
+      svg.querySelector("polyline").setAttribute("points", pts);
+    }
+
     function setPreview(stage, p) {
       if (!stage || !p) return;
       if (p.title) {
-        stage.querySelector(".ed-rc-title").textContent = p.title;
+        each(stage, "title", function (el) { el.textContent = p.title; });
       }
       if (typeof p.total === "number") {
-        var num = stage.querySelector(".ed-rc-kpi__num");
-        num.textContent = new Intl.NumberFormat(undefined,
+        var txt = new Intl.NumberFormat(undefined,
           { notation: "compact", maximumFractionDigits: 1 }).format(p.total);
+        each(stage, "total", function (el) { el.textContent = txt; });
         // The canned +8.3% delta is fiction -- drop it next to real data.
         stage.querySelector(".ed-rc-kpi__delta").hidden = true;
       }
       if (p.series && p.series.length) {
         var max = Math.max.apply(null, p.series) || 1;
         var vals = p.series.slice(-6);
-        var bars = stage.querySelectorAll(".ed-rc-bars i");
-        for (var i = 0; i < bars.length; i++) {
-          if (i < vals.length) {
-            bars[i].hidden = false;
-            bars[i].style.height = Math.round(6 + 52 * Math.max(0, vals[i]) / max) + "px";
-          } else {
-            bars[i].hidden = true;
+        each(stage, "bars", function (group) {
+          var bars = group.querySelectorAll("i");
+          for (var i = 0; i < bars.length; i++) {
+            bars[i].hidden = i >= vals.length;
+            if (i < vals.length) {
+              bars[i].style.height = Math.round(6 + 52 * Math.max(0, vals[i]) / max) + "px";
+            }
           }
-        }
+        });
+        each(stage, "progress", function (group) {
+          var rows = group.querySelectorAll("span");
+          var last = p.series.slice(-rows.length);
+          for (var i = 0; i < rows.length; i++) {
+            rows[i].hidden = i >= last.length;
+            if (i < last.length) {
+              rows[i].querySelector("u").style.width =
+                Math.round(100 * Math.max(0, last[i]) / max) + "%";
+            }
+          }
+        });
         if (p.series.length > 1) {
-          var pts = p.series.map(function (v, idx) {
-            var x = Math.round(260 * idx / (p.series.length - 1));
-            var y = Math.round(38 - 32 * Math.max(0, v) / max);
-            return x + "," + y;
-          }).join(" ");
-          stage.querySelector(".ed-rc-line polyline").setAttribute("points", pts);
+          each(stage, "line", function (svg) { drawLine(svg, p.series, max); });
+          each(stage, "spark", function (svg) { drawLine(svg, p.series, max); });
         }
       }
     }
 
     function startBuild(stage) {
       if (!stage || timers.has(stage)) return;
-      if (REDUCED) { paint(stage, 5); return; }   // hold the finished report
-      var build = 0;
-      paint(stage, build);
+      if (REDUCED) { paint(stage, 5, 0); return; }   // hold the finished report
+      var build = 0, variant = 0;
+      paint(stage, build, variant);
       timers.set(stage, setInterval(function () {
         build = (build + 1) % 6;
-        paint(stage, build);
+        if (build === 0) variant = (variant + 1) % VARIANTS;   // next report type
+        paint(stage, build, variant);
       }, 1300));
     }
 
