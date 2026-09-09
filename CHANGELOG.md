@@ -7,6 +7,42 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Workitems overview: console redesign (part 2)** — the inline detail panel
+  (shared with the reporting drill drawer and prepared_documents' preview
+  modal) restyled to match part 1 (#299). Stage stepper redrawn as accent
+  circles + connectors matching the real 4-stage pipeline; "History" renamed
+  "Audit" with a dot-and-tail newest-first timeline; extracted fields show a
+  confidence bar next to the existing percentage badge; the document column
+  is now a single 172×222 page preview with a thumbnail strip and a "Full
+  mode" toggle showing every page side by side (page thumbnails still load
+  lazily, 7 at a time); "Show sources" moved to the Document details column
+  header and opens the lightbox with source boxes already on.
+- **Workitems overview: console redesign (part 1)** — the page head, filter
+  row, and Advanced panel now match the borderless/hairline console style
+  shipped for the Dashboard (#299). The Status select is gone; status
+  filtering moved to underline tabs with live per-status counts (new
+  `/api/workitems/status_counts` endpoint). The list gained a table/documents
+  view toggle — the new 5-up document-card grid shares selection with the
+  table — and the table rows themselves are now two-line (workitem id + stage
+  ticks, quiet status dot, relative "last movement" time). The floating
+  selection bar and the footer pagination were restyled to match; the export
+  modal's header/footer went flat. Card thumbnails are a placeholder icon for
+  now, not a live document preview — see the design handoff's open items.
+  The inline detail panel (stepper/fields/confidence/audit/full mode) is
+  unchanged pending part 2. Follow-up polish: the "Total · updated" meta is
+  gone (the footer already counts), Export/Import sit centred on the title
+  row, fixed-height selects centre their label (filter row, Advanced panel,
+  per-page), clicking anywhere on a table row opens its detail panel,
+  document cards show the real first page, the detail panel stacks every
+  page at preview size (scrolls when the fields column is shorter), Full
+  mode also hides the line-item tables, the Advanced panel spans the whole
+  filter row, and the line-item tables plus the source lightbox took on the
+  console look: white sheet with a hairline header band, ghost controls,
+  two-column values list, plain-text confidence percentages (no pills), a
+  thumb rail under the page and a 1/2/3 switch that shows consecutive pages
+  side by side. First pages are warmed into an in-page blob cache right
+  after the list renders (two at a time), so document cards (with a shimmer
+  while loading), the detail panel and the lightbox reuse one download.
 - **Private test database per pytest run.** `tests/conftest.py` creates
   `NEXORA_TEST_<user>_<pid>` from `sql/test/schema.sql` + `seed.sql` at session
   start (~1.5 s) and drops it at the end; the e2e server takes a free port. The

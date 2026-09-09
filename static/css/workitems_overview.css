@@ -1,3 +1,158 @@
+/* ============================================================
+   Workitems overview console (#299) -- same borderless/hairline
+   family as the Dashboard console redesign. Layout only; shared
+   components (.nx-page-head, .nx-scope, .nx-segmented, .nx-tabs,
+   .nx-chart-head, .nx-eyebrow, .nx-empty) live in nexora-ui.css.
+   ============================================================ */
+
+/* Export/Import sit vertically centred on the title block, not top-aligned. */
+.nx-wi-actions { align-self: center; }
+
+/* Row 2 -- filter row, closed by a hairline. */
+.nx-wi-filter {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-top: 18px; padding-bottom: 14px;
+  border-bottom: 1px solid var(--nx-border);
+}
+.nx-wi-filter__spacer { margin-left: auto; }
+.nx-wi-filter .nx-scope { min-width: 240px; }
+.nx-wi-filter .nx-scope-btn { min-height: var(--ctl-h); padding: 0 9px; font-size: var(--fs-control); font-weight: 500; }
+.nx-wi-filter .nx-scope-summary { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nx-wi-filter .nx-input, .nx-wi-filter .nx-select {
+  height: var(--ctl-h); font-size: var(--fs-control);
+}
+/* Fixed-height selects: the default 8px block padding + line-height
+   overflows 29px and pushes the label off-centre. Let the height centre it. */
+.nx-wi-filter .nx-select, .nx-wi-footer .nx-select { padding-top: 0; padding-bottom: 0; line-height: 1; }
+.nx-wi-search { position: relative; width: 220px; }
+.nx-wi-search i { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--nx-text-meta); font-size: 10px; pointer-events: none; }
+.nx-wi-search .nx-input { width: 100%; padding-left: 26px; }
+/* .nx-select is width:100% by default (nexora-ui.css) for stacked-label
+   layouts; this flex row needs it sized to its own content instead. */
+#stageFilter { width: auto; flex: 0 0 auto; min-width: 130px; }
+
+.nx-wi-advtoggle {
+  border: none; background: transparent; padding: 0 0 2px; margin-bottom: -1px;
+  font-size: var(--fs-micro); font-weight: 600; cursor: pointer;
+  color: var(--nx-text-meta); border-bottom: 2px solid transparent;
+}
+.nx-wi-advtoggle.is-open { color: var(--nx-text); border-bottom-color: var(--nx-accent); }
+
+.nx-wi-savedviews { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.nx-wi-reset {
+  border: none; background: transparent; padding: 0; font-size: var(--fs-micro);
+  font-weight: 600; color: var(--nx-text-meta); cursor: pointer;
+}
+.nx-wi-reset:hover { color: var(--nx-text-sec); }
+
+/* Row 3 -- Advanced panel, flat, closed by a hairline. */
+.nx-wi-advanced { flex: 1 1 100%; padding: 16px 0 18px; border-bottom: 1px solid var(--nx-border); }
+.nx-wi-addfilter {
+  display: inline-flex; align-items: center; gap: 6px; border: none; background: none;
+  padding: 0; font-size: var(--fs-micro); font-weight: 600; color: var(--nx-accent); cursor: pointer;
+}
+.nx-wi-addfilter:hover { color: var(--nx-accent-hover); }
+
+/* Row 4 -- list header: title, meta, status tabs, view toggle. */
+.nx-wi-listhead { display: flex; align-items: center; gap: 10px; padding: 16px 0 0; margin-top: 2px; }
+.nx-tab-count { font-weight: 500; color: var(--nx-text-meta); font-variant-numeric: tabular-nums; }
+
+/* Table view -- a real <table> (sort/select-checkbox JS relies on cells[]),
+   restyled to the spec's 36 | 1fr | 150 | 190 | 32 column rhythm. */
+/* !important: Tailwind's browser-JIT injects its own <style> at an
+   unpredictable point relative to this stylesheet, so a same-specificity
+   .hidden{display:none} can lose the source-order tiebreak and leave both
+   views on screen at once. Force it here regardless of load order. */
+.nx-wi-tablewrap.hidden, .nx-wi-cardgrid.hidden { display: none !important; }
+.nx-wi-tablewrap { overflow-x: auto; }
+.nx-wi-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 10px; }
+.nx-wi-table col.check, .nx-wi-table__check { width: 36px; }
+.nx-wi-table th:nth-child(3) { width: 150px; }
+.nx-wi-table th:nth-child(4) { width: 190px; }
+.nx-wi-table th:nth-child(5) { width: 32px; }
+.nx-wi-table th {
+  text-align: left; padding: 7px 12px 7px 0; font-size: var(--fs-eyebrow); font-weight: 700;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--nx-text-meta);
+  border-bottom: 1px solid var(--nx-border); cursor: pointer; white-space: nowrap;
+}
+.nx-wi-table th:first-child { padding-left: 0; text-align: center; }
+.nx-wi-table th i { font-size: 9px; margin-left: 4px; color: var(--nx-border-strong); }
+.nx-wi-table th.sortable-header:hover { color: var(--nx-text-sec); }
+.nx-wi-table td { padding: 13px 12px 13px 0; vertical-align: middle; font-size: var(--fs-control); }
+/* Whole row is a click target for the detail panel. */
+.nx-wi-table tr.workitem-row { cursor: pointer; }
+.nx-wi-table tr.workitem-row:hover { background: var(--nx-sunken); }
+.nx-wi-table td:first-child { padding-left: 0; text-align: center; }
+.nx-wi-table tr.details-row td { padding: 0; }
+.nx-wi-cell-id { font-size: 13px; font-weight: 600; color: var(--nx-text); font-variant-numeric: tabular-nums; }
+.nx-wi-cell-stage { display: flex; align-items: center; gap: 7px; margin-top: 4px; }
+.nx-wi-cell-stage > span:last-child { font-size: var(--fs-micro); color: var(--nx-text-meta); }
+.nx-wi-ticks { display: inline-flex; align-items: center; gap: 3px; flex-shrink: 0; }
+.nx-wi-tick { display: inline-block; height: 3px; border-radius: 2px; }
+.nx-wi-cell-time { font-size: 12.5px; color: var(--nx-text); font-variant-numeric: tabular-nums; }
+.nx-wi-cell-ago { font-size: var(--fs-micro); color: var(--nx-text-meta); margin-top: 2px; }
+.nx-wi-statusdot { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 500; color: var(--nx-text-sec); }
+.nx-wi-dot { width: 7px; height: 7px; border-radius: var(--nx-radius-pill); flex-shrink: 0; display: inline-block; }
+.nx-wi-table tr.workitem-row.is-selected { background: var(--nx-accent-tint); }
+
+/* Documents (card) view */
+.nx-wi-cardgrid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; margin-top: 14px; }
+@media (max-width: 1200px) { .nx-wi-cardgrid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 768px)  { .nx-wi-cardgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.nx-wi-card {
+  position: relative; border: 1px solid var(--nx-border); border-radius: 10px;
+  background: var(--nx-card); overflow: hidden; cursor: pointer;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.nx-wi-card:hover { border-color: var(--nx-border-strong); box-shadow: 0 4px 14px -6px rgba(31,41,55,.18); }
+.nx-wi-card.is-selected { border-color: var(--nx-accent); }
+.nx-wi-card__check { position: absolute; top: 8px; left: 8px; z-index: 2; }
+.nx-wi-card__thumb {
+  aspect-ratio: 5/4; background: var(--nx-alt); border-bottom: 1px solid var(--nx-border);
+  display: flex; align-items: center; justify-content: center; padding: 14px 20px 0; box-sizing: border-box;
+}
+.nx-wi-card__sheet {
+  width: 100%; height: 100%; background: var(--nx-card); border: 1px solid var(--nx-border);
+  border-radius: 3px 3px 0 0; box-shadow: 0 2px 8px rgba(31,41,55,.08);
+  display: flex; align-items: center; justify-content: center; color: var(--nx-text-meta); font-size: 22px;
+}
+div.nx-wi-card__sheet::before { font-family: 'Font Awesome 6 Free'; font-weight: 900; content: '\f15b'; } /* fa-file */
+img.nx-wi-card__sheet { object-fit: cover; object-position: top; display: block; transition: opacity .2s ease; }
+.nx-wi-card__thumb.is-loading img.nx-wi-card__sheet { opacity: 0; }
+.nx-wi-card__thumb.is-loading { position: relative; }
+.nx-wi-card__thumb.is-loading::after {
+  content: ''; position: absolute; inset: 14px 20px 0; border-radius: 3px 3px 0 0;
+  background: linear-gradient(90deg, var(--nx-alt) 25%, var(--nx-sunken) 50%, var(--nx-alt) 75%);
+  background-size: 200% 100%; animation: shimmer 1.4s infinite linear;
+}
+.nx-wi-card__body { padding: 9px 11px 10px; }
+.nx-wi-card__line1 { display: flex; align-items: center; gap: 7px; }
+.nx-wi-card__line1 .nx-wi-dot { margin-left: auto; }
+.nx-wi-card__line2 { display: flex; align-items: center; gap: 6px; margin-top: 5px; min-width: 0; }
+.nx-wi-card__stage { font-size: 10.5px; color: var(--nx-text-meta); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nx-wi-card__ago { margin-left: auto; font-size: 10.5px; color: var(--nx-text-meta); white-space: nowrap; flex-shrink: 0; }
+
+/* Selection bar + footer */
+.nx-wi-selectionbar {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: var(--z-raised, 50);
+  display: flex; align-items: center; gap: 12px; background: #1f2937; color: #fff;
+  padding: 10px 16px; border-radius: 12px; box-shadow: 0 12px 32px -8px rgba(31,41,55,.45);
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+.nx-wi-selectionbar.hidden { transform: translate(-50%, 100%); opacity: 0; pointer-events: none; }
+.nx-wi-selectionbar__count { font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.nx-wi-selectionbar__divider { width: 1px; height: 16px; background: rgba(255,255,255,.2); }
+.nx-wi-selectionbar__btn {
+  display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600;
+  padding: 6px 11px; border: none; border-radius: 8px; background: rgba(255,255,255,.1); color: #fff; cursor: pointer;
+}
+.nx-wi-selectionbar__btn:hover { background: rgba(255,255,255,.2); }
+
+.nx-wi-footer { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+.nx-wi-footer__count { font-size: var(--fs-meta); color: var(--nx-text-meta); font-variant-numeric: tabular-nums; margin-right: auto; }
+.nx-wi-footer .nx-select { height: 27px; font-size: var(--fs-meta); }
+#paginationControls .nx-segmented__btn { font-variant-numeric: tabular-nums; }
+
 /* --- Skeleton shimmer loader --- */
 .skeleton-shimmer {
   background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
@@ -39,7 +194,9 @@
         width: 100%;
         height: 100%;
         overflow: auto; 
-        background-color: rgba(0, 0, 0, 0.85); 
+        /* Console sheet, not a dark box-on-black lightbox: white surface,
+           hairline-separated panes (source-highlight.css). */
+        background-color: var(--nx-card);
         align-items: center;
         justify-content: center;
       }
@@ -50,9 +207,10 @@
         max-width: 90%;
         max-height: 85vh; 
         object-fit: contain; 
-        animation-name: zoom;
-        animation-duration: 0.4s;
+        animation: nxFade 0.18s ease-out;   /* console: fade, never scale */
       }
+      @keyframes nxFade { from { opacity: 0; } to { opacity: 1; } }
+      @media (prefers-reduced-motion: reduce) { .modal-content { animation: none; } }
 
       @keyframes zoom {
         from {transform: scale(0.5)}
@@ -300,35 +458,26 @@
         text-align: center;
       }
 
-.modal-prev,
-    .modal-next {
-      cursor: pointer;
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      color: #f1f1f1;
-      font-size: 40px;
-      font-weight: bold;
-      transition: 0.3s;
-      user-select: none;
-      -webkit-user-select: none;
-      background-color: transparent;
-    }
-
-    .modal-next {
-      right: 25px;
-    }
-
-    .modal-prev {
-      left: 25px;
-    }
-
-    .modal-prev:hover,
-    .modal-next:hover {
-      color: #bbb;
-    }
+.modal-prev, .modal-next {
+  cursor: pointer; position: absolute; top: 50%; transform: translateY(-50%);
+  width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 7px; font-size: 11px; color: var(--nx-text-sec);
+  background: var(--nx-card); border: 1px solid var(--nx-border);
+  user-select: none; z-index: 1002;
+  transition: background .15s ease, color .15s ease;
+}
+.modal-prev[hidden], .modal-next[hidden] { display: none; }
+.modal-next { right: 16px; }
+.modal-prev { left: 16px; }
+.modal-prev:hover, .modal-next:hover { border-color: var(--nx-border-strong); color: var(--nx-text); }
+.modal-prev:focus-visible, .modal-next:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--nx-accent-soft); }
+.indicator {
+  color: #d1d5db;
+  transition: transform 0.15s ease, color 0.15s ease;
+}
 .indicator.open {
-  transform: rotate(180deg);
+  transform: rotate(90deg);
+  color: var(--nx-accent);
 }
 
 .details-row .details-content-wrapper {
@@ -346,10 +495,6 @@
   transition: max-height 0.6s ease-in, padding 0.4s ease-in, visibility 0s;
 }
 
-.workitem-row {
-  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
-}
-
 .workitem-row.hiding {
   opacity: 0;
   transform: scale(0.98);
@@ -360,83 +505,117 @@
   appearance: none;
 }
 
-.step-icon-wrapper {
-    transition: all 0.4s ease-in-out;
-}
-.step-icon-wrapper.active {
-    border-color: #6366f1;
-    background-color: #eef2ff; 
-    transform: scale(1.1);
-}
-.step-icon-wrapper.active i {
-    color: #4f46e5; 
-}
-.process-step p.active {
-    color: var(--nx-text, #111827);
-    font-weight: 700;
-}
-.step-icon-wrapper.completed {
-    border-color: #22c55e;
-    background-color: #f0fdf4;
-}
-.step-icon-wrapper.completed i {
-    color: var(--nx-success, #16a34a);
-}
-.process-step p.completed {
-    color: var(--nx-text-sec, #374151);
-}
-
-/* #workitemsTable is an ID selector, so it was beating .nx-table's
-   otherwise-correctly dark-aware var(--nx-*) styles with hardcoded
-   light colors regardless of theme -- this (plus .workitem-row:hover's
-   !important below) was the "list is still white" bug. */
-#workitemsTable thead th {
-    background-color: var(--nx-alt, #f9fafb);
-    border-bottom: 1px solid var(--nx-divider, #f1f5f9);
-    padding: 1rem 1.5rem;
-}
-
 .workitem-row {
-    border-bottom: 1px solid var(--nx-divider, #f8fafc);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-bottom: 1px solid var(--nx-border);
+    transition: background-color 0.15s ease;
 }
 
 .workitem-row:hover {
-    background-color: var(--nx-alt, #fbfcfe) !important;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.05);
+    background-color: var(--nx-alt);
 }
 
-.step-icon-wrapper {
-    width: 3.5rem;
-    height: 3.5rem;
-    border: 3px solid var(--nx-divider, #f1f5f9);
-    box-shadow: 0 0 0 4px var(--nx-card, white);
-}
+/* ============================================================
+   Inline detail panel (#299 console redesign part 2). Shared across
+   workitems_overview.html, reporting.html's drill drawer and
+   prepared_documents.html -- keep every rule generic, none page-specific.
+   ============================================================ */
+.wi-detail-panel { padding: 18px 20px 20px; background: var(--nx-alt); }
 
-.step-icon-wrapper.active {
-    border-color: var(--nx-accent-tint, #e0e7ff);
-    background-color: var(--nx-accent, #4f46e5);
-    transform: scale(1.15);
+/* Stage stepper (readOnly consumers never render this block at all). */
+.wi-stepper { display: flex; align-items: center; padding-bottom: 16px; border-bottom: 1px solid var(--nx-border); }
+.wi-stepper__step { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+.wi-stepper__icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: var(--nx-radius-pill);
+  background: #fff; color: var(--nx-border-strong); border: 1.5px solid var(--nx-border);
+  font-size: 9px; flex-shrink: 0; transition: all 0.2s ease;
 }
+.wi-stepper__icon.is-done { background: var(--nx-accent); color: #fff; border-color: var(--nx-accent); }
+.wi-stepper__icon.is-current { background: #fff; color: var(--nx-accent); border-color: var(--nx-accent); }
+.wi-stepper__label { font-size: 11px; font-weight: 500; color: #c2c7cf; }
+.wi-stepper__label.is-done { color: var(--nx-text-sec); }
+.wi-stepper__label.is-current { color: var(--nx-text); font-weight: 700; }
+.wi-stepper__line { flex: 1; height: 1.5px; background: var(--nx-border); margin: 0 10px; min-width: 24px; }
+.wi-stepper__line.is-done { background: var(--nx-accent); }
 
-.step-icon-wrapper.active i {
-    color: white;
+/* Body grid: 172px document column | rule | fields | rule | audit. */
+.wi-detail-grid { display: grid; grid-template-columns: 172px 1px minmax(0,1.3fr) 1px minmax(0,1fr); gap: 22px; margin-top: 16px; }
+.wi-detail-grid__rule { background: var(--nx-border); }
+.wi-detail-col__head, .wi-doc-col__head { display: flex; align-items: center; margin-bottom: 8px; gap: 8px; }
+.wi-panel-restricted { display: flex; align-items: center; justify-content: center; background: var(--nx-card); border-radius: 10px; padding: 20px; }
+
+.wi-doc-fullbtn, .wi-show-sources-btn {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 5px;
+  height: 24px; padding: 0 8px; border-radius: 7px; font-size: 11px; font-weight: 600;
+  background: #fff; color: var(--nx-text-sec); border: 1px solid var(--nx-border); cursor: pointer;
 }
+.wi-doc-fullbtn:hover, .wi-show-sources-btn:hover { border-color: var(--nx-border-strong); color: var(--nx-text); }
+.wi-doc-fullbtn i, .wi-show-sources-btn i { color: var(--nx-text-meta); font-size: 9px; }
 
-.step-icon-wrapper.completed {
-    background-color: color-mix(in srgb, var(--nx-success, #10b981) 15%, var(--nx-card, #ecfdf5));
-    border-color: var(--nx-success, #10b981);
+/* Every loaded page is stacked at preview size. The stack's intrinsic height is
+   one page (min-height); as a flex:1 child it then grows to whatever height the
+   fields/audit columns give the row and scrolls when the pages outrun it. */
+.wi-doc-col { display: flex; flex-direction: column; }
+.wi-doc-main {
+  width: 172px; flex: 1 1 0; min-height: 222px; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 8px; position: relative;
+  scrollbar-width: thin;
 }
-
-.details-content-wrapper {
-    background-color: var(--nx-alt, #f8fafc);
+.wi-doc-main--restricted {
+  width: 100%; height: 160px; min-height: 0; flex: none; background: var(--nx-alt);
+  align-items: center; justify-content: center; border-radius: 6px;
 }
+.wi-doc-main .src-thumb {
+  display: block; flex-shrink: 0; width: 100%; border: 1px solid var(--nx-border); border-radius: 6px;
+  overflow: hidden; background: #fff; box-shadow: 0 2px 8px rgba(31,41,55,.08); box-sizing: border-box;
+}
+.wi-doc-main .src-thumb:has(.wi-main-active) { border-color: var(--nx-accent); }
+.wi-doc-main .wi-doc-page { display: block; width: 100%; height: auto; }
+/* Thumb strip is redundant next to the stack; keep only its "load more" button. */
+.wi-doc-thumbs { display: flex; gap: 6px; margin-top: 8px; width: 172px; }
+.wi-doc-thumbs .wi-doc-thumb:not(.wi-doc-thumb--more) { display: none; }
+.wi-doc-thumb {
+  flex: 0 0 auto; width: 46px; height: 52px; border-radius: 5px; overflow: hidden;
+  object-fit: cover; border: 1px solid var(--nx-border); background: #fff; cursor: pointer; box-sizing: border-box;
+}
+.wi-doc-thumb:hover { border-color: var(--nx-border-strong); }
+.wi-doc-thumb.is-active { border: 1.5px solid var(--nx-accent); }
+.wi-doc-thumb--more {
+  display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600;
+  color: var(--nx-text-meta); background: var(--nx-alt);
+}
+.wi-doc-meta { margin: 7px 0 0; font-size: 10.5px; color: var(--nx-text-meta); font-variant-numeric: tabular-nums; }
 
-.details-content-wrapper > div {
-    border-radius: 1rem;
-    border: none;
-    box-shadow: none;
+/* Full mode: the document column takes over the whole grid row -- fields
+   and audit hide rather than squeeze beside a now-irrelevant narrow column. */
+/* Audit is capped at the height the document/fields columns set and scrolls
+   inside (flex-basis 0 = it contributes nothing to the row height itself). */
+.wi-audit-col { display: flex; flex-direction: column; min-height: 0; }
+.wi-audit-col .wi-audit-list { flex: 1 1 0; min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+.wi-detail-grid.is-full-mode > *:not(.wi-doc-col) { display: none; }
+.wi-detail-panel.is-full-mode .wi-tables { display: none; }
+/* Line-item tables: flat section under the grid, opened by a hairline. */
+.wi-tables { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--nx-border); }
+.wi-detail-grid.is-full-mode > .wi-doc-col { grid-column: 1 / -1; }
+.wi-doc-full { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 14px; margin-top: 10px; }
+.wi-doc-full__page { width: 100%; aspect-ratio: 172/222; object-fit: contain; border: 1px solid var(--nx-border); border-radius: 6px; background: #fff; box-shadow: 0 2px 8px rgba(31,41,55,.08); }
+
+/* Audit timeline (renamed from History): dot + tail, newest-first. */
+.wi-audit-list { display: flex; flex-direction: column; }
+.wi-audit-item { display: flex; gap: 9px; padding: 4px 0; }
+.wi-audit-item__rail { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; width: 9px; }
+.wi-audit-item__dot { width: 7px; height: 7px; border-radius: var(--nx-radius-pill); background: var(--nx-border-strong); margin-top: 4px; }
+.wi-audit-item__dot.is-latest { background: var(--nx-accent); }
+.wi-audit-item__tail { flex: 1; width: 1.5px; background: var(--nx-border); margin-top: 3px; }
+.wi-audit-item__body { min-width: 0; padding-bottom: 6px; }
+.wi-audit-item__step { font-size: 11.5px; color: var(--nx-text); }
+.wi-audit-item__step strong { font-weight: 600; }
+.wi-audit-item__meta { display: block; font-size: 10.5px; color: var(--nx-text-meta); margin-top: 1px; font-variant-numeric: tabular-nums; }
+
+@media (max-width: 900px) {
+  .wi-detail-grid { grid-template-columns: 1fr; }
+  .wi-detail-grid__rule { display: none; }
+  .wi-doc-col, .wi-doc-main, .wi-doc-thumbs { width: 100%; }
 }
 
 /* ============================================================
@@ -445,22 +624,9 @@
 @media (max-width: 768px) {
     main.container { padding: 1rem !important; }
 
-    /* Filter form action row should wrap on narrow screens */
-    #filterForm .flex.items-center.justify-end {
-        flex-wrap: wrap;
-        justify-content: stretch !important;
-    }
-    #filterForm .flex.items-center.justify-end > * {
-        flex: 1 1 auto;
-        text-align: center;
-    }
-
-    /* Page header (title + total count) stacks vertically */
-    .mb-8 > .flex.items-center.justify-between {
-        flex-direction: column;
-        align-items: flex-start !important;
-        gap: 0.75rem;
-    }
+    /* Filter row and list header wrap on narrow screens */
+    .nx-wi-filter, .nx-wi-listhead { flex-wrap: wrap; }
+    .nx-page-head { flex-direction: column; align-items: flex-start !important; gap: 0.75rem; }
 
     /* Bulk action bar must stay inside viewport */
     #bulk-action-bar {
@@ -472,8 +638,8 @@
         flex-wrap: wrap;
     }
 
-    /* Pagination wraps */
-    #paginationContainer {
+    /* Footer wraps */
+    .nx-wi-footer {
         flex-direction: column;
         align-items: flex-start !important;
         gap: 0.75rem;
@@ -481,7 +647,6 @@
 
     /* Modal images fill more of the screen */
     .modal-content { max-width: 96%; max-height: 80vh; }
-    .modal-prev, .modal-next { font-size: 28px; }
     .modal-close { top: 12px; right: 16px; font-size: 32px; }
 
     /* Timeline step labels – smaller for narrow screens */
@@ -499,11 +664,4 @@
     }
     .input span .date { font-size: 11px; margin-top: 32px; }
     .input span .time { font-size: 10px; }
-
-    /* Table cells get tighter padding */
-    #workitemsTable thead th { padding: 0.75rem 0.75rem; }
-}
-
-@media (max-width: 480px) {
-    #filterForm { padding: 1rem !important; }
 }

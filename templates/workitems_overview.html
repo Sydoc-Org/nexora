@@ -69,104 +69,93 @@
           </div>
         </div>
       </div>
-      <div class="nx-page-head__actions">
-        <div class="nx-count-pill">
-          <span class="nx-count-pill__label">{{ _("Total") }}</span>
-          <span class="nx-count-pill__value" id="totalItemsCount">—</span>
+      <div class="nx-page-head__actions nx-wi-actions">
+        <button type="button" id="exportCsvBtn"
+          class="nx-btn nx-btn--secondary nx-btn--sm" data-testid="workitems-export-csv">
+          <i class="fas fa-download"></i>{{ _("Export CSV") }}
+        </button>
+        <div class="inline-block">
+          <input type="file" id="importFile" name="importFile" class="hidden" accept=".pdf" multiple data-testid="workitems-import-file">
+          <button type="button" id="importBtn"
+            class="nx-btn nx-btn--primary nx-btn--sm" data-testid="workitems-import">
+            <i class="fas fa-upload"></i>{{ _("Import") }}
+          </button>
         </div>
+        {% if prepared_import_perm and ms02_active %}
+        <a href="{{ url_for('prepared_documents') }}"
+          class="nx-btn nx-btn--secondary nx-btn--sm{% if not prepared_docs_process_match %} hidden{% endif %}"
+          data-testid="prepared-docs-link"
+          data-pdoc-processes='{{ ms02_pdoc_processes|tojson }}'>
+          <i class="fas fa-file-excel"></i>{{ _("Prepared documents") }}
+        </a>
+        {% endif %}
       </div>
     </div>
 
       <form id="filterForm" method="GET" action="{{ url_for('workitems_overview') }}"
-        class="nx-filter mb-6 nx-rise-2" data-testid="workitems-filter-form">
+        class="nx-wi-filter nx-rise-2" data-testid="workitems-filter-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div>
-            <span id="prcfWLabel" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{{
-              _("Process") }}</span>
-            <div class="nx-scope nx-scope--tall mt-1" data-testid="workitems-process-filter">
-              {# type=text + .hidden, not type=hidden: the filter-form serializer
-                 skips hidden inputs (it must skip the CSRF token). #}
-              <input type="text" id="prcfW" name="prcfW" class="hidden" value="{{ process_name }}" readonly
-                     tabindex="-1" data-testid="workitems-process-filter-value">
-              <button type="button" class="nx-scope-btn" aria-expanded="false" aria-labelledby="prcfWLabel"
-                      data-testid="workitems-process-filter-btn">
-                <span class="nx-scope-summary"></span>
-                <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
-              </button>
-              <div class="nx-scope-menu" hidden role="group" aria-label="{{ _('Filter by client and process') }}"
-                   data-testid="workitems-process-filter-menu"></div>
-            </div>
-          </div>
 
-          <div>
-            <label for="searchInput" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{{
-              _("Workitem") }}</label>
-            <div class="relative mt-1">
-              {# pl-3 + the input's pl-10 matches the other icon inputs across the
-                 app (prepared_documents, generali_documents, the auth pages).
-                 The clearance that actually keeps the placeholder out from under
-                 the glyph is .nx-input.pl-10 in nexora-ui.css, plus the
-                 padding-block-only compact-density rule beside it -- not the
-                 offset here. pointer-events-none so a click on the glyph falls
-                 through and focuses the field. #}
-              <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 pointer-events-none">
-                <i class="fas fa-search"></i>
-              </span>
-              <input type="text" id="searchInput" name="search" value="{{ search or '' }}" {% if search_term_perm==False
-                %} disabled {% endif %} class="nx-input h-11 pl-10 pr-10"
-                placeholder="Enter workitem..." data-testid="workitems-search">
-            </div>
-          </div>
-
-          <div>
-            <label for="stageFilter" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{{
-              _("Stage") }}</label>
-            <div class="relative mt-1">
-              <select id="stageFilter" name="stage" {% if stage_perm==False %} disabled {% endif %} class="nx-select h-11 appearance-none pr-10" data-testid="workitems-stage-filter">
-                <option value="">{{ _("All stages") }}</option>
-                {% for st in workitem_stages %}
-                <option value="{{ st }}" {% if stage==st %}selected{% endif %}>{{ _(st) }}</option>
-                {% endfor %}
-              </select>
-              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
-                <i class="fa-solid fa-chevron-down text-xs"></i>
-              </div>
-            </div>
-          </div>
-
-          <div>
-              <label for="statusFilter" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{{
-                _("Status") }}</label>
-            <div class="relative mt-1">
-              <select id="statusFilter" name="status" {% if status_perm==False %} disabled {% endif %} class="nx-select h-11 appearance-none pr-10" data-testid="workitems-status-filter">
-                <option value="">{{ _("All statuses") }}</option>
-                <option value="Ready" {% if status=='Ready' %}selected{% endif %}>Ready</option>
-                <option value="In Progress" {% if status=='In Progress' %}selected{% endif %}>In Progress</option>
-                <option value="Done" {% if status=='Done' %}selected{% endif %}>Done</option>
-                {% if deleted_status_perm %}
-                <option value="Deleted" {% if status=='Deleted' %}selected{% endif %}>Deleted</option>
-                {% endif %}
-              </select>
-              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
-                <i class="fa-solid fa-chevron-down text-xs"></i>
-              </div>
-            </div>
-          </div>
+        <span id="prcfWLabel" class="nx-eyebrow">{{ _("Process") }}</span>
+        <div class="nx-scope nx-scope--inline" data-testid="workitems-process-filter">
+          {# type=text + .hidden, not type=hidden: the filter-form serializer
+             skips hidden inputs (it must skip the CSRF token). #}
+          <input type="text" id="prcfW" name="prcfW" class="hidden" value="{{ process_name }}" readonly
+                 tabindex="-1" data-testid="workitems-process-filter-value">
+          <button type="button" class="nx-scope-btn" aria-expanded="false" aria-labelledby="prcfWLabel"
+                  data-testid="workitems-process-filter-btn">
+            <span class="nx-scope-summary"></span>
+            <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+          </button>
+          <div class="nx-scope-menu" hidden role="group" aria-label="{{ _('Filter by client and process') }}"
+               data-testid="workitems-process-filter-menu"></div>
         </div>
+
+        <div class="nx-wi-search">
+          <i class="fas fa-search"></i>
+          <input type="text" id="searchInput" name="search" value="{{ search or '' }}" {% if search_term_perm==False
+            %} disabled {% endif %} class="nx-input"
+            placeholder="{{ _('Search workitem…') }}" data-testid="workitems-search">
+        </div>
+
+        <select id="stageFilter" name="stage" {% if stage_perm==False %} disabled {% endif %} class="nx-select" data-testid="workitems-stage-filter">
+          <option value="">{{ _("All stages") }}</option>
+          {% for st in workitem_stages %}
+          <option value="{{ st }}" {% if stage==st %}selected{% endif %}>{{ _(st) }}</option>
+          {% endfor %}
+        </select>
+
+        {# Status is no longer a select -- it moved to the underline tabs in
+           the list header (#299). Kept as a hidden text field (same
+           serializer-skips-type=hidden rule as prcfW above) so the tabs can
+           drive the same filter contract without a page reload. #}
+        <input type="text" id="statusFilter" name="status" class="hidden" value="{{ status or '' }}"
+               readonly tabindex="-1" data-testid="workitems-status-filter-value">
+
+        <button id="toggleAdvancedFilterBtn" type="button" class="nx-wi-advtoggle" data-testid="workitems-toggle-advanced">
+          {{ _("Advanced") }}
+        </button>
+
+        <span class="nx-wi-filter__spacer"></span>
+
+        <div id="savedViewsBar" class="hidden nx-wi-savedviews" data-testid="workitems-saved-views"></div>
+        <button id="saveViewBtn" type="button"
+          class="nx-btn nx-btn--secondary nx-btn--sm" data-testid="workitems-save-view">
+          <i class="fas fa-bookmark"></i>{{ _("Save view") }}
+        </button>
+        <button type="button" id="resetFilterBtn" class="nx-wi-reset" data-testid="workitems-reset"
+                data-reset-url="{{ url_for('workitems_overview', prcfW=process_name) }}">{{ _("Reset") }}</button>
 
         {% set input_base = "nx-input h-11" %}
 
-        <div id="advancedFilterContainer" class="hidden mt-8 pt-6 border-t border-gray-200">
+        <div id="advancedFilterContainer" class="hidden nx-wi-advanced">
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
 
             <div class="min-w-0">
-              <label for="datePreset" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
-                {{ _("Date Range") }}
-              </label>
-              <div class="relative mt-1">
+              <p class="nx-eyebrow mb-2">{{ _("Date Range") }}</p>
+              <div class="relative">
                 <select id="datePreset" {% if datetime_perm==False %} disabled {% endif %}
-                  class="nx-select h-11 appearance-none pr-10" data-testid="workitems-date-preset">
+                  class="nx-select appearance-none pr-10 w-full" data-testid="workitems-date-preset">
                   <option value="">{{ _("Custom") }}</option>
                   <option value="today">{{ _("Today") }}</option>
                   <option value="yesterday">{{ _("Yesterday") }}</option>
@@ -181,33 +170,25 @@
             </div>
 
             <div class="min-w-0">
-              <label for="startDate" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
-                {{ _("From Date") }}
-              </label>
-              <div class="relative mt-1">
-                <input type="text" id="startDate" name="startDate" value="{{ start_date or '' }}" {% if
-                  datetime_perm==False %} disabled {% endif %} placeholder="yyyy-mm-dd hh:mm:ss" class="{{ input_base }}" data-testid="workitems-start-date" />
-              </div>
+              <p class="nx-eyebrow mb-2">{{ _("From Date") }}</p>
+              <input type="text" id="startDate" name="startDate" value="{{ start_date or '' }}" {% if
+                datetime_perm==False %} disabled {% endif %} placeholder="yyyy-mm-dd hh:mm:ss" class="{{ input_base }} nx-mono w-full" data-testid="workitems-start-date" />
             </div>
 
             <div class="min-w-0">
-              <label for="endDate" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
-                {{ _("To Date") }}
-              </label>
-              <div class="relative mt-1">
-                <input type="text" id="endDate" name="endDate" value="{{ end_date or '' }}" {% if
-                  datetime_perm==False %} disabled {% endif %} placeholder="yyyy-mm-dd hh:mm:ss" class="{{ input_base }}" data-testid="workitems-end-date" />
-              </div>
+              <p class="nx-eyebrow mb-2">{{ _("To Date") }}</p>
+              <input type="text" id="endDate" name="endDate" value="{{ end_date or '' }}" {% if
+                datetime_perm==False %} disabled {% endif %} placeholder="yyyy-mm-dd hh:mm:ss" class="{{ input_base }} nx-mono w-full" data-testid="workitems-end-date" />
             </div>
 
           </div>
 
         {# Document Value Search -- its own engine, tucked INSIDE the Advanced
            toggle (issue #159; was always-visible per #148). #}
-        <div class="mt-8 pt-6 border-t border-gray-200" data-testid="workitems-doc-value-search">
+        <div class="mt-4 pt-4 nx-section-rule" data-testid="workitems-doc-value-search">
             <div class="min-w-0">
               <div class="flex items-center gap-4">
-                <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{{ _("Document Value Search") }}</label>
+                <p class="nx-eyebrow mb-2">{{ _("Document Value Search") }}</p>
               </div>
               {# Query-builder rows: field | op | value as separate boxes on the
                  same 3-column grid as the date row above, so the two sections
@@ -325,155 +306,110 @@
 
             </div>
 
-            <div id="addDocFilterWrap" class="flex items-center gap-4 mt-5">
+            <div id="addDocFilterWrap" class="flex items-center gap-4 mt-4">
               <button type="button" id="addDocFilterBtn"
-                class="text-sm font-medium text-[var(--nx-accent)] hover:text-[var(--nx-accent-hover)] transition-colors" data-testid="workitems-add-doc-filter">
-                <i class="fas fa-plus-circle mr-1"></i>{{ _("Add filter") }}
+                class="nx-wi-addfilter" data-testid="workitems-add-doc-filter">
+                <i class="fas fa-circle-plus"></i>{{ _("Add filter") }}
               </button>
             </div>
         </div>
         </div>
-
-        <div class="flex flex-wrap items-center justify-end gap-3 mt-5 pt-5 border-t border-gray-200">
-          {# Saved filter views (issues #170/#186): per-user chips, rendered by
-             JS. mr-auto keeps them left while the action buttons stick right.
-             Hidden until the user has a view or is naming a new one. #}
-          <div id="savedViewsBar" class="hidden flex flex-wrap items-center gap-2 mr-auto"
-            data-testid="workitems-saved-views"></div>
-          <button id="toggleAdvancedFilterBtn" type="button"
-            class="nx-btn nx-btn--secondary" data-testid="workitems-toggle-advanced">
-            <i class="fas fa-sliders-h mr-2"></i>{{ _("Advanced") }}
-          </button>
-          <button id="saveViewBtn" type="button"
-            class="nx-btn nx-btn--secondary" data-testid="workitems-save-view">
-            <i class="fas fa-bookmark mr-2"></i>{{ _("Save view") }}
-          </button>
-          <a href="{{ url_for('workitems_overview', prcfW=process_name) }}"
-            class="nx-btn nx-btn--secondary" data-testid="workitems-reset">{{
-            _("Reset") }}</a>
-          <div class="relative">
-            <select id="filterPerPage" name="perPage"
-              class="nx-select h-9 appearance-none pr-8" data-testid="workitems-per-page">
-              <option value="40" selected>40</option>
-              <option value="100">100</option>
-              <option value="200">200</option>
-              <option value="500">500</option>
-              <option value="1000">1000</option>
-            </select>
-            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
-              <i class="fa-solid fa-chevron-down text-xs"></i>
-            </div>
-          </div>
-
-          <button type="button" id="exportCsvBtn"
-            class="nx-btn nx-btn--secondary" data-testid="workitems-export-csv">
-            <i class="fas fa-download mr-2"></i>{{ _("Export CSV") }}
-          </button>
-
-          <div class="inline-block">
-            <input type="file" id="importFile" name="importFile" class="hidden" accept=".pdf" multiple data-testid="workitems-import-file">
-            <button type="button" id="importBtn"
-              class="nx-btn nx-btn--primary" data-testid="workitems-import">
-              <i class="fas fa-upload mr-2"></i>{{ _("Import") }}
-            </button>
-          </div>
-          {% if prepared_import_perm and ms02_active %}
-          <a href="{{ url_for('prepared_documents') }}"
-            class="nx-btn nx-btn--secondary{% if not prepared_docs_process_match %} hidden{% endif %}"
-            data-testid="prepared-docs-link"
-            data-pdoc-processes='{{ ms02_pdoc_processes|tojson }}'>
-            <i class="fas fa-file-excel mr-2"></i>{{ _("Prepared documents") }}
-          </a>
-          {% endif %}
-        </div>
       </form>
 
-      <div class="nx-table-wrap nx-rise-3 relative">
-        <div class="overflow-x-auto">
-          <div id="table-top-loader" class="sticky top-0 z-10 hidden items-center justify-center p-4 bg-white bg-opacity-80 backdrop-blur-sm [display:none]!">
-          </div>
-          <table class="nx-table" id="workitemsTable">
-            <thead>
-              <tr>
-                <th scope="col" class="px-4 py-4 w-10 text-center">
-                  <input type="checkbox" id="selectAllCheckbox"
-                    class="h-4 w-4 rounded border-gray-300 text-[var(--nx-accent)] focus:ring-[var(--nx-accent)] cursor-pointer"
-                    title="{{ _('Select all') }}" data-testid="workitems-select-all">
-                </th>
-                <th scope="col" class="sortable-header px-6 py-4 whitespace-nowrap text-center cursor-pointer"
-                  data-column-index="1">
-                  <div class="flex items-center gap-2 text-center justify-center">
-                    <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      {{ _("Workitem") }}
-                    </span>
-                    <i class="fas fa-sort text-gray-400 group-hover:text-gray-600 transition-colors"></i>
-                  </div>
-                </th>
-                <th scope="col" class="sortable-header px-6 py-3 text-center cursor-pointer" data-column-index="2">
-                  <div class="flex items-center gap-2 text-center justify-center">
-                    <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      {{ _("Status") }}
-                    </span>
-                    <i class="fas fa-sort text-gray-400 group-hover:text-gray-600 transition-colors"></i>
-                  </div>
-                </th>
-                <th scope="col" class="sortable-header px-6 py-3 text-center cursor-pointer" data-column-index="3">
-                  <div class="flex items-center gap-2 text-center justify-center">
-                    <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      {{ _("Last movement at") }}
-                    </span>
-                    <i class="fas fa-sort text-gray-400 group-hover:text-gray-600 transition-colors"></i>
-                  </div>
-                </th>
-                <th scope="col" class="relative px-6 py-3">
-                  <span class="sr-only">Details</span>
-                </th>
-              </tr>
-            </thead>
-            {% set skeleton_rows %}
-              {% for _ in range(6) %}
-              <tr aria-hidden="true">
-                <td class="text-center"><span class="nx-skel" style="width:16px;height:16px;border-radius:4px"></span></td>
-                <td class="text-center"><span class="nx-skel" style="width:70px"></span></td>
-                <td class="text-center"><span class="nx-skel" style="width:90px;height:20px;border-radius:10px"></span></td>
-                <td class="text-center"><span class="nx-skel" style="width:130px"></span></td>
-                <td></td>
-              </tr>
-              {% endfor %}
-              <tr class="sr-only"><td colspan="5">{{ _("Loading workitems...") }}</td></tr>
-            {% endset %}
-            <tbody id="workitemsTbody">
-              {{ skeleton_rows }}
-            </tbody>
-          </table>
-          <template id="workitemsSkeletonTpl">{{ skeleton_rows }}</template>
+      <div class="nx-wi-listhead">
+        <h3 class="nx-chart-head__title">{{ _("Workitems") }}</h3>
+        <span class="nx-chart-head__meta" id="wiListMeta"></span>
+        <span class="nx-chart-head__spacer"></span>
+        <div class="nx-tabs nx-tabs--slim" id="statusTabs" role="tablist" data-testid="workitems-status-tabs">
+          <button type="button" class="nx-tab is-active" data-status="" role="tab" aria-selected="true">{{ _("All") }} <span class="nx-tab-count" data-count="all">—</span></button>
+          {% if status_perm != False %}
+          <button type="button" class="nx-tab" data-status="Ready" role="tab" aria-selected="false">{{ _("Ready") }} <span class="nx-tab-count" data-count="Ready">—</span></button>
+          <button type="button" class="nx-tab" data-status="In Progress" role="tab" aria-selected="false">{{ _("In progress") }} <span class="nx-tab-count" data-count="In Progress">—</span></button>
+          <button type="button" class="nx-tab" data-status="Done" role="tab" aria-selected="false">{{ _("Done") }} <span class="nx-tab-count" data-count="Done">—</span></button>
+          {% endif %}
+          {% if deleted_status_perm %}
+          <button type="button" class="nx-tab" data-status="Deleted" role="tab" aria-selected="false">{{ _("Deleted") }} <span class="nx-tab-count" data-count="Deleted">—</span></button>
+          {% endif %}
+        </div>
+        <div class="nx-segmented" id="wiViewToggle" role="group" aria-label="{{ _('Table or document view') }}" data-testid="workitems-view-toggle">
+          <button type="button" class="nx-segmented__btn is-active" data-view="table" title="{{ _('Table') }}"><i class="fas fa-list"></i></button>
+          <button type="button" class="nx-segmented__btn" data-view="documents" title="{{ _('Documents') }}"><i class="fas fa-table-cells-large"></i></button>
         </div>
       </div>
+
+      <div id="table-top-loader" class="hidden items-center justify-center p-4 [display:none]!"></div>
+
+      <div class="nx-wi-tablewrap" id="wiTableView">
+        <table class="nx-wi-table" id="workitemsTable">
+          <thead>
+            <tr>
+              <th scope="col" class="nx-wi-table__check">
+                <input type="checkbox" id="selectAllCheckbox"
+                  class="h-4 w-4 rounded border-gray-300 text-[var(--nx-accent)] focus:ring-[var(--nx-accent)] cursor-pointer"
+                  title="{{ _('Select all') }}" data-testid="workitems-select-all">
+              </th>
+              <th scope="col" class="sortable-header" data-column-index="1">{{ _("Workitem") }} <i class="fas fa-sort"></i></th>
+              <th scope="col" class="sortable-header" data-column-index="2">{{ _("Status") }} <i class="fas fa-sort"></i></th>
+              <th scope="col" class="sortable-header" data-column-index="3">{{ _("Last movement") }} <i class="fas fa-sort-down"></i></th>
+              <th scope="col"><span class="sr-only">{{ _("Details") }}</span></th>
+            </tr>
+          </thead>
+          {% set skeleton_rows %}
+            {% for _ in range(6) %}
+            <tr aria-hidden="true">
+              <td><span class="nx-skel" style="width:15px;height:15px;border-radius:4px"></span></td>
+              <td><span class="nx-skel" style="width:70px"></span></td>
+              <td><span class="nx-skel" style="width:90px;height:12px;border-radius:6px"></span></td>
+              <td><span class="nx-skel" style="width:100px"></span></td>
+              <td></td>
+            </tr>
+            {% endfor %}
+            <tr class="sr-only"><td colspan="5">{{ _("Loading workitems...") }}</td></tr>
+          {% endset %}
+          <tbody id="workitemsTbody">
+            {{ skeleton_rows }}
+          </tbody>
+        </table>
+        <template id="workitemsSkeletonTpl">{{ skeleton_rows }}</template>
+      </div>
+
+      <div class="nx-wi-cardgrid hidden" id="wiDocumentsView" data-testid="workitems-documents-view"></div>
 
       <!-- Bulk action bar (shown when rows are selected) -->
-      <div id="bulk-action-bar"
-        class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-gray-900 text-white px-5 py-3 rounded-2xl shadow-2xl">
-        <span class="text-sm font-semibold" id="bulk-selected-count">0 {{ _("selected") }}</span>
-        <div class="w-px h-4 bg-white/20"></div>
-        <button type="button" id="bulkExportBtn"
-          class="flex items-center gap-2 text-sm font-medium px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors" data-testid="workitems-bulk-export">
-          <i class="fas fa-download text-xs"></i> {{ _("Export CSV") }}
+      <div id="bulk-action-bar" class="nx-wi-selectionbar hidden">
+        <span class="nx-wi-selectionbar__count" id="bulk-selected-count">0 {{ _("selected") }}</span>
+        <div class="nx-wi-selectionbar__divider"></div>
+        <button type="button" id="bulkExportBtn" class="nx-wi-selectionbar__btn" data-testid="workitems-bulk-export">
+          <i class="fas fa-download"></i> {{ _("Export CSV") }}
         </button>
-        <button type="button" id="bulkDeselectBtn"
-          class="flex items-center gap-2 text-sm font-medium px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors" data-testid="workitems-bulk-deselect">
-          <i class="fas fa-times text-xs"></i> {{ _("Deselect") }}
+        <button type="button" id="bulkDeselectBtn" class="nx-wi-selectionbar__btn" data-testid="workitems-bulk-deselect">
+          <i class="fas fa-times"></i> {{ _("Deselect") }}
         </button>
       </div>
 
-      <div id="paginationContainer" class="mt-6 flex items-center justify-between">
-        <div class="text-sm text-gray-500 font-medium">
+      <div id="paginationContainer" class="nx-wi-footer">
+        <div class="nx-wi-footer__count">
           {{ _("Showing") }}
-          <span class="font-semibold text-gray-700" id="showingCount">—</span>
+          <span id="showingCount">—</span>
           {{ _("of") }}
-          <span class="font-semibold text-gray-700" id="totalCount">—</span>
+          <span id="totalCount">—</span>
           {{ _("results") }}
         </div>
-        <div id="paginationControls" class="flex items-center gap-2"></div>
+        <div class="relative">
+          {# Outside <form id="filterForm"> since the footer moved; form= keeps it in the serializers. #}
+          <select id="filterPerPage" name="perPage" form="filterForm"
+            class="nx-select appearance-none pr-8" data-testid="workitems-per-page">
+            <option value="40" selected>40 / {{ _("page") }}</option>
+            <option value="100">100 / {{ _("page") }}</option>
+            <option value="200">200 / {{ _("page") }}</option>
+            <option value="500">500 / {{ _("page") }}</option>
+            <option value="1000">1000 / {{ _("page") }}</option>
+          </select>
+          <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+            <i class="fa-solid fa-chevron-down text-xs"></i>
+          </div>
+        </div>
+        <div id="paginationControls" class="nx-segmented"></div>
       </div>
 
     </main>
@@ -522,7 +458,7 @@
     <div id="exportOptionsModal"
       class="hidden fixed inset-0 bg-black bg-opacity-50 z-[200] flex items-center justify-center p-4">
       <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
-        <div class="bg-gray-50 px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+        <div class="px-6 py-4 border-b border-[var(--nx-border)] flex items-center justify-between">
           <div>
             <h3 class="text-lg font-bold text-gray-800">{{ _("Export Workitems") }}</h3>
             <p class="text-sm text-gray-500 mt-0.5" id="exportModalSubtitle"></p>
@@ -535,7 +471,7 @@
         <div class="p-6 space-y-4">
           <!-- Always-on columns -->
           <div>
-            <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("Always included") }}</p>
+            <p class="nx-eyebrow mb-2">{{ _("Always included") }}</p>
             <div class="flex items-center gap-2 text-sm text-gray-500 bg-gray-50 rounded-lg px-3 py-2">
               <i class="fas fa-lock text-gray-300 text-xs"></i>
               {{ _("Workitem ID, Status, Stage, Last Movement") }}
@@ -544,7 +480,7 @@
 
           <!-- Optional extras -->
           <div>
-            <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("Optional extras") }}</p>
+            <p class="nx-eyebrow mb-2">{{ _("Optional extras") }}</p>
             <div class="space-y-2">
               <label class="flex items-start gap-3 cursor-pointer group">
                 <input type="checkbox" id="exportOptFields" class="mt-0.5 h-4 w-4 rounded border-gray-300 text-[var(--nx-accent)] focus:ring-[var(--nx-accent)] cursor-pointer" data-testid="workitems-export-opt-fields">
@@ -601,13 +537,13 @@ $data | ForEach-Object {
           </div>
         </div>
 
-        <div class="bg-gray-50 px-6 py-4 flex items-center justify-end gap-3 border-t border-gray-100">
+        <div class="px-6 py-4 flex items-center justify-end gap-3 border-t border-[var(--nx-border)]">
           <button type="button" id="cancelExportModalBtn"
-            class="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition text-sm font-medium" data-testid="workitems-cancel-export">
+            class="nx-btn nx-btn--secondary" data-testid="workitems-cancel-export">
             {{ _("Cancel") }}
           </button>
           <button type="button" id="confirmExportModalBtn"
-            class="px-4 py-2 bg-[var(--nx-accent)] text-white rounded-lg hover:bg-[var(--nx-accent-hover)] transition text-sm font-medium shadow-sm flex items-center gap-2" data-testid="workitems-confirm-export">
+            class="nx-btn nx-btn--primary" data-testid="workitems-confirm-export">
             <i id="exportModalSpinner" class="fas fa-spinner fa-spin [display:none]!"></i>
             <i id="exportModalIcon" class="fas fa-download"></i>
             {{ _("Export CSV") }}
@@ -628,10 +564,19 @@ $data | ForEach-Object {
             <i class="fas fa-magnifying-glass-location"></i>
             <span id="srcHlToggleLabel">{{ _('Show sources') }}</span>
           </button>
-          <img class="modal-content" id="modalImage" alt="{{ _('Document page preview') }}">
+          <div class="nx-segmented src-modal-layout" id="srcModalLayout" role="group" aria-label="{{ _('Pages') }}" hidden>
+            <button type="button" class="nx-segmented__btn is-active" data-cols="1" aria-label="1">1</button>
+            <button type="button" class="nx-segmented__btn" data-cols="2" aria-label="2">2</button>
+            <button type="button" class="nx-segmented__btn" data-cols="3" aria-label="3">3</button>
+          </div>
+          <div class="src-modal-pages">
+            <img class="modal-content" id="modalImage" alt="{{ _('Document page preview') }}">
+            <div id="srcModalSide" class="src-modal-side"></div>
+          </div>
           <div id="srcHlLayer" class="src-hl-layer-full"></div>
-          <a class="modal-prev">&#10094;</a>
-          <a class="modal-next">&#10095;</a>
+          <div id="srcModalThumbs" class="src-modal-thumbs" hidden></div>
+          <a class="modal-prev" role="button" tabindex="0" aria-label="{{ _('Previous') }}"><i class="fas fa-chevron-left" aria-hidden="true"></i></a>
+          <a class="modal-next" role="button" tabindex="0" aria-label="{{ _('Next') }}"><i class="fas fa-chevron-right" aria-hidden="true"></i></a>
         </div>
         <aside id="srcReviewPanel" class="src-modal-values" hidden
                aria-label="{{ _('Extracted values') }}" data-testid="workitems-src-review-panel">
