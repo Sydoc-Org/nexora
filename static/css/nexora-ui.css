@@ -1031,3 +1031,109 @@ body.admin-page main {
 .perm-holders { list-style: none; padding: 0; margin: 0; font-size: 13px; }
 .perm-holders li { padding: 4px 0; border-bottom: 1px solid var(--nx-border); }
 .nx-btn:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+
+/* ============================================================
+   11. DATE PICKER (flatpickr)
+   flatpickr serves one light-only stylesheet from the CDN, so a calendar
+   opened on a dark page renders white with near-black text. These rules
+   repaint it from the --nx-* tokens rather than importing flatpickr's own
+   dark theme, so it follows the user's accent, contrast and density prefs
+   for free.
+
+   WHY IT LIVES HERE, not in a page stylesheet: it used to sit in
+   dashboard.css, which only dashboard.html and generali-dashboard.html
+   load -- so of the eleven pages that open a calendar, ten rendered the
+   light-only version. This file is loaded by every one of them.
+
+   WHY EVERY SELECTOR IS PREFIXED `html`: the pages link this sheet in
+   <head> BEFORE the flatpickr CDN sheet, so on equal specificity flatpickr
+   would win. (It happens to work anyway today, because _header.html links
+   this file a second time from inside <body> -- an accident, not a design,
+   and not something to rely on.) The bare `html` adds one element to each
+   selector, putting every rule below strictly above flatpickr's own
+   (.flatpickr-calendar is (0,1,0), .flatpickr-months .flatpickr-month is
+   (0,2,0)), so load order stops mattering. Specificity, not !important,
+   so a page can still override with a class.
+
+   Colours are token-driven in BOTH modes rather than light-by-default with
+   a dark override bolted on: the old base block hardcoded #111827 text,
+   which is the only reason the dark rules had to exist. Only what genuinely
+   differs in dark is repeated at the end.
+
+   Consumers (11): generali-dashboard, generali_documents,
+   generali_baseservices, generali_importstatus, generali_projectmanagement,
+   generali_pdqm, generali_additionalservices, generali_reporting,
+   reporting, workitems_overview, admin/maintenance.
+   ============================================================ */
+html .flatpickr-calendar {
+  font-family: 'Inter', sans-serif;
+  border: none;
+  border-radius: 1rem;
+  padding: 0.5rem;
+  background: var(--nx-card);
+  color: var(--nx-text);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+}
+
+html .flatpickr-day {
+  color: var(--nx-text);
+  border-radius: 0.5rem;
+  transition: background-color 0.2s ease;
+}
+html .flatpickr-day.selected,
+html .flatpickr-day.startRange,
+html .flatpickr-day.endRange {
+  background: var(--nx-accent, #4f46e5);
+  border-color: var(--nx-accent, #4f46e5);
+  box-shadow: 0 4px 6px -1px color-mix(in srgb, var(--nx-accent) 30%, transparent);
+}
+html .flatpickr-day:hover { background: var(--nx-accent-tint, #eef2ff); }
+html .flatpickr-day.today { border-color: var(--nx-accent); }
+
+/* Month header, year spinner and the month dropdown. */
+html .flatpickr-months .flatpickr-month,
+html .flatpickr-current-month .numInputWrapper,
+html .flatpickr-current-month input.cur-year,
+html .flatpickr-current-month .flatpickr-monthDropdown-months {
+  color: var(--nx-text);
+  fill: var(--nx-text);
+  background: transparent;
+}
+html .flatpickr-months .flatpickr-month { margin-bottom: 0.5rem; }
+html .flatpickr-current-month .flatpickr-monthDropdown-months option {
+  background: var(--nx-card);
+  color: var(--nx-text);
+}
+
+html .flatpickr-months .flatpickr-prev-month svg,
+html .flatpickr-months .flatpickr-next-month svg { fill: var(--nx-text-sec); }
+html .flatpickr-months .flatpickr-prev-month:hover svg,
+html .flatpickr-months .flatpickr-next-month:hover svg { fill: var(--nx-accent); }
+
+/* --nx-text-sec, not --nx-text-meta: meta measures about 3:1 on the dark
+   card -- the same under-AA contrast #259 flagged on table headers. Its
+   light value is #6b7280, exactly what this rule used before. */
+html span.flatpickr-weekday {
+  color: var(--nx-text-sec);
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+/* Out-of-range days must read as unavailable, not merely dim: the pickers
+   block future dates and any end before the start. */
+html .flatpickr-day.flatpickr-disabled,
+html .flatpickr-day.prevMonthDay,
+html .flatpickr-day.nextMonthDay { color: var(--nx-text-meta); opacity: 0.45; }
+html .flatpickr-day.flatpickr-disabled:hover { background: transparent; }
+
+/* Dark-only. A 0.1-alpha shadow vanishes on a dark ground, the calendar
+   arrow is a bordered pseudo-element flatpickr paints white, and the day
+   hover tint wants the neutral surface rather than the accent wash. */
+html.dark .flatpickr-calendar {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+}
+html.dark .flatpickr-calendar.arrowTop::before,
+html.dark .flatpickr-calendar.arrowTop::after { border-bottom-color: var(--nx-card); }
+html.dark .flatpickr-calendar.arrowBottom::before,
+html.dark .flatpickr-calendar.arrowBottom::after { border-top-color: var(--nx-card); }
+html.dark .flatpickr-day:hover { background: var(--nx-alt); }

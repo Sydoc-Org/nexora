@@ -19,49 +19,6 @@ body {
   100% { background-position: -200% 0; }
 }
 
-/* --- Flatpickr (Date Picker) Overrides --- */
-.flatpickr-calendar {
-  font-family: 'Inter', sans-serif;
-  border: none;
-  border-radius: 1rem;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-  padding: 0.5rem;
-  animation: zoomIn 0.2s ease-out; /* Slight pop on open */
-}
-
-.flatpickr-day {
-    border-radius: 0.5rem;
-    transition: background-color 0.2s ease;
-}
-
-.flatpickr-day.selected,
-.flatpickr-day.startRange,
-.flatpickr-day.endRange {
-  background: var(--nx-accent, #4f46e5);
-  border-color: var(--nx-accent, #4f46e5);
-  box-shadow: 0 4px 6px -1px color-mix(in srgb, var(--nx-accent) 30%, transparent);
-}
-
-.flatpickr-day:hover {
-  background: var(--nx-accent-tint, #eef2ff);
-}
-
-.flatpickr-months .flatpickr-month {
-  color: #111827;
-  fill: #111827;
-  margin-bottom: 0.5rem;
-}
-
-.flatpickr-current-month .numInputWrapper {
-  color: #111827;
-}
-
-span.flatpickr-weekday {
-  color: #6b7280;
-  font-weight: 600;
-  font-size: 0.8rem;
-}
-
 /* ============================================================
    Dashboard console (option 1a). Layout only — every component
    used here (.nx-kpi-strip, .nx-segmented, .nx-tabs--slim,
@@ -105,47 +62,6 @@ span.flatpickr-weekday {
 /* Row 5 — backlog trend: no frame, separated by a top rule only. */
 .nx-dash-backlog { padding: 18px 0 4px; margin-top: 10px; }
 .nx-dash-backlog__body { height: 200px; margin-top: 10px; }
-
-/* Dark mode. flatpickr ships a light-only stylesheet from the CDN and the
-   overrides above pin near-black text, so the calendar stayed white on a dark
-   page. Repaint it from the --nx-* tokens rather than importing flatpickr's
-   dark theme, so it follows the user's accent and contrast prefs too. */
-html.dark .flatpickr-calendar {
-  background: var(--nx-card);
-  color: var(--nx-text);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
-}
-html.dark .flatpickr-calendar.arrowTop::before,
-html.dark .flatpickr-calendar.arrowTop::after { border-bottom-color: var(--nx-card); }
-html.dark .flatpickr-calendar.arrowBottom::before,
-html.dark .flatpickr-calendar.arrowBottom::after { border-top-color: var(--nx-card); }
-
-html.dark .flatpickr-months .flatpickr-month,
-html.dark .flatpickr-current-month .numInputWrapper,
-html.dark .flatpickr-current-month input.cur-year,
-html.dark .flatpickr-monthDropdown-months {
-  color: var(--nx-text);
-  fill: var(--nx-text);
-  background: transparent;
-}
-html.dark .flatpickr-monthDropdown-months option { background: var(--nx-card); color: var(--nx-text); }
-
-html.dark .flatpickr-months .flatpickr-prev-month svg,
-html.dark .flatpickr-months .flatpickr-next-month svg { fill: var(--nx-text-sec); }
-html.dark .flatpickr-months .flatpickr-prev-month:hover svg,
-html.dark .flatpickr-months .flatpickr-next-month:hover svg { fill: var(--nx-accent); }
-
-html.dark span.flatpickr-weekday { color: var(--nx-text-meta); }
-html.dark .flatpickr-day { color: var(--nx-text); }
-html.dark .flatpickr-day:hover { background: var(--nx-alt); }
-html.dark .flatpickr-day.today { border-color: var(--nx-accent); }
-
-/* Out-of-range days must read as unavailable, not merely dim: the picker now
-   blocks future dates and any end before the start. */
-html.dark .flatpickr-day.flatpickr-disabled,
-html.dark .flatpickr-day.prevMonthDay,
-html.dark .flatpickr-day.nextMonthDay { color: var(--nx-text-meta); opacity: 0.45; }
-html.dark .flatpickr-day.flatpickr-disabled:hover { background: transparent; }
 
 /* --- Mobile --- */
 @media (max-width: 768px) {
