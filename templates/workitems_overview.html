@@ -69,11 +69,7 @@
           </div>
         </div>
       </div>
-      <div class="nx-page-head__actions">
-        <span class="nx-wi-live nx-dash-head__meta" data-testid="workitems-live-meta">
-          <span class="nx-live-dot"></span>
-          <span>{{ _("Total") }} <span id="totalItemsCount">—</span> · {{ _("updated") }} <span id="wiLiveTime">—</span></span>
-        </span>
+      <div class="nx-page-head__actions nx-wi-actions">
         <button type="button" id="exportCsvBtn"
           class="nx-btn nx-btn--secondary nx-btn--sm" data-testid="workitems-export-csv">
           <i class="fas fa-download"></i>{{ _("Export CSV") }}
@@ -326,9 +322,11 @@
         <span class="nx-chart-head__spacer"></span>
         <div class="nx-tabs nx-tabs--slim" id="statusTabs" role="tablist" data-testid="workitems-status-tabs">
           <button type="button" class="nx-tab is-active" data-status="" role="tab" aria-selected="true">{{ _("All") }} <span class="nx-tab-count" data-count="all">—</span></button>
+          {% if status_perm != False %}
           <button type="button" class="nx-tab" data-status="Ready" role="tab" aria-selected="false">{{ _("Ready") }} <span class="nx-tab-count" data-count="Ready">—</span></button>
           <button type="button" class="nx-tab" data-status="In Progress" role="tab" aria-selected="false">{{ _("In progress") }} <span class="nx-tab-count" data-count="In Progress">—</span></button>
           <button type="button" class="nx-tab" data-status="Done" role="tab" aria-selected="false">{{ _("Done") }} <span class="nx-tab-count" data-count="Done">—</span></button>
+          {% endif %}
           {% if deleted_status_perm %}
           <button type="button" class="nx-tab" data-status="Deleted" role="tab" aria-selected="false">{{ _("Deleted") }} <span class="nx-tab-count" data-count="Deleted">—</span></button>
           {% endif %}
@@ -398,7 +396,8 @@
           {{ _("results") }}
         </div>
         <div class="relative">
-          <select id="filterPerPage" name="perPage"
+          {# Outside <form id="filterForm"> since the footer moved; form= keeps it in the serializers. #}
+          <select id="filterPerPage" name="perPage" form="filterForm"
             class="nx-select appearance-none pr-8" data-testid="workitems-per-page">
             <option value="40" selected>40 / {{ _("page") }}</option>
             <option value="100">100 / {{ _("page") }}</option>
@@ -565,10 +564,19 @@ $data | ForEach-Object {
             <i class="fas fa-magnifying-glass-location"></i>
             <span id="srcHlToggleLabel">{{ _('Show sources') }}</span>
           </button>
-          <img class="modal-content" id="modalImage" alt="{{ _('Document page preview') }}">
+          <div class="nx-segmented src-modal-layout" id="srcModalLayout" role="group" aria-label="{{ _('Pages') }}" hidden>
+            <button type="button" class="nx-segmented__btn is-active" data-cols="1" aria-label="1">1</button>
+            <button type="button" class="nx-segmented__btn" data-cols="2" aria-label="2">2</button>
+            <button type="button" class="nx-segmented__btn" data-cols="3" aria-label="3">3</button>
+          </div>
+          <div class="src-modal-pages">
+            <img class="modal-content" id="modalImage" alt="{{ _('Document page preview') }}">
+            <div id="srcModalSide" class="src-modal-side"></div>
+          </div>
           <div id="srcHlLayer" class="src-hl-layer-full"></div>
-          <a class="modal-prev">&#10094;</a>
-          <a class="modal-next">&#10095;</a>
+          <div id="srcModalThumbs" class="src-modal-thumbs" hidden></div>
+          <a class="modal-prev" role="button" tabindex="0" aria-label="{{ _('Previous') }}"><i class="fas fa-chevron-left" aria-hidden="true"></i></a>
+          <a class="modal-next" role="button" tabindex="0" aria-label="{{ _('Next') }}"><i class="fas fa-chevron-right" aria-hidden="true"></i></a>
         </div>
         <aside id="srcReviewPanel" class="src-modal-values" hidden
                aria-label="{{ _('Extracted values') }}" data-testid="workitems-src-review-panel">

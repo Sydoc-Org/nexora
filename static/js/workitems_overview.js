@@ -819,8 +819,6 @@ modalConfirmBtn.addEventListener('click', () => {
             try { renderDegradedBanner(data.degradedSources || []); } catch (bannerErr) { console.warn('renderDegradedBanner error:', bannerErr); }
             renderTable(data.workitems);
             renderPagination(data.pagination);
-            const liveTime = document.getElementById('wiLiveTime');
-            if (liveTime) liveTime.textContent = new Date().toLocaleTimeString();
             fetchStatusCounts();
 
         } catch (error) {
@@ -848,7 +846,7 @@ modalConfirmBtn.addEventListener('click', () => {
         }
         const selectAll = document.getElementById('selectAllCheckbox');
         if (selectAll) {
-            const rows = document.querySelectorAll('.row-checkbox');
+            const rows = document.querySelectorAll('#workitemsTbody .row-checkbox');   // not the card twins
             selectAll.checked = rows.length > 0 && [...rows].every(cb => cb.checked);
             selectAll.indeterminate = selectedWorkitemIds.size > 0 && selectedWorkitemIds.size < rows.length;
         }
@@ -1061,6 +1059,7 @@ modalConfirmBtn.addEventListener('click', () => {
         });
 
         renderCards(workitems);
+        warmFirstPages(workitems);
     }
 
     // ---- Documents (card grid) view -- shares selection with the table.
@@ -1068,6 +1067,46 @@ modalConfirmBtn.addEventListener('click', () => {
     // fetching /api/get_media_raw for every card on a 40+ item page is a
     // real cost this pass doesn't take on. Real first-page thumbnails are a
     // follow-up (#299 handoff calls for them explicitly).
+    // Same URL the detail panel fetches (server caches 1 h, Cache-Control
+    // private/max-age), so the browser cache serves whichever view asks second.
+    function firstPageUrl(w) {
+        return `${API_PREFIX}api/get_media_raw/${w.workitemid}/0${w.client ? '?client=' + encodeURIComponent(w.client) : ''}`;
+    }
+
+    // Warm every row's first page right after the list renders, two at a time
+    // so the media API (PDF rasterising) never starves interactive requests.
+    // Blobs land in window.NX_MEDIA_CACHE (url -> object URL): the document
+    // cards fill from it as pages arrive and the detail panel's loadImage reads
+    // it before fetching, so a page is downloaded once per visit. (The media
+    // response is Vary: Cookie without Cache-Control, so the HTTP cache alone
+    // would re-download.) A re-render abandons the previous run.
+    window.NX_MEDIA_CACHE = window.NX_MEDIA_CACHE || {};
+    function warmFirstPages(workitems) {
+        if (!NX_WO.perms.images) return;
+        const gen = (warmFirstPages._gen = (warmFirstPages._gen || 0) + 1);
+        const urls = workitems.map(firstPageUrl);
+        let i = 0;
+        const fill = (url, objUrl) => {
+            document.querySelectorAll(`img.nx-wi-card__sheet[data-src="${url}"]`).forEach(img => { img.src = objUrl; });
+        };
+        const next = async () => {
+            if (gen !== warmFirstPages._gen || i >= urls.length) return;
+            const url = urls[i++];
+            if (window.NX_MEDIA_CACHE[url]) { fill(url, window.NX_MEDIA_CACHE[url]); return next(); }
+            try {
+                const r = await fetch(url, { headers: { 'X-CSRFToken': csrfToken } });
+                if (!r.ok) throw new Error(r.status);
+                window.NX_MEDIA_CACHE[url] = URL.createObjectURL(await r.blob());
+                fill(url, window.NX_MEDIA_CACHE[url]);
+            } catch (e) {
+                window.NX_MEDIA_CACHE[url] = null;   // remembered miss (no media / 404)
+                document.querySelectorAll(`img.nx-wi-card__sheet[data-src="${url}"]`).forEach(img => img.dispatchEvent(new Event('error')));
+            }
+            next();
+        };
+        next(); next();
+    }
+
     function renderCards(workitems) {
         const grid = document.getElementById('wiDocumentsView');
         if (!grid) return;
@@ -1089,7 +1128,9 @@ modalConfirmBtn.addEventListener('click', () => {
                     <input type="checkbox" class="row-checkbox card-checkbox h-4 w-4 rounded border-gray-300 text-[var(--nx-accent)] cursor-pointer"
                         data-id="${rowKey}" ${checked ? 'checked' : ''}>
                 </span>
-                <div class="nx-wi-card__thumb"><div class="nx-wi-card__sheet"></div></div>
+                <div class="nx-wi-card__thumb${NX_WO.perms.images ? ' is-loading' : ''}">${NX_WO.perms.images
+                    ? `<img class="nx-wi-card__sheet" alt="" data-src="${firstPageUrl(workitem)}"${window.NX_MEDIA_CACHE[firstPageUrl(workitem)] ? ` src="${window.NX_MEDIA_CACHE[firstPageUrl(workitem)]}"` : ''}>`
+                    : '<div class="nx-wi-card__sheet"></div>'}</div>
                 <div class="nx-wi-card__body">
                     <div class="nx-wi-card__line1">
                         <span class="nx-wi-cell-id">${workitem.workitemid}</span>
@@ -1101,6 +1142,13 @@ modalConfirmBtn.addEventListener('click', () => {
                         <span class="nx-wi-card__ago">${movedAgo(workitem.modifiedat)}</span>
                     </div>
                 </div>`;
+            // Shimmer until the page arrives; no media (404) -> placeholder sheet.
+            const sheetImg = card.querySelector('img.nx-wi-card__sheet');
+            sheetImg?.addEventListener('load', () => sheetImg.parentElement.classList.remove('is-loading'));
+            sheetImg?.addEventListener('error', (e) => {
+                e.target.parentElement.classList.remove('is-loading');
+                e.target.replaceWith(Object.assign(document.createElement('div'), { className: 'nx-wi-card__sheet' }));
+            });
             card.querySelector('.card-checkbox').addEventListener('change', (e) => {
                 e.stopPropagation();
                 if (e.target.checked) selectedWorkitemIds.add(rowKey);
@@ -1153,6 +1201,7 @@ modalConfirmBtn.addEventListener('click', () => {
         });
     });
     async function fetchStatusCounts() {
+        const seq = (fetchStatusCounts._seq = (fetchStatusCounts._seq || 0) + 1);
         const filterForm = document.getElementById('filterForm');
         const params = new URLSearchParams();
         for (const el of filterForm.elements) {
@@ -1166,6 +1215,7 @@ modalConfirmBtn.addEventListener('click', () => {
             });
             if (!resp.ok) return;
             const counts = await resp.json();
+            if (seq !== fetchStatusCounts._seq) return;   // superseded
             document.querySelectorAll('#statusTabs .nx-tab-count').forEach(span => {
                 const key = span.dataset.count;
                 if (counts[key] !== undefined) span.textContent = counts[key];
@@ -1184,7 +1234,6 @@ modalConfirmBtn.addEventListener('click', () => {
         } = pagination;
         document.getElementById('showingCount').textContent = (currentPage - 1) * perPage + (totalItems > 0 ? 1 : 0) + '-' + Math.min(currentPage * perPage, totalItems);
         document.getElementById('totalCount').textContent = totalItems;
-        document.getElementById('totalItemsCount').textContent = totalItems;
 
         const controlsContainer = document.getElementById('paginationControls');
         if (!controlsContainer) return;
@@ -1339,7 +1388,11 @@ modalConfirmBtn.addEventListener('click', () => {
 
     const tbody = document.getElementById('workitemsTbody');
     tbody.addEventListener('click', (event) => {
-        const toggleButton = event.target.closest('.details-toggle-button');
+        // A click anywhere on a row (except its checkbox) toggles the detail
+        // panel -- no need to aim for the chevron.
+        const toggleButton = event.target.closest('.details-toggle-button')
+            || (!event.target.closest('input, a, .details-row')
+                && event.target.closest('tr.workitem-row')?.querySelector('.details-toggle-button'));
         if (toggleButton) {
             toggleDetailsAndLoadImages({
                 currentTarget: toggleButton
@@ -1347,21 +1400,14 @@ modalConfirmBtn.addEventListener('click', () => {
             return;
         }
 
-        const loadMoreButton = event.target.closest('.load-more-btn');
-        if (loadMoreButton) {
-            const workitemid = loadMoreButton.dataset.workitemid;
-            const totalImages = parseInt(loadMoreButton.dataset.totalImages, 10);
-            const imageContainer = document.getElementById(`image-container-${workitemid}`);
-            if (imageContainer) {
-                loadImagesInBatch(imageContainer, workitemid, totalImages);
-            }
-        }
+        // .load-more-btn is handled once, by the shared panel's document listener.
     });
 
     const _wiLightbox = NexoraWorkitemDetail.attachLightbox({
       modal: 'imageModal', image: 'modalImage', hlLayer: 'srcHlLayer',
       hlToggle: 'srcHlToggle', hlToggleLabel: 'srcHlToggleLabel',
       reviewPanel: 'srcReviewPanel', reviewPanelBody: 'srcReviewPanelBody',
+      thumbs: 'srcModalThumbs', side: 'srcModalSide', layout: 'srcModalLayout',
     });
 
     // ---- Select-all checkbox ----

@@ -5,7 +5,8 @@
    .nx-chart-head, .nx-eyebrow, .nx-empty) live in nexora-ui.css.
    ============================================================ */
 
-.nx-wi-live { display: inline-flex; align-items: center; gap: 6px; }
+/* Export/Import sit vertically centred on the title block, not top-aligned. */
+.nx-wi-actions { align-self: center; }
 
 /* Row 2 -- filter row, closed by a hairline. */
 .nx-wi-filter {
@@ -20,6 +21,9 @@
 .nx-wi-filter .nx-input, .nx-wi-filter .nx-select {
   height: var(--ctl-h); font-size: var(--fs-control);
 }
+/* Fixed-height selects: the default 8px block padding + line-height
+   overflows 29px and pushes the label off-centre. Let the height centre it. */
+.nx-wi-filter .nx-select, .nx-wi-footer .nx-select { padding-top: 0; padding-bottom: 0; line-height: 1; }
 .nx-wi-search { position: relative; width: 220px; }
 .nx-wi-search i { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--nx-text-meta); font-size: 10px; pointer-events: none; }
 .nx-wi-search .nx-input { width: 100%; padding-left: 26px; }
@@ -42,7 +46,7 @@
 .nx-wi-reset:hover { color: var(--nx-text-sec); }
 
 /* Row 3 -- Advanced panel, flat, closed by a hairline. */
-.nx-wi-advanced { padding: 16px 0 18px; border-bottom: 1px solid var(--nx-border); }
+.nx-wi-advanced { flex: 1 1 100%; padding: 16px 0 18px; border-bottom: 1px solid var(--nx-border); }
 .nx-wi-addfilter {
   display: inline-flex; align-items: center; gap: 6px; border: none; background: none;
   padding: 0; font-size: var(--fs-micro); font-weight: 600; color: var(--nx-accent); cursor: pointer;
@@ -75,6 +79,9 @@
 .nx-wi-table th i { font-size: 9px; margin-left: 4px; color: var(--nx-border-strong); }
 .nx-wi-table th.sortable-header:hover { color: var(--nx-text-sec); }
 .nx-wi-table td { padding: 13px 12px 13px 0; vertical-align: middle; font-size: var(--fs-control); }
+/* Whole row is a click target for the detail panel. */
+.nx-wi-table tr.workitem-row { cursor: pointer; }
+.nx-wi-table tr.workitem-row:hover { background: var(--nx-sunken); }
 .nx-wi-table td:first-child { padding-left: 0; text-align: center; }
 .nx-wi-table tr.details-row td { padding: 0; }
 .nx-wi-cell-id { font-size: 13px; font-weight: 600; color: var(--nx-text); font-variant-numeric: tabular-nums; }
@@ -109,7 +116,15 @@
   border-radius: 3px 3px 0 0; box-shadow: 0 2px 8px rgba(31,41,55,.08);
   display: flex; align-items: center; justify-content: center; color: var(--nx-text-meta); font-size: 22px;
 }
-.nx-wi-card__sheet::before { font-family: 'Font Awesome 6 Free'; font-weight: 900; content: '\f15b'; } /* fa-file */
+div.nx-wi-card__sheet::before { font-family: 'Font Awesome 6 Free'; font-weight: 900; content: '\f15b'; } /* fa-file */
+img.nx-wi-card__sheet { object-fit: cover; object-position: top; display: block; transition: opacity .2s ease; }
+.nx-wi-card__thumb.is-loading img.nx-wi-card__sheet { opacity: 0; }
+.nx-wi-card__thumb.is-loading { position: relative; }
+.nx-wi-card__thumb.is-loading::after {
+  content: ''; position: absolute; inset: 14px 20px 0; border-radius: 3px 3px 0 0;
+  background: linear-gradient(90deg, var(--nx-alt) 25%, var(--nx-sunken) 50%, var(--nx-alt) 75%);
+  background-size: 200% 100%; animation: shimmer 1.4s infinite linear;
+}
 .nx-wi-card__body { padding: 9px 11px 10px; }
 .nx-wi-card__line1 { display: flex; align-items: center; gap: 7px; }
 .nx-wi-card__line1 .nx-wi-dot { margin-left: auto; }
@@ -179,7 +194,9 @@
         width: 100%;
         height: 100%;
         overflow: auto; 
-        background-color: rgba(0, 0, 0, 0.85); 
+        /* Console sheet, not a dark box-on-black lightbox: white surface,
+           hairline-separated panes (source-highlight.css). */
+        background-color: var(--nx-card);
         align-items: center;
         justify-content: center;
       }
@@ -190,9 +207,10 @@
         max-width: 90%;
         max-height: 85vh; 
         object-fit: contain; 
-        animation-name: zoom;
-        animation-duration: 0.4s;
+        animation: nxFade 0.18s ease-out;   /* console: fade, never scale */
       }
+      @keyframes nxFade { from { opacity: 0; } to { opacity: 1; } }
+      @media (prefers-reduced-motion: reduce) { .modal-content { animation: none; } }
 
       @keyframes zoom {
         from {transform: scale(0.5)}
@@ -440,33 +458,19 @@
         text-align: center;
       }
 
-.modal-prev,
-    .modal-next {
-      cursor: pointer;
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      color: #f1f1f1;
-      font-size: 40px;
-      font-weight: bold;
-      transition: 0.3s;
-      user-select: none;
-      -webkit-user-select: none;
-      background-color: transparent;
-    }
-
-    .modal-next {
-      right: 25px;
-    }
-
-    .modal-prev {
-      left: 25px;
-    }
-
-    .modal-prev:hover,
-    .modal-next:hover {
-      color: #bbb;
-    }
+.modal-prev, .modal-next {
+  cursor: pointer; position: absolute; top: 50%; transform: translateY(-50%);
+  width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 7px; font-size: 11px; color: var(--nx-text-sec);
+  background: var(--nx-card); border: 1px solid var(--nx-border);
+  user-select: none; z-index: 1002;
+  transition: background .15s ease, color .15s ease;
+}
+.modal-prev[hidden], .modal-next[hidden] { display: none; }
+.modal-next { right: 16px; }
+.modal-prev { left: 16px; }
+.modal-prev:hover, .modal-next:hover { border-color: var(--nx-border-strong); color: var(--nx-text); }
+.modal-prev:focus-visible, .modal-next:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--nx-accent-soft); }
 .indicator {
   color: #d1d5db;
   transition: transform 0.15s ease, color 0.15s ease;
@@ -548,16 +552,28 @@
 .wi-doc-fullbtn:hover, .wi-show-sources-btn:hover { border-color: var(--nx-border-strong); color: var(--nx-text); }
 .wi-doc-fullbtn i, .wi-show-sources-btn i { color: var(--nx-text-meta); font-size: 9px; }
 
+/* Every loaded page is stacked at preview size. The stack's intrinsic height is
+   one page (min-height); as a flex:1 child it then grows to whatever height the
+   fields/audit columns give the row and scrolls when the pages outrun it. */
+.wi-doc-col { display: flex; flex-direction: column; }
 .wi-doc-main {
-  width: 172px; height: 222px; border: 1px solid var(--nx-border); border-radius: 6px;
-  overflow: hidden; background: #fff; box-shadow: 0 2px 8px rgba(31,41,55,.08);
-  display: flex; align-items: center; justify-content: center; position: relative;
+  width: 172px; flex: 1 1 0; min-height: 222px; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 8px; position: relative;
+  scrollbar-width: thin;
 }
-.wi-doc-main--restricted { width: 100%; height: 160px; background: var(--nx-alt); box-shadow: none; }
-.wi-doc-main .src-thumb, .wi-doc-main .wi-doc-page { display: none; }
-.wi-doc-main .src-thumb:has(.wi-main-active) { display: block; width: 100%; height: 100%; }
-.wi-doc-page.wi-main-active { display: block; width: 100%; height: 100%; object-fit: contain; }
-.wi-doc-thumbs { display: flex; gap: 6px; margin-top: 8px; width: 172px; overflow-x: auto; }
+.wi-doc-main--restricted {
+  width: 100%; height: 160px; min-height: 0; flex: none; background: var(--nx-alt);
+  align-items: center; justify-content: center; border-radius: 6px;
+}
+.wi-doc-main .src-thumb {
+  display: block; flex-shrink: 0; width: 100%; border: 1px solid var(--nx-border); border-radius: 6px;
+  overflow: hidden; background: #fff; box-shadow: 0 2px 8px rgba(31,41,55,.08); box-sizing: border-box;
+}
+.wi-doc-main .src-thumb:has(.wi-main-active) { border-color: var(--nx-accent); }
+.wi-doc-main .wi-doc-page { display: block; width: 100%; height: auto; }
+/* Thumb strip is redundant next to the stack; keep only its "load more" button. */
+.wi-doc-thumbs { display: flex; gap: 6px; margin-top: 8px; width: 172px; }
+.wi-doc-thumbs .wi-doc-thumb:not(.wi-doc-thumb--more) { display: none; }
 .wi-doc-thumb {
   flex: 0 0 auto; width: 46px; height: 52px; border-radius: 5px; overflow: hidden;
   object-fit: cover; border: 1px solid var(--nx-border); background: #fff; cursor: pointer; box-sizing: border-box;
@@ -572,7 +588,14 @@
 
 /* Full mode: the document column takes over the whole grid row -- fields
    and audit hide rather than squeeze beside a now-irrelevant narrow column. */
+/* Audit is capped at the height the document/fields columns set and scrolls
+   inside (flex-basis 0 = it contributes nothing to the row height itself). */
+.wi-audit-col { display: flex; flex-direction: column; min-height: 0; }
+.wi-audit-col .wi-audit-list { flex: 1 1 0; min-height: 0; overflow-y: auto; scrollbar-width: thin; }
 .wi-detail-grid.is-full-mode > *:not(.wi-doc-col) { display: none; }
+.wi-detail-panel.is-full-mode .wi-tables { display: none; }
+/* Line-item tables: flat section under the grid, opened by a hairline. */
+.wi-tables { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--nx-border); }
 .wi-detail-grid.is-full-mode > .wi-doc-col { grid-column: 1 / -1; }
 .wi-doc-full { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 14px; margin-top: 10px; }
 .wi-doc-full__page { width: 100%; aspect-ratio: 172/222; object-fit: contain; border: 1px solid var(--nx-border); border-radius: 6px; background: #fff; box-shadow: 0 2px 8px rgba(31,41,55,.08); }
@@ -624,7 +647,6 @@
 
     /* Modal images fill more of the screen */
     .modal-content { max-width: 96%; max-height: 80vh; }
-    .modal-prev, .modal-next { font-size: 28px; }
     .modal-close { top: 12px; right: 16px; font-size: 32px; }
 
     /* Timeline step labels – smaller for narrow screens */

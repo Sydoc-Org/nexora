@@ -43,29 +43,28 @@
 /* ---- Toggle button (lives inside #imageModal, top-left, clear of nav) ---- */
 .src-hl-toggle {
   position: fixed;
-  top: 1rem;
-  left: 1rem;
+  top: 8px;
+  left: 16px;
   z-index: 1002;
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.45rem 0.8rem;
-  font-size: 0.85rem;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  font-size: 11px;
   font-weight: 600;
-  color: #f8fafc;
-  background: rgba(15, 23, 42, 0.65);
-  border: 1px solid rgba(248, 250, 252, 0.25);
-  border-radius: 9999px;
+  color: var(--nx-text-sec, #6b7280);
+  background: var(--nx-card, #fff);
+  border: 1px solid var(--nx-border, #e5e7eb);
+  border-radius: 7px;
   cursor: pointer;
-  backdrop-filter: blur(4px);
   transition: background 0.15s ease, color 0.15s ease;
 }
-.src-hl-toggle:hover { background: rgba(15, 23, 42, 0.85); }
-.src-hl-toggle.is-on {
-  background: rgba(234, 88, 12, 0.92);
-  border-color: rgba(234, 88, 12, 0.92);
-  color: #fff;
-}
+.src-hl-toggle i { font-size: 10px; color: var(--nx-text-meta, #9ca3af); }
+.src-hl-toggle:hover { border-color: var(--nx-border-strong, #d1d5db); color: var(--nx-text, #1f2937); }
+/* "On" reads as the accent-tinted ghost (same as the active view-toggle segment). */
+.src-hl-toggle.is-on { background: var(--nx-accent-soft); border-color: var(--nx-accent); color: var(--nx-accent); }
+.src-hl-toggle.is-on i { color: var(--nx-accent); }
 
 /* ---- Thumbnail overlay ---- */
 .src-thumb { position: relative; display: inline-block; line-height: 0; }
@@ -76,13 +75,10 @@
 .src-field-row.is-locatable { cursor: pointer; border-radius: calc(var(--nx-radius-scale, 1) * 6px); }
 .src-field-row.is-locatable:hover { background: rgba(234, 88, 12, 0.07); }
 .src-no-loc-badge {
-  font-size: 0.62rem;
-  font-weight: 600;
-  padding: 0.05rem 0.4rem;
-  border-radius: 9999px;
-  background: #f1f5f9;
-  color: #94a3b8;
-  margin-left: 0.4rem;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--nx-text-meta, #9ca3af);
+  margin-left: 6px;
   white-space: nowrap;
 }
 
@@ -95,19 +91,20 @@
 .src-hl-box.src-conf-low  { border-color: rgba(220, 38, 38, 0.95); background: rgba(220, 38, 38, 0.16); }
 
 /* Per-field confidence chip shown next to the extracted value */
+/* Console (#299): the percentage is plain coloured text next to the bar, no pill. */
 .src-conf-badge {
   display: inline-block;
-  font-size: 0.62rem;
-  font-weight: 700;
-  padding: 0.05rem 0.4rem;
-  border-radius: 9999px;
-  margin-left: 0.4rem;
+  font-size: 10.5px;
+  font-weight: 600;
+  margin-left: 6px;
+  min-width: 30px;
   white-space: nowrap;
   vertical-align: middle;
+  font-variant-numeric: tabular-nums;
 }
-.src-conf-badge.src-conf-high { background: rgba(22, 163, 74, 0.14); color: #15803d; }
-.src-conf-badge.src-conf-med  { background: rgba(217, 119, 6, 0.16); color: #b45309; }
-.src-conf-badge.src-conf-low  { background: rgba(220, 38, 38, 0.14); color: #b91c1c; }
+.src-conf-badge.src-conf-high { color: #059669; }
+.src-conf-badge.src-conf-med  { color: #d97706; }
+.src-conf-badge.src-conf-low  { color: #dc2626; }
 
 /* Fill bar shown alongside the badge (#299 console redesign) -- same
    high/med/low buckets, so it always agrees with the badge/highlight color. */
@@ -117,9 +114,9 @@
   vertical-align: middle; margin-left: 0.4rem; flex-shrink: 0;
 }
 .src-conf-bar__fill { display: block; height: 3px; border-radius: 2px; }
-.src-conf-bar__fill.src-conf-high { background: #15803d; }
-.src-conf-bar__fill.src-conf-med  { background: #b45309; }
-.src-conf-bar__fill.src-conf-low  { background: #b91c1c; }
+.src-conf-bar__fill.src-conf-high { background: #059669; }
+.src-conf-bar__fill.src-conf-med  { background: #d97706; }
+.src-conf-bar__fill.src-conf-low  { background: #dc2626; }
 
 /* ---- Table / line-item cells ----
    A table-cell box is distinguished from a scalar-field box by a DASHED border
@@ -131,52 +128,62 @@
    detail grid. A <details>/<summary> keeps the collapse, open by default. Wide
    extraction tables (SAP-style Tab*/Ord* grids run 10+ columns) scroll sideways
    inside .src-table-scroll instead of stacking cell-per-line. */
-.src-table-grid { margin-top: 0.6rem; }
+/* Console look (#299): eyebrow title, hairline rows, tabular figures. */
+.src-table-grid { margin-top: 18px; }
 .src-table-grid:first-of-type { margin-top: 0; }
 .src-table-grid .src-table-title {
-  font-size: 0.72rem;
+  display: flex; align-items: center; gap: 7px;
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
-  color: #6b7280;
-  padding: 0.4rem 0;
+  color: var(--nx-text-meta, #9ca3af);
+  padding: 0 0 6px;
   cursor: pointer;
   user-select: none;
+  list-style: none;
 }
-.src-table-grid .src-table-title:hover { color: #374151; }
+.src-table-grid .src-table-title::-webkit-details-marker { display: none; }
+.src-table-grid .src-table-title::before {
+  content: ''; width: 5px; height: 5px; flex-shrink: 0;
+  border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg) translateY(-1px); transition: transform .15s ease;
+}
+.src-table-grid:not([open]) .src-table-title::before { transform: rotate(-45deg); }
+.src-table-grid .src-table-title:hover { color: var(--nx-text-sec, #6b7280); }
 .src-table-grid .src-table-count {
   font-weight: 500;
   letter-spacing: normal;
   text-transform: none;
-  color: #9ca3af;
+  font-variant-numeric: tabular-nums;
 }
-.src-table-scroll { overflow-x: auto; }
-.src-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+/* Room under the last row so a horizontal scrollbar never sits on the values. */
+.src-table-scroll { overflow-x: auto; padding-bottom: 10px; scrollbar-width: thin; }
+.src-table { width: 100%; border-collapse: collapse; font-size: 12.5px; font-variant-numeric: tabular-nums; }
 .src-table th,
 .src-table td {
-  padding: 0.35rem 0.6rem;
+  padding: 8px 12px 8px 0;
   text-align: left;
   white-space: nowrap;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--nx-border, #e5e7eb);
 }
 .src-table thead th {
   position: sticky;            /* header survives the horizontal scroll of long tables */
   top: 0;
-  background: #ffffff;
-  font-size: 0.62rem;
+  background: var(--nx-card, #fff);
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
-  color: #9ca3af;
-  border-bottom: 1px solid #e5e7eb;
+  color: var(--nx-text-meta, #9ca3af);
 }
-.src-table tbody td { color: #111827; font-weight: 600; }
+.src-table tbody td { color: var(--nx-text, #1f2937); font-weight: 500; }
 .src-table tbody tr:last-child td { border-bottom: 0; }
-.src-table .src-table-empty { color: #d1d5db; }
+.src-table .src-table-empty { color: var(--nx-border-strong, #d1d5db); }
 .src-table .src-table-rownum {
   width: 1%;
   text-align: right;
-  color: #9ca3af;
+  color: var(--nx-text-meta, #9ca3af);
   font-weight: 500;
 }
 
@@ -191,35 +198,69 @@
 .modal .src-modal-body {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-rows: 44px minmax(0, 1fr) auto;   /* header band | page | line-item tables */
   width: 100%;
   height: 100%;
 }
+/* Header band: hairline under the toolbar (toggle left, close right). */
+.modal .src-modal-body::before {
+  content: ''; grid-column: 1; grid-row: 1; border-bottom: 1px solid var(--nx-border, #e5e7eb);
+}
 .src-modal-tables {
   grid-column: 1;
-  grid-row: 2;
+  grid-row: 3;
   max-height: 38vh;
   overflow-y: auto;
-  margin: 0 1rem 1rem;
-  padding: 0.75rem 1rem 1rem;
-  background: #ffffff;
-  color: #111827;
-  border-radius: calc(var(--nx-radius-scale, 1) * 12px);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  margin: 0;
+  padding: 14px 20px 16px;
+  background: var(--nx-card, #fff);
+  color: var(--nx-text, #1f2937);
+  border-top: 1px solid var(--nx-border, #e5e7eb);
 }
 .src-modal-tables[hidden] { display: none; }
 .src-modal-page {
   position: relative;          /* containing block for .src-hl-layer-full + the nav arrows */
   grid-column: 1;
-  grid-row: 1;
+  grid-row: 2;
   min-width: 0;
   min-height: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  gap: 12px;
+  padding: 20px;
   overflow: hidden;
 }
+/* Main page + side-by-side extras share one row; each page shrinks to fit. */
+.src-modal-pages {
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  flex: 1 1 0; min-height: 0; width: 100%;
+}
+.src-modal-side { display: contents; }
+.src-modal-pages img {
+  min-width: 0; max-width: 100%; max-height: 100%; object-fit: contain;
+  border: 1px solid var(--nx-border, #e5e7eb); border-radius: 6px; background: #fff;
+  box-shadow: 0 2px 8px rgba(31,41,55,.08);
+}
+.src-modal-side__page { cursor: pointer; opacity: .92; }
+.src-modal-side__page:hover { opacity: 1; border-color: var(--nx-border-strong, #d1d5db); }
+/* Thumb rail under the pages: click jumps, on-screen pages are marked. */
+.src-modal-thumbs { display: flex; gap: 6px; justify-content: center; flex-shrink: 0; max-width: 100%; overflow-x: auto; padding: 2px; scrollbar-width: thin; }
+.src-modal-thumbs[hidden] { display: none; }
+.src-modal-thumbs img {
+  height: 52px; width: auto; flex-shrink: 0; cursor: pointer; box-sizing: border-box;
+  border: 1px solid var(--nx-border, #e5e7eb); border-radius: 5px; background: #fff; opacity: .85;
+}
+.src-modal-thumbs img:hover { opacity: 1; border-color: var(--nx-border-strong, #d1d5db); }
+.src-modal-thumbs img.is-shown { opacity: 1; border-color: var(--nx-border-strong, #d1d5db); }
+.src-modal-thumbs img.is-active { opacity: 1; border: 1.5px solid var(--nx-accent); }
+/* 1 / 2 / 3 pages switch, centred in the header band over the page column. */
+.src-modal-layout { position: fixed; top: 8px; left: 50%; transform: translateX(-50%); z-index: 1002; height: 28px; }
+.src-modal-layout[hidden] { display: none; }
+.src-modal-layout .nx-segmented__btn { min-width: 30px; font-size: 11px; font-weight: 600; }
+/* Values sidebar takes the right column, so centre over the remaining width. */
+.src-modal-body:has(.src-modal-values:not([hidden])) .src-modal-layout { left: calc((100% - min(44vw, 480px)) / 2); }
 /* Image fills the page pane (overrides the centred-lightbox 90% / 85vh sizing). */
 /* Pane-relative, NOT 92vh: with the line-item box occupying the grid's second
    row the page pane is shorter than the viewport, and a vh-sized image overflows
@@ -234,48 +275,45 @@
   grid-column: 2;
   grid-row: 1 / -1;
   width: min(44vw, 480px);
-  background: #ffffff;
-  color: #111827;
+  background: var(--nx-card, #fff);
+  color: var(--nx-text, #1f2937);
   overflow-y: auto;
-  padding: 1.25rem 1.4rem 2rem;
-  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.35);
+  padding: 18px 20px 28px;
+  border-left: 1px solid var(--nx-border, #e5e7eb);
 }
-/* Review-panel rows are STACKED (label over value), not side-by-side: in a narrow
-   column the inline panel's `flex justify-between` squeezes long values, truncates
-   labels and wraps the confidence chip. Stacking gives each value the full width
-   (wraps cleanly), keeps labels readable, and reads like a property list. Scoped to
-   #srcReviewPanel so the inline Document Details panel is unchanged. */
+/* Review-panel rows are the same two-column key/value list as the inline panel
+   (console #299). Labels are allowed to wrap (Tailwind `truncate` undone) and long
+   values break inside the min(44vw,480px) column instead of overflowing. */
 #srcReviewPanel div.src-field-row {
-  display: block;            /* override inline `flex justify-between items-center` */
-  padding: 0.5rem 0;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--nx-border, #e5e7eb);
+  border-radius: 0;
 }
+#srcReviewPanel div.src-field-row:last-child { border-bottom: 0; }
 #srcReviewPanel div.src-field-row dt {
-  display: block;
-  font-size: 0.66rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: #9ca3af;            /* --nx-text-meta */
+  font-size: 12px;
+  color: var(--nx-text-sec, #6b7280);
   white-space: normal;       /* override Tailwind `truncate` */
   overflow: visible;
-  margin-bottom: 0.15rem;
 }
 #srcReviewPanel div.src-field-row dd {
-  display: block;
-  text-align: left;          /* override `text-right` */
-  font-size: 0.9rem;
+  font-size: 12.5px;
   font-weight: 600;
-  color: #111827;
+  color: var(--nx-text, #1f2937);
+  font-variant-numeric: tabular-nums;
   word-break: break-word;    /* long emails / IBANs wrap instead of overflowing */
 }
+#srcReviewPanel div.src-field-row.is-locatable:hover { background: var(--nx-alt, #f9fafb); }
 .src-modal-values[hidden] { display: none; }
 .src-modal-values-title {
-  font-size: 0.95rem;
+  font-size: 10px;
   font-weight: 700;
-  color: #374151;
-  margin: 0 0 0.75rem;
-  padding-bottom: 0.6rem;
-  border-bottom: 1px solid #e5e7eb;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--nx-text-meta, #9ca3af);
+  margin: 0 0 4px;
+  line-height: 28px;         /* sits on the header band's baseline */
+  padding-right: 40px;       /* clear of the close button */
 }
 /* Close button: a circular icon button harmonised with the nexora-ui palette.
    It sits over the white values panel (and the dark backdrop), so it carries its
@@ -283,21 +321,20 @@
    subtle press scale. No layout shift (transform is on the absolute button only). */
 .modal .modal-close {
   z-index: 1003;
-  top: 16px;
+  top: 8px;
   right: 16px;
-  width: 40px;
-  height: 40px;
+  width: 28px;
+  height: 28px;
   padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.05rem;
+  font-size: 12px;
   line-height: 1;
-  color: #6b7280;                 /* --nx-text-sec */
-  background: #ffffff;            /* --nx-card (panel is always light) */
-  border: 1px solid #e5e7eb;      /* --nx-border */
-  border-radius: 999px;           /* --nx-radius-pill */
-  box-shadow: 0 4px 14px rgba(16, 24, 40, 0.18);
+  color: var(--nx-text-sec, #6b7280);
+  background: var(--nx-card, #fff);
+  border: 1px solid var(--nx-border, #e5e7eb);
+  border-radius: 7px;
   cursor: pointer;
   transition: color 150ms cubic-bezier(.4, 0, .2, 1),
               background-color 150ms cubic-bezier(.4, 0, .2, 1),
@@ -306,22 +343,21 @@
 }
 .modal .modal-close > i { pointer-events: none; }
 .modal .modal-close:hover {
-  color: #dc2626;                 /* --nx-danger */
-  background: #f9fafb;            /* --nx-alt */
-  box-shadow: 0 6px 18px rgba(16, 24, 40, 0.24);
+  color: var(--nx-danger, #dc2626);
+  border-color: var(--nx-border-strong, #d1d5db);
 }
 .modal .modal-close:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--nx-accent) 45%, transparent);
 }
-.modal .modal-close:active { transform: scale(0.92); }
 /* Narrow screens: stack the page over the values panel. */
 @media (max-width: 900px) {
-  .modal .src-modal-body { flex-direction: column; }
+  .modal .src-modal-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: 44px minmax(0, 1fr) auto auto; }
   .src-modal-page { padding: 0.5rem; }
   .src-modal-values {
+    grid-column: 1; grid-row: 4;
     width: 100%;
     max-height: 38vh;
-    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.3);
+    border-left: 0; border-top: 1px solid var(--nx-border, #e5e7eb);
   }
 }

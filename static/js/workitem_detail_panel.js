@@ -64,12 +64,12 @@
             ${fieldsBlock}
           </div>
           <div class="wi-detail-grid__rule"></div>
-          <div class="wi-detail-col">
+          <div class="wi-detail-col wi-audit-col">
             <p class="nx-eyebrow" style="margin-bottom:8px">${I18N.audit}</p>
             ${historyBlock}
           </div>
         </div>
-        ${perms.fields ? `<div id="tables-container-${workitemid}" data-src-wid="${workitemid}" class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm" hidden></div>` : ''}
+        ${perms.fields ? `<div id="tables-container-${workitemid}" data-src-wid="${workitemid}" class="wi-tables" hidden></div>` : ''}
       </div>`;
   }
 
@@ -205,11 +205,24 @@
         while (loaded < totalImages) {
             loaded = loadImagesInBatch(container, workitemid, totalImages, totalImages);
         }
+        // loadImagesInBatch only *starts* the fetches; the <img> lands in the DOM
+        // in onload. Wait for every page (or its failure placeholder) to arrive,
+        // capped so a stuck request cannot hang Full mode forever.
+        const t0 = Date.now();
+        await new Promise(resolve => {
+            const tick = () => {
+                const settled = container.querySelectorAll('.workitem-image, .bg-red-100').length;
+                if (settled >= totalImages || Date.now() - t0 > 20000) resolve();
+                else setTimeout(tick, 100);
+            };
+            tick();
+        });
     }
 
     function updateDocMeta(workitemid, index, total) {
         const meta = document.getElementById(`doc-meta-${workitemid}`);
-        if (meta) meta.textContent = I18N.pageOf.replace('%(page)s', index + 1).replace('%(total)s', total);
+        // Pages are stacked (all visible), so the meta is a page count, not a position.
+        if (meta) meta.textContent = I18N.documentPages.replace('%(n)s', total);
     }
 
     function setActiveThumb(workitemid, index) {
@@ -217,7 +230,10 @@
         const thumbs = document.getElementById(`doc-thumbs-${workitemid}`);
         if (!container) return;
         container.querySelectorAll('.workitem-image').forEach(img => {
-            img.classList.toggle('wi-main-active', parseInt(img.dataset.pageIndex, 10) === index);
+            const active = parseInt(img.dataset.pageIndex, 10) === index;
+            img.classList.toggle('wi-main-active', active);
+            // Click-to-locate: bring the located page into the stack's viewport.
+            if (active && index > 0) container.scrollTop = img.closest('.src-thumb').offsetTop;
         });
         if (thumbs) {
             thumbs.querySelectorAll('.wi-doc-thumb').forEach(t => {
@@ -239,6 +255,8 @@
         if (!btn || !main || !full) return;
         const enteringFull = full.hidden;
         if (grid) grid.classList.toggle('is-full-mode', enteringFull);
+        // The line-item tables live outside the grid; hide them along with fields/audit.
+        main.closest('.wi-detail-panel')?.classList.toggle('is-full-mode', enteringFull);
         if (heading) heading.textContent = enteringFull
             ? I18N.documentPages.replace('%(n)s', totalImages) : I18N.document;
         if (enteringFull) {
@@ -458,17 +476,22 @@
         container.appendChild(placeholder);
         try {
             const apiUrl = `${API_PREFIX}api/get_media_raw/${workitemid}/${index}${_clientQS(workitemid, '?')}`;
-            const response = await fetch(apiUrl, {headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
-            }});
+            // The overview warms first pages into window.NX_MEDIA_CACHE -- reuse.
+            let imageUrl = window.NX_MEDIA_CACHE && window.NX_MEDIA_CACHE[apiUrl];
+            if (!imageUrl) {
+                const response = await fetch(apiUrl, {headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+                }});
 
-            if (!response.ok) {
-                throw new Error(`Status ${response.status}`);
+                if (!response.ok) {
+                    throw new Error(`Status ${response.status}`);
+                }
+
+                const imageBlob = await response.blob();
+                imageUrl = URL.createObjectURL(imageBlob);
+                if (window.NX_MEDIA_CACHE) window.NX_MEDIA_CACHE[apiUrl] = imageUrl;
             }
-
-            const imageBlob = await response.blob();
-            const imageUrl = URL.createObjectURL(imageBlob);
 
             const imgElement = document.createElement('img');
             imgElement.src = imageUrl;
@@ -484,8 +507,7 @@
             thumbWrap.appendChild(imgElement);
 
             imgElement.onload = () => {
-                placeholder.remove();
-                container.appendChild(thumbWrap);
+                placeholder.replaceWith(thumbWrap);   // keeps page order under concurrent loads
                 if (makeActive) setActiveThumb(workitemid, index);
                 renderThumbOverlay(thumbWrap, imgElement, String(workitemid), index);
                 _appendThumbStripEntry(workitemid, index, imageUrl);
@@ -648,6 +670,52 @@
 
     // No-op when the shell is absent (e.g. partial rendered without the modal markup).
     if (!modal) return { openForWorkitem() {}, close() {} };
+
+    // Optional extras (workitems page only): thumb rail, side-by-side pages, 1/2/3 switch.
+    const thumbsEl = document.getElementById(cfg.thumbs);
+    const sideEl = document.getElementById(cfg.side);
+    const layoutEl = document.getElementById(cfg.layout);
+    let cols = Math.min(3, Math.max(1, parseInt(localStorage.getItem('srcLightboxCols') || '1', 10) || 1));
+
+    // Thumb rail: click = jump; the pages currently on screen are marked.
+    function renderThumbs() {
+        if (!thumbsEl) return;
+        thumbsEl.innerHTML = '';
+        thumbsEl.hidden = currentImages.length <= 1;
+        currentImages.forEach((src, i) => {
+            const im = document.createElement('img');
+            im.src = src; im.alt = String(i + 1); im.title = String(i + 1);
+            if (i === currentIndex) im.className = 'is-active';
+            else if (i > currentIndex && i < currentIndex + cols) im.className = 'is-shown';
+            im.addEventListener('click', (e) => { e.stopPropagation(); showImage(i); });
+            thumbsEl.appendChild(im);
+        });
+    }
+    // Extra pages beside the main one (no source overlay on these -- the
+    // overlay is bound to #modalImage; click one to make it the main page).
+    function renderSide() {
+        if (!sideEl) return;
+        sideEl.innerHTML = '';
+        for (let i = currentIndex + 1; i < Math.min(currentImages.length, currentIndex + cols); i++) {
+            const im = document.createElement('img');
+            im.src = currentImages[i]; im.alt = String(i + 1); im.className = 'src-modal-side__page';
+            im.addEventListener('click', (e) => { e.stopPropagation(); showImage(i); });
+            sideEl.appendChild(im);
+        }
+    }
+    function renderLayout() {
+        if (!layoutEl) return;
+        layoutEl.hidden = currentImages.length <= 1;
+        layoutEl.querySelectorAll('[data-cols]').forEach(b => b.classList.toggle('is-active', parseInt(b.dataset.cols, 10) === cols));
+    }
+    if (layoutEl) layoutEl.addEventListener('click', (e) => {
+        const b = e.target.closest('[data-cols]');
+        if (!b) return;
+        e.stopPropagation();
+        cols = parseInt(b.dataset.cols, 10);
+        localStorage.setItem('srcLightboxCols', String(cols));
+        showImage(currentIndex);
+    });
 
     // --- modal-scoped button lookups (prevents collision with other .modal-close elements) ---
     const closeBtn = modal.querySelector('.modal-close');
@@ -828,8 +896,11 @@
         if (index >= 0 && index < currentImages.length) {
             modalImg.src = currentImages[index];
             currentIndex = index;
-            prevBtn.style.display = index > 0 ? 'block' : 'none';
-            nextBtn.style.display = index < currentImages.length - 1 ? 'block' : 'none';
+            // hidden attr, not style.display: an inline display:block would undo
+            // the button's inline-flex centring (the chevron escaped its box).
+            prevBtn.hidden = !(index > 0);
+            nextBtn.hidden = !(index < currentImages.length - 1);
+            renderThumbs(); renderSide(); renderLayout();
             const pulse = srcHl.pendingPulse;
             srcHl.pendingPulse = null;
             drawOverlayWhenStable(pulse);
@@ -844,6 +915,8 @@
         currentImages = [];
         currentIndex = 0;
         if (srcHlLayer) srcHlLayer.innerHTML = '';
+        if (thumbsEl) { thumbsEl.innerHTML = ''; thumbsEl.hidden = true; }
+        if (sideEl) sideEl.innerHTML = '';
         const tbox = document.querySelector('.src-modal-tables');
         if (tbox) { tbox.innerHTML = ''; tbox.hidden = true; }
     };

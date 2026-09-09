@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-09 08:05+0200\n"
+"POT-Creation-Date: 2026-09-09 09:14+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1820,7 +1820,7 @@ msgstr ""
 #: templates/admin/user_detail.html:222 templates/api_docs.html:189
 #: templates/appearance.html:369 templates/generali_importstatus.html:50
 #: templates/generali_importstatus.html:106
-#: templates/generali_reporting.html:116 templates/workitems_overview.html:354
+#: templates/generali_reporting.html:116 templates/workitems_overview.html:352
 msgid "Status"
 msgstr ""
 
@@ -2331,7 +2331,7 @@ msgstr ""
 #: templates/reporting.html:149 templates/reporting.html:182
 #: templates/reporting.html:276 templates/reporting.html:286
 #: templates/reporting.html:525 templates/reporting.html:561
-#: templates/reporting.html:635 templates/workitems_overview.html:557
+#: templates/reporting.html:635 templates/workitems_overview.html:556
 msgid "Close"
 msgstr ""
 
@@ -2476,7 +2476,7 @@ msgstr ""
 
 #: templates/_reporting_simple.html:113
 #: templates/js/_reporting_dashboard_js.html:35 templates/reporting.html:477
-#: templates/workitems_overview.html:316
+#: templates/workitems_overview.html:312
 msgid "Add filter"
 msgstr ""
 
@@ -2696,8 +2696,8 @@ msgstr ""
 #: templates/generali_reporting.html:337
 #: templates/js/_reporting_dashboard_js.html:42 templates/reporting.html:495
 #: templates/reporting.html:592 templates/reporting.html:605
-#: templates/tenant/page.html:135 templates/workitems_overview.html:448
-#: templates/workitems_overview.html:544
+#: templates/tenant/page.html:135 templates/workitems_overview.html:447
+#: templates/workitems_overview.html:543
 msgid "Cancel"
 msgstr ""
 
@@ -2736,7 +2736,7 @@ msgstr ""
 
 #: templates/_reporting_simple.html:335
 #: templates/js/_reporting_layouts_js.html:57 templates/reporting.html:380
-#: templates/workitems_overview.html:337
+#: templates/workitems_overview.html:335
 msgid "Table"
 msgstr ""
 
@@ -3519,7 +3519,7 @@ msgstr ""
 msgid "Processed today"
 msgstr ""
 
-#: templates/appearance.html:368 templates/workitems_overview.html:353
+#: templates/appearance.html:368 templates/workitems_overview.html:351
 msgid "Workitem"
 msgstr ""
 
@@ -3564,12 +3564,12 @@ msgstr ""
 msgid "Refresh"
 msgstr ""
 
-#: templates/dashboard.html:56 templates/workitems_overview.html:103
+#: templates/dashboard.html:56 templates/workitems_overview.html:99
 msgid "Process"
 msgstr ""
 
 #: templates/dashboard.html:65 templates/reporting.html:371
-#: templates/workitems_overview.html:114
+#: templates/workitems_overview.html:110
 msgid "Filter by client and process"
 msgstr ""
 
@@ -3756,7 +3756,7 @@ msgstr ""
 #: templates/generali_importstatus.html:73 templates/generali_pdqm.html:130
 #: templates/generali_projectmanagement.html:98
 #: templates/generali_reporting.html:133 templates/prepared_documents.html:151
-#: templates/workitems_overview.html:151
+#: templates/workitems_overview.html:147
 msgid "Reset"
 msgstr ""
 
@@ -3790,7 +3790,6 @@ msgstr ""
 #: templates/js/_reporting_layouts_js.html:37
 #: templates/js/_reporting_simple_js.html:124
 #: templates/js/_reporting_viz_js.html:18 templates/prepared_documents.html:51
-#: templates/workitems_overview.html:75
 msgid "Total"
 msgstr ""
 
@@ -3803,7 +3802,7 @@ msgstr ""
 msgid "Kommunikation"
 msgstr ""
 
-#: templates/generali-dashboard.html:157 templates/workitems_overview.html:351
+#: templates/generali-dashboard.html:157 templates/workitems_overview.html:349
 msgid "Select all"
 msgstr ""
 
@@ -3869,7 +3868,7 @@ msgstr ""
 #: templates/generali_documents.html:166
 #: templates/generali_importstatus.html:40 templates/generali_pdqm.html:57
 #: templates/generali_projectmanagement.html:61
-#: templates/generali_reporting.html:65 templates/workitems_overview.html:177
+#: templates/generali_reporting.html:65 templates/workitems_overview.html:173
 msgid "From Date"
 msgstr ""
 
@@ -3878,7 +3877,7 @@ msgstr ""
 #: templates/generali_documents.html:171
 #: templates/generali_importstatus.html:45 templates/generali_pdqm.html:62
 #: templates/generali_projectmanagement.html:66
-#: templates/generali_reporting.html:70 templates/workitems_overview.html:183
+#: templates/generali_reporting.html:70 templates/workitems_overview.html:179
 msgid "To Date"
 msgstr ""
 
@@ -3911,7 +3910,7 @@ msgstr ""
 #: templates/js/_generali_pdqm_js.html:284
 #: templates/js/_generali_pdqm_js.html:293
 #: templates/js/_generali_pdqm_js.html:305
-#: templates/js/_reporting_viz_js.html:19 templates/workitems_overview.html:328
+#: templates/js/_reporting_viz_js.html:19 templates/workitems_overview.html:324
 msgid "All"
 msgstr ""
 
@@ -4002,7 +4001,7 @@ msgstr ""
 #: templates/generali_documents.html:279
 #: templates/generali_importstatus.html:124 templates/generali_pdqm.html:183
 #: templates/generali_projectmanagement.html:146
-#: templates/generali_reporting.html:187 templates/workitems_overview.html:394
+#: templates/generali_reporting.html:187 templates/workitems_overview.html:392
 msgid "Showing"
 msgstr ""
 
@@ -4013,7 +4012,7 @@ msgstr ""
 #: templates/generali_projectmanagement.html:148
 #: templates/generali_reporting.html:189 templates/js/admin/_logs_js.html:106
 #: templates/js/admin/_user_detail_js.html:623
-#: templates/workitems_overview.html:396
+#: templates/workitems_overview.html:394
 msgid "of"
 msgstr ""
 
@@ -4022,7 +4021,7 @@ msgstr ""
 #: templates/generali_documents.html:283
 #: templates/generali_importstatus.html:128 templates/generali_pdqm.html:187
 #: templates/generali_projectmanagement.html:150
-#: templates/generali_reporting.html:191 templates/workitems_overview.html:398
+#: templates/generali_reporting.html:191 templates/workitems_overview.html:396
 msgid "results"
 msgstr ""
 
@@ -4208,7 +4207,7 @@ msgstr ""
 
 #: templates/generali_documents.html:204
 #: templates/js/_reporting_simple_js.html:159 templates/reporting.html:117
-#: templates/workitems_overview.html:140
+#: templates/workitems_overview.html:136
 msgid "Advanced"
 msgstr ""
 
@@ -4529,7 +4528,7 @@ msgid ""
 msgstr ""
 
 #: templates/hero.html:203 templates/js/_workitems_overview_js.html:17
-#: templates/workitems_overview.html:85
+#: templates/workitems_overview.html:81
 msgid "Import"
 msgstr ""
 
@@ -4807,6 +4806,7 @@ msgstr ""
 #: templates/js/_generali_documents_js.html:274
 #: templates/js/_workitems_overview_js.html:41
 #: templates/prepared_documents.html:234 templates/tenant/page.html:100
+#: templates/workitems_overview.html:578
 msgid "Previous"
 msgstr ""
 
@@ -4815,6 +4815,7 @@ msgstr ""
 #: templates/js/_generali_reporting_js.html:18
 #: templates/js/_workitems_overview_js.html:42
 #: templates/prepared_documents.html:240 templates/tenant/page.html:101
+#: templates/workitems_overview.html:579
 msgid "Next"
 msgstr ""
 
@@ -4823,24 +4824,24 @@ msgid "Workitem preview"
 msgstr ""
 
 #: templates/prepared_documents.html:271 templates/reporting.html:292
-#: templates/workitems_overview.html:563
+#: templates/workitems_overview.html:562
 msgid "Show where extracted values were found on the document"
 msgstr ""
 
 #: templates/js/_workitem_detail_panel_js.html:38
 #: templates/prepared_documents.html:273 templates/reporting.html:294
-#: templates/workitems_overview.html:566
+#: templates/workitems_overview.html:565
 msgid "Show sources"
 msgstr ""
 
 #: templates/prepared_documents.html:275 templates/reporting.html:296
-#: templates/workitems_overview.html:568
+#: templates/workitems_overview.html:573
 msgid "Document page preview"
 msgstr ""
 
 #: templates/prepared_documents.html:280 templates/prepared_documents.html:281
 #: templates/reporting.html:301 templates/reporting.html:302
-#: templates/workitems_overview.html:574 templates/workitems_overview.html:575
+#: templates/workitems_overview.html:582 templates/workitems_overview.html:583
 msgid "Extracted values"
 msgstr ""
 
@@ -5654,7 +5655,7 @@ msgstr ""
 msgid "Workitems of this tenant's processes only."
 msgstr ""
 
-#: templates/workitems_overview.html:64 templates/workitems_overview.html:324
+#: templates/workitems_overview.html:64 templates/workitems_overview.html:320
 msgid "Workitems"
 msgstr ""
 
@@ -5662,38 +5663,34 @@ msgstr ""
 msgid "Every workitem you may see, across all tenants."
 msgstr ""
 
-#: templates/workitems_overview.html:75
-msgid "updated"
-msgstr ""
-
-#: templates/admin/logs.html:22 templates/workitems_overview.html:79
-#: templates/workitems_overview.html:385 templates/workitems_overview.html:550
+#: templates/admin/logs.html:22 templates/workitems_overview.html:75
+#: templates/workitems_overview.html:383 templates/workitems_overview.html:549
 msgid "Export CSV"
 msgstr ""
 
-#: templates/workitems_overview.html:93
+#: templates/workitems_overview.html:89
 msgid "Prepared documents"
 msgstr ""
 
-#: templates/workitems_overview.html:122
+#: templates/workitems_overview.html:118
 msgid "Search workitem…"
 msgstr ""
 
-#: templates/workitems_overview.html:126
+#: templates/workitems_overview.html:122
 msgid "All stages"
 msgstr ""
 
-#: templates/workitems_overview.html:148
+#: templates/workitems_overview.html:144
 msgid "Save view"
 msgstr ""
 
-#: templates/workitems_overview.html:159
+#: templates/workitems_overview.html:155
 msgid "Date Range"
 msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:23
 #: templates/js/_reporting_simple_js.html:58
-#: templates/workitems_overview.html:163
+#: templates/workitems_overview.html:159
 msgid "Custom"
 msgstr ""
 
@@ -5701,214 +5698,219 @@ msgstr ""
 #: templates/js/_reporting_dashboard_js.html:24
 #: templates/js/_reporting_drill_js.html:26 templates/js/_reporting_js.html:6
 #: templates/js/_reporting_simple_js.html:64
-#: templates/workitems_overview.html:164
+#: templates/workitems_overview.html:160
 msgid "Today"
 msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:25
 #: templates/js/_reporting_drill_js.html:26 templates/js/_reporting_js.html:7
 #: templates/js/_reporting_simple_js.html:65
-#: templates/workitems_overview.html:165
+#: templates/workitems_overview.html:161
 msgid "Yesterday"
 msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:26
 #: templates/js/_reporting_drill_js.html:27 templates/js/_reporting_js.html:8
 #: templates/js/_reporting_simple_js.html:66
-#: templates/workitems_overview.html:166
+#: templates/workitems_overview.html:162
 msgid "This week"
 msgstr ""
 
-#: templates/admin/logs.html:29 templates/workitems_overview.html:167
+#: templates/admin/logs.html:29 templates/workitems_overview.html:163
 msgid "Last 7 days"
 msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:28
 #: templates/js/_reporting_drill_js.html:28 templates/js/_reporting_js.html:10
 #: templates/js/_reporting_simple_js.html:50
-#: templates/workitems_overview.html:168
+#: templates/workitems_overview.html:164
 msgid "This month"
 msgstr ""
 
-#: templates/workitems_overview.html:195
+#: templates/workitems_overview.html:191
 msgid "Document Value Search"
 msgstr ""
 
 #: templates/js/_workitems_overview_js.html:21
-#: templates/workitems_overview.html:212 templates/workitems_overview.html:273
+#: templates/workitems_overview.html:208 templates/workitems_overview.html:269
 msgid "All fields"
 msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:43
 #: templates/js/_reporting_js.html:42
 #: templates/js/_reporting_simple_js.html:112
-#: templates/workitems_overview.html:224 templates/workitems_overview.html:283
+#: templates/workitems_overview.html:220 templates/workitems_overview.html:279
 msgid "contains"
 msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:44
 #: templates/js/_reporting_js.html:43
 #: templates/js/_reporting_simple_js.html:113
-#: templates/workitems_overview.html:227 templates/workitems_overview.html:286
+#: templates/workitems_overview.html:223 templates/workitems_overview.html:282
 msgid "starts with"
 msgstr ""
 
-#: templates/workitems_overview.html:228 templates/workitems_overview.html:287
+#: templates/workitems_overview.html:224 templates/workitems_overview.html:283
 msgid "ends with"
 msgstr ""
 
-#: templates/workitems_overview.html:229 templates/workitems_overview.html:288
+#: templates/workitems_overview.html:225 templates/workitems_overview.html:284
 msgid "does not contain"
 msgstr ""
 
-#: templates/workitems_overview.html:238 templates/workitems_overview.html:296
+#: templates/workitems_overview.html:234 templates/workitems_overview.html:292
 msgid "Type to search…"
 msgstr ""
 
-#: templates/workitems_overview.html:260
+#: templates/workitems_overview.html:256
 msgid "AND"
 msgstr ""
 
-#: templates/workitems_overview.html:261
+#: templates/workitems_overview.html:257
 msgid "OR"
 msgstr ""
 
-#: templates/workitems_overview.html:329
+#: templates/workitems_overview.html:326
 msgid "Ready"
 msgstr ""
 
-#: templates/workitems_overview.html:330
+#: templates/workitems_overview.html:327
 msgid "In progress"
 msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:8
 #: templates/js/_reporting_layouts_js.html:9
-#: templates/workitems_overview.html:331
+#: templates/workitems_overview.html:328
 msgid "Done"
 msgstr ""
 
-#: templates/workitems_overview.html:333
+#: templates/workitems_overview.html:331
 msgid "Deleted"
 msgstr ""
 
-#: templates/workitems_overview.html:336
+#: templates/workitems_overview.html:334
 msgid "Table or document view"
 msgstr ""
 
 #: templates/js/_generali_dashboard_js.html:138
 #: templates/js/_generali_dashboard_js.html:214
-#: templates/workitems_overview.html:338
+#: templates/workitems_overview.html:336
 msgid "Documents"
 msgstr ""
 
-#: templates/workitems_overview.html:355
+#: templates/workitems_overview.html:353
 msgid "Last movement"
 msgstr ""
 
 #: templates/admin/logs.html:101 templates/js/_generali_reporting_js.html:15
-#: templates/workitems_overview.html:356
+#: templates/workitems_overview.html:354
 msgid "Details"
 msgstr ""
 
-#: templates/workitems_overview.html:369
+#: templates/workitems_overview.html:367
 msgid "Loading workitems..."
 msgstr ""
 
 #: templates/js/_workitems_overview_js.html:26
-#: templates/workitems_overview.html:382
+#: templates/workitems_overview.html:380
 msgid "selected"
 msgstr ""
 
-#: templates/workitems_overview.html:388
+#: templates/workitems_overview.html:386
 msgid "Deselect"
 msgstr ""
 
-#: templates/workitems_overview.html:403 templates/workitems_overview.html:404
-#: templates/workitems_overview.html:405 templates/workitems_overview.html:406
-#: templates/workitems_overview.html:407
+#: templates/workitems_overview.html:402 templates/workitems_overview.html:403
+#: templates/workitems_overview.html:404 templates/workitems_overview.html:405
+#: templates/workitems_overview.html:406
 msgid "page"
 msgstr ""
 
-#: templates/workitems_overview.html:422
+#: templates/workitems_overview.html:421
 msgid "Batch Import"
 msgstr ""
 
-#: templates/workitems_overview.html:428
+#: templates/workitems_overview.html:427
 msgid "Destination Process"
 msgstr ""
 
-#: templates/workitems_overview.html:433
+#: templates/workitems_overview.html:432
 msgid "Choose a process..."
 msgstr ""
 
-#: templates/workitems_overview.html:442
+#: templates/workitems_overview.html:441
 msgid "Please select a valid process."
 msgstr ""
 
 #: templates/js/_workitems_overview_js.html:18
-#: templates/workitems_overview.html:452
+#: templates/workitems_overview.html:451
 msgid "Import File"
 msgstr ""
 
-#: templates/workitems_overview.html:464
+#: templates/workitems_overview.html:463
 msgid "Export Workitems"
 msgstr ""
 
-#: templates/workitems_overview.html:475
+#: templates/workitems_overview.html:474
 msgid "Always included"
 msgstr ""
 
-#: templates/workitems_overview.html:478
+#: templates/workitems_overview.html:477
 msgid "Workitem ID, Status, Stage, Last Movement"
 msgstr ""
 
-#: templates/workitems_overview.html:484
+#: templates/workitems_overview.html:483
 msgid "Optional extras"
 msgstr ""
 
 #: templates/js/_reporting_simple_js.html:158
-#: templates/workitems_overview.html:489
+#: templates/workitems_overview.html:488
 msgid "Document fields"
 msgstr ""
 
-#: templates/workitems_overview.html:490
+#: templates/workitems_overview.html:489
 msgid "Index fields — only available for selections of up to 10 workitems"
 msgstr ""
 
-#: templates/workitems_overview.html:496
+#: templates/workitems_overview.html:495
 msgid "Audit history"
 msgstr ""
 
-#: templates/workitems_overview.html:497
+#: templates/workitems_overview.html:496
 msgid ""
 "Full timeline of all stages — only available for selections of up to 10 "
 "workitems"
 msgstr ""
 
-#: templates/workitems_overview.html:503
+#: templates/workitems_overview.html:502
 msgid "Images as base64"
 msgstr ""
 
-#: templates/workitems_overview.html:504
+#: templates/workitems_overview.html:503
 msgid ""
 "Up to 5 images per workitem — only available for selections of up to 10 "
 "workitems"
 msgstr ""
 
-#: templates/workitems_overview.html:508
+#: templates/workitems_overview.html:507
 msgid ""
 "Use this PowerShell script to extract images from the exported CSV. "
 "Requires execution policy"
 msgstr ""
 
-#: templates/workitems_overview.html:508
+#: templates/workitems_overview.html:507
 msgid "or higher."
 msgstr ""
 
-#: templates/workitems_overview.html:537
+#: templates/workitems_overview.html:536
 msgid ""
 "All workitems matching the current filters will be exported (not just the"
 " current page)."
+msgstr ""
+
+#: templates/admin/tenants.html:187 templates/admin/tenants_manage.html:39
+#: templates/admin/tenants_manage.html:55 templates/workitems_overview.html:567
+msgid "Pages"
 msgstr ""
 
 #: templates/admin/access_control.html:8
@@ -6987,11 +6989,6 @@ msgstr ""
 msgid ""
 "No organization belongs to this tenant yet -- assign one on the "
 "Organizations page."
-msgstr ""
-
-#: templates/admin/tenants.html:187 templates/admin/tenants_manage.html:39
-#: templates/admin/tenants_manage.html:55
-msgid "Pages"
 msgstr ""
 
 #: templates/admin/tenants.html:195

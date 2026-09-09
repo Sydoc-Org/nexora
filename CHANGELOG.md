@@ -29,7 +29,20 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   modal's header/footer went flat. Card thumbnails are a placeholder icon for
   now, not a live document preview — see the design handoff's open items.
   The inline detail panel (stepper/fields/confidence/audit/full mode) is
-  unchanged pending part 2.
+  unchanged pending part 2. Follow-up polish: the "Total · updated" meta is
+  gone (the footer already counts), Export/Import sit centred on the title
+  row, fixed-height selects centre their label (filter row, Advanced panel,
+  per-page), clicking anywhere on a table row opens its detail panel,
+  document cards show the real first page, the detail panel stacks every
+  page at preview size (scrolls when the fields column is shorter), Full
+  mode also hides the line-item tables, the Advanced panel spans the whole
+  filter row, and the line-item tables plus the source lightbox took on the
+  console look: white sheet with a hairline header band, ghost controls,
+  two-column values list, plain-text confidence percentages (no pills), a
+  thumb rail under the page and a 1/2/3 switch that shows consecutive pages
+  side by side. First pages are warmed into an in-page blob cache right
+  after the list renders (two at a time), so document cards (with a shimmer
+  while loading), the detail panel and the lightbox reuse one download.
 - **Private test database per pytest run.** `tests/conftest.py` creates
   `NEXORA_TEST_<user>_<pid>` from `sql/test/schema.sql` + `seed.sql` at session
   start (~1.5 s) and drops it at the end; the e2e server takes a free port. The
