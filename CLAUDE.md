@@ -15,7 +15,7 @@ Nexora is a Flask web application (Python 3, WSGI) deployed on Windows/IIS, whic
 ## Environment & running
 
 - `ENVIRONMENT` (`INT` or `PROD`) selects the env file; `nx_lib/config.py` loads `env/{ENVIRONMENT}.env`. Sanitised templates: `env/*.env.example`.
-- **Local dev:** venv at `./venv`, `pip install -r requirements.txt`, `ENVIRONMENT=INT`, `python nx_main.py`. WSGI handler is `nx_main.app`.
+- **Local dev:** `.venv` via `uv venv && uv sync` (or `bootstrap.ps1`), `ENVIRONMENT=INT`, `.venv\Scripts\python.exe nx_main.py`. WSGI handler is `nx_main.app`. `requirements*.txt` are generated from `uv.lock` for the IIS deploy path — never install from them locally. Full setup: `CONTRIBUTING.md`.
 - **Production:** IIS + HttpPlatformHandler → `waitress` (32 threads). `web.config` is the whole hosting contract — it starts waitress, sets `ENVIRONMENT=PROD` / `PYTHONPATH`, trusts `X-Forwarded-For`, logs stdout to `var/logs/system/waitress-stdout*`. Note `path="*"`: **waitress serves `/static`, not IIS**. See `docs/howto/iis.md`. (`wfastcgi` retired in v3.2.3.)
 - **Public tunnel** (SYAPP01 only): ngrok today (`docs/howto/ngrok.md`), Cloudflare Tunnel prepared, cutover pending (`docs/howto/cloudflare-tunnel.md`).
 
