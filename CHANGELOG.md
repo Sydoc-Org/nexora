@@ -34,6 +34,18 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and nothing bleeds in beside it; the editor preview re-runs on every change.
 
 ### Fixed
+- **Pushes failed on `main`'s own content** (#287). The `mixed-line-ending`
+  pre-commit hook rewrote 108 files on a clean checkout of `origin/main`, so it
+  modified the tree and the pre-push scan rejected the push — for anybody, on any
+  branch, whatever was being pushed. `* text=auto` checks a file out as CRLF on
+  Windows while the hook enforces LF, and `.gitattributes` only pinned the types
+  that had bitten someone before (`*.html`, `*.js`, `*.md`, `*.po`, `.mcp.json`).
+  Now pinned for the rest: `*.css` (21 files under `static/css/`), the
+  `design_handoff` trees, `*.jsx`/`*.ts`/`*.json`/`*.txt`/`*.toml`/`*.lock`/
+  `*.drawio`/`*.env.example`, and the dotfiles and `LICENSE` no glob reached.
+  Pinned by type rather than excluded from the hook, unlike `sql/`, because most
+  of these are real source. No file content changed — the blobs were already LF,
+  only the checkout conversion was wrong.
 - Migration 0125 (field-quality view) built with the same table-aware dynamic SQL as 0110/0111, so a PROD server without the INT-only Bucherer telemetry table no longer fails the deploy's migration step.
 - **Definition chart tiles said "Not available"** for decimal measures (hours,
   amounts): the run API serialises them as strings, which the tile renderer
