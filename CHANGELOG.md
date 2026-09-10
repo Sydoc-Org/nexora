@@ -7,6 +7,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Aveniq — Xpert Statistics reporting source** — migration `0128` registers
+  `SYDOC_Statistik.dbo.Xpert_Stats` (daily DPSI counts pushed by mail from the
+  Aveniq box, see `nx-sources/xpert/`) as a `table` source with three measures:
+  Documents, BFH new creditors, ZHAW workitems. Gated by
+  `reporting.source.xpert_stats.use`.
 - **Eddard builds three different reports** (#272) — the reporting
   assistant's waiting animation now cycles through three report layouts
   instead of replaying one: the KPI card (bars + trend line, tossed in from

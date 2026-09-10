@@ -1256,7 +1256,12 @@ loaded by the `nx-sources/bps/bps_project_report.py` collector; measures `Hours`
 (`mediamarkt_batches` over `SYDOC_Statistik.dbo.MediaMarkt_Batches`, the table behind the
 generated `/t/sydoc/mediamarkt` CRUD page; measures `Pieces scanned` = sum of
 `Pieces`, `Batches` = row count; `ScanDate` grainable, `DocType` K/D/KA and `Visum`
-as dimensions). The wizard's measure step walks
+as dimensions). `0128` registers **Aveniq — Xpert Statistics** (`xpert_stats` over
+`SYDOC_Statistik.dbo.Xpert_Stats`, the daily long-format counts mailed in from the
+Aveniq box and loaded by `nx-sources/xpert/importCSVtoSQL.py`; every measure is a
+conditional `sum` of `Cnt` on `Metric` so subsets never double-count — `Documents`
+= `Total`, `BFH new creditors`, `ZHAW workitems`; `ExportDate` grainable, `Client`
+the natural dimension). `SortOrder` 320. The wizard's measure step walks
 sources in `SortOrder` and splits a `Tenant — Thing` label at the em dash: one
 uppercase heading per tenant, a `.rs-choice-group-sublabel` per source. The
 tenant's lookup tables carry no measures and are not registered. Each source is gated by its own
