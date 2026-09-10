@@ -90,6 +90,25 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and nothing bleeds in beside it; the editor preview re-runs on every change.
 
 ### Changed
+- **Generali tenant DB: translations pivoted, scaffolding removed**
+  (#220, phases 5-6) — `dbo.CategoryTranslations` stored a `SourceTable`
+  column holding *table names as data*, one row per (term, locale). It is now
+  `dbo.CategoryTerms(NameDe, NameEn, NameFr, NameIt)`, one row per term:
+  162 rows become 53, and the two near-identical translation queries in
+  `attendance.py` / `pdqm.py` collapse to one `_generali_category_terms()`
+  helper. The endpoint response shape is unchanged. Migration `0015` also
+  trims a stray trailing space in `QualityCheckCategories` that had been
+  invisible to every SQL comparison (`=`, `GROUP BY` and `DISTINCT` all ignore
+  trailing spaces) and would have cost five subcategories their translation
+  once terms were deduplicated. The 11 compatibility views phases 2-3 left
+  behind are dropped; `dbo.v_Documents` is now the database's only view.
+  Schema, naming rulebook and the traps met on the way:
+  `docs/design/generali-tenant-db.md`.
+  The effort-table merge and per-locale lookup names were **not** done, and
+  the plan records why: the CRUD deduplication they were meant to pay for
+  already shipped in `_crud.py`, merging would collapse four separate
+  `reporting.source.*.use` grants into one, and the lookup columns would be
+  ~250 empty cells awaiting translations nobody has written.
 - **Generali tenant DB: real indexes and deterministic constraint names**
   (#220, phase 1) — `dbo.ReportJob` (2.68M rows) carried exactly one index,
   the clustered PK on the surrogate `RecordID`, so every access path was a
@@ -153,6 +172,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   old copy still writes — see `scripts/generali-import/README.md`.
 
 ### Fixed
+- **Workitems page loaded no rows** — the filter serialiser from #317 kept its defaults table in a `const` declared *after* the first fetch inside the same DOMContentLoaded handler, so the initial `/api/workitems` call died in the temporal dead zone (`Cannot access 'FILTER_DEFAULTS' before initialization`) and the table showed skeletons forever. The table now lives inside `buildFilterParams()`; an unfiltered page also no longer leaves a bare `?` in the address bar. A unit test pins the declaration's position.
 - **A document nexora cannot load now says so, instead of showing an empty
   panel** (#321). When Octo refused to serve a document, the fetch returned the
   same empty result as a document that genuinely has no pages — so the workitem
