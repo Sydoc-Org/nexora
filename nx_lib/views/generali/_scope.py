@@ -1,5 +1,5 @@
-"""Generali shared org helpers used across the reporting/attendance/baseservices/
-projectmanagement/pdqm submodules."""
+"""Generali shared helpers (org scope, category labels) used across the
+reporting/attendance/baseservices/projectmanagement/pdqm submodules."""
 
 from flask import current_app, session
 
@@ -83,3 +83,32 @@ def _generali_scope_where(perm_prefix, user_column, requested_org_code):
         return ["1=0"], []
     placeholders = ",".join(["?"] * len(ids))
     return [f"{user_column} IN ({placeholders})"], list(ids)
+
+
+# Locale -> the column on dbo.CategoryTerms holding that locale's label. Also
+# the allowlist that makes the f-string below safe: nothing reaches the SQL
+# text that did not come out of this dict.
+_CATEGORY_TERM_COLUMN = {"en": "NameEn", "fr": "NameFr", "it": "NameIt"}
+
+
+def _generali_category_terms(conn, locale):
+    """German category term -> its label in *locale*; ``{}`` when none applies.
+
+    dbo.CategoryTerms is one row per distinct German term with a column per
+    locale (#220 phase 5.1). It replaced dbo.CategoryTranslations, whose
+    row-per-(term, locale) shape needed a SourceTable discriminator carrying
+    table names as data -- verified redundant, the two catalogues share no
+    term. German is what the catalogue tables store, so 'de' needs no lookup.
+    """
+    column = _CATEGORY_TERM_COLUMN.get(locale)
+    if not column:
+        return {}
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            f"SELECT NameDe, {column} FROM [Generali].[dbo].[CategoryTerms] WITH (NOLOCK) "
+            f"WHERE {column} IS NOT NULL"
+        )
+        return dict(cursor.fetchall())
+    finally:
+        cursor.close()

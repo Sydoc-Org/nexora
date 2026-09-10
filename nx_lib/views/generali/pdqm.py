@@ -20,6 +20,7 @@ from ._crud import (
     Filter,
     register_crud,
 )
+from ._scope import _generali_category_terms
 
 # ----------------------------- Generali PDQM -------------------------------- #
 
@@ -82,19 +83,7 @@ def api_generali_pdqm_categories():
                 grouped[parent][key].append(sub)
 
         locale = str(get_locale() or "de").split("_")[0]
-        translations = {}
-        if locale != "de":
-            cursor2 = conn.cursor()
-            cursor2.execute(
-                """
-                SELECT OriginalValue, TranslatedValue
-                FROM [Generali].[dbo].[CategoryTranslations] WITH (NOLOCK)
-                WHERE SourceTable = 'QualityCheckCategories' AND Locale = ?
-            """,
-                [locale],
-            )
-            translations = dict(cursor2.fetchall())
-            cursor2.close()
+        translations = _generali_category_terms(conn, locale)
 
         return jsonify({"success": True, "categories": grouped, "translations": translations})
     except Exception as e:
