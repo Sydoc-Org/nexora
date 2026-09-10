@@ -474,10 +474,6 @@ ADV_FC_STUB_METRICS = {
 
 
 @pytest.mark.flaky_e2e
-@pytest.mark.skip(
-    reason="#285: .reporting-wells intercepts clicks on the forecast toggle -- "
-    "real CSS layering bug, reproduces 100% (not flaky), needs frontend investigation"
-)
 def test_advanced_forecast_toggle_and_grid_rows(nexora_server, page):
     """Task 7: the Advanced results toolbar's Forecast checkbox appears only
     once the definition is forecast-eligible (single grained date column +
