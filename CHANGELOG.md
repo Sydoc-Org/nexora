@@ -148,6 +148,44 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   old copy still writes — see `scripts/generali-import/README.md`.
 
 ### Fixed
+- **A failed request-log import no longer deletes the hour it could not save.**
+  `ops/cleanup/csvLogs_toDB.ps1` drains `var/logs/user/<hour>/nexora_logs.csv`
+  into `dbo.Logs`; its `Remove-Item -Recurse -Force` ran unconditionally after
+  the insert loop, with no `try`/`catch`, no `$ErrorActionPreference` and no
+  output at all — so a row that failed to insert, or a connection dropped
+  halfway, still ended with that hour's audit trail deleted and no signal that
+  anything had gone wrong. Each folder is now one transaction: it commits and is
+  deleted, or it rolls back and the folder is kept for the next run. It reports
+  per folder and exits non-zero if any were held back, so the Task Scheduler
+  history shows the failure. It also stops importing the hour the web process is
+  still appending to, which used to race it, and opens one SQL connection for
+  the whole run instead of one per row — roughly 8,000 connect/disconnect cycles
+  a day against PRDSQL01.
+- **Reporting builder no longer overflows its own toolbar** (#298) — the
+  Advanced tab sized itself to the *viewport* while living inside two
+  sidebars (app nav + console rail), so `.reporting-main` was ~959px on a
+  1497px screen and its `max-width: 1100px` rules never fired. The middle
+  track collapsed to ~279px while the toolbar's saved-report and action
+  clusters (`flex-shrink: 0`, ~750px of controls) spilled rightwards across
+  the wells — burying the **Columns** heading, **Share**/**Schedule** and
+  **+ Add filter**, and clipping the empty state. Both clusters may now wrap
+  and shrink at any width, and a container query on `#rpPaneAdvanced` drops
+  the wells into a full-width row below the results whenever the builder's
+  own box is under 1180px (one column under 700px). SQL / Ask-Eddard mode
+  (`.reporting-main--single`) is untouched.
+- **The workitems URL is no longer a wall of empty parameters** (#269). The
+  filter serialiser appended every form field regardless of value and always
+  set `page`, so an unfiltered page came out as
+  `?prcfW=all&search=&stage=&status=&startDate=&endDate=&doccomb=and&docfield=&docop=contains&docvalue=&perPage=40&page=1`
+  — twelve parameters, seven of them empty strings and four of them defaults.
+  It now carries only what differs from the server's own defaults, so an
+  unfiltered page is just `/workitems` and a search is `/workitems?search=…`.
+  Nothing changes server-side: every one of these was already read with a
+  default (`request.args.get('search', '')`, `prcfW` → `all`, `perPage` → 40,
+  `page` → 1), so older bookmarks that spell the empties out keep working.
+  Doc-field filters are dropped a whole row at a time, never field by field —
+  the server pairs them positionally with `getlist()`, so removing one empty
+  member of a row would have paired the wrong field with the wrong value.
 - **Tenant sidebar no longer offers pages that 403** — a mounted `custom`
   tenant page (the sydoc/MS02 **Dashboard** and **Workitems** links) was gated
   on `tenant.<code>.view` alone, so a user without the target route's own

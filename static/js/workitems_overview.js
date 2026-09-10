@@ -768,6 +768,60 @@ modalConfirmBtn.addEventListener('click', () => {
         tbody.appendChild(tr);
     }
 
+    // Serialise the filter form into query params, carrying only what differs
+    // from the server's own defaults (#269). The old version appended every
+    // field unconditionally, so an unfiltered page produced twelve params of
+    // which seven were empty strings:
+    //   ?prcfW=all&search=&stage=&status=&startDate=&endDate=&doccomb=and
+    //    &docfield=&docop=contains&docvalue=&perPage=40&page=1
+    // Safe to drop them because nx_lib/views/workitems.py reads each one with
+    // a default -- request.args.get('search', ''), prcfW 'all', page 1 -- so
+    // an absent param and an empty one already mean the same thing, and older
+    // bookmarks that spell the empties out keep working unchanged.
+    // Mirrors the server's own defaults, deliberately as literals rather than
+    // reusing FAST_CHUNK_PER_PAGE: that constant is the fast-chunk size, which
+    // merely happens to also be 40. These track
+    // nx_lib/workitems/query.py -> args.get('perPage', 40) and
+    // nx_lib/views/workitems.py -> args.get('prcfW', 'all').
+    const FILTER_DEFAULTS = { prcfW: 'all', perPage: '40' };
+
+    function buildFilterParams(filterForm, page) {
+        const params = new URLSearchParams();
+
+        for (const el of filterForm.elements) {
+            if (!el.name || el.disabled || el.type === 'file' || el.type === 'hidden') continue;
+            if ((el.type === 'checkbox' || el.type === 'radio') && !el.checked) continue;
+            // Doc-field filters are positional and handled as whole rows below.
+            if (el.closest && el.closest('.doc-filter-row')) continue;
+            if (el.value === '') continue;
+            if (FILTER_DEFAULTS[el.name] === el.value) continue;
+            params.append(el.name, el.value);
+        }
+
+        // Doc-field rows: all four members or none of them. query.py reads
+        // these with getlist() and pairs them by index --
+        // zip(docfields, docvalues, strict=False) -- so dropping one empty
+        // member of a row would silently pair the wrong field with the wrong
+        // value. An untouched row constrains nothing, so it is skipped whole.
+        // Rows live in the document rather than inside filterForm (and the
+        // prototype sits in <template id="docFilterRowTemplate">, which
+        // querySelectorAll does not descend into).
+        for (const row of document.querySelectorAll('.doc-filter-row')) {
+            const field = row.querySelector('[name="docfield"]');
+            const value = row.querySelector('[name="docvalue"]');
+            if (!field || !value) continue;
+            if (field.value === '' && value.value === '') continue;
+            for (const name of ['doccomb', 'docfield', 'docop', 'docvalue']) {
+                const el = row.querySelector('[name="' + name + '"]');
+                if (el && !el.disabled) params.append(name, el.value);
+            }
+        }
+
+        // page=1 is the server's default; only later pages need saying.
+        if (page > 1) params.set('page', page);
+        return params;
+    }
+
     async function fetchAndUpdateWorkitems(page = 1) {
         // Stale-response guard: rapid re-submits (e.g. two smart-search
         // chips added back-to-back) race, and the FIRST response can land
@@ -775,13 +829,7 @@ modalConfirmBtn.addEventListener('click', () => {
         const seq = fetchAndUpdateWorkitems._seq = (fetchAndUpdateWorkitems._seq || 0) + 1;
         const tbody = document.getElementById('workitemsTbody');
         const filterForm = document.getElementById('filterForm');
-        const params = new URLSearchParams();
-        for (const el of filterForm.elements) {
-            if (!el.name || el.disabled || el.type === 'file' || el.type === 'hidden') continue;
-            if ((el.type === 'checkbox' || el.type === 'radio') && !el.checked) continue;
-            params.append(el.name, el.value);
-        }
-        params.set('page', page);
+        const params = buildFilterParams(filterForm, page);
         const fetchParams = new URLSearchParams(params);
         // Always the real requested perPage (40/100/200/500/1000), never
         // the fast-chunk override below -- the address bar/history entry

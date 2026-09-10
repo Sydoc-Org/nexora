@@ -3028,3 +3028,57 @@ body.reporting-console.rdb-fullbleed .reporting-dashboard:fullscreen { padding: 
 .rs-annotation-pop input, .rs-annotation-bucket-select { width: 100%; box-sizing: border-box; }
 .rs-annotation-pop-actions { display: flex; justify-content: flex-end; gap: 8px; }
 #rsChartCard { position: relative; }
+
+/* ============================================================
+   #298 -- the builder sized itself to the VIEWPORT, never to its own box.
+   Two sidebars (app nav + reporting console rail) eat ~500px, so
+   .reporting-main is ~959px on a 1497px screen and ~1300px on an 1800px
+   one. The viewport media queries above therefore never fired, while the
+   toolbar's two clusters (flex-shrink: 0, ~750px of controls) overflowed
+   the middle track -- spilling across the right-hand wells and burying the
+   "Columns" heading, Share/Schedule and "+ Add filter", and squeezing the
+   empty state into a clipped ribbon.
+   ============================================================ */
+
+/* 1. The clusters may always wrap and shrink. With room they still sit on
+      one row, so this needs no breakpoint at all -- the old rules only
+      allowed it under 480px of *viewport*, which is never the real case. */
+.reporting-saved,
+.reporting-actions {
+  flex-wrap: wrap;
+  flex-shrink: 1;
+  min-width: 0;
+}
+.reporting-saved select { flex: 1 1 auto; min-width: 0; max-width: 100%; }
+.reporting-title-input { flex: 1 1 160px; min-width: 0; }
+
+/* 2. Below ~1180px of container the middle track can no longer hold even
+      the widest single cluster (~575px), so wrapping stops being enough:
+      drop the wells out of the third column and lay them out as a
+      full-width row underneath. Keyed on the container, not the viewport
+      -- an element cannot query itself, hence #rpPaneAdvanced (the only
+      wrapper .reporting-main has). */
+#rpPaneAdvanced { container: reporting / inline-size; }
+
+@container reporting (max-width: 1180px) {
+  .reporting-main:not(.reporting-main--single) {
+    grid-template-columns: minmax(200px, 250px) minmax(0, 1fr);
+    gap: 14px;
+  }
+  .reporting-main:not(.reporting-main--single) .reporting-wells {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0 20px;
+    align-items: start;
+  }
+  .reporting-main:not(.reporting-main--single) .reporting-well {
+    border-bottom: none;
+    padding: 14px 0;
+  }
+}
+
+/* 3. Phone / very narrow rail: one column all the way down. */
+@container reporting (max-width: 700px) {
+  .reporting-main:not(.reporting-main--single) { grid-template-columns: 1fr; }
+}
