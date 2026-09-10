@@ -1,17 +1,17 @@
 ﻿USE [Generali]
 GO
-DROP TABLE [dbo].[DokumentenStatus]
+DROP TABLE [dbo].[ScanLocations]
 GO
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE TABLE [dbo].[DokumentenStatus](
-	[ID] [int] NOT NULL,
-	[Value] [nvarchar](100) NULL,
- CONSTRAINT [PK_DokumentenStatus] PRIMARY KEY CLUSTERED 
+CREATE TABLE [dbo].[ScanLocations](
+	[Id] [int] NOT NULL,
+	[Name] [nvarchar](100) NULL,
+ CONSTRAINT [PK_ScanLocations] PRIMARY KEY CLUSTERED 
 (
-	[ID] ASC
+	[Id] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
 ) ON [PRIMARY]
 GO

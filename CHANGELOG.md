@@ -97,8 +97,23 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   compiler-named primary keys, 14 column-named foreign keys and 5 auto-named
   defaults were renamed to `PK_<Table>` / `FK_<Table>_<Referenced>[_<Role>]` /
   `DF_<Table>_<Column>` — the hash suffixes differed between INT and PROD and
-  churned `sql/GeneraliDB/` on every re-sync. Nothing is renamed at the table
-  or column level yet; that is phase 2.
+  churned `sql/GeneraliDB/` on every re-sync.
+- **Generali tenant DB: English table names** (#220, phase 2) — the 13 German
+  lookup tables and the effort/import cluster are renamed to English,
+  PascalCase, plural: `Sprache`→`Languages`, `Waehrung`→`Currencies`,
+  `Nachkontrolle`→`PostChecks`, `DokumentenTyp`→`DocumentTypes`,
+  `Attendance`→`AttendanceEntries`, `PDQMReport`→`QualityCheckEntries`,
+  `CSVImportLog`→`ImportRuns` and the rest, with lookup `ID`/`Value` becoming
+  `Id`/`Name`, `ReportingISS.category`→`IssReports.Category` and
+  `Min/MaxScanDatum`→`Min/MaxScannedAt`. `v_ReportJobJoinDefinitions` is
+  rebuilt on the new names and keeps its old output columns, so the pages need
+  no template change; the nine tables the app names directly keep a
+  compatibility view under the old name for the deploy window (`deploy.yml`
+  migrates PROD before stopping the app pool), to be dropped in phase 6. All
+  **seven** Generali reporting sources were repointed (`ReportingSources`
+  stores object and column names as data) and `QualityCheckCategories` — the
+  one table in the database with no primary key at all — got one. `ReportJob`
+  and its 79 columns are untouched; that is phase 3.
 
 ### Fixed
 - **Tenant sidebar no longer offers pages that 403** — a mounted `custom`

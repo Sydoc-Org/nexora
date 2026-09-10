@@ -1,32 +1,32 @@
 ﻿USE [Generali]
 GO
-ALTER TABLE [dbo].[ReportJob] DROP CONSTRAINT [FK_ReportJob_Waehrung]
+ALTER TABLE [dbo].[ReportJob] DROP CONSTRAINT [FK_ReportJob_ScanLocations]
 GO
-ALTER TABLE [dbo].[ReportJob] DROP CONSTRAINT [FK_ReportJob_Ursprung]
+ALTER TABLE [dbo].[ReportJob] DROP CONSTRAINT [FK_ReportJob_Recipients]
 GO
-ALTER TABLE [dbo].[ReportJob] DROP CONSTRAINT [FK_ReportJob_Sprache]
+ALTER TABLE [dbo].[ReportJob] DROP CONSTRAINT [FK_ReportJob_PostChecks_NK2]
 GO
-ALTER TABLE [dbo].[ReportJob] DROP CONSTRAINT [FK_ReportJob_ScanOrt]
+ALTER TABLE [dbo].[ReportJob] DROP CONSTRAINT [FK_ReportJob_PostChecks_NK1]
 GO
-ALTER TABLE [dbo].[ReportJob] DROP CONSTRAINT [FK_ReportJob_Richtung]
+ALTER TABLE [dbo].[ReportJob] DROP CONSTRAINT [FK_ReportJob_Origins]
 GO
-ALTER TABLE [dbo].[ReportJob] DROP CONSTRAINT [FK_ReportJob_NotifikationsStatus]
+ALTER TABLE [dbo].[ReportJob] DROP CONSTRAINT [FK_ReportJob_NotificationStatuses]
 GO
-ALTER TABLE [dbo].[ReportJob] DROP CONSTRAINT [FK_ReportJob_Nachkontrolle_NK2]
+ALTER TABLE [dbo].[ReportJob] DROP CONSTRAINT [FK_ReportJob_Languages]
 GO
-ALTER TABLE [dbo].[ReportJob] DROP CONSTRAINT [FK_ReportJob_Nachkontrolle_NK1]
+ALTER TABLE [dbo].[ReportJob] DROP CONSTRAINT [FK_ReportJob_InterfaceLinks]
 GO
-ALTER TABLE [dbo].[ReportJob] DROP CONSTRAINT [FK_ReportJob_Kommunikation]
+ALTER TABLE [dbo].[ReportJob] DROP CONSTRAINT [FK_ReportJob_InboundChannels]
 GO
-ALTER TABLE [dbo].[ReportJob] DROP CONSTRAINT [FK_ReportJob_InterfaceLink]
+ALTER TABLE [dbo].[ReportJob] DROP CONSTRAINT [FK_ReportJob_DocumentTypes]
 GO
-ALTER TABLE [dbo].[ReportJob] DROP CONSTRAINT [FK_ReportJob_Empfaenger]
+ALTER TABLE [dbo].[ReportJob] DROP CONSTRAINT [FK_ReportJob_DocumentStatuses]
 GO
-ALTER TABLE [dbo].[ReportJob] DROP CONSTRAINT [FK_ReportJob_Eingangskanal]
+ALTER TABLE [dbo].[ReportJob] DROP CONSTRAINT [FK_ReportJob_Directions]
 GO
-ALTER TABLE [dbo].[ReportJob] DROP CONSTRAINT [FK_ReportJob_DokumentenTyp]
+ALTER TABLE [dbo].[ReportJob] DROP CONSTRAINT [FK_ReportJob_Currencies]
 GO
-ALTER TABLE [dbo].[ReportJob] DROP CONSTRAINT [FK_ReportJob_DokumentenStatus]
+ALTER TABLE [dbo].[ReportJob] DROP CONSTRAINT [FK_ReportJob_CommunicationTypes]
 GO
 ALTER TABLE [dbo].[ReportJob] DROP CONSTRAINT [DF_ReportJob_InsertedAt]
 GO
@@ -150,73 +150,73 @@ WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, IGNOR
 GO
 ALTER TABLE [dbo].[ReportJob] ADD  CONSTRAINT [DF_ReportJob_InsertedAt]  DEFAULT (getdate()) FOR [InsertedAt]
 GO
-ALTER TABLE [dbo].[ReportJob]  WITH CHECK ADD  CONSTRAINT [FK_ReportJob_DokumentenStatus] FOREIGN KEY([DOC_DOKUMENTENSTATUS])
-REFERENCES [dbo].[DokumentenStatus] ([ID])
+ALTER TABLE [dbo].[ReportJob]  WITH CHECK ADD  CONSTRAINT [FK_ReportJob_CommunicationTypes] FOREIGN KEY([DOC_KOMMUNIKATION])
+REFERENCES [dbo].[CommunicationTypes] ([Id])
 GO
-ALTER TABLE [dbo].[ReportJob] CHECK CONSTRAINT [FK_ReportJob_DokumentenStatus]
+ALTER TABLE [dbo].[ReportJob] CHECK CONSTRAINT [FK_ReportJob_CommunicationTypes]
 GO
-ALTER TABLE [dbo].[ReportJob]  WITH CHECK ADD  CONSTRAINT [FK_ReportJob_DokumentenTyp] FOREIGN KEY([DOC_DOKUMENTENTYP])
-REFERENCES [dbo].[DokumentenTyp] ([ID])
+ALTER TABLE [dbo].[ReportJob]  WITH CHECK ADD  CONSTRAINT [FK_ReportJob_Currencies] FOREIGN KEY([DOC_WAEHRUNG])
+REFERENCES [dbo].[Currencies] ([Id])
 GO
-ALTER TABLE [dbo].[ReportJob] CHECK CONSTRAINT [FK_ReportJob_DokumentenTyp]
+ALTER TABLE [dbo].[ReportJob] CHECK CONSTRAINT [FK_ReportJob_Currencies]
 GO
-ALTER TABLE [dbo].[ReportJob]  WITH CHECK ADD  CONSTRAINT [FK_ReportJob_Eingangskanal] FOREIGN KEY([DOC_EINGANGSKANAL])
-REFERENCES [dbo].[Eingangskanal] ([ID])
+ALTER TABLE [dbo].[ReportJob]  WITH CHECK ADD  CONSTRAINT [FK_ReportJob_Directions] FOREIGN KEY([DOC_RICHTUNG])
+REFERENCES [dbo].[Directions] ([Id])
 GO
-ALTER TABLE [dbo].[ReportJob] CHECK CONSTRAINT [FK_ReportJob_Eingangskanal]
+ALTER TABLE [dbo].[ReportJob] CHECK CONSTRAINT [FK_ReportJob_Directions]
 GO
-ALTER TABLE [dbo].[ReportJob]  WITH CHECK ADD  CONSTRAINT [FK_ReportJob_Empfaenger] FOREIGN KEY([DOC_EMPFAENGER])
-REFERENCES [dbo].[Empfaenger] ([ID])
+ALTER TABLE [dbo].[ReportJob]  WITH CHECK ADD  CONSTRAINT [FK_ReportJob_DocumentStatuses] FOREIGN KEY([DOC_DOKUMENTENSTATUS])
+REFERENCES [dbo].[DocumentStatuses] ([Id])
 GO
-ALTER TABLE [dbo].[ReportJob] CHECK CONSTRAINT [FK_ReportJob_Empfaenger]
+ALTER TABLE [dbo].[ReportJob] CHECK CONSTRAINT [FK_ReportJob_DocumentStatuses]
 GO
-ALTER TABLE [dbo].[ReportJob]  WITH CHECK ADD  CONSTRAINT [FK_ReportJob_InterfaceLink] FOREIGN KEY([DOC_INTERFACE_LINK])
-REFERENCES [dbo].[InterfaceLink] ([ID])
+ALTER TABLE [dbo].[ReportJob]  WITH CHECK ADD  CONSTRAINT [FK_ReportJob_DocumentTypes] FOREIGN KEY([DOC_DOKUMENTENTYP])
+REFERENCES [dbo].[DocumentTypes] ([Id])
 GO
-ALTER TABLE [dbo].[ReportJob] CHECK CONSTRAINT [FK_ReportJob_InterfaceLink]
+ALTER TABLE [dbo].[ReportJob] CHECK CONSTRAINT [FK_ReportJob_DocumentTypes]
 GO
-ALTER TABLE [dbo].[ReportJob]  WITH CHECK ADD  CONSTRAINT [FK_ReportJob_Kommunikation] FOREIGN KEY([DOC_KOMMUNIKATION])
-REFERENCES [dbo].[Kommunikation] ([ID])
+ALTER TABLE [dbo].[ReportJob]  WITH CHECK ADD  CONSTRAINT [FK_ReportJob_InboundChannels] FOREIGN KEY([DOC_EINGANGSKANAL])
+REFERENCES [dbo].[InboundChannels] ([Id])
 GO
-ALTER TABLE [dbo].[ReportJob] CHECK CONSTRAINT [FK_ReportJob_Kommunikation]
+ALTER TABLE [dbo].[ReportJob] CHECK CONSTRAINT [FK_ReportJob_InboundChannels]
 GO
-ALTER TABLE [dbo].[ReportJob]  WITH CHECK ADD  CONSTRAINT [FK_ReportJob_Nachkontrolle_NK1] FOREIGN KEY([DOC_NK1])
-REFERENCES [dbo].[Nachkontrolle] ([ID])
+ALTER TABLE [dbo].[ReportJob]  WITH CHECK ADD  CONSTRAINT [FK_ReportJob_InterfaceLinks] FOREIGN KEY([DOC_INTERFACE_LINK])
+REFERENCES [dbo].[InterfaceLinks] ([Id])
 GO
-ALTER TABLE [dbo].[ReportJob] CHECK CONSTRAINT [FK_ReportJob_Nachkontrolle_NK1]
+ALTER TABLE [dbo].[ReportJob] CHECK CONSTRAINT [FK_ReportJob_InterfaceLinks]
 GO
-ALTER TABLE [dbo].[ReportJob]  WITH CHECK ADD  CONSTRAINT [FK_ReportJob_Nachkontrolle_NK2] FOREIGN KEY([DOC_NK2])
-REFERENCES [dbo].[Nachkontrolle] ([ID])
+ALTER TABLE [dbo].[ReportJob]  WITH CHECK ADD  CONSTRAINT [FK_ReportJob_Languages] FOREIGN KEY([DOC_SPRACHE])
+REFERENCES [dbo].[Languages] ([Id])
 GO
-ALTER TABLE [dbo].[ReportJob] CHECK CONSTRAINT [FK_ReportJob_Nachkontrolle_NK2]
+ALTER TABLE [dbo].[ReportJob] CHECK CONSTRAINT [FK_ReportJob_Languages]
 GO
-ALTER TABLE [dbo].[ReportJob]  WITH CHECK ADD  CONSTRAINT [FK_ReportJob_NotifikationsStatus] FOREIGN KEY([DOC_NOTIFIKATIONSSTATUS])
-REFERENCES [dbo].[NotifikationsStatus] ([ID])
+ALTER TABLE [dbo].[ReportJob]  WITH CHECK ADD  CONSTRAINT [FK_ReportJob_NotificationStatuses] FOREIGN KEY([DOC_NOTIFIKATIONSSTATUS])
+REFERENCES [dbo].[NotificationStatuses] ([Id])
 GO
-ALTER TABLE [dbo].[ReportJob] CHECK CONSTRAINT [FK_ReportJob_NotifikationsStatus]
+ALTER TABLE [dbo].[ReportJob] CHECK CONSTRAINT [FK_ReportJob_NotificationStatuses]
 GO
-ALTER TABLE [dbo].[ReportJob]  WITH CHECK ADD  CONSTRAINT [FK_ReportJob_Richtung] FOREIGN KEY([DOC_RICHTUNG])
-REFERENCES [dbo].[Richtung] ([ID])
+ALTER TABLE [dbo].[ReportJob]  WITH CHECK ADD  CONSTRAINT [FK_ReportJob_Origins] FOREIGN KEY([DOC_ORIGIN])
+REFERENCES [dbo].[Origins] ([Id])
 GO
-ALTER TABLE [dbo].[ReportJob] CHECK CONSTRAINT [FK_ReportJob_Richtung]
+ALTER TABLE [dbo].[ReportJob] CHECK CONSTRAINT [FK_ReportJob_Origins]
 GO
-ALTER TABLE [dbo].[ReportJob]  WITH CHECK ADD  CONSTRAINT [FK_ReportJob_ScanOrt] FOREIGN KEY([DOC_SCANORT])
-REFERENCES [dbo].[ScanOrt] ([ID])
+ALTER TABLE [dbo].[ReportJob]  WITH CHECK ADD  CONSTRAINT [FK_ReportJob_PostChecks_NK1] FOREIGN KEY([DOC_NK1])
+REFERENCES [dbo].[PostChecks] ([Id])
 GO
-ALTER TABLE [dbo].[ReportJob] CHECK CONSTRAINT [FK_ReportJob_ScanOrt]
+ALTER TABLE [dbo].[ReportJob] CHECK CONSTRAINT [FK_ReportJob_PostChecks_NK1]
 GO
-ALTER TABLE [dbo].[ReportJob]  WITH CHECK ADD  CONSTRAINT [FK_ReportJob_Sprache] FOREIGN KEY([DOC_SPRACHE])
-REFERENCES [dbo].[Sprache] ([ID])
+ALTER TABLE [dbo].[ReportJob]  WITH CHECK ADD  CONSTRAINT [FK_ReportJob_PostChecks_NK2] FOREIGN KEY([DOC_NK2])
+REFERENCES [dbo].[PostChecks] ([Id])
 GO
-ALTER TABLE [dbo].[ReportJob] CHECK CONSTRAINT [FK_ReportJob_Sprache]
+ALTER TABLE [dbo].[ReportJob] CHECK CONSTRAINT [FK_ReportJob_PostChecks_NK2]
 GO
-ALTER TABLE [dbo].[ReportJob]  WITH CHECK ADD  CONSTRAINT [FK_ReportJob_Ursprung] FOREIGN KEY([DOC_ORIGIN])
-REFERENCES [dbo].[Ursprung] ([ID])
+ALTER TABLE [dbo].[ReportJob]  WITH CHECK ADD  CONSTRAINT [FK_ReportJob_Recipients] FOREIGN KEY([DOC_EMPFAENGER])
+REFERENCES [dbo].[Recipients] ([Id])
 GO
-ALTER TABLE [dbo].[ReportJob] CHECK CONSTRAINT [FK_ReportJob_Ursprung]
+ALTER TABLE [dbo].[ReportJob] CHECK CONSTRAINT [FK_ReportJob_Recipients]
 GO
-ALTER TABLE [dbo].[ReportJob]  WITH CHECK ADD  CONSTRAINT [FK_ReportJob_Waehrung] FOREIGN KEY([DOC_WAEHRUNG])
-REFERENCES [dbo].[Waehrung] ([ID])
+ALTER TABLE [dbo].[ReportJob]  WITH CHECK ADD  CONSTRAINT [FK_ReportJob_ScanLocations] FOREIGN KEY([DOC_SCANORT])
+REFERENCES [dbo].[ScanLocations] ([Id])
 GO
-ALTER TABLE [dbo].[ReportJob] CHECK CONSTRAINT [FK_ReportJob_Waehrung]
+ALTER TABLE [dbo].[ReportJob] CHECK CONSTRAINT [FK_ReportJob_ScanLocations]
 GO

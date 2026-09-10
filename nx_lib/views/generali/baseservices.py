@@ -84,7 +84,7 @@ def _list_record(r, user_info):
 
 BASESERVICES = CrudTable(
     slug="baseservices",
-    table="[Generali].[dbo].[BaseServices]",
+    table="[Generali].[dbo].[BaseServiceEntries]",
     user_column="UserID",
     perm_prefix="tenant.generali.baseservices",
     api_base="/api/generali/baseservices",

@@ -1,12 +1,12 @@
 ﻿USE [Generali]
 GO
-DROP TABLE [dbo].[ProjectManagement]
+DROP TABLE [dbo].[ProjectEntries]
 GO
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE TABLE [dbo].[ProjectManagement](
+CREATE TABLE [dbo].[ProjectEntries](
 	[ID] [int] IDENTITY(1,1) NOT NULL,
 	[EffortInHours] [float] NULL,
 	[UserID] [int] NULL,
@@ -14,7 +14,7 @@ CREATE TABLE [dbo].[ProjectManagement](
 	[Category] [nvarchar](50) NULL,
 	[Comment] [nvarchar](max) NULL,
 	[RecordDateTime] [datetime] NULL,
- CONSTRAINT [PK_ProjectManagement] PRIMARY KEY CLUSTERED 
+ CONSTRAINT [PK_ProjectEntries] PRIMARY KEY CLUSTERED 
 (
 	[ID] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]

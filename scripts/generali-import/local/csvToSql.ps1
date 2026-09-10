@@ -146,7 +146,7 @@ $fullData | ForEach-Object {
 
     $fileEsc = $csvFileNameShort.Replace("'", "''")
     $startQuery = @"
-INSERT INTO CSVImportLog (FileName, StartedAt, CSVRowCount, RowsInserted, RowsUpdated, [Status])
+INSERT INTO ImportRuns (FileName, StartedAt, CSVRowCount, RowsInserted, RowsUpdated, [Status])
 OUTPUT INSERTED.ID AS NewID
 VALUES ('$fileEsc', GETDATE(), $csvRows, 0, 0, 'running');
 "@
@@ -348,12 +348,12 @@ FROM @actions;
         $minScanSql = if ($null -eq $minScan) { 'NULL' } else { "'$($minScan.ToString('yyyy-MM-dd HH:mm:ss'))'" }
         $maxScanSql = if ($null -eq $maxScan) { 'NULL' } else { "'$($maxScan.ToString('yyyy-MM-dd HH:mm:ss'))'" }
         $endQuery = @"
-UPDATE CSVImportLog SET
+UPDATE ImportRuns SET
     FinishedAt = GETDATE(),
     RowsInserted = $insertedTotal,
     RowsUpdated  = $updatedTotal,
-    MinScanDatum = $minScanSql,
-    MaxScanDatum = $maxScanSql,
+    MinScannedAt = $minScanSql,
+    MaxScannedAt = $maxScanSql,
     [Status] = 'success'
 WHERE ID = $importLogID;
 "@
@@ -405,7 +405,7 @@ WHERE ID = $importLogID;
         }
 
         $failQuery = @"
-UPDATE CSVImportLog SET
+UPDATE ImportRuns SET
     FinishedAt = GETDATE(),
     RowsInserted = $insertedTotal,
     RowsUpdated  = $updatedTotal,

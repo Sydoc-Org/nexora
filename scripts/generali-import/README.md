@@ -7,7 +7,7 @@ Two scheduled jobs that run on the import host **prdimpexp01**
    mailbox via Microsoft Graph, decompresses them into `…\generali\import`, and moves each processed
    message to the *Gelöscht* folder. Scheduled by **`Import CSV Mail Attachment.xml`**.
 2. **`csvToSql.ps1`** — MERGEs every CSV in `…\generali\import` into `reportjob` (logging each run in
-   `CSVImportLog`), first on **INTSQL01**, then on **PRDSQL01**. Scheduled by **`Import CSV to DB.xml`**.
+   `ImportRuns`), first on **INTSQL01**, then on **PRDSQL01**. Scheduled by **`Import CSV to DB.xml`**.
 
 ## Layout
 
