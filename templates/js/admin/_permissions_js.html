@@ -2,6 +2,7 @@
   // Jinja-rendered data for static/js/admin_permissions.js (#191 shim).
   window.NX_PERMS = {
     grants: {{ grants|tojson }},
+    overrides: {{ overrides|tojson }},
     canEdit: {{ can_edit|tojson }},
     i18n: {
       changes: {{ _("{n} unsaved change(s)")|tojson }},
@@ -13,7 +14,11 @@
       addPermission: {{ _("Add Permission")|tojson }},
       editPermission: {{ _("Edit Permission")|tojson }},
       codeDescRequired: {{ _("Code and description are required.")|tojson }},
-      confirmDelete: {{ _("Click again to delete")|tojson }}
+      confirmDelete: {{ _("Click again to delete")|tojson }},
+      overrideAllow: {{ _("{n} user(s) in {profile} have a personal allow override")|tojson }},
+      overrideDeny: {{ _("{n} user(s) in {profile} have a personal deny override")|tojson }},
+      columns: {{ _("Columns")|tojson }},
+      resetColumns: {{ _("Reset")|tojson }}
     }
   };
 </script>
