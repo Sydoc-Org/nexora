@@ -8,9 +8,7 @@ SET QUOTED_IDENTIFIER ON
 GO
 
 -- ---------------------------------------------------------------------------
--- 4. v_Documents -- the new canonical read view. Same 77 output columns as the
---    old view had, same CaptivaCapture filter (890,298 of 2,682,707 rows),
---    English names throughout.
+-- 2. Rebuild the three views without the dropped columns.
 -- ---------------------------------------------------------------------------
 CREATE   VIEW [dbo].[v_Documents]
 AS
@@ -20,7 +18,6 @@ SELECT
     [DocumentId],
     [EnvelopeId],
     [CaseId],
-    [DOC_JOURNAL_ID],
     [CreatedAt],
     [EnvelopeDocumentCount],
     k.Name AS [CommunicationType],
@@ -37,7 +34,6 @@ SELECT
     [DOC_DOKUMENT_ID],
     [DocumentOrder],
     ds.Name AS [DocumentStatus],
-    [DOC_DOKUMENT_URL],
     ek.Name AS [InboundChannel],
     [ApplicationNo],
     [ApplicationNos],
@@ -57,8 +53,10 @@ SELECT
     [ProceedingNo],
     w.Name AS [Currency],
     [AmountText],
+    [Amount],
     [CompanyCode],
     [QuantityText],
+    [Quantity],
     [BusinessType],
     [ContactPerson],
     [VendorNo],
@@ -66,22 +64,9 @@ SELECT
     [AccountNo],
     [Description],
     [PendingText],
-    [DOC_ALFdpages],
-    [DOC_ALFpages],
-    [DOC_PageSize],
-    [DOC_SAPCompCharset],
-    [DOC_SAPCompCreated],
-    [DOC_SAPCompModified],
-    [DOC_SAPComps],
-    [DOC_SAPCompSize],
-    [DOC_SAPCompVersion],
-    [DOC_SAPContType],
-    [DOC_SAPDocDate],
-    [DOC_SAPDocId],
-    [DOC_SAPDocProt],
-    [DOC_SAPType],
-    [DOC_BARCODENR],
+    [IsPending],
     [VoucherDateText],
+    [VoucherDate],
     [FundName],
     [ContractNo],
     [ContractPartner],

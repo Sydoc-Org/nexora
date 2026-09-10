@@ -7,11 +7,6 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
--- ---------------------------------------------------------------------------
--- 6. Compat: the old table name and old column names, updatable, for the
---    seconds of the deploy window in which PROD's old importer and old app
---    code meet the new schema.
--- ---------------------------------------------------------------------------
 CREATE   VIEW [dbo].[ReportJob]
 AS
 SELECT
@@ -21,7 +16,6 @@ SELECT
     [DocumentId] AS [DOC_ID],
     [EnvelopeId] AS [DOC_COUVERT_ID],
     [CaseId] AS [DOC_CASE_ID],
-    [DOC_JOURNAL_ID],
     [CreatedAt] AS [DOC_DateCreated],
     [EnvelopeDocumentCount] AS [DOC_COUVERTDOCCOUNT],
     [CommunicationTypeId] AS [DOC_KOMMUNIKATION],
@@ -38,7 +32,6 @@ SELECT
     [DOC_DOKUMENT_ID],
     [DocumentOrder] AS [DOC_DOKUMENTENORDER],
     [DocumentStatusId] AS [DOC_DOKUMENTENSTATUS],
-    [DOC_DOKUMENT_URL],
     [InboundChannelId] AS [DOC_EINGANGSKANAL],
     [ApplicationNo] AS [DOC_ANTRAG_NR],
     [ApplicationNos] AS [DOC_ANTRAG_NR_MULTI],
@@ -67,21 +60,6 @@ SELECT
     [AccountNo] AS [DOC_KONTONUMMER],
     [Description] AS [DOC_BEZEICHNUNG],
     [PendingText] AS [DOC_PENDING],
-    [DOC_ALFdpages],
-    [DOC_ALFpages],
-    [DOC_PageSize],
-    [DOC_SAPCompCharset],
-    [DOC_SAPCompCreated],
-    [DOC_SAPCompModified],
-    [DOC_SAPComps],
-    [DOC_SAPCompSize],
-    [DOC_SAPCompVersion],
-    [DOC_SAPContType],
-    [DOC_SAPDocDate],
-    [DOC_SAPDocId],
-    [DOC_SAPDocProt],
-    [DOC_SAPType],
-    [DOC_BARCODENR],
     [VoucherDateText] AS [DOC_BELEGDATUM],
     [FundName] AS [DOC_FONDSNAME],
     [ContractNo] AS [DOC_VERTRAGSNUMMER],

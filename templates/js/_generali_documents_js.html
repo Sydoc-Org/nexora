@@ -156,15 +156,15 @@
         const sections = [
             {
                 title: {{ _("Identification") | tojson }}, icon: 'fa-id-card',
-                fields: ['ScanCaseId', 'ScanCaseFolderName', 'DocumentId', 'EnvelopeId', 'CaseId', 'DOC_JOURNAL_ID', 'DOC_DOKUMENT_ID', 'DossierNo', 'ReferenceNo']
+                fields: ['ScanCaseId', 'ScanCaseFolderName', 'DocumentId', 'EnvelopeId', 'CaseId', 'DOC_DOKUMENT_ID', 'DossierNo', 'ReferenceNo']
             },
             {
                 title: {{ _("Dates") | tojson }}, icon: 'fa-calendar',
-                fields: ['ScannedAt', 'InitialScannedAt', 'VoucherDateText', 'DOC_GEBURTSDATUM']
+                fields: ['ScannedAt', 'InitialScannedAt', 'VoucherDate', 'VoucherDateText']
             },
             {
                 title: {{ _("Classification") | tojson }}, icon: 'fa-tag',
-                fields: ['DocumentType', 'Recipient', 'RecipientAddress', 'Language', 'CommunicationType', 'Direction', 'InboundChannel', 'DocumentStatus', 'NotificationStatus', 'ConfidentialityCode', 'DocumentOrder', 'DOC_DOKUMENT_URL']
+                fields: ['DocumentType', 'Recipient', 'RecipientAddress', 'Language', 'CommunicationType', 'Direction', 'InboundChannel', 'DocumentStatus', 'NotificationStatus', 'ConfidentialityCode', 'DocumentOrder']
             },
             {
                 title: {{ _("Partners & Numbers") | tojson }}, icon: 'fa-hashtag',
@@ -172,7 +172,7 @@
             },
             {
                 title: {{ _("Financial") | tojson }}, icon: 'fa-coins',
-                fields: ['AmountText', 'Currency', 'QuantityText', 'BusinessType', 'ProductCode']
+                fields: ['Amount', 'AmountText', 'Currency', 'Quantity', 'QuantityText', 'BusinessType', 'ProductCode']
             },
             {
                 title: {{ _("Scan & Origin") | tojson }}, icon: 'fa-scanner',
@@ -180,15 +180,11 @@
             },
             {
                 title: {{ _("Content & Contact") | tojson }}, icon: 'fa-file-lines',
-                fields: ['Description', 'Remark', 'ContactPerson', 'PendingText', 'EnvelopeDocumentCount', 'ContractNo', 'ContractPartner', 'FundName']
+                fields: ['Description', 'Remark', 'ContactPerson', 'IsPending', 'PendingText', 'EnvelopeDocumentCount', 'ContractNo', 'ContractPartner', 'FundName']
             },
             {
                 title: {{ _("Quality Control") | tojson }}, icon: 'fa-shield-halved',
                 fields: ['PostCheck1', 'PostCheck2']
-            },
-            {
-                title: {{ _("SAP / ALF") | tojson }}, icon: 'fa-database',
-                fields: ['DOC_SAPDocId', 'DOC_SAPDocDate', 'DOC_SAPDocProt', 'DOC_SAPType', 'DOC_SAPContType', 'DOC_SAPComps', 'DOC_SAPCompSize', 'DOC_SAPCompVersion', 'DOC_SAPCompCharset', 'DOC_SAPCompCreated', 'DOC_SAPCompModified', 'DOC_ALFdpages', 'DOC_ALFpages', 'DOC_PageSize', 'DOC_BARCODENR']
             },
         ];
 

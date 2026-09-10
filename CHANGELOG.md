@@ -130,6 +130,22 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Four string columns became `AmountText`/`QuantityText`/`PendingText`/
   `VoucherDateText`, reserving the plain names for the typed columns phase 4
   adds beside them.
+- **Generali tenant DB: real types, dead weight gone** (#220, phase 4) —
+  `Documents` gains `Amount decimal(18,2)`, `Quantity decimal(18,3)`,
+  `VoucherDate date` and `IsPending bit` as **computed** columns over the
+  original strings, so they can never drift from the source the way a
+  backfilled column would; every original string column stays. 17 columns are
+  dropped (four with 0 non-null rows out of 2.68M, two holding only empty
+  strings, five `DOC_SAP*` never written) and the six populated `DOC_SAP*`
+  columns move to a 1:1 `dbo.DocumentSapMetadata`. Two of the plan's rules were
+  wrong against the real data and were corrected: `Quantity` had to be
+  `decimal` (its "unconvertible" values are `0.102`, `0.469` — and
+  `TRY_CONVERT(int, '')` returns **0**, so the planned rule would have written
+  2,297 fabricated zeros), and `DOC_BETRAG` turns out not to be money at all —
+  9,183 of its 9,531 values are the literal `CH04`, an IBAN prefix, and only
+  207 are numbers. **Deploy order matters:** the CSV importer on prdimpexp01 is
+  copied there by hand, not by `deploy.yml`, and phase 4 removes columns its
+  old copy still writes — see `scripts/generali-import/README.md`.
 
 ### Fixed
 - **Tenant sidebar no longer offers pages that 403** — a mounted `custom`

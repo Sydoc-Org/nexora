@@ -7,11 +7,6 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
--- ---------------------------------------------------------------------------
--- 5. Compat: the old view name, old output columns, over v_Documents.
---    The reporting source generali_documents and any saved report definition
---    keep working unchanged until 0129 moves them.
--- ---------------------------------------------------------------------------
 CREATE   VIEW [dbo].[v_ReportJobJoinDefinitions]
 AS
 SELECT
@@ -20,7 +15,6 @@ SELECT
     [DocumentId] AS [DOC_ID],
     [EnvelopeId] AS [DOC_COUVERT_ID],
     [CaseId] AS [DOC_CASE_ID],
-    [DOC_JOURNAL_ID],
     [CreatedAt] AS [DOC_DateCreated],
     [EnvelopeDocumentCount] AS [DOC_COUVERTDOCCOUNT],
     [CommunicationType] AS [DOC_KOMMUNIKATION],
@@ -37,7 +31,6 @@ SELECT
     [DOC_DOKUMENT_ID],
     [DocumentOrder] AS [DOC_DOKUMENTENORDER],
     [DocumentStatus] AS [DOC_DOKUMENTENSTATUS],
-    [DOC_DOKUMENT_URL],
     [InboundChannel] AS [DOC_EINGANGSKANAL],
     [ApplicationNo] AS [DOC_ANTRAG_NR],
     [ApplicationNos] AS [DOC_ANTRAG_NR_MULTI],
@@ -66,21 +59,6 @@ SELECT
     [AccountNo] AS [DOC_KONTONUMMER],
     [Description] AS [DOC_BEZEICHNUNG],
     [PendingText] AS [DOC_PENDING],
-    [DOC_ALFdpages],
-    [DOC_ALFpages],
-    [DOC_PageSize],
-    [DOC_SAPCompCharset],
-    [DOC_SAPCompCreated],
-    [DOC_SAPCompModified],
-    [DOC_SAPComps],
-    [DOC_SAPCompSize],
-    [DOC_SAPCompVersion],
-    [DOC_SAPContType],
-    [DOC_SAPDocDate],
-    [DOC_SAPDocId],
-    [DOC_SAPDocProt],
-    [DOC_SAPType],
-    [DOC_BARCODENR],
     [VoucherDateText] AS [DOC_BELEGDATUM],
     [FundName] AS [DOC_FONDSNAME],
     [ContractNo] AS [DOC_VERTRAGSNUMMER],

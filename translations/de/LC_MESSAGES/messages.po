@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-10 08:54+0200\n"
+"POT-Creation-Date: 2026-09-10 11:25+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -750,11 +750,11 @@ msgstr "Nicht autorisiert"
 #: nx_lib/views/admin/users.py:573 nx_lib/views/dashboard.py:705
 #: nx_lib/views/dashboard.py:781 nx_lib/views/dashboard.py:851
 #: nx_lib/views/dashboard.py:905 nx_lib/views/dashboard.py:967
-#: nx_lib/views/generali/_crud.py:186 nx_lib/views/generali/attendance.py:98
+#: nx_lib/views/generali/_crud.py:187 nx_lib/views/generali/attendance.py:98
 #: nx_lib/views/generali/documents.py:316
 #: nx_lib/views/generali/documents.py:355
-#: nx_lib/views/generali/documents.py:531
-#: nx_lib/views/generali/documents.py:565
+#: nx_lib/views/generali/documents.py:529
+#: nx_lib/views/generali/documents.py:563
 #: nx_lib/views/generali/importstatus.py:119 nx_lib/views/generali/pdqm.py:102
 #: nx_lib/views/generali/reporting.py:260
 #: nx_lib/views/generali/reporting.py:321 nx_lib/views/workitems.py:1386
@@ -5343,7 +5343,7 @@ msgstr ""
 "zu beginnen."
 
 #: templates/admin/logs.html:108 templates/admin/user_detail.html:232
-#: templates/js/_generali_documents_js.html:274
+#: templates/js/_generali_documents_js.html:270
 #: templates/js/_workitems_overview_js.html:41
 #: templates/prepared_documents.html:234 templates/tenant/page.html:100
 #: templates/workitems_overview.html:578
@@ -5351,7 +5351,7 @@ msgid "Previous"
 msgstr "Vorherige"
 
 #: templates/admin/logs.html:109 templates/admin/user_detail.html:233
-#: templates/js/_generali_documents_js.html:278
+#: templates/js/_generali_documents_js.html:274
 #: templates/js/_generali_reporting_js.html:18
 #: templates/js/_workitems_overview_js.html:42
 #: templates/prepared_documents.html:240 templates/tenant/page.html:101
@@ -8194,11 +8194,7 @@ msgstr "Inhalt & Kontakt"
 msgid "Quality Control"
 msgstr "Qualitätskontrolle"
 
-#: templates/js/_generali_documents_js.html:190
-msgid "SAP / ALF"
-msgstr "SAP / ALF"
-
-#: templates/js/_generali_documents_js.html:245
+#: templates/js/_generali_documents_js.html:241
 msgid "Could not load details."
 msgstr "Details konnten nicht geladen werden."
 
@@ -11206,4 +11202,7 @@ msgstr "Bis"
 
 #~ msgid "updated"
 #~ msgstr "Aktualisiert"
+
+#~ msgid "SAP / ALF"
+#~ msgstr "SAP / ALF"
 
