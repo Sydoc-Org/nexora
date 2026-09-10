@@ -1726,7 +1726,8 @@ blinks, looks around, winks and hops. Files:
   picker; the core stays black in both themes (same rule as `.bh-core`).
 - `templates/js/_eddard_js.html` — one shared timer walking the idle mood
   sequence, plus `window.NexoraEddard.startBuild/stopBuild(stage)` for the
-  build loop (0→5, 1300 ms per step, wraps).
+  build loop (0→5, 1300 ms per step; each wrap advances to the next of the
+  three report variants).
 
 Placements: the top-bar toggle (22px), the chat panel header (24px), the empty
 thread (88px) and the AI-insight card head on Simple (20px). The three inline
@@ -1739,10 +1740,18 @@ pointer is fresh) and `sparks=true` (the handoff's three drifting ambient
 dots). Hovering a calm mark's parent perks him up (1px lift, wide eyes).
 
 While a turn runs, the progress ticker gets the `stage()` macro, which flings
-a report together (title → KPI → bars → trend → Ready badge) beside the real
-agent steps, with per-piece choreography: a one-shot `edThrow` fling and card
-settle as each piece lands, an orbiting spark while working, and the handoff's
-celebrate pose on Ready. The stage starts with placeholder copy but becomes a
+a report together beside the real agent steps, with per-piece choreography: a
+one-shot `edThrow` fling and card settle as each piece lands, an orbiting
+spark while working, and the handoff's celebrate pose on Ready. **Three report
+variants take turns**, one per build loop (#272), so a slow answer never
+replays the same card: `0` a KPI report (title → KPI → bars → trend line,
+tossed in from the lower left), `1` a pipeline-measures table with a donut
+(dropped in from above), `2` a weekly digest with progress bars and a
+sparkline (flung in from the right). Each slot declares `data-ed-step` (the
+build step it appears at) and `data-ed-var` (the variant that owns it; absent
+= every variant, as for the Ready badge), and the controller shows a slot when
+both match — adding a variant is markup, not JS. Design:
+`docs/design/eddard_animation_variety/`. The stage starts with placeholder copy but becomes a
 **live preview of the actual answer**: `ask_agentic_iter` yields a
 `tool_result` event after every tool call (key `output`, never `result` — that
 key terminates every consumer's loop), the view distills it through
@@ -1750,8 +1759,11 @@ key terminates every consumer's loop), the view distills it through
 total + series from `run_definition`/`run_sql` rows — first numeric cell per
 row, capped to the last 12) into a `{"phase": "preview"}` NDJSON line, and
 `NexoraEddard.setPreview()` swaps the mock report's title, compact-formatted
-total (the canned +8.3% delta hides next to real data), bar heights and trend
-line for the real numbers. Raw tool output never reaches the client from a
+total (the canned +8.3% delta hides next to real data), bar heights, progress
+fills, trend line and sparkline for the real numbers. It writes through
+`data-ed-preview` attributes rather than per-variant selectors, so the live
+numbers land in whichever variant is on screen when the event arrives (the
+donut keeps its canned ratio — a series is not a share). Raw tool output never reaches the client from a
 progress line. Everything is `aria-hidden` (decorative; the visible
 status text carries the meaning) and `prefers-reduced-motion` holds each loop
 on its resting frame. Source of truth for geometry, mood table and timings:

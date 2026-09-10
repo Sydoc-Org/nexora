@@ -34,7 +34,7 @@
 
         async function fetchActiveSessions() {
             const sessionsBody = document.getElementById('active-sessions-body');
-            sessionsBody.innerHTML = `<tr><td colspan="5" class="admin-empty"><i class="fas fa-spinner fa-spin"></i> &nbsp; {{ _("Loading...") }}</td></tr>`;
+            sessionsBody.innerHTML = `<tr><td colspan="6" class="admin-empty"><i class="fas fa-spinner fa-spin"></i> &nbsp; {{ _("Loading...") }}</td></tr>`;
 
             try {
                 const response = await fetch(`${API_PREFIX}api/admin/active_sessions`, {headers: {
@@ -46,7 +46,7 @@
 
                 sessionsBody.innerHTML = '';
                 if (sessions.length === 0) {
-                    sessionsBody.innerHTML = `<tr><td colspan="5" class="admin-empty"><i class="fas fa-user-slash"></i> &nbsp; {{ _("No active sessions found.") }}</td></tr>`;
+                    sessionsBody.innerHTML = `<tr><td colspan="6" class="admin-empty"><i class="fas fa-user-slash"></i> &nbsp; {{ _("No active sessions found.") }}</td></tr>`;
                     return;
                 }
 
@@ -70,10 +70,18 @@
                     td3.textContent = session.IPAddress || '';
                     row.appendChild(td3);
 
+                    // Last seen first: it is what the 30-minute server-side
+                    // filter uses, so it explains why the row is here (#301).
+                    const seenTs = session.LastSeenAt || null;
                     const td4 = document.createElement('td');
-                    if (rawTs) td4.title = rawTs;
-                    td4.textContent = rawTs ? timeAgo(rawTs) : '';
+                    if (seenTs) td4.title = seenTs;
+                    td4.textContent = seenTs ? timeAgo(seenTs) : '';
                     row.appendChild(td4);
+
+                    const td4b = document.createElement('td');
+                    if (rawTs) td4b.title = rawTs;
+                    td4b.textContent = rawTs ? timeAgo(rawTs) : '';
+                    row.appendChild(td4b);
 
                     const td5 = document.createElement('td');
                     td5.className = 'align-right';
@@ -100,7 +108,7 @@
                 });
             } catch (error) {
                 console.error("Error fetching active sessions:", error);
-                sessionsBody.innerHTML = `<tr><td colspan="5" class="admin-empty" style="color:var(--nx-danger)"><i class="fas fa-circle-exclamation"></i> &nbsp; {{ _("Could not load sessions.") }}</td></tr>`;
+                sessionsBody.innerHTML = `<tr><td colspan="6" class="admin-empty" style="color:var(--nx-danger)"><i class="fas fa-circle-exclamation"></i> &nbsp; {{ _("Could not load sessions.") }}</td></tr>`;
             }
         }
 

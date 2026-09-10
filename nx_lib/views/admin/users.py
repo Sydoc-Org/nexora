@@ -636,7 +636,8 @@ def admin_active_sessions():
                 a.UserID    AS Userid,
                 u.username  AS Username,
                 a.IPAddress,
-                a.CreatedAt AS LoggedInAt
+                a.CreatedAt  AS LoggedInAt,
+                a.LastSeenAt AS LastSeenAt
             FROM ActiveSessions a
             LEFT JOIN Users u ON u.userID = a.UserID
             WHERE a.LastSeenAt >= DATEADD(minute, -30, GETDATE())
@@ -652,6 +653,11 @@ def admin_active_sessions():
                 # to `new Date(...)`. Flask's default JSON encoder uses RFC 1123
                 # which doesn't survive the +'Z' timezone-suffix hack.
                 "LoggedInAt": r[4].isoformat() if r[4] else None,
+                # What the 30-minute WHERE above actually filters on. Without
+                # it the page's only timestamp was the login time, so a
+                # still-active session started yesterday read "20 hours ago"
+                # under a "last 30 minutes" heading (#301).
+                "LastSeenAt": r[5].isoformat() if r[5] else None,
             }
             for r in cursor.fetchall()
         ]

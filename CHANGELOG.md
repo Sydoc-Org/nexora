@@ -7,6 +7,15 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Eddard builds three different reports** (#272) — the reporting
+  assistant's waiting animation now cycles through three report layouts
+  instead of replaying one: the KPI card (bars + trend line, tossed in from
+  the lower left), a pipeline-measures table with a donut (dropped in from
+  above), and a weekly digest with progress bars and a sparkline (flung in
+  from the right). Each wrap of the build counter hands over to the next, so
+  a long wait keeps changing. The live preview of the agent's real numbers
+  (#212) now writes into whichever layout is on screen. Design:
+  `docs/design/eddard_animation_variety/`.
 - **Permissions grid: column picker + override badges** (#275) — a "Columns"
   control on `/admin/permissions` shows/hides and reorders profile columns
   (per-viewer, `localStorage`); a small badge on each cell now counts users
@@ -76,6 +85,20 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and nothing bleeds in beside it; the editor preview re-runs on every change.
 
 ### Fixed
+- **Tenant sidebar no longer offers pages that 403** — a mounted `custom`
+  tenant page (the sydoc/MS02 **Dashboard** and **Workitems** links) was gated
+  on `tenant.<code>.view` alone, so a user without the target route's own
+  `dashboard.view` / `workitems.view` saw a link that 403'd on click (#300).
+  `require_permission`/`require_any_permission` now stamp their codes on the
+  view function and `_tenant_nav_page` drops any entry whose target the user
+  cannot enter. This also cleans up the Generali sidebar, where a member
+  holding `tenant.generali.view` but not `...baseservices.view` /
+  `...projectmanagement.view` / `...importstatus.view` was shown all three.
+- **Admin → Active Sessions now shows what the 30-minute filter uses** — the
+  page's only timestamp was the login time, so a still-active session started
+  yesterday read "20 hours ago" under a "Users active within the last 30
+  minutes" heading (#301). Added a **Last seen** column (`LastSeenAt`, the
+  column the server actually filters on) next to **Logged in**.
 - **The date picker is readable in dark mode on every page that has one, not
   just the dashboard.** The flatpickr overrides sat in `static/css/dashboard.css`,
   which only two templates load, while eleven templates open a calendar — so
