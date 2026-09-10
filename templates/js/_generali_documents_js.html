@@ -3,7 +3,7 @@
 
     let currentPage = 1;
     let currentGroupBy = '';
-    let sortBy = 'DOC_SCANDATUM';
+    let sortBy = 'ScannedAt';
     let sortDir = 'DESC';
     let detailCache = {};
     let _searchDebounce;
@@ -88,11 +88,11 @@
             if (currentGroupBy) {
                 const colKey = currentGroupBy.toLowerCase().replace('doc_', 'doc_');
                 const apiKey = {
-                    'DOC_DOKUMENTENTYP': 'doc_dokumententyp',
-                    'DOC_EMPFAENGER': 'doc_empfaenger',
-                    'DOC_SPRACHE': 'doc_sprache',
-                    'DOC_EINGANGSKANAL': 'doc_eingangskanal',
-                    'DOC_KOMMUNIKATION': 'doc_kommunikation',
+                    'DocumentType': 'doc_dokumententyp',
+                    'Recipient': 'doc_empfaenger',
+                    'Language': 'doc_sprache',
+                    'InboundChannel': 'doc_eingangskanal',
+                    'CommunicationType': 'doc_kommunikation',
                 }[currentGroupBy] || '';
                 const groupVal = apiKey ? (doc[apiKey] || '—') : '—';
                 if (groupVal !== lastGroupVal) {
@@ -156,35 +156,35 @@
         const sections = [
             {
                 title: {{ _("Identification") | tojson }}, icon: 'fa-id-card',
-                fields: ['CASE_ID', 'CASE_FOLDERNAME', 'DOC_ID', 'DOC_COUVERT_ID', 'DOC_CASE_ID', 'DOC_JOURNAL_ID', 'DOC_DOKUMENT_ID', 'DOC_DOSSIER_NR', 'DOC_REFERENZNUMMER']
+                fields: ['ScanCaseId', 'ScanCaseFolderName', 'DocumentId', 'EnvelopeId', 'CaseId', 'DOC_JOURNAL_ID', 'DOC_DOKUMENT_ID', 'DossierNo', 'ReferenceNo']
             },
             {
                 title: {{ _("Dates") | tojson }}, icon: 'fa-calendar',
-                fields: ['DOC_SCANDATUM', 'DOC_SCANDATUM_INITIAL', 'DOC_BELEGDATUM', 'DOC_GEBURTSDATUM']
+                fields: ['ScannedAt', 'InitialScannedAt', 'VoucherDateText', 'DOC_GEBURTSDATUM']
             },
             {
                 title: {{ _("Classification") | tojson }}, icon: 'fa-tag',
-                fields: ['DOC_DOKUMENTENTYP', 'DOC_EMPFAENGER', 'DOC_EMPFAENGERADRESSE', 'DOC_SPRACHE', 'DOC_KOMMUNIKATION', 'DOC_RICHTUNG', 'DOC_EINGANGSKANAL', 'DOC_DOKUMENTENSTATUS', 'DOC_NOTIFIKATIONSSTATUS', 'DOC_VERTRAULICHKEIT', 'DOC_DOKUMENTENORDER', 'DOC_DOKUMENT_URL']
+                fields: ['DocumentType', 'Recipient', 'RecipientAddress', 'Language', 'CommunicationType', 'Direction', 'InboundChannel', 'DocumentStatus', 'NotificationStatus', 'ConfidentialityCode', 'DocumentOrder', 'DOC_DOKUMENT_URL']
             },
             {
                 title: {{ _("Partners & Numbers") | tojson }}, icon: 'fa-hashtag',
-                fields: ['DOC_PARTNER_NR_SYRIUS', 'DOC_PARTNER_NR_GAV', 'DOC_PARTNER_NR_GPV', 'DOC_PARTNER_NR_RGI', 'DOC_ANTRAG_NR', 'DOC_ANTRAG_NR_MULTI', 'DOC_POLICEN_NR', 'DOC_POLICEN_NR_MULTI', 'DOC_SCHADEN_NR', 'DOC_VERFAHREN_NR', 'DOC_PERSONAL_NR', 'DOC_KONTONUMMER', 'DOC_KREDITOREN_NR', 'DOC_OFFERTEN_NR', 'DOC_BUCHUNGSKREIS_NR', 'DOC_FORMULAR_NR']
+                fields: ['PartnerNoSyrius', 'PartnerNoGav', 'PartnerNoGpv', 'PartnerNoRgi', 'ApplicationNo', 'ApplicationNos', 'PolicyNo', 'PolicyNos', 'ClaimNo', 'ProceedingNo', 'PersonnelNo', 'AccountNo', 'VendorNo', 'QuoteNo', 'CompanyCode', 'FormNo']
             },
             {
                 title: {{ _("Financial") | tojson }}, icon: 'fa-coins',
-                fields: ['DOC_BETRAG', 'DOC_WAEHRUNG', 'DOC_ANZAHL', 'DOC_GESCHAEFTSART', 'DOC_PRODUKT_CODE']
+                fields: ['AmountText', 'Currency', 'QuantityText', 'BusinessType', 'ProductCode']
             },
             {
                 title: {{ _("Scan & Origin") | tojson }}, icon: 'fa-scanner',
-                fields: ['DOC_SCANORT', 'DOC_SCANUSER', 'DOC_INITIAL_USER', 'DOC_ORIGIN', 'DOC_INTERFACE_LINK', 'DOC_EINGANGSKANAL']
+                fields: ['ScanLocation', 'ScanUser', 'InitialUser', 'Origin', 'InterfaceLink', 'InboundChannel']
             },
             {
                 title: {{ _("Content & Contact") | tojson }}, icon: 'fa-file-lines',
-                fields: ['DOC_BEZEICHNUNG', 'DOC_BEMERKUNG', 'DOC_KONTAKTPERSON', 'DOC_PENDING', 'DOC_COUVERTDOCCOUNT', 'DOC_VERTRAGSNUMMER', 'DOC_VERTRAGSPARTNER', 'DOC_FONDSNAME']
+                fields: ['Description', 'Remark', 'ContactPerson', 'PendingText', 'EnvelopeDocumentCount', 'ContractNo', 'ContractPartner', 'FundName']
             },
             {
                 title: {{ _("Quality Control") | tojson }}, icon: 'fa-shield-halved',
-                fields: ['DOC_NK1', 'DOC_NK2']
+                fields: ['PostCheck1', 'PostCheck2']
             },
             {
                 title: {{ _("SAP / ALF") | tojson }}, icon: 'fa-database',
@@ -198,8 +198,8 @@
                 .filter(f => doc[f] !== null && doc[f] !== undefined && doc[f] !== '')
                 .map(f => {
                     let val = doc[f];
-                    if (f === 'DOC_NK1' || f === 'DOC_NK2') val = nkBadge(val);
-                    else if (f === 'DOC_EINGANGSKANAL') val = channelBadge(val);
+                    if (f === 'PostCheck1' || f === 'PostCheck2') val = nkBadge(val);
+                    else if (f === 'InboundChannel') val = channelBadge(val);
                     else val = `<span style="color:var(--nx-text)">${escapeHtml(val)}</span>`;
                     return `<div class="flex justify-between items-start gap-2 py-1.5 last:border-0" style="border-bottom:1px solid var(--nx-divider)">
                         <dt class="text-xs shrink-0 max-w-[45%] truncate" style="color:var(--nx-text-meta)" title="${f}">${f.replace('DOC_', '')}</dt>

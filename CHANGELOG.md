@@ -112,8 +112,24 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   migrates PROD before stopping the app pool), to be dropped in phase 6. All
   **seven** Generali reporting sources were repointed (`ReportingSources`
   stores object and column names as data) and `QualityCheckCategories` — the
-  one table in the database with no primary key at all — got one. `ReportJob`
-  and its 79 columns are untouched; that is phase 3.
+  one table in the database with no primary key at all — got one.
+- **Generali tenant DB: `ReportJob` becomes `Documents`** (#220, phase 3) — the
+  2.68M-row fact table and 61 of its 79 columns lose the `DOC_` prefix and the
+  German: `DOC_SCHADEN_NR`→`ClaimNo`, `DOC_SCANDATUM`→`ScannedAt`,
+  `DOC_POLICEN_NR`→`PolicyNo`, `DOC_NK1`/`DOC_NK2`→`PostCheck1Id`/`PostCheck2Id`,
+  `CASE_ID`→`ScanCaseId`, `DOC_CASE_ID`→`CaseId`, and so on. A new
+  `dbo.v_Documents` is the canonical read view (lookups resolved, English
+  names); `v_ReportJobJoinDefinitions` and `dbo.ReportJob` survive as
+  compatibility views for the deploy window and come down in phase 6. The
+  **document detail panel now reads in English** — `ClaimNo`, `PolicyNo`,
+  `ScannedAt` instead of `SCHADEN_NR`, `POLICEN_NR`, `SCANDATUM`. The
+  `generali_documents` reporting source, its three measures and any saved
+  report definition were migrated with it. The 18 columns phase 4 is about to
+  drop or move (five provably empty, two empty-string, the 11-column `DOC_SAP*`
+  block) keep their old names rather than being renamed on the way to the bin.
+  Four string columns became `AmountText`/`QuantityText`/`PendingText`/
+  `VoucherDateText`, reserving the plain names for the typed columns phase 4
+  adds beside them.
 
 ### Fixed
 - **Tenant sidebar no longer offers pages that 403** — a mounted `custom`

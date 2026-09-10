@@ -157,40 +157,36 @@ VALUES ('$fileEsc', GETDATE(), $csvRows, 0, 0, 'running');
     function Flush_Batch {
         param($valuesList, $docIdsInBatch, $csvRowsInserted, $csvRows)
         $cols = @(
-            'CASE_ID', 'CASE_FOLDERNAME', 'DOC_ID', 'DOC_COUVERT_ID', 'DOC_CASE_ID', 'DOC_JOURNAL_ID',
-            'DOC_DateCreated', 'DOC_COUVERTDOCCOUNT', 'DOC_KOMMUNIKATION', 'DOC_INITIAL_USER',
-            'DOC_SCANDATUM_INITIAL', 'DOC_SCANDATUM', 'DOC_DOKUMENTENTYP', 'DOC_EMPFAENGER',
-            'DOC_EMPFAENGERADRESSE', 'DOC_SPRACHE', 'DOC_NOTIFIKATIONSSTATUS', 'DOC_VERTRAULICHKEIT',
-            'DOC_RICHTUNG', 'DOC_DOKUMENT_ID', 'DOC_DOKUMENTENORDER', 'DOC_DOKUMENTENSTATUS',
-            'DOC_DOKUMENT_URL', 'DOC_EINGANGSKANAL', 'DOC_ANTRAG_NR', 'DOC_ANTRAG_NR_MULTI',
-            'DOC_PARTNER_NR_SYRIUS', 'DOC_PARTNER_NR_GAV', 'DOC_PARTNER_NR_GPV', 'DOC_PARTNER_NR_RGI',
-            'DOC_PRODUKT_CODE', 'DOC_BEMERKUNG', 'DOC_SCANORT', 'DOC_SCANUSER', 'DOC_FORMULAR_NR',
-            'DOC_PERSONAL_NR', 'DOC_POLICEN_NR', 'DOC_POLICEN_NR_MULTI', 'DOC_SCHADEN_NR',
-            'DOC_VERFAHREN_NR', 'DOC_WAEHRUNG', 'DOC_BETRAG', 'DOC_BUCHUNGSKREIS_NR', 'DOC_ANZAHL',
-            'DOC_GESCHAEFTSART', 'DOC_KONTAKTPERSON', 'DOC_KREDITOREN_NR', 'DOC_OFFERTEN_NR',
-            'DOC_KONTONUMMER', 'DOC_BEZEICHNUNG', 'DOC_PENDING', 'DOC_ALFdpages', 'DOC_ALFpages',
-            'DOC_PageSize', 'DOC_SAPCompCharset', 'DOC_SAPCompCreated', 'DOC_SAPCompModified',
-            'DOC_SAPComps', 'DOC_SAPCompSize', 'DOC_SAPCompVersion', 'DOC_SAPContType',
-            'DOC_SAPDocDate', 'DOC_SAPDocId', 'DOC_SAPDocProt', 'DOC_SAPType', 'DOC_BARCODENR',
-            'DOC_BELEGDATUM', 'DOC_FONDSNAME', 'DOC_VERTRAGSNUMMER', 'DOC_VERTRAGSPARTNER',
-            'DOC_DOSSIER_NR', 'DOC_REFERENZNUMMER', 'DOC_ORIGIN', 'DOC_INTERFACE_LINK',
-            'DOC_NK1', 'DOC_NK2', 'SourceCSVFileName'
+            'ScanCaseId', 'ScanCaseFolderName', 'DocumentId', 'EnvelopeId', 'CaseId', 'DOC_JOURNAL_ID',
+            'CreatedAt', 'EnvelopeDocumentCount', 'CommunicationTypeId', 'InitialUser', 'InitialScannedAt',
+            'ScannedAt', 'DocumentTypeId', 'RecipientId', 'RecipientAddress', 'LanguageId', 'NotificationStatusId',
+            'ConfidentialityCode', 'DirectionId', 'DOC_DOKUMENT_ID', 'DocumentOrder', 'DocumentStatusId',
+            'DOC_DOKUMENT_URL', 'InboundChannelId', 'ApplicationNo', 'ApplicationNos', 'PartnerNoSyrius',
+            'PartnerNoGav', 'PartnerNoGpv', 'PartnerNoRgi', 'ProductCode', 'Remark', 'ScanLocationId',
+            'ScanUser', 'FormNo', 'PersonnelNo', 'PolicyNo', 'PolicyNos', 'ClaimNo', 'ProceedingNo',
+            'CurrencyId', 'AmountText', 'CompanyCode', 'QuantityText', 'BusinessType', 'ContactPerson',
+            'VendorNo', 'QuoteNo', 'AccountNo', 'Description', 'PendingText', 'DOC_ALFdpages', 'DOC_ALFpages',
+            'DOC_PageSize', 'DOC_SAPCompCharset', 'DOC_SAPCompCreated', 'DOC_SAPCompModified', 'DOC_SAPComps',
+            'DOC_SAPCompSize', 'DOC_SAPCompVersion', 'DOC_SAPContType', 'DOC_SAPDocDate', 'DOC_SAPDocId',
+            'DOC_SAPDocProt', 'DOC_SAPType', 'DOC_BARCODENR', 'VoucherDateText', 'FundName', 'ContractNo',
+            'ContractPartner', 'DossierNo', 'ReferenceNo', 'OriginId', 'InterfaceLinkId', 'PostCheck1Id',
+            'PostCheck2Id', 'SourceCsvFileName'
         )
         $bracketed = ($cols | ForEach-Object { "[$_]" }) -join ', '
-        $updateSet = ($cols | Where-Object { $_ -ne 'DOC_ID' } | ForEach-Object { "[$_] = s.[$_]" }) -join ",`n            "
+        $updateSet = ($cols | Where-Object { $_ -ne 'DocumentId' } | ForEach-Object { "[$_] = s.[$_]" }) -join ",`n            "
         $insertVals = ($cols | ForEach-Object { "s.[$_]" }) -join ', '
         $query = @"
 DECLARE @actions TABLE([action] NVARCHAR(10));
 WITH src AS (
     SELECT *,
-        ROW_NUMBER() OVER (PARTITION BY [DOC_ID] ORDER BY (SELECT NULL)) AS rn
+        ROW_NUMBER() OVER (PARTITION BY [DocumentId] ORDER BY (SELECT NULL)) AS rn
     FROM (VALUES
 $($valuesList -join ",`n")
     ) AS v ($bracketed)
 )
-MERGE INTO reportjob AS t
-USING (SELECT $bracketed FROM src WHERE rn = 1 OR [DOC_ID] IS NULL) AS s
-ON t.[DOC_ID] = s.[DOC_ID]
+MERGE INTO Documents AS t
+USING (SELECT $bracketed FROM src WHERE rn = 1 OR [DocumentId] IS NULL) AS s
+ON t.[DocumentId] = s.[DocumentId]
 WHEN MATCHED THEN
     UPDATE SET
         $updateSet
