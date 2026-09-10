@@ -10,7 +10,7 @@
 
 **Architecture:** Six phases, each one migration + the code that goes with it, each independently shippable and independently revertible. Renames are `sp_rename` (metadata-only — instant on 2.47M rows, no data copy); every rename ships **with a compatibility view under the old name in the same migration**, because `deploy.yml` applies migrations *before* it stops the app pool, so old code and new schema overlap by seconds on every deploy. The compat views come out one release later.
 
-**Tech stack:** T-SQL migrations in `sql/_migrations/GeneraliDB/` (applied by `scripts/db-migrate.py`, auto-applied to INT by the `sql-migrate-int` pre-commit hook, to PROD by `deploy.yml`), pyodbc via `engine_generali_db`, `nx_lib/views/generali.py` (3,476 lines), and the PowerShell importer under `scripts/generali-import/`.
+**Tech stack:** T-SQL migrations in `sql/_migrations/GeneraliDB/` (applied by `scripts/db-migrate.py`, auto-applied to INT by the `sql-migrate-int` pre-commit hook, to PROD by `deploy.yml`), pyodbc via `engine_generali_db`, and the PowerShell importer under `scripts/generali-import/`. **The single `nx_lib/views/generali.py` this plan was written against is now a package** — `nx_lib/views/generali/{__init__,_crud,_scope,attendance,baseservices,documents,importstatus,pdqm,projectmanagement,reporting}.py`. All 12 `v_ReportJobJoinDefinitions` references live in `documents.py`; the effort-table CRUD is in `_crud.py` plus the four page modules. Every line reference below to `generali.py` needs re-locating in the package.
 
 ---
 
@@ -18,11 +18,11 @@
 
 - **Branch:** cut from `v3.2.3.1`. Parallel sessions are normal here — work in your own worktree (`git worktree add .claude/worktrees/generali-db -b feat/generali-db-restructure v3.2.3.1`), stage by pathspec, never `git push` or open a PR (the owner reviews and pushes).
 - **Copy the gitignored env files into the worktree first**: `Copy-Item C:\dev\nexora\env\*.env <worktree>\env\` — the pre-commit hook runs `scripts/db-migrate.py --env INT` and the tests need `env/TEST.env`.
-- **Migration numbering:** `sql/_migrations/GeneraliDB/` is at `0002` today. Run `python scripts/db-migrate.py --dry-run` before claiming a number — peers number migrations too. Migrations are immutable once applied; to undo one, add another.
+- **Migration numbering:** `sql/_migrations/GeneraliDB/` is at `0004` (phase 1 took `0003` and `0004`). Run `python scripts/db-migrate.py --dry-run` before claiming a number — peers number migrations too. Migrations are immutable once applied; to undo one, add another.
 - **After every schema migration** run `python sql/sync-from-db.py` and stage the regenerated files under `sql/GeneraliDB/` in the same commit, or the `sql-sync-check` hook blocks the commit. Never hand-edit files under `sql/GeneraliDB/` — they are generated from INT.
 - **Two writers, both in this repo:** `nx_lib/views/generali.py` (reads + the effort-table CRUD) and `scripts/generali-import/{local,remote}/csvToSql.ps1` (the daily CSV MERGE into `reportjob`). **The two importer copies are near-identical and must be changed together** — `local/` and `remote/` differ only in how they reach the server.
 - **A third consumer exists in the app:** the reporting source `generali_pdqm` (`dbo.ReportingSources.BaseObject = 'dbo.PDQMReport'`, migration `0011`). Renaming `PDQMReport` means an accompanying `NexoraDB` migration updating that registry row.
-- **The app reads a view, not the table.** `nx_lib/views/generali.py` hits `[dbo].[v_ReportJobJoinDefinitions]` in 11 places and never touches `ReportJob` directly. That view is the seam that makes phase 3 cheap.
+- **The app reads a view, not the table.** `nx_lib/views/generali/documents.py` hits `[dbo].[v_ReportJobJoinDefinitions]` in 12 places and never touches `ReportJob` directly. That view is the seam that makes phase 3 cheap — and it carries its own `WHERE ifl.Value = 'CaptivaCapture'`, which hides two thirds of the table from the app.
 - **Deploy ordering is the real risk.** `deploy.yml` applies pending migrations to PROD **before** stopping the app pool. For the seconds between, PROD runs the *old* code against the *new* schema. Every rename migration must therefore leave a compat view/synonym behind under the old name.
 - **Tests:** `tests/integration/test_generali_pdqm_routes.py` covers the PDQM route. The TEST database (`sql/test/schema.sql`) has **no** Generali tables — Generali integration tests skip when the engine is unset; keep that degradation working.
 - **`ENVIRONMENT=INT` points at a full copy of the customer's data** (2.47M rows, scan dates 2025-11-03 → 2026-08-24). Profile there, never on PROD.
@@ -125,17 +125,23 @@ Lookup columns everywhere: `ID` → `Id`, `Value` → `Name` (+ `NameDe`/`NameFr
 
 ---
 
-## Phase 1 — Keys, indexes and constraint names (no renames, ships alone)
+## Phase 1 — Keys, indexes and constraint names (no renames, ships alone) — **DONE 2026-09-10**
 
 *Pure win, zero blast radius: nothing is renamed, so no code changes at all.*
 
-- [ ] **1.1** Migration `sql/_migrations/GeneraliDB/0003_reportjob_keys_and_indexes.sql`:
-  - [ ] `UQ_ReportJob_DOC_ID` — unique index on `DOC_ID` (verified unique: 2,468,923 distinct / 2,468,923 rows). **This is what the daily `MERGE … ON t.DOC_ID = s.DOC_ID` has been scanning without.**
-  - [ ] `IX_ReportJob_DOC_SCANDATUM` — every report filters on it; 10 months of data, ~250k rows/month.
-  - [ ] `IX_ReportJob_DOC_DOKUMENTENTYP_SCANDATUM` and `IX_ReportJob_DOC_DOKUMENTENSTATUS_SCANDATUM` — the two lookups the PDQM page groups by. Check the actual plans first; do not add indexes on faith.
-- [ ] **1.2** Migration `0004_name_the_constraints.sql`: `sp_rename` every `PK__…` to `PK_<Table>` (24 of them) and every `FK_DOC_*` to `FK_ReportJob_<Referenced>[_<Role>]`.
-- [ ] **1.3** Time the daily import before and after on INT (`scripts/generali-import/local/csvToSql.ps1` writes durations into `CSVImportLog`); record the numbers in the commit message.
-- [ ] **1.4** `python sql/sync-from-db.py`, stage `sql/GeneraliDB/`, commit.
+- [x] **1.1** Migration `sql/_migrations/GeneraliDB/0003_reportjob_keys_and_indexes.sql`:
+  - [x] `UQ_ReportJob_DOC_ID` — unique index on `DOC_ID`, **filtered `WHERE DOC_ID IS NOT NULL`** (re-verified 2026-09-10: 2,682,707 distinct / 2,682,707 rows, 0 nulls). The filter is not cosmetic: `csvToSql.ps1` deliberately lets rows with a NULL `DOC_ID` through (`WHERE rn = 1 OR [DOC_ID] IS NULL`), so an unfiltered `UNIQUE` index would break the import the first night two such rows arrive. Verified on INT that the optimiser still matches the filtered index for the MERGE's join predicate (plan goes Hash Match + full scan → Nested Loops + Index Seek).
+  - [x] `IX_ReportJob_DOC_SCANDATUM` — key `DOC_SCANDATUM`, `INCLUDE (DOC_INTERFACE_LINK, DOC_KOMMUNIKATION, DOC_DOKUMENTENTYP, DOC_EMPFAENGER, DOC_SPRACHE, DOC_EINGANGSKANAL, DOC_NK1, DOC_NK2)`. `DOC_INTERFACE_LINK` is in the list because the view itself filters on it (see the finding below).
+  - [x] `IX_ReportJob_DOC_DOKUMENTENTYP_SCANDATUM` / `..._DOKUMENTENSTATUS_...` — **rejected, measured.** The covering index above already serves both group-by queries (`doctype_30d` 279 → 58 ms), and `DOC_DOKUMENTENSTATUS` is referenced nowhere in `nx_lib/views/generali/`.
+- [x] **1.2** Migration `0004_name_the_constraints.sql`: 22 auto-named PKs → `PK_<Table>`, 14 `FK_DOC_*` → `FK_ReportJob_<Referenced>[_<Role>]`, and 5 auto-named **default** constraints → `DF_<Table>_<Column>` (they churn the dumps for the same reason the PKs do). Driven off the system catalogs and matched by *table and column*, never by the current name — the auto-generated names differ between INT and PROD, so a migration that hardcoded them would apply on INT and fail on PROD.
+- [x] **1.3** Measured on the live INT copy instead of a real import run (the importer needs the mail attachment): a 500-row `MERGE` batch reproduced exactly, in a rolled-back transaction. **3,169 ms → 2,435 ms (−23%)**; a daily CSV is 16k–25k rows = 32–50 batches, so ~25–35 s off a ~320 s run. Dashboard, warm cache: KPI 250 → 25 ms, trend 303 → 46 ms, latest-day probe 310 → 68 ms, doctype 279 → 58 ms, filter-options `DISTINCT` 342 → 149 ms, document detail 290 → 7 ms. Index build 9 s each; sizes 136 MB + 133 MB against a 1,366 MB table.
+- [x] **1.4** `python sql/sync-from-db.py`, `sql/GeneraliDB/` re-dumped and staged.
+
+**Three findings from phase 1 that change later phases:**
+
+1. **`v_ReportJobJoinDefinitions` has a hidden `WHERE ifl.Value = 'CaptivaCapture'`.** The app therefore sees **890,298 of 2,682,707 rows** (33%). 1,093,412 rows have a NULL `DOC_INTERFACE_LINK` and are invisible to every `/generali/*` page. Phase 3 must carry this predicate into `v_Documents` deliberately, not by accident — and someone should confirm it is still the intent.
+2. **Every `CSVImportLog` run to date reports `RowsUpdated = 0`.** The daily MERGE is pure insert; the UPDATE branch has never fired. That is what makes the `DOC_ID` seek worth having, and it also means phase 4's retyping never has to cope with a row changing type mid-life.
+3. **The remaining 2.4 s per import batch is not the database.** It is the 500-row `VALUES` literal `csvToSql.ps1` builds and SQL Server re-parses per batch. A table-valued parameter or `bcp` would take far more off the nightly run than any further index. Out of scope for this plan — worth its own issue.
 
 ## Phase 2 — Lookups and the effort cluster get English names
 

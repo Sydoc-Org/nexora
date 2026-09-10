@@ -84,6 +84,22 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Query) become optional **panel tiles**, so a definition owns the whole result
   and nothing bleeds in beside it; the editor preview re-runs on every change.
 
+### Changed
+- **Generali tenant DB: real indexes and deterministic constraint names**
+  (#220, phase 1) — `dbo.ReportJob` (2.68M rows) carried exactly one index,
+  the clustered PK on the surrogate `RecordID`, so every access path was a
+  full table scan. Two migrations, no application code:
+  `UQ_ReportJob_DOC_ID` (unique, filtered `IS NOT NULL`) on the key the daily
+  CSV `MERGE` matches on, and `IX_ReportJob_DOC_SCANDATUM` covering the lookup
+  FKs the documents dashboard groups by. Measured on INT: a 500-row importer
+  batch 3,169 → 2,435 ms, dashboard KPI 250 → 25 ms, trend 303 → 46 ms,
+  doctype breakdown 279 → 58 ms, document detail 290 → 7 ms. The 22
+  compiler-named primary keys, 14 column-named foreign keys and 5 auto-named
+  defaults were renamed to `PK_<Table>` / `FK_<Table>_<Referenced>[_<Role>]` /
+  `DF_<Table>_<Column>` — the hash suffixes differed between INT and PROD and
+  churned `sql/GeneraliDB/` on every re-sync. Nothing is renamed at the table
+  or column level yet; that is phase 2.
+
 ### Fixed
 - **Tenant sidebar no longer offers pages that 403** — a mounted `custom`
   tenant page (the sydoc/MS02 **Dashboard** and **Workitems** links) was gated

@@ -14,7 +14,7 @@ CREATE TABLE [dbo].[ProjectManagement](
 	[Category] [nvarchar](50) NULL,
 	[Comment] [nvarchar](max) NULL,
 	[RecordDateTime] [datetime] NULL,
-PRIMARY KEY CLUSTERED 
+ CONSTRAINT [PK_ProjectManagement] PRIMARY KEY CLUSTERED 
 (
 	[ID] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
