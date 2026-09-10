@@ -99,3 +99,41 @@ def test_load_media_info_zero_media_does_not_write_media_data_key():
         cache=cache,
     )
     assert wi_cache_key("media_data", 42, "d.example.com") not in cache.store
+
+
+def test_load_media_info_does_not_cache_a_backend_failure():
+    """A failed document fetch must not be remembered as "no media".
+
+    get_extensions_urls_fields used to return ([], [], {}, [], []) on an HTTP
+    error, which landed here as media_count=0 and was written straight into the
+    media_info cache. A transient Octo failure therefore produced a blank
+    viewer -- with no message -- for as long as that entry lived, even after
+    Octo recovered. It now returns None and this refuses to cache it.
+    """
+    cache = _FakeCache()
+    result = load_media_info(
+        42,
+        "d.example.com",
+        get_workitemdata_param=lambda wid, domain: ("wid-blob", "doc-1"),
+        get_extensions_urls_fields=lambda *a, **k: None,
+        cache=cache,
+    )
+    assert result["backend_error"] is True
+    assert result["media_count"] == 0
+    assert cache.store == {}, f"a failure was cached: {cache.store}"
+
+
+def test_load_media_info_still_caches_a_genuinely_empty_document():
+    """The mirror of the above: a document that really has no pages is a real
+    answer and stays cacheable, so this change does not cost the cache hit."""
+    cache = _FakeCache()
+    result = load_media_info(
+        42,
+        "d.example.com",
+        get_workitemdata_param=lambda wid, domain: ("wid-blob", "doc-1"),
+        get_extensions_urls_fields=lambda *a, **k: ([], [], {}, [], []),
+        cache=cache,
+    )
+    assert "backend_error" not in result
+    assert result["media_count"] == 0
+    assert cache.store, "an empty-but-successful result should still be cached"

@@ -101,7 +101,12 @@ def get_index_field_mappings():
 
 def get_extensions_urls_fields(workitemdata, document_id, domain=None, with_tables=False):
     """Fetch the Octopus thin document and return
-    ``(extensions, urls, fields, field_sources, table_sources)``.
+    ``(extensions, urls, fields, field_sources, table_sources)``, or ``None``
+    if the document service could not be reached or refused the document.
+
+    ``None`` is deliberately distinct from a successful fetch that yields empty
+    collections -- callers must not cache a failure as "this workitem has no
+    media".
 
     ``table_sources`` is always ``[]`` unless ``with_tables=True`` — only the
     document viewer (``api_get_media_info``) opts in, so the larger
@@ -125,8 +130,29 @@ def get_extensions_urls_fields(workitemdata, document_id, domain=None, with_tabl
         response.raise_for_status()
         doc_json = response.json()
     except Exception as e:
-        current_app.logger.error(f"Error fetching document details: {e}")
-        return [], [], {}, [], []
+        # Returns None -- NOT an empty 5-tuple. The empty tuple was
+        # indistinguishable from a document that genuinely has no pages or
+        # fields, so every caller cached the failure as a real answer: a
+        # transient Octo error became a permanently blank viewer until the
+        # cache expired, and the user saw no message at all.
+        #
+        # Logged with the document id and status because the bare message was
+        # not enough to chase. The cause of the PROD 401s is still unknown: the
+        # process service hands out a DocumentID which the document service
+        # then refuses, and RuntimeDatabase cannot say whether the document
+        # exists -- t_Documents holds ten staging rows, not the registry, so
+        # 61,267 of 61,277 indexed documents are "missing" from it, including
+        # every one that loads fine. Whatever the reason, a refused document
+        # must not look like a document with no pages.
+        status = getattr(getattr(e, "response", None), "status_code", None)
+        current_app.logger.error(
+            "Error fetching document details: document_id=%s domain=%s status=%s: %s",
+            document_id,
+            domain,
+            status,
+            e,
+        )
+        return None
 
     urls = []
     extensions = []

@@ -173,6 +173,20 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 - **Workitems page loaded no rows** — the filter serialiser from #317 kept its defaults table in a `const` declared *after* the first fetch inside the same DOMContentLoaded handler, so the initial `/api/workitems` call died in the temporal dead zone (`Cannot access 'FILTER_DEFAULTS' before initialization`) and the table showed skeletons forever. The table now lives inside `buildFilterParams()`; an unfiltered page also no longer leaves a bare `?` in the address bar. A unit test pins the declaration's position.
+- **A document nexora cannot load now says so, instead of showing an empty
+  panel** (#321). When Octo refused to serve a document, the fetch returned the
+  same empty result as a document that genuinely has no pages — so the workitem
+  detail panel rendered as though there were nothing to show, with no message,
+  and the empty answer was written into the cache. A transient failure therefore
+  looked permanent: reloading kept showing the blank panel until the cache
+  expired. The fetch now reports failure distinctly, failures are never cached,
+  and the route answers 502 so the panel shows its existing "could not load
+  media" message. The log line also carries the document id, domain and status
+  code, so the next person has something to correlate against DPS. The cause
+  of the refusals is still unknown and is tracked in #321 — the process service
+  hands out a DocumentID the document service then rejects, and nexora cannot
+  see why. This change only stops nexora misreporting it as "no documents". It
+  affected roughly 7-21 document opens a day.
 - **A failed request-log import no longer deletes the hour it could not save.**
   `ops/cleanup/csvLogs_toDB.ps1` drains `var/logs/user/<hour>/nexora_logs.csv`
   into `dbo.Logs`; its `Remove-Item -Recurse -Force` ran unconditionally after
