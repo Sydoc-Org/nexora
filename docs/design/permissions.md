@@ -109,6 +109,11 @@ holds it. Catalogue actions (add, rename, delete a code) sit on the same page be
 `admin.permissions.edit`. This page replaced the per-profile permission drawer on Access Control and
 the read-only Permission Matrix.
 
+A badge on a cell (#275) counts `dbo.UserPermissionOverride` rows for users of that profile on that
+permission — e.g. a user overriding a permission their profile doesn't grant. The "Columns" picker
+shows/hides and reorders profile columns; both choices are per-viewer (`localStorage`, key
+`nx.permsGrid.columns`), not server-side prefs — there's nothing here worth a `dbo.Users.ui_prefs` key.
+
 ## User overrides
 
 `/admin/users/<id>` renders the override table from the same `group_permissions()` tree, so the
