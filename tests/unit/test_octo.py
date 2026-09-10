@@ -360,8 +360,8 @@ def test_get_extensions_urls_fields_returns_none_on_http_error(app):
 
 
 def test_get_extensions_urls_fields_logs_the_document_and_status(app, caplog):
-    """The bare message was not enough to chase the PROD 401s -- the document id
-    is what tied them to dangling rows in the Octo runtime DB."""
+    """The bare message was not enough to chase the PROD 401s: without the
+    document id there is nothing to correlate against DPS at all."""
     err = RuntimeError("boom")
     err.response = MagicMock(status_code=401)
     with (

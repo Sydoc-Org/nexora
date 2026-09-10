@@ -162,11 +162,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   expired. The fetch now reports failure distinctly, failures are never cached,
   and the route answers 502 so the panel shows its existing "could not load
   media" message. The log line also carries the document id, domain and status
-  code, which is what identified the cause: documents with rows in Octo's
-  `t_DocumentIndexes` but none in `t_Documents` — dangling references the
-  process service still hands out and the document service rejects as 401. That
-  data problem is Octo-side and remains open; this only stops nexora
-  misreporting it. It affected roughly 7-21 document opens a day.
+  code, so the next person has something to correlate against DPS. The cause
+  of the refusals is still unknown and is tracked in #321 — the process service
+  hands out a DocumentID the document service then rejects, and nexora cannot
+  see why. This change only stops nexora misreporting it as "no documents". It
+  affected roughly 7-21 document opens a day.
 - **A failed request-log import no longer deletes the hour it could not save.**
   `ops/cleanup/csvLogs_toDB.ps1` drains `var/logs/user/<hour>/nexora_logs.csv`
   into `dbo.Logs`; its `Remove-Item -Recurse -Force` ran unconditionally after

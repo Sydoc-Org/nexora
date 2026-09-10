@@ -137,10 +137,13 @@ def get_extensions_urls_fields(workitemdata, document_id, domain=None, with_tabl
         # cache expired, and the user saw no message at all.
         #
         # Logged with the document id and status because the bare message was
-        # not enough to chase: the 401s in PROD turned out to be documents with
-        # rows in t_DocumentIndexes but none in t_Documents -- dangling
-        # references the process service still hands out, which the document
-        # service rejects as 401 rather than 404.
+        # not enough to chase. The cause of the PROD 401s is still unknown: the
+        # process service hands out a DocumentID which the document service
+        # then refuses, and RuntimeDatabase cannot say whether the document
+        # exists -- t_Documents holds ten staging rows, not the registry, so
+        # 61,267 of 61,277 indexed documents are "missing" from it, including
+        # every one that loads fine. Whatever the reason, a refused document
+        # must not look like a document with no pages.
         status = getattr(getattr(e, "response", None), "status_code", None)
         current_app.logger.error(
             "Error fetching document details: document_id=%s domain=%s status=%s: %s",
