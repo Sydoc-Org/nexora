@@ -153,6 +153,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   old copy still writes — see `scripts/generali-import/README.md`.
 
 ### Fixed
+- **Workitems page loaded no rows** — the filter serialiser from #317 kept its defaults table in a `const` declared *after* the first fetch inside the same DOMContentLoaded handler, so the initial `/api/workitems` call died in the temporal dead zone (`Cannot access 'FILTER_DEFAULTS' before initialization`) and the table showed skeletons forever. The table now lives inside `buildFilterParams()`; an unfiltered page also no longer leaves a bare `?` in the address bar. A unit test pins the declaration's position.
 - **A failed request-log import no longer deletes the hour it could not save.**
   `ops/cleanup/csvLogs_toDB.ps1` drains `var/logs/user/<hour>/nexora_logs.csv`
   into `dbo.Logs`; its `Remove-Item -Recurse -Force` ran unconditionally after
