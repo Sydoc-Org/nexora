@@ -172,6 +172,21 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   old copy still writes — see `scripts/generali-import/README.md`.
 
 ### Fixed
+- **Workitem stage timeline no longer paints white circles in dark mode**
+  (#326) — the stepper inside an expanded workitem row had `background: #fff`
+  written into three surfaces with no dark counterpart: the not-yet-started
+  stage circles, the running stage's circle, and the two buttons above the
+  document column. The running stage was the worst of them, because its icon
+  is `fa-circle-check` — a filled disc with the tick knocked *out* — so the
+  white showed through the tick and the whole node read as a bright bullseye,
+  the loudest thing on an otherwise dark row. All four now take
+  `var(--nx-card)`, and the pending stage label takes `var(--nx-text-meta)`
+  instead of a hardcoded `#c2c7cf` that sat at roughly 1.6:1 on white. Light
+  mode is unchanged (`--nx-card` is `#ffffff` there). The document page
+  surfaces keep their literal white on purpose — a scan is paper in both
+  themes — and a unit test pins which surfaces are tokenised and which are
+  deliberately not. The stylesheet is shared, so the generali pages,
+  `prepared_documents.html` and `reporting.html` get the fix too.
 - **Workitems page loaded no rows** — the filter serialiser from #317 kept its defaults table in a `const` declared *after* the first fetch inside the same DOMContentLoaded handler, so the initial `/api/workitems` call died in the temporal dead zone (`Cannot access 'FILTER_DEFAULTS' before initialization`) and the table showed skeletons forever. The table now lives inside `buildFilterParams()`; an unfiltered page also no longer leaves a bare `?` in the address bar. A unit test pins the declaration's position.
 - **A document nexora cannot load now says so, instead of showing an empty
   panel** (#321). When Octo refused to serve a document, the fetch returned the

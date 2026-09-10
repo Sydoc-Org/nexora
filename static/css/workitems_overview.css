@@ -521,18 +521,23 @@ img.nx-wi-card__sheet { object-fit: cover; object-position: top; display: block;
    ============================================================ */
 .wi-detail-panel { padding: 18px 20px 20px; background: var(--nx-alt); }
 
-/* Stage stepper (readOnly consumers never render this block at all). */
+/* Stage stepper (readOnly consumers never render this block at all).
+   Surfaces are tokens, not #fff: --nx-card is #ffffff in light and #1e293b in
+   dark, so light mode is unchanged while dark mode stops painting white discs
+   on a dark panel. The circles carried a hardcoded #fff, and the current
+   stage's icon is fa-circle-check -- a disc with the tick knocked out -- so on
+   white it read as a bright bullseye, the loudest thing on the row (#326). */
 .wi-stepper { display: flex; align-items: center; padding-bottom: 16px; border-bottom: 1px solid var(--nx-border); }
 .wi-stepper__step { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
 .wi-stepper__icon {
   display: inline-flex; align-items: center; justify-content: center;
   width: 22px; height: 22px; border-radius: var(--nx-radius-pill);
-  background: #fff; color: var(--nx-border-strong); border: 1.5px solid var(--nx-border);
+  background: var(--nx-card); color: var(--nx-border-strong); border: 1.5px solid var(--nx-border);
   font-size: 9px; flex-shrink: 0; transition: all 0.2s ease;
 }
 .wi-stepper__icon.is-done { background: var(--nx-accent); color: #fff; border-color: var(--nx-accent); }
-.wi-stepper__icon.is-current { background: #fff; color: var(--nx-accent); border-color: var(--nx-accent); }
-.wi-stepper__label { font-size: 11px; font-weight: 500; color: #c2c7cf; }
+.wi-stepper__icon.is-current { background: var(--nx-card); color: var(--nx-accent); border-color: var(--nx-accent); }
+.wi-stepper__label { font-size: 11px; font-weight: 500; color: var(--nx-text-meta); }
 .wi-stepper__label.is-done { color: var(--nx-text-sec); }
 .wi-stepper__label.is-current { color: var(--nx-text); font-weight: 700; }
 .wi-stepper__line { flex: 1; height: 1.5px; background: var(--nx-border); margin: 0 10px; min-width: 24px; }
@@ -547,7 +552,7 @@ img.nx-wi-card__sheet { object-fit: cover; object-position: top; display: block;
 .wi-doc-fullbtn, .wi-show-sources-btn {
   margin-left: auto; display: inline-flex; align-items: center; gap: 5px;
   height: 24px; padding: 0 8px; border-radius: 7px; font-size: 11px; font-weight: 600;
-  background: #fff; color: var(--nx-text-sec); border: 1px solid var(--nx-border); cursor: pointer;
+  background: var(--nx-card); color: var(--nx-text-sec); border: 1px solid var(--nx-border); cursor: pointer;
 }
 .wi-doc-fullbtn:hover, .wi-show-sources-btn:hover { border-color: var(--nx-border-strong); color: var(--nx-text); }
 .wi-doc-fullbtn i, .wi-show-sources-btn i { color: var(--nx-text-meta); font-size: 9px; }
