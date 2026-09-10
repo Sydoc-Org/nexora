@@ -110,6 +110,19 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the wells into a full-width row below the results whenever the builder's
   own box is under 1180px (one column under 700px). SQL / Ask-Eddard mode
   (`.reporting-main--single`) is untouched.
+- **The workitems URL is no longer a wall of empty parameters** (#269). The
+  filter serialiser appended every form field regardless of value and always
+  set `page`, so an unfiltered page came out as
+  `?prcfW=all&search=&stage=&status=&startDate=&endDate=&doccomb=and&docfield=&docop=contains&docvalue=&perPage=40&page=1`
+  — twelve parameters, seven of them empty strings and four of them defaults.
+  It now carries only what differs from the server's own defaults, so an
+  unfiltered page is just `/workitems` and a search is `/workitems?search=…`.
+  Nothing changes server-side: every one of these was already read with a
+  default (`request.args.get('search', '')`, `prcfW` → `all`, `perPage` → 40,
+  `page` → 1), so older bookmarks that spell the empties out keep working.
+  Doc-field filters are dropped a whole row at a time, never field by field —
+  the server pairs them positionally with `getlist()`, so removing one empty
+  member of a row would have paired the wrong field with the wrong value.
 - **Tenant sidebar no longer offers pages that 403** — a mounted `custom`
   tenant page (the sydoc/MS02 **Dashboard** and **Workitems** links) was gated
   on `tenant.<code>.view` alone, so a user without the target route's own
