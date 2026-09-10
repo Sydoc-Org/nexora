@@ -25,10 +25,10 @@ SQLAlchemy engines with pyodbc, defined in `nx_lib/db.py`. Credentials come from
 
 | engine | what |
 |---|---|
-| `engineNexoraDB` | the app's own DB — users, permissions, session metadata, config |
-| `engineOctoDB` | Octo runtime DB on `DB_SERVER_PRD` |
-| `engineStatisticsDB` | stats DB on `DB_SERVER_PRD` |
-| `engineGeneraliDB` | tenant DB for Generali-branded pages |
+| `engine_nexora_db` | the app's own DB — users, permissions, session metadata, config |
+| `engine_octo_db` | Octo runtime DB on `DB_SERVER_PRD` |
+| `engine_statistics_db` | stats DB on `DB_SERVER_PRD` |
+| `engine_generali_db` | tenant DB for Generali-branded pages — schema, naming rulebook and gotchas: `docs/design/generali-tenant-db.md` |
 | `engine_statistics_ro` | read-only login for the reporting SQL sandbox (`DB_REPORTING_RO_*`; 503 until set) |
 | `engine_octo_ro` | read-only login for the sandbox's Octo target (`DB_REPORTING_OCTO_RO_*`; 503 until set) |
 | `engine_generali_ro` | read-only login for the sandbox's Generali target (`DB_REPORTING_GENERALI_RO_*`; 503 until set) |
