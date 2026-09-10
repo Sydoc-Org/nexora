@@ -79,6 +79,18 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and nothing bleeds in beside it; the editor preview re-runs on every change.
 
 ### Fixed
+- **Reporting builder no longer overflows its own toolbar** (#298) — the
+  Advanced tab sized itself to the *viewport* while living inside two
+  sidebars (app nav + console rail), so `.reporting-main` was ~959px on a
+  1497px screen and its `max-width: 1100px` rules never fired. The middle
+  track collapsed to ~279px while the toolbar's saved-report and action
+  clusters (`flex-shrink: 0`, ~750px of controls) spilled rightwards across
+  the wells — burying the **Columns** heading, **Share**/**Schedule** and
+  **+ Add filter**, and clipping the empty state. Both clusters may now wrap
+  and shrink at any width, and a container query on `#rpPaneAdvanced` drops
+  the wells into a full-width row below the results whenever the builder's
+  own box is under 1180px (one column under 700px). SQL / Ask-Eddard mode
+  (`.reporting-main--single`) is untouched.
 - **Tenant sidebar no longer offers pages that 403** — a mounted `custom`
   tenant page (the sydoc/MS02 **Dashboard** and **Workitems** links) was gated
   on `tenant.<code>.view` alone, so a user without the target route's own
