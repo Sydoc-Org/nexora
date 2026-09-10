@@ -60,6 +60,21 @@ def test_page_one_is_dropped():
     assert "if (page > 1) params.set('page', page);" in _js()
 
 
+def test_defaults_are_declared_inside_the_serialiser():
+    # The whole file runs in one DOMContentLoaded handler that calls
+    # fetchAndUpdateWorkitems() near its top. A `const` declared at handler
+    # level below that call is still in its temporal dead zone on the first
+    # call and throws -- which blanked the PROD workitems page on 2026-09-10.
+    js = _js()
+    fn = js.index("function buildFilterParams(")
+    decl = js.index("const FILTER_DEFAULTS = {")
+    assert decl > fn, "FILTER_DEFAULTS must live inside buildFilterParams, not at handler scope"
+    body = js[fn:decl]
+    assert (
+        body.count("{") - body.count("}") >= 1
+    ), "FILTER_DEFAULTS is not inside buildFilterParams' body"
+
+
 def test_js_perpage_default_matches_the_server():
     """query.py: per_page = int(args.get("perPage", 40))"""
     src = QUERY_PY.read_text(encoding="utf-8")

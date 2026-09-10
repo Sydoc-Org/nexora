@@ -783,9 +783,14 @@ modalConfirmBtn.addEventListener('click', () => {
     // merely happens to also be 40. These track
     // nx_lib/workitems/query.py -> args.get('perPage', 40) and
     // nx_lib/views/workitems.py -> args.get('prcfW', 'all').
-    const FILTER_DEFAULTS = { prcfW: 'all', perPage: '40' };
-
     function buildFilterParams(filterForm, page) {
+        // Declared inside the function on purpose: this whole file runs in one
+        // DOMContentLoaded handler and fetchAndUpdateWorkitems() is called near
+        // the top of it, long before this point is reached. A const out here
+        // would still be in its temporal dead zone on that first call
+        // ("Cannot access 'FILTER_DEFAULTS' before initialization"), which is
+        // exactly what broke the PROD workitems page on 2026-09-10.
+        const FILTER_DEFAULTS = { prcfW: 'all', perPage: '40' };
         const params = new URLSearchParams();
 
         for (const el of filterForm.elements) {
@@ -834,7 +839,8 @@ modalConfirmBtn.addEventListener('click', () => {
         // Always the real requested perPage (40/100/200/500/1000), never
         // the fast-chunk override below -- the address bar/history entry
         // must reflect what the user actually asked for.
-        const newUrl = `${window.location.pathname}?${params.toString()}`;
+        const qs = params.toString();
+        const newUrl = window.location.pathname + (qs ? `?${qs}` : '');
         window.history.pushState({ path: newUrl }, '', newUrl);
 
         // Skeleton rows, single source of truth in workitems_overview.html (#189)
