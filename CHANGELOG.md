@@ -153,6 +153,20 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   old copy still writes — see `scripts/generali-import/README.md`.
 
 ### Fixed
+- **A document nexora cannot load now says so, instead of showing an empty
+  panel** (#321). When Octo refused to serve a document, the fetch returned the
+  same empty result as a document that genuinely has no pages — so the workitem
+  detail panel rendered as though there were nothing to show, with no message,
+  and the empty answer was written into the cache. A transient failure therefore
+  looked permanent: reloading kept showing the blank panel until the cache
+  expired. The fetch now reports failure distinctly, failures are never cached,
+  and the route answers 502 so the panel shows its existing "could not load
+  media" message. The log line also carries the document id, domain and status
+  code, which is what identified the cause: documents with rows in Octo's
+  `t_DocumentIndexes` but none in `t_Documents` — dangling references the
+  process service still hands out and the document service rejects as 401. That
+  data problem is Octo-side and remains open; this only stops nexora
+  misreporting it. It affected roughly 7-21 document opens a day.
 - **A failed request-log import no longer deletes the hour it could not save.**
   `ops/cleanup/csvLogs_toDB.ps1` drains `var/logs/user/<hour>/nexora_logs.csv`
   into `dbo.Logs`; its `Remove-Item -Recurse -Force` ran unconditionally after

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-10 11:25+0200\n"
+"POT-Creation-Date: 2026-09-10 14:00+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -14,7 +14,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: nx_lib/octo.py:332
+#: nx_lib/octo.py:355
 msgid "Error fetching activity instance"
 msgstr "Errore durante il recupero dell'istanza di attività"
 
@@ -725,9 +725,9 @@ msgstr "Si è verificato un errore imprevisto"
 #: nx_lib/views/admin/permissions.py:770 nx_lib/views/dashboard.py:628
 #: nx_lib/views/dashboard.py:716 nx_lib/views/dashboard.py:792
 #: nx_lib/views/dashboard.py:862 nx_lib/views/dashboard.py:919
-#: nx_lib/views/workitems.py:386 nx_lib/views/workitems.py:1119
-#: nx_lib/views/workitems.py:1121 nx_lib/views/workitems.py:1214
-#: nx_lib/views/workitems.py:1325
+#: nx_lib/views/workitems.py:386 nx_lib/views/workitems.py:1122
+#: nx_lib/views/workitems.py:1124 nx_lib/views/workitems.py:1223
+#: nx_lib/views/workitems.py:1338
 msgid "Not authorized"
 msgstr "Non autorizzato"
 
@@ -745,7 +745,7 @@ msgstr "Non autorizzato"
 #: nx_lib/views/generali/documents.py:563
 #: nx_lib/views/generali/importstatus.py:119 nx_lib/views/generali/pdqm.py:102
 #: nx_lib/views/generali/reporting.py:260
-#: nx_lib/views/generali/reporting.py:321 nx_lib/views/workitems.py:1386
+#: nx_lib/views/generali/reporting.py:321 nx_lib/views/workitems.py:1399
 msgid "An unexpected error occurred"
 msgstr "Si è verificato un errore imprevisto"
 
@@ -903,23 +903,23 @@ msgstr ""
 "L'esportazione di campi, cronologia o immagini richiede di selezionare 10"
 " workitem o meno."
 
-#: nx_lib/views/workitems.py:897
+#: nx_lib/views/workitems.py:900
 msgid "TRUNCATED"
 msgstr "TRONCATO"
 
-#: nx_lib/views/workitems.py:898
+#: nx_lib/views/workitems.py:901
 msgid "exported"
 msgstr "esportati"
 
-#: nx_lib/views/workitems.py:898
+#: nx_lib/views/workitems.py:901
 msgid "matching workitems"
 msgstr "workitem corrispondenti"
 
-#: nx_lib/views/workitems.py:904
+#: nx_lib/views/workitems.py:907
 msgid "EXPORT TIMED OUT"
 msgstr "ESPORTAZIONE SCADUTA"
 
-#: nx_lib/views/workitems.py:905
+#: nx_lib/views/workitems.py:908
 msgid ""
 "no fields or images completed before the time limit; this is not a zero-"
 "result export"
@@ -927,110 +927,114 @@ msgstr ""
 "nessun campo o immagine è stato completato prima del limite di tempo; non"
 " si tratta di un'esportazione a zero risultati"
 
-#: nx_lib/views/workitems.py:1015 nx_lib/views/workitems.py:1080
+#: nx_lib/views/workitems.py:1018 nx_lib/views/workitems.py:1083
 msgid "No file part in the request."
 msgstr "Nessuna parte di file nella richiesta."
 
-#: nx_lib/views/workitems.py:1022 nx_lib/views/workitems.py:1083
+#: nx_lib/views/workitems.py:1025 nx_lib/views/workitems.py:1086
 msgid "No file selected for uploading."
 msgstr "Nessun file selezionato per il caricamento."
 
-#: nx_lib/views/workitems.py:1026
+#: nx_lib/views/workitems.py:1029
 msgid "No target process selected."
 msgstr "Nessun processo di destinazione selezionato."
 
-#: nx_lib/views/workitems.py:1032
+#: nx_lib/views/workitems.py:1035
 msgid "You do not have permission to import to this process."
 msgstr "Non hai l'autorizzazione per importare in questo processo."
 
-#: nx_lib/views/workitems.py:1047
+#: nx_lib/views/workitems.py:1050
 #, python-brace-format
 msgid "File '{}' successfully imported into {}."
 msgstr "File '{}' importato con successo in {}."
 
-#: nx_lib/views/workitems.py:1052
+#: nx_lib/views/workitems.py:1055
 msgid "An error occurred while saving the file."
 msgstr "Si è verificato un errore durante il salvataggio del file."
 
-#: nx_lib/views/workitems.py:1054
+#: nx_lib/views/workitems.py:1057
 msgid "Invalid file type. Please upload a valid PDF."
 msgstr "Tipo di file non valido. Carica un PDF valido."
 
-#: nx_lib/views/workitems.py:1077 nx_lib/views/workitems.py:1567
+#: nx_lib/views/workitems.py:1080 nx_lib/views/workitems.py:1580
 msgid "This import is only available for the MS02 client."
 msgstr "Questa importazione è disponibile solo per il cliente MS02."
 
-#: nx_lib/views/workitems.py:1087
+#: nx_lib/views/workitems.py:1090
 msgid "Invalid file type. Please upload a valid Excel (.xlsx) file."
 msgstr ""
 "Tipo di file non valido. Si prega di caricare un file Excel valido "
 "(.xlsx)."
 
-#: nx_lib/views/workitems.py:1095
+#: nx_lib/views/workitems.py:1098
 msgid "The Excel file has no usable rows."
 msgstr "Il file Excel non contiene righe utilizzabili."
 
-#: nx_lib/views/workitems.py:1112
+#: nx_lib/views/workitems.py:1115
 msgid "Could not save the prepared documents. Please try again."
 msgstr "Impossibile salvare i documenti preparati. Riprova."
 
-#: nx_lib/views/workitems.py:1189 nx_lib/views/workitems.py:1222
+#: nx_lib/views/workitems.py:1192 nx_lib/views/workitems.py:1231
 msgid "Workitem not found"
 msgstr "Workitem non trovato"
 
-#: nx_lib/views/workitems.py:1193 nx_lib/views/workitems.py:1319
+#: nx_lib/views/workitems.py:1198 nx_lib/views/workitems.py:1239
+msgid "Document could not be loaded"
+msgstr "Impossibile caricare il documento"
+
+#: nx_lib/views/workitems.py:1202 nx_lib/views/workitems.py:1332
 msgid "Internal Server Error"
 msgstr "Errore interno del server"
 
-#: nx_lib/views/workitems.py:1235
+#: nx_lib/views/workitems.py:1248
 msgid "Media index out of bounds"
 msgstr "Indice del media fuori dai limiti"
 
-#: nx_lib/views/workitems.py:1263
+#: nx_lib/views/workitems.py:1276
 msgid "Failed to render PDF page"
 msgstr "Rendering della pagina PDF non riuscito"
 
-#: nx_lib/views/workitems.py:1295
+#: nx_lib/views/workitems.py:1308
 msgid "Failed to process TIFF image"
 msgstr "Elaborazione dell'immagine TIFF non riuscita"
 
-#: nx_lib/views/workitems.py:1384
+#: nx_lib/views/workitems.py:1397
 msgid "Failed to fetch audit history"
 msgstr "Recupero della cronologia di audit non riuscito"
 
-#: nx_lib/views/workitems.py:1449
+#: nx_lib/views/workitems.py:1462
 msgid "This page is only available for the MS02 client."
 msgstr "Questa pagina è disponibile solo per il cliente MS02."
 
-#: nx_lib/views/workitems.py:1573
+#: nx_lib/views/workitems.py:1586
 msgid "Could not clear the prepared documents. Please try again."
 msgstr "Impossibile cancellare i documenti preparati. Riprova."
 
-#: nx_lib/views/workitems.py:1634
+#: nx_lib/views/workitems.py:1647
 msgid "Could not load saved views."
 msgstr "Impossibile caricare le viste salvate."
 
-#: nx_lib/views/workitems.py:1648 nx_lib/views/workitems.py:1651
+#: nx_lib/views/workitems.py:1661 nx_lib/views/workitems.py:1664
 msgid "Invalid view name or filters."
 msgstr "Nome vista o filtri non validi."
 
-#: nx_lib/views/workitems.py:1665 nx_lib/views/workitems.py:1718
+#: nx_lib/views/workitems.py:1678 nx_lib/views/workitems.py:1731
 msgid "View not found."
 msgstr "Vista non trovata."
 
-#: nx_lib/views/workitems.py:1680
+#: nx_lib/views/workitems.py:1693
 msgid "Too many saved views — delete one first."
 msgstr "Troppe viste salvate — eliminane prima una."
 
-#: nx_lib/views/workitems.py:1697
+#: nx_lib/views/workitems.py:1710
 msgid "A view with this name already exists."
 msgstr "Esiste già una vista con questo nome."
 
-#: nx_lib/views/workitems.py:1700
+#: nx_lib/views/workitems.py:1713
 msgid "Could not save the view."
 msgstr "Impossibile salvare la vista."
 
-#: nx_lib/views/workitems.py:1722
+#: nx_lib/views/workitems.py:1735
 msgid "Could not delete the view."
 msgstr "Impossibile eliminare la vista."
 

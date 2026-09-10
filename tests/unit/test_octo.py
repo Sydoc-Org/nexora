@@ -339,7 +339,14 @@ def test_get_extensions_urls_fields_non_batch_container_recurses(app):
     ]
 
 
-def test_get_extensions_urls_fields_returns_empties_on_http_error(app):
+def test_get_extensions_urls_fields_returns_none_on_http_error(app):
+    """None, not empty collections.
+
+    This used to return ``([], [], {}, [], [])``, which no caller could tell
+    apart from a document that genuinely has no pages or fields -- so every one
+    of them cached the failure as a real answer and the viewer stayed blank,
+    silently, until the cache expired. ``None`` forces the distinction.
+    """
     with (
         patch.object(octo_mod, "get_access_token", return_value="tok"),
         patch.object(
@@ -349,14 +356,25 @@ def test_get_extensions_urls_fields_returns_empties_on_http_error(app):
         ),
         app.app_context(),
     ):
-        extensions, urls, fields, field_sources, table_sources = get_extensions_urls_fields(
-            "wid", "doc"
-        )
-    assert extensions == []
-    assert urls == []
-    assert fields == {}
-    assert field_sources == []
-    assert table_sources == []
+        assert get_extensions_urls_fields("wid", "doc") is None
+
+
+def test_get_extensions_urls_fields_logs_the_document_and_status(app, caplog):
+    """The bare message was not enough to chase the PROD 401s -- the document id
+    is what tied them to dangling rows in the Octo runtime DB."""
+    err = RuntimeError("boom")
+    err.response = MagicMock(status_code=401)
+    with (
+        patch.object(octo_mod, "get_access_token", return_value="tok"),
+        patch.object(octo_mod.requests, "get", side_effect=err),
+        app.app_context(),
+        caplog.at_level("ERROR"),
+    ):
+        assert get_extensions_urls_fields("wid", "the-doc-id", "octo.example") is None
+    logged = caplog.text
+    assert "the-doc-id" in logged
+    assert "401" in logged
+    assert "octo.example" in logged
 
 
 def test_get_extensions_urls_fields_with_tables_parses_tables(app):
