@@ -84,6 +84,69 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Query) become optional **panel tiles**, so a definition owns the whole result
   and nothing bleeds in beside it; the editor preview re-runs on every change.
 
+### Changed
+- **Generali tenant DB: real indexes and deterministic constraint names**
+  (#220, phase 1) — `dbo.ReportJob` (2.68M rows) carried exactly one index,
+  the clustered PK on the surrogate `RecordID`, so every access path was a
+  full table scan. Two migrations, no application code:
+  `UQ_ReportJob_DOC_ID` (unique, filtered `IS NOT NULL`) on the key the daily
+  CSV `MERGE` matches on, and `IX_ReportJob_DOC_SCANDATUM` covering the lookup
+  FKs the documents dashboard groups by. Measured on INT: a 500-row importer
+  batch 3,169 → 2,435 ms, dashboard KPI 250 → 25 ms, trend 303 → 46 ms,
+  doctype breakdown 279 → 58 ms, document detail 290 → 7 ms. The 22
+  compiler-named primary keys, 14 column-named foreign keys and 5 auto-named
+  defaults were renamed to `PK_<Table>` / `FK_<Table>_<Referenced>[_<Role>]` /
+  `DF_<Table>_<Column>` — the hash suffixes differed between INT and PROD and
+  churned `sql/GeneraliDB/` on every re-sync.
+- **Generali tenant DB: English table names** (#220, phase 2) — the 13 German
+  lookup tables and the effort/import cluster are renamed to English,
+  PascalCase, plural: `Sprache`→`Languages`, `Waehrung`→`Currencies`,
+  `Nachkontrolle`→`PostChecks`, `DokumentenTyp`→`DocumentTypes`,
+  `Attendance`→`AttendanceEntries`, `PDQMReport`→`QualityCheckEntries`,
+  `CSVImportLog`→`ImportRuns` and the rest, with lookup `ID`/`Value` becoming
+  `Id`/`Name`, `ReportingISS.category`→`IssReports.Category` and
+  `Min/MaxScanDatum`→`Min/MaxScannedAt`. `v_ReportJobJoinDefinitions` is
+  rebuilt on the new names and keeps its old output columns, so the pages need
+  no template change; the nine tables the app names directly keep a
+  compatibility view under the old name for the deploy window (`deploy.yml`
+  migrates PROD before stopping the app pool), to be dropped in phase 6. All
+  **seven** Generali reporting sources were repointed (`ReportingSources`
+  stores object and column names as data) and `QualityCheckCategories` — the
+  one table in the database with no primary key at all — got one.
+- **Generali tenant DB: `ReportJob` becomes `Documents`** (#220, phase 3) — the
+  2.68M-row fact table and 61 of its 79 columns lose the `DOC_` prefix and the
+  German: `DOC_SCHADEN_NR`→`ClaimNo`, `DOC_SCANDATUM`→`ScannedAt`,
+  `DOC_POLICEN_NR`→`PolicyNo`, `DOC_NK1`/`DOC_NK2`→`PostCheck1Id`/`PostCheck2Id`,
+  `CASE_ID`→`ScanCaseId`, `DOC_CASE_ID`→`CaseId`, and so on. A new
+  `dbo.v_Documents` is the canonical read view (lookups resolved, English
+  names); `v_ReportJobJoinDefinitions` and `dbo.ReportJob` survive as
+  compatibility views for the deploy window and come down in phase 6. The
+  **document detail panel now reads in English** — `ClaimNo`, `PolicyNo`,
+  `ScannedAt` instead of `SCHADEN_NR`, `POLICEN_NR`, `SCANDATUM`. The
+  `generali_documents` reporting source, its three measures and any saved
+  report definition were migrated with it. The 18 columns phase 4 is about to
+  drop or move (five provably empty, two empty-string, the 11-column `DOC_SAP*`
+  block) keep their old names rather than being renamed on the way to the bin.
+  Four string columns became `AmountText`/`QuantityText`/`PendingText`/
+  `VoucherDateText`, reserving the plain names for the typed columns phase 4
+  adds beside them.
+- **Generali tenant DB: real types, dead weight gone** (#220, phase 4) —
+  `Documents` gains `Amount decimal(18,2)`, `Quantity decimal(18,3)`,
+  `VoucherDate date` and `IsPending bit` as **computed** columns over the
+  original strings, so they can never drift from the source the way a
+  backfilled column would; every original string column stays. 17 columns are
+  dropped (four with 0 non-null rows out of 2.68M, two holding only empty
+  strings, five `DOC_SAP*` never written) and the six populated `DOC_SAP*`
+  columns move to a 1:1 `dbo.DocumentSapMetadata`. Two of the plan's rules were
+  wrong against the real data and were corrected: `Quantity` had to be
+  `decimal` (its "unconvertible" values are `0.102`, `0.469` — and
+  `TRY_CONVERT(int, '')` returns **0**, so the planned rule would have written
+  2,297 fabricated zeros), and `DOC_BETRAG` turns out not to be money at all —
+  9,183 of its 9,531 values are the literal `CH04`, an IBAN prefix, and only
+  207 are numbers. **Deploy order matters:** the CSV importer on prdimpexp01 is
+  copied there by hand, not by `deploy.yml`, and phase 4 removes columns its
+  old copy still writes — see `scripts/generali-import/README.md`.
+
 ### Fixed
 - **A failed request-log import no longer deletes the hour it could not save.**
   `ops/cleanup/csvLogs_toDB.ps1` drains `var/logs/user/<hour>/nexora_logs.csv`

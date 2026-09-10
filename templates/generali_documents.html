@@ -149,11 +149,11 @@
               <select id="filterGroupBy" name="groupBy"
                 class="nx-select h-11 appearance-none pr-10" data-testid="generali-documents-groupby-filter">
                 <option value="">{{ _("No Grouping") }}</option>
-                <option value="DOC_DOKUMENTENTYP">{{ _("Document Type") }}</option>
-                <option value="DOC_EMPFAENGER">{{ _("Recipient") }}</option>
-                <option value="DOC_SPRACHE">{{ _("Language") }}</option>
-                <option value="DOC_EINGANGSKANAL">{{ _("Channel") }}</option>
-                <option value="DOC_KOMMUNIKATION">{{ _("Communication") }}</option>
+                <option value="DocumentType">{{ _("Document Type") }}</option>
+                <option value="Recipient">{{ _("Recipient") }}</option>
+                <option value="Language">{{ _("Language") }}</option>
+                <option value="InboundChannel">{{ _("Channel") }}</option>
+                <option value="CommunicationType">{{ _("Communication") }}</option>
               </select>
               <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
                 <i class="fa-solid fa-chevron-down text-xs"></i>
@@ -217,19 +217,19 @@
         <table class="nx-table" id="genDocTable">
           <thead>
             <tr>
-              <th class="sortable-header px-4 py-4 text-center cursor-pointer" data-col="DOC_SCANDATUM">
+              <th class="sortable-header px-4 py-4 text-center cursor-pointer" data-col="ScannedAt">
                 <div class="flex items-center gap-1 justify-center">
                   <span>{{ _("Date") }}</span>
                   <i class="fas fa-sort text-gray-400 text-xs"></i>
                 </div>
               </th>
-              <th class="sortable-header px-4 py-4 text-center cursor-pointer" data-col="DOC_DOKUMENTENTYP">
+              <th class="sortable-header px-4 py-4 text-center cursor-pointer" data-col="DocumentType">
                 <div class="flex items-center gap-1 justify-center">
                   <span>{{ _("Type") }}</span>
                   <i class="fas fa-sort text-gray-400 text-xs"></i>
                 </div>
               </th>
-              <th class="sortable-header px-4 py-4 text-center cursor-pointer" data-col="DOC_EMPFAENGER">
+              <th class="sortable-header px-4 py-4 text-center cursor-pointer" data-col="Recipient">
                 <div class="flex items-center gap-1 justify-center">
                   <span>{{ _("Recipient") }}</span>
                   <i class="fas fa-sort text-gray-400 text-xs"></i>
@@ -241,19 +241,19 @@
               <th class="px-4 py-4 text-center">
                 <span>{{ _("Lang") }}</span>
               </th>
-              <th class="sortable-header px-4 py-4 text-center cursor-pointer" data-col="DOC_BETRAG">
+              <th class="sortable-header px-4 py-4 text-center cursor-pointer" data-col="AmountText">
                 <div class="flex items-center gap-1 justify-center">
                   <span>{{ _("Amount") }}</span>
                   <i class="fas fa-sort text-gray-400 text-xs"></i>
                 </div>
               </th>
-              <th class="sortable-header px-4 py-4 text-center cursor-pointer" data-col="DOC_NK1">
+              <th class="sortable-header px-4 py-4 text-center cursor-pointer" data-col="PostCheck1">
                 <div class="flex items-center gap-1 justify-center">
                   <span>NK1</span>
                   <i class="fas fa-sort text-gray-400 text-xs"></i>
                 </div>
               </th>
-              <th class="sortable-header px-4 py-4 text-center cursor-pointer" data-col="DOC_NK2">
+              <th class="sortable-header px-4 py-4 text-center cursor-pointer" data-col="PostCheck2">
                 <div class="flex items-center gap-1 justify-center">
                   <span>NK2</span>
                   <i class="fas fa-sort text-gray-400 text-xs"></i>

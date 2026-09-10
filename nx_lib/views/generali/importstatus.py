@@ -64,7 +64,7 @@ def api_generali_importstatus_list():
         conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
 
-        cursor.execute(f"SELECT COUNT(*) FROM [Generali].[dbo].[CSVImportLog] {where_sql}", params)
+        cursor.execute(f"SELECT COUNT(*) FROM [Generali].[dbo].[ImportRuns] {where_sql}", params)
         count_row = cursor.fetchone()
         assert count_row is not None  # SELECT COUNT(*) always returns exactly one row
         total_records = count_row[0] or 0
@@ -73,8 +73,8 @@ def api_generali_importstatus_list():
         cursor.execute(
             f"""
             SELECT ID, FileName, StartedAt, FinishedAt, CSVRowCount,
-                   RowsInserted, RowsUpdated, MinScanDatum, MaxScanDatum, [Status]
-            FROM [Generali].[dbo].[CSVImportLog]
+                   RowsInserted, RowsUpdated, MinScannedAt, MaxScannedAt, [Status]
+            FROM [Generali].[dbo].[ImportRuns]
             {where_sql}
             ORDER BY StartedAt DESC, ID DESC
             OFFSET ? ROWS FETCH NEXT ? ROWS ONLY

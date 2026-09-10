@@ -64,7 +64,7 @@ def api_generali_pdqm_categories():
         cursor = conn.cursor()
         cursor.execute("""
             SELECT DISTINCT ParentCategory, ParentSubCategory, SubCategory
-            FROM [Generali].[dbo].[PDQMMapping]
+            FROM [Generali].[dbo].[QualityCheckCategories]
             ORDER BY ParentCategory, ParentSubCategory, SubCategory
         """)
         rows = cursor.fetchall()
@@ -88,8 +88,8 @@ def api_generali_pdqm_categories():
             cursor2.execute(
                 """
                 SELECT OriginalValue, TranslatedValue
-                FROM [Generali].[dbo].[CategoryTranslation] WITH (NOLOCK)
-                WHERE SourceTable = 'PDQMMapping' AND Locale = ?
+                FROM [Generali].[dbo].[CategoryTranslations] WITH (NOLOCK)
+                WHERE SourceTable = 'QualityCheckCategories' AND Locale = ?
             """,
                 [locale],
             )
@@ -138,7 +138,7 @@ def _list_record(r, user_info):
 
 PDQM = CrudTable(
     slug="pdqm",
-    table="[Generali].[dbo].[PDQMReport]",
+    table="[Generali].[dbo].[QualityCheckEntries]",
     user_column="UserID",
     perm_prefix="tenant.generali.pdqm",
     api_base="/api/generali/pdqm",

@@ -1,5 +1,21 @@
 # Generali CSV import scripts
 
+> **These scripts are NOT deployed by `deploy.yml`.** The repo holds the master
+> copies; the ones that actually run sit on **prdimpexp01** and are copied there
+> by hand. So a schema change that lands on PROD does **not** update the
+> importer — mind the order.
+>
+> The Generali DB restructure (#220) was built around that. Phases 1–3 left a
+> compatibility view under every old name (`dbo.ReportJob`, `dbo.CSVImportLog`,
+> …), so an un-updated host copy kept working. **Phase 4 (`GeneraliDB/0012`)
+> drops columns, and no view can conjure those back** — copy the updated
+> `csvToSql.ps1` to prdimpexp01 *before* that migration reaches PROD, or the
+> 12:05 import fails the next morning.
+>
+> The current copy writes `dbo.Documents` (60 columns) plus
+> `dbo.DocumentSapMetadata` (the six SAP fields, one row per document that has
+> any), and logs runs in `dbo.ImportRuns`.
+
 Two scheduled jobs that run on the import host **prdimpexp01**
 (`\\prdimpexp01\d$\sydoc\scripts\generali`):
 
@@ -7,7 +23,7 @@ Two scheduled jobs that run on the import host **prdimpexp01**
    mailbox via Microsoft Graph, decompresses them into `…\generali\import`, and moves each processed
    message to the *Gelöscht* folder. Scheduled by **`Import CSV Mail Attachment.xml`**.
 2. **`csvToSql.ps1`** — MERGEs every CSV in `…\generali\import` into `reportjob` (logging each run in
-   `CSVImportLog`), first on **INTSQL01**, then on **PRDSQL01**. Scheduled by **`Import CSV to DB.xml`**.
+   `ImportRuns`), first on **INTSQL01**, then on **PRDSQL01**. Scheduled by **`Import CSV to DB.xml`**.
 
 ## Layout
 

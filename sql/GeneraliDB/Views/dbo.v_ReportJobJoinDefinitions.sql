@@ -7,103 +7,68 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-
-
-
-CREATE VIEW [dbo].[v_ReportJobJoinDefinitions]
-as 
+CREATE   VIEW [dbo].[v_ReportJobJoinDefinitions]
+AS
 SELECT
-      [CASE_ID]
-      ,[CASE_FOLDERNAME]
-      ,[DOC_ID]
-      ,[DOC_COUVERT_ID]
-      ,[DOC_CASE_ID]
-      ,[DOC_JOURNAL_ID]
-      ,[DOC_DateCreated]
-      ,[DOC_COUVERTDOCCOUNT]
-      ,k.value DOC_KOMMUNIKATION
-      ,[DOC_INITIAL_USER]
-      ,[DOC_SCANDATUM_INITIAL]
-      ,[DOC_SCANDATUM]
-      ,dt.Value DOC_DOKUMENTENTYP
-      ,e.Value DOC_EMPFAENGER
-      ,[DOC_EMPFAENGERADRESSE]
-      ,spr.Value DOC_SPRACHE
-      ,n.Value DOC_NOTIFIKATIONSSTATUS
-      ,[DOC_VERTRAULICHKEIT]
-      ,r.Value DOC_RICHTUNG
-      ,[DOC_DOKUMENT_ID]
-      ,[DOC_DOKUMENTENORDER]
-      ,ds.Value DOC_DOKUMENTENSTATUS
-      ,[DOC_DOKUMENT_URL]
-      ,ek.Value DOC_EINGANGSKANAL
-      ,[DOC_ANTRAG_NR]
-      ,[DOC_ANTRAG_NR_MULTI]
-      ,[DOC_PARTNER_NR_SYRIUS]
-      ,[DOC_PARTNER_NR_GAV]
-      ,[DOC_PARTNER_NR_GPV]
-      ,[DOC_PARTNER_NR_RGI]
-      ,[DOC_PRODUKT_CODE]
-      ,[DOC_BEMERKUNG]
-      ,so.value DOC_SCANORT
-      ,[DOC_SCANUSER]
-      ,[DOC_FORMULAR_NR]
-      ,[DOC_PERSONAL_NR]
-      ,[DOC_POLICEN_NR]
-      ,[DOC_POLICEN_NR_MULTI]
-      ,[DOC_SCHADEN_NR]
-      ,[DOC_VERFAHREN_NR]
-      ,w.value DOC_WAEHRUNG
-      ,[DOC_BETRAG]
-      ,[DOC_BUCHUNGSKREIS_NR]
-      ,[DOC_ANZAHL]
-      ,[DOC_GESCHAEFTSART]
-      ,[DOC_KONTAKTPERSON]
-      ,[DOC_KREDITOREN_NR]
-      ,[DOC_OFFERTEN_NR]
-      ,[DOC_KONTONUMMER]
-      ,[DOC_BEZEICHNUNG]
-      ,[DOC_PENDING]
-      ,[DOC_ALFdpages]
-      ,[DOC_ALFpages]
-      ,[DOC_PageSize]
-      ,[DOC_SAPCompCharset]
-      ,[DOC_SAPCompCreated]
-      ,[DOC_SAPCompModified]
-      ,[DOC_SAPComps]
-      ,[DOC_SAPCompSize]
-      ,[DOC_SAPCompVersion]
-      ,[DOC_SAPContType]
-      ,[DOC_SAPDocDate]
-      ,[DOC_SAPDocId]
-      ,[DOC_SAPDocProt]
-      ,[DOC_SAPType]
-      ,[DOC_BARCODENR]
-      ,[DOC_BELEGDATUM]
-      ,[DOC_FONDSNAME]
-      ,[DOC_VERTRAGSNUMMER]
-      ,[DOC_VERTRAGSPARTNER]
-      ,[DOC_DOSSIER_NR]
-      ,[DOC_REFERENZNUMMER]
-      ,u.value DOC_ORIGIN
-      ,ifl.Value DOC_INTERFACE_LINK
-      ,nk1.value DOC_NK1
-      ,nk2.value DOC_NK2
-      ,SourceCSVFileName
-  FROM [Generali].[dbo].[ReportJob] rj
-  LEFT JOIN DokumentenStatus ds on ds.id = rj.DOC_DOKUMENTENSTATUS
-  LEFT JOIN DokumentenTyp dt on dt.id = rj.DOC_DOKUMENTENTYP
-  LEFT JOIN Eingangskanal ek on ek.id = rj.DOC_EINGANGSKANAL
-  LEFT JOIN Empfaenger e on e.id = rj.DOC_EMPFAENGER
-  LEFT JOIN InterfaceLink ifl on ifl.id = rj.DOC_INTERFACE_LINK
-  LEFT JOIN Kommunikation k on k.id = rj.DOC_KOMMUNIKATION
-  LEFT JOIN Nachkontrolle nk1 on nk1.id = rj.DOC_NK1
-  LEFT JOIN Nachkontrolle nk2 on nk2.id = rj.DOC_NK2
-LEFT JOIN Notifikationsstatus n on n.id = rj.DOC_NOTIFIKATIONSSTATUS
-LEFT JOIN Richtung r on r.id = rj.DOC_RICHTUNG
-LEFT JOIN Scanort so on so.id = rj.DOC_SCANORT
-LEFT JOIN Sprache spr on spr.id = rj.DOC_SPRACHE
-LEFT JOIN Ursprung u on u.id = rj.DOC_ORIGIN
-LEFT JOIN Waehrung w on w.id = rj.DOC_WAEHRUNG 
-WHERE ifl.Value = 'CaptivaCapture'
+    [ScanCaseId] AS [CASE_ID],
+    [ScanCaseFolderName] AS [CASE_FOLDERNAME],
+    [DocumentId] AS [DOC_ID],
+    [EnvelopeId] AS [DOC_COUVERT_ID],
+    [CaseId] AS [DOC_CASE_ID],
+    [CreatedAt] AS [DOC_DateCreated],
+    [EnvelopeDocumentCount] AS [DOC_COUVERTDOCCOUNT],
+    [CommunicationType] AS [DOC_KOMMUNIKATION],
+    [InitialUser] AS [DOC_INITIAL_USER],
+    [InitialScannedAt] AS [DOC_SCANDATUM_INITIAL],
+    [ScannedAt] AS [DOC_SCANDATUM],
+    [DocumentType] AS [DOC_DOKUMENTENTYP],
+    [Recipient] AS [DOC_EMPFAENGER],
+    [RecipientAddress] AS [DOC_EMPFAENGERADRESSE],
+    [Language] AS [DOC_SPRACHE],
+    [NotificationStatus] AS [DOC_NOTIFIKATIONSSTATUS],
+    [ConfidentialityCode] AS [DOC_VERTRAULICHKEIT],
+    [Direction] AS [DOC_RICHTUNG],
+    [DOC_DOKUMENT_ID],
+    [DocumentOrder] AS [DOC_DOKUMENTENORDER],
+    [DocumentStatus] AS [DOC_DOKUMENTENSTATUS],
+    [InboundChannel] AS [DOC_EINGANGSKANAL],
+    [ApplicationNo] AS [DOC_ANTRAG_NR],
+    [ApplicationNos] AS [DOC_ANTRAG_NR_MULTI],
+    [PartnerNoSyrius] AS [DOC_PARTNER_NR_SYRIUS],
+    [PartnerNoGav] AS [DOC_PARTNER_NR_GAV],
+    [PartnerNoGpv] AS [DOC_PARTNER_NR_GPV],
+    [PartnerNoRgi] AS [DOC_PARTNER_NR_RGI],
+    [ProductCode] AS [DOC_PRODUKT_CODE],
+    [Remark] AS [DOC_BEMERKUNG],
+    [ScanLocation] AS [DOC_SCANORT],
+    [ScanUser] AS [DOC_SCANUSER],
+    [FormNo] AS [DOC_FORMULAR_NR],
+    [PersonnelNo] AS [DOC_PERSONAL_NR],
+    [PolicyNo] AS [DOC_POLICEN_NR],
+    [PolicyNos] AS [DOC_POLICEN_NR_MULTI],
+    [ClaimNo] AS [DOC_SCHADEN_NR],
+    [ProceedingNo] AS [DOC_VERFAHREN_NR],
+    [Currency] AS [DOC_WAEHRUNG],
+    [AmountText] AS [DOC_BETRAG],
+    [CompanyCode] AS [DOC_BUCHUNGSKREIS_NR],
+    [QuantityText] AS [DOC_ANZAHL],
+    [BusinessType] AS [DOC_GESCHAEFTSART],
+    [ContactPerson] AS [DOC_KONTAKTPERSON],
+    [VendorNo] AS [DOC_KREDITOREN_NR],
+    [QuoteNo] AS [DOC_OFFERTEN_NR],
+    [AccountNo] AS [DOC_KONTONUMMER],
+    [Description] AS [DOC_BEZEICHNUNG],
+    [PendingText] AS [DOC_PENDING],
+    [VoucherDateText] AS [DOC_BELEGDATUM],
+    [FundName] AS [DOC_FONDSNAME],
+    [ContractNo] AS [DOC_VERTRAGSNUMMER],
+    [ContractPartner] AS [DOC_VERTRAGSPARTNER],
+    [DossierNo] AS [DOC_DOSSIER_NR],
+    [ReferenceNo] AS [DOC_REFERENZNUMMER],
+    [Origin] AS [DOC_ORIGIN],
+    [InterfaceLink] AS [DOC_INTERFACE_LINK],
+    [PostCheck1] AS [DOC_NK1],
+    [PostCheck2] AS [DOC_NK2],
+    [SourceCsvFileName] AS [SourceCSVFileName]
+FROM dbo.v_Documents;
 GO

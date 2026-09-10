@@ -1221,16 +1221,18 @@ Each curated source binds to a **provider**:
   safe to register from the UI.
 
 **Built-in registered sources.** Migration `0011` seeds two `table`-provider
-sources: **Generali — PDQM Report** (`generali_pdqm` over `dbo.PDQMReport`) and
+sources: **Generali — PDQM Report** (`generali_pdqm` over `dbo.QualityCheckEntries`,
+renamed from `dbo.PDQMReport` by GeneraliDB `0005`/NexoraDB `0128`, #220) and
 **Workitems (Octopus)** (`workitems` over `dbo.t_Documents`). A third,
 **Backlog History** (`backlog_history` over `StatisticsDB.dbo.BacklogHistory`
 with a `backlog_total` metric, migrations `0053`–`0056`/`0065`/`0066`/`0068`),
 was **retired by migration `0069`**: the date-anchored **Backlog** measure on
 the docprocessing source (see **`DateAnchor`** below) supersedes it, and the
 collector + table it read stay in place. Migration `0117` adds four more Generali `table` sources over the tenant's fact
-tables: **Attendance** (`generali_attendance`), **Base Services**
-(`generali_baseservices`), **Project Management** (`generali_projects`) and **ISS
-Reporting** (`generali_iss`) — effort hours and KPI filings by category and date,
+tables: **Attendance** (`generali_attendance` over `dbo.AttendanceEntries`),
+**Base Services** (`generali_baseservices` over `dbo.BaseServiceEntries`),
+**Project Management** (`generali_projects` over `dbo.ProjectEntries`) and **ISS
+Reporting** (`generali_iss` over `dbo.IssReports`) — effort hours and KPI filings by category and date,
 the date columns `grainable`; `0118` seeds their measures (effort-hour sums,
 entry counts, ISS reports filed — no on-time sum, `SUM` over a `bit` is invalid
 T-SQL, so break the count down by the `OnTime` dimension). The Simple wizard
@@ -1243,7 +1245,7 @@ values, which both builders bind **before** their WHERE params (`0120` seeds
 three Generali examples). Not combinable with date-anchored metrics. `0119` registers the two objects the tenant pages already read —
 **Documents** over `dbo.v_ReportJobJoinDefinitions` (the ReportJob feed with
 lookup labels joined; measures `Documents` / `Cases`) and **CSV Imports** over
-`dbo.CSVImportLog` — relabels ISS to "Reporting", and moves the Generali block
+`dbo.ImportRuns` (was `dbo.CSVImportLog`) — relabels ISS to "Reporting", and moves the Generali block
 to `SortOrder` 200+ so platform sources lead. `0127` registers two Statistics-DB
 tables the same way: **Bucherer — EasyTax** (`bucherer_easytax` over
 `dbo.Bucherer_EasyTax`, one row per document; *Exported documents* is a

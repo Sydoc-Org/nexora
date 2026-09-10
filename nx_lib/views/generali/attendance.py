@@ -64,7 +64,7 @@ def api_generali_attendance_categories():
         cursor = conn.cursor()
         cursor.execute("""
             SELECT DISTINCT ParentCategory, SubCategory
-            FROM [Generali].[dbo].[AdditionalServices]
+            FROM [Generali].[dbo].[EffortCategories]
             ORDER BY ParentCategory, SubCategory
         """)
         rows = cursor.fetchall()
@@ -84,8 +84,8 @@ def api_generali_attendance_categories():
             cursor2.execute(
                 """
                 SELECT OriginalValue, TranslatedValue
-                FROM [Generali].[dbo].[CategoryTranslation] WITH (NOLOCK)
-                WHERE SourceTable = 'AdditionalServices' AND Locale = ?
+                FROM [Generali].[dbo].[CategoryTranslations] WITH (NOLOCK)
+                WHERE SourceTable = 'EffortCategories' AND Locale = ?
             """,
                 [locale],
             )
@@ -133,7 +133,7 @@ def _list_record(r, user_info):
 
 ATTENDANCE = CrudTable(
     slug="attendance",
-    table="[Generali].[dbo].[Attendance]",
+    table="[Generali].[dbo].[AttendanceEntries]",
     user_column="UserID",
     perm_prefix="tenant.generali.attendance",
     api_base="/api/generali/attendance",

@@ -113,7 +113,7 @@ def _list_record(r, user_info):
 
 REPORTING = CrudTable(
     slug="reporting",
-    table="[dbo].[reportingiss]",
+    table="[dbo].[IssReports]",
     user_column="ReportByUserID",
     perm_prefix="tenant.generali.reporting",
     api_base="/api/generali/reporting",
@@ -130,9 +130,9 @@ REPORTING = CrudTable(
         section_title="Generali Reporting",
         back_endpoint="generali_reporting",
         date_column="ReportForDate",
-        group_column="category",
+        group_column="Category",
         # on-time ratio, not an effort/quantity total
-        measures="COUNT(*) AS entries, SUM(CAST(ontime AS INT)) AS on_time_count",
+        measures="COUNT(*) AS entries, SUM(CAST(OnTime AS INT)) AS on_time_count",
         row_builder=_monthreport_row,
         summary=_monthreport_summary,
         # the month report is org-wide for every viewer, unlike the siblings'
@@ -140,7 +140,7 @@ REPORTING = CrudTable(
     ),
     list_spec=CrudList(
         select=(
-            "ID, ReportForDate, ReportTimeStamp, ReportByUserID, ontime, category\n"
+            "ID, ReportForDate, ReportTimeStamp, ReportByUserID, OnTime, Category\n"
             "--,EmailReceivedTimeStamp, DeliveryTimeStamp, LatestDeliveryTimeStamp,"
             " MailRoomRequestTimeStamp"
         ),
@@ -148,9 +148,9 @@ REPORTING = CrudTable(
         filters=(
             Filter("startDate", "ReportForDate", "gte"),
             Filter("endDate", "ReportForDate", "lte"),
-            Filter("category", "category", "eq_in_set", REPORTING_CATEGORIES),
+            Filter("category", "Category", "eq_in_set", REPORTING_CATEGORIES),
             Filter("userId", "ReportByUserID"),
-            Filter("onTime", "ontime", "bool"),
+            Filter("onTime", "OnTime", "bool"),
             SCOPE,
         ),
         # no effort/quantity column: the list reports counts only
@@ -221,8 +221,8 @@ def api_generali_reporting_add():
         if category not in multi_allowed:
             cursor.execute(
                 """
-                SELECT COUNT(*) FROM [dbo].[reportingiss]
-                WHERE ReportForDate = ? AND ReportByUserID = ? AND category = ?
+                SELECT COUNT(*) FROM [dbo].[IssReports]
+                WHERE ReportForDate = ? AND ReportByUserID = ? AND Category = ?
             """,
                 [report_for_date, user_id, category],
             )
@@ -238,8 +238,8 @@ def api_generali_reporting_add():
 
         cursor.execute(
             """
-            INSERT INTO [dbo].[reportingiss]
-                (ReportForDate, ReportTimeStamp, ReportByUserID, ontime, category
+            INSERT INTO [dbo].[IssReports]
+                (ReportForDate, ReportTimeStamp, ReportByUserID, OnTime, Category
                  --,EmailReceivedTimeStamp, DeliveryTimeStamp, LatestDeliveryTimeStamp, MailRoomRequestTimeStamp
                        )
             VALUES (?, GETDATE(), ?, ?, ?)
@@ -294,12 +294,12 @@ def api_generali_reporting_edit():
         conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
         if not has_permission("tenant.generali.reporting.edit.all"):
-            _check_generali_record_org(cursor, "[dbo].[reportingiss]", "ReportByUserID", record_id)
+            _check_generali_record_org(cursor, "[dbo].[IssReports]", "ReportByUserID", record_id)
         cursor.execute(
             """
-            UPDATE [dbo].[reportingiss]
+            UPDATE [dbo].[IssReports]
             SET ReportForDate            = ?,
-                ontime                   = ?
+                OnTime                   = ?
                 --,EmailReceivedTimeStamp   = ?,
                 --MailRoomRequestTimeStamp = ?,
                 --DeliveryTimeStamp        = ?,

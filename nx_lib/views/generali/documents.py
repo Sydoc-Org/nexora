@@ -122,10 +122,10 @@ def api_generali_stats():
         date_params = []
 
         if start_date:
-            date_filter += " AND DOC_SCANDATUM >= ?"
+            date_filter += " AND ScannedAt >= ?"
             date_params.append(start_date)
         if end_date:
-            date_filter += " AND DOC_SCANDATUM <= ?"
+            date_filter += " AND ScannedAt <= ?"
             date_params.append(end_date)
 
         conn = engine_generali_db.raw_connection()
@@ -135,10 +135,10 @@ def api_generali_stats():
             f"""
             SELECT
                 COUNT(*) as TotalDocs,
-                SUM(CASE WHEN DOC_NK1 = 'keineNachkontrolle' THEN 1 ELSE 0 END) as NK1_Pass,
-                SUM(CASE WHEN DOC_NK2 = 'keineNachkontrolle' THEN 1 ELSE 0 END) as NK2_Pass,
-                SUM(CASE WHEN DOC_NK1 = 'keineNachkontrolle' AND DOC_NK2 = 'keineNachkontrolle' THEN 1 ELSE 0 END) as NK1_NK2_Pass
-            FROM [dbo].[v_ReportJobJoinDefinitions]
+                SUM(CASE WHEN PostCheck1 = 'keineNachkontrolle' THEN 1 ELSE 0 END) as NK1_Pass,
+                SUM(CASE WHEN PostCheck2 = 'keineNachkontrolle' THEN 1 ELSE 0 END) as NK2_Pass,
+                SUM(CASE WHEN PostCheck1 = 'keineNachkontrolle' AND PostCheck2 = 'keineNachkontrolle' THEN 1 ELSE 0 END) as NK1_NK2_Pass
+            FROM [dbo].[v_Documents]
             WHERE 1=1 {date_filter}
 
         """,
@@ -155,16 +155,16 @@ def api_generali_stats():
         }
 
         trend_where = (
-            "1=1" + date_filter if date_filter else "DOC_SCANDATUM >= DATEADD(day, -30, GETDATE())"
+            "1=1" + date_filter if date_filter else "ScannedAt >= DATEADD(day, -30, GETDATE())"
         )
         cursor.execute(
             f"""
-            SELECT CAST(DOC_SCANDATUM AS DATE) as d,
-                   ISNULL(DOC_KOMMUNIKATION, 'Unknown') as k,
+            SELECT CAST(ScannedAt AS DATE) as d,
+                   ISNULL(CommunicationType, 'Unknown') as k,
                    COUNT(*) as c
-            FROM [dbo].[v_ReportJobJoinDefinitions]
+            FROM [dbo].[v_Documents]
             WHERE {trend_where}
-            GROUP BY CAST(DOC_SCANDATUM AS DATE), ISNULL(DOC_KOMMUNIKATION, 'Unknown')
+            GROUP BY CAST(ScannedAt AS DATE), ISNULL(CommunicationType, 'Unknown')
             ORDER BY d
         """,
             date_params,
@@ -211,9 +211,9 @@ def api_generali_stats():
         # 90 days so this stays an index-friendly probe, not a full scan.
         cursor.execute(
             """
-            SELECT MAX(CAST(DOC_SCANDATUM AS DATE))
-            FROM [dbo].[v_ReportJobJoinDefinitions]
-            WHERE DOC_SCANDATUM >= DATEADD(day, -90, GETDATE())
+            SELECT MAX(CAST(ScannedAt AS DATE))
+            FROM [dbo].[v_Documents]
+            WHERE ScannedAt >= DATEADD(day, -90, GETDATE())
         """
         )
         latest_row = cursor.fetchone()
@@ -233,10 +233,10 @@ def api_generali_stats():
 
         cursor.execute(
             f"""
-            SELECT TOP 15 ISNULL(DOC_DOKUMENTENTYP, 'Unknown') as t, COUNT(*) as c
-            FROM [dbo].[v_ReportJobJoinDefinitions]
+            SELECT TOP 15 ISNULL(DocumentType, 'Unknown') as t, COUNT(*) as c
+            FROM [dbo].[v_Documents]
             WHERE 1=1 {date_filter}
-            GROUP BY DOC_DOKUMENTENTYP
+            GROUP BY DocumentType
             ORDER BY c DESC
         """,
             date_params,
@@ -246,10 +246,10 @@ def api_generali_stats():
 
         cursor.execute(
             f"""
-            SELECT ISNULL(DOC_EMPFAENGER, 'Unknown') as e, COUNT(*) as c
-            FROM [dbo].[v_ReportJobJoinDefinitions]
+            SELECT ISNULL(Recipient, 'Unknown') as e, COUNT(*) as c
+            FROM [dbo].[v_Documents]
             WHERE 1=1 {date_filter}
-            GROUP BY DOC_EMPFAENGER
+            GROUP BY Recipient
             ORDER BY c DESC
         """,
             date_params,
@@ -260,10 +260,10 @@ def api_generali_stats():
 
         cursor.execute(
             f"""
-            SELECT ISNULL(DOC_SPRACHE, 'Unknown') as s, COUNT(*) as c
-            FROM [dbo].[v_ReportJobJoinDefinitions]
+            SELECT ISNULL(Language, 'Unknown') as s, COUNT(*) as c
+            FROM [dbo].[v_Documents]
             WHERE 1=1 {date_filter}
-            GROUP BY DOC_SPRACHE
+            GROUP BY Language
             ORDER BY c DESC
         """,
             date_params,
@@ -274,10 +274,10 @@ def api_generali_stats():
 
         cursor.execute(
             f"""
-            SELECT ISNULL(DOC_EINGANGSKANAL, 'Unknown') as k, COUNT(*) as c
-            FROM [dbo].[v_ReportJobJoinDefinitions]
+            SELECT ISNULL(InboundChannel, 'Unknown') as k, COUNT(*) as c
+            FROM [dbo].[v_Documents]
             WHERE 1=1 {date_filter}
-            GROUP BY DOC_EINGANGSKANAL
+            GROUP BY InboundChannel
             ORDER BY c DESC
         """,
             date_params,
@@ -288,10 +288,10 @@ def api_generali_stats():
 
         cursor.execute(
             f"""
-            SELECT ISNULL(DOC_NK1,'Unknown') as nk1, ISNULL(DOC_NK2,'Unknown') as nk2, COUNT(*) as c
-            FROM [dbo].[v_ReportJobJoinDefinitions]
+            SELECT ISNULL(PostCheck1,'Unknown') as nk1, ISNULL(PostCheck2,'Unknown') as nk2, COUNT(*) as c
+            FROM [dbo].[v_Documents]
             WHERE 1=1 {date_filter}
-            GROUP BY DOC_NK1, DOC_NK2
+            GROUP BY PostCheck1, PostCheck2
             ORDER BY c DESC
         """,
             date_params,
@@ -337,16 +337,16 @@ def api_generali_filter_options():
         cursor = conn.cursor()
         result = {}
         for col, key in [
-            ("DOC_DOKUMENTENTYP", "doctype"),
-            ("DOC_EMPFAENGER", "empfaenger"),
-            ("DOC_SPRACHE", "sprache"),
-            ("DOC_NK1", "nk1"),
-            ("DOC_NK2", "nk2"),
-            ("DOC_EINGANGSKANAL", "eingangskanal"),
-            ("DOC_KOMMUNIKATION", "kommunikation"),
+            ("DocumentType", "doctype"),
+            ("Recipient", "empfaenger"),
+            ("Language", "sprache"),
+            ("PostCheck1", "nk1"),
+            ("PostCheck2", "nk2"),
+            ("InboundChannel", "eingangskanal"),
+            ("CommunicationType", "kommunikation"),
         ]:
             cursor.execute(
-                f"SELECT DISTINCT {col} FROM [dbo].[v_ReportJobJoinDefinitions] WHERE {col} IS NOT NULL ORDER BY {col}"
+                f"SELECT DISTINCT {col} FROM [dbo].[v_Documents] WHERE {col} IS NOT NULL ORDER BY {col}"
             )
             result[key] = [r[0] for r in cursor.fetchall()]
         return jsonify({"success": True, "options": result})
@@ -383,32 +383,32 @@ def api_generali_documents():
         start_date = request.args.get("startDate")
         end_date = request.args.get("endDate")
         search = request.args.get("search", "").strip()
-        sort_by = request.args.get("sortBy", "DOC_SCANDATUM")
+        sort_by = request.args.get("sortBy", "ScannedAt")
         sort_dir = request.args.get("sortDir", "DESC").upper()
         group_by = request.args.get("groupBy", "")
 
         allowed_sort_cols = {
-            "DOC_SCANDATUM",
-            "DOC_DOKUMENTENTYP",
-            "DOC_EMPFAENGER",
-            "DOC_SPRACHE",
-            "DOC_EINGANGSKANAL",
-            "DOC_NK1",
-            "DOC_NK2",
-            "DOC_BETRAG",
-            "DOC_KOMMUNIKATION",
+            "ScannedAt",
+            "DocumentType",
+            "Recipient",
+            "Language",
+            "InboundChannel",
+            "PostCheck1",
+            "PostCheck2",
+            "AmountText",
+            "CommunicationType",
         }
         if sort_by not in allowed_sort_cols:
-            sort_by = "DOC_SCANDATUM"
+            sort_by = "ScannedAt"
         if sort_dir not in ("ASC", "DESC"):
             sort_dir = "DESC"
 
         allowed_group_cols = {
-            "DOC_DOKUMENTENTYP",
-            "DOC_EMPFAENGER",
-            "DOC_SPRACHE",
-            "DOC_EINGANGSKANAL",
-            "DOC_KOMMUNIKATION",
+            "DocumentType",
+            "Recipient",
+            "Language",
+            "InboundChannel",
+            "CommunicationType",
         }
         if group_by not in allowed_group_cols:
             group_by = ""
@@ -417,37 +417,37 @@ def api_generali_documents():
         params = []
 
         if doc_type:
-            where_clauses.append("DOC_DOKUMENTENTYP = ?")
+            where_clauses.append("DocumentType = ?")
             params.append(doc_type)
         if empfaenger:
-            where_clauses.append("DOC_EMPFAENGER = ?")
+            where_clauses.append("Recipient = ?")
             params.append(empfaenger)
         if sprache:
-            where_clauses.append("DOC_SPRACHE = ?")
+            where_clauses.append("Language = ?")
             params.append(sprache)
         if nk1:
-            where_clauses.append("DOC_NK1 = ?")
+            where_clauses.append("PostCheck1 = ?")
             params.append(nk1)
         if nk2:
-            where_clauses.append("DOC_NK2 = ?")
+            where_clauses.append("PostCheck2 = ?")
             params.append(nk2)
         if eingangskanal:
-            where_clauses.append("DOC_EINGANGSKANAL = ?")
+            where_clauses.append("InboundChannel = ?")
             params.append(eingangskanal)
         if kommunikation:
-            where_clauses.append("DOC_KOMMUNIKATION = ?")
+            where_clauses.append("CommunicationType = ?")
             params.append(kommunikation)
         if start_date:
-            where_clauses.append("DOC_SCANDATUM >= ?")
+            where_clauses.append("ScannedAt >= ?")
             params.append(start_date)
         if end_date:
-            where_clauses.append("DOC_SCANDATUM <= ?")
+            where_clauses.append("ScannedAt <= ?")
             params.append(end_date)
         if search:
             where_clauses.append("""(
-                DOC_ID LIKE ? OR CAST(CASE_ID AS NVARCHAR) LIKE ?
-                OR DOC_BEZEICHNUNG LIKE ? OR DOC_KONTAKTPERSON LIKE ?
-                OR DOC_POLICEN_NR LIKE ? OR DOC_SCHADEN_NR LIKE ?
+                DocumentId LIKE ? OR CAST(ScanCaseId AS NVARCHAR) LIKE ?
+                OR Description LIKE ? OR ContactPerson LIKE ?
+                OR PolicyNo LIKE ? OR ClaimNo LIKE ?
             )""")
             s = f"%{search}%"
             params.extend([s, s, s, s, s, s])
@@ -459,14 +459,12 @@ def api_generali_documents():
             order_parts.append(f"{group_by} ASC")
         if sort_by != group_by:
             order_parts.append(f"{sort_by} {sort_dir}")
-        order_sql = ", ".join(order_parts) if order_parts else "DOC_SCANDATUM DESC"
+        order_sql = ", ".join(order_parts) if order_parts else "ScannedAt DESC"
 
         conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
 
-        cursor.execute(
-            f"SELECT COUNT(*) FROM [dbo].[v_ReportJobJoinDefinitions] WHERE {where_sql}", params
-        )
+        cursor.execute(f"SELECT COUNT(*) FROM [dbo].[v_Documents] WHERE {where_sql}", params)
         count_row = cursor.fetchone()
         assert count_row is not None  # SELECT COUNT(*) always returns exactly one row
         total_items = count_row[0]
@@ -475,11 +473,11 @@ def api_generali_documents():
         cursor.execute(
             f"""
             SELECT
-                DOC_ID, CASE_ID, CASE_FOLDERNAME, DOC_SCANDATUM, DOC_DOKUMENTENTYP,
-                DOC_EMPFAENGER, DOC_SPRACHE, DOC_KOMMUNIKATION, DOC_EINGANGSKANAL,
-                DOC_BETRAG, DOC_WAEHRUNG, DOC_NK1, DOC_NK2, DOC_SCANORT,
-                DOC_BEZEICHNUNG, DOC_NOTIFIKATIONSSTATUS, DOC_RICHTUNG, DOC_PENDING
-            FROM [dbo].[v_ReportJobJoinDefinitions]
+                DocumentId, ScanCaseId, ScanCaseFolderName, ScannedAt, DocumentType,
+                Recipient, Language, CommunicationType, InboundChannel,
+                AmountText, Currency, PostCheck1, PostCheck2, ScanLocation,
+                Description, NotificationStatus, Direction, PendingText
+            FROM [dbo].[v_Documents]
             WHERE {where_sql}
             ORDER BY {order_sql}
             OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
@@ -547,8 +545,8 @@ def api_generali_document_detail(doc_id):
         cursor = conn.cursor()
         cursor.execute(
             """
-            SELECT * FROM [dbo].[v_ReportJobJoinDefinitions]
-            WHERE DOC_ID = ?
+            SELECT * FROM [dbo].[v_Documents]
+            WHERE DocumentId = ?
         """,
             [doc_id],
         )
