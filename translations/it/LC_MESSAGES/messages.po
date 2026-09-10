@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-09 14:40+0200\n"
+"POT-Creation-Date: 2026-09-10 08:54+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -719,10 +719,10 @@ msgstr ""
 msgid "Unexpected error occurred"
 msgstr "Si è verificato un errore imprevisto"
 
-#: nx_lib/views/admin/permissions.py:243 nx_lib/views/admin/permissions.py:561
-#: nx_lib/views/admin/permissions.py:603 nx_lib/views/admin/permissions.py:648
-#: nx_lib/views/admin/permissions.py:687 nx_lib/views/admin/permissions.py:726
-#: nx_lib/views/admin/permissions.py:758 nx_lib/views/dashboard.py:628
+#: nx_lib/views/admin/permissions.py:255 nx_lib/views/admin/permissions.py:573
+#: nx_lib/views/admin/permissions.py:615 nx_lib/views/admin/permissions.py:660
+#: nx_lib/views/admin/permissions.py:699 nx_lib/views/admin/permissions.py:738
+#: nx_lib/views/admin/permissions.py:770 nx_lib/views/dashboard.py:628
 #: nx_lib/views/dashboard.py:716 nx_lib/views/dashboard.py:792
 #: nx_lib/views/dashboard.py:862 nx_lib/views/dashboard.py:919
 #: nx_lib/views/workitems.py:386 nx_lib/views/workitems.py:1119
@@ -732,7 +732,7 @@ msgid "Not authorized"
 msgstr "Non autorizzato"
 
 #: nx_lib/views/admin/logs.py:154 nx_lib/views/admin/organizations.py:214
-#: nx_lib/views/admin/permissions.py:592 nx_lib/views/admin/system.py:148
+#: nx_lib/views/admin/permissions.py:604 nx_lib/views/admin/system.py:148
 #: nx_lib/views/admin/system.py:191 nx_lib/views/admin/system.py:234
 #: nx_lib/views/admin/system.py:254 nx_lib/views/admin/users.py:421
 #: nx_lib/views/admin/users.py:573 nx_lib/views/dashboard.py:705
@@ -1158,55 +1158,55 @@ msgstr "Il logo è troppo grande (max 512 KB)."
 msgid "Branding saved."
 msgstr "Branding salvato."
 
-#: nx_lib/views/admin/permissions.py:132
+#: nx_lib/views/admin/permissions.py:144
 msgid "Invalid payload"
 msgstr "Dati non validi"
 
-#: nx_lib/views/admin/permissions.py:286
+#: nx_lib/views/admin/permissions.py:298
 msgid "Could not fetch users"
 msgstr "Impossibile recuperare gli utenti"
 
-#: nx_lib/views/admin/permissions.py:305
+#: nx_lib/views/admin/permissions.py:317
 msgid "Rank must be a number"
 msgstr "Il rango deve essere un numero"
 
-#: nx_lib/views/admin/permissions.py:308
+#: nx_lib/views/admin/permissions.py:320
 msgid "Name is required"
 msgstr "Il nome è obbligatorio"
 
-#: nx_lib/views/admin/permissions.py:346
+#: nx_lib/views/admin/permissions.py:358
 #, python-format
 msgid "%(n)d user(s) outside %(org)s hold this profile. Move them first."
 msgstr ""
 "%(n)d utente/i al di fuori di %(org)s hanno questo profilo. Spostarli "
 "prima."
 
-#: nx_lib/views/admin/permissions.py:368
+#: nx_lib/views/admin/permissions.py:380
 msgid "Profile saved successfully"
 msgstr "Profilo salvato con successo"
 
-#: nx_lib/views/admin/permissions.py:547
+#: nx_lib/views/admin/permissions.py:559
 msgid "Overrides updated successfully"
 msgstr "Override aggiornati con successo"
 
-#: nx_lib/views/admin/permissions.py:612 nx_lib/views/admin/permissions.py:742
-#: nx_lib/views/admin/permissions.py:788
+#: nx_lib/views/admin/permissions.py:624 nx_lib/views/admin/permissions.py:754
+#: nx_lib/views/admin/permissions.py:800
 msgid "Permission not found"
 msgstr "Autorizzazione non trovata"
 
-#: nx_lib/views/admin/permissions.py:692 nx_lib/views/admin/permissions.py:731
+#: nx_lib/views/admin/permissions.py:704 nx_lib/views/admin/permissions.py:743
 msgid "Code and description are required"
 msgstr "Codice e descrizione sono obbligatori"
 
-#: nx_lib/views/admin/permissions.py:709
+#: nx_lib/views/admin/permissions.py:721
 msgid "Permission created successfully"
 msgstr "Autorizzazione creata con successo"
 
-#: nx_lib/views/admin/permissions.py:744
+#: nx_lib/views/admin/permissions.py:756
 msgid "Permission updated successfully"
 msgstr "Autorizzazione aggiornata con successo"
 
-#: nx_lib/views/admin/permissions.py:781
+#: nx_lib/views/admin/permissions.py:793
 #, python-format
 msgid ""
 "Cannot delete: used in %(p)d profile(s) and %(o)d override(s). Remove all"
@@ -1215,7 +1215,7 @@ msgstr ""
 "Impossibile eliminare: utilizzato in %(p)d profilo/i e %(o)d "
 "sostituzione/i. Rimuovere prima tutte le assegnazioni."
 
-#: nx_lib/views/admin/permissions.py:790
+#: nx_lib/views/admin/permissions.py:802
 msgid "Permission deleted successfully"
 msgstr "Autorizzazione eliminata con successo"
 
@@ -2920,7 +2920,7 @@ msgstr "Esporta"
 
 #: templates/_reporting_simple.html:190 templates/_reporting_simple.html:288
 #: templates/admin/access_control.html:240 templates/admin/maintenance.html:114
-#: templates/admin/permissions.html:101 templates/admin/processes.html:208
+#: templates/admin/permissions.html:119 templates/admin/processes.html:208
 #: templates/admin/processes.html:244
 #: templates/generali_additionalservices.html:324
 #: templates/generali_baseservices.html:273 templates/generali_pdqm.html:348
@@ -3045,7 +3045,7 @@ msgstr "Testo dell'annotazione"
 #: templates/admin/modals/_organizations_modals.html:51
 #: templates/admin/modals/_user_modals.html:13
 #: templates/admin/modals/_user_modals.html:80
-#: templates/admin/organizations.html:98 templates/admin/permissions.html:100
+#: templates/admin/organizations.html:98 templates/admin/permissions.html:118
 #: templates/admin/processes.html:123 templates/admin/processes.html:207
 #: templates/admin/processes.html:243 templates/admin/tenants_manage.html:133
 #: templates/admin/tenants_manage.html:174 templates/admin/user_detail.html:78
@@ -4249,14 +4249,15 @@ msgstr "Da"
 msgid "To"
 msgstr "A"
 
-#: templates/generali-dashboard.html:90
+#: templates/admin/permissions.html:45 templates/generali-dashboard.html:90
 #: templates/generali_additionalservices.html:122
 #: templates/generali_baseservices.html:110
 #: templates/generali_documents.html:208
 #: templates/generali_importstatus.html:73 templates/generali_pdqm.html:130
 #: templates/generali_projectmanagement.html:98
-#: templates/generali_reporting.html:133 templates/prepared_documents.html:151
-#: templates/workitems_overview.html:147
+#: templates/generali_reporting.html:133
+#: templates/js/admin/_permissions_js.html:21
+#: templates/prepared_documents.html:151 templates/workitems_overview.html:147
 msgid "Reset"
 msgstr "Reimposta"
 
@@ -4588,7 +4589,7 @@ msgid "This action cannot be undone."
 msgstr "Questa azione non può essere annullata."
 
 #: templates/admin/clients.html:81 templates/admin/maintenance.html:130
-#: templates/admin/organizations.html:53 templates/admin/permissions.html:57
+#: templates/admin/organizations.html:53 templates/admin/permissions.html:74
 #: templates/admin/processes.html:66 templates/admin/processes.html:89
 #: templates/admin/tenants_manage.html:56 templates/admin/user_detail.html:279
 #: templates/generali_additionalservices.html:349
@@ -5413,7 +5414,7 @@ msgstr "Il nome utente non può essere modificato."
 msgid "Full name"
 msgstr "Nome completo"
 
-#: templates/admin/permissions.html:31 templates/admin/user_detail.html:80
+#: templates/admin/permissions.html:48 templates/admin/user_detail.html:80
 #: templates/profile.html:157
 msgid "Save changes"
 msgstr "Salva modifiche"
@@ -5707,7 +5708,8 @@ msgstr "Aggiungi metrica"
 msgid "With a metric selected, the Columns above become the grouping."
 msgstr "Con una metrica selezionata, le colonne sopra diventano il raggruppamento."
 
-#: templates/js/_reporting_viz_js.html:22 templates/reporting.html:475
+#: templates/admin/permissions.html:32 templates/js/_reporting_viz_js.html:22
+#: templates/js/admin/_permissions_js.html:20 templates/reporting.html:475
 msgid "Columns"
 msgstr "Colonne"
 
@@ -6063,7 +6065,7 @@ msgstr "Predefinite integrate"
 msgid "Kind"
 msgstr "Tipo"
 
-#: templates/admin/permissions.html:39 templates/admin/user_detail.html:123
+#: templates/admin/permissions.html:56 templates/admin/user_detail.html:123
 #: templates/admin/user_detail.html:155 templates/reporting_sources.html:42
 #: templates/reporting_sources.html:53 templates/reporting_sources.html:67
 msgid "Permission"
@@ -6529,7 +6531,7 @@ msgid "Add Profile"
 msgstr "Aggiungi profilo"
 
 #: templates/admin/access_control.html:121 templates/admin/clients.html:80
-#: templates/admin/organizations.html:49 templates/admin/permissions.html:56
+#: templates/admin/organizations.html:49 templates/admin/permissions.html:73
 #: templates/admin/processes.html:64 templates/admin/processes.html:88
 #: templates/admin/tenants_manage.html:54
 #: templates/js/_reporting_dashboard_js.html:7
@@ -6542,11 +6544,11 @@ msgstr "Aggiungi profilo"
 msgid "Edit"
 msgstr "Modifica"
 
-#: templates/admin/access_control.html:128 templates/admin/permissions.html:40
+#: templates/admin/access_control.html:128 templates/admin/permissions.html:57
 msgid "user(s)"
 msgstr "utente/i"
 
-#: templates/admin/access_control.html:132 templates/admin/permissions.html:40
+#: templates/admin/access_control.html:132 templates/admin/permissions.html:57
 msgid "rank"
 msgstr "rango"
 
@@ -6564,7 +6566,7 @@ msgstr "Invia all'utente un link per impostare la propria password"
 msgid "Create"
 msgstr "Crea"
 
-#: templates/admin/access_control.html:221 templates/admin/permissions.html:95
+#: templates/admin/access_control.html:221 templates/admin/permissions.html:113
 msgid "Description"
 msgstr "Descrizione"
 
@@ -7099,20 +7101,20 @@ msgstr "Quale profilo di accesso detiene quale permesso. Spunta, salva, fatto."
 msgid "Filter by code or description…"
 msgstr "Filtra per codice o descrizione…"
 
-#: templates/admin/permissions.html:32
+#: templates/admin/permissions.html:49
 msgid "Add permission"
 msgstr "Aggiungi permesso"
 
-#: templates/admin/permissions.html:83
-#: templates/js/admin/_permissions_js.html:13
+#: templates/admin/permissions.html:101
+#: templates/js/admin/_permissions_js.html:14
 msgid "Add Permission"
 msgstr "Aggiungi permesso"
 
-#: templates/admin/permissions.html:91
+#: templates/admin/permissions.html:109
 msgid "Permission Code"
 msgstr "Codice del permesso"
 
-#: templates/admin/permissions.html:96
+#: templates/admin/permissions.html:114
 msgid "Short description"
 msgstr "Descrizione breve"
 
@@ -10089,42 +10091,52 @@ msgstr ""
 "Sei sicuro di voler eliminare questa organizzazione? Questa azione non "
 "può essere annullata."
 
-#: templates/js/admin/_permissions_js.html:7
+#: templates/js/admin/_permissions_js.html:8
 #, python-brace-format
 msgid "{n} unsaved change(s)"
 msgstr "{n} modifica/modifiche non salvata/e"
 
-#: templates/js/admin/_permissions_js.html:8
+#: templates/js/admin/_permissions_js.html:9
 msgid "Grants saved"
 msgstr "Assegnazioni salvate"
 
-#: templates/js/admin/_permissions_js.html:9
+#: templates/js/admin/_permissions_js.html:10
 msgid "Could not save grants"
 msgstr "Impossibile salvare le assegnazioni"
 
-#: templates/js/admin/_permissions_js.html:10
+#: templates/js/admin/_permissions_js.html:11
 msgid "Requires the .view permission of this object"
 msgstr "Richiede il permesso .view di questo oggetto"
 
-#: templates/js/admin/_permissions_js.html:11
+#: templates/js/admin/_permissions_js.html:12
 msgid "Held by"
 msgstr "Detenuto da"
 
-#: templates/js/admin/_permissions_js.html:12
+#: templates/js/admin/_permissions_js.html:13
 msgid "Nobody holds this permission"
 msgstr "Nessuno detiene questo permesso"
 
-#: templates/js/admin/_permissions_js.html:14
+#: templates/js/admin/_permissions_js.html:15
 msgid "Edit Permission"
 msgstr "Modifica permesso"
 
-#: templates/js/admin/_permissions_js.html:15
+#: templates/js/admin/_permissions_js.html:16
 msgid "Code and description are required."
 msgstr "Codice e descrizione sono obbligatori."
 
-#: templates/js/admin/_permissions_js.html:16
+#: templates/js/admin/_permissions_js.html:17
 msgid "Click again to delete"
 msgstr "Clicca di nuovo per eliminare"
+
+#: templates/js/admin/_permissions_js.html:18
+#, python-brace-format
+msgid "{n} user(s) in {profile} have a personal allow override"
+msgstr "{n} utente/i in {profile} ha/hanno un'eccezione personale di autorizzazione"
+
+#: templates/js/admin/_permissions_js.html:19
+#, python-brace-format
+msgid "{n} user(s) in {profile} have a personal deny override"
+msgstr "{n} utente/i in {profile} ha/hanno un'eccezione personale di rifiuto"
 
 #: templates/js/admin/_processes_js.html:93
 msgid "Edit process source"

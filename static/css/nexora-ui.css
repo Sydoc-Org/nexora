@@ -1030,6 +1030,13 @@ body.admin-page main {
 .perms-grid .perm-delete.is-armed { color: var(--nx-danger, #c0392b); }
 .perm-holders { list-style: none; padding: 0; margin: 0; font-size: 13px; }
 .perm-holders li { padding: 4px 0; border-bottom: 1px solid var(--nx-border); }
+.perm-override-badge { display: inline-block; margin-left: 2px; padding: 0 4px; border-radius: 8px; font-size: 10px; line-height: 15px; background: var(--nx-accent); color: var(--nx-on-accent, #fff); cursor: help; }
+.perm-override-badge.perm-override-deny { background: var(--nx-danger, #c0392b); }
+.perms-columns-panel { position: absolute; right: 0; top: 100%; margin-top: 4px; z-index: 10; width: 240px; padding: 10px; }
+.perms-columns-list { max-height: 260px; overflow: auto; display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; }
+.perms-columns-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 2px 0; font-size: 13px; }
+.perms-columns-row label { display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.perms-col-move { display: flex; gap: 0; flex: none; }
 .nx-btn:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
 
 /* ============================================================

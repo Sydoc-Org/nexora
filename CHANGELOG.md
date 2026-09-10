@@ -16,6 +16,12 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   a long wait keeps changing. The live preview of the agent's real numbers
   (#212) now writes into whichever layout is on screen. Design:
   `docs/design/eddard_animation_variety/`.
+- **Permissions grid: column picker + override badges** (#275) — a "Columns"
+  control on `/admin/permissions` shows/hides and reorders profile columns
+  (per-viewer, `localStorage`); a small badge on each cell now counts users
+  of that profile with a personal allow/deny override on that permission
+  (`dbo.UserPermissionOverride`), instead of only showing through the
+  per-permission holders panel.
 - **Workitems overview: console redesign (part 2)** — the inline detail panel
   (shared with the reporting drill drawer and prepared_documents' preview
   modal) restyled to match part 1 (#299). Stage stepper redrawn as accent
@@ -79,6 +85,19 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and nothing bleeds in beside it; the editor preview re-runs on every change.
 
 ### Fixed
+- **A failed request-log import no longer deletes the hour it could not save.**
+  `ops/cleanup/csvLogs_toDB.ps1` drains `var/logs/user/<hour>/nexora_logs.csv`
+  into `dbo.Logs`; its `Remove-Item -Recurse -Force` ran unconditionally after
+  the insert loop, with no `try`/`catch`, no `$ErrorActionPreference` and no
+  output at all — so a row that failed to insert, or a connection dropped
+  halfway, still ended with that hour's audit trail deleted and no signal that
+  anything had gone wrong. Each folder is now one transaction: it commits and is
+  deleted, or it rolls back and the folder is kept for the next run. It reports
+  per folder and exits non-zero if any were held back, so the Task Scheduler
+  history shows the failure. It also stops importing the hour the web process is
+  still appending to, which used to race it, and opens one SQL connection for
+  the whole run instead of one per row — roughly 8,000 connect/disconnect cycles
+  a day against PRDSQL01.
 - **Reporting builder no longer overflows its own toolbar** (#298) — the
   Advanced tab sized itself to the *viewport* while living inside two
   sidebars (app nav + console rail), so `.reporting-main` was ~959px on a
