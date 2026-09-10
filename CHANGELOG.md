@@ -85,6 +85,19 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and nothing bleeds in beside it; the editor preview re-runs on every change.
 
 ### Fixed
+- **A failed request-log import no longer deletes the hour it could not save.**
+  `ops/cleanup/csvLogs_toDB.ps1` drains `var/logs/user/<hour>/nexora_logs.csv`
+  into `dbo.Logs`; its `Remove-Item -Recurse -Force` ran unconditionally after
+  the insert loop, with no `try`/`catch`, no `$ErrorActionPreference` and no
+  output at all — so a row that failed to insert, or a connection dropped
+  halfway, still ended with that hour's audit trail deleted and no signal that
+  anything had gone wrong. Each folder is now one transaction: it commits and is
+  deleted, or it rolls back and the folder is kept for the next run. It reports
+  per folder and exits non-zero if any were held back, so the Task Scheduler
+  history shows the failure. It also stops importing the hour the web process is
+  still appending to, which used to race it, and opens one SQL connection for
+  the whole run instead of one per row — roughly 8,000 connect/disconnect cycles
+  a day against PRDSQL01.
 - **Tenant sidebar no longer offers pages that 403** — a mounted `custom`
   tenant page (the sydoc/MS02 **Dashboard** and **Workitems** links) was gated
   on `tenant.<code>.view` alone, so a user without the target route's own
