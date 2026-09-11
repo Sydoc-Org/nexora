@@ -1263,7 +1263,21 @@ as dimensions). `0128` registers **Aveniq — Xpert Statistics** (`xpert_stats` 
 Aveniq box and loaded by `nx-sources/xpert/importCSVtoSQL.py`; every measure is a
 conditional `sum` of `Cnt` on `Metric` so subsets never double-count — `Documents`
 = `Total`, `BFH new creditors`, `ZHAW workitems`; `ExportDate` grainable, `Client`
-the natural dimension). `SortOrder` 320. The wizard's measure step walks
+the natural dimension). `SortOrder` 320. `0130` registers **Elektro-Material —
+Verrechnung** (`em_invoice` over `SYDOC_Statistik.dbo.EM_Invoice`, the table the
+monthly `EM-Statistik<YYYYMM>.xlsx` workbook already reads through Power Query;
+#329). Its measures are that workbook's own pivot, read out of the pivot
+definition rather than guessed: `Documents (Opex + e-mail)`, `Opex scans` and
+`E-mail documents` are conditional counts on `Eingang`, `Order item positions`
+and `Images out` conditional sums of `OrdItmPosCount`/`AnzImagesOut`. **Every**
+measure carries the `Eingang IN ('OPEX Scan Scanner','E_MAIL')` filter, because
+the workbook's total is the sum of its two rows while the table also holds
+`Nexora` and NULL rows -- an unfiltered sum would bill documents the customer was
+never charged for. `ExportEM_dt` is the grainable date, not the `ExportEM`
+nvarchar beside it. The amount, IBAN and creditor columns are deliberately left
+out of `ColumnsJSON`: billing scan volume does not need them, and a column that
+is not in the catalogue cannot be queried. `SortOrder` 330. Shape pinned by
+`tests/unit/test_em_invoice_source.py`. The wizard's measure step walks
 sources in `SortOrder` and splits a `Tenant — Thing` label at the em dash: one
 uppercase heading per tenant, a `.rs-choice-group-sublabel` per source. The
 tenant's lookup tables carry no measures and are not registered. Each source is gated by its own

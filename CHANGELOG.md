@@ -7,6 +7,20 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Elektro-Material — Verrechnung reporting source** (#329) — migration
+  `0130` registers `SYDOC_Statistik.dbo.EM_Invoice`, the table the monthly
+  `EM-Statistik<YYYYMM>.xlsx` workbook on the R: drive already reads, so the
+  billing figures stop depending on somebody refreshing a 140 MB spreadsheet and
+  ticking the right export timestamps out of a filter list. Five measures, taken
+  from that workbook's own pivot definition: documents (Opex + e-mail), Opex
+  scans, e-mail documents, order item positions and images out. Checked against
+  six published months — Opex scans and order positions reproduce exactly in
+  four of them, worst deviation 1.06%, and every difference is negative because
+  re-running a past month returns fewer rows than the workbook captured at the
+  time. Every measure filters to the two billed intake channels, since the table
+  also holds `Nexora` and NULL rows the workbook never counted; the amount, IBAN
+  and creditor columns are left out of the catalogue because billing scan volume
+  does not need them.
 - **Aveniq — Xpert Statistics reporting source** — migration `0128` registers
   `SYDOC_Statistik.dbo.Xpert_Stats` (daily DPSI counts pushed by mail from the
   Aveniq box, see `nx-sources/xpert/`) as a `table` source with three measures:
