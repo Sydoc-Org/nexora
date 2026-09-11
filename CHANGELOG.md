@@ -7,6 +7,18 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Privera Posteingang reporting source — the last of the six** (#329) —
+  migration `0135` registers
+  `01_Privera_Posteingang.dbo.Reporting_P1_Dokumente`. Its `ExportDatetime` is
+  text (`dd.MM.yyyy HH:mm:ss`) and the connection runs `us_english`, which
+  reads `01.02.2021` as 2 January and errors outright past the 12th, so the
+  column is exposed as a **string** and a month is a `contains` filter
+  (`.08.2026`). That reproduces the published 10,044 for August exactly, cell
+  for cell across the Register × Niederlassung grid, and matches how the
+  workbook itself works — one file per month. The cost is no month grain, so no
+  series over time; recovering it is one added column on that view
+  (`TRY_CONVERT(datetime, ExportDatetime, 104)`), after which it becomes a
+  grainable date with no other change.
 - **Privera Neuzugänge reporting source** (#329) — migration `0134` registers
   `dbo.v_PriveraNeuzugaenge_StatistikNiederlassung_AnzahlDossiers`, the view
   behind the Initialscanning workbook. The view is already aggregated per
