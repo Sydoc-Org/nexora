@@ -240,6 +240,16 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   old copy still writes — see `scripts/generali-import/README.md`.
 
 ### Fixed
+- **The billing sources were invisible to Global Admin** (#329) — migration
+  `0136` grants the six sources from `0130`–`0135` to that profile. They
+  deployed correctly, but `0130`–`0135` create each permission and grant it to
+  nobody; Enterprise Admin still picked them up because it holds *every*
+  permission (136 of 136 on PROD), while Global Admin carries a hand-picked
+  subset and had none of them — nor xpert_stats, bucherer_easytax, frigemo,
+  bps_projects or most generali sources. Granted as a migration rather than in
+  the admin UI, because the dormant grant on #332 is what a hand-made one looks
+  like six months later. No customer-facing profile is touched — none of them
+  holds `reporting.view` at all.
 - **env-sync's ACTION NEEDED no longer cries wolf** (#313) — the headline
   alarm fired on 11 keys absent from `env/PROD.env` on the server, and all 11
   were false positives: each has a code default identical to the value
