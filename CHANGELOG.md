@@ -216,6 +216,17 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   old copy still writes — see `scripts/generali-import/README.md`.
 
 ### Fixed
+- **Dropped a dormant reporting grant** (#332) — migration `0134` removes
+  `reporting.source.mediamarkt_batches.use` from the `Sydoc User` profile. That
+  profile has 8 users and does not hold `reporting.view`, so every reporting
+  route already refused it and the grant did nothing — but it would have gone
+  live the moment anyone added `reporting.view` to the profile while thinking
+  about something else. The `table` provider applies no row scoping, so a source
+  permission is the entire gate and there is no second check to catch a grant
+  nobody meant. The pairing was made by hand rather than by a migration, which
+  is why INT never had it; the migration is a no-op there and a correction on
+  PROD. The same permission stays with Global Admin and Sydoc Supervisor, who
+  hold `reporting.view` and are meant to have it.
 - **env-sync's ACTION NEEDED no longer cries wolf** (#313) — the headline
   alarm fired on 11 keys absent from `env/PROD.env` on the server, and all 11
   were false positives: each has a code default identical to the value
