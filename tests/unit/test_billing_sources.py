@@ -33,6 +33,8 @@ MIGRATIONS = REPO / "sql" / "_migrations" / "NexoraDB"
 COMPASS = MIGRATIONS / "0131_seed_compass_invoice_source.sql"
 PRIVERA = MIGRATIONS / "0132_seed_privera_invoice_source.sql"
 NACHSEND = MIGRATIONS / "0133_seed_privera_nachsendungen_source.sql"
+NEUZUG = MIGRATIONS / "0134_seed_privera_neuzugaenge_source.sql"
+POSTEIN = MIGRATIONS / "0135_seed_privera_posteingang_source.sql"
 EM = MIGRATIONS / "0130_seed_em_invoice_source.sql"
 
 ALL_BILLING = {
@@ -40,6 +42,8 @@ ALL_BILLING = {
     "compass_invoice": COMPASS,
     "privera_invoice": PRIVERA,
     "privera_nachsendungen": NACHSEND,
+    "privera_neuzugaenge": NEUZUG,
+    "privera_posteingang": POSTEIN,
 }
 
 # Columns that exist in these tables and must never reach a catalogue. Billing
@@ -61,6 +65,8 @@ NEVER_EXPOSED = (
     "InvoiceNR",
     "LiegenschaftsNr",
     "EigentuemerNr",
+    "MietverhaeltnisNr",
+    "Empfaenger",
 )
 
 
@@ -251,3 +257,90 @@ def test_ohne_tec_excludes_the_forwarding_type_not_the_branch():
     )
     assert cond[0]["op"] == "ne"
     assert cond[0]["value"] == "Rechnungen Privera TEC"
+
+
+# --------------------------------------------------------------------------
+# Privera Neuzugänge -- a view that is already aggregated per month.
+# --------------------------------------------------------------------------
+
+
+def test_neuzugaenge_registers_the_three_published_rows():
+    """The workbook's pivot has three data rows: Dossiers, Register, Seiten."""
+    sql = _sql(NEUZUG)
+    for code in (
+        "privera_neuzugaenge_dossiers",
+        "privera_neuzugaenge_register",
+        "privera_neuzugaenge_seiten",
+    ):
+        assert f"'{code}'" in sql, f"{code} is missing"
+        assert _filter_of(NEUZUG, code) is None, f"{code} should not be filtered"
+
+
+def test_neuzugaenge_does_not_reproduce_the_summed_year():
+    """The workbook's pivot carries a fourth data field, "Summe von
+    JahrExport" -- somebody dropping the year into the values by accident. It
+    totals 32,416 for 2026 and means nothing. Copying a source faithfully means
+    copying what it *meant*, not every field that ended up in it."""
+    sql = _sql(NEUZUG)
+    assert "'sum', 'JahrExport'" not in sql, "the year is being summed as a measure"
+    for code in (
+        "privera_neuzugaenge_dossiers",
+        "privera_neuzugaenge_register",
+        "privera_neuzugaenge_seiten",
+    ):
+        block = _measure_block(NEUZUG, code)
+        assert "JahrExport" not in block, f"{code} aggregates the year"
+
+
+def test_neuzugaenge_treats_year_and_month_as_dimensions_not_a_date():
+    """The view has no date column -- only a year and a month number -- because
+    it is already aggregated per month. Declaring either as a grainable date
+    would ask SQL Server to read an integer as one."""
+    cols = _columns(NEUZUG)
+    for f in ("JahrExport", "MonatExportNr"):
+        assert f in cols, f"{f} is not exposed"
+        assert cols[f]["type"] == "number", f"{f} must be a number, not a date"
+        assert not cols[f].get("grainable"), f"{f} must not claim a date grain"
+
+
+# --------------------------------------------------------------------------
+# Privera Posteingang -- the one whose date column is text.
+# --------------------------------------------------------------------------
+
+
+def test_posteingang_does_not_claim_its_text_column_is_a_date():
+    """The load-bearing one. ExportDatetime is nvarchar holding 'dd.MM.yyyy',
+    and the connection runs us_english, so asking SQL Server to read it as a
+    date gives 1 February back as 2 January and raises outright on any day past
+    the 12th -- both measured against PROD. Declaring it a date here would ship
+    a billing report that fails most months and is wrong the rest of the time."""
+    cols = _columns(POSTEIN)
+    assert "ExportDatetime" in cols, "the export column is not exposed at all"
+    spec = cols["ExportDatetime"]
+    assert spec["type"] == "string", (
+        "ExportDatetime is nvarchar 'dd.MM.yyyy HH:mm:ss' -- typing it as a date "
+        "makes SQL Server parse it under us_english: silently wrong, then failing"
+    )
+    assert not spec.get("grainable"), "a text column cannot carry a month grain"
+
+
+def test_posteingang_counts_documents_unfiltered():
+    """The workbook's single data field, "Anzahl von Barcode". The month is a
+    filter the user applies, not part of the measure."""
+    assert "'privera_posteingang_documents'" in _sql(POSTEIN)
+    assert _filter_of(POSTEIN, "privera_posteingang_documents") is None
+
+
+def test_posteingang_keeps_the_workbooks_two_dimensions():
+    """Rows Register, columns Niederlassung -- without both, the grid the
+    customer is used to seeing cannot be rebuilt."""
+    cols = _columns(POSTEIN)
+    for f in ("Register", "Niederlassung"):
+        assert f in cols, f"{f} is missing, so the workbook layout is unreachable"
+
+
+def test_posteingang_tells_the_user_how_to_pick_a_month():
+    """A text date is surprising enough that the measure has to say so; there is
+    nowhere else the reader would find out."""
+    block = _measure_block(POSTEIN, "privera_posteingang_documents")
+    assert "contains" in block, "the description must explain the contains filter"

@@ -1312,7 +1312,43 @@ changes: its `ExportDatetime` is `nvarchar` holding `dd.MM.yyyy HH:mm:ss`, and
 our connection runs `us_english`, so grouping it by month parses `01.02.2021` as
 **2 January** and raises outright on any day past the 12th. It needs a real
 datetime column (the `ExportEM`/`ExportEM_dt` pattern) or a view using
-`TRY_CONVERT(..., 104)`. The wizard's measure step walks
+`TRY_CONVERT(..., 104)`. `0134` adds **Privera — Neuzugänge**
+(`privera_neuzugaenge` over
+`dbo.v_PriveraNeuzugaenge_StatistikNiederlassung_AnzahlDossiers`). The view is
+already aggregated — one row per year/month/Niederlassung carrying three
+counters — so all three measures (`Dossiers`, `Registers`, `Pages`) are plain
+sums and there is **no date grain**: the view has no date column, only a year
+and a month number, which are ordinary numeric dimensions. The workbook's pivot
+carries a fourth data field, "Summe von JahrExport", which is the year dropped
+into the values by accident; it is deliberately not reproduced, and a test
+checks it never is. Verified against the published 2026 workbook: all six closed
+months exact on all three measures (18 of 21 figures), the three misses being
+September, which was one day old when that workbook was refreshed. `SortOrder`
+370.
+
+**This view is broken on INT** — it binds to
+`SYDOC_Statistik1.dbo.PriveraInitialUndNeuzugaenge`, note the stray `1`, so
+selecting from it fails with a 4413 binding error. It works on PROD. The source
+is registered anyway, because the registry rows are data and the workbook it
+replaces runs against PROD; expect the source to error on INT until somebody
+repoints the dev copy of the view.
+
+`0135` adds **Privera — Posteingang** (`privera_posteingang` over
+`01_Privera_Posteingang.dbo.Reporting_P1_Dokumente`), completing the six.
+Its `ExportDatetime` is **nvarchar** holding `dd.MM.yyyy HH:mm:ss`, so it is
+exposed as a **string**, not a date: the connection runs `us_english`, which
+reads `01.02.2021` as 2 January and raises outright on any day past the 12th
+(both measured against PROD). A month is therefore a `contains` filter —
+`.08.2026` renders as `LIKE '%.08.2026%'` and reproduces the published 10,044
+exactly, cell for cell across the Register × Niederlassung grid. That matches
+how the workbook works, one file per month with the month ticked in a filter, so
+nothing is lost against what it replaces. What *is* lost is a month grain, so no
+series over time. The fix belongs in the source database and is one added column
+on that view — `TRY_CONVERT(datetime, ExportDatetime, 104) AS ExportDatetime_dt`
+— after which adding it to `ColumnsJSON` as a grainable date is the whole
+change. Teaching the reporting layer to parse text dates was considered and
+rejected: it would wrap every reference to the column in shared code, for one
+column in one view, and defeat any index over 858k rows. `SortOrder` 380. The wizard's measure step walks
 sources in `SortOrder` and splits a `Tenant — Thing` label at the em dash: one
 uppercase heading per tenant, a `.rs-choice-group-sublabel` per source. The
 tenant's lookup tables carry no measures and are not registered. Each source is gated by its own
