@@ -7,6 +7,50 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Privera physische Zustellung reporting source, and cross-database sources**
+  (#329) — migration `0133` registers
+  `01_Privera_Posteingang.dbo.Reporting_P1_Nachsendungen`, the first source
+  outside `SYDOC_Statistik`. Same server and login; what had to change is the
+  identifier guard in `nx_lib/reporting/table_query.py`, which refused any name
+  starting with a digit and so could not express `01_Privera_Posteingang` at
+  all. The allowed character set is unchanged — letters, digits and underscore
+  — so no name can still carry a `]` out of the bracket quoting; only the
+  leading-digit rule moved. Two measures, both exact against the published July
+  and August 2026 workbooks: forwardings total, and the workbook's hand-added
+  "ohne TEC" line, which excludes the `Rechnungen Privera TEC` forwarding type
+  — not the TEC branch, which is the plausible wrong guess and gives a
+  different figure.
+- **Compass Group and Privera billing reporting sources** (#329) — migrations
+  `0131` and `0132`, following `0130`, register
+  `SYDOC_Statistik.dbo.Compass_Invoice` and `dbo.PriveraInvoice`: the tables
+  the monthly `CompassGroupVerrechnung<YYYYMM>.xlsx` and
+  `Privera-Invoice-Mandant-<YYYY>-<Monat>.xlsx` workbooks already read. Each
+  customer's pivot is a different shape and the differences matter. Compass
+  bills one unfiltered document count on the **upload** date, not the document
+  date its pivot rows display — documents uploaded in one month carry document
+  dates spread over years. Privera publishes three figures (total, mail,
+  eBill), split on `DocSource` instead of the workbook's list of ticked file
+  names. Verified against the published workbooks: Compass exact in six of
+  eight months (off by one document in the other two), Privera exact in five of
+  six figures — the exception is August 2026 mail, where the old pivot dropped
+  5 mail documents that have no `Mandant` while its own total counted them, so
+  the measure keeps the honest definition and `Mandant` stays a dimension for
+  anyone who wants the old behaviour. No billing source exposes amounts, IBANs,
+  creditor names or Privera's property and owner numbers.
+- **Elektro-Material — Verrechnung reporting source** (#329) — migration
+  `0130` registers `SYDOC_Statistik.dbo.EM_Invoice`, the table the monthly
+  `EM-Statistik<YYYYMM>.xlsx` workbook on the R: drive already reads, so the
+  billing figures stop depending on somebody refreshing a 140 MB spreadsheet and
+  ticking the right export timestamps out of a filter list. Five measures, taken
+  from that workbook's own pivot definition: documents (Opex + e-mail), Opex
+  scans, e-mail documents, order item positions and images out. Checked against
+  six published months — Opex scans and order positions reproduce exactly in
+  four of them, worst deviation 1.06%, and every difference is negative because
+  re-running a past month returns fewer rows than the workbook captured at the
+  time. Every measure filters to the two billed intake channels, since the table
+  also holds `Nexora` and NULL rows the workbook never counted; the amount, IBAN
+  and creditor columns are left out of the catalogue because billing scan volume
+  does not need them.
 - **Aveniq — Xpert Statistics reporting source** — migration `0128` registers
   `SYDOC_Statistik.dbo.Xpert_Stats` (daily DPSI counts pushed by mail from the
   Aveniq box, see `nx-sources/xpert/`) as a `table` source with three measures:

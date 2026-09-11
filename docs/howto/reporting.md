@@ -1263,7 +1263,56 @@ as dimensions). `0128` registers **Aveniq — Xpert Statistics** (`xpert_stats` 
 Aveniq box and loaded by `nx-sources/xpert/importCSVtoSQL.py`; every measure is a
 conditional `sum` of `Cnt` on `Metric` so subsets never double-count — `Documents`
 = `Total`, `BFH new creditors`, `ZHAW workitems`; `ExportDate` grainable, `Client`
-the natural dimension). `SortOrder` 320. The wizard's measure step walks
+the natural dimension). `SortOrder` 320. `0130` registers **Elektro-Material —
+Verrechnung** (`em_invoice` over `SYDOC_Statistik.dbo.EM_Invoice`, the table the
+monthly `EM-Statistik<YYYYMM>.xlsx` workbook already reads through Power Query;
+#329). Its measures are that workbook's own pivot, read out of the pivot
+definition rather than guessed: `Documents (Opex + e-mail)`, `Opex scans` and
+`E-mail documents` are conditional counts on `Eingang`, `Order item positions`
+and `Images out` conditional sums of `OrdItmPosCount`/`AnzImagesOut`. **Every**
+measure carries the `Eingang IN ('OPEX Scan Scanner','E_MAIL')` filter, because
+the workbook's total is the sum of its two rows while the table also holds
+`Nexora` and NULL rows -- an unfiltered sum would bill documents the customer was
+never charged for. `ExportEM_dt` is the grainable date, not the `ExportEM`
+nvarchar beside it. The amount, IBAN and creditor columns are deliberately left
+out of `ColumnsJSON`: billing scan volume does not need them, and a column that
+is not in the catalogue cannot be queried. `SortOrder` 330. Shape pinned by
+`tests/unit/test_em_invoice_source.py`. `0131` and `0132` add the next two
+billing sources from the same ticket, **Compass Group — Verrechnung**
+(`compass_invoice` over `dbo.Compass_Invoice`) and **Privera —
+Rechnungseingang** (`privera_invoice` over `dbo.PriveraInvoice`). Each
+customer's workbook turned out to be a different shape, and the differences are
+load-bearing: Compass's pivot has **no** channel split, so its single
+`Documents` measure is unfiltered and bills on `UploadDatetime` (the pivot's
+page filter) rather than the `DocDate` its rows display; Privera publishes three
+pivots, so it gets `Documents total` / `Documents by mail` / `eBill documents`,
+split on `DocSource` rather than the workbook's unreproducible `FileName`
+filter. Verified against the published workbooks: Compass exact in 6 of 8
+months, Privera exact in 5 of 6 figures — the gap is August 2026 mail, where the
+old pivot dropped 5 mail documents that have no `Mandant` while its own total
+counted them, so the measure keeps the honest definition and `Mandant` stays a
+dimension. `SortOrder` 340/350. Both pinned by
+`tests/unit/test_billing_sources.py`, which also asserts no billing source
+exposes amounts, IBANs or the Privera property/owner numbers. `0133` adds **Privera —
+Physische Zustellung** (`privera_nachsendungen`), the **first source outside
+`SYDOC_Statistik`**: its `BaseObject` is the three-part
+`01_Privera_Posteingang.dbo.Reporting_P1_Nachsendungen`. Same engine, same
+server, same login — but the identifier guard in `table_query.py` had to stop
+refusing a name that starts with a digit first (`^[A-Za-z_]…` → `^[A-Za-z0-9_]+$`;
+the character set is unchanged, so nothing can still carry a `]` out of the
+bracket quoting). Two measures, both verified exactly against July and August
+2026: `Forwardings total`, and `Forwardings without TEC`, which is the
+workbook's hand-added "ohne TEC" line — it excludes the `Rechnungen Privera TEC`
+**Nachsendungstyp**, not the TEC *Niederlassung*; the latter is the plausible
+wrong guess and gives a different number. `SortOrder` 360.
+
+The sibling **Posteingang** report (`Reporting_P1_Dokumente` in the same
+database) is **not** registered, and cannot be until the source database
+changes: its `ExportDatetime` is `nvarchar` holding `dd.MM.yyyy HH:mm:ss`, and
+our connection runs `us_english`, so grouping it by month parses `01.02.2021` as
+**2 January** and raises outright on any day past the 12th. It needs a real
+datetime column (the `ExportEM`/`ExportEM_dt` pattern) or a view using
+`TRY_CONVERT(..., 104)`. The wizard's measure step walks
 sources in `SortOrder` and splits a `Tenant — Thing` label at the em dash: one
 uppercase heading per tenant, a `.rs-choice-group-sublabel` per source. The
 tenant's lookup tables carry no measures and are not registered. Each source is gated by its own
