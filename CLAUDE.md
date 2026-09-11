@@ -120,7 +120,7 @@ Mark strings `{{ _('...') }}` in templates, `_('...')` / `gettext(...)` in Pytho
 
 `env/{INT,PROD,STAGING,TEST}.env` hold live credentials (DB, Graph, Octo, Flask secret key). They are **gitignored** and live only on dev and prod machines. Never paste their contents into chats, issues, or external tools; never add secret values to code or commit messages.
 
-Because they are gitignored, `deploy.yml` never copies them — **adding a key to `env/PROD.env.example` does nothing on the server until someone hand-edits `\\syapp01\d$\sydoc\nexora\env\PROD.env`**, and forgetting is silent. Run `scripts/env-sync.py` by hand once per deploy that touched an env key; it diffs the committed `.example` against the local and SYAPP01 copies and prints copy-pasteable lines for anything missing. Only a *missing* key is actionable — differing values are expected (dev ≠ PROD).
+Because they are gitignored, `deploy.yml` never copies them — **adding a key to `env/PROD.env.example` does nothing on the server until someone hand-edits `\\syapp01\d$\sydoc\nexora\env\PROD.env`**, and forgetting is silent. Run `scripts/env-sync.py` by hand once per deploy that touched an env key; it diffs the committed `.example` against the local and SYAPP01 copies and prints copy-pasteable lines for anything missing. Only a missing key that the code does **not** already default is actionable; a key whose code default matches the example is reported quietly, and differing values are expected (dev ≠ PROD).
 
 ## Working with Claude Code
 
