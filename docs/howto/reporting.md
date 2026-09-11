@@ -1277,7 +1277,23 @@ never charged for. `ExportEM_dt` is the grainable date, not the `ExportEM`
 nvarchar beside it. The amount, IBAN and creditor columns are deliberately left
 out of `ColumnsJSON`: billing scan volume does not need them, and a column that
 is not in the catalogue cannot be queried. `SortOrder` 330. Shape pinned by
-`tests/unit/test_em_invoice_source.py`. The wizard's measure step walks
+`tests/unit/test_em_invoice_source.py`. `0131` and `0132` add the next two
+billing sources from the same ticket, **Compass Group — Verrechnung**
+(`compass_invoice` over `dbo.Compass_Invoice`) and **Privera —
+Rechnungseingang** (`privera_invoice` over `dbo.PriveraInvoice`). Each
+customer's workbook turned out to be a different shape, and the differences are
+load-bearing: Compass's pivot has **no** channel split, so its single
+`Documents` measure is unfiltered and bills on `UploadDatetime` (the pivot's
+page filter) rather than the `DocDate` its rows display; Privera publishes three
+pivots, so it gets `Documents total` / `Documents by mail` / `eBill documents`,
+split on `DocSource` rather than the workbook's unreproducible `FileName`
+filter. Verified against the published workbooks: Compass exact in 6 of 8
+months, Privera exact in 5 of 6 figures — the gap is August 2026 mail, where the
+old pivot dropped 5 mail documents that have no `Mandant` while its own total
+counted them, so the measure keeps the honest definition and `Mandant` stays a
+dimension. `SortOrder` 340/350. Both pinned by
+`tests/unit/test_billing_sources.py`, which also asserts no billing source
+exposes amounts, IBANs or the Privera property/owner numbers. The wizard's measure step walks
 sources in `SortOrder` and splits a `Tenant — Thing` label at the em dash: one
 uppercase heading per tenant, a `.rs-choice-group-sublabel` per source. The
 tenant's lookup tables carry no measures and are not registered. Each source is gated by its own

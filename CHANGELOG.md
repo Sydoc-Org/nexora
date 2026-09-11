@@ -7,6 +7,23 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Compass Group and Privera billing reporting sources** (#329) — migrations
+  `0131` and `0132`, following `0130`, register
+  `SYDOC_Statistik.dbo.Compass_Invoice` and `dbo.PriveraInvoice`: the tables
+  the monthly `CompassGroupVerrechnung<YYYYMM>.xlsx` and
+  `Privera-Invoice-Mandant-<YYYY>-<Monat>.xlsx` workbooks already read. Each
+  customer's pivot is a different shape and the differences matter. Compass
+  bills one unfiltered document count on the **upload** date, not the document
+  date its pivot rows display — documents uploaded in one month carry document
+  dates spread over years. Privera publishes three figures (total, mail,
+  eBill), split on `DocSource` instead of the workbook's list of ticked file
+  names. Verified against the published workbooks: Compass exact in six of
+  eight months (off by one document in the other two), Privera exact in five of
+  six figures — the exception is August 2026 mail, where the old pivot dropped
+  5 mail documents that have no `Mandant` while its own total counted them, so
+  the measure keeps the honest definition and `Mandant` stays a dimension for
+  anyone who wants the old behaviour. No billing source exposes amounts, IBANs,
+  creditor names or Privera's property and owner numbers.
 - **Elektro-Material — Verrechnung reporting source** (#329) — migration
   `0130` registers `SYDOC_Statistik.dbo.EM_Invoice`, the table the monthly
   `EM-Statistik<YYYYMM>.xlsx` workbook on the R: drive already reads, so the
