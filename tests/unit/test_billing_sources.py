@@ -32,9 +32,15 @@ MIGRATIONS = REPO / "sql" / "_migrations" / "NexoraDB"
 
 COMPASS = MIGRATIONS / "0131_seed_compass_invoice_source.sql"
 PRIVERA = MIGRATIONS / "0132_seed_privera_invoice_source.sql"
+NACHSEND = MIGRATIONS / "0133_seed_privera_nachsendungen_source.sql"
 EM = MIGRATIONS / "0130_seed_em_invoice_source.sql"
 
-ALL_BILLING = {"em_invoice": EM, "compass_invoice": COMPASS, "privera_invoice": PRIVERA}
+ALL_BILLING = {
+    "em_invoice": EM,
+    "compass_invoice": COMPASS,
+    "privera_invoice": PRIVERA,
+    "privera_nachsendungen": NACHSEND,
+}
 
 # Columns that exist in these tables and must never reach a catalogue. Billing
 # document volume needs none of them. The Privera ones are the sharpest:
@@ -91,7 +97,7 @@ def _filter_of(path, code):
 # --------------------------------------------------------------------------
 
 
-def test_all_three_billing_migrations_exist():
+def test_all_billing_migrations_exist():
     for code, path in ALL_BILLING.items():
         assert path.exists(), f"{path.name} is gone -- retarget these guards"
         assert f"'{code}'" in _sql(path)
@@ -204,3 +210,44 @@ def test_privera_measures_carry_all_four_languages():
         labels = re.findall(r"N'((?:[^']|'')*)'", block.split("'count'")[0])
         assert len(labels) == 4, f"{code} has {len(labels)} labels, expected 4"
         assert all(x.strip() for x in labels), f"{code} has a blank label"
+
+
+# --------------------------------------------------------------------------
+# Privera physische Zustellung -- the first source in another database.
+# --------------------------------------------------------------------------
+
+
+def test_nachsendungen_points_at_the_other_database():
+    """Every earlier source is 'dbo.<table>' in SYDOC_Statistik. This one is
+    three-part, and it is the reason the identifier guard had to stop refusing
+    names that start with a digit."""
+    from nx_lib.reporting.table_query import _quote_object
+
+    m = re.search(r"'(01_Privera_Posteingang\.dbo\.[A-Za-z0-9_]+)'", _sql(NACHSEND))
+    assert m, "the three-part BaseObject is gone from the migration"
+    # Not just present in the text: the query layer has to accept it.
+    assert _quote_object(m.group(1)).startswith("[01_Privera_Posteingang].")
+
+
+def test_nachsendungen_registers_both_published_figures():
+    sql = _sql(NACHSEND)
+    for code in ("privera_nachsendungen_total", "privera_nachsendungen_ohne_tec"):
+        assert f"'{code}'" in sql, f"{code} is missing"
+    assert (
+        _filter_of(NACHSEND, "privera_nachsendungen_total") is None
+    ), "the total must count every forwarding"
+
+
+def test_ohne_tec_excludes_the_forwarding_type_not_the_branch():
+    """The trap. August 2026 published 1,667 total and 1,042 'ohne TEC'. The
+    difference, 625, is the 'Rechnungen Privera TEC' *Nachsendungstyp* row --
+    excluding the TEC *Niederlassung* instead gives 1,057, which looks just as
+    plausible and is wrong. Both verified against July and August."""
+    cond = _filter_of(NACHSEND, "privera_nachsendungen_ohne_tec")
+    assert cond, "the ohne-TEC measure lost its filter"
+    assert {c["field"] for c in cond} == {"Nachsendungstyp"}, (
+        "ohne TEC must exclude a forwarding type, not a branch -- excluding the "
+        "TEC Niederlassung gives a different number"
+    )
+    assert cond[0]["op"] == "ne"
+    assert cond[0]["value"] == "Rechnungen Privera TEC"

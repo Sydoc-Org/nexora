@@ -351,3 +351,56 @@ def test_generic_aggregate_conditional_metric_params_precede_where_params():
     assert "COUNT(CASE WHEN [Status] = ? THEN 1 END) AS [ok_rows]" in sql
     assert "WHERE [Region] <> ?" in sql
     assert params == ["ok", "north"]
+
+
+# ---------------------------------------------------------------------------
+# Object naming. Relaxed in #329 so a source can point at a database whose name
+# starts with a digit (`01_Privera_Posteingang`). The relaxation moves *where* a
+# digit may appear and nothing else, so these pin both halves: the new name is
+# accepted, and every character that could break out of the bracket quoting is
+# still refused.
+# ---------------------------------------------------------------------------
+
+
+def test_database_name_starting_with_a_digit_is_accepted():
+    """Real databases on the statistics server are named `01_<Customer>_<Thing>`.
+    Refusing them meant a whole customer's billing source could not be
+    registered at all."""
+    from nx_lib.reporting.table_query import _quote_object
+
+    assert _quote_object("01_Privera_Posteingang.dbo.Reporting_P1_Nachsendungen") == (
+        "[01_Privera_Posteingang].[dbo].[Reporting_P1_Nachsendungen]"
+    )
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "db.dbo.tbl]; DROP TABLE x --",  # closes the bracket quote early
+        "a b",  # whitespace
+        "a'b",  # string delimiter
+        'a"b',
+        "a;b",  # statement separator
+        "a-b",  # comment lead-in when doubled
+        "a[b",
+        "a/*b",
+        "täbelle",  # non-ASCII: outside the allowed set on purpose
+    ],
+)
+def test_identifiers_that_could_escape_the_quoting_are_still_refused(name):
+    """The guard is the only thing between a registry row and interpolated SQL:
+    BaseObject is written by an admin, not a query parameter, so it is never
+    bound. Loosening the character set would be a different change entirely
+    from loosening the leading-digit rule."""
+    from nx_lib.reporting.table_query import _quote_object
+
+    with pytest.raises(TableQueryError):
+        _quote_object(f"db.dbo.{name}")
+
+
+@pytest.mark.parametrize("name", ["", "a..b", "a.b.c.d", None])
+def test_object_names_must_have_one_to_three_non_empty_parts(name):
+    from nx_lib.reporting.table_query import _quote_object
+
+    with pytest.raises(TableQueryError):
+        _quote_object(name)

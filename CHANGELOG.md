@@ -7,6 +7,19 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Privera physische Zustellung reporting source, and cross-database sources**
+  (#329) — migration `0133` registers
+  `01_Privera_Posteingang.dbo.Reporting_P1_Nachsendungen`, the first source
+  outside `SYDOC_Statistik`. Same server and login; what had to change is the
+  identifier guard in `nx_lib/reporting/table_query.py`, which refused any name
+  starting with a digit and so could not express `01_Privera_Posteingang` at
+  all. The allowed character set is unchanged — letters, digits and underscore
+  — so no name can still carry a `]` out of the bracket quoting; only the
+  leading-digit rule moved. Two measures, both exact against the published July
+  and August 2026 workbooks: forwardings total, and the workbook's hand-added
+  "ohne TEC" line, which excludes the `Rechnungen Privera TEC` forwarding type
+  — not the TEC branch, which is the plausible wrong guess and gives a
+  different figure.
 - **Compass Group and Privera billing reporting sources** (#329) — migrations
   `0131` and `0132`, following `0130`, register
   `SYDOC_Statistik.dbo.Compass_Invoice` and `dbo.PriveraInvoice`: the tables
