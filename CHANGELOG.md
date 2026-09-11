@@ -172,6 +172,24 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   old copy still writes — see `scripts/generali-import/README.md`.
 
 ### Fixed
+- **env-sync's ACTION NEEDED no longer cries wolf** (#313) — the headline
+  alarm fired on 11 keys absent from `env/PROD.env` on the server, and all 11
+  were false positives: each has a code default identical to the value
+  `env/PROD.env.example` ships, so its absence changes nothing. An alarm that
+  is wrong every time trains people to skim it, and it already cost something
+  — during #297 those keys were written up as real drift and the note had to
+  be retracted, while the actual fault sat in the quiet bucket. The script now
+  reads the repo's own `os.environ.get` / `os.getenv` defaults with `ast` and
+  splits the finding three ways: no default in code stays **actionable** and
+  sets the exit code (the `SUPPORT_MAIL`/#166 case it was built for); a default
+  equal to the example is reported quietly; a default that *contradicts* the
+  example is its own warning, because the server then runs on a value the repo
+  does not advertise. Defaults that point at another key (`MS02_STATS_DB_PORT`
+  inherits `MS02_DB_PORT`) resolve against the server file first, so setting
+  the base key on PROD gives the right answer rather than the source literal.
+  A key is only treated as defaulted when *every* read site supplies one, so
+  the scan can never silence a key that some call path still needs. Today's
+  run is exit 0 with all 11 in the quiet bucket.
 - **Workitem stage timeline no longer paints white circles in dark mode**
   (#326) — the stepper inside an expanded workitem row had `background: #fff`
   written into three surfaces with no dark counterpart: the not-yet-started
