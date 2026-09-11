@@ -7,6 +7,18 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Privera Neuzugänge reporting source** (#329) — migration `0134` registers
+  `dbo.v_PriveraNeuzugaenge_StatistikNiederlassung_AnzahlDossiers`, the view
+  behind the Initialscanning workbook. The view is already aggregated per
+  month and branch, so all three measures — Dossiers, Registers, Pages — are
+  plain sums, and year and month stay numeric dimensions because there is no
+  date column to group by. Verified against the published 2026 workbook: all
+  six closed months exact on all three measures, the only differences being
+  September, which was one day old when that workbook was refreshed. The
+  workbook's fourth data field, a summed `JahrExport`, is an accident and is
+  deliberately not reproduced. Note the view is **broken on INT** (it binds to
+  a stray `SYDOC_Statistik1`) and works on PROD, so the source errors on INT
+  until the dev copy is repointed.
 - **Privera physische Zustellung reporting source, and cross-database sources**
   (#329) — migration `0133` registers
   `01_Privera_Posteingang.dbo.Reporting_P1_Nachsendungen`, the first source

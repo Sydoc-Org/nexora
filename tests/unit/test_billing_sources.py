@@ -33,6 +33,7 @@ MIGRATIONS = REPO / "sql" / "_migrations" / "NexoraDB"
 COMPASS = MIGRATIONS / "0131_seed_compass_invoice_source.sql"
 PRIVERA = MIGRATIONS / "0132_seed_privera_invoice_source.sql"
 NACHSEND = MIGRATIONS / "0133_seed_privera_nachsendungen_source.sql"
+NEUZUG = MIGRATIONS / "0134_seed_privera_neuzugaenge_source.sql"
 EM = MIGRATIONS / "0130_seed_em_invoice_source.sql"
 
 ALL_BILLING = {
@@ -40,6 +41,7 @@ ALL_BILLING = {
     "compass_invoice": COMPASS,
     "privera_invoice": PRIVERA,
     "privera_nachsendungen": NACHSEND,
+    "privera_neuzugaenge": NEUZUG,
 }
 
 # Columns that exist in these tables and must never reach a catalogue. Billing
@@ -251,3 +253,47 @@ def test_ohne_tec_excludes_the_forwarding_type_not_the_branch():
     )
     assert cond[0]["op"] == "ne"
     assert cond[0]["value"] == "Rechnungen Privera TEC"
+
+
+# --------------------------------------------------------------------------
+# Privera Neuzugänge -- a view that is already aggregated per month.
+# --------------------------------------------------------------------------
+
+
+def test_neuzugaenge_registers_the_three_published_rows():
+    """The workbook's pivot has three data rows: Dossiers, Register, Seiten."""
+    sql = _sql(NEUZUG)
+    for code in (
+        "privera_neuzugaenge_dossiers",
+        "privera_neuzugaenge_register",
+        "privera_neuzugaenge_seiten",
+    ):
+        assert f"'{code}'" in sql, f"{code} is missing"
+        assert _filter_of(NEUZUG, code) is None, f"{code} should not be filtered"
+
+
+def test_neuzugaenge_does_not_reproduce_the_summed_year():
+    """The workbook's pivot carries a fourth data field, "Summe von
+    JahrExport" -- somebody dropping the year into the values by accident. It
+    totals 32,416 for 2026 and means nothing. Copying a source faithfully means
+    copying what it *meant*, not every field that ended up in it."""
+    sql = _sql(NEUZUG)
+    assert "'sum', 'JahrExport'" not in sql, "the year is being summed as a measure"
+    for code in (
+        "privera_neuzugaenge_dossiers",
+        "privera_neuzugaenge_register",
+        "privera_neuzugaenge_seiten",
+    ):
+        block = _measure_block(NEUZUG, code)
+        assert "JahrExport" not in block, f"{code} aggregates the year"
+
+
+def test_neuzugaenge_treats_year_and_month_as_dimensions_not_a_date():
+    """The view has no date column -- only a year and a month number -- because
+    it is already aggregated per month. Declaring either as a grainable date
+    would ask SQL Server to read an integer as one."""
+    cols = _columns(NEUZUG)
+    for f in ("JahrExport", "MonatExportNr"):
+        assert f in cols, f"{f} is not exposed"
+        assert cols[f]["type"] == "number", f"{f} must be a number, not a date"
+        assert not cols[f].get("grainable"), f"{f} must not claim a date grain"

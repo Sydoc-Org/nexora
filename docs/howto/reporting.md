@@ -1312,7 +1312,26 @@ changes: its `ExportDatetime` is `nvarchar` holding `dd.MM.yyyy HH:mm:ss`, and
 our connection runs `us_english`, so grouping it by month parses `01.02.2021` as
 **2 January** and raises outright on any day past the 12th. It needs a real
 datetime column (the `ExportEM`/`ExportEM_dt` pattern) or a view using
-`TRY_CONVERT(..., 104)`. The wizard's measure step walks
+`TRY_CONVERT(..., 104)`. `0134` adds **Privera — Neuzugänge**
+(`privera_neuzugaenge` over
+`dbo.v_PriveraNeuzugaenge_StatistikNiederlassung_AnzahlDossiers`). The view is
+already aggregated — one row per year/month/Niederlassung carrying three
+counters — so all three measures (`Dossiers`, `Registers`, `Pages`) are plain
+sums and there is **no date grain**: the view has no date column, only a year
+and a month number, which are ordinary numeric dimensions. The workbook's pivot
+carries a fourth data field, "Summe von JahrExport", which is the year dropped
+into the values by accident; it is deliberately not reproduced, and a test
+checks it never is. Verified against the published 2026 workbook: all six closed
+months exact on all three measures (18 of 21 figures), the three misses being
+September, which was one day old when that workbook was refreshed. `SortOrder`
+370.
+
+**This view is broken on INT** — it binds to
+`SYDOC_Statistik1.dbo.PriveraInitialUndNeuzugaenge`, note the stray `1`, so
+selecting from it fails with a 4413 binding error. It works on PROD. The source
+is registered anyway, because the registry rows are data and the workbook it
+replaces runs against PROD; expect the source to error on INT until somebody
+repoints the dev copy of the view. The wizard's measure step walks
 sources in `SortOrder` and splits a `Tenant — Thing` label at the em dash: one
 uppercase heading per tenant, a `.rs-choice-group-sublabel` per source. The
 tenant's lookup tables carry no measures and are not registered. Each source is gated by its own
