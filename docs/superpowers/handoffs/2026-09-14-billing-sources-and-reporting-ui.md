@@ -8,7 +8,8 @@ this handoff is the only thing left to commit · commit-only, the owner pushes.
 [`2026-09-08-report-layouts-execution-complete.md`](2026-09-08-report-layouts-execution-complete.md)
 
 This session ran long and covered two unrelated bodies of work. Nothing is
-half-finished; every branch below is merged, deployed and verified on PROD.
+half-finished. Everything below is merged, deployed and verified on PROD except
+`babff28b` (PR #339), which is pushed and waiting on a merge.
 
 ## TL;DR
 
@@ -37,8 +38,11 @@ half-finished; every branch below is merged, deployed and verified on PROD.
 | `e9705b33` | Privera Neuzugänge + Posteingang — completes six of six | #329 |
 | `dea7e9a7` | Grant the six sources to the `Global Admin` profile | #329 |
 | `c61047bf` | Date field, calendar position, range colours, chart hover, wizard flow | #336 |
+| `babff28b` | Fireflies over the wizard, rail label alignment, hint spacing | #336 |
 
-PROD is on `c61047b, 2026-09-14`.
+PROD is on `c61047b, 2026-09-14`. `babff28b` is on
+`fix/336-reporting-wizard-polish` / PR #339 and had not deployed when this was
+written.
 
 ## The billing sources (#329)
 
@@ -141,6 +145,32 @@ declared the token, so it always fell back to white — fine on light mode's dar
 accents, wrong on dark mode's pale ones. Now declared per theme. This changes the
 badge on `/admin/permissions` as well as the calendar.
 
+### The second round (`babff28b`, PR #339)
+
+The owner's *"something is still off"* turned out to be three more things, and
+all three are worth knowing because each was a leftover rather than a taste
+call:
+
+- **The firefly backdrop painted over the wizard.** The dots are held behind
+  the page by promoting `<main>` — and Reporting is the one page whose content
+  is not all inside `<main>`. Fixed by giving `.reporting-shell`
+  `position: relative` and **deliberately no `z-index`**: enough to paint above
+  the dots, while leaving the fixed panels inside the shell free to escape to
+  the root. Give it a z-index and `#rpChatPanel` gets trapped below the sidebar.
+  The obvious alternative — `z-index: -1` on the dots — **deletes the effect**,
+  because html and body both carry the page background. Measured with all 16
+  dots forced visible; none rendered.
+- **The rail labels sat 2.5px below their numbers.** `.rs-rail-title` still
+  carried `padding-top: 4px` from the original *vertical* rail. The Console
+  reuses that markup horizontally, where the chip centres dot and label against
+  each other, so the padding pushed the label down inside a centred box.
+- **`.reporting-simple-hint` had no rule at all**, so every "Pick one or more…"
+  line inherited 16px primary-colour body text with zero margin — louder than
+  the answers it explains, and touching them.
+
+`tests/unit/test_reporting_wizard_styles.py` pins all three plus the two wrong
+turns, mutation-checked.
+
 **One reversal to review:** the wizard step headings dropped the uppercase
 tracked-caption treatment the console redesign gave them ("Task 7" in
 `reporting.css`). Reasoning is in the rule's comment. If the consistency argument
@@ -162,21 +192,32 @@ wins, it is one rule to revert.
    real month next to the workbook and walk the measures. This is the only thing
    between "the numbers match" and "bill from it", and it is what keeps #329
    open.
-2. **#336 — the owner's "something is still off".** Not yet pinned down. The
-   issue carries the full context of what was already changed.
+2. **#336 — closed.** The *"something is still off"* was pinned down and
+   fixed in `babff28b` (PR #339). Nothing outstanding.
 3. **#330 — Privera Mailbestellungen.** Recommendation is to *leave it manual*:
    it is one count a month (465 for August) and the manual process is correct.
    The only case for building it is that the branch is sitting in every subject
    line (`Physische Nachsendung <no.> (<Branch>, <CODE>)`, parses for 464 of 465
    rows across 14 branches) and gets thrown away, while every other Privera
    report splits by branch. Ask Privera whether they want that; if not, close it.
-4. **#332 — reporting source grants.** Waiting on whoever knows why `Sydoc User`
-   holds the MediaMarkt source without `reporting.view`. It looks *intended but
-   unfinished* rather than accidental, so #333 (which dropped it) was closed
-   unmerged. The durable part is the two `scripts/perm-audit.py` checks.
+4. **#332 — reporting source grants.** Three items, and only the first is
+   blocked. **None of them has shipped** — as of this handoff
+   `scripts/perm-audit.py` contains neither check. Grep it before
+   assuming otherwise; an earlier draft of this document implied they had
+   landed and a later session nearly closed the issue on that reading.
+   1. *Blocked:* why `Sydoc User` holds the MediaMarkt source without
+      `reporting.view`. It looks *intended but unfinished* rather than
+      accidental, so #333 (which dropped it) was closed unmerged. Needs
+      whoever granted it.
+   2. *Unwritten:* two `scripts/perm-audit.py` checks — a profile holding a
+      `reporting.source.*` without `reporting.view`, and a profile with an
+      `OrganizationCode` holding another customer's source.
+   3. *Unwritten:* the rule for when a `table` source may be granted to a
+      customer profile. The `table` provider applies no row scoping, so the
+      source permission is the entire gate.
 5. **#323 — Ben's Eddard bug.** Diagnosed, untouched: `fireCaption()` sits at
    `static/js/reporting_simple.js:538`, after the layout branch's `return` at
-   `:517`, so it never runs for a report with a saved layout. `setAskEddard()`
+   `:518`, so it never runs for a report with a saved layout. `setAskEddard()`
    is at `:489`, before the branch, which is exactly why "Ask Eddard" is the one
    that works.
 6. **#267 — three environments.** Parked until the Cloudflare Tunnel cutover;
