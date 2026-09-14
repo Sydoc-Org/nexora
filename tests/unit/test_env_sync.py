@@ -103,3 +103,15 @@ def test_read_env_parses_a_real_file(env_sync, tmp_path):
     p = tmp_path / "x.env"
     p.write_text("# comment\nA=1\nB=two words\n", encoding="utf-8")
     assert env_sync.read_env(p) == {"A": "1", "B": "two words"}
+
+
+def test_every_managed_file_has_a_remote_dir(env_sync):
+    for name in ("PROD.env", "CONFLUENCE.env", "INT.env", "STAGING.env"):
+        assert name in env_sync.MANAGED
+        assert str(env_sync.remote_path(name)).lower().endswith(("\\env\\" + name).lower())
+
+
+def test_remote_dirs_are_per_environment(env_sync):
+    assert r"\nexora\env" in str(env_sync.remote_path("PROD.env"))
+    assert r"\nexora-dev\env" in str(env_sync.remote_path("INT.env"))
+    assert r"\nexora-staging\env" in str(env_sync.remote_path("STAGING.env"))
