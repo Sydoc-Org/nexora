@@ -43,7 +43,7 @@ plan complete, **worktree kept open** for `/execute-plan`.
 1. **Owner (before anything is pushed):** copy `env/INT.env`, `env/TEST.env`, `env/PROD.env` into
    the worktree's `env/` (deny rule blocks Claude). Add `dev-nexora.sydoc.ch` and
    `staging-nexora.sydoc.ch` under Domains in the ngrok dashboard and create the two CNAMEs at cyon;
-   hand the `....ngrok-cname.com` targets to the executing session for `docs/howto/ngrok.md`.
+   targets already received and recorded in the plan's Owner actions (dev `3vvfskuc7isen9djp…`, staging `62ubvmwfstncuu83…`).
 2. `/execute-plan` on the plan (or `superpowers:subagent-driven-development` task by task) inside
    the worktree. Cut `feat/338-dev-staging-envs` from the plan branch if you prefer the
    `<type>/<issue>-<slug>` naming.
