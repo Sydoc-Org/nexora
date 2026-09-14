@@ -1,7 +1,8 @@
 <#
 .SYNOPSIS
   Create one extra nexora host on SYAPP01 (#338). Idempotent; run in an
-  ELEVATED PowerShell on the server, once per environment:
+  ELEVATED PowerShell on the server (5.1 or pwsh -- it re-launches itself in 5.1),
+  once per environment:
 
     .\setup-env.ps1 -Name dev     -Port 8081 -Environment INT     -Hostname dev-nexora.sydoc.ch
     .\setup-env.ps1 -Name staging -Port 8082 -Environment STAGING -Hostname staging-nexora.sydoc.ch
@@ -30,6 +31,14 @@ param(
   [string]$NgrokConfig = 'D:\sydoc\nexora\ngrok.yaml'
 )
 $ErrorActionPreference = 'Stop'
+# The IIS: provider (IIS:\AppPools, IIS:\Sites) exists only in Windows PowerShell 5.1.
+# Under pwsh 7 re-run this script in powershell.exe with the same arguments.
+if ($PSVersionTable.PSVersion.Major -ge 6) {
+  Write-Host 'Re-launching in Windows PowerShell 5.1 (IIS: drive is not available in pwsh)...'
+  & "$env:SystemRoot\System32\WindowsPowerShell1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File $PSCommandPath `
+      -Name $Name -Port $Port -Environment $Environment -Hostname $Hostname -NgrokConfig $NgrokConfig
+  exit $LASTEXITCODE
+}
 Import-Module WebAdministration
 
 $dir  = "D:\sydoc\nexora-$Name"
