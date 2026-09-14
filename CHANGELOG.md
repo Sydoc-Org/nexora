@@ -240,6 +240,30 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   old copy still writes — see `scripts/generali-import/README.md`.
 
 ### Fixed
+- **Fireflies no longer drift across the New-report wizard** (#336) — the
+  animated backdrop is held behind the page by promoting `<main>`, and
+  Reporting is the one page whose content is not all inside `<main>`: the
+  Console shell wraps the top bar, the source rail and the whole Simple
+  wizard. So the dots painted *over* the wizard's own text, which is
+  distracting and at times unreadable. The shell now takes `position:
+  relative` and deliberately **no** `z-index` — enough to paint above the
+  dots, while leaving the fixed panels inside it (the Eddard chat panel) free
+  to escape to the root as before. Dropping the dots to `z-index: -1` instead
+  looks like the obvious fix and deletes the effect outright: html and body
+  both carry the page background, so a negative layer paints underneath it.
+- **Reporting wizard: the step labels sat below their numbers** (#336) — the
+  rail chips (`1 Measure`, `2 Processes`, …) centre the numbered dot and its
+  label against each other, but `.rs-rail-title` still carried the
+  `padding-top: 4px` written for the original *vertical* rail, where it drops
+  the label onto a 28px dot's first text line. Laid out horizontally that
+  padding pushed the label down inside a centred box, leaving its text about
+  2.5px below the number's — the number looked centred and the word did not.
+- **Reporting wizard: the hint under each question was louder than the answers**
+  (#336) — `.reporting-simple-hint` had no rule at all, so "Pick one or more…"
+  and its siblings inherited 16px body text in the primary colour and the
+  global `p` reset's zero margin: bigger than the chips they explain and
+  touching the last row of them. Now 13px, secondary colour, set off below the
+  answers.
 - **Reporting wizard: Continue now takes you to the next question** — the four
   steps stack inside one card rather than replacing each other, so revealing
   the next one rendered it below the fold and left the scroll position alone.

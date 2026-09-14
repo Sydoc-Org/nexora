@@ -1226,6 +1226,14 @@ body.reporting-console .rs-rail-title {
   font-weight: 600;
   color: var(--nx-text-sec);
   white-space: nowrap;
+  /* The base rule in reporting.css gives the title `padding-top: 4px`, which
+     is right for the *vertical* rail it was written for: there the label sits
+     beside a 28px dot and the padding drops it onto the dot's first text line.
+     The Console reuses the same markup laid out horizontally, where the chip
+     centres dot and label against each other -- so the padding pushed the
+     label 4px down inside a centred box, leaving its text sitting ~2.5px below
+     the number's. The number looked centred and the word did not (#336). */
+  padding-top: 0;
 }
 body.reporting-console .rs-rail-step.is-active .rs-rail-title { color: var(--nx-accent); }
 body.reporting-console .rs-rail-line {
