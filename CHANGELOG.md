@@ -240,6 +240,29 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   old copy still writes — see `scripts/generali-import/README.md`.
 
 ### Fixed
+- **Reporting: the date range field, the calendar and the chart hover** — four
+  bugs the owner hit in one sitting. The wizard's range field was **read-only**:
+  every other picker in the app passes `allowInput: true`, this one did not, so
+  you could click a range out but never type one. Its calendar was positioned
+  against `<body>` with page coordinates and opened far below the field on a
+  wizard page that scrolls thousands of pixels — it is now anchored to the input
+  itself. The **selected range rendered light grey in dark mode**: section 11 of
+  `nexora-ui.css` styled single dates but never `.inRange`, and fixing it needs
+  all three of the band, the box-shadow flatpickr uses to fill the seams between
+  cells, and flatpickr's own higher-specificity `.today.inRange` rule — which is
+  why today's date stayed a white block in the middle of a selected range. And
+  the **chart only responded when the cursor was exactly on a data point**;
+  bar and line charts now use index mode, so pointing anywhere in the plot
+  reports that bucket. Pie and doughnut keep the old behaviour, where the slice
+  under the cursor is already the right answer. Chart tooltips also take the
+  theme's card, text and border tokens instead of Chart.js's stock black box.
+- **`--nx-on-accent` was referenced but never defined** — found while fixing the
+  above. `nexora-ui.css` used `var(--nx-on-accent, #fff)` for the
+  permission-override badge, and nothing ever declared the token, so it always
+  fell back to white. Every light-mode accent is a saturated mid-dark where that
+  reads, but every dark-mode accent is a light pastel where it does not. Now
+  declared per theme, which fixes the badge and the selected calendar day
+  together.
 - **The billing sources were invisible to Global Admin** (#329) — migration
   `0136` grants the six sources from `0130`–`0135` to that profile. They
   deployed correctly, but `0130`–`0135` create each permission and grant it to

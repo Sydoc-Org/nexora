@@ -1128,6 +1128,17 @@
     if (!RS.state.wiz._fp && window.flatpickr) {
       RS.state.wiz._fp = flatpickr(RS.el('rsTimeRange'), {
         mode: 'range', dateFormat: 'Y-m-d',
+        // allowInput: every other picker in the app passes it (10 of them);
+        // this one did not, so flatpickr marked the field readonly and you
+        // could not type a range -- only click one out.
+        allowInput: true,
+        // static: render the calendar inside a wrapper next to the input
+        // instead of absolutely positioned against <body>. The wizard is one
+        // very long scrolling page, and the body-positioned calendar opened
+        // well below the field it belongs to. Static anchors it to the input,
+        // so there is no page-coordinate arithmetic left to get wrong. Safe
+        // here: nothing between this input and <html> clips overflow.
+        static: true,
         onChange: function (picked) {
           if (picked.length === 2) {
             RS.state.wiz.range = [isoDate(picked[0]), isoDate(picked[1])];
