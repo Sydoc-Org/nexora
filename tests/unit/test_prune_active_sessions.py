@@ -25,9 +25,9 @@ def _load():
 
 
 def test_script_exists_and_is_deployed():
-    """ops/ is NOT in deploy.yml's robocopy /XD list, so the script ships."""
+    """ops/ is NOT in deploy-env.yml's robocopy /XD list, so the script ships."""
     assert MODULE_PATH.is_file()
-    workflow = (MODULE_PATH.parents[2] / ".github" / "workflows" / "deploy.yml").read_text(
+    workflow = (MODULE_PATH.parents[2] / ".github" / "workflows" / "deploy-env.yml").read_text(
         encoding="utf-8"
     )
     xd = next(line for line in workflow.splitlines() if "/XD" in line)
@@ -149,7 +149,7 @@ def _task_xml_text() -> str:
 
 def test_task_definition_exists_and_ships():
     """It has to reach the server to be importable from there, and ops/ is not
-    in deploy.yml's /XD list -- same reasoning as the script itself."""
+    in deploy-env.yml's /XD list -- same reasoning as the script itself."""
     assert TASK_XML.is_file(), "no importable task definition next to the script"
 
 
@@ -193,26 +193,37 @@ def test_task_runs_often_enough_for_the_retention_window():
 
 
 def test_deploy_registers_every_task_definition():
-    """A task XML in the tree that deploy.yml never registers is inert -- which
+    """A task XML in the tree that deploy-env.yml never registers is inert -- which
     is exactly how the prune shipped and ran zero times. Any definition added
     later must be wired into the deploy step, so this discovers them rather than
     listing them."""
     repo = MODULE_PATH.parents[2]
-    workflow = (repo / ".github" / "workflows" / "deploy.yml").read_text(encoding="utf-8")
+    workflow = (repo / ".github" / "workflows" / "deploy-env.yml").read_text(encoding="utf-8")
     definitions = sorted(p.name for p in repo.glob("ops/**/*-task.xml"))
     assert definitions, "no task definitions found -- glob is wrong"
     unregistered = [name for name in definitions if name not in workflow]
-    assert not unregistered, f"task definitions never registered by deploy.yml: {unregistered}"
+    assert not unregistered, f"task definitions never registered by deploy-env.yml: {unregistered}"
 
 
 def test_deploy_registration_is_idempotent_and_verified():
     """/f so re-running a deploy is safe, and a /query afterwards because
     'schtasks /create returned 0' and 'the task exists' are different claims."""
     repo = MODULE_PATH.parents[2]
-    workflow = (repo / ".github" / "workflows" / "deploy.yml").read_text(encoding="utf-8")
+    workflow = (repo / ".github" / "workflows" / "deploy-env.yml").read_text(encoding="utf-8")
     step = workflow.split("Register scheduled tasks", 1)
     assert len(step) == 2, "the deploy step is gone"
     body = step[1]
     assert "schtasks /create /xml $t.Xml /tn $t.Name /f" in body, "not idempotent"
     assert "schtasks /query" in body, "registration is claimed but never verified"
     assert "$LASTEXITCODE" in body, "schtasks is a native exe; $? does not report its failure"
+
+
+def test_only_prod_registers_the_scheduled_tasks():
+    """deploy-env.yml serves dev, staging and prod (#338); the task XMLs point at
+    D:\\sydoc\nexora and must be registered by the prod caller alone, or a dev
+    push would re-register the prod monitor with a dev build stamp."""
+    repo = MODULE_PATH.parents[2]
+    caller = (repo / ".github" / "workflows" / "deploy.yml").read_text(encoding="utf-8")
+    reusable = (repo / ".github" / "workflows" / "deploy-env.yml").read_text(encoding="utf-8")
+    assert caller.count("register_tasks: true") == 1
+    assert "if: inputs.register_tasks" in reusable

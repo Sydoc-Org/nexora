@@ -114,5 +114,5 @@ def test_schedule_does_not_collide_with_the_session_prune():
 def test_deploy_registers_this_task():
     """A task XML the deploy never registers is inert -- exactly how the session
     prune shipped and ran zero times (#280)."""
-    workflow = (REPO / ".github" / "workflows" / "deploy.yml").read_text(encoding="utf-8")
+    workflow = (REPO / ".github" / "workflows" / "deploy-env.yml").read_text(encoding="utf-8")
     assert TASK_XML.name in workflow, "the deploy step does not register this task"

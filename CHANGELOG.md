@@ -7,6 +7,15 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Hosted dev and staging environments** (#338) — `dev-nexora.sydoc.ch` (deploys on
+  every non-`main` branch push, `ENVIRONMENT=INT`, INT databases) and
+  `staging-nexora.sydoc.ch` (deploys on merge to `main` and nightly at 01:30,
+  `ENVIRONMENT=STAGING`, `nexora_STAGING`/`Generali_STAGING` re-created from PROD every
+  night by the SQL Agent job in `ops/staging-refresh.sql`). Both are extra endpoints on
+  the existing SYAPP01 ngrok agent. New: `.github/workflows/deploy-env.yml` (reusable
+  deploy), `ops/setup-env.ps1` (one-shot host setup), `scripts/make-staging-env.py`.
+  `scripts/env-sync.py` now manages `INT.env` and `STAGING.env` in their SYAPP01 folders;
+  `DB_GENERALI` is declared in every env example.
 - **The permission audit now catches two reporting-source mistakes** (#332) —
   `scripts/perm-audit.py` (`/nx-perm-audit`) gained two checks, both at profile
   grain because that is what somebody actually clicks:
@@ -181,6 +190,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and nothing bleeds in beside it; the editor preview re-runs on every change.
 
 ### Changed
+- **PROD deploys on a `v*` tag push, not on merge to `main`** (#338); `main` now
+  deploys staging. The deploy steps moved from `deploy.yml` into the reusable
+  `deploy-env.yml`; deploys no longer stop the ngrok service (one agent fronts three
+  sites). `STAGING` is prod-shaped: `IS_PROD` covers it (CSP, `/nexora` prefix,
+  filesystem sessions, `/dev/*` lockout).
 - **Generali tenant DB: translations pivoted, scaffolding removed**
   (#220, phases 5-6) — `dbo.CategoryTranslations` stored a `SourceTable`
   column holding *table names as data*, one row per (term, locale). It is now
@@ -862,6 +876,8 @@ exora\Prune Sessions"
   serves renamed codes for the deploy window and answers 403 — deploy off-hours.
 
 ### Removed
+- The `pull_request` trigger on `deploy.yml` — every branch push runs the fast test
+  tier and its check shows on the PR (#338).
 
 - **`/admin/permission_matrix`** and the Permissions tab on Access Control (both folded into the grid).
 - **Profile-level DENY** (446 semantically empty rows), **the ten

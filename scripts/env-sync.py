@@ -13,7 +13,9 @@ So the useful check is three-way:
   list of keys that *should* exist. A key here but missing on the server is the
   "forgot to add it when deploying" bug.
 * **local** -- `env/PROD.env` in this checkout.
-* **server** -- `\\\\syapp01\\d$\\sydoc\\nexora\\env\\PROD.env`.
+* **server** -- `\\\\syapp01\\d$\\sydoc\\<folder>\\env\\<file>`: the prod folder for
+  PROD.env / CONFLUENCE.env, `nexora-dev` for INT.env, `nexora-staging` for
+  STAGING.env (#338).
 
 Run it by hand once per deploy that touched an env key -- right before or right
 after. It is deliberately not automated and not a hook: it reports, you decide.
@@ -64,11 +66,20 @@ from dotenv import dotenv_values
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 LOCAL_ENV_DIR = REPO_ROOT / "env"
-REMOTE_ENV_DIR = Path(r"\\syapp01\d$\sydoc\nexora\env")
+_SERVER = Path(r"\\syapp01\d$\sydoc")
+# file -> the deploy folder that owns it on SYAPP01. PROD and the Confluence
+# sync live in the prod folder; INT.env feeds the dev host and STAGING.env the
+# staging host (#338). TEST.env is dev/CI-side only.
+MANAGED = {
+    "PROD.env": _SERVER / "nexora" / "env",
+    "CONFLUENCE.env": _SERVER / "nexora" / "env",
+    "INT.env": _SERVER / "nexora-dev" / "env",
+    "STAGING.env": _SERVER / "nexora-staging" / "env",
+}
 
-# Only these live on the server. INT/STAGING/TEST are dev-side, so their absence
-# there is correct, not drift.
-MANAGED = ("PROD.env", "CONFLUENCE.env")
+
+def remote_path(name):
+    return MANAGED[name] / name
 
 
 def fingerprint(value):
@@ -327,13 +338,13 @@ def report(name, show_values, verbose=False):
     """Print the three-way comparison for one env file. True if drift found."""
     example = read_env(LOCAL_ENV_DIR / f"{name}.example")
     local = read_env(LOCAL_ENV_DIR / name)
-    remote = read_env(REMOTE_ENV_DIR / name)
+    remote = read_env(remote_path(name))
 
     print(f"\n=== {name} ===")
     if local is None:
         print(f"  local  : ABSENT ({LOCAL_ENV_DIR / name})")
     if remote is None:
-        print(f"  server : ABSENT ({REMOTE_ENV_DIR / name})")
+        print(f"  server : ABSENT ({remote_path(name)})")
     if example is None:
         print(f"  note   : no committed {name}.example, cannot check for missing keys")
 
@@ -344,7 +355,7 @@ def report(name, show_values, verbose=False):
         print(
             f"  [!] ACTION NEEDED -- {name}.example declares these but the server "
             f"has no such key ({len(f['missing_on_server'])}).\n"
-            f"      Paste onto {REMOTE_ENV_DIR / name} (values are the committed "
+            f"      Paste onto {remote_path(name)} (values are the committed "
             f"defaults; edit if PROD differs):"
         )
         for k in f["missing_on_server"]:
@@ -470,19 +481,19 @@ def main():
     if args.push and args.pull:
         ap.error("--push and --pull are mutually exclusive")
 
-    if not REMOTE_ENV_DIR.exists():
-        print(f"[error] cannot reach {REMOTE_ENV_DIR}")
+    if not _SERVER.exists():
+        print(f"[error] cannot reach {_SERVER}")
         print("        Need the SYAPP01 admin share (VPN / domain credentials).")
         return 2
 
     if args.push or args.pull:
         name = args.push or args.pull
         if name not in MANAGED:
-            ap.error(f"{name} is not managed on the server; expected one of {MANAGED}")
+            ap.error(f"{name} is not managed on the server; expected one of {tuple(MANAGED)}")
         if args.push:
-            ok = copy_with_backup(LOCAL_ENV_DIR / name, REMOTE_ENV_DIR / name, args.yes)
+            ok = copy_with_backup(LOCAL_ENV_DIR / name, remote_path(name), args.yes)
         else:
-            ok = copy_with_backup(REMOTE_ENV_DIR / name, LOCAL_ENV_DIR / name, args.yes)
+            ok = copy_with_backup(remote_path(name), LOCAL_ENV_DIR / name, args.yes)
         if not ok:
             return 1
         report(name, args.show_values, args.verbose)

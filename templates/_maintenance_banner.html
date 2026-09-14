@@ -45,7 +45,7 @@
 (function() {
     if (window.__maintenanceBannerInit) return;
     window.__maintenanceBannerInit = true;
-    const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+    const API_PREFIX = window.location.pathname.split("/")[1] === "nexora" ? "/nexora/" : "/";
     const SEVERITY_ICON = { info: 'fa-circle-info', warning: 'fa-triangle-exclamation', critical: 'fa-circle-exclamation' };
     const banner = document.getElementById('maintenance-banner');
     if (!banner) return;

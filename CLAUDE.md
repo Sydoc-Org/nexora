@@ -14,10 +14,10 @@ Nexora is a Flask web application (Python 3, WSGI) deployed on Windows/IIS, whic
 
 ## Environment & running
 
-- `ENVIRONMENT` (`INT` or `PROD`) selects the env file; `nx_lib/config.py` loads `env/{ENVIRONMENT}.env`. Sanitised templates: `env/*.env.example`.
+- `ENVIRONMENT` (`INT`, `STAGING`, `PROD`, or `TEST` for pytest) selects the env file; `nx_lib/config.py` loads `env/{ENVIRONMENT}.env`. Sanitised templates: `env/*.env.example`.
 - **Local dev:** `.venv` via `uv venv && uv sync` (or `bootstrap.ps1`), `ENVIRONMENT=INT`, `.venv\Scripts\python.exe nx_main.py`. WSGI handler is `nx_main.app`. `requirements*.txt` are generated from `uv.lock` for the IIS deploy path — never install from them locally. Full setup: `CONTRIBUTING.md`.
 - **Production:** IIS + HttpPlatformHandler → `waitress` (32 threads). `web.config` is the whole hosting contract — it starts waitress, sets `ENVIRONMENT=PROD` / `PYTHONPATH`, trusts `X-Forwarded-For`, logs stdout to `var/logs/system/waitress-stdout*`. Note `path="*"`: **waitress serves `/static`, not IIS**. See `docs/howto/iis.md`. (`wfastcgi` retired in v3.2.3.)
-- **Public tunnel** (SYAPP01 only): ngrok today (`docs/howto/ngrok.md`), Cloudflare Tunnel prepared, cutover pending (`docs/howto/cloudflare-tunnel.md`).
+- **Hosted envs (SYAPP01):** `dev-nexora.sydoc.ch` (any branch push, `INT`, INT DBs) · `staging-nexora.sydoc.ch` (`main` + 01:30 nightly, `STAGING`, nightly PROD-copy DBs `nexora_STAGING`/`Generali_STAGING` on PRDSQL01) · `nexora.sydoc.ch` (`v*` tag, `PROD`). One ngrok agent fronts all three (`docs/howto/ngrok.md`); host setup `ops/setup-env.ps1`; DB refresh `ops/staging-refresh.sql`. Cloudflare Tunnel is parked (`docs/howto/cloudflare-tunnel.md`). `IS_PROD` is true for `STAGING` too.
 
 ## Databases
 
@@ -47,16 +47,16 @@ SQLAlchemy engines with pyodbc, defined in `nx_lib/db.py`. Credentials come from
 - New change → new file `sql/_migrations/<Db>/NNNN_short_description.sql`, `GO`-separated, ideally idempotent.
 - `scripts/db-migrate.py` applies pending migrations and records them in `dbo.SchemaMigrations`; `sql/sync-from-db.py` re-dumps INT read-only.
 - The `sql-migrate-int` + `sql-sync-check` pre-commit hooks auto-apply to INT and block the commit on drift. Escape hatch: `SQL_SYNC_SKIP=1 git commit`.
-- Pushing to `main` makes `deploy.yml` apply pending migrations to PROD **before** the app pool stops.
+- Merging to `main` applies pending migrations to **STAGING**; pushing a `v*` tag applies them to **PROD** — both **before** the app pool stops. STAGING is rebuilt from PROD nightly, so it rehearses every pending migration each night.
 - Migrations are immutable once applied — to undo one, add another.
 
 **Full walkthrough, flag reference, recipes, troubleshooting: `docs/howto/db-migrations.md`.**
 
 ## Deploy artifacts
 
-`deploy.yml` mirrors the repo to `D:\sydoc\nexora` with `robocopy /MIR` after stopping the app pool. Runtime needs only `nx_main.py`, `nx_lib/`, `templates/`, `static/`, `translations/`, `web.config`.
+`deploy-env.yml` (reusable, called per environment by `deploy.yml`) mirrors the repo to the target folder (`D:\sydoc\nexora`, `-staging`, `-dev`) with `robocopy /MIR` after stopping that folder's app pool. Runtime needs only `nx_main.py`, `nx_lib/`, `templates/`, `static/`, `translations/`, `web.config`.
 
-**Rule:** committing a new top-level file or directory the running app does **not** need? Add it to the robocopy exclude list in `deploy.yml` — `/XF` for files, `/XD` for directories. `/MIR` would otherwise sync it into prod.
+**Rule:** committing a new top-level file or directory the running app does **not** need? Add it to the robocopy exclude list in `deploy-env.yml` — `/XF` for files, `/XD` for directories. `/MIR` would otherwise sync it into prod.
 
 ## Keeping docs in sync
 
@@ -68,10 +68,11 @@ Documentation is part of the change, not a follow-up. Add, rename, or remove a C
 - **Confluence:** `docs/howto/*`, `docs/design/*`, `README.md`, `CONTRIBUTING.md`, `CHANGELOG.md` auto-publish on push to `main`. Never edit those pages in Confluence — the sync overwrites them.
 
 **The footer is how you tell what PROD is running** — `nexora v{{ nexora_version }}`
-plus the deploy's build stamp (short SHA + UTC date, written by `deploy.yml`).
-Every merge to `main` deploys, but the version only moves when someone cuts a
-release, so between releases the **build stamp** is what identifies the running
-code, not the version. If you need PROD to *name* a new release, bump
+plus the deploy's build stamp (short SHA + UTC date, written by `deploy-env.yml`;
+dev/staging also show the ref). Every merge to `main` deploys **staging**; PROD
+moves only when someone pushes a `v*` tag, so the tag is both the release and the
+PROD deploy, and the **build stamp** is what identifies the running code on each
+host. To cut a release, bump
 `nx_lib/version.py` + `pyproject.toml`, run `uv lock` (all three must agree or
 `tests/unit/test_version.py` fails), fold `[Unreleased]` into a dated section,
 merge, then tag. **Recipe: `CONTRIBUTING.md` → "Releases".**

@@ -1,10 +1,19 @@
 name: Deploy
+# Three hosted environments (#338):
+#   any branch push  -> fast tests -> deploy DEV     (D:\sydoc\nexora-dev,     ENVIRONMENT=INT)
+#   push to main     -> fast tests -> deploy STAGING (D:\sydoc\nexora-staging, ENVIRONMENT=STAGING)
+#   v* tag push      -> fast tests -> deploy PROD    (D:\sydoc\nexora,         ENVIRONMENT=PROD)
+# The deploy steps live in deploy-env.yml (reusable); the callers are at the
+# bottom of this file. No pull_request trigger: every branch push already runs
+# the fast tier and its check shows on the PR.
 on:
   push:
-    branches: [main]
+    branches: ["**"]
+    tags: ["v*"]
     # Inert-file changes skip the whole pipeline: docs/, *.md and .claude/
     # are all excluded from the robocopy mirror, so there is nothing to test
-    # or deploy. Mixed pushes (code + docs) still run everything.
+    # or deploy. Mixed pushes (code + docs) still run everything. (GitHub
+    # ignores paths filters for tag pushes -- a release always runs.)
     # Exception: docs/howto/reporting-guide.md IS runtime content (served
     # in-app at /reporting/guide), so it is re-included after the negations
     # (paths patterns: last match wins).
@@ -15,29 +24,24 @@ on:
       - "!.claude/**"
       - "!.claudeignore"
       - "docs/howto/reporting-guide.md"
-  pull_request:
-    branches: [main]
-    paths:
-      - "**"
-      - "!docs/**"
-      - "!**.md"
-      - "!.claude/**"
-      - "!.claudeignore"
-      - "docs/howto/reporting-guide.md"
-  # e2e cadence: nightly on main and on demand (Actions -> Deploy -> Run
-  # workflow), not on every PR -- see the "Run E2E tests" step.
   schedule:
+    # 01:30 daily: redeploy main to STAGING after the 01:00 DB refresh on
+    # PRDSQL01 (ops/staging-refresh.sql) so pending migrations are re-applied
+    # to the freshly restored copy -- #338.
+    - cron: "30 1 * * *"
+    # e2e cadence: nightly on main and on demand (Actions -> Deploy -> Run
+    # workflow), not on every push -- see the "Run E2E tests" step.
     - cron: "0 3 * * 1-5"
   workflow_dispatch:
 
 jobs:
   test:
     runs-on: self-hosted
-    # A newer push/PR-update supersedes a still-running test job — cancel it.
+    # A newer push to the same ref supersedes a still-running test job — cancel it.
     # Never applied to the deploy job: cancelling mid-robocopy would leave
     # PROD half-mirrored.
     concurrency:
-      group: test-${{ github.event.pull_request.number || github.ref }}
+      group: test-${{ github.ref }}
       cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4
@@ -92,7 +96,7 @@ jobs:
         run: D:\sydoc\tools\py\python.exe -m mypy nx_lib nx_main.py
 
       - name: Install Playwright chromium
-        if: github.event_name == 'pull_request'
+        if: github.event.schedule == '0 3 * * 1-5' || github.event_name == 'workflow_dispatch'
         shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'
@@ -128,7 +132,8 @@ jobs:
       # a trivial unit failure surfaced last. Fast tier covers everything
       # except tests/e2e (including root-level test files).
       #
-      # The fast tier runs on every event; e2e is nightly / on demand (see its `if`).
+      # The fast tier runs on every event (incl. the 01:30 staging redeploy);
+      # e2e is the 03:00 cron / on demand only (see its `if`).
       - name: Run unit + integration tests
         shell: powershell
         env:
@@ -149,7 +154,7 @@ jobs:
       # forward. The step has a hard timeout: a hung browser used to hold the
       # database lock for hours and stall every other push and CI run.
       - name: Run E2E tests
-        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        if: github.event.schedule == '0 3 * * 1-5' || github.event_name == 'workflow_dispatch'
         timeout-minutes: 25
         shell: powershell
         env:
@@ -170,303 +175,49 @@ jobs:
           path: var/test-results/
           if-no-files-found: warn
 
-  deploy:
+  # Deploys queue, never cancel — cancelling mid-robocopy would leave a host
+  # half-mirrored. One concurrency group per environment.
+
+  # dev = whatever topic branch was pushed last (#338)
+  deploy-dev:
     needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: self-hosted
-    # Deploys queue, never cancel — see the test job's concurrency note.
+    if: github.event_name == 'push' && github.ref_type == 'branch' && github.ref != 'refs/heads/main'
+    concurrency:
+      group: dev-deploy
+      cancel-in-progress: false
+    uses: ./.github/workflows/deploy-env.yml
+    with:
+      env_name: INT
+      deploy_dir: 'D:\sydoc\nexora-dev'
+      app_pool: nexora-dev
+
+  # staging = main, plus the nightly redeploy after the DB refresh. The schedule
+  # event checks out the default branch, so it always redeploys main.
+  deploy-staging:
+    needs: test
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'schedule' && github.event.schedule == '30 1 * * *')
+    concurrency:
+      group: staging-deploy
+      cancel-in-progress: false
+    uses: ./.github/workflows/deploy-env.yml
+    with:
+      env_name: STAGING
+      deploy_dir: 'D:\sydoc\nexora-staging'
+      app_pool: nexora-staging
+
+  # prod = a v* tag (CONTRIBUTING.md -> Releases). Only prod registers the
+  # Windows scheduled tasks.
+  deploy-prod:
+    needs: test
+    if: github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, 'v')
     concurrency:
       group: prod-deploy
       cancel-in-progress: false
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Verify prod env files
-        shell: powershell
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $deployDir = "D:\sydoc\nexora"
-          # The root-level .env stays put — it is the env-selector that
-          # sets ENVIRONMENT=PROD so the loader picks the right secrets file.
-          $envFile = "$deployDir\.env"
-          # PROD.env moved into env/ in PR 8 of the dev-env upgrade. The
-          # loader in nx_lib/config.py still has a one-release fallback to
-          # the legacy root location (emits a DeprecationWarning), so a
-          # missed move on SYAPP01 won't take the site down.
-          $prodEnvFile = "$deployDir\env\PROD.env"
-          $legacyProdEnvFile = "$deployDir\PROD.env"
-
-          if (-not (Test-Path $envFile)) {
-            throw "Aborting deploy: $envFile not found."
-          }
-          $envLine = Get-Content $envFile | Where-Object { $_ -match '^\s*ENVIRONMENT\s*=' } | Select-Object -First 1
-          if ($envLine -notmatch '^\s*ENVIRONMENT\s*=\s*"?PROD"?\s*$') {
-            throw "Aborting deploy: $envFile must contain 'ENVIRONMENT=PROD'. Found: '$envLine'"
-          }
-          Write-Host "Verified: $envFile has ENVIRONMENT=PROD"
-
-          if (Test-Path $prodEnvFile) {
-            Write-Host "Verified: $prodEnvFile exists"
-          } elseif (Test-Path $legacyProdEnvFile) {
-            Write-Warning "PROD.env is still at the legacy root location ($legacyProdEnvFile). Move it to $prodEnvFile to silence the DeprecationWarning the app emits at startup."
-          } else {
-            throw "Aborting deploy: neither $prodEnvFile nor $legacyProdEnvFile exists. The app will fail to load secrets without one of them."
-          }
-
-      # MUST stay ahead of "Apply DB migrations to PROD". Migrations commit to
-      # the production database; every step after them either finishes the
-      # deploy or strands PROD with its schema ahead of its code. That is what
-      # happened on 2026-08-27 (#228): this preflight failed *after* 0070-0081
-      # had applied, the code sync was skipped, and the tables 0075 renamed took
-      # the running app down until synonyms were added by hand. Anything that
-      # can abort a deploy belongs in front of the migration step.
-      - name: Preflight IIS host (HttpPlatformHandler + waitress)
-        shell: powershell
-        run: |
-          $ErrorActionPreference = 'Stop'
-          # web.config hands the site to IIS's HttpPlatformHandler, which runs
-          # waitress from the prod interpreter. Both are host installs (not in
-          # git); a missing one would 500 the whole site the moment robocopy
-          # lands, so fail here while the old app is still serving.
-          # Setup: docs/howto/iis.md.
-          Import-Module WebAdministration
-          if (-not (Get-WebGlobalModule | Where-Object Name -eq 'httpPlatformHandler')) {
-            throw "IIS module 'httpPlatformHandler' is not installed on SYAPP01 -- install HttpPlatformHandler v1.2 x64 (docs/howto/iis.md) before deploying."
-          }
-          D:\sydoc\tools\py\python.exe -c "import waitress, importlib.metadata as md; print('waitress', md.version('waitress'))"
-          if ($LASTEXITCODE -ne 0) {
-            throw "waitress is not importable from D:\sydoc\tools\py -- the 'pip install -r requirements.txt' step above should have installed it."
-          }
-
-      # db-migrate.py checksums raw file bytes; the persistent runner can carry
-      # CRLF .sql from before *.sql got `text eol=lf`, which makes an
-      # already-applied migration look "edited" and aborts the migrate step.
-      # Re-normalise to LF first (same reason as the .py step in the test job).
-      - name: Normalize SQL line endings to LF
-        shell: powershell
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
-          Get-ChildItem -Path sql -Recurse -Include *.sql | ForEach-Object {
-            $text = [System.IO.File]::ReadAllText($_.FullName, $utf8NoBom)
-            $normalized = $text -replace "`r`n", "`n"
-            if ($normalized -ne $text) {
-              [System.IO.File]::WriteAllText($_.FullName, $normalized, $utf8NoBom)
-              Write-Host "  fixed: $($_.FullName)"
-            }
-          }
-
-      - name: Apply DB migrations to PROD
-        shell: powershell
-        run: |
-          $ErrorActionPreference = 'Stop'
-          # Runs BEFORE the app pool stop so a failed migration leaves the
-          # existing app serving old code on old schema -- nothing breaks.
-          # The runner reads env/PROD.env from CWD; PROD.env lives at the
-          # deploy target (gitignored), so copy it into the workspace's
-          # env/ temporarily. Fall back to the legacy root location if PR 8
-          # files haven't been moved on SYAPP01 yet.
-          $envSrcNew = "D:\sydoc\nexora\env\PROD.env"
-          $envSrcLegacy = "D:\sydoc\nexora\PROD.env"
-          $envDst = "${{ github.workspace }}\env\PROD.env"
-          if (Test-Path $envSrcNew) {
-            Copy-Item $envSrcNew $envDst -Force
-          } elseif (Test-Path $envSrcLegacy) {
-            Write-Warning "Using legacy PROD.env at $envSrcLegacy (move it to $envSrcNew to silence the DeprecationWarning)."
-            Copy-Item $envSrcLegacy $envDst -Force
-          } else {
-            throw "Neither $envSrcNew nor $envSrcLegacy exists on SYAPP01."
-          }
-          # The runner service inherits the System PATH from when it was last
-          # started. If SqlCmd was added after that, shutil.which("sqlcmd") in
-          # db-migrate.py returns None until the runner service is restarted.
-          # Prepend the well-known install dir defensively (db-migrate.py also
-          # has an in-Python fallback for the same reason).
-          $env:PATH = "C:\Program Files\SqlCmd;$env:PATH"
-          try {
-            D:\sydoc\tools\py\python.exe scripts/db-migrate.py --env PROD --yes
-          } finally {
-            Remove-Item $envDst -Force -ErrorAction SilentlyContinue
-          }
-
-      - name: Stop app pool and service
-        shell: powershell
-        run: |
-          $ErrorActionPreference = 'Stop'
-          Import-Module WebAdministration
-
-          $pool = "DefaultAppPool"
-          Write-Host "App pool '$pool' initial state: $((Get-WebAppPoolState -Name $pool).Value)"
-
-          # Wait out any in-flight transition so we don't hit 0x80070425
-          $deadline = (Get-Date).AddSeconds(60)
-          while ((Get-WebAppPoolState -Name $pool).Value -in @('Starting','Stopping')) {
-            if ((Get-Date) -gt $deadline) {
-              throw "App pool '$pool' stuck in transition: $((Get-WebAppPoolState -Name $pool).Value)"
-            }
-            Start-Sleep -Seconds 2
-          }
-
-          if ((Get-WebAppPoolState -Name $pool).Value -eq 'Started') {
-            Stop-WebAppPool -Name $pool
-          }
-
-          # Block until w3wp.exe has actually exited and handles are released
-          $deadline = (Get-Date).AddSeconds(120)
-          while ((Get-WebAppPoolState -Name $pool).Value -ne 'Stopped') {
-            if ((Get-Date) -gt $deadline) {
-              throw "App pool '$pool' did not stop within 120s (state: $((Get-WebAppPoolState -Name $pool).Value))"
-            }
-            Start-Sleep -Seconds 2
-          }
-          Write-Host "App pool '$pool' is Stopped."
-
-          # Tunnel-agnostic (ngrok today, cloudflared after the Cloudflare
-          # Tunnel cutover -- docs/howto/cloudflare-tunnel.md): stop whichever
-          # public-tunnel services exist so no traffic hits the site mid-mirror.
-          foreach ($tunnel in @('ngrok', 'cloudflared')) {
-            $svc = Get-Service -Name $tunnel -ErrorAction SilentlyContinue
-            if ($svc -and $svc.Status -ne 'Stopped') {
-              Stop-Service -Name $tunnel -Force
-              $svc.WaitForStatus('Stopped', '00:01:00')
-            }
-            if ($svc) { Write-Host "Service '$tunnel' is Stopped." }
-          }
-      - name: Sync to deploy folder
-        shell: powershell
-        run: |
-          robocopy "${{ github.workspace }}" "D:\sydoc\nexora" /MIR /R:3 /W:2 `
-            /XD .git .github .claude .claude-flow .gitnexus .playwright-mcp .superpowers .swarm .vscode .idea __pycache__ var bin session logs uploads screenshots backups scripts sql tests test-results docs tools `
-            /XF *.env *.env.example ngrok.yaml .gitignore .claudeignore .mcp.json AGENTS.md CLAUDE.md nx.ps1 babel.cfg messages.pot requirements.txt requirements-dev.txt requirements-confluence.txt README.md pyproject.toml .editorconfig .gitattributes .gitlint .pre-commit-config.yaml .python-version bootstrap.ps1 CHANGELOG.md CONTRIBUTING.md LICENSE uv.lock
-          if ($LASTEXITCODE -ge 8) { exit $LASTEXITCODE }
-          # /XF excludes *.env.example from being copied AND from being purged,
-          # so any *.env.example already on SYAPP01 from earlier deploys would
-          # stay forever. Sweep them: prod only needs PROD.env in env/.
-          Remove-Item "D:\sydoc\nexora\env\*.env.example" -Force -ErrorAction SilentlyContinue
-          # Same reasoning for dev-only root files added to /XF after they had
-          # already been deployed by an earlier run -- one-time orphan sweep.
-          foreach ($f in '.editorconfig','.gitattributes','.gitlint','.pre-commit-config.yaml','.python-version','bootstrap.ps1','CHANGELOG.md','CONTRIBUTING.md','LICENSE','uv.lock') {
-            Remove-Item "D:\sydoc\nexora\$f" -Force -ErrorAction SilentlyContinue
-          }
-          # The reporting user guide is runtime content: nx_lib/views/reporting.py
-          # reads it and serves it at /reporting/guide. docs/ stays excluded from
-          # the mirror above (and /XD dirs are never purged), so copy just this
-          # one file explicitly.
-          robocopy "${{ github.workspace }}\docs\howto" "D:\sydoc\nexora\docs\howto" reporting-guide.md /R:3 /W:2
-          if ($LASTEXITCODE -ge 8) { exit $LASTEXITCODE }
-          # Sweep dev-only var/ subdirs left behind by older Flask startups
-          # (nx_lib/config.py used to mkdir them unconditionally). Only delete
-          # if empty so we never touch user data.
-          foreach ($d in 'screenshots','backups','test-results') {
-            $p = "D:\sydoc\nexora\var\$d"
-            if ((Test-Path $p) -and ((Get-ChildItem -LiteralPath $p -Force -ErrorAction SilentlyContinue).Count -eq 0)) {
-              Remove-Item -LiteralPath $p -Force
-            }
-          }
-          # Build stamp: the footer otherwise shows the source version only, so a
-          # deploy that silently failed to land looks identical to one that did.
-          # Written AFTER robocopy because /MIR purges anything not in git.
-          # ASCII only -- `shell: powershell` is 5.1, whose default file encoding
-          # is ANSI, and a mojibake separator would land in every page footer.
-          $sha = "${{ github.sha }}".Substring(0, 7)
-          $built = (Get-Date).ToUniversalTime().ToString('yyyy-MM-dd')
-          Set-Content -Path "D:\sydoc\nexora\nx_lib\_build.py" -Encoding ASCII `
-            -Value "BUILD_STAMP = `"$sha, $built`""
-          exit 0
-
-      - name: Start app pool and service
-        shell: powershell
-        run: |
-          $ErrorActionPreference = 'Stop'
-          Import-Module WebAdministration
-
-          $pool = "DefaultAppPool"
-          # Defensive: don't issue Start while in a transition
-          $deadline = (Get-Date).AddSeconds(60)
-          while ((Get-WebAppPoolState -Name $pool).Value -in @('Starting','Stopping')) {
-            if ((Get-Date) -gt $deadline) {
-              throw "App pool '$pool' stuck in transition: $((Get-WebAppPoolState -Name $pool).Value)"
-            }
-            Start-Sleep -Seconds 2
-          }
-
-          if ((Get-WebAppPoolState -Name $pool).Value -eq 'Stopped') {
-            Start-WebAppPool -Name $pool
-          }
-
-          $deadline = (Get-Date).AddSeconds(60)
-          while ((Get-WebAppPoolState -Name $pool).Value -ne 'Started') {
-            if ((Get-Date) -gt $deadline) {
-              throw "App pool '$pool' did not start within 60s (state: $((Get-WebAppPoolState -Name $pool).Value))"
-            }
-            Start-Sleep -Seconds 2
-          }
-          Write-Host "App pool '$pool' is Started."
-
-          foreach ($tunnel in @('ngrok', 'cloudflared')) {
-            if (Get-Service -Name $tunnel -ErrorAction SilentlyContinue) {
-              Start-Service -Name $tunnel
-              (Get-Service -Name $tunnel).WaitForStatus('Running', '00:01:00')
-              Write-Host "Service '$tunnel' is Running."
-            }
-          }
-
-      # Scheduled maintenance jobs. Robocopy mirrors the task XMLs but Windows
-      # does not read them off disk -- a task only exists once it is registered,
-      # so before this step every definition needed a human to remember to
-      # import it. #227 shipped the prune that way and it ran zero times: the
-      # XML sat in D:\sydoc\nexora\ops\cleanup for twelve hours while
-      # dbo.ActiveSessions kept growing. The outage monitor had the same latent
-      # gap -- registered today, but a rebuilt SYAPP01 would have lost it
-      # silently, and nobody notices a monitor that stopped watching.
-      #
-      # Runs LAST, after the pool and tunnels are up, because registering a task
-      # has nothing to do with serving requests: a failure here must be loud
-      # without holding the site down. It throws rather than warns, since a
-      # silently unregistered task is the bug being closed.
-      #
-      # /f overwrites an existing task, which makes the step idempotent -- and
-      # also means a task an admin deliberately disabled comes back on the next
-      # deploy. That is the intended direction (the repo is the source of truth
-      # for what should be scheduled); to stop a job for good, remove its XML.
-      - name: Register scheduled tasks
-        shell: powershell
-        run: |
-          $ErrorActionPreference = 'Stop'
-
-          $tasks = @(
-            @{ Name = '\sydoc\nexora\Outage Monitor'
-               Xml  = 'D:\sydoc\nexora\ops\outage-monitor-task.xml' },
-            @{ Name = '\sydoc\nexora\Prune Sessions'
-               Xml  = 'D:\sydoc\nexora\ops\cleanup\prune-active-sessions-task.xml' },
-            @{ Name = '\sydoc\nexora\Prune Request Log'
-               Xml  = 'D:\sydoc\nexora\ops\cleanup\prune-request-log-task.xml' }
-          )
-
-          $failed = @()
-          foreach ($t in $tasks) {
-            if (-not (Test-Path -LiteralPath $t.Xml)) {
-              $failed += "$($t.Name): definition not found at $($t.Xml)"
-              continue
-            }
-            # schtasks is a native exe: check $LASTEXITCODE, not $?. Do not
-            # redirect its stderr -- in PS 5.1 that turns output into
-            # NativeCommandError records even on a zero exit.
-            schtasks /create /xml $t.Xml /tn $t.Name /f
-            if ($LASTEXITCODE -ne 0) {
-              $failed += "$($t.Name): schtasks /create exited $LASTEXITCODE"
-              continue
-            }
-            # Registering and being registered are different claims; verify.
-            schtasks /query /tn $t.Name /fo LIST | Out-Null
-            if ($LASTEXITCODE -ne 0) {
-              $failed += "$($t.Name): created but /query exited $LASTEXITCODE"
-              continue
-            }
-            Write-Host "Registered scheduled task: $($t.Name)"
-          }
-
-          if ($failed.Count -gt 0) {
-            throw ("scheduled task registration failed -- " + ($failed -join '; '))
-          }
-          Write-Host "All $($tasks.Count) scheduled task(s) registered."
+    uses: ./.github/workflows/deploy-env.yml
+    with:
+      env_name: PROD
+      deploy_dir: 'D:\sydoc\nexora'
+      app_pool: DefaultAppPool
+      register_tasks: true

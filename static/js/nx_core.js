@@ -17,12 +17,14 @@
 
     // ---- API_PREFIX --------------------------------------------------------
     // Canonical idiom used across ~40 inline script shims: PROD serves nexora
-    // under "/nexora/" (PrefixMiddleware), everything else under "/". Compute
+    // under "/nexora/" (PrefixMiddleware), everything else under "/". Decide by
+    // the first PATH segment, never by the hostname: dev-nexora.sydoc.ch contains
+    // "nexora" too and serves at "/" (#338). Compute
     // it once, here, first -- every later `const API_PREFIX = window.API_PREFIX
     // || (...)` copy just picks up this value, and _workitem_detail_panel_js.html
     // already reads window.API_PREFIX directly.
     var API_PREFIX = window.API_PREFIX ||
-        (window.location.href.includes('nexora') ? '/nexora/' : '/');
+        (window.location.pathname.split('/')[1] === 'nexora' ? '/nexora/' : '/');
     window.API_PREFIX = API_PREFIX;
 
     function csrfToken() {

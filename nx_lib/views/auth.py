@@ -616,7 +616,16 @@ def _dev_route_forbidden():
     still works while remote callers are refused."""
     if IS_PROD:
         return True
-    return request.remote_addr not in ("127.0.0.1", "::1")
+    # Belt and braces (#338): on the hosted dev instance IIS is the socket peer,
+    # so remote_addr alone read as loopback and the public host handed out
+    # passwordless sessions. A proxied request always carries X-Forwarded-For
+    # and never a loopback Host; local `nx --loginas` hits 127.0.0.1 directly.
+    loopback = ("127.0.0.1", "::1", "localhost")
+    if request.remote_addr not in loopback:
+        return True
+    if "X-Forwarded-For" in request.headers:
+        return True
+    return request.host.rsplit(":", 1)[0].strip("[]") not in loopback
 
 
 def dev_login(username):
