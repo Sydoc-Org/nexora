@@ -14,7 +14,7 @@ import argparse
 import importlib.util
 import re
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
 
@@ -44,6 +44,17 @@ _TENANT_RE = re.compile(r"^tenant\.([^.]+)\.")
 # Built at runtime from the profile name / dbo.ReportingSources.Permission: never a literal in code.
 _DYNAMIC_RE = re.compile(r"^(admin\.assign\.user\.accessprofile|reporting\.source)\.")
 
+# A curated reporting source names its customer in front of an em dash --
+# "Privera — Posteingang", "Compass Group — Verrechnung". That prefix is the
+# only place the ownership is written down: nothing in dbo.ReportingSources
+# records an OrganizationCode. The dash must be an em/en dash with spaces
+# around it, never a plain hyphen -- "Elektro-Material" carries one inside
+# the name itself.
+# Spelled as escapes rather than pasted in: ruff reads a bare em dash in source
+# as a mistyped hyphen (RUF001), which is a fair warning everywhere but here.
+_DASHES = "\u2014\u2013"  # em dash, en dash
+_SOURCE_OWNER_RE = re.compile(rf"^(.+?)\s+[{_DASHES}]\s+")
+
 
 @dataclass
 class Snapshot:
@@ -57,6 +68,9 @@ class Snapshot:
     effective: dict  # user_id -> set(code) from spGetUserPermissions
     process_org: dict  # "<client>.<name>" -> org_code
     corpus: str  # nx_lib + templates + static/js concatenated
+    # permission code -> label, from dbo.ReportingSources. Defaulted so a
+    # database without that table (or an older caller) still audits.
+    sources: dict = field(default_factory=dict)
 
 
 def code_owner(code: str, process_org: dict, org_by_label: dict):
@@ -79,6 +93,41 @@ def code_owner(code: str, process_org: dict, org_by_label: dict):
     return None
 
 
+def _slug(v: str) -> str:
+    return re.sub(r"[^a-z0-9]", "", (v or "").lower())
+
+
+def source_owner(label: str, org_by_label: dict):
+    """Which org a reporting source belongs to, read off its label prefix.
+
+    None when the label names no customer ("Workitems (Octo)") or names one with
+    no Organizations row (Bucherer, Frigemo, Aveniq, MediaMarkt). None means
+    *unknown*, never *safe* -- callers must not raise a finding on it.
+
+    Prefix matching runs both ways because neither side is canonical: the org is
+    "Compass" where the source says "Compass Group", and the org is "sydoc AG"
+    where the source says "Sydoc". Guarded at 5 characters so a four-letter org
+    code cannot swallow an unrelated name.
+    """
+    m = _SOURCE_OWNER_RE.match(label or "")
+    if not m:
+        return None
+    name = _slug(m.group(1))
+    if not name:
+        return None
+    for key, org in org_by_label.items():
+        k = _slug(key)
+        if not k:
+            continue
+        if (
+            k == name
+            or (len(k) >= 5 and name.startswith(k))
+            or (len(name) >= 5 and k.startswith(name))
+        ):
+            return org
+    return None
+
+
 def audit(s: Snapshot) -> dict:
     out = {
         k: []
@@ -86,6 +135,8 @@ def audit(s: Snapshot) -> dict:
             "Cross-organization grants",
             "Profile does not match organization",
             "Customers holding admin codes",
+            "Dormant reporting-source grants",
+            "Reporting sources of another customer",
             "Override noise",
             "Housekeeping",
         )
@@ -98,6 +149,11 @@ def audit(s: Snapshot) -> dict:
 
     def tenant_of(org):
         return (s.orgs.get(org) or (None, None))[1] or _LEGACY_TENANT_OF_ORG.get(org)
+
+    # The vendor's own tenant, derived rather than written down: every customer
+    # served directly by sydoc lands in it, so two orgs sharing it are unrelated
+    # to each other. Used by the reporting-source rules below.
+    vendor_tenant = next((t for o in STAFF_ORGS if (t := tenant_of(o))), None)
 
     for uid, username, access_id, org in s.users:
         pname, porg = s.profiles.get(access_id, (None, None))
@@ -135,6 +191,54 @@ def audit(s: Snapshot) -> dict:
                 )
         else:
             out["Housekeeping"].append(f"- {who}: accessid {access_id} matches no profile")
+
+    # Reporting-source grants are audited per *profile*, not per user: that is
+    # the grain somebody actually clicks, and both faults below are properties of
+    # the profile rather than of whoever happens to sit in it.
+    for aid, (pname, porg) in sorted(s.profiles.items(), key=lambda kv: kv[1][0] or ""):
+        grants = s.profile_grants.get(aid, set())
+        held = sorted(c for c in grants if c in s.sources)
+        if not held:
+            continue
+
+        # A source grant without reporting.view does nothing today, which is
+        # exactly what makes it dangerous: it is invisible in use, and it goes
+        # live the moment somebody grants reporting.view for an unrelated reason.
+        if "reporting.view" not in grants:
+            out["Dormant reporting-source grants"].append(
+                f"- **{pname}**: holds "
+                + ", ".join(f"`{c}`" for c in held)
+                + " without `reporting.view` -- dormant now, live the moment anyone"
+                + " grants that profile reporting access"
+            )
+
+        # The table provider applies no row scoping, so the source permission is
+        # the whole gate. A customer profile holding another customer's source is
+        # therefore the real cross-tenant case, not a tidiness question.
+        if porg and pname not in STAFF_PROFILES:
+            foreign = []
+            for code in held:
+                owner = source_owner(s.sources[code], org_by_label)
+                if owner is None or owner == porg:
+                    continue
+                owner_tenant, profile_tenant = tenant_of(owner), tenant_of(porg)
+                # Sharing a tenant is only evidence of a shared product, and only
+                # outside the vendor's own tenant. ISS and Generali sit in the
+                # generali tenant and read each other's sources by design. But
+                # Privera, Compass and Elektro-Material all sit in *sydoc* --
+                # that says they are the vendor's customers, not that they are
+                # one another's, so it must not excuse anything.
+                if (
+                    owner_tenant is not None
+                    and owner_tenant == profile_tenant
+                    and owner_tenant != vendor_tenant
+                ):
+                    continue
+                foreign.append(f"`{code}` (belongs to {owner})")
+            if foreign:
+                out["Reporting sources of another customer"].append(
+                    f"- **{pname}** ({porg}): " + ", ".join(foreign)
+                )
 
     grants_of_user = {uid: s.profile_grants.get(aid, set()) for uid, _, aid, _ in s.users}
     name_of_user = {uid: u for uid, u, _, _ in s.users}
@@ -254,6 +358,12 @@ def snapshot(cur) -> Snapshot:
     process_org = {
         r[0]: r[1] for r in rows(f"SELECT ProcessName, {ps_org} FROM dbo.ProcessSources") if r[1]
     }
+    sources = {}
+    if rows("SELECT OBJECT_ID('dbo.ReportingSources')")[0][0] is not None:
+        sources = {
+            r[0]: r[1]
+            for r in rows("SELECT Permission, Label FROM dbo.ReportingSources WHERE Enabled = 1")
+        }
     effective = {}
     for uid, *_ in users:
         effective[uid] = {r[0] for r in rows("EXEC dbo.spGetUserPermissions ?", uid)}
@@ -263,7 +373,17 @@ def snapshot(cur) -> Snapshot:
         for p in REPO_ROOT.glob(pattern)
     )
     return Snapshot(
-        orgs, profiles, codes, grants, deny_rows, overrides, users, effective, process_org, corpus
+        orgs,
+        profiles,
+        codes,
+        grants,
+        deny_rows,
+        overrides,
+        users,
+        effective,
+        process_org,
+        corpus,
+        sources,
     )
 
 
