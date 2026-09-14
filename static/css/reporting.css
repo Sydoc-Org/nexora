@@ -1050,6 +1050,18 @@ body.nx-app {
   color: var(--nx-text-sec); margin-top: 12px; margin-bottom: 8px;
 }
 .reporting-simple-inline { display: inline-flex; align-items: center; gap: 10px; margin-top: 18px; font-size: 13px; font-weight: 600; color: var(--nx-text-sec); }
+/* The hint under each question ("Pick one or more ...") had no rule at all, so
+   it inherited 16px body text in the primary colour and the global `p` reset's
+   zero margin. It came out *larger and louder than the answers it explains*
+   and glued to the last row of chips. Smaller, muted and set below the answers
+   it belongs to -- the same 13px/secondary treatment as
+   `.reporting-simple-empty`. */
+.reporting-simple-hint {
+  margin: 16px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--nx-text-sec);
+}
 .reporting-simple-scopestep { margin-bottom: 10px; font-size: 14px; border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 8px); background: var(--nx-card); max-width: 520px; max-height: 260px; overflow: auto; padding: 10px 12px; }
 .reporting-simple-scopestep label { display: block; padding: 3px 0; }
 /* Auto-numbered wizard steps: [hidden] steps generate no boxes, so a

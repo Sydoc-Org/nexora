@@ -918,11 +918,31 @@ html[data-bg="grid"] body.admin-page {
 /* Fireflies backdrop — dots are spawned into #fireflyField (in _header.html,
    present on every page) by _header_js.html, driven by the data-bg pref
    set here. Sits behind everything: main content is promoted to its own
-   stacking context so cards/text always paint above the dots. */
+   stacking context so cards/text always paint above the dots.
+
+   The dots cannot simply take `z-index: -1` instead: html and body both
+   carry the page background, so a negative layer paints *under* that
+   background and the dots vanish entirely. Promoting the content is the
+   only direction that works. */
 body.nx-app main,
 body.admin-page main {
   position: relative;
   z-index: 1;
+}
+/* Reporting is the one page whose content is not all inside <main>: the
+   Console shell wraps the top bar, the source rail and the whole Simple
+   wizard, and only the Advanced pane sits in <main>. Everything outside it
+   was therefore unpositioned and the dots drifted over the wizard's own
+   text (#336).
+
+   `position: relative` with **no z-index** on purpose. It is enough to win
+   — the shell follows #fireflyField in tree order, and equal-level
+   positioned boxes paint in that order — while leaving z-index `auto`,
+   so no stacking context is created and the fixed panels inside the shell
+   (#rpChatPanel at var(--z-modal), for one) still escape to the root and
+   stay above the sidebar. Give this a z-index and you trap them. */
+body.nx-app .reporting-shell {
+  position: relative;
 }
 .firefly-field {
   position: fixed;
