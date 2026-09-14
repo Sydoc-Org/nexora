@@ -6,6 +6,24 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- **The Generali dashboard shows the last 30 days instead of nothing when a
+  date is missing** — `/api/generali/stats` answered a missing `startDate` or
+  `endDate` with a 400, and the page rendered that as a dead screen: every KPI
+  blank, no chart, no explanation. The easiest way in was simply clearing a
+  date field, which the inputs allow. Both bounds are now filled in by
+  `resolve_date_window` — a missing end becomes *now* (not 23:59:59: the day is
+  still running, and padding it reports hours that have not happened as a quiet
+  stretch), a missing start counts back 30 days from whichever end applies. A
+  bound the caller *did* supply is never second-guessed, so an explicit range
+  still means exactly what it says. The response now also carries the window it
+  used (`range`), and the page fills an empty picker from it — charts covering a
+  month while the date field sits blank leave the reader no way to tell what is
+  on screen. The 400 was itself a fix for an unhandled 500; this replaces it
+  with the useful answer.
+
+## [3.2.5] - 2026-09-14
+
 ### Added
 - **Hosted dev and staging environments** (#338) — `dev-nexora.sydoc.ch` (deploys on
   every non-`main` branch push, `ENVIRONMENT=INT`, INT databases) and
@@ -277,20 +295,6 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   old copy still writes — see `scripts/generali-import/README.md`.
 
 ### Fixed
-- **The Generali dashboard shows the last 30 days instead of nothing when a
-  date is missing** — `/api/generali/stats` answered a missing `startDate` or
-  `endDate` with a 400, and the page rendered that as a dead screen: every KPI
-  blank, no chart, no explanation. The easiest way in was simply clearing a
-  date field, which the inputs allow. Both bounds are now filled in by
-  `resolve_date_window` — a missing end becomes *now* (not 23:59:59: the day is
-  still running, and padding it reports hours that have not happened as a quiet
-  stretch), a missing start counts back 30 days from whichever end applies. A
-  bound the caller *did* supply is never second-guessed, so an explicit range
-  still means exactly what it says. The response now also carries the window it
-  used (`range`), and the page fills an empty picker from it — charts covering a
-  month while the date field sits blank leave the reader no way to tell what is
-  on screen. The 400 was itself a fix for an unhandled 500; this replaces it
-  with the useful answer.
 - **Fireflies no longer drift across the New-report wizard** (#336) — the
   animated backdrop is held behind the page by promoting `<main>`, and
   Reporting is the one page whose content is not all inside `<main>`: the

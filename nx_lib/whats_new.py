@@ -22,6 +22,88 @@ from .version import __version__
 # endpoint (url_for name, None = no link), icon (fontawesome, no "fa-" prefix).
 RELEASES: list[dict] = [
     {
+        "version": "3.2.5",
+        "date": "2026-09-14",
+        "entries": [
+            {
+                "title": _("Workitems overview, redesigned as a console"),
+                "body": _(
+                    "Status filters are tabs with live counts, the list can switch to "
+                    "a document-card view, the detail panel was redrawn with a clearer "
+                    "stage stepper and audit timeline, the URL carries only the filters "
+                    "you set, and a document that cannot be loaded now says so."
+                ),
+                "perm": "workitems.view",
+                "endpoint": "workitems_overview",
+                "icon": "table-columns",
+            },
+            {
+                "title": _("Report definitions and layouts"),
+                "body": _(
+                    "A saved report now remembers how it is laid out. Filters live in "
+                    "the Simple wizard, dashboard cards carry the Results tab's chart "
+                    "tools, and whole-report cards read like the Results tab."
+                ),
+                "perm": "reporting.view",
+                "endpoint": "reporting",
+                "icon": "object-group",
+            },
+            {
+                "title": _("Eddard offers three reports, and explains yours"),
+                "body": _(
+                    "Ask a question and Eddard builds three different reports to pick "
+                    'from. On any open report, "Ask Eddard about this report" answers '
+                    "questions about the numbers you are looking at."
+                ),
+                "perm": "reporting.ai.use",
+                "endpoint": "reporting",
+                "icon": "wand-magic-sparkles",
+            },
+            {
+                "title": _("New reporting sources"),
+                "body": _(
+                    "Privera (Posteingang, Neuzugänge, physische Zustellung, billing), "
+                    "Compass Group, Elektro-Material, Bucherer, Frigemo, Aveniq Xpert "
+                    "statistics and Sydoc project hours are available as report "
+                    "sources, each behind its own permission."
+                ),
+                "perm": "reporting.view",
+                "endpoint": "reporting",
+                "icon": "database",
+            },
+            {
+                "title": _("Live SQL reaches every reporting database"),
+                "body": _(
+                    "The SQL sandbox names each database it can reach, and a table's "
+                    "Structure view has a button that queries it directly."
+                ),
+                "perm": "reporting.sql.run",
+                "endpoint": "reporting",
+                "icon": "terminal",
+            },
+            {
+                "title": _("Permissions grid: pick your columns"),
+                "body": _(
+                    "Show only the profiles you are working on, and see at a glance "
+                    "where a user-level override differs from the profile."
+                ),
+                "perm": "admin.profiles.view",
+                "endpoint": "admin_permissions",
+                "icon": "table-cells",
+            },
+            {
+                "title": _("Dark mode fixes"),
+                "body": _(
+                    "The date picker is readable in dark mode on every page, and the "
+                    "workitem stage timeline no longer paints white circles."
+                ),
+                "perm": None,
+                "endpoint": None,
+                "icon": "moon",
+            },
+        ],
+    },
+    {
         "version": "3.2.4",
         "date": "2026-09-03",
         "entries": [
