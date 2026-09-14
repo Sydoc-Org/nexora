@@ -132,6 +132,22 @@
             const data = await response.json();
             if (!data.success) { console.error(data.error); return; }
 
+            // Whichever bound we did not send, the server filled in (clearing a
+            // date field is the usual way in — the inputs accept typing). Show
+            // the window it actually used: charts covering a month while the
+            // picker sits empty give the reader no way to tell what is on
+            // screen. Only fills a field that is genuinely blank, and passes
+            // false so setDate does not re-trigger a load.
+            if (data.range) {
+                if (!document.getElementById('filterStartDate').value && fpStart) {
+                    fpStart.setDate(String(data.range.start).slice(0, 10), false);
+                }
+                if (!document.getElementById('filterEndDate').value && fpEnd) {
+                    fpEnd.setDate(String(data.range.end).slice(0, 10), false);
+                }
+                syncRangeLimits();
+            }
+
             document.getElementById('kpi-total').textContent = data.kpis.total_docs.toLocaleString();
 
             const rateColor = r => r > 50 ? 'text-emerald-500' : r > 20 ? 'text-amber-500' : 'text-red-500';
