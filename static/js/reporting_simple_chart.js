@@ -28,6 +28,13 @@
   // Simple owns its OWN Chart.js instance on a private canvas. It must never
   // call ReportingViz.mountChart: that module is a singleton wired to the
   // Advanced pane's hardcoded element ids, so concurrent mounts are unsafe.
+  // Any theme token, read at draw time so the chart follows light/dark, the
+  // accent picker and the contrast pref without a second hardcoded value.
+  function nxToken(name, fallback) {
+    var v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return v || fallback;
+  }
+
   function chartCardNote(msg) {
     RS.el('rsChartCanvas').hidden = true;
     RS.el('rsChartTools').hidden = true;
@@ -299,6 +306,16 @@
       type: chartJsType,
       data: { labels: d.labels, datasets: datasets },
       options: { responsive: true, maintainAspectRatio: false,
+                 // Hover. Chart.js defaults to nearest + intersect, so the
+                 // tooltip only fires with the cursor exactly on a point --
+                 // sweeping across the chart does nothing, which is what the
+                 // hover felt broken. Index mode reports the x position from
+                 // anywhere in the plot. Pie/doughnut keep the default: the
+                 // slice under the cursor is already the right answer, and
+                 // index mode would light up every slice at once.
+                 interaction: circular
+                   ? { mode: 'nearest', intersect: true }
+                   : { mode: 'index', intersect: false },
                  scales: (circular) ? {}
                    : { x: { stacked: stacked,
                             ticks: {
@@ -336,6 +353,18 @@
                                         return !(ds._band || ds._forecast || ds._nxAnnotations);
                                       } } },
                             tooltip: {
+                              // Stock Chart.js tooltip is a black box that
+                              // ignores the theme; take the same tokens as
+                              // every other surface on the page.
+                              backgroundColor: nxToken('--nx-card', '#ffffff'),
+                              titleColor: nxToken('--nx-text', '#111827'),
+                              bodyColor: nxToken('--nx-text-sec', '#374151'),
+                              borderColor: nxToken('--nx-border', '#e5e7eb'),
+                              borderWidth: 1,
+                              cornerRadius: 8,
+                              padding: 10,
+                              boxPadding: 4,
+                              titleFont: { weight: '600' },
                               callbacks: {
                                 // Reuse the module's own number formatter (fmtChartTooltip)
                                 // instead of Chart.js's raw float — mirrors mountChart's tooltip.

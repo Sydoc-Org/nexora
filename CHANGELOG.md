@@ -240,6 +240,44 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   old copy still writes — see `scripts/generali-import/README.md`.
 
 ### Fixed
+- **Reporting wizard: Continue now takes you to the next question** — the four
+  steps stack inside one card rather than replacing each other, so revealing
+  the next one rendered it below the fold and left the scroll position alone.
+  Continue read as doing nothing. It now scrolls the opened step into view with
+  90px of headroom, only when the step was actually hidden (so re-rendering an
+  open step never yanks the page), and honours `prefers-reduced-motion`.
+- **Reporting wizard: the questions and their answers had no room** — the group
+  caption sat **2px** above the chips it labels, so a cluster read as one
+  undifferentiated blob; it now has 18px above and 10px below, steps carry real
+  padding and a hairline between them, and the answer chips gained a hover
+  state and a focus ring. The step headings also drop the uppercase tracked
+  caption treatment they took in the console redesign: they are the only
+  headings here that are sentences addressed to the reader, and caption styling
+  made a question scan as furniture. Sentence case, 15px, primary text colour;
+  the Library section headers that share the class keep the caption look.
+- **Reporting: the date range field, the calendar and the chart hover** — four
+  bugs the owner hit in one sitting. The wizard's range field was **read-only**:
+  every other picker in the app passes `allowInput: true`, this one did not, so
+  you could click a range out but never type one. Its calendar was positioned
+  against `<body>` with page coordinates and opened far below the field on a
+  wizard page that scrolls thousands of pixels — it is now anchored to the input
+  itself. The **selected range rendered light grey in dark mode**: section 11 of
+  `nexora-ui.css` styled single dates but never `.inRange`, and fixing it needs
+  all three of the band, the box-shadow flatpickr uses to fill the seams between
+  cells, and flatpickr's own higher-specificity `.today.inRange` rule — which is
+  why today's date stayed a white block in the middle of a selected range. And
+  the **chart only responded when the cursor was exactly on a data point**;
+  bar and line charts now use index mode, so pointing anywhere in the plot
+  reports that bucket. Pie and doughnut keep the old behaviour, where the slice
+  under the cursor is already the right answer. Chart tooltips also take the
+  theme's card, text and border tokens instead of Chart.js's stock black box.
+- **`--nx-on-accent` was referenced but never defined** — found while fixing the
+  above. `nexora-ui.css` used `var(--nx-on-accent, #fff)` for the
+  permission-override badge, and nothing ever declared the token, so it always
+  fell back to white. Every light-mode accent is a saturated mid-dark where that
+  reads, but every dark-mode accent is a light pastel where it does not. Now
+  declared per theme, which fixes the badge and the selected calendar day
+  together.
 - **The billing sources were invisible to Global Admin** (#329) — migration
   `0136` grants the six sources from `0130`–`0135` to that profile. They
   deployed correctly, but `0130`–`0135` create each permission and grant it to
