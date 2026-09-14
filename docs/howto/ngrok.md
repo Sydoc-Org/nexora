@@ -42,15 +42,18 @@ endpoints:
   - name: nexora-dev
     url: https://dev-nexora.sydoc.ch
     upstream:
-      url: 8081
+      url: http://127.0.0.1:8081
   - name: nexora-staging
     url: https://staging-nexora.sydoc.ch
     upstream:
-      url: 8082
+      url: http://127.0.0.1:8082
 ```
 
 `ops/setup-env.ps1` appends the dev/staging entries (idempotent) and restarts
-the service; it assumes `endpoints:` is the last top-level key.
+the service; it assumes `endpoints:` is the last top-level key. The upstream must
+be `http://127.0.0.1:<port>`, not a bare port: a bare port means `localhost`,
+which Windows resolves to `::1`, and the loopback-only IIS binding then answers
+`400 Bad Request - Invalid Hostname` from HTTP.sys.
 
 ## Adding a host
 

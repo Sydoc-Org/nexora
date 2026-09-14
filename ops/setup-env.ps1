@@ -91,7 +91,7 @@ if ($yaml -notmatch [regex]::Escape("url: https://$Hostname")) {
   - name: nexora-$Name
     url: https://$Hostname
     upstream:
-      url: $Port
+      url: http://127.0.0.1:$Port
 "@
   Add-Content -Path $NgrokConfig -Value $block -Encoding UTF8
   Restart-Service ngrok
