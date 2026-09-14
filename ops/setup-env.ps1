@@ -35,7 +35,7 @@ $ErrorActionPreference = 'Stop'
 # Under pwsh 7 re-run this script in powershell.exe with the same arguments.
 if ($PSVersionTable.PSVersion.Major -ge 6) {
   Write-Host 'Re-launching in Windows PowerShell 5.1 (IIS: drive is not available in pwsh)...'
-  & "$env:SystemRoot\System32\WindowsPowerShell1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File $PSCommandPath `
+  & "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File $PSCommandPath `
       -Name $Name -Port $Port -Environment $Environment -Hostname $Hostname -NgrokConfig $NgrokConfig
   exit $LASTEXITCODE
 }
