@@ -229,6 +229,9 @@ git tag v3.2.5
 git push origin v3.2.5
 ```
 
-Deploy is not tied to the tag — **every** push to `main` deploys (see
-`README.md`). The tag is a label on what shipped, so you can say "PROD is
-running v3.2.5" and `git diff v3.2.4..v3.2.5` means something.
+The tag **is** the PROD deploy (#338): `main` deploys **staging**
+(`staging-nexora.sydoc.ch`), any other branch push deploys **dev**
+(`dev-nexora.sydoc.ch`), and the `v*` tag push runs the tests and deploys PROD.
+Until someone tags, PROD keeps running the previous release — so tag promptly
+after merging release-worthy work. `git diff v3.2.4..v3.2.5` is exactly what
+moved on PROD. Hosts, ports and folders: `docs/howto/ngrok.md`.
