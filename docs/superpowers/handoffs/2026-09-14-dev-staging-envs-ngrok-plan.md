@@ -1,3 +1,5 @@
+> **Superseded:** execution finished the same day — read [`2026-09-14-dev-staging-envs-execution-complete.md`](2026-09-14-dev-staging-envs-execution-complete.md) instead.
+
 # Handoff — dev/staging environments via ngrok endpoints (#338): plan written, not yet executed
 
 **Date:** 2026-09-14 · **Branch:** `plan/dev-staging-envs-ngrok` in worktree
