@@ -240,6 +240,21 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   old copy still writes — see `scripts/generali-import/README.md`.
 
 ### Fixed
+- **Reporting wizard: Continue now takes you to the next question** — the four
+  steps stack inside one card rather than replacing each other, so revealing
+  the next one rendered it below the fold and left the scroll position alone.
+  Continue read as doing nothing. It now scrolls the opened step into view with
+  90px of headroom, only when the step was actually hidden (so re-rendering an
+  open step never yanks the page), and honours `prefers-reduced-motion`.
+- **Reporting wizard: the questions and their answers had no room** — the group
+  caption sat **2px** above the chips it labels, so a cluster read as one
+  undifferentiated blob; it now has 18px above and 10px below, steps carry real
+  padding and a hairline between them, and the answer chips gained a hover
+  state and a focus ring. The step headings also drop the uppercase tracked
+  caption treatment they took in the console redesign: they are the only
+  headings here that are sentences addressed to the reader, and caption styling
+  made a question scan as furniture. Sentence case, 15px, primary text colour;
+  the Library section headers that share the class keep the caption look.
 - **Reporting: the date range field, the calendar and the chart hover** — four
   bugs the owner hit in one sitting. The wizard's range field was **read-only**:
   every other picker in the app passes `allowInput: true`, this one did not, so

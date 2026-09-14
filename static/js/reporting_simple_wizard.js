@@ -824,6 +824,34 @@
     }) || null;
   }
 
+  // Reveal a wizard step and bring it into view.
+  //
+  // The steps stack in one long card instead of replacing each other, so
+  // unhiding one renders it below the fold and leaves the scroll position
+  // alone -- Continue reads as doing nothing at all. 90px of headroom keeps
+  // the question clear of the sticky wizard header rather than pinning it to
+  // the very top edge.
+  //
+  // Only scrolls when the step was actually hidden: re-rendering an already
+  // open step (every keystroke in a filter, say) must not yank the page.
+  var PREFERS_REDUCED_MOTION = !!(window.matchMedia &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+  function revealStep(el) {
+    if (!el) return;
+    var wasHidden = el.hidden;
+    el.hidden = false;
+    if (!wasHidden) return;
+    // rAF once so the step's entrance animation has laid out before measuring.
+    requestAnimationFrame(function () {
+      var top = el.getBoundingClientRect().top + window.pageYOffset - 90;
+      window.scrollTo({
+        top: top < 0 ? 0 : top,
+        behavior: PREFERS_REDUCED_MOTION ? 'auto' : 'smooth'
+      });
+    });
+  }
+
   function renderScopeStep() {
     var w = RS.state.wiz;
     var procs = w.source.processes || [];
@@ -831,7 +859,7 @@
     var pf = processFieldFor(w.source);
     if (!procs.length && !pf) { step.hidden = true; renderBreakdownStep(); return; }
     if (!procs.length && pf) { renderFieldScopeStep(step, pf); return; }
-    step.hidden = false;
+    revealStep(step);
     RS.el('rsStepBreakdown').hidden = true;
     RS.el('rsStepTime').hidden = true;
     RS.el('rsWizardRun').hidden = true;
@@ -860,7 +888,7 @@
 
   async function renderFieldScopeStep(step, pf) {
     var w = RS.state.wiz;
-    step.hidden = false;
+    revealStep(step);
     RS.el('rsStepBreakdown').hidden = true;
     RS.el('rsStepTime').hidden = true;
     RS.el('rsWizardRun').hidden = true;
@@ -908,7 +936,7 @@
   }
 
   function renderBreakdownStep() {
-    RS.el('rsStepBreakdown').hidden = false;
+    revealStep(RS.el('rsStepBreakdown'));
     RS.el('rsStepTime').hidden = true;
     RS.el('rsWizardRun').hidden = true;
     var w = RS.state.wiz;
@@ -1242,7 +1270,7 @@
   }
 
   function renderTimeStep() {
-    RS.el('rsStepTime').hidden = false;
+    revealStep(RS.el('rsStepTime'));
     renderWizFilters();
     RS.el('rsWizardRun').hidden = false;
     RS.el('rsTimeCustom').hidden = !Array.isArray(RS.state.wiz.range);
