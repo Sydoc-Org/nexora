@@ -122,6 +122,8 @@ def test_remote_dirs_are_per_environment(env_sync):
     assert r"\nexora\env" in str(env_sync.remote_path("PROD.env"))
     assert r"\nexora-dev\env" in str(env_sync.remote_path("INT.env"))
     assert r"\nexora-staging\env" in str(env_sync.remote_path("STAGING.env"))
+
+
 # --------------------------------------------------------------------------
 # #313: a missing key only matters when the code has no default for it.
 # --------------------------------------------------------------------------
