@@ -1263,7 +1263,92 @@ as dimensions). `0128` registers **Aveniq — Xpert Statistics** (`xpert_stats` 
 Aveniq box and loaded by `nx-sources/xpert/importCSVtoSQL.py`; every measure is a
 conditional `sum` of `Cnt` on `Metric` so subsets never double-count — `Documents`
 = `Total`, `BFH new creditors`, `ZHAW workitems`; `ExportDate` grainable, `Client`
-the natural dimension). `SortOrder` 320. The wizard's measure step walks
+the natural dimension). `SortOrder` 320. `0130` registers **Elektro-Material —
+Verrechnung** (`em_invoice` over `SYDOC_Statistik.dbo.EM_Invoice`, the table the
+monthly `EM-Statistik<YYYYMM>.xlsx` workbook already reads through Power Query;
+#329). Its measures are that workbook's own pivot, read out of the pivot
+definition rather than guessed: `Documents (Opex + e-mail)`, `Opex scans` and
+`E-mail documents` are conditional counts on `Eingang`, `Order item positions`
+and `Images out` conditional sums of `OrdItmPosCount`/`AnzImagesOut`. **Every**
+measure carries the `Eingang IN ('OPEX Scan Scanner','E_MAIL')` filter, because
+the workbook's total is the sum of its two rows while the table also holds
+`Nexora` and NULL rows -- an unfiltered sum would bill documents the customer was
+never charged for. `ExportEM_dt` is the grainable date, not the `ExportEM`
+nvarchar beside it. The amount, IBAN and creditor columns are deliberately left
+out of `ColumnsJSON`: billing scan volume does not need them, and a column that
+is not in the catalogue cannot be queried. `SortOrder` 330. Shape pinned by
+`tests/unit/test_em_invoice_source.py`. `0131` and `0132` add the next two
+billing sources from the same ticket, **Compass Group — Verrechnung**
+(`compass_invoice` over `dbo.Compass_Invoice`) and **Privera —
+Rechnungseingang** (`privera_invoice` over `dbo.PriveraInvoice`). Each
+customer's workbook turned out to be a different shape, and the differences are
+load-bearing: Compass's pivot has **no** channel split, so its single
+`Documents` measure is unfiltered and bills on `UploadDatetime` (the pivot's
+page filter) rather than the `DocDate` its rows display; Privera publishes three
+pivots, so it gets `Documents total` / `Documents by mail` / `eBill documents`,
+split on `DocSource` rather than the workbook's unreproducible `FileName`
+filter. Verified against the published workbooks: Compass exact in 6 of 8
+months, Privera exact in 5 of 6 figures — the gap is August 2026 mail, where the
+old pivot dropped 5 mail documents that have no `Mandant` while its own total
+counted them, so the measure keeps the honest definition and `Mandant` stays a
+dimension. `SortOrder` 340/350. Both pinned by
+`tests/unit/test_billing_sources.py`, which also asserts no billing source
+exposes amounts, IBANs or the Privera property/owner numbers. `0133` adds **Privera —
+Physische Zustellung** (`privera_nachsendungen`), the **first source outside
+`SYDOC_Statistik`**: its `BaseObject` is the three-part
+`01_Privera_Posteingang.dbo.Reporting_P1_Nachsendungen`. Same engine, same
+server, same login — but the identifier guard in `table_query.py` had to stop
+refusing a name that starts with a digit first (`^[A-Za-z_]…` → `^[A-Za-z0-9_]+$`;
+the character set is unchanged, so nothing can still carry a `]` out of the
+bracket quoting). Two measures, both verified exactly against July and August
+2026: `Forwardings total`, and `Forwardings without TEC`, which is the
+workbook's hand-added "ohne TEC" line — it excludes the `Rechnungen Privera TEC`
+**Nachsendungstyp**, not the TEC *Niederlassung*; the latter is the plausible
+wrong guess and gives a different number. `SortOrder` 360.
+
+The sibling **Posteingang** report (`Reporting_P1_Dokumente` in the same
+database) is **not** registered, and cannot be until the source database
+changes: its `ExportDatetime` is `nvarchar` holding `dd.MM.yyyy HH:mm:ss`, and
+our connection runs `us_english`, so grouping it by month parses `01.02.2021` as
+**2 January** and raises outright on any day past the 12th. It needs a real
+datetime column (the `ExportEM`/`ExportEM_dt` pattern) or a view using
+`TRY_CONVERT(..., 104)`. `0134` adds **Privera — Neuzugänge**
+(`privera_neuzugaenge` over
+`dbo.v_PriveraNeuzugaenge_StatistikNiederlassung_AnzahlDossiers`). The view is
+already aggregated — one row per year/month/Niederlassung carrying three
+counters — so all three measures (`Dossiers`, `Registers`, `Pages`) are plain
+sums and there is **no date grain**: the view has no date column, only a year
+and a month number, which are ordinary numeric dimensions. The workbook's pivot
+carries a fourth data field, "Summe von JahrExport", which is the year dropped
+into the values by accident; it is deliberately not reproduced, and a test
+checks it never is. Verified against the published 2026 workbook: all six closed
+months exact on all three measures (18 of 21 figures), the three misses being
+September, which was one day old when that workbook was refreshed. `SortOrder`
+370.
+
+**This view is broken on INT** — it binds to
+`SYDOC_Statistik1.dbo.PriveraInitialUndNeuzugaenge`, note the stray `1`, so
+selecting from it fails with a 4413 binding error. It works on PROD. The source
+is registered anyway, because the registry rows are data and the workbook it
+replaces runs against PROD; expect the source to error on INT until somebody
+repoints the dev copy of the view.
+
+`0135` adds **Privera — Posteingang** (`privera_posteingang` over
+`01_Privera_Posteingang.dbo.Reporting_P1_Dokumente`), completing the six.
+Its `ExportDatetime` is **nvarchar** holding `dd.MM.yyyy HH:mm:ss`, so it is
+exposed as a **string**, not a date: the connection runs `us_english`, which
+reads `01.02.2021` as 2 January and raises outright on any day past the 12th
+(both measured against PROD). A month is therefore a `contains` filter —
+`.08.2026` renders as `LIKE '%.08.2026%'` and reproduces the published 10,044
+exactly, cell for cell across the Register × Niederlassung grid. That matches
+how the workbook works, one file per month with the month ticked in a filter, so
+nothing is lost against what it replaces. What *is* lost is a month grain, so no
+series over time. The fix belongs in the source database and is one added column
+on that view — `TRY_CONVERT(datetime, ExportDatetime, 104) AS ExportDatetime_dt`
+— after which adding it to `ColumnsJSON` as a grainable date is the whole
+change. Teaching the reporting layer to parse text dates was considered and
+rejected: it would wrap every reference to the column in shared code, for one
+column in one view, and defeat any index over 858k rows. `SortOrder` 380. The wizard's measure step walks
 sources in `SortOrder` and splits a `Tenant — Thing` label at the em dash: one
 uppercase heading per tenant, a `.rs-choice-group-sublabel` per source. The
 tenant's lookup tables carry no measures and are not registered. Each source is gated by its own
