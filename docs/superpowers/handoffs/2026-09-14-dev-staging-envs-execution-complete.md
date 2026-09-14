@@ -1,3 +1,5 @@
+> **Superseded:** shipped the same day — read [`2026-09-14-dev-staging-envs-shipped.md`](2026-09-14-dev-staging-envs-shipped.md) instead.
+
 # Handoff — dev/staging environments (#338) built, dev host live; PR + merge + first tag pending
 
 **Date:** 2026-09-14 · **Branch:** `feat/338-dev-staging-envs` (renamed from `plan/dev-staging-envs-ngrok`
