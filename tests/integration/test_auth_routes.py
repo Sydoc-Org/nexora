@@ -907,3 +907,23 @@ def test_ui_pref_prepaint_is_shared_not_duplicated():
     assert "_ui_prefs_prepaint.html" in twofa
     assert "applyCustomAccent" not in header, "header still holds its own copy"
     assert "applyCustomAccent" not in twofa, "2FA page inlined a copy"
+
+
+def test_dev_login_blocks_proxied_request_even_from_loopback(client):
+    """Hosted dev (#338): IIS is the socket peer, so remote_addr is 127.0.0.1 for
+    every public request. A forwarded request must still be refused."""
+    resp = client.get(
+        "/dev/login/admin@test.local",
+        headers={"X-Forwarded-For": "203.0.113.7"},
+        environ_overrides={"REMOTE_ADDR": "127.0.0.1"},
+    )
+    assert resp.status_code == 404
+
+
+def test_dev_login_blocks_public_hostname_even_from_loopback(client):
+    resp = client.get(
+        "/dev/login/admin@test.local",
+        base_url="https://dev-nexora.sydoc.ch",
+        environ_overrides={"REMOTE_ADDR": "127.0.0.1"},
+    )
+    assert resp.status_code == 404
