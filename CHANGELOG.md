@@ -6,6 +6,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [3.2.5] - 2026-09-14
+
 ### Added
 - **Hosted dev and staging environments** (#338) — `dev-nexora.sydoc.ch` (deploys on
   every non-`main` branch push, `ENVIRONMENT=INT`, INT databases) and
