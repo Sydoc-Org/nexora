@@ -30,13 +30,30 @@ def _data(mod):
             "GNRL": ("Generali", "generali"),
             "SSIX": ("ISS", None),  # no TenantCode row -> legacy map says generali
             "SYDC": ("sydoc AG", "sydoc"),
+            "LKTR": ("ElektroMaterial", None),
         },
-        profiles={10: ("priveraUser", "PRVR"), 12: ("ISS User", None), 2: ("globalAdmin", None)},
+        profiles={
+            10: ("priveraUser", "PRVR"),
+            12: ("ISS User", None),
+            2: ("globalAdmin", None),
+            # -- reporting-source cases (#332) --
+            20: ("Privera User", "PRVR"),  # holds one of its own and one of LKTR's
+            21: ("ISS Supervisor", "SSIX"),  # a Generali source, same tenant
+            22: ("Sydoc User", None),  # a source but no reporting.view
+        },
         codes=codes,
         profile_grants={
             10: {"dashboard.view", "process.privera.02_InitialScan.view"},
             12: {"generali.dashboard.view"},
-            2: set(codes) - {"tenant.ms02.view"},
+            2: (set(codes) - {"tenant.ms02.view"}) | {"reporting.view"},
+            20: {
+                "reporting.view",
+                "reporting.source.privera_invoice.use",
+                "reporting.source.em_invoice.use",
+                "reporting.source.workitems.use",  # owner unknown -> never flagged
+            },
+            21: {"reporting.view", "reporting.source.generali_documents.use"},
+            22: {"reporting.source.mediamarkt_batches.use"},  # no reporting.view
         },
         profile_deny_rows=3,
         overrides=[
@@ -67,6 +84,13 @@ def _data(mod):
             6: {"generali.dashboard.view"},
         },
         process_org={"privera.02_InitialScan": "PRVR"},
+        sources={
+            "reporting.source.privera_invoice.use": "Privera — Rechnungseingang",
+            "reporting.source.em_invoice.use": "Elektro-Material — Verrechnung",
+            "reporting.source.generali_documents.use": "Generali — Documents",
+            "reporting.source.mediamarkt_batches.use": "MediaMarkt — Batches",
+            "reporting.source.workitems.use": "Workitems (Octo)",
+        },
         corpus="dashboard.view admin.users.view",
     )
 
@@ -126,3 +150,66 @@ def test_code_owner():
         "ms02",
     )
     assert mod.code_owner("dashboard.view", {}, org_by_label) is None
+
+
+def test_dormant_source_grant_is_flagged_only_without_reporting_view():
+    """#332: a source grant with no reporting.view does nothing -- until it does."""
+    mod = _load()
+    out = mod.audit(_data(mod))
+    dormant = "\n".join(out["Dormant reporting-source grants"])
+    assert "Sydoc User" in dormant and "mediamarkt_batches" in dormant
+    # Everyone else holding a source also holds reporting.view.
+    assert "Privera User" not in dormant
+    assert "ISS Supervisor" not in dormant
+    assert "globalAdmin" not in dormant
+
+
+def test_source_of_another_customer_is_flagged():
+    mod = _load()
+    out = mod.audit(_data(mod))
+    foreign = "\n".join(out["Reporting sources of another customer"])
+    assert "Privera User" in foreign
+    assert "em_invoice" in foreign and "LKTR" in foreign
+    assert "privera_invoice" not in foreign  # its own
+
+
+def test_source_rules_stay_quiet_where_they_should():
+    mod = _load()
+    out = mod.audit(_data(mod))
+    foreign = "\n".join(out["Reporting sources of another customer"])
+    # Same tenant: ISS reads Generali sources by design (legacy tenant map).
+    assert "ISS Supervisor" not in foreign
+    # Unknown owner is not the same as safe, but it must not raise a finding.
+    assert "workitems" not in foreign
+    # Staff profiles hold everything on purpose.
+    assert "globalAdmin" not in foreign
+
+
+def test_source_owner_reads_the_label_prefix():
+    mod = _load()
+    obl = {
+        "cmps": "CMPS",
+        "compass": "CMPS",
+        "lktr": "LKTR",
+        "elektromaterial": "LKTR",
+        "prvr": "PRVR",
+        "privera": "PRVR",
+        "sydc": "SYDC",
+        "sydoc ag": "SYDC",
+    }
+    # The org name and the label rarely agree exactly; both directions matter.
+    assert mod.source_owner("Privera \u2014 Posteingang", obl) == "PRVR"
+    assert mod.source_owner("Compass Group \u2014 Verrechnung", obl) == "CMPS"
+    assert mod.source_owner("Sydoc \u2014 Project Hours", obl) == "SYDC"
+    # The hyphen inside "Elektro-Material" must not be read as the separator.
+    assert mod.source_owner("Elektro-Material \u2014 Verrechnung", obl) == "LKTR"
+    # Only an em/en dash separates; a hyphen does not, however it is spaced.
+    # Without this the name above splits at its own hyphen and resolves to
+    # whatever "Elektro" happens to match.
+    assert mod.source_owner("Elektro-Material - Verrechnung", obl) is None
+    assert mod.source_owner("Privera-Posteingang", obl) is None
+    # No customer in the label, or a customer with no Organizations row.
+    assert mod.source_owner("Workitems (Octo)", obl) is None
+    assert mod.source_owner("Field extraction quality", obl) is None
+    assert mod.source_owner("MediaMarkt \u2014 Batches", obl) is None
+    assert mod.source_owner("", obl) is None

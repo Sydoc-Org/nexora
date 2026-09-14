@@ -7,6 +7,29 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **The permission audit now catches two reporting-source mistakes** (#332) —
+  `scripts/perm-audit.py` (`/nx-perm-audit`) gained two checks, both at profile
+  grain because that is what somebody actually clicks:
+  - **Dormant reporting-source grants** — a profile holding a
+    `reporting.source.*` without `reporting.view`. It does nothing today, which
+    is exactly what makes it worth flagging: it is invisible in use and goes
+    live the moment anyone grants that profile reporting access for an
+    unrelated reason. Finds the one real case on PROD — `Sydoc User` holding
+    the MediaMarkt source — and nothing else.
+  - **Reporting sources of another customer** — a customer profile holding a
+    source belonging to a different customer. The `table` provider applies no
+    row scoping, so the source permission is the entire gate. Empty today; it
+    is a tripwire for the first time somebody lets a customer see their own
+    figures.
+
+  Ownership is read off the source label's prefix (`Privera — Posteingang`),
+  the only place it is written down — nothing in `dbo.ReportingSources`
+  records an organisation. A source whose customer has no `Organizations` row
+  (Bucherer, Frigemo, Aveniq, MediaMarkt) reports *unknown* and never raises a
+  finding. Sharing a tenant excuses a grant only outside the vendor's own
+  tenant: ISS and Generali read each other's sources by design, but Privera,
+  Compass and Elektro-Material all sit in `sydoc`, which says they are the
+  vendor's customers and not one another's.
 - **Privera Posteingang reporting source — the last of the six** (#329) —
   migration `0135` registers
   `01_Privera_Posteingang.dbo.Reporting_P1_Dokumente`. Its `ExportDatetime` is
