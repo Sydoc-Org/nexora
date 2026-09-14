@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-10 14:00+0200\n"
+"POT-Creation-Date: 2026-09-14 15:42+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -14,7 +14,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: nx_lib/octo.py:355
+#: nx_lib/octo.py:358
 msgid "Error fetching activity instance"
 msgstr "Fehler beim Abrufen der Aktivitätsinstanz"
 
@@ -670,7 +670,7 @@ msgstr "Datenbankfehler"
 msgid "Invalid code. Please try again."
 msgstr "Ungültiger Code. Bitte versuchen Sie es erneut."
 
-#: nx_lib/views/auth.py:414 nx_lib/views/auth.py:706
+#: nx_lib/views/auth.py:414 nx_lib/views/auth.py:715
 #, python-format
 msgid "Too many failed attempts. Try again in %(minutes)d minute(s)."
 msgstr ""
@@ -681,53 +681,53 @@ msgstr ""
 msgid "Invalid code"
 msgstr "Ungültiger Code"
 
-#: nx_lib/views/auth.py:462 nx_lib/views/auth.py:807
+#: nx_lib/views/auth.py:462 nx_lib/views/auth.py:816
 #: templates/js/_profile_js.html:5
 msgid "Passwords do not match"
 msgstr "Passwörter stimmen nicht überein"
 
-#: nx_lib/views/auth.py:464 nx_lib/views/auth.py:809
+#: nx_lib/views/auth.py:464 nx_lib/views/auth.py:818
 msgid "All Fields must be filled"
 msgstr "Alle Felder müssen ausgefüllt werden"
 
-#: nx_lib/views/auth.py:468 nx_lib/views/auth.py:813
+#: nx_lib/views/auth.py:468 nx_lib/views/auth.py:822
 #: nx_lib/views/profile.py:195
 msgid "New password has to be at least 12 characters long, with no whitespaces"
 msgstr ""
 "Das neue Passwort muss mindestens 12 Zeichen lang sein und darf keine "
 "Leerzeichen enthalten"
 
-#: nx_lib/views/auth.py:492 nx_lib/views/auth.py:834
+#: nx_lib/views/auth.py:492 nx_lib/views/auth.py:843
 msgid "New Password musn't be previously used password"
 msgstr "Das neue Passwort darf kein bereits verwendetes Passwort sein"
 
-#: nx_lib/views/auth.py:525 nx_lib/views/auth.py:881
+#: nx_lib/views/auth.py:525 nx_lib/views/auth.py:890
 msgid "Something went wrong, please try again"
 msgstr "Etwas ist schiefgelaufen, bitte versuchen Sie es erneut"
 
-#: nx_lib/views/auth.py:677 nx_lib/views/auth.py:741
+#: nx_lib/views/auth.py:686 nx_lib/views/auth.py:750
 msgid "Invalid credentials"
 msgstr "Ungültige Anmeldedaten"
 
-#: nx_lib/views/auth.py:745
+#: nx_lib/views/auth.py:754
 msgid "Login temporarily unavailable"
 msgstr "Anmeldung vorübergehend nicht verfügbar"
 
-#: nx_lib/views/auth.py:866
+#: nx_lib/views/auth.py:875
 msgid "Password set. You can now sign in."
 msgstr "Passwort festgelegt. Sie können sich jetzt anmelden."
 
-#: nx_lib/views/auth.py:868
+#: nx_lib/views/auth.py:877
 msgid "Password changed"
 msgstr "Passwort geändert"
 
-#: nx_lib/views/auth.py:1041
+#: nx_lib/views/auth.py:1050
 msgid "If that email is registered, a reset link has been sent."
 msgstr ""
 "Falls diese E-Mail-Adresse registriert ist, wurde ein Link zum "
 "Zurücksetzen des Passworts gesendet."
 
-#: nx_lib/views/auth.py:1045
+#: nx_lib/views/auth.py:1054
 msgid "Unexpected error occurred"
 msgstr "Ein unerwarteter Fehler ist aufgetreten"
 
@@ -750,12 +750,12 @@ msgstr "Nicht autorisiert"
 #: nx_lib/views/admin/users.py:573 nx_lib/views/dashboard.py:705
 #: nx_lib/views/dashboard.py:781 nx_lib/views/dashboard.py:851
 #: nx_lib/views/dashboard.py:905 nx_lib/views/dashboard.py:967
-#: nx_lib/views/generali/_crud.py:187 nx_lib/views/generali/attendance.py:98
-#: nx_lib/views/generali/documents.py:316
-#: nx_lib/views/generali/documents.py:355
-#: nx_lib/views/generali/documents.py:529
-#: nx_lib/views/generali/documents.py:563
-#: nx_lib/views/generali/importstatus.py:119 nx_lib/views/generali/pdqm.py:102
+#: nx_lib/views/generali/_crud.py:187 nx_lib/views/generali/attendance.py:87
+#: nx_lib/views/generali/documents.py:372
+#: nx_lib/views/generali/documents.py:411
+#: nx_lib/views/generali/documents.py:585
+#: nx_lib/views/generali/documents.py:619
+#: nx_lib/views/generali/importstatus.py:119 nx_lib/views/generali/pdqm.py:91
 #: nx_lib/views/generali/reporting.py:260
 #: nx_lib/views/generali/reporting.py:321 nx_lib/views/workitems.py:1399
 msgid "An unexpected error occurred"
@@ -1548,10 +1548,6 @@ msgstr "Protokolle konnten nicht abgerufen werden"
 #: nx_lib/views/admin/users.py:667
 msgid "Could not fetch sessions"
 msgstr "Sitzungen konnten nicht abgerufen werden"
-
-#: nx_lib/views/generali/documents.py:115
-msgid "startDate and endDate are required"
-msgstr "startDate und endDate sind erforderlich."
 
 #: nx_lib/views/reporting/admin_registry.py:45
 #: nx_lib/views/reporting/admin_registry.py:95
@@ -6372,8 +6368,8 @@ msgstr "Gelöscht"
 msgid "Table or document view"
 msgstr "Tabellen- oder Dokumentenansicht"
 
-#: templates/js/_generali_dashboard_js.html:172
-#: templates/js/_generali_dashboard_js.html:248
+#: templates/js/_generali_dashboard_js.html:188
+#: templates/js/_generali_dashboard_js.html:264
 #: templates/workitems_overview.html:336
 msgid "Documents"
 msgstr "Dokumente"
@@ -11209,4 +11205,7 @@ msgstr "Bis"
 
 #~ msgid "SAP / ALF"
 #~ msgstr "SAP / ALF"
+
+#~ msgid "startDate and endDate are required"
+#~ msgstr "startDate und endDate sind erforderlich."
 
