@@ -6,6 +6,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [3.2.6] - 2026-09-14
+
 ### Fixed
 - **The Generali dashboard shows the last 30 days instead of nothing when a
   date is missing** — `/api/generali/stats` answered a missing `startDate` or
