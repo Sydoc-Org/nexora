@@ -6,6 +6,25 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- **Generali dashboard: chart hover and tooltips** — three Chart.js defaults
+  nobody had overridden on this page. The Recipient and Entry-channel bar
+  charts kept `nearest` + `intersect`, so a tooltip only appeared with the
+  cursor exactly on the bar; on the horizontal one that is the worst case,
+  because the whole row reads as the target and most of it is the label and
+  the empty track. Both now use index mode. Every tooltip was the stock black
+  box with white text and no border — a near-black panel on a dark card with
+  no edge between them, which is what made the hover look broken rather than
+  merely plain; they now take the card, text and border tokens, set as a
+  Chart.js *default* rather than per chart because each chart passes its own
+  `plugins.legend` and that object would replace the whole key. And the two
+  doughnuts drew their slice separators in a literal `#fff`, a white web over
+  a dark chart — the same fault as the workitem stepper circles (#326). All
+  the colours are scriptable, so they follow the light/dark toggle instead of
+  freezing at whatever theme was active when the chart was built. The
+  doughnuts deliberately keep `nearest`: the slice under the cursor is already
+  the right answer, and index mode would light up every slice at once.
+
 ## [3.2.6] - 2026-09-14
 
 ### Fixed
