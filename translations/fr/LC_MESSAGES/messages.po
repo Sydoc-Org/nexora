@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-15 08:52+0200\n"
+"POT-Creation-Date: 2026-09-15 12:45+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -3216,11 +3216,11 @@ msgstr "Requête"
 #: templates/api_docs.html:252 templates/api_docs.html:288
 #: templates/api_docs.html:294 templates/api_docs.html:319
 #: templates/api_docs.html:325 templates/api_docs.html:362
-#: templates/api_docs.html:367 templates/api_docs.html:387
-#: templates/api_docs.html:393 templates/api_docs.html:407
-#: templates/api_docs.html:413 templates/api_docs.html:433
-#: templates/api_docs.html:439 templates/api_docs.html:483
-#: templates/api_docs.html:489 templates/reporting.html:463
+#: templates/api_docs.html:367 templates/api_docs.html:389
+#: templates/api_docs.html:395 templates/api_docs.html:409
+#: templates/api_docs.html:415 templates/api_docs.html:435
+#: templates/api_docs.html:441 templates/api_docs.html:485
+#: templates/api_docs.html:491 templates/reporting.html:463
 msgid "Copy"
 msgstr "Copier"
 
@@ -3295,7 +3295,7 @@ msgid "Endpoints"
 msgstr "Points de terminaison"
 
 #: templates/api_docs.html:120 templates/api_docs.html:139
-#: templates/api_docs.html:479
+#: templates/api_docs.html:481
 msgid "Test sandbox"
 msgstr "Bac à sable de test"
 
@@ -3353,19 +3353,19 @@ msgstr "Un en-tête, un GET — avec une clé API en main, voici toute l'intégr
 #: templates/api_docs.html:252 templates/api_docs.html:288
 #: templates/api_docs.html:294 templates/api_docs.html:319
 #: templates/api_docs.html:325 templates/api_docs.html:362
-#: templates/api_docs.html:367 templates/api_docs.html:387
-#: templates/api_docs.html:393 templates/api_docs.html:407
-#: templates/api_docs.html:413 templates/api_docs.html:433
-#: templates/api_docs.html:439 templates/api_docs.html:483
-#: templates/api_docs.html:489
+#: templates/api_docs.html:367 templates/api_docs.html:389
+#: templates/api_docs.html:395 templates/api_docs.html:409
+#: templates/api_docs.html:415 templates/api_docs.html:435
+#: templates/api_docs.html:441 templates/api_docs.html:485
+#: templates/api_docs.html:491
 msgid "Copy code"
 msgstr "Copier le code"
 
 #: templates/api_docs.html:154 templates/api_docs.html:220
 #: templates/api_docs.html:251 templates/api_docs.html:293
 #: templates/api_docs.html:324 templates/api_docs.html:366
-#: templates/api_docs.html:392 templates/api_docs.html:412
-#: templates/api_docs.html:438 templates/api_docs.html:488
+#: templates/api_docs.html:394 templates/api_docs.html:414
+#: templates/api_docs.html:440 templates/api_docs.html:490
 msgid "response"
 msgstr "réponse"
 
@@ -3444,7 +3444,7 @@ msgstr "Corps"
 #: templates/api_docs.html:189 templates/api_docs.html:230
 #: templates/api_docs.html:262 templates/api_docs.html:271
 #: templates/api_docs.html:303 templates/api_docs.html:345
-#: templates/api_docs.html:467
+#: templates/api_docs.html:469
 msgid "Meaning"
 msgstr "Signification"
 
@@ -3525,19 +3525,19 @@ msgstr ""
 "la tuile KPI \"Current Backlog\" du tableau de bord nexora."
 
 #: templates/api_docs.html:227 templates/api_docs.html:268
-#: templates/api_docs.html:300 templates/api_docs.html:464
+#: templates/api_docs.html:300 templates/api_docs.html:466
 msgid "Response fields"
 msgstr "Champs de réponse"
 
 #: templates/api_docs.html:230 templates/api_docs.html:271
-#: templates/api_docs.html:303 templates/api_docs.html:467
+#: templates/api_docs.html:303 templates/api_docs.html:469
 #: templates/js/_reporting_dashboard_js.html:38
 msgid "Field"
 msgstr "Champ"
 
 #: templates/admin/tenants_manage.html:74 templates/api_docs.html:230
 #: templates/api_docs.html:262 templates/api_docs.html:271
-#: templates/api_docs.html:303 templates/api_docs.html:467
+#: templates/api_docs.html:303 templates/api_docs.html:469
 #: templates/generali_documents.html:228 templates/js/_reporting_viz_js.html:11
 msgid "Type"
 msgstr "Type"
@@ -3693,11 +3693,13 @@ msgstr "Pagination ; per_page n'accepte que 40, 100, 200, 500 ou 1000 (défaut 4
 
 #: templates/api_docs.html:354
 msgid ""
-"fields — also return each row's indexed document-field values (see "
-"below). Any other value answers 400."
+"fields — also return each row's indexed document-field values; "
+"fields:invoicenr,kundennr narrows that to the named keys (see below). Any"
+" other value answers 400."
 msgstr ""
 "fields — renvoie également les valeurs des champs de document indexés de "
-"chaque ligne (voir ci-dessous). Toute autre valeur répond 400."
+"chaque ligne ; fields:invoicenr,kundennr limite cela aux clés nommées "
+"(voir ci-dessous). Toute autre valeur répond 400."
 
 #: templates/api_docs.html:358
 msgid "Field values without one call per row"
@@ -3716,6 +3718,30 @@ msgstr ""
 "fields, résolu une seule fois par page."
 
 #: templates/api_docs.html:377
+msgid ""
+"To take only the keys you actually read each cycle, name them inline: "
+"include=fields:invoicenr,kundennr. Keys are case-insensitive and "
+"validated exactly like ?field= — an unknown or sensitive key answers 400 "
+"Unknown field, a key outside your process scope answers 400 Field not "
+"available. An empty list or more than 30 keys is also a 400."
+msgstr ""
+"Pour ne récupérer que les clés que vous lisez réellement à chaque cycle, "
+"nommez-les directement : include=fields:invoicenr,kundennr. Les clés sont"
+" insensibles à la casse et validées exactement comme avec ?field= — une "
+"clé inconnue ou sensible répond 400 Unknown field, une clé hors de votre "
+"périmètre de processus répond 400 Field not available. Une liste vide ou "
+"plus de 30 clés répondent aussi 400."
+
+#: templates/api_docs.html:378
+msgid ""
+"Naming keys does not make the query cheaper — the values sit in one wide "
+"row either way. What it saves is response size."
+msgstr ""
+"Nommer des clés ne rend pas la requête moins coûteuse — les valeurs se "
+"trouvent de toute façon dans une seule ligne large. Ce que vous "
+"économisez, c'est la taille de la réponse."
+
+#: templates/api_docs.html:379
 #, python-brace-format
 msgid ""
 "Indexed fields only — the same keys /workitems/fields lists. Table values"
@@ -3729,7 +3755,7 @@ msgstr ""
 "indexée reçoit un objet fields vide, les champs sensibles n'y figurent "
 "jamais, et sans include la réponse est exactement celle d'avant."
 
-#: templates/api_docs.html:378
+#: templates/api_docs.html:380
 msgid ""
 "Every invalid value returns a 400 with a plain-English error — nothing is"
 " silently coerced. Unknown and sensitive field keys answer identically "
@@ -3745,7 +3771,7 @@ msgstr ""
 "respectent la même fenêtre temporelle par processus que la recherche de "
 "la page Vue d'ensemble."
 
-#: templates/api_docs.html:384
+#: templates/api_docs.html:386
 msgid ""
 "The field keys /workitems accepts in ?field= for your key's process "
 "scope, as the server resolves them right now — only fields mapped for at "
@@ -3758,7 +3784,7 @@ msgstr ""
 "moins les champs sensibles. Préférez récupérer cette liste plutôt que de "
 "coder les noms en dur."
 
-#: templates/api_docs.html:398
+#: templates/api_docs.html:400
 msgid ""
 "Keys are lowercase without separators. On /workitems an unknown key "
 "answers 400 Unknown field, and a real field outside your key's scope "
@@ -3771,7 +3797,7 @@ msgstr ""
 "échec de lecture de la configuration renvoie 500, jamais une liste "
 "partielle."
 
-#: templates/api_docs.html:404
+#: templates/api_docs.html:406
 msgid ""
 "The count of workitems currently in each stage (Import, Extraction, "
 "Validation, Delivery) for your key's process scope. No parameters; the "
@@ -3782,7 +3808,7 @@ msgstr ""
 " clé. Aucun paramètre ; les chiffres correspondent toujours à une requête"
 " /workitems filtrée par étape."
 
-#: templates/api_docs.html:424
+#: templates/api_docs.html:426
 msgid ""
 "datetime is the server-local timestamp the counts were computed at. An "
 "empty process scope returns all zeros; a degraded workitem source answers"
@@ -3795,7 +3821,7 @@ msgstr ""
 "silencieusement partiels. Pas de cache : chaque appel calcule des "
 "chiffres à jour."
 
-#: templates/api_docs.html:430
+#: templates/api_docs.html:432
 msgid ""
 "The document details the overview row-expand shows for one workitem: "
 "extracted field values and table values. No page images, confidence or "
@@ -3806,7 +3832,7 @@ msgstr ""
 "de pages, de confiances ni d'emplacements sources ; les champs sensibles "
 "sont toujours retirés."
 
-#: templates/api_docs.html:469
+#: templates/api_docs.html:471
 msgid ""
 "Extracted field name → value, mapped through the same field-name mapping "
 "the overview uses"
@@ -3814,11 +3840,11 @@ msgstr ""
 "Nom de champ extrait → valeur, passé par la même correspondance de noms "
 "de champs que la vue d'ensemble"
 
-#: templates/api_docs.html:470
+#: templates/api_docs.html:472
 msgid "Extracted tables: title, columns, and rows of column/value cells"
 msgstr "Tableaux extraits : titre, colonnes et lignes de cellules colonne/valeur"
 
-#: templates/api_docs.html:474
+#: templates/api_docs.html:476
 msgid ""
 "404 with a null detail is returned uniformly for an unknown id, an id "
 "outside your key's scope, and a document the runtime backend can't load "
@@ -3831,7 +3857,7 @@ msgstr ""
 "workitem froid charge en direct depuis le service d'exécution et peut "
 "prendre quelques secondes."
 
-#: templates/api_docs.html:480
+#: templates/api_docs.html:482
 msgid ""
 "Every endpoint above has a /api/test/v1/... twin: same path suffix, same "
 "Bearer-key auth, same response shape — but the numbers are random, not "
@@ -3844,7 +3870,7 @@ msgstr ""
 "requête backend n'a lieu, donc il est sûr de l'appeler à volonté pendant "
 "la construction d'une intégration."
 
-#: templates/api_docs.html:495
+#: templates/api_docs.html:497
 msgid ""
 "Use a real (enabled) API key — the same auth errors (401/429) apply. "
 "Available for"
@@ -3852,7 +3878,7 @@ msgstr ""
 "Utilisez une vraie clé API (activée) — les mêmes erreurs "
 "d'authentification (401/429) s'appliquent. Disponible pour"
 
-#: templates/api_docs.html:495
+#: templates/api_docs.html:497
 msgid "and"
 msgstr "et"
 
