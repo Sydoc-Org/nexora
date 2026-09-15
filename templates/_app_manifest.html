@@ -1,0 +1,29 @@
+{# Installable-app head tags (#354). Included by _header.html (every signed-in
+   page) AND by the signed-out login/landing pages -- the browser only offers
+   "Install" / "Add to Home Screen" on a page that carries these, and the login
+   screen is exactly where somebody decides to install nexora.
+
+   The manifest is a route, not a file under static/, because start_url and
+   scope have to carry the /nexora prefix on PROD and STAGING but not on INT,
+   and the app name carries the environment. See core.web_app_manifest().
+
+   iOS ignores most of the manifest and reads its own apple-* tags instead, so
+   both sets are needed:
+     - apple-touch-icon is what actually lands on an iPhone home screen. With
+       none, iOS invents one from a screenshot or the first letter of the page
+       title, which is what nexora looked like before this.
+     - apple-mobile-web-app-title sets the name under the icon. Without it iOS
+       uses <title>, which here would read "Dashboard - nexora".
+     - apple-mobile-web-app-capable is the old spelling of the standard
+       mobile-web-app-capable; iOS still only honours the prefixed one, so
+       ship both rather than picking a side.
+
+   Icons are generated from the real CSS logo by scripts/make-app-icons.py --
+   a home screen icon cannot animate, so they are one frozen frame of it. #}
+<link rel="manifest" href="{{ url_for('web_app_manifest') }}">
+<meta name="theme-color" content="#0f172a">
+<link rel="apple-touch-icon" href="{{ static_v('images/icon-180.png') }}">
+<meta name="apple-mobile-web-app-title" content="nexora">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">

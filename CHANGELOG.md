@@ -33,6 +33,21 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   half-screen window or a display at 200% browser zoom — both of which put a
   desktop under 768 CSS px — keep the existing hamburger drawer, unchanged.
   `tests/e2e/test_mobile_nav.py` pins both directions.
+- **nexora installs as an app** (#354) — a web app manifest at
+  `/manifest.webmanifest` plus icons, so Android and Windows offer *Install*
+  (app-drawer / Start-menu icon, own window, splash screen) and iOS offers
+  *Add to Home Screen* with a real icon instead of the first letter of the
+  page title. No App Store, no developer account, no cost, and nothing to
+  update: it is the live site, so a deploy reaches installed users the next
+  time they open it. Served as a route rather than a static file because
+  `start_url`/`scope` must carry the `/nexora` prefix on PROD and STAGING but
+  not on INT, and because the app name carries the environment — all three
+  hosts are installable and become identical icons otherwise. Icons are
+  generated from the real CSS logo by `scripts/make-app-icons.py`; a
+  home-screen icon cannot animate, so they are one frozen frame of it.
+  **No service worker**, deliberately — Chrome no longer requires one to
+  install, and it would put a cache in front of the app whose failure mode is
+  every installed user stuck on an old version.
 - `templates/hero.html` (the public landing/login page) and
   `templates/jd/jdvance.html` were missing `<meta name="viewport">` entirely
   and rendered zoomed out on a phone — signing in is step zero of any phone

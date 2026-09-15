@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="{{ static_v('css/nexora-ui.css') }}">
     <link rel="stylesheet" href="{{ static_v('css/_header.css') }}">
     <link rel="icon" type="image/x-icon" href="{{ static_v('images/favicon.ico') }}">
+    {% include '_app_manifest.html' %}
     <script nonce="{{ csp_nonce() }}">
         /* Delegated click binding for `data-nx-click="someGlobalFn()"`. The
            #193 CSP work dropped inline onclick attributes; the admin
