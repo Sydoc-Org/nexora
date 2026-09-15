@@ -6,6 +6,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [3.2.9] - 2026-09-15
+
 ### Added
 - **External API: `?include=fields:<key>,<key>`** (#356) — the inline
   key list added in #341's follow-up narrows the projection to the keys a
