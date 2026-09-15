@@ -178,7 +178,7 @@ English `error` string — nothing is silently coerced or ignored):
 | `process` | comma-joined subset of the key's `ProcessList` (default: all of it) |
 | `field` / `value` / `op` / `comb` | repeated doc-field filter pairs, see below |
 | `page` / `per_page` | paging; `per_page` accepts only `40`, `100`, `200`, `500`, `1000` (default `40`) |
-| `include` | `fields` — also return each row's indexed doc-field values (see below); anything else `400`s |
+| `include` | `fields` — also return each row's indexed doc-field values; `fields:invoicenr,kundennr` narrows that to the named keys (see below); anything else `400`s |
 
 Doc-field filters repeat in parallel: each `field`+`value` pair may carry an
 `op` (`contains` default, `ncontains`, `eq`, `neq`, `startswith`,
@@ -234,6 +234,29 @@ polling client, well past the `60/minute` limit. `include=fields` adds a
         }
       ]
     }
+
+#### Asking for specific keys
+
+`include=fields` returns every key mapped for your process scope. To take only
+what you actually read each cycle, name the keys inline:
+
+    curl -H "Authorization: Bearer <key>"         "https://nexora.sydoc.ch/nexora/api/v1/workitems?include=fields:invoicenr,kundennr"
+
+    "fields": { "invoicenr": "INV-2026-00123", "kundennr": "44201" }
+
+The keys are case-insensitive and validated with the **same grammar `field=`
+uses**, so you do not have to learn two: an unknown key and a sensitive one
+both answer `400 {"error": "Unknown field '<key>'"}` (identical on purpose —
+no sensitivity-existence oracle), and a real key mapped for none of your
+processes answers `400 {"error": "Field '<key>' is not available for your
+process scope"}`. An empty list, more than **30** keys, or a key list next to
+any other include token is also a `400`. A typo therefore fails loudly instead
+of looking like a field that is always empty.
+
+**This does not make the query cheaper.** The values sit in one wide row, so
+`fields:invoicenr` and a bare `fields` are the same single read per process per
+page — what you save is response size and the work of ignoring keys you did not
+want.
 
 - **Indexed fields only.** These are the same field keys
   `GET /api/v1/workitems/fields` lists — the values held in the statistics

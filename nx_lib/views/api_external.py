@@ -29,7 +29,10 @@ Eight endpoints in v1:
   decision 2026-08-17). ?include=fields (issue #341) additionally projects
   the INDEXED doc-field values into each row -- resolved once per page from
   the same columnar statistik tables the doc-field FILTER reads, so a
-  polling client no longer needs one /workitems/<id> call per row. Opt-in:
+  polling client no longer needs one /workitems/<id> call per row.
+  ?include=fields:invoicenr,kundennr (issue #356) narrows that projection to
+  the named keys, validated with the SAME grammar ?field= uses; it does not
+  reduce DB work (one wide row either way), only response size. Opt-in:
   without it the response shape is unchanged. Indexed fields only -- table
   values and Octo document/media info stay on the detail endpoint -- and the
   projection is scoped to the key's own processes with sensitive keys never
@@ -238,16 +241,61 @@ WORKITEM_API_PER_PAGE = ("40", "100", "200", "500", "1000")
 # it the response shape is byte-for-byte what it was before.
 WORKITEM_API_INCLUDE = ("fields",)
 
+# Cap on an inline `include=fields:<key>,<key>` selection (issue #356) --
+# bounds the machine surface like WORKITEM_API_MAX_DOCFIELD_PAIRS does for
+# the filter. A caller wanting more than this wants the whole set anyway.
+WORKITEM_API_MAX_INCLUDE_KEYS = 30
 
-def _include_fields_or_400():
-    """(error, want_fields) for ?include=. Unknown tokens 400 rather than
-    being ignored, so a typo'd include never silently returns no fields."""
-    tokens = [t.strip().lower() for t in (request.args.get("include") or "").split(",")]
-    tokens = [t for t in tokens if t]
-    unknown = [t for t in tokens if t not in WORKITEM_API_INCLUDE]
-    if unknown:
-        return "include must be one of: " + ", ".join(WORKITEM_API_INCLUDE), False
-    return None, "fields" in tokens
+
+def _parse_include_or_400():
+    """(error, want_fields, requested_keys) for ?include=.
+
+    ``fields`` alone means every mapped, non-sensitive key (the #341
+    behaviour). ``fields:invoicenr,kundennr`` narrows the projection to those
+    keys (#356) -- returned lowercased, or None when no list was given.
+
+    The comma separates include TOKENS, so a key list is only accepted on a
+    lone ``fields`` token; everything after the first ``:`` is the list.
+    Unknown tokens 400 rather than being ignored, so a typo'd include never
+    silently returns no fields. The keys themselves are validated by the
+    caller, which alone knows the key's scoped/sensitive sets."""
+    raw = (request.args.get("include") or "").strip()
+    if not raw:
+        return None, False, None
+    head, sep, tail = raw.partition(":")
+    tokens = [t.strip().lower() for t in head.split(",") if t.strip()]
+    if any(t not in WORKITEM_API_INCLUDE for t in tokens):
+        return "include must be one of: " + ", ".join(WORKITEM_API_INCLUDE), False, None
+    want_fields = "fields" in tokens
+    if not sep:
+        return None, want_fields, None
+    if tokens != ["fields"]:
+        return "a field-key list is only valid as include=fields:<key>,<key>", False, None
+    keys = [k.strip().lower() for k in tail.split(",") if k.strip()]
+    if not keys:
+        return "include=fields: must name at least one field key", False, None
+    if len(keys) > WORKITEM_API_MAX_INCLUDE_KEYS:
+        return (
+            f"at most {WORKITEM_API_MAX_INCLUDE_KEYS} field keys per include",
+            False,
+            None,
+        )
+    return None, want_fields, keys
+
+
+def _include_keys_or_400(requested_keys, scoped_columns, blocked_keys):
+    """Validate an inline include key list against the caller's scope, with
+    the SAME grammar ?field= uses (a caller should not have to learn two):
+    unknown and sensitive answer identically (no sensitivity-existence
+    oracle), a real-but-unmapped key names the scope problem. Returns
+    (error, allow_set)."""
+    valid_columns = get_valid_search_columns()
+    for key in requested_keys:
+        if key not in valid_columns or key in blocked_keys:
+            return f"Unknown field '{key}'", None
+        if key not in scoped_columns:
+            return f"Field '{key}' is not available for your process scope", None
+    return None, set(requested_keys)
 
 
 _DOCFIELD_COMBS = ("and", "or")
@@ -414,7 +462,7 @@ def api_v1_workitems():
     blocked_keys = get_sensitive_field_keys()
     if blocked_keys is None:
         return jsonify({"error": "Workitems backend unavailable"}), 500
-    err, want_fields = _include_fields_or_400()
+    err, want_fields, include_keys = _parse_include_or_400()
     if err:
         return jsonify({"error": err}), 400
     scoped_columns: set | frozenset = frozenset()
@@ -426,6 +474,14 @@ def api_v1_workitems():
         scoped_columns = get_search_columns_for_processes(g.api_client["processes"])
         if scoped_columns is None:
             return jsonify({"error": "Workitems backend unavailable"}), 500
+    # The projection's allow-set: the caller's explicit include list (#356) if
+    # it named one, else every mapped, non-sensitive key (#341). Validated
+    # BEFORE any backend work so a typo'd key costs nothing.
+    projected_keys = {k for k in scoped_columns if k not in blocked_keys}
+    if include_keys is not None:
+        err, projected_keys = _include_keys_or_400(include_keys, scoped_columns, blocked_keys)
+        if err:
+            return jsonify({"error": err}), 400
     err, args = _parse_workitems_query(
         g.api_client["processes"],
         validate_fields=True,
@@ -457,15 +513,15 @@ def api_v1_workitems():
         import_map = resolve_import_datetimes(default_ids, processes, strict=True)
         field_map = None
         if want_fields:
+            # Redaction by construction: the sensitive keys never enter the
+            # projection, so nothing has to be stripped afterwards.
             ids_by_client: dict[str, list] = {}
             for r in data["workitems"]:
                 ids_by_client.setdefault(r.get("client"), []).append(r["workitemid"])
             field_map = fetch_docfield_values(
                 ids_by_client,
                 processes,
-                # Redaction by construction: the sensitive keys never enter
-                # the projection, so nothing has to be stripped afterwards.
-                {k for k in scoped_columns if k not in blocked_keys},
+                projected_keys,
                 engine_statistics_db=engine_statistics_db,
                 engine_ms02_docfields_pg=engine_ms02_docfields_pg,
                 logger=current_app.logger,
@@ -666,6 +722,15 @@ def api_test_v1_undelivered():
     )
 
 
+def _fake_field_value(key):
+    """A plausible sandbox value for a doc-field key: invoice-shaped for the
+    obvious ones, otherwise a bare number -- enough for an integrator to see
+    the shape without a backend read."""
+    if "nr" in key and "kunde" not in key:
+        return f"INV-{date.today().year}-{random.randint(10000, 99999)}"
+    return str(random.randint(10000, 99999))
+
+
 @limiter.limit("60 per minute")
 @require_api_key
 def api_test_v1_workitems():
@@ -675,7 +740,7 @@ def api_test_v1_workitems():
     err, args = _parse_workitems_query(g.api_client["processes"], validate_fields=False)
     if err:
         return jsonify({"error": err}), 400
-    err, want_fields = _include_fields_or_400()
+    err, want_fields, include_keys = _parse_include_or_400()
     if err:
         return jsonify({"error": err}), 400
     per_page = int(args.get("perPage"))
@@ -696,17 +761,17 @@ def api_test_v1_workitems():
             }
         )
         if want_fields:
-            # Sandbox twin of the real projection (#341): plausible field keys
-            # in the real shape, still zero backend queries. Every few rows
-            # carry nothing, mirroring "no indexed values for this workitem".
-            rows[-1]["fields"] = (
-                {}
-                if random.random() < 0.2
-                else {
-                    "invoicenr": f"INV-{date.today().year}-{random.randint(10000, 99999)}",
-                    "kundennr": str(random.randint(10000, 99999)),
-                }
-            )
+            # Sandbox twin of the real projection (#341/#356): plausible values
+            # in the real shape, still zero backend queries -- so the key list
+            # is echoed as given rather than checked against a live mapping.
+            # Every few rows carry nothing, mirroring "no indexed values for
+            # this workitem".
+            if random.random() < 0.2:
+                rows[-1]["fields"] = {}
+            elif include_keys:
+                rows[-1]["fields"] = {k: _fake_field_value(k) for k in include_keys}
+            else:
+                rows[-1]["fields"] = {k: _fake_field_value(k) for k in ("invoicenr", "kundennr")}
     return jsonify(
         {
             "count": count,

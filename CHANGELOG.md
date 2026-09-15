@@ -6,6 +6,19 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **External API: `?include=fields:<key>,<key>`** (#356) — the inline
+  key list added in #341's follow-up narrows the projection to the keys a
+  client actually reads, instead of every key mapped for its process scope.
+  Keys are case-insensitive and validated with the **same grammar `field=`
+  uses**: unknown and sensitive answer identically (`400 Unknown field`, no
+  sensitivity-existence oracle), a real-but-unmapped key names the scope
+  problem, and an empty list, more than 30 keys, or a key list beside another
+  include token all `400` — a typo fails loudly instead of looking like a
+  permanently empty field. Bare `include=fields` is unchanged. This saves
+  response size, **not** query cost: the values sit in one wide statistik row
+  either way. Mirrored on `/api/test/v1/workitems`.
+
 ## [3.2.8] - 2026-09-15
 
 ### Added

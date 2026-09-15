@@ -2121,3 +2121,193 @@ def test_test_workitems_include_fields_mirrors_the_real_shape(client):
                 assert all(isinstance(v, str) for v in row["fields"].values())
     finally:
         _delete_key(key_hash)
+
+
+# ---------------- /api/v1/workitems?include=fields:<keys> (#356) ------------ #
+
+
+def test_include_fields_key_list_narrows_the_projection(client, monkeypatch):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+    seen = {}
+
+    def _fake_fetch(ids_by_client, processes, field_keys, **kw):
+        seen["field_keys"] = set(field_keys)
+        return {("default", 1216): {"invoicenr": "INV-2026-00123"}}
+
+    monkeypatch.setattr(ax, "_get_workitems_data", lambda args, scope=None: _fields_page())
+    monkeypatch.setattr(ax, "resolve_import_datetimes", lambda ids, p, strict=False: {})
+    monkeypatch.setattr(ax, "fetch_docfield_values", _fake_fetch)
+    _patch_field_whitelist(monkeypatch, columns=("invoicenr", "kundennr", "docdate"))
+    try:
+        resp = client.get(
+            WORKITEMS_URL,
+            headers={"Authorization": f"Bearer {raw}"},
+            query_string={"include": "fields:invoicenr,kundennr"},
+        )
+        assert resp.status_code == 200
+        # Only the named keys reach the projection -- docdate is in scope but
+        # was not asked for.
+        assert seen["field_keys"] == {"invoicenr", "kundennr"}
+    finally:
+        _delete_key(key_hash)
+
+
+def test_include_fields_key_list_is_case_insensitive(client, monkeypatch):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+    seen = {}
+
+    def _fake_fetch(ids_by_client, processes, field_keys, **kw):
+        seen["field_keys"] = set(field_keys)
+        return {}
+
+    monkeypatch.setattr(ax, "_get_workitems_data", lambda args, scope=None: _fields_page())
+    monkeypatch.setattr(ax, "resolve_import_datetimes", lambda ids, p, strict=False: {})
+    monkeypatch.setattr(ax, "fetch_docfield_values", _fake_fetch)
+    _patch_field_whitelist(monkeypatch, columns=("invoicenr",))
+    try:
+        resp = client.get(
+            WORKITEMS_URL,
+            headers={"Authorization": f"Bearer {raw}"},
+            query_string={"include": "fields: InvoiceNr "},
+        )
+        assert resp.status_code == 200
+        assert seen["field_keys"] == {"invoicenr"}
+    finally:
+        _delete_key(key_hash)
+
+
+def test_include_fields_without_a_list_still_projects_everything(client, monkeypatch):
+    # #341 behaviour must be untouched by #356.
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+    seen = {}
+
+    def _fake_fetch(ids_by_client, processes, field_keys, **kw):
+        seen["field_keys"] = set(field_keys)
+        return {}
+
+    monkeypatch.setattr(ax, "_get_workitems_data", lambda args, scope=None: _fields_page())
+    monkeypatch.setattr(ax, "resolve_import_datetimes", lambda ids, p, strict=False: {})
+    monkeypatch.setattr(ax, "fetch_docfield_values", _fake_fetch)
+    _patch_field_whitelist(
+        monkeypatch, columns=("invoicenr", "kundennr", "ahvnr"), sensitive=("ahvnr",)
+    )
+    try:
+        resp = client.get(
+            WORKITEMS_URL,
+            headers={"Authorization": f"Bearer {raw}"},
+            query_string={"include": "fields"},
+        )
+        assert resp.status_code == 200
+        assert seen["field_keys"] == {"invoicenr", "kundennr"}
+    finally:
+        _delete_key(key_hash)
+
+
+def test_include_fields_unknown_and_sensitive_keys_answer_identically(client, monkeypatch):
+    # No sensitivity-existence oracle: a sensitive key must 400 with the same
+    # body an unknown one gets -- the rule ?field= already follows.
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+
+    def _must_not_be_called(*a, **kw):
+        raise AssertionError("no backend work for an invalid include key")
+
+    monkeypatch.setattr(ax, "_get_workitems_data", _must_not_be_called)
+    monkeypatch.setattr(ax, "fetch_docfield_values", _must_not_be_called)
+    _patch_field_whitelist(monkeypatch, columns=("invoicenr", "ahvnr"), sensitive=("ahvnr",))
+    try:
+        bodies = []
+        for key in ("nosuchfield", "ahvnr"):
+            resp = client.get(
+                WORKITEMS_URL,
+                headers={"Authorization": f"Bearer {raw}"},
+                query_string={"include": f"fields:invoicenr,{key}"},
+            )
+            assert resp.status_code == 400, key
+            bodies.append(resp.get_json()["error"].replace(key, "<key>"))
+        assert bodies[0] == bodies[1] == "Unknown field '<key>'"
+    finally:
+        _delete_key(key_hash)
+
+
+def test_include_fields_key_outside_process_scope_names_the_scope(client, monkeypatch):
+    # Real column, mapped for none of the key's processes: say so rather than
+    # quietly returning a row without it.
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+
+    def _must_not_be_called(*a, **kw):
+        raise AssertionError("no backend work for an out-of-scope include key")
+
+    monkeypatch.setattr(ax, "_get_workitems_data", _must_not_be_called)
+    _patch_field_whitelist(
+        monkeypatch, columns=("invoicenr", "othercustomerkey"), scoped=("invoicenr",)
+    )
+    try:
+        resp = client.get(
+            WORKITEMS_URL,
+            headers={"Authorization": f"Bearer {raw}"},
+            query_string={"include": "fields:othercustomerkey"},
+        )
+        assert resp.status_code == 400
+        assert resp.get_json() == {
+            "error": "Field 'othercustomerkey' is not available for your process scope"
+        }
+    finally:
+        _delete_key(key_hash)
+
+
+@pytest.mark.parametrize(
+    "include,fragment",
+    [
+        ("fields:", "at least one field key"),
+        ("fields:,,", "at least one field key"),
+        ("tables:invoicenr", "include must be one of"),
+        ("fields," + "fields:invoicenr", "only valid as include=fields"),
+        ("fields:" + ",".join(f"k{i}" for i in range(31)), "at most 30 field keys"),
+    ],
+)
+def test_include_fields_malformed_lists_return_400(client, monkeypatch, include, fragment):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+
+    def _must_not_be_called(*a, **kw):
+        raise AssertionError("no backend work for a malformed include")
+
+    monkeypatch.setattr(ax, "_get_workitems_data", _must_not_be_called)
+    _patch_field_whitelist(monkeypatch)
+    try:
+        resp = client.get(
+            WORKITEMS_URL,
+            headers={"Authorization": f"Bearer {raw}"},
+            query_string={"include": include},
+        )
+        assert resp.status_code == 400, include
+        assert fragment in resp.get_json()["error"], include
+    finally:
+        _delete_key(key_hash)
+
+
+def test_test_workitems_include_fields_echoes_the_requested_keys(client):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+    try:
+        saw_values = False
+        for _ in range(12):
+            resp = client.get(
+                "/api/test/v1/workitems",
+                headers={"Authorization": f"Bearer {raw}"},
+                query_string={"include": "fields:invoicenr,kundennr"},
+            )
+            assert resp.status_code == 200
+            for row in resp.get_json()["workitems"]:
+                # Sandbox echoes the asked-for keys (or an empty object for the
+                # "nothing indexed" case) -- never some other key.
+                assert set(row["fields"]) in ({"invoicenr", "kundennr"}, set())
+                saw_values = saw_values or bool(row["fields"])
+        assert saw_values, "sandbox never produced a populated fields object"
+    finally:
+        _delete_key(key_hash)

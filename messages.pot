@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-15 08:52+0200\n"
+"POT-Creation-Date: 2026-09-15 12:45+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2803,11 +2803,11 @@ msgstr ""
 #: templates/api_docs.html:252 templates/api_docs.html:288
 #: templates/api_docs.html:294 templates/api_docs.html:319
 #: templates/api_docs.html:325 templates/api_docs.html:362
-#: templates/api_docs.html:367 templates/api_docs.html:387
-#: templates/api_docs.html:393 templates/api_docs.html:407
-#: templates/api_docs.html:413 templates/api_docs.html:433
-#: templates/api_docs.html:439 templates/api_docs.html:483
-#: templates/api_docs.html:489 templates/reporting.html:463
+#: templates/api_docs.html:367 templates/api_docs.html:389
+#: templates/api_docs.html:395 templates/api_docs.html:409
+#: templates/api_docs.html:415 templates/api_docs.html:435
+#: templates/api_docs.html:441 templates/api_docs.html:485
+#: templates/api_docs.html:491 templates/reporting.html:463
 msgid "Copy"
 msgstr ""
 
@@ -2880,7 +2880,7 @@ msgid "Endpoints"
 msgstr ""
 
 #: templates/api_docs.html:120 templates/api_docs.html:139
-#: templates/api_docs.html:479
+#: templates/api_docs.html:481
 msgid "Test sandbox"
 msgstr ""
 
@@ -2930,19 +2930,19 @@ msgstr ""
 #: templates/api_docs.html:252 templates/api_docs.html:288
 #: templates/api_docs.html:294 templates/api_docs.html:319
 #: templates/api_docs.html:325 templates/api_docs.html:362
-#: templates/api_docs.html:367 templates/api_docs.html:387
-#: templates/api_docs.html:393 templates/api_docs.html:407
-#: templates/api_docs.html:413 templates/api_docs.html:433
-#: templates/api_docs.html:439 templates/api_docs.html:483
-#: templates/api_docs.html:489
+#: templates/api_docs.html:367 templates/api_docs.html:389
+#: templates/api_docs.html:395 templates/api_docs.html:409
+#: templates/api_docs.html:415 templates/api_docs.html:435
+#: templates/api_docs.html:441 templates/api_docs.html:485
+#: templates/api_docs.html:491
 msgid "Copy code"
 msgstr ""
 
 #: templates/api_docs.html:154 templates/api_docs.html:220
 #: templates/api_docs.html:251 templates/api_docs.html:293
 #: templates/api_docs.html:324 templates/api_docs.html:366
-#: templates/api_docs.html:392 templates/api_docs.html:412
-#: templates/api_docs.html:438 templates/api_docs.html:488
+#: templates/api_docs.html:394 templates/api_docs.html:414
+#: templates/api_docs.html:440 templates/api_docs.html:490
 msgid "response"
 msgstr ""
 
@@ -3005,7 +3005,7 @@ msgstr ""
 #: templates/api_docs.html:189 templates/api_docs.html:230
 #: templates/api_docs.html:262 templates/api_docs.html:271
 #: templates/api_docs.html:303 templates/api_docs.html:345
-#: templates/api_docs.html:467
+#: templates/api_docs.html:469
 msgid "Meaning"
 msgstr ""
 
@@ -3077,19 +3077,19 @@ msgid ""
 msgstr ""
 
 #: templates/api_docs.html:227 templates/api_docs.html:268
-#: templates/api_docs.html:300 templates/api_docs.html:464
+#: templates/api_docs.html:300 templates/api_docs.html:466
 msgid "Response fields"
 msgstr ""
 
 #: templates/api_docs.html:230 templates/api_docs.html:271
-#: templates/api_docs.html:303 templates/api_docs.html:467
+#: templates/api_docs.html:303 templates/api_docs.html:469
 #: templates/js/_reporting_dashboard_js.html:38
 msgid "Field"
 msgstr ""
 
 #: templates/admin/tenants_manage.html:74 templates/api_docs.html:230
 #: templates/api_docs.html:262 templates/api_docs.html:271
-#: templates/api_docs.html:303 templates/api_docs.html:467
+#: templates/api_docs.html:303 templates/api_docs.html:469
 #: templates/generali_documents.html:228 templates/js/_reporting_viz_js.html:11
 msgid "Type"
 msgstr ""
@@ -3210,8 +3210,9 @@ msgstr ""
 
 #: templates/api_docs.html:354
 msgid ""
-"fields — also return each row's indexed document-field values (see "
-"below). Any other value answers 400."
+"fields — also return each row's indexed document-field values; "
+"fields:invoicenr,kundennr narrows that to the named keys (see below). Any"
+" other value answers 400."
 msgstr ""
 
 #: templates/api_docs.html:358
@@ -3227,6 +3228,21 @@ msgid ""
 msgstr ""
 
 #: templates/api_docs.html:377
+msgid ""
+"To take only the keys you actually read each cycle, name them inline: "
+"include=fields:invoicenr,kundennr. Keys are case-insensitive and "
+"validated exactly like ?field= — an unknown or sensitive key answers 400 "
+"Unknown field, a key outside your process scope answers 400 Field not "
+"available. An empty list or more than 30 keys is also a 400."
+msgstr ""
+
+#: templates/api_docs.html:378
+msgid ""
+"Naming keys does not make the query cheaper — the values sit in one wide "
+"row either way. What it saves is response size."
+msgstr ""
+
+#: templates/api_docs.html:379
 #, python-brace-format
 msgid ""
 "Indexed fields only — the same keys /workitems/fields lists. Table values"
@@ -3235,7 +3251,7 @@ msgid ""
 "included, and without include the response is exactly what it was before."
 msgstr ""
 
-#: templates/api_docs.html:378
+#: templates/api_docs.html:380
 msgid ""
 "Every invalid value returns a 400 with a plain-English error — nothing is"
 " silently coerced. Unknown and sensitive field keys answer identically "
@@ -3244,7 +3260,7 @@ msgid ""
 "the same per-process time window as the overview page's search."
 msgstr ""
 
-#: templates/api_docs.html:384
+#: templates/api_docs.html:386
 msgid ""
 "The field keys /workitems accepts in ?field= for your key's process "
 "scope, as the server resolves them right now — only fields mapped for at "
@@ -3252,7 +3268,7 @@ msgid ""
 "fetching this over hard-coding key names."
 msgstr ""
 
-#: templates/api_docs.html:398
+#: templates/api_docs.html:400
 msgid ""
 "Keys are lowercase without separators. On /workitems an unknown key "
 "answers 400 Unknown field, and a real field outside your key's scope "
@@ -3260,14 +3276,14 @@ msgid ""
 "lookup returns 500, never a partial list."
 msgstr ""
 
-#: templates/api_docs.html:404
+#: templates/api_docs.html:406
 msgid ""
 "The count of workitems currently in each stage (Import, Extraction, "
 "Validation, Delivery) for your key's process scope. No parameters; the "
 "numbers always match a stage-filtered /workitems query."
 msgstr ""
 
-#: templates/api_docs.html:424
+#: templates/api_docs.html:426
 msgid ""
 "datetime is the server-local timestamp the counts were computed at. An "
 "empty process scope returns all zeros; a degraded workitem source answers"
@@ -3275,24 +3291,24 @@ msgid ""
 "fresh numbers."
 msgstr ""
 
-#: templates/api_docs.html:430
+#: templates/api_docs.html:432
 msgid ""
 "The document details the overview row-expand shows for one workitem: "
 "extracted field values and table values. No page images, confidence or "
 "source locations; sensitive fields are always stripped."
 msgstr ""
 
-#: templates/api_docs.html:469
+#: templates/api_docs.html:471
 msgid ""
 "Extracted field name → value, mapped through the same field-name mapping "
 "the overview uses"
 msgstr ""
 
-#: templates/api_docs.html:470
+#: templates/api_docs.html:472
 msgid "Extracted tables: title, columns, and rows of column/value cells"
 msgstr ""
 
-#: templates/api_docs.html:474
+#: templates/api_docs.html:476
 msgid ""
 "404 with a null detail is returned uniformly for an unknown id, an id "
 "outside your key's scope, and a document the runtime backend can't load "
@@ -3300,7 +3316,7 @@ msgid ""
 " service and can take a few seconds."
 msgstr ""
 
-#: templates/api_docs.html:480
+#: templates/api_docs.html:482
 msgid ""
 "Every endpoint above has a /api/test/v1/... twin: same path suffix, same "
 "Bearer-key auth, same response shape — but the numbers are random, not "
@@ -3308,13 +3324,13 @@ msgid ""
 "repeatedly while building an integration."
 msgstr ""
 
-#: templates/api_docs.html:495
+#: templates/api_docs.html:497
 msgid ""
 "Use a real (enabled) API key — the same auth errors (401/429) apply. "
 "Available for"
 msgstr ""
 
-#: templates/api_docs.html:495
+#: templates/api_docs.html:497
 msgid "and"
 msgstr ""
 
