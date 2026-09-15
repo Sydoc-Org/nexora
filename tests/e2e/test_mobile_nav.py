@@ -250,3 +250,46 @@ def test_dashboard_does_not_scroll_sideways_on_a_phone(nexora_server, phone_page
     assert (
         overflow <= 1
     ), f"the dashboard scrolls sideways by {overflow}px at 390px; widest: {culprits}"
+
+
+# --------------------------------------------- signed-out pages on a phone --
+
+
+@pytest.mark.flaky_e2e
+@pytest.mark.parametrize("path", ["/", "/login"])
+def test_signed_out_pages_have_thumb_sized_controls(nexora_server, phone_page, path):
+    """The landing and login pages are what everyone meets before signing in,
+    and both had controls around half the size a thumb needs.
+
+    44px is the floor Apple and Google both publish. The footer links measured
+    20px tall, the show-password eye 30px wide -- the control most likely to be
+    tapped on a phone, where typing a password blind is hardest.
+
+    The rules behind this are keyed on `pointer: coarse` rather than a width,
+    because how big a control must be follows the finger, not the screen.
+    """
+    page = phone_page
+    page.goto(f"{nexora_server}{path}")
+    page.wait_for_load_state("load")
+
+    too_small = page.evaluate(
+        "() => [...document.querySelectorAll('a, button')]"
+        ".map(e => ({ r: e.getBoundingClientRect(),"
+        "            id: e.getAttribute('data-testid') || e.innerText.trim().slice(0, 20) }))"
+        ".filter(x => x.r.height > 0 && x.r.width > 0"
+        "          && (x.r.height < 44 || x.r.width < 44))"
+        ".map(x => x.id + ' ' + Math.round(x.r.width) + 'x' + Math.round(x.r.height))"
+    )
+    assert too_small == [], f"controls too small to tap on {path}: {too_small}"
+
+
+@pytest.mark.flaky_e2e
+@pytest.mark.parametrize("path", ["/", "/login"])
+def test_signed_out_pages_do_not_scroll_sideways(nexora_server, phone_page, path):
+    page = phone_page
+    page.goto(f"{nexora_server}{path}")
+    page.wait_for_load_state("load")
+    overflow = page.evaluate(
+        "() => document.documentElement.scrollWidth - document.documentElement.clientWidth"
+    )
+    assert overflow <= 1, f"{path} scrolls sideways by {overflow}px at 390px"

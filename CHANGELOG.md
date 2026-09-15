@@ -54,6 +54,19 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   visit.
 
 ### Fixed
+- **Login and landing pages on a phone** (#354) — `auth.css` had no media
+  queries at all, so the page every user meets before signing in had no
+  small-screen rules. Neither page overflowed, but the controls were around
+  half the size a thumb needs: the shared footer links measured 20px tall,
+  the show-password eye 30px wide (the control most likely to be tapped on a
+  phone, where typing a password blind is hardest) and the theme toggles
+  40px. All now clear the 44px floor Apple and Google both publish, keyed on
+  `pointer: coarse` rather than a width — how big a control must be follows
+  the finger, not the screen, so a narrow desktop window is unchanged. The
+  landing headline was Tailwind's smallest step (`text-4xl`, 36px) and ran to
+  five lines and 198px, about a quarter of the screen, before a reader
+  reached a word about what nexora does; now 28px and 97px. The sydoc mark in
+  the footer drops from 96px to 64px below 480px.
 - **Dashboard fits a phone** (#354) — two layout bugs, both clipping content
   rather than merely looking cramped. `.nx-main` kept its 40px desktop side
   gutter at every width, spending 80px of a 375px screen on empty margin and

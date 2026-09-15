@@ -1380,3 +1380,40 @@ html.dark .flatpickr-calendar.arrowTop::after { border-bottom-color: var(--nx-ca
 html.dark .flatpickr-calendar.arrowBottom::before,
 html.dark .flatpickr-calendar.arrowBottom::after { border-top-color: var(--nx-card); }
 html.dark .flatpickr-day:hover { background: var(--nx-alt); }
+
+/* ============================================================
+   TOUCH TARGETS ON THE SIGNED-OUT PAGES (#354)
+
+   Keyed on `pointer: coarse`, NOT on width -- deliberately, and for a
+   different reason than the phone nav's gate. Target size is a property of
+   the *finger*, not of the screen: a 20px link is just as hard to hit on a
+   tablet as on a phone, and perfectly fine with a mouse at any width. So this
+   follows the input device wherever it is, and a narrow desktop window keeps
+   the compact footer it has today.
+
+   44px is the floor both Apple and Google publish for a touch target. The
+   footer links and the forgot-password link measured 20px tall -- roughly half
+   of that -- on the two pages every user meets before they are signed in.
+   ============================================================ */
+@media (pointer: coarse) {
+  .nx-footer-links a,
+  [data-testid="login-forgot"] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    /* Short words ("Help", "Team") were only ~35px wide, which with the row's
+       16px gap leaves neighbouring targets close enough to mis-tap. */
+    min-width: 44px;
+    padding-inline: 2px;
+  }
+}
+
+/* The shared signed-out footer (templates/_small_footer.html) carries the
+   sydoc mark at h-24 (96px). On a 375px screen that makes it the largest
+   thing on the login page after the form itself. Lives here rather than in
+   hero.css because the login page loads auth.css, not hero.css -- both load
+   this file. Width-keyed: it is about how much room the image takes. */
+@media (max-width: 480px) {
+  footer img[alt="sydoc-logo"] { height: 4rem; }
+}
