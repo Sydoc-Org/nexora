@@ -39,6 +39,18 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   visit.
 
 ### Fixed
+- **Dashboard fits a phone** (#354) — two layout bugs, both clipping content
+  rather than merely looking cramped. `.nx-main` kept its 40px desktop side
+  gutter at every width, spending 80px of a 375px screen on empty margin and
+  squeezing the content column to 287px; it now drops to 16px below 768px,
+  matching what `_header.css` already did for `.container`. And each KPI tile
+  held 187px of content in a 94px box — the 120px sparkline is
+  `flex-shrink: 0` and sat beside the value — so the number and its delta
+  were cut off; below 480px the sparkline is hidden (the same trend is drawn
+  full width in the charts below) and the tiles tighten up. Content width
+  287 → 340px, tile overflow 93 → 0px. Keyed on width, not on the phone
+  nav's touch gate: these bite any narrow window, a half-screen desktop one
+  included.
 - **Rendered pages are no longer cacheable** (#354) — HTML went out with no
   `Cache-Control`, no `ETag` and no `Last-Modified` at all, leaving the
   browser to guess. A nexora pinned to a phone home screen runs in its own

@@ -252,6 +252,14 @@ body.nx-app .nx-main {
   padding: 44px 40px 28px;
   box-sizing: border-box;
 }
+/* The 40px side gutter is a desktop measure. On a 375px screen it spent 80px
+   -- over a fifth of the display -- on empty margin, squeezing the content
+   column to 287px and making every table, tile and chart narrower than it
+   needed to be. Mirrors what _header.css already does for `.container` at
+   this width (#354 follow-up). */
+@media (max-width: 768px) {
+  body.nx-app .nx-main { padding: 24px 16px 20px; }
+}
 
 /* Page header: title + subtitle on the left, actions on the right,
    with a hair-thin accent keyline under the title block. */
@@ -566,6 +574,27 @@ html.dark.nx-stripes .admin-table tbody tr:not(.details-row):nth-child(even) td 
   .nx-kpi { padding: 14px 18px 12px; }
   .nx-kpi:nth-child(odd)  { border-left: none; }
   .nx-kpi:nth-child(n+3)  { border-top: 1px solid var(--nx-divider); }
+}
+
+/* Phone tuning (#354 follow-up). Deliberately keyed on WIDTH, not on the
+   touch gate that guards the phone nav in _header.css: these are plain
+   layout bugs that bite any narrow window, a half-screen desktop one
+   included, and both were clipping content rather than merely looking
+   cramped. The nav is the thing that must never turn phone-shaped on a
+   desktop; a KPI tile that fits its own box is just correct everywhere. */
+@media (max-width: 480px) {
+  /* The sparkline is 120px with flex-shrink: 0, sitting beside the value in
+     a tile whose content box is ~94px at 375px wide -- so each tile held
+     187px of content in 94px and simply cut the value and delta off. Below
+     ~480px there is no width where a 120px spark and the number both fit,
+     and the number is the point: the same trend is drawn full width in the
+     charts further down the page. */
+  .nx-kpi__spark { display: none; }
+  .nx-kpi__body { gap: 8px; }
+  .nx-kpi { padding: 12px 14px 10px; }
+  /* The label is uppercase with .09em tracking, so "AVG. PROCESSING TIME"
+     ran to three lines and shoved the number down. */
+  .nx-kpi__label { letter-spacing: .05em; }
 }
 
 /* ---------- Segmented control ---------- */
