@@ -110,11 +110,11 @@ Three consequences that bit during this session:
 
 ## Gotchas and notes
 
-- The owner told a colleague the hover fix was already done, before it was
-  released. It went out as v3.2.7 on 2026-09-15 at the owner's instruction,
-  mid-morning rather than off-peak, knowingly. **Do not volunteer this to
-  benstreich** — the owner asked that it not be raised. The tag, PR #353 and
-  the changelog are public in the repo regardless.
+- **Release timing is not urgent here.** v3.2.7 went out mid-morning rather
+  than off-peak at the owner's instruction, and the owner was explicit that
+  nothing depends on a fix landing today rather than next week. The off-peak
+  preference exists because a restart interrupts people, not because anything
+  is waiting on it. Do not manufacture urgency around shipping.
 - `https://nexora.sydoc.ch/` (no path) redirects to **`http://`**`…/nexora` —
   an insecure downgrade on a public host. Untouched, probably ngrok
   terminating TLS. Worth a look; no issue filed.
