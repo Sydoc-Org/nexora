@@ -54,6 +54,21 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   visit.
 
 ### Fixed
+- **Workitems overview on a phone** (#354) — the page scrolled sideways by
+  27px. Three flex rows sized for a desktop could neither shrink nor wrap:
+  the export/import cluster (its shared `.nx-page-head__actions` carries
+  `flex-shrink: 0`, so it hung 8px off each edge), the list header, and the
+  status tab strip. The tab strip now scrolls on its own axis instead of
+  wrapping into a broken half-row, and every tab stays reachable. The
+  floating bulk-action bar sat at `bottom: 12px` — exactly where the new
+  phone tab bar is — so selecting rows hid the actions behind the
+  navigation; it now clears it, under the same touch gate that draws the bar,
+  so a narrow desktop window is unchanged. Touch targets: toolbar controls
+  were 32–33px, status tabs 27px, pagination 30×30 buttons flush against each
+  other, the details chevron 21×9 and row checkboxes 18×18. Toolbar,
+  pagination, tabs and bulk actions now clear 44px; the per-row controls are
+  lifted to 26 and 35px rather than 44, which would have set the height of
+  every row and halved how many fit on screen.
 - **Login and landing pages on a phone** (#354) — `auth.css` had no media
   queries at all, so the page every user meets before signing in had no
   small-screen rules. Neither page overflowed, but the controls were around

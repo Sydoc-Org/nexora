@@ -293,3 +293,44 @@ def test_signed_out_pages_do_not_scroll_sideways(nexora_server, phone_page, path
         "() => document.documentElement.scrollWidth - document.documentElement.clientWidth"
     )
     assert overflow <= 1, f"{path} scrolls sideways by {overflow}px at 390px"
+
+
+@pytest.mark.flaky_e2e
+def test_workitems_overview_fits_a_phone(nexora_server, phone_page):
+    """The busiest page in the app, and the one most likely to regress.
+
+    Three separate rows -- the export/import cluster, the list header and the
+    status tab strip -- were flex rows sized for a desktop that could neither
+    shrink nor wrap, and together they pushed the page 27px sideways.
+    """
+    page = phone_page
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/workitems")
+    page.wait_for_load_state("load")
+    page.wait_for_timeout(600)  # the list renders from JS
+
+    overflow = page.evaluate(
+        "() => document.documentElement.scrollWidth - document.documentElement.clientWidth"
+    )
+    assert overflow <= 1, f"the workitems list scrolls sideways by {overflow}px"
+
+
+@pytest.mark.flaky_e2e
+def test_bulk_action_bar_clears_the_tab_bar(nexora_server, phone_page):
+    """The floating bulk bar sat at bottom: 12px -- underneath the phone tab
+    bar, so selecting rows hid the actions behind the navigation."""
+    page = phone_page
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/workitems")
+    page.wait_for_load_state("load")
+    page.wait_for_timeout(600)
+
+    gap = page.evaluate(
+        "() => { const b = document.getElementById('bulk-action-bar');"
+        " const t = document.querySelector('.nx-tabbar');"
+        " if (!b || !t) return null;"
+        " return Math.round(t.getBoundingClientRect().top"
+        "                   - b.getBoundingClientRect().bottom); }"
+    )
+    assert gap is not None, "bulk action bar or tab bar missing from the page"
+    assert gap >= 0, f"the bulk action bar overlaps the tab bar by {-gap}px"
