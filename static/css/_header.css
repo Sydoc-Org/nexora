@@ -1035,9 +1035,22 @@ html.dark .shortcuts-row { color: #e2e8f0; }
         border-top: 1px solid #e5e7eb;
         border-radius: 18px 18px 0 0;
         box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.18);
-        padding-bottom: env(safe-area-inset-bottom);
+        /* The sheet reaches bottom: 0 so translateY(100%) hides it completely,
+           but the tab bar paints over its last ~56px. Without this the rows
+           that live at the end of the sidebar -- dark mode, and the profile
+           menu that holds Sign out and the build stamp -- sit underneath the
+           bar and cannot be tapped. */
+        padding-bottom: calc(56px + env(safe-area-inset-bottom));
     }
-    #nexora-sidebar.open { transform: translateY(0); }
+    /* The pinned variant has to be repeated here. `html.sidebar-pinned
+       #nexora-sidebar` in the group above is specificity (1,1,1) -- higher
+       than a bare `#nexora-sidebar.open` (1,1,0) -- so for anyone who has
+       ever pinned the sidebar on a desktop, the base transform would win and
+       the sheet would stay parked off-screen no matter how often you tapped
+       More. (That pin is remembered per user, so this broke for exactly the
+       people who use the app most.) */
+    #nexora-sidebar.open,
+    html.sidebar-pinned #nexora-sidebar.open { transform: translateY(0); }
 
     /* A grab handle, so the sheet reads as a sheet and not a stuck panel. */
     #nexora-sidebar::before {
@@ -1055,9 +1068,13 @@ html.dark .shortcuts-row { color: #e2e8f0; }
        there is no hamburger here. */
     #nexora-sidebar.open .sidebar-logo-area { padding-left: 0; }
 
-    /* The sheet is short, so its nav is the part that scrolls. */
+    /* The sheet is short, so its nav is the part that scrolls. `contain` stops
+       the scroll chaining to the page underneath once the nav hits its end --
+       otherwise flicking through the tenant list drags the dashboard along
+       behind the sheet. */
     .sidebar-nav {
         overflow-y: auto;
+        overscroll-behavior: contain;
         -webkit-overflow-scrolling: touch;
     }
 

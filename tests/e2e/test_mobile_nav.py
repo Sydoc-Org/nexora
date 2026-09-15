@@ -76,6 +76,35 @@ def _login(page, base, who="admin@test.local"):
     page.wait_for_url("**/dashboard")
 
 
+def _assert_sheet_is_on_screen(page):
+    """The sheet is really raised, not just carrying the `.open` class.
+
+    Worth the extra check: the class is set by JS, but whether the panel
+    actually moves is decided by CSS specificity, and those can disagree
+    silently -- see test_sheet_opens_for_a_user_who_pinned_the_sidebar.
+    """
+    # The sheet slides up over 0.28s, so poll rather than measure the instant
+    # the class lands -- otherwise this catches it mid-animation near the
+    # bottom and fails for a reason that has nothing to do with the layout.
+    try:
+        page.wait_for_function(
+            "() => { const r = document.getElementById('nexora-sidebar')"
+            ".getBoundingClientRect();"
+            " return r.height > 200 && r.top < window.innerHeight - 200; }",
+            timeout=5000,
+        )
+    except PlaywrightTimeoutError:
+        box = page.evaluate(
+            "() => { const r = document.getElementById('nexora-sidebar')"
+            ".getBoundingClientRect();"
+            " return {top: Math.round(r.top), height: Math.round(r.height),"
+            " vh: window.innerHeight,"
+            " transform: getComputedStyle(document.getElementById('nexora-sidebar')).transform,"
+            " cls: document.getElementById('nexora-sidebar').className}; }"
+        )
+        raise AssertionError(f"the sheet never came up on screen: {box}") from None
+
+
 # --------------------------------------------------------------- the gate --
 
 
@@ -120,8 +149,33 @@ def test_more_slot_opens_the_sheet(nexora_server, phone_page):
     more.click()
     expect(page.locator("#nexora-sidebar")).to_have_class(re.compile(r"\bopen\b"))
     expect(more).to_have_attribute("aria-expanded", "true")
+    _assert_sheet_is_on_screen(page)
     # Everything the drawer holds is reachable from the sheet.
     expect(page.locator('[data-testid="header-nav-admin-toggle"]')).to_be_visible()
+
+
+@pytest.mark.flaky_e2e
+def test_sheet_opens_for_a_user_who_pinned_the_sidebar(nexora_server, phone_page):
+    """A pinned sidebar must not keep the sheet parked off-screen.
+
+    `html.sidebar-pinned` is set pre-paint from a saved UI pref, and as a
+    descendant selector it outranks `#nexora-sidebar.open`. The first cut of
+    this feature carried the closed transform on that higher-specificity rule,
+    so for anyone who had ever pinned the sidebar on a desktop -- which is to
+    say the heaviest users -- tapping More dimmed the page and raised nothing.
+    The `.open` class was still set, so a class-only assertion passed happily.
+    """
+    page = phone_page
+    _login(page, nexora_server)
+    page.evaluate("() => document.documentElement.classList.add('sidebar-pinned')")
+    more = page.locator('[data-testid="mobilenav-more"]')
+    # aria-expanded flips in the same handler that sets `.open`, so waiting on
+    # it proves header.js was bound and the tap actually registered -- a click
+    # that lands before DOMContentLoaded would otherwise leave the sheet shut
+    # and fail this test for the wrong reason.
+    more.click()
+    expect(more).to_have_attribute("aria-expanded", "true")
+    _assert_sheet_is_on_screen(page)
 
 
 @pytest.mark.flaky_e2e

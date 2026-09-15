@@ -169,11 +169,15 @@
 
             {# Two consumers: the sidebar loop right below, and the phone tab
                bar after </aside> (#354). Keep this set above both -- moving it
-               down would silently empty the tab bar's slots. #}
+               down would silently empty the tab bar's slots.
+               'short' is the tab bar's label: a bar slot is ~90px wide, where
+               "Global Dashboard" renders as "Global Dash...". The sidebar
+               keeps the full label, which is what disambiguates it from a
+               tenant's own mounted Dashboard. #}
             {% set nav_items = [
-                {'perm': page_visibility.dashboardPagePerm,  'url': url_for('dashboard', tenant=''), 'icon': 'fa-gauge-high',          'label': _('Global Dashboard'),              'active': active_page == 'dashboard'},
-                {'perm': page_visibility.reportingPagePerm, 'url': url_for('reporting'),           'icon': 'fa-chart-column',        'label': _('Global Reporting'),       'active': active_page == 'reporting', 'always': true},
-{'perm': page_visibility.workitemsPagePerm, 'url': url_for('workitems_overview', tenant=''), 'icon': 'fa-layer-group',         'label': _('Global Workitems'),              'active': active_page == 'workitems_overview'},
+                {'perm': page_visibility.dashboardPagePerm,  'url': url_for('dashboard', tenant=''), 'icon': 'fa-gauge-high',          'label': _('Global Dashboard'), 'short': _('Dashboard'),              'active': active_page == 'dashboard'},
+                {'perm': page_visibility.reportingPagePerm, 'url': url_for('reporting'),           'icon': 'fa-chart-column',        'label': _('Global Reporting'), 'short': _('Reporting'),       'active': active_page == 'reporting', 'always': true},
+{'perm': page_visibility.workitemsPagePerm, 'url': url_for('workitems_overview', tenant=''), 'icon': 'fa-layer-group',         'label': _('Global Workitems'), 'short': _('Workitems'),              'active': active_page == 'workitems_overview'},
             ] %}
 
             {# A user inside exactly ONE tenant reaches Dashboard/Workitems through
@@ -405,7 +409,7 @@
         {% endfor %}
         {% else %}
         {% for item in nav_items if item.perm %}
-        {{ tabbar_item(item.url, item.icon, item.label, item.active, 'mobilenav-slot-' ~ loop.index) }}
+        {{ tabbar_item(item.url, item.icon, item.short, item.active, 'mobilenav-slot-' ~ loop.index) }}
         {% endfor %}
         {% endif %}
 
