@@ -29,7 +29,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   hidden there, and the bar clears the iOS home indicator
   (`env(safe-area-inset-bottom)`).
   **The phone layout can never appear on a computer:** it is gated on
-  `(max-width: 768px) and (pointer: coarse) and (hover: none)`, so a
+  `(max-width: 768px) and (pointer: coarse)`, so a
   half-screen window or a display at 200% browser zoom — both of which put a
   desktop under 768 CSS px — keep the existing hamburger drawer, unchanged.
   `tests/e2e/test_mobile_nav.py` pins both directions.
@@ -37,6 +37,22 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `templates/jd/jdvance.html` were missing `<meta name="viewport">` entirely
   and rendered zoomed out on a phone — signing in is step zero of any phone
   visit.
+
+### Fixed
+- **Rendered pages are no longer cacheable** (#354) — HTML went out with no
+  `Cache-Control`, no `ETag` and no `Last-Modified` at all, leaving the
+  browser to guess. A nexora pinned to a phone home screen runs in its own
+  standalone context, guesses eagerly, and kept showing the version it was
+  pinned at for days. Worse than the stale version: each asset tag's
+  `?v=<mtime>` buster is baked into the HTML, so a stale page also pinned
+  stale asset URLs — the browser never requested the new CSS, and the
+  year-long `max-age` on `/static` (safe only while the HTML naming it is
+  fresh) kept serving the old file, making a deploy look like it had done
+  nothing. HTML responses now send `Cache-Control: no-store`; versioned
+  static assets keep their long cache. Every page is rendered for one
+  signed-in user, so none of it belonged in a cache anyway — this also stops
+  a back-button press on a shared machine redisplaying the previous user's
+  page after sign-out.
 
 ## [3.2.7] - 2026-09-15
 

@@ -89,6 +89,38 @@ def create_app():
             resp.headers["Cache-Control"] = f"public, max-age={static_max_age_seconds}"
         return resp
 
+    @app.after_request
+    def _html_no_store(resp):
+        """Never let a rendered page be cached (#354).
+
+        HTML went out with no Cache-Control, no ETag and no Last-Modified at
+        all, so a browser had nothing to go on and fell back to heuristic
+        freshness -- which a home-screen shortcut, running in its own
+        standalone context, applies far more eagerly than a normal tab. The
+        visible symptom was a pinned nexora that kept showing the version it
+        was pinned at, for days.
+
+        The knock-on effect is the real damage. Every asset tag's `?v=<mtime>`
+        cache-buster is baked into the HTML, so a stale page also pins stale
+        asset URLs: the browser never even asks for the new CSS, and the
+        year-long max-age on /static above -- which is only safe because the
+        HTML that references it is supposed to be fresh -- keeps serving the
+        old file. A deploy then appears to do nothing.
+
+        `no-store` rather than `no-cache`: every page here is rendered for one
+        signed-in user (their name, their permissions, their tenant), so none
+        of it should ever be written to a shared or on-disk cache in the first
+        place. That also stops a back-button press on a shared machine
+        redisplaying the previous user's page after they signed out.
+
+        setdefault, so a view that deliberately sets its own policy keeps it.
+        Static assets are untouched: they are versioned, and their long
+        max-age is what makes navigation fast.
+        """
+        if resp.mimetype == "text/html":
+            resp.headers.setdefault("Cache-Control", "no-store")
+        return resp
+
     @app.template_global()
     def static_v(filename):
         """url_for('static') with an mtime cache-buster (#191).

@@ -1,8 +1,8 @@
 """E2E tests for the phone tab bar and bottom sheet (#354).
 
 The point of these tests is the *gate*, not just the bar. The phone layout is
-behind `(max-width: 768px) and (pointer: coarse) and (hover: none)`, so both
-directions are pinned here:
+behind `(max-width: 768px) and (pointer: coarse)`, so both directions are
+pinned here:
 
   - a touch phone at 390px gets the tab bar and loses the hamburger;
   - a 390px window with a MOUSE keeps the hamburger and never sees the bar.
@@ -12,8 +12,8 @@ a computer, including a half-screen window or a display at 200% browser zoom,
 both of which put a desktop under 768 CSS px.
 
 `page.set_viewport_size()` alone is NOT enough to exercise this -- it resizes
-the viewport but the browser still reports `pointer: fine` / `hover: hover`, so
-a width-only test would pass while testing nothing. The touch tests below use a
+the viewport but the browser still reports `pointer: fine`, so a width-only
+test would pass while testing nothing. The touch tests below use a
 real mobile context (`has_touch` + `is_mobile`).
 """
 

@@ -927,12 +927,12 @@ html.dark .shortcuts-row { color: #e2e8f0; }
 
    THE GATE. Every rule below is behind
 
-       (max-width: 768px) and (pointer: coarse) and (hover: none)
+       (max-width: 768px) and (pointer: coarse)
 
    because width alone cannot tell a phone from a narrow window. A mouse or
-   trackpad machine reports `pointer: fine` and `hover: hover` no matter how
-   narrow it gets, so it can never fall in here. That is what keeps the phone
-   layout off a desktop in the two cases width alone gets wrong:
+   trackpad machine reports `pointer: fine` no matter how narrow it gets, so
+   it can never fall in here. That is what keeps the phone layout off a
+   desktop in the two cases width alone gets wrong:
 
      - a browser window snapped to half a wide monitor (~760px);
      - browser zoom at 200%, which drops the CSS viewport below 768px on a
@@ -945,6 +945,14 @@ html.dark .shortcuts-row { color: #e2e8f0; }
    reports `fine`, so the rule fails toward desktop, which is the safe
    direction. Narrow + mouse keeps the hamburger drawer defined above.
 
+   `pointer: coarse` carries the whole guarantee on its own, so do NOT add
+   `and (hover: none)` back. It was in the first cut as belt-and-braces and
+   bought nothing -- any machine reporting `pointer: fine` is already
+   excluded -- while adding a second thing a phone browser can get wrong.
+   Several mobile browsers report `hover: hover` (a stylus, a paired mouse,
+   some Samsung Internet and Firefox Android builds), and each one of those
+   was a real phone silently dropped back to the hamburger.
+
    This gate is deliberate and load-bearing: do not "simplify" it to a plain
    max-width query. tests/e2e/test_mobile_nav.py pins both directions.
    ============================================================ */
@@ -953,7 +961,7 @@ html.dark .shortcuts-row { color: #e2e8f0; }
    the gated block below ever reveals it. */
 .nx-tabbar { display: none; }
 
-@media (max-width: 768px) and (pointer: coarse) and (hover: none) {
+@media (max-width: 768px) and (pointer: coarse) {
 
     /* ---- The bar ---- */
     .nx-tabbar {
@@ -1094,7 +1102,7 @@ html.dark .nx-tabbar-item { color: #94a3b8; }
 html.dark .nx-tabbar-item--active { color: var(--nx-accent, #a5b4fc); }
 html.dark .nx-tabbar-item:active { background: rgba(148, 163, 184, 0.12); }
 
-@media (max-width: 768px) and (pointer: coarse) and (hover: none) {
+@media (max-width: 768px) and (pointer: coarse) {
     html.dark #nexora-sidebar,
     html.dark #nexora-sidebar:hover,
     html.dark #nexora-sidebar.pinned,
