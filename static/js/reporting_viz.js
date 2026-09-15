@@ -24,8 +24,13 @@
   // Chart grid-line color, derived from the theme's border token at draw
   // time so it tracks light/dark mode without a second hardcoded value.
   function gridColor() {
-    var v = getComputedStyle(document.documentElement).getPropertyValue('--nx-border').trim();
-    return v || 'rgba(100,116,139,.18)';
+    return token('--nx-border', 'rgba(100,116,139,.18)');
+  }
+  // Any theme token, read at draw time so charts follow light/dark, the
+  // accent picker and the contrast pref without a second hardcoded value.
+  function token(name, fallback) {
+    var v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return v || fallback;
   }
   var MAX_CHART_CATEGORIES = 50;
 
@@ -256,7 +261,14 @@
           : colors,
         borderColor: single ? rlNavy : rlSliceBorder,
         borderWidth: type === 'line' ? 2 : 1,
-        fill: type === 'line'
+        fill: type === 'line',
+        // Give the hovered point something to do. Resting size is untouched
+        // (Chart.js's default 3); only the hover state grows, so the chart
+        // looks the same until you point at it.
+        pointHoverRadius: 6,
+        pointHoverBorderWidth: 2,
+        pointHoverBackgroundColor: rlPeak,
+        pointHitRadius: 12
       };
       var chartDatasets = [ds];
       if (fcSeries) {
@@ -294,6 +306,16 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          // Hover. The default ('nearest' + intersect) only fires when the
+          // cursor is exactly on a point, so sweeping across a line chart
+          // does nothing -- the single most common complaint about this
+          // chart. Index mode reports the x position under the cursor from
+          // anywhere in the plot. Pie and doughnut keep the default, where
+          // "the slice you are pointing at" is already right and index mode
+          // would highlight all of them at once.
+          interaction: single
+            ? { mode: 'index', intersect: false }
+            : { mode: 'nearest', intersect: true },
           // White background so an exported PNG isn't transparent.
           plugins: {
             legend: { display: !single || !!fcSeries,
@@ -306,6 +328,17 @@
                         return !(ds._band || ds._forecast);
                       } } },
             tooltip: {
+              // Chart.js's stock tooltip is a black box that ignores the
+              // theme. Take the same tokens as every other surface.
+              backgroundColor: token('--nx-card', '#ffffff'),
+              titleColor: token('--nx-text', '#111827'),
+              bodyColor: token('--nx-text-sec', '#374151'),
+              borderColor: token('--nx-border', '#e5e7eb'),
+              borderWidth: 1,
+              cornerRadius: 8,
+              padding: 10,
+              boxPadding: 4,
+              titleFont: { weight: '600' },
               callbacks: {
                 // Reuse the module's existing number formatter (fmt) instead
                 // of Chart.js's raw float, so aggregated sums/averages don't

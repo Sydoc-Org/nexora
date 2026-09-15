@@ -241,9 +241,11 @@ it needs the same `GRAPH_*` credentials the scheduled reports already use.
 ## Wiring on SYAPP01
 
 `ops/outage-monitor-task.xml` is the Task Scheduler definition (every 5
-minutes, matching the hysteresis defaults), and **`deploy.yml` registers it on
-every push to `main`** — the "Register scheduled tasks" step, which also
-registers the session prune. Nothing to import by hand.
+minutes, matching the hysteresis defaults), and **`deploy-env.yml` registers it on
+every PROD deploy (a `v*` tag push)** — the "Register scheduled tasks" step, which
+also registers the session prune; dev/staging deploys skip it. Nothing to import by
+hand. The monitor probes the PROD hostname only; add `dev-nexora` / `staging-nexora`
+probes if those hosts ever need watching (not done in #338).
 
 That step exists because mirroring an XML is not the same as having a task:
 Windows does not read definitions off disk. This task happened to be registered

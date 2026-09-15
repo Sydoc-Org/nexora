@@ -27,6 +27,41 @@
         unknown: {{ _("Unknown") | tojson }},
     };
 
+    // Theme tokens for anything drawn on a canvas. getComputedStyle on <body>
+    // is what nkSumLabels already uses; kept identical so there is one way to
+    // read a token on this page, not two.
+    function token(name, fallback) {
+        const v = getComputedStyle(document.body).getPropertyValue(name);
+        return (v && v.trim()) || fallback;
+    }
+
+    // Chart.js's stock tooltip is a black box with white text and no border.
+    // On this dashboard that is a near-black panel floating on a dark card
+    // with no edge to separate the two -- unreadable, and the reason the
+    // hover looked broken rather than merely plain.
+    //
+    // Set as a *global default* rather than per chart: every chart here
+    // already passes its own `plugins: { legend: ... }`, and that object
+    // replaces the whole plugins key, so a tooltip folded into chartDefaults
+    // would be silently dropped by five of the six. Defaults are merged
+    // underneath instead, so each chart keeps its own legend and still gets
+    // this. Re-read on every tooltip draw via the scriptable form, so the
+    // theme toggle (see the MutationObserver above) repaints them.
+    if (window.Chart) {
+        Object.assign(Chart.defaults.plugins.tooltip, {
+            backgroundColor: () => token('--nx-card', '#ffffff'),
+            titleColor: () => token('--nx-text', '#111827'),
+            bodyColor: () => token('--nx-text-sec', '#374151'),
+            footerColor: () => token('--nx-text-sec', '#374151'),
+            borderColor: () => token('--nx-border', '#e5e7eb'),
+            borderWidth: 1,
+            cornerRadius: 8,
+            padding: 10,
+            boxPadding: 4,
+            titleFont: { weight: '600' },
+        });
+    }
+
     let charts = {};
     let trendData = null;
     let trendState = loadTrendState();
@@ -132,6 +167,22 @@
             const data = await response.json();
             if (!data.success) { console.error(data.error); return; }
 
+            // Whichever bound we did not send, the server filled in (clearing a
+            // date field is the usual way in — the inputs accept typing). Show
+            // the window it actually used: charts covering a month while the
+            // picker sits empty give the reader no way to tell what is on
+            // screen. Only fills a field that is genuinely blank, and passes
+            // false so setDate does not re-trigger a load.
+            if (data.range) {
+                if (!document.getElementById('filterStartDate').value && fpStart) {
+                    fpStart.setDate(String(data.range.start).slice(0, 10), false);
+                }
+                if (!document.getElementById('filterEndDate').value && fpEnd) {
+                    fpEnd.setDate(String(data.range.end).slice(0, 10), false);
+                }
+                syncRangeLimits();
+            }
+
             document.getElementById('kpi-total').textContent = data.kpis.total_docs.toLocaleString();
 
             const rateColor = r => r > 50 ? 'text-emerald-500' : r > 20 ? 'text-amber-500' : 'text-red-500';
@@ -159,7 +210,15 @@
                 type: 'doughnut',
                 data: {
                     labels: data.doctype.labels,
-                    datasets: [{ data: data.doctype.values, backgroundColor: PALETTE, borderWidth: 2, borderColor: '#fff' }]
+                    datasets: [{ data: data.doctype.values, backgroundColor: PALETTE,
+                        borderWidth: 2,
+                        // Scriptable, not a baked-in string: the slice
+                        // separators have to follow a theme toggle like
+                        // everything else. Read once at creation they would
+                        // stay dark on a light page (and this used to be a
+                        // literal #fff, which is why it read as a white web
+                        // over the chart in dark mode -- same fault as #326).
+                        borderColor: () => token('--nx-card', '#ffffff') }]
                 },
                 options: { ...chartDefaults, cutout: '65%', plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } } } }
             });
@@ -178,6 +237,12 @@
                 options: {
                     ...chartDefaults,
                     indexAxis: 'y',
+                    // Chart.js defaults to nearest + intersect, so the tooltip
+                    // only fired with the cursor exactly on the bar. On a
+                    // horizontal chart that is the worst case: the whole row
+                    // reads as the target and most of it is the label and the
+                    // empty track. Index mode makes the row hoverable.
+                    interaction: { mode: 'index', intersect: false },
                     plugins: { legend: { display: false } },
                     scales: { x: { beginAtZero: true, ticks: { precision: 0 } } }
                 }
@@ -235,7 +300,15 @@
                 type: 'doughnut',
                 data: {
                     labels: data.language.labels,
-                    datasets: [{ data: data.language.values, backgroundColor: PALETTE, borderWidth: 2, borderColor: '#fff' }]
+                    datasets: [{ data: data.language.values, backgroundColor: PALETTE,
+                        borderWidth: 2,
+                        // Scriptable, not a baked-in string: the slice
+                        // separators have to follow a theme toggle like
+                        // everything else. Read once at creation they would
+                        // stay dark on a light page (and this used to be a
+                        // literal #fff, which is why it read as a white web
+                        // over the chart in dark mode -- same fault as #326).
+                        borderColor: () => token('--nx-card', '#ffffff') }]
                 },
                 options: { ...chartDefaults, cutout: '65%', plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } } } }
             });
@@ -253,6 +326,10 @@
                 },
                 options: {
                     ...chartDefaults,
+                    // Same default as the recipient chart above: without this
+                    // you have to land on the bar itself rather than anywhere
+                    // in its column.
+                    interaction: { mode: 'index', intersect: false },
                     plugins: { legend: { display: false } },
                     scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
                 }

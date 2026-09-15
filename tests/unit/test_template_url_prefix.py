@@ -75,3 +75,16 @@ def test_no_jinja_syntax_in_static_js():
         "Jinja syntax in a static .js file is never rendered. Move the value into "
         "the inline shim in templates/js/ and read it from window:\n" + "\n".join(offenders)
     )
+
+
+def test_no_prefix_detection_by_hostname():
+    """API_PREFIX must be derived from the path, never from location.href:
+    dev-nexora.sydoc.ch contains "nexora" and serves at "/" (#338)."""
+    root = Path(__file__).resolve().parents[2]
+    offenders = []
+    for folder, pattern in (("templates", "*.html"), ("static/js", "*.js")):
+        for p in (root / folder).rglob(pattern):
+            text = p.read_text(encoding="utf-8", errors="ignore")
+            if "location.href.includes(" in text and "nexora" in text:
+                offenders.append(str(p.relative_to(root)))
+    assert not offenders, offenders

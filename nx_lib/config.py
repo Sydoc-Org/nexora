@@ -96,7 +96,9 @@ _load_env_files(REPO_ROOT, _env_name)
 # runs the old environment's connections under the new environment's name.
 DOTENV_KEYS = frozenset(os.environ) - _pre_dotenv_keys
 
-IS_PROD = os.environ.get("ENVIRONMENT") == "PROD"
+# STAGING is a public, prod-shaped host (#338): same CSP, /nexora prefix,
+# filesystem sessions and /dev/* lockout as PROD.
+IS_PROD = os.environ.get("ENVIRONMENT") in ("PROD", "STAGING")
 
 # --- Runtime paths -----------------------------------------------------------
 # Every runtime-writable dir lives under var/. Gitignored except .gitkeep.

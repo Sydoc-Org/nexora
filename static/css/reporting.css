@@ -979,12 +979,52 @@ body.nx-app {
 .reporting-simple-aibar { display: flex; gap: 8px; flex: 1; min-width: 260px; }
 .reporting-simple-aibar .reporting-input { flex: 1; }
 .reporting-simple-search { max-width: 220px; margin-left: auto; }
-.reporting-simple-h { font-size: 13px; font-weight: 600; color: var(--nx-text-sec); text-transform: uppercase; letter-spacing: .04em; margin: 18px 0 10px; }
+/* The wizard's step headings are questions, not section labels: sentence
+   case, primary text colour and a size that carries, with real space before
+   the answers. The uppercase 13px treatment they used to share with
+   `.rs-choice-group-label` made a question look like furniture. The counter
+   in ::before still numbers them. */
+.reporting-simple-h {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--nx-text);
+  letter-spacing: 0;
+  margin: 0 0 16px;
+  line-height: 1.35;
+}
 .reporting-simple-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
 .reporting-simple-empty { font-size: 13px; color: var(--nx-text-sec); padding: 8px 0 4px; }
-.reporting-simple-step { margin: 18px 0; }
-.reporting-simple-choices { display: flex; flex-wrap: wrap; gap: 8px; }
-.reporting-simple-choice { border: 1px solid var(--nx-border); border-radius: 999px; background: var(--nx-card); color: var(--nx-text); padding: 8px 16px; font-size: 13px; cursor: pointer; font-family: inherit; }
+/* Each step is its own question, so it gets its own block of space and a
+   hairline above it. The steps stack rather than replacing each other, so
+   without a divider a four-question wizard reads as one long run of chips. */
+.reporting-simple-step { margin: 0; padding: 24px 0; }
+.reporting-simple-step + .reporting-simple-step:not([hidden]) {
+  border-top: 1px solid var(--nx-divider, var(--nx-border));
+}
+.reporting-simple-step:first-child { padding-top: 4px; }
+.reporting-simple-choices { display: flex; flex-wrap: wrap; gap: 10px; }
+.reporting-simple-choice {
+  border: 1px solid var(--nx-border);
+  border-radius: 999px;
+  background: var(--nx-card);
+  color: var(--nx-text);
+  padding: 9px 18px;
+  font-size: 13px;
+  line-height: 1.2;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color .15s var(--nx-ease, ease), background-color .15s var(--nx-ease, ease);
+}
+/* A chip that does nothing on hover reads as a label rather than a control.
+   :not(:disabled) so the greyed-out cross-source measures stay inert. */
+.reporting-simple-choice:not(:disabled):hover {
+  border-color: var(--nx-accent);
+  background: var(--nx-alt);
+}
+.reporting-simple-choice:focus-visible {
+  outline: 2px solid var(--nx-accent);
+  outline-offset: 2px;
+}
 .reporting-simple-choice.is-selected {
   border: 1.5px solid var(--nx-accent); background: var(--nx-accent-tint);
   color: var(--nx-accent-hover); font-weight: 600;
@@ -996,16 +1036,32 @@ body.nx-app {
 .reporting-simple-choice.rs-choice-none { border-style: dashed; }
 /* Uppercase group captions above each breakdown cluster (Time / Document
    fields / Or); a full-width flex item forces the wrap onto its own row. */
+/* 2px under a caption is the single worst offender in this step: the label
+   and the chips it describes touch, so a cluster reads as one undifferentiated
+   blob. 18px above separates clusters, 10px below ties the caption to its own
+   answers. */
 .rs-choice-group-label {
   flex: 1 0 100%; font: 700 10.5px var(--nx-font); text-transform: uppercase;
-  letter-spacing: .06em; color: var(--nx-text-meta); margin: 12px 0 2px;
+  letter-spacing: .06em; color: var(--nx-text-meta); margin: 18px 0 10px;
 }
 .rs-choice-group-label:first-child { margin-top: 0; }
 .rs-choice-group-sublabel {
   text-transform: none; letter-spacing: 0; font-weight: 600; font-size: 11.5px;
-  color: var(--nx-text-sec); margin-top: 6px;
+  color: var(--nx-text-sec); margin-top: 12px; margin-bottom: 8px;
 }
-.reporting-simple-inline { display: inline-flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 13px; font-weight: 600; color: var(--nx-text-sec); }
+.reporting-simple-inline { display: inline-flex; align-items: center; gap: 10px; margin-top: 18px; font-size: 13px; font-weight: 600; color: var(--nx-text-sec); }
+/* The hint under each question ("Pick one or more ...") had no rule at all, so
+   it inherited 16px body text in the primary colour and the global `p` reset's
+   zero margin. It came out *larger and louder than the answers it explains*
+   and glued to the last row of chips. Smaller, muted and set below the answers
+   it belongs to -- the same 13px/secondary treatment as
+   `.reporting-simple-empty`. */
+.reporting-simple-hint {
+  margin: 16px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--nx-text-sec);
+}
 .reporting-simple-scopestep { margin-bottom: 10px; font-size: 14px; border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 8px); background: var(--nx-card); max-width: 520px; max-height: 260px; overflow: auto; padding: 10px 12px; }
 .reporting-simple-scopestep label { display: block; padding: 3px 0; }
 /* Auto-numbered wizard steps: [hidden] steps generate no boxes, so a
@@ -2116,19 +2172,31 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
    ~L1443) — the old ledger-scoped name/meta override that used to sit here
    has no selector left to attach to. */
 
-/* Task 7: Wizard step headings ("1. What do you want to measure?" etc.) take
-   the same uppercase tracked-caption treatment as .reporting-ledger-caption
-   (kept as inlined properties rather than the shared class since the
-   headings' markup — templates/_reporting_simple.html — stays untouched).
-   Scoped to .reporting-simple-step so the Library section headers, which
-   reuse the same .reporting-simple-h class outside the wizard, are
-   unaffected. */
+/* Wizard step headings ("1. What do you want to measure?").
+   
+   Task 7 gave these the uppercase tracked-caption treatment shared with
+   .reporting-ledger-caption, for visual consistency with the rest of the
+   ledger skin. That is reversed here, deliberately, on the owner's report
+   that the wizard's questions read badly.
+   
+   The reason it read badly: these are the only headings in the console that
+   are *sentences addressed to the reader* rather than labels naming a region.
+   At .68rem, +.1em tracking, uppercase and in --nx-text-meta, a question
+   gets the exact typographic treatment this design system uses for furniture,
+   so it scans as a caption and the eye skips it -- which leaves the answers
+   underneath looking unprompted.
+   
+   Sentence case at a readable size in the primary text colour. Still scoped
+   to .reporting-simple-step, so the Library section headers that reuse this
+   class outside the wizard keep the caption treatment they should have. The
+   step number from the ::before counter is unaffected. */
 .reporting-ledger .reporting-simple-step .reporting-simple-h {
-  font-size: .68rem;
+  font-size: 15px;
   font-weight: 600;
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  color: var(--nx-text-meta);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--nx-text);
+  line-height: 1.35;
 }
 
 /* Task 7/6: Process-coverage badge, ledger skin. Task 6 replaced the old

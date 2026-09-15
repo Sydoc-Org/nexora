@@ -19,6 +19,147 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   unconstrained ones while `engine_ms02_docfields_pg` is unset. Opt-in: the
   default response shape is unchanged. Mirrored on
   `/api/test/v1/workitems`.
+
+### Fixed
+- **Generali dashboard: chart hover and tooltips** — three Chart.js defaults
+  nobody had overridden on this page. The Recipient and Entry-channel bar
+  charts kept `nearest` + `intersect`, so a tooltip only appeared with the
+  cursor exactly on the bar; on the horizontal one that is the worst case,
+  because the whole row reads as the target and most of it is the label and
+  the empty track. Both now use index mode. Every tooltip was the stock black
+  box with white text and no border — a near-black panel on a dark card with
+  no edge between them, which is what made the hover look broken rather than
+  merely plain; they now take the card, text and border tokens, set as a
+  Chart.js *default* rather than per chart because each chart passes its own
+  `plugins.legend` and that object would replace the whole key. And the two
+  doughnuts drew their slice separators in a literal `#fff`, a white web over
+  a dark chart — the same fault as the workitem stepper circles (#326). All
+  the colours are scriptable, so they follow the light/dark toggle instead of
+  freezing at whatever theme was active when the chart was built. The
+  doughnuts deliberately keep `nearest`: the slice under the cursor is already
+  the right answer, and index mode would light up every slice at once.
+
+## [3.2.6] - 2026-09-14
+
+### Fixed
+- **The Generali dashboard shows the last 30 days instead of nothing when a
+  date is missing** — `/api/generali/stats` answered a missing `startDate` or
+  `endDate` with a 400, and the page rendered that as a dead screen: every KPI
+  blank, no chart, no explanation. The easiest way in was simply clearing a
+  date field, which the inputs allow. Both bounds are now filled in by
+  `resolve_date_window` — a missing end becomes *now* (not 23:59:59: the day is
+  still running, and padding it reports hours that have not happened as a quiet
+  stretch), a missing start counts back 30 days from whichever end applies. A
+  bound the caller *did* supply is never second-guessed, so an explicit range
+  still means exactly what it says. The response now also carries the window it
+  used (`range`), and the page fills an empty picker from it — charts covering a
+  month while the date field sits blank leave the reader no way to tell what is
+  on screen. The 400 was itself a fix for an unhandled 500; this replaces it
+  with the useful answer.
+
+## [3.2.5] - 2026-09-14
+
+### Added
+- **Hosted dev and staging environments** (#338) — `dev-nexora.sydoc.ch` (deploys on
+  every non-`main` branch push, `ENVIRONMENT=INT`, INT databases) and
+  `staging-nexora.sydoc.ch` (deploys on merge to `main` and nightly at 01:30,
+  `ENVIRONMENT=STAGING`, `nexora_STAGING`/`Generali_STAGING` re-created from PROD every
+  night by the SQL Agent job in `ops/staging-refresh.sql`). Both are extra endpoints on
+  the existing SYAPP01 ngrok agent. New: `.github/workflows/deploy-env.yml` (reusable
+  deploy), `ops/setup-env.ps1` (one-shot host setup), `scripts/make-staging-env.py`.
+  `scripts/env-sync.py` now manages `INT.env` and `STAGING.env` in their SYAPP01 folders;
+  `DB_GENERALI` is declared in every env example.
+- **The permission audit now catches two reporting-source mistakes** (#332) —
+  `scripts/perm-audit.py` (`/nx-perm-audit`) gained two checks, both at profile
+  grain because that is what somebody actually clicks:
+  - **Dormant reporting-source grants** — a profile holding a
+    `reporting.source.*` without `reporting.view`. It does nothing today, which
+    is exactly what makes it worth flagging: it is invisible in use and goes
+    live the moment anyone grants that profile reporting access for an
+    unrelated reason. Finds the one real case on PROD — `Sydoc User` holding
+    the MediaMarkt source — and nothing else.
+  - **Reporting sources of another customer** — a customer profile holding a
+    source belonging to a different customer. The `table` provider applies no
+    row scoping, so the source permission is the entire gate. Empty today; it
+    is a tripwire for the first time somebody lets a customer see their own
+    figures.
+
+  Ownership is read off the source label's prefix (`Privera — Posteingang`),
+  the only place it is written down — nothing in `dbo.ReportingSources`
+  records an organisation. A source whose customer has no `Organizations` row
+  (Bucherer, Frigemo, Aveniq, MediaMarkt) reports *unknown* and never raises a
+  finding. Sharing a tenant excuses a grant only outside the vendor's own
+  tenant: ISS and Generali read each other's sources by design, but Privera,
+  Compass and Elektro-Material all sit in `sydoc`, which says they are the
+  vendor's customers and not one another's.
+- **Privera Posteingang reporting source — the last of the six** (#329) —
+  migration `0135` registers
+  `01_Privera_Posteingang.dbo.Reporting_P1_Dokumente`. Its `ExportDatetime` is
+  text (`dd.MM.yyyy HH:mm:ss`) and the connection runs `us_english`, which
+  reads `01.02.2021` as 2 January and errors outright past the 12th, so the
+  column is exposed as a **string** and a month is a `contains` filter
+  (`.08.2026`). That reproduces the published 10,044 for August exactly, cell
+  for cell across the Register × Niederlassung grid, and matches how the
+  workbook itself works — one file per month. The cost is no month grain, so no
+  series over time; recovering it is one added column on that view
+  (`TRY_CONVERT(datetime, ExportDatetime, 104)`), after which it becomes a
+  grainable date with no other change.
+- **Privera Neuzugänge reporting source** (#329) — migration `0134` registers
+  `dbo.v_PriveraNeuzugaenge_StatistikNiederlassung_AnzahlDossiers`, the view
+  behind the Initialscanning workbook. The view is already aggregated per
+  month and branch, so all three measures — Dossiers, Registers, Pages — are
+  plain sums, and year and month stay numeric dimensions because there is no
+  date column to group by. Verified against the published 2026 workbook: all
+  six closed months exact on all three measures, the only differences being
+  September, which was one day old when that workbook was refreshed. The
+  workbook's fourth data field, a summed `JahrExport`, is an accident and is
+  deliberately not reproduced. Note the view is **broken on INT** (it binds to
+  a stray `SYDOC_Statistik1`) and works on PROD, so the source errors on INT
+  until the dev copy is repointed.
+- **Privera physische Zustellung reporting source, and cross-database sources**
+  (#329) — migration `0133` registers
+  `01_Privera_Posteingang.dbo.Reporting_P1_Nachsendungen`, the first source
+  outside `SYDOC_Statistik`. Same server and login; what had to change is the
+  identifier guard in `nx_lib/reporting/table_query.py`, which refused any name
+  starting with a digit and so could not express `01_Privera_Posteingang` at
+  all. The allowed character set is unchanged — letters, digits and underscore
+  — so no name can still carry a `]` out of the bracket quoting; only the
+  leading-digit rule moved. Two measures, both exact against the published July
+  and August 2026 workbooks: forwardings total, and the workbook's hand-added
+  "ohne TEC" line, which excludes the `Rechnungen Privera TEC` forwarding type
+  — not the TEC branch, which is the plausible wrong guess and gives a
+  different figure.
+- **Compass Group and Privera billing reporting sources** (#329) — migrations
+  `0131` and `0132`, following `0130`, register
+  `SYDOC_Statistik.dbo.Compass_Invoice` and `dbo.PriveraInvoice`: the tables
+  the monthly `CompassGroupVerrechnung<YYYYMM>.xlsx` and
+  `Privera-Invoice-Mandant-<YYYY>-<Monat>.xlsx` workbooks already read. Each
+  customer's pivot is a different shape and the differences matter. Compass
+  bills one unfiltered document count on the **upload** date, not the document
+  date its pivot rows display — documents uploaded in one month carry document
+  dates spread over years. Privera publishes three figures (total, mail,
+  eBill), split on `DocSource` instead of the workbook's list of ticked file
+  names. Verified against the published workbooks: Compass exact in six of
+  eight months (off by one document in the other two), Privera exact in five of
+  six figures — the exception is August 2026 mail, where the old pivot dropped
+  5 mail documents that have no `Mandant` while its own total counted them, so
+  the measure keeps the honest definition and `Mandant` stays a dimension for
+  anyone who wants the old behaviour. No billing source exposes amounts, IBANs,
+  creditor names or Privera's property and owner numbers.
+- **Elektro-Material — Verrechnung reporting source** (#329) — migration
+  `0130` registers `SYDOC_Statistik.dbo.EM_Invoice`, the table the monthly
+  `EM-Statistik<YYYYMM>.xlsx` workbook on the R: drive already reads, so the
+  billing figures stop depending on somebody refreshing a 140 MB spreadsheet and
+  ticking the right export timestamps out of a filter list. Five measures, taken
+  from that workbook's own pivot definition: documents (Opex + e-mail), Opex
+  scans, e-mail documents, order item positions and images out. Checked against
+  six published months — Opex scans and order positions reproduce exactly in
+  four of them, worst deviation 1.06%, and every difference is negative because
+  re-running a past month returns fewer rows than the workbook captured at the
+  time. Every measure filters to the two billed intake channels, since the table
+  also holds `Nexora` and NULL rows the workbook never counted; the amount, IBAN
+  and creditor columns are left out of the catalogue because billing scan volume
+  does not need them.
 - **Aveniq — Xpert Statistics reporting source** — migration `0128` registers
   `SYDOC_Statistik.dbo.Xpert_Stats` (daily DPSI counts pushed by mail from the
   Aveniq box, see `nx-sources/xpert/`) as a `table` source with three measures:
@@ -102,6 +243,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and nothing bleeds in beside it; the editor preview re-runs on every change.
 
 ### Changed
+- **PROD deploys on a `v*` tag push, not on merge to `main`** (#338); `main` now
+  deploys staging. The deploy steps moved from `deploy.yml` into the reusable
+  `deploy-env.yml`; deploys no longer stop the ngrok service (one agent fronts three
+  sites). `STAGING` is prod-shaped: `IS_PROD` covers it (CSP, `/nexora` prefix,
+  filesystem sessions, `/dev/*` lockout).
 - **Generali tenant DB: translations pivoted, scaffolding removed**
   (#220, phases 5-6) — `dbo.CategoryTranslations` stored a `SourceTable`
   column holding *table names as data*, one row per (term, locale). It is now
@@ -184,6 +330,96 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   old copy still writes — see `scripts/generali-import/README.md`.
 
 ### Fixed
+- **Fireflies no longer drift across the New-report wizard** (#336) — the
+  animated backdrop is held behind the page by promoting `<main>`, and
+  Reporting is the one page whose content is not all inside `<main>`: the
+  Console shell wraps the top bar, the source rail and the whole Simple
+  wizard. So the dots painted *over* the wizard's own text, which is
+  distracting and at times unreadable. The shell now takes `position:
+  relative` and deliberately **no** `z-index` — enough to paint above the
+  dots, while leaving the fixed panels inside it (the Eddard chat panel) free
+  to escape to the root as before. Dropping the dots to `z-index: -1` instead
+  looks like the obvious fix and deletes the effect outright: html and body
+  both carry the page background, so a negative layer paints underneath it.
+- **Reporting wizard: the step labels sat below their numbers** (#336) — the
+  rail chips (`1 Measure`, `2 Processes`, …) centre the numbered dot and its
+  label against each other, but `.rs-rail-title` still carried the
+  `padding-top: 4px` written for the original *vertical* rail, where it drops
+  the label onto a 28px dot's first text line. Laid out horizontally that
+  padding pushed the label down inside a centred box, leaving its text about
+  2.5px below the number's — the number looked centred and the word did not.
+- **Reporting wizard: the hint under each question was louder than the answers**
+  (#336) — `.reporting-simple-hint` had no rule at all, so "Pick one or more…"
+  and its siblings inherited 16px body text in the primary colour and the
+  global `p` reset's zero margin: bigger than the chips they explain and
+  touching the last row of them. Now 13px, secondary colour, set off below the
+  answers.
+- **Reporting wizard: Continue now takes you to the next question** — the four
+  steps stack inside one card rather than replacing each other, so revealing
+  the next one rendered it below the fold and left the scroll position alone.
+  Continue read as doing nothing. It now scrolls the opened step into view with
+  90px of headroom, only when the step was actually hidden (so re-rendering an
+  open step never yanks the page), and honours `prefers-reduced-motion`.
+- **Reporting wizard: the questions and their answers had no room** — the group
+  caption sat **2px** above the chips it labels, so a cluster read as one
+  undifferentiated blob; it now has 18px above and 10px below, steps carry real
+  padding and a hairline between them, and the answer chips gained a hover
+  state and a focus ring. The step headings also drop the uppercase tracked
+  caption treatment they took in the console redesign: they are the only
+  headings here that are sentences addressed to the reader, and caption styling
+  made a question scan as furniture. Sentence case, 15px, primary text colour;
+  the Library section headers that share the class keep the caption look.
+- **Reporting: the date range field, the calendar and the chart hover** — four
+  bugs the owner hit in one sitting. The wizard's range field was **read-only**:
+  every other picker in the app passes `allowInput: true`, this one did not, so
+  you could click a range out but never type one. Its calendar was positioned
+  against `<body>` with page coordinates and opened far below the field on a
+  wizard page that scrolls thousands of pixels — it is now anchored to the input
+  itself. The **selected range rendered light grey in dark mode**: section 11 of
+  `nexora-ui.css` styled single dates but never `.inRange`, and fixing it needs
+  all three of the band, the box-shadow flatpickr uses to fill the seams between
+  cells, and flatpickr's own higher-specificity `.today.inRange` rule — which is
+  why today's date stayed a white block in the middle of a selected range. And
+  the **chart only responded when the cursor was exactly on a data point**;
+  bar and line charts now use index mode, so pointing anywhere in the plot
+  reports that bucket. Pie and doughnut keep the old behaviour, where the slice
+  under the cursor is already the right answer. Chart tooltips also take the
+  theme's card, text and border tokens instead of Chart.js's stock black box.
+- **`--nx-on-accent` was referenced but never defined** — found while fixing the
+  above. `nexora-ui.css` used `var(--nx-on-accent, #fff)` for the
+  permission-override badge, and nothing ever declared the token, so it always
+  fell back to white. Every light-mode accent is a saturated mid-dark where that
+  reads, but every dark-mode accent is a light pastel where it does not. Now
+  declared per theme, which fixes the badge and the selected calendar day
+  together.
+- **The billing sources were invisible to Global Admin** (#329) — migration
+  `0136` grants the six sources from `0130`–`0135` to that profile. They
+  deployed correctly, but `0130`–`0135` create each permission and grant it to
+  nobody; Enterprise Admin still picked them up because it holds *every*
+  permission (136 of 136 on PROD), while Global Admin carries a hand-picked
+  subset and had none of them — nor xpert_stats, bucherer_easytax, frigemo,
+  bps_projects or most generali sources. Granted as a migration rather than in
+  the admin UI, because the dormant grant on #332 is what a hand-made one looks
+  like six months later. No customer-facing profile is touched — none of them
+  holds `reporting.view` at all.
+- **env-sync's ACTION NEEDED no longer cries wolf** (#313) — the headline
+  alarm fired on 11 keys absent from `env/PROD.env` on the server, and all 11
+  were false positives: each has a code default identical to the value
+  `env/PROD.env.example` ships, so its absence changes nothing. An alarm that
+  is wrong every time trains people to skim it, and it already cost something
+  — during #297 those keys were written up as real drift and the note had to
+  be retracted, while the actual fault sat in the quiet bucket. The script now
+  reads the repo's own `os.environ.get` / `os.getenv` defaults with `ast` and
+  splits the finding three ways: no default in code stays **actionable** and
+  sets the exit code (the `SUPPORT_MAIL`/#166 case it was built for); a default
+  equal to the example is reported quietly; a default that *contradicts* the
+  example is its own warning, because the server then runs on a value the repo
+  does not advertise. Defaults that point at another key (`MS02_STATS_DB_PORT`
+  inherits `MS02_DB_PORT`) resolve against the server file first, so setting
+  the base key on PROD gives the right answer rather than the source literal.
+  A key is only treated as defaulted when *every* read site supplies one, so
+  the scan can never silence a key that some call path still needs. Today's
+  run is exit 0 with all 11 in the quiet bucket.
 - **Workitem stage timeline no longer paints white circles in dark mode**
   (#326) — the stepper inside an expanded workitem row had `background: #fff`
   written into three surfaces with no dark counterpart: the not-yet-started
@@ -693,6 +929,8 @@ exora\Prune Sessions"
   serves renamed codes for the deploy window and answers 403 — deploy off-hours.
 
 ### Removed
+- The `pull_request` trigger on `deploy.yml` — every branch push runs the fast test
+  tier and its check shows on the PR (#338).
 
 - **`/admin/permission_matrix`** and the Permissions tab on Access Control (both folded into the grid).
 - **Profile-level DENY** (446 semantically empty rows), **the ten

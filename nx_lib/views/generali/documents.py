@@ -1,7 +1,7 @@
 """Generali tenant: Evaluation/Documents (dashboard, document list, stats API)."""
 
 import math
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 from flask import current_app, jsonify, redirect, render_template, request, session, url_for
 from flask_babel import gettext as _
@@ -32,6 +32,55 @@ def days_in_range(start_date, end_date):
     return [(start + timedelta(days=i)).isoformat() for i in range((end - start).days + 1)]
 
 
+# The window the dashboard falls back to when a bound is missing. The same span
+# is set client-side on load (`setDefaultDates` in
+# templates/js/_generali_dashboard_js.html) -- keep the two equal, or clearing
+# a date field silently returns a different range than the one the page opened
+# with.
+DEFAULT_RANGE_DAYS = 30
+
+
+def resolve_date_window(raw_start, raw_end, *, now=None):
+    """The window to report on, filling in whichever bound was not supplied.
+
+    The endpoint used to answer a missing bound with a 400, which the dashboard
+    surfaced as an empty page -- every KPI blank, no chart. That was itself an
+    improvement (before it, `.replace` on ``None`` raised and returned a 500),
+    but "you gave me no dates" is not worth a dead page when there is an
+    obvious window to show: the last ``DEFAULT_RANGE_DAYS`` days.
+
+    Rules, in the order they matter:
+
+    - A supplied bound is passed through untouched apart from the ``T``
+      separator, so an explicit range still means exactly what it says.
+    - A missing end becomes *now*, to the second -- not 23:59:59. The day is
+      still running, and asking for hours that have not happened yet reports
+      them as a quiet stretch rather than as a day in progress. This mirrors
+      what the page itself sends for a range ending today.
+    - A missing start becomes ``DEFAULT_RANGE_DAYS`` before the end, from
+      midnight, so the first day is whole.
+    - If a supplied end cannot be parsed, the start is measured from *now*
+      instead. The unparsable value is still passed through: handling it is
+      the driver's business, and swallowing it here would hide a real caller
+      bug behind a plausible-looking window.
+
+    Returns ``(start, end)`` as ``"YYYY-MM-DD HH:MM:SS"`` strings.
+    """
+    now = now or datetime.now()
+    start = (raw_start or "").strip().replace("T", " ")
+    end = (raw_end or "").strip().replace("T", " ")
+
+    if not end:
+        end = now.strftime("%Y-%m-%d %H:%M:%S")
+    if not start:
+        try:
+            anchor = datetime.fromisoformat(end)
+        except ValueError:
+            anchor = now
+        start = (anchor - timedelta(days=DEFAULT_RANGE_DAYS)).strftime("%Y-%m-%d 00:00:00")
+    return start, end
+
+
 # ----------------------------- Generali Evaluation -------------------------- #
 
 
@@ -39,7 +88,12 @@ def _generali_stats_cache_key():
     """Per-user + per-filter cache key for api_generali_stats, mirroring
     dashboard.py's make_cache_key precedent (request.path + userid + the
     request's own filter dimensions -- here startDate/endDate, the only
-    query args the view's SQL actually consumes)."""
+    query args the view's SQL actually consumes).
+
+    Keyed on the *raw* args, so a request that supplies neither shares one
+    key while the window it resolves to moves with the clock. That costs at
+    most the 120s TTL of staleness on a 30-day range, which is not worth a
+    second key space to avoid."""
     return (
         f"{request.path}_{session.get('userid')}_"
         f"{request.args.get('startDate', '')}_{request.args.get('endDate', '')}"
@@ -55,9 +109,9 @@ def _generali_filter_options_cache_key():
 def _cacheable_response(rv):
     """response_filter for @cache.cached on the two Generali dashboard
     endpoints below -- same contract as dashboard.py's _cacheable_response:
-    never pin an error (or validation-failure) response, or a transient 500 /
-    a missing-date 400 would otherwise be served for the full TTL per
-    user+filter."""
+    never pin an error response, or a transient 500 would otherwise be served
+    for the full TTL per user+filter. (A missing date is no longer one of
+    these: it is defaulted, not refused -- see resolve_date_window.)"""
     status = rv[1] if isinstance(rv, tuple) and len(rv) == 2 else getattr(rv, "status_code", 200)
     return status < 400
 
@@ -108,15 +162,12 @@ def api_generali_stats():
         # the generali package
         from . import engine_generali_db
 
-        raw_start_date = request.args.get("startDate")
-        raw_end_date = request.args.get("endDate")
-        if not raw_start_date or not raw_end_date:
-            return (
-                jsonify({"success": False, "error": _("startDate and endDate are required")}),
-                400,
-            )
-        start_date = raw_start_date.replace("T", " ")
-        end_date = raw_end_date.replace("T", " ")
+        # A missing bound is filled in rather than refused -- see
+        # resolve_date_window. Both are always set from here on, so the
+        # filter below is unconditional in practice.
+        start_date, end_date = resolve_date_window(
+            request.args.get("startDate"), request.args.get("endDate")
+        )
 
         date_filter = ""
         date_params = []
@@ -302,6 +353,11 @@ def api_generali_stats():
         return jsonify(
             {
                 "success": True,
+                # The window actually reported on. When a bound was
+                # defaulted the page has nothing in its date field to show,
+                # and a chart whose range is a mystery is worse than no
+                # chart -- the picker is filled from this.
+                "range": {"start": start_date, "end": end_date},
                 "kpis": kpis,
                 "trend": trend_data,
                 "doctype": doctype_data,

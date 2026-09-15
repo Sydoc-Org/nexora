@@ -1,4 +1,10 @@
-# Cloudflare Tunnel (SYAPP01) — replaces ngrok
+# Cloudflare Tunnel (SYAPP01) — parked
+
+> **Parked (2026-09-14, #338).** A `nexora.sydoc.ch` sub-zone is Enterprise-only on
+> Cloudflare, and moving the whole `sydoc.ch` zone is rejected (company mail and other
+> cyon-hosted services). ngrok stays; the dev/staging hosts are extra ngrok endpoints —
+> `docs/howto/ngrok.md`. This doc is kept as the recipe should the zone move ever be
+> approved. The pre-staged installer in `D:\sydoc\tools\cloudflared` stays too.
 
 Public entry for nexora: `https://nexora.sydoc.ch` → Cloudflare edge →
 `cloudflared` Windows service on SYAPP01 (outbound-only connection, no firewall

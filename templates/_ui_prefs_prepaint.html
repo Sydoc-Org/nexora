@@ -130,7 +130,7 @@
                 pendingPatch = null;
                 patchInflight = true;
                 var meta = document.querySelector('meta[name="csrf-token"]');
-                var API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+                var API_PREFIX = window.location.pathname.split("/")[1] === "nexora" ? "/nexora/" : "/";
                 fetch(API_PREFIX + 'profile/ui_prefs', {
                     method: 'POST',
                     credentials: 'same-origin',
