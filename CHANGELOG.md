@@ -54,6 +54,17 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   visit.
 
 ### Fixed
+- **Admin pages on a phone** (#354) — swept all twelve at 390px. As with
+  Generali, **none overflowed**: the wide tables already scroll inside their
+  own containers, so target size was the whole problem. `.nx-input` rendered
+  41px and `.nx-select` 39px — the shared components every admin search and
+  filter row is built from, now fixed once for every page that uses them —
+  plus admin-logs' own time-range presets (31–33px) and the overview's two
+  standalone quick links (355×21). Deliberately left alone: the links inside
+  the tenant cards on `/admin/tenants` (16–25px). Those are card content, not
+  toolbar controls, and a card listing six members would grow by over 100px
+  if each row were padded to 44 — it would stop being scannable to fix a
+  target you reach deliberately, one at a time.
 - **Generali pages on a phone** (#354) — swept all thirteen at 390px in a
   real touch viewport. **None of them overflowed**; the layout was already
   sound. The one problem was repeated on every page: the action buttons

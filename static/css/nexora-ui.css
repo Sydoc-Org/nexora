@@ -1453,4 +1453,11 @@ html.dark .flatpickr-day:hover { background: var(--nx-alt); }
      Where a tab strip scrolls on its own axis the extra width costs
      nothing, and tabs are primary navigation. */
   .nx-tab { min-height: 44px; min-width: 44px; justify-content: center; }
+
+  /* Form controls. `.nx-input` rendered 41px and `.nx-select` 39px -- close
+     enough to look fine and still under the floor, and they are what every
+     admin page's search and filter row is built from. */
+  .nx-input,
+  .nx-select,
+  textarea.nx-input { min-height: 44px; }
 }

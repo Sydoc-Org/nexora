@@ -358,3 +358,41 @@ def test_bulk_action_bar_clears_the_tab_bar(nexora_server, phone_page):
     )
     assert gap is not None, "bulk action bar or tab bar missing from the page"
     assert gap >= 0, f"the bulk action bar overlaps the tab bar by {-gap}px"
+
+
+@pytest.mark.flaky_e2e
+@pytest.mark.parametrize("path", ["/admin", "/admin/logs", "/admin/access_control"])
+def test_admin_pages_fit_a_phone(nexora_server, phone_page, path):
+    """Admin pages, unlike the Generali ones, do render in the TEST database,
+    so they can carry the guard for the shared form-control sizing.
+
+    None of the admin pages overflowed -- their wide tables already scroll
+    inside their own containers -- so target size was the whole problem:
+    `.nx-input` rendered 41px and `.nx-select` 39px, which is what every
+    admin search and filter row is built from, and admin-logs' own time-range
+    presets were 31-33px.
+    """
+    page = phone_page
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}{path}")
+    page.wait_for_load_state("load")
+    page.wait_for_timeout(600)
+
+    overflow = page.evaluate(
+        "() => document.documentElement.scrollWidth - document.documentElement.clientWidth"
+    )
+    assert overflow <= 1, f"{path} scrolls sideways by {overflow}px"
+
+    too_small = page.evaluate(
+        "() => [...document.querySelectorAll("
+        "  'button, .nx-btn, .nx-input, .nx-select, .nx-tab, .pagination-link')]"
+        ".filter(e => !e.closest('tbody') && !e.closest('#nexora-sidebar')"
+        "          && !e.closest('.nx-tabbar'))"
+        ".map(e => ({ r: e.getBoundingClientRect(),"
+        "             id: e.getAttribute('data-testid')"
+        "                 || e.innerText.trim().slice(0, 14) }))"
+        ".filter(x => x.r.width > 0 && x.r.height > 0"
+        "          && (x.r.height < 43.5 || x.r.width < 43.5))"
+        ".map(x => x.id + ' ' + Math.round(x.r.width) + 'x' + Math.round(x.r.height))"
+    )
+    assert too_small == [], f"controls too small to tap on {path}: {too_small}"
