@@ -6,6 +6,19 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **External API: `/api/v1/workitems?include=fields`** (#341) — the list
+  endpoint can now return each row's indexed document-field values inline
+  (`"fields": {"invoicenr": "INV-2026-00123", ...}`), resolved **once per
+  page** from the same columnar statistik tables the doc-field filter reads.
+  A polling client previously needed one `/workitems/<id>` call per row —
+  900+ per refresh, well past the `60/minute` limit. Indexed fields only
+  (tables and document/media info stay on the detail endpoint); the
+  projection is scoped to the key's own processes, sensitive keys never
+  enter the select list, and MS02 rows return no fields rather than
+  unconstrained ones while `engine_ms02_docfields_pg` is unset. Opt-in: the
+  default response shape is unchanged. Mirrored on
+  `/api/test/v1/workitems`.
 ## [3.2.7] - 2026-09-15
 
 ### Fixed

@@ -166,13 +166,7 @@ def get_workitems_data(
             # Same JoinCondition/alias regex the legacy SearchConfig-row path
             # used, cached per (leg, process) rather than re-derived per pair.
             if src.process not in _default_id_col_cache:
-                id_col = None
-                for part in re.split(r"\s*=\s*", (src.join_condition or "").strip()):
-                    if src.alias and re.match(
-                        rf"^{re.escape(src.alias)}\.\w+$", part.strip(), re.IGNORECASE
-                    ):
-                        id_col = part.strip()
-                        break
+                id_col = _default_id_column(src.join_condition, src.alias)
                 if not id_col:
                     logger.warning(
                         f"Could not extract ID col from JoinCondition: {src.join_condition}"
@@ -601,3 +595,163 @@ def docfield_suggestions_any_field(
     pairs = sorted(vals)
     cache.set(cache_key, pairs, timeout=cache_timeout)
     return pairs
+
+
+def _default_id_column(join_condition, alias):
+    """The alias-qualified workitem-id column of a DEFAULT (StatisticsDB)
+    ProcessSource, parsed out of its ``JoinCondition`` (e.g. ``s.WorkItemID``).
+    None when the condition names no ``<alias>.<col>`` term."""
+    for part in re.split(r"\s*=\s*", (join_condition or "").strip()):
+        if alias and re.match(rf"^{re.escape(alias)}\.\w+$", part.strip(), re.IGNORECASE):
+            return part.strip()
+    return None
+
+
+def _chunked(seq, size=500):
+    for i in range(0, len(seq), size):
+        yield seq[i : i + size]
+
+
+def fetch_docfield_values(
+    ids_by_client,
+    target_processes,
+    field_keys,
+    *,
+    engine_statistics_db,
+    engine_ms02_docfields_pg,
+    logger,
+):
+    """Indexed doc-field values for a PAGE of workitems (issue #341).
+
+    ``ids_by_client`` is ``{client_code: [workitem_id, ...]}`` -- workitem
+    identity is compound, so the result is keyed ``(client, id)`` too.
+    ``field_keys`` is the caller-resolved allow-set of mapping_config field
+    keys: the projection is exactly these, so process scoping and sensitive
+    redaction happen by CONSTRUCTION here rather than by stripping afterwards.
+
+    One query per (client, process) whose statistik source maps at least one
+    of the wanted keys -- the same wide-columnar tables the doc-field FILTER
+    reads (``get_workitems_data``'s two pre-resolution legs), projected
+    instead of reduced to an id set. Rows carry only non-empty values, so a
+    workitem with nothing indexed simply has no entry.
+
+    Raises on a DB failure: the external API's page contract is strict (a
+    degraded source 500s rather than serving a silently partial page). MS02
+    with ``engine_ms02_docfields_pg is None`` is NOT a failure -- those rows
+    get no fields, never unconstrained ones (fail closed).
+    """
+    out: dict[tuple[str, int], dict[str, str]] = {}
+    if not field_keys or not target_processes:
+        return out
+
+    for client, ids in ids_by_client.items():
+        ids = [i for i in ids if i is not None]
+        if not ids:
+            continue
+        mappings = mapping_config.mappings_for(client, target_processes, field_keys=field_keys)
+        if not mappings:
+            continue
+        sources = {s.process: s for s in mapping_config.sources_for(client, target_processes)}
+        by_process: dict[str, list] = {}
+        for m in mappings:
+            by_process.setdefault(m.process, []).append(m)
+        if client == "ms02":
+            if engine_ms02_docfields_pg is None:
+                # Fail closed: no engine -> no fields for MS02 rows.
+                continue
+            _project_ms02(engine_ms02_docfields_pg, by_process, sources, ids, out, logger)
+        else:
+            _project_default(engine_statistics_db, by_process, sources, ids, out, client, logger)
+    return out
+
+
+def _project_default(engine, by_process, sources, ids, out, client, logger):
+    """SQL Server (StatisticsDB) leg of fetch_docfield_values."""
+    if engine is None:
+        return
+    conn = None
+    try:
+        for process, mappings in by_process.items():
+            src = sources.get(process)
+            if src is None or not src.table:
+                continue
+            id_col = _default_id_column(src.join_condition, src.alias)
+            if not id_col:
+                logger.warning(f"docfield projection: no id column for {client}.{process}")
+                continue
+            cols = [m for m in mappings if m.column and _MS02_IDENT.match(m.column)]
+            if not cols:
+                continue
+            select = ", ".join(f"{src.alias}.{m.column}" for m in cols)
+            for chunk in _chunked(ids):
+                placeholders = ", ".join("?" * len(chunk))
+                # ponytail: no time_filter here -- the ids already pin the exact
+                # rows, and a window that excluded one would silently blank its
+                # fields. The FILTER legs need it; a keyed lookup does not.
+                sql = (
+                    f"SELECT {id_col}, {select} FROM {src.table} {src.alias} "
+                    f"WHERE {id_col} IN ({placeholders})"
+                )
+                if conn is None:
+                    conn = engine.raw_connection()
+                cur = conn.cursor()
+                cur.execute(sql, list(chunk))
+                for row in cur.fetchall():
+                    _absorb_row(out, client, row, cols)
+                cur.close()
+    finally:
+        if conn:
+            conn.close()
+
+
+def _project_ms02(engine, by_process, sources, ids, out, logger):
+    """Postgres (MS02 doc-field DB) leg of fetch_docfield_values. The statistik
+    id column is varchar there, so ids are matched as text."""
+    conn = None
+    str_ids = [str(i) for i in ids]
+    try:
+        for process, mappings in by_process.items():
+            src = sources.get(process)
+            if src is None or not src.table:
+                continue
+            id_col = _ms02_id_column(src.join_condition, src.alias)
+            if not id_col or not _MS02_IDENT.match(id_col):
+                logger.warning(f"docfield projection: no id column for ms02.{process}")
+                continue
+            cols = [m for m in mappings if m.column and _MS02_IDENT.match(m.column)]
+            if not cols:
+                continue
+            select = ", ".join(f'"{m.column}"::text' for m in cols)
+            sql = (
+                f'SELECT "{id_col}"::text, {select} FROM {src.table} '
+                f'WHERE "{id_col}"::text = ANY(%s)'
+            )
+            if conn is None:
+                conn = engine.raw_connection()
+            cur = conn.cursor()
+            cur.execute(sql, [str_ids])
+            for row in cur.fetchall():
+                _absorb_row(out, "ms02", row, cols)
+            cur.close()
+    finally:
+        if conn:
+            conn.close()
+
+
+def _absorb_row(out, client, row, cols):
+    """Fold one projected statistik row (``id`` then one value per mapping)
+    into the ``(client, id) -> {field_key: value}`` result. Empty/NULL values
+    are dropped; a value already present wins over a later NULL only."""
+    try:
+        wid = int(row[0])
+    except (TypeError, ValueError):
+        return
+    values = {}
+    for m, value in zip(cols, row[1:], strict=False):
+        if value is None:
+            continue
+        text = str(value).strip()
+        if text:
+            values[m.field_key] = text
+    if values:
+        out.setdefault((client, wid), {}).update(values)

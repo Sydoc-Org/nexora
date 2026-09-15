@@ -15,6 +15,41 @@ remaining blocker is the VPN/network ACL, not the host. It needs a firewall
 request: **permit TCP 5985 from the VPN client pool to 192.168.40.7**. Until
 that lands, use the *PROD diagnostics* workflow below.
 
+**Re-checked 2026-09-08:** still the same — `Test-NetConnection syapp01` from the
+dev box passes on 445 and 3389, fails on 5985/5986/22. Nothing on the host or in
+this repo changes it; the fix is one firewall rule.
+
+## Opening the ACL yourself (Swisscom firewall)
+
+The blocking ACL lives in the **Swisscom hosting/firewall interface** that
+fronts syapp01 — not on the host, not in this repo. If you have access to that
+interface you can open it without a network-team ticket. Add one inbound rule:
+
+| Field | Value |
+|---|---|
+| Direction | Inbound |
+| Protocol | TCP |
+| Port | `5985` |
+| Source | `10.212.134.5/32` (the dev box, tightest) or `10.212.134.0/24` (the VPN pool) |
+| Destination | `192.168.40.7` (syapp01) |
+
+`10.212.134.5` is the address the dev box arrives as un-NATted over SMB
+(`Get-SmbSession` on the server), so it is the correct source. Use the `/32` for
+least privilege; widen to the `/24` only if the VPN hands out changing addresses.
+
+Nothing else is needed — the host side is already done (WinRM running, listening
+on `0.0.0.0:5985`, domain NIC profile, `WINRM-HTTP-In-TCP` enabled for
+`RemoteAddress = Any`). After the rule is live, verify from the dev box:
+
+```powershell
+Test-NetConnection syapp01 -Port 5985      # TcpTestSucceeded : True
+Test-WSMan -ComputerName syapp01           # returns product version XML
+Invoke-Command -ComputerName syapp01 { $env:COMPUTERNAME }   # -> SYAPP01
+```
+
+All three green means the "What it is used for" commands below work directly —
+no Actions round-trip, no PR.
+
 WinRM closes that gap with no extra software: it ships with Windows and
 PowerShell speaks it natively (`Invoke-Command -ComputerName syapp01 { ... }`).
 Both machines are domain-joined (`dom.local`), so authentication is Kerberos —

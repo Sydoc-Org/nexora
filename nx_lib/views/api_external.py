@@ -26,7 +26,14 @@ Eight endpoints in v1:
   client only) -- superseding issue #195's dedicated
   /invoice/import_datetime endpoint, which never shipped. Source/client
   codes are internal routing and never appear in responses (owner
-  decision 2026-08-17).
+  decision 2026-08-17). ?include=fields (issue #341) additionally projects
+  the INDEXED doc-field values into each row -- resolved once per page from
+  the same columnar statistik tables the doc-field FILTER reads, so a
+  polling client no longer needs one /workitems/<id> call per row. Opt-in:
+  without it the response shape is unchanged. Indexed fields only -- table
+  values and Octo document/media info stay on the detail endpoint -- and the
+  projection is scoped to the key's own processes with sensitive keys never
+  entering the select list.
 - GET /api/v1/workitems/fields -- DISCOVERY for the query endpoint: the
   field keys /workitems accepts in ?field= for THIS key's process scope
   (mapping_config field keys mapped for >=1 of the key's processes,
@@ -74,6 +81,7 @@ from werkzeug.datastructures import MultiDict
 
 from ..api_auth import require_api_key
 from ..clients import workitem_clients
+from ..db import engine_ms02_docfields_pg, engine_statistics_db
 from ..extensions import limiter
 from ..workitem_sources import (
     get_domain_for_workitem,
@@ -81,6 +89,7 @@ from ..workitem_sources import (
     total_backlog_count,
 )
 from ..workitems.fields import DOCFIELD_OPS
+from ..workitems.query import fetch_docfield_values
 from ..workitems.sensitivity import (
     _norm_field_token,
     get_search_columns_for_processes,
@@ -224,6 +233,23 @@ def api_v1_undelivered():
 WORKITEM_API_STATUSES = ("Ready", "In Progress", "Done")
 # Mirrors the overview's perPage whitelist -- validated as strings like ?days=.
 WORKITEM_API_PER_PAGE = ("40", "100", "200", "500", "1000")
+
+# ?include= tokens accepted by /workitems (issue #341). Opt-in only: without
+# it the response shape is byte-for-byte what it was before.
+WORKITEM_API_INCLUDE = ("fields",)
+
+
+def _include_fields_or_400():
+    """(error, want_fields) for ?include=. Unknown tokens 400 rather than
+    being ignored, so a typo'd include never silently returns no fields."""
+    tokens = [t.strip().lower() for t in (request.args.get("include") or "").split(",")]
+    tokens = [t for t in tokens if t]
+    unknown = [t for t in tokens if t not in WORKITEM_API_INCLUDE]
+    if unknown:
+        return "include must be one of: " + ", ".join(WORKITEM_API_INCLUDE), False
+    return None, "fields" in tokens
+
+
 _DOCFIELD_COMBS = ("and", "or")
 # Each doc-field pair fans out into per-mapping-row StatisticsDB subqueries;
 # the UI has a practical handful, so bound the machine surface too instead of
@@ -358,20 +384,25 @@ def _fmt_dt(value):
     return value.strftime("%Y-%m-%d %H:%M:%S") if value else None
 
 
-def _serialize_workitem_row(row, import_map):
+def _serialize_workitem_row(row, import_map, field_map=None):
     wid = row["workitemid"]
     # import_datetime only for default-client rows: an MS02 id can collide
     # with a default stat row (compound identity), so a bare-id lookup would
     # stamp another client's date onto it. The client code itself stays
     # internal -- not part of the response (owner decision 2026-08-17).
     import_dt = import_map.get(str(wid)) if row.get("client") == "default" else None
-    return {
+    out = {
         "id": wid,
         "status": row.get("status"),
         "stage": row.get("current_stage"),
         "modified_at": _fmt_dt(row.get("modifiedat")),
         "import_datetime": _fmt_dt(import_dt),
     }
+    if field_map is not None:
+        # Compound identity: an MS02 id can collide with a default one, so the
+        # projection is keyed (client, id) -- never by bare id.
+        out["fields"] = field_map.get((row.get("client"), wid), {})
+    return out
 
 
 @limiter.limit("60 per minute")
@@ -383,10 +414,15 @@ def api_v1_workitems():
     blocked_keys = get_sensitive_field_keys()
     if blocked_keys is None:
         return jsonify({"error": "Workitems backend unavailable"}), 500
+    err, want_fields = _include_fields_or_400()
+    if err:
+        return jsonify({"error": err}), 400
     scoped_columns: set | frozenset = frozenset()
-    if request.args.getlist("field"):
-        # Only resolved when field pairs are present (one extra PK-range read);
-        # None = lookup failure -> fail closed like the sensitive set above.
+    if request.args.getlist("field") or want_fields:
+        # Only resolved when field pairs or ?include=fields are present (one
+        # extra PK-range read); None = lookup failure -> fail closed like the
+        # sensitive set above. For the projection this set IS the allow-list:
+        # only columns mapped for the key's own processes are ever selected.
         scoped_columns = get_search_columns_for_processes(g.api_client["processes"])
         if scoped_columns is None:
             return jsonify({"error": "Workitems backend unavailable"}), 500
@@ -419,6 +455,21 @@ def api_v1_workitems():
             raise RuntimeError(f"degraded sources: {data['degradedSources']}")
         default_ids = [r["workitemid"] for r in data["workitems"] if r.get("client") == "default"]
         import_map = resolve_import_datetimes(default_ids, processes, strict=True)
+        field_map = None
+        if want_fields:
+            ids_by_client: dict[str, list] = {}
+            for r in data["workitems"]:
+                ids_by_client.setdefault(r.get("client"), []).append(r["workitemid"])
+            field_map = fetch_docfield_values(
+                ids_by_client,
+                processes,
+                # Redaction by construction: the sensitive keys never enter
+                # the projection, so nothing has to be stripped afterwards.
+                {k for k in scoped_columns if k not in blocked_keys},
+                engine_statistics_db=engine_statistics_db,
+                engine_ms02_docfields_pg=engine_ms02_docfields_pg,
+                logger=current_app.logger,
+            )
     except Exception as e:
         current_app.logger.error(f"external api workitems query failed: {e}")
         return jsonify({"error": "Workitems backend unavailable"}), 500
@@ -429,7 +480,9 @@ def api_v1_workitems():
             "page": pagination["currentPage"],
             "per_page": pagination["perPage"],
             "total_pages": pagination["totalPages"],
-            "workitems": [_serialize_workitem_row(r, import_map) for r in data["workitems"]],
+            "workitems": [
+                _serialize_workitem_row(r, import_map, field_map) for r in data["workitems"]
+            ],
         }
     )
 
@@ -622,6 +675,9 @@ def api_test_v1_workitems():
     err, args = _parse_workitems_query(g.api_client["processes"], validate_fields=False)
     if err:
         return jsonify({"error": err}), 400
+    err, want_fields = _include_fields_or_400()
+    if err:
+        return jsonify({"error": err}), 400
     per_page = int(args.get("perPage"))
     page = args.get("page", 1, type=int)
     count = random.randint(1, 8)
@@ -639,6 +695,18 @@ def api_test_v1_workitems():
                 "import_datetime": imported.strftime("%Y-%m-%d %H:%M:%S"),
             }
         )
+        if want_fields:
+            # Sandbox twin of the real projection (#341): plausible field keys
+            # in the real shape, still zero backend queries. Every few rows
+            # carry nothing, mirroring "no indexed values for this workitem".
+            rows[-1]["fields"] = (
+                {}
+                if random.random() < 0.2
+                else {
+                    "invoicenr": f"INV-{date.today().year}-{random.randint(10000, 99999)}",
+                    "kundennr": str(random.randint(10000, 99999)),
+                }
+            )
     return jsonify(
         {
             "count": count,
