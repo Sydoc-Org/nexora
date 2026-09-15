@@ -6,6 +6,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [3.2.7] - 2026-09-15
+
 ### Fixed
 - **Generali dashboard: chart hover and tooltips** — three Chart.js defaults
   nobody had overridden on this page. The Recipient and Entry-channel bar
