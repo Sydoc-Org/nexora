@@ -314,6 +314,30 @@ def test_workitems_overview_fits_a_phone(nexora_server, phone_page):
     )
     assert overflow <= 1, f"the workitems list scrolls sideways by {overflow}px"
 
+    # This page is also the guard for the shared touch-sizing rules in
+    # nexora-ui.css (.nx-btn / .nx-btn--sm / .nx-tab / .nx-segmented__btn /
+    # .pagination-link). It uses all five, and those rules are what fixed the
+    # thirteen Generali pages -- which cannot be exercised here, because the
+    # TEST environment has no Generali database (sql/test/seed.sql seeds the
+    # permission codes but no live Generali/Octopus connection).
+    #
+    # Rows are excluded on purpose: the per-row checkbox and details chevron
+    # are deliberately left under 44px so the list still fits a useful number
+    # of rows on screen. See the CSS comment in workitems_overview.css.
+    too_small = page.evaluate(
+        "() => [...document.querySelectorAll("
+        "  '.nx-btn, .nx-tab, .nx-segmented__btn, .pagination-link')]"
+        ".filter(e => !e.closest('tbody') && !e.closest('#nexora-sidebar')"
+        "          && !e.closest('.nx-tabbar'))"
+        ".map(e => ({ r: e.getBoundingClientRect(),"
+        "             id: e.getAttribute('data-testid')"
+        "                 || e.innerText.trim().slice(0, 14) }))"
+        ".filter(x => x.r.width > 0 && x.r.height > 0"
+        "          && (x.r.height < 43.5 || x.r.width < 43.5))"
+        ".map(x => x.id + ' ' + Math.round(x.r.width) + 'x' + Math.round(x.r.height))"
+    )
+    assert too_small == [], f"shared controls too small to tap: {too_small}"
+
 
 @pytest.mark.flaky_e2e
 def test_bulk_action_bar_clears_the_tab_bar(nexora_server, phone_page):

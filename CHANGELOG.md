@@ -54,6 +54,18 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   visit.
 
 ### Fixed
+- **Generali pages on a phone** (#354) — swept all thirteen at 390px in a
+  real touch viewport. **None of them overflowed**; the layout was already
+  sound. The one problem was repeated on every page: the action buttons
+  rendered 34px tall. That is the shared `.nx-btn--sm`, which appears in 20
+  templates and was the most common too-small control in the app, so it is
+  fixed once in `nexora-ui.css` rather than forty times — along with
+  `.nx-btn`, `.nx-tab`, `.nx-segmented__btn` and `.pagination-link`, which
+  now clear 44px on a touch pointer. Page-specific leftovers: the dashboard's
+  pill-shaped trend chips (28–37px) and the import-status pagination, whose
+  page numbers render as `.nx-btn--sm` and came out 29–32px wide side by
+  side. All thirteen pages now measure zero overflow and zero undersized
+  controls. Pointer-keyed throughout, so nothing changes on a desktop.
 - **Workitems overview on a phone** (#354) — the page scrolled sideways by
   27px. Three flex rows sized for a desktop could neither shrink nor wrap:
   the export/import cluster (its shared `.nx-page-head__actions` carries

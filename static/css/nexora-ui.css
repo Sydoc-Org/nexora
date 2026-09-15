@@ -1417,3 +1417,40 @@ html.dark .flatpickr-day:hover { background: var(--nx-alt); }
 @media (max-width: 480px) {
   footer img[alt="sydoc-logo"] { height: 4rem; }
 }
+
+/* ============================================================
+   SHARED CONTROL SIZING ON TOUCH (#354)
+
+   Pointer-keyed, not width-keyed: how big a control must be follows the
+   finger, not the screen, so a narrow desktop window is untouched and a
+   tablet gets the same treatment as a phone.
+
+   These are the shared components, so one rule here covers pages that were
+   never individually reviewed. `.nx-btn--sm` alone appears in 20 templates
+   and rendered 34px tall -- it was the single most common too-small control
+   in the app, and the only thing wrong with all thirteen Generali pages,
+   none of which overflow.
+
+   44px is the floor Apple and Google both publish.
+   ============================================================ */
+@media (pointer: coarse) {
+  .nx-btn,
+  .nx-btn--sm {
+    min-height: 44px;
+    /* Width matters as much as height for the single-character ones: the
+       import-status pagination renders its page numbers as .nx-btn--sm and
+       they came out 29-32px wide, side by side. */
+    min-width: 44px;
+  }
+
+  /* Segmented controls and pagination put their buttons flush against each
+     other, so an undersized one is not just hard to hit -- it is easy to hit
+     the wrong one. */
+  .nx-segmented__btn,
+  .pagination-link { min-width: 44px; min-height: 44px; }
+
+  /* Tabs size to their label, so a short one ("All") came out 33px wide.
+     Where a tab strip scrolls on its own axis the extra width costs
+     nothing, and tabs are primary navigation. */
+  .nx-tab { min-height: 44px; min-width: 44px; justify-content: center; }
+}
