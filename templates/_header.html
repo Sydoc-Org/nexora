@@ -167,6 +167,9 @@
             </div>
             {% endif %}
 
+            {# Two consumers: the sidebar loop right below, and the phone tab
+               bar after </aside> (#354). Keep this set above both -- moving it
+               down would silently empty the tab bar's slots. #}
             {% set nav_items = [
                 {'perm': page_visibility.dashboardPagePerm,  'url': url_for('dashboard', tenant=''), 'icon': 'fa-gauge-high',          'label': _('Global Dashboard'),              'active': active_page == 'dashboard'},
                 {'perm': page_visibility.reportingPagePerm, 'url': url_for('reporting'),           'icon': 'fa-chart-column',        'label': _('Global Reporting'),       'active': active_page == 'reporting', 'always': true},
@@ -355,6 +358,63 @@
         </div>
     </aside>
     <!-- ========== END SIDEBAR ========== -->
+
+    {# ========== PHONE TAB BAR (#354) ==========
+       A bottom bar in the thumb zone, and the sidebar above re-styled as a
+       bottom sheet behind its "More" slot. Both are visible ONLY under the
+       touch gate in _header.css -- `(max-width: 768px) and (pointer: coarse)
+       and (hover: none)`. A narrow DESKTOP window (a half-screen window, or
+       200% browser zoom, both of which drop the CSS viewport under 768px)
+       keeps the hamburger drawer instead, because a mouse machine reports
+       `pointer: fine` / `hover: hover` whatever its width. See the CSS block
+       for why the gate uses `pointer:` and never `any-pointer:`.
+
+       Rendered on every page and display:none otherwise -- no user-agent
+       sniffing on the server, so nothing here can be fooled by a UA string
+       and nothing varies by cache key.
+
+       Slots reuse the sidebar's own permission-filtered sources, never a
+       second copy of the permission logic: `nav_items` (set above, inside the
+       sidebar nav -- keep it above this block) for a staff/multi-tenant user,
+       or the user's own tenant pages for a `tenant_solo` one, which are
+       already filtered by _tenant_nav_page() (#300). A slot the user may not
+       see is not rendered at all -- never a dead tab. #}
+    {% macro tabbar_item(url, icon, label, on, testid) -%}
+    <a href="{{ url }}" class="nx-tabbar-item {{ 'nx-tabbar-item--active' if on else '' }}"
+       {% if on %}aria-current="page"{% endif %} data-testid="{{ testid }}">
+        <i class="fas {{ icon }} nx-tabbar-icon"></i>
+        <span class="nx-tabbar-label">{{ label }}</span>
+    </a>
+    {%- endmacro %}
+
+    <nav class="nx-tabbar" aria-label="{{ _('Main navigation') }}" data-testid="mobilenav-bar">
+        {% if tenant_solo and tenant_nav %}
+        {# The tenant's own pages ARE this user's workspace (#255), so the bar
+           carries the first three of them rather than the Global entries,
+           which for them would be the same pages under another name. #}
+        {% set t = tenant_nav[0] %}
+        {% for p in t.pages[:3] %}
+        {% if p.page_type == 'custom' %}
+        {% set on = (active_page == p.active) if p.active != p.endpoint else (tenant_scoped == t.code and active_page == p.endpoint) %}
+        {% set icon = p.icon %}
+        {% else %}
+        {% set on = active_page == ('tenant_' ~ t.code ~ '_' ~ p.key) %}
+        {% set icon = 'fa-table-list' %}
+        {% endif %}
+        {{ tabbar_item(p.url, icon, p.label, on, 'mobilenav-slot-' ~ p.key) }}
+        {% endfor %}
+        {% else %}
+        {% for item in nav_items if item.perm %}
+        {{ tabbar_item(item.url, item.icon, item.label, item.active, 'mobilenav-slot-' ~ loop.index) }}
+        {% endfor %}
+        {% endif %}
+
+        <button type="button" id="nx-tabbar-more" class="nx-tabbar-item"
+                aria-controls="nexora-sidebar" aria-expanded="false" data-testid="mobilenav-more">
+            <i class="fas fa-ellipsis nx-tabbar-icon"></i>
+            <span class="nx-tabbar-label">{{ _("More") }}</span>
+        </button>
+    </nav>
 
     <!-- ========== COMMAND PALETTE (Ctrl/Cmd+K) ========== -->
     <div id="cmdkOverlay" class="cmdk-overlay" hidden>

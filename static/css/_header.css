@@ -921,3 +921,172 @@ html.dark .cmdk-kbd { background: #273449; border-color: #334155; color: #cbd5e1
 html.dark .shortcuts-panel-title { color: #e2e8f0; }
 html.dark .shortcuts-section-title { color: #64748b; }
 html.dark .shortcuts-row { color: #e2e8f0; }
+
+/* ============================================================
+   PHONE TAB BAR + BOTTOM SHEET (#354)
+
+   THE GATE. Every rule below is behind
+
+       (max-width: 768px) and (pointer: coarse) and (hover: none)
+
+   because width alone cannot tell a phone from a narrow window. A mouse or
+   trackpad machine reports `pointer: fine` and `hover: hover` no matter how
+   narrow it gets, so it can never fall in here. That is what keeps the phone
+   layout off a desktop in the two cases width alone gets wrong:
+
+     - a browser window snapped to half a wide monitor (~760px);
+     - browser zoom at 200%, which drops the CSS viewport below 768px on a
+       perfectly large display.
+
+   Use `pointer:` and NEVER `any-pointer:`. A Windows laptop with a
+   touchscreen reports `any-pointer: coarse` (the screen) while `pointer`
+   stays `fine` (the trackpad is the primary input) -- `any-pointer` would
+   wrongly flip those machines into phone mode. When a browser is unsure it
+   reports `fine`, so the rule fails toward desktop, which is the safe
+   direction. Narrow + mouse keeps the hamburger drawer defined above.
+
+   This gate is deliberate and load-bearing: do not "simplify" it to a plain
+   max-width query. tests/e2e/test_mobile_nav.py pins both directions.
+   ============================================================ */
+
+/* Hidden everywhere by default -- the markup ships on every page, and only
+   the gated block below ever reveals it. */
+.nx-tabbar { display: none; }
+
+@media (max-width: 768px) and (pointer: coarse) and (hover: none) {
+
+    /* ---- The bar ---- */
+    .nx-tabbar {
+        display: flex;
+        position: fixed;
+        left: 0; right: 0; bottom: 0;
+        z-index: var(--z-nav);
+        background: #ffffff;
+        border-top: 1px solid #e5e7eb;
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.06);
+        /* The home indicator on a modern iPhone sits over the bottom edge --
+           without this the last row of labels is under it. */
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+    .nx-tabbar-item {
+        flex: 1 1 0;
+        min-width: 0;
+        min-height: 56px;          /* comfortably past the 48px touch target */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        padding: 6px 4px;
+        border: none;
+        background: none;
+        color: #6b7280;
+        text-decoration: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .nx-tabbar-icon { font-size: 18px; line-height: 1; }
+    .nx-tabbar-label {
+        font-size: 11px;
+        line-height: 1.2;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .nx-tabbar-item--active { color: var(--nx-accent, #4f46e5); }
+    .nx-tabbar-item:active { background: var(--nx-accent-tint, #f5f3ff); }
+
+    /* ---- Body: no floating hamburger to clear, but the bar to clear ---- */
+    .sidebar-toggle-btn { display: none !important; }
+    body {
+        padding-top: 0;
+        padding-bottom: calc(56px + env(safe-area-inset-bottom));
+    }
+    /* So an anchor jump or a focused input never lands under the bar. */
+    html { scroll-padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+
+    /* ---- The sidebar becomes a bottom sheet ----
+       Same element, same markup, same group expand/collapse wiring -- only
+       the geometry changes, so there is no second copy of the nav to keep in
+       sync. It slides up from the bottom rather than in from the left so it
+       stays under the thumb.
+       The selector repeats the hover/pinned variants from the desktop rules
+       above because those carry higher specificity than a bare #id. */
+    #nexora-sidebar,
+    #nexora-sidebar:hover,
+    #nexora-sidebar.pinned,
+    html.sidebar-pinned #nexora-sidebar {
+        top: auto;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        /* The sheet must never widen the page itself. Its nav rows are sized
+           from their labels, and a long tenant/page label in a translation
+           could otherwise push it past the viewport -- which on a mobile
+           layout viewport drags the whole document sideways with it. */
+        max-width: 100vw;
+        overflow-x: hidden;
+        height: auto;
+        max-height: 78vh;
+        transform: translateY(100%);
+        transition: transform 0.28s cubic-bezier(.4, 0, .2, 1);
+        border-right: none;
+        border-top: 1px solid #e5e7eb;
+        border-radius: 18px 18px 0 0;
+        box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.18);
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+    #nexora-sidebar.open { transform: translateY(0); }
+
+    /* A grab handle, so the sheet reads as a sheet and not a stuck panel. */
+    #nexora-sidebar::before {
+        content: "";
+        position: absolute;
+        top: 8px; left: 50%;
+        width: 36px; height: 4px;
+        margin-left: -18px;
+        border-radius: 2px;
+        background: #d1d5db;
+    }
+
+    .sidebar-logo-area { padding-top: 18px; }
+    /* The desktop drawer shifted the logo clear of the floating hamburger;
+       there is no hamburger here. */
+    #nexora-sidebar.open .sidebar-logo-area { padding-left: 0; }
+
+    /* The sheet is short, so its nav is the part that scrolls. */
+    .sidebar-nav {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Pinning a sheet open means nothing -- it is dismissed by tapping out. */
+    #sidebar-pin-toggle { display: none; }
+
+    /* Sheet rows are touch targets, not dense desktop rows. */
+    .sidebar-nav-item { min-height: 44px; }
+}
+
+html.dark .nx-tabbar {
+    background: #0f172a;
+    border-top-color: #1e293b;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.4);
+}
+html.dark .nx-tabbar-item { color: #94a3b8; }
+html.dark .nx-tabbar-item--active { color: var(--nx-accent, #a5b4fc); }
+html.dark .nx-tabbar-item:active { background: rgba(148, 163, 184, 0.12); }
+
+@media (max-width: 768px) and (pointer: coarse) and (hover: none) {
+    html.dark #nexora-sidebar,
+    html.dark #nexora-sidebar:hover,
+    html.dark #nexora-sidebar.pinned,
+    html.dark.sidebar-pinned #nexora-sidebar {
+        border-top-color: #1e293b;
+    }
+    html.dark #nexora-sidebar::before { background: #334155; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #nexora-sidebar { transition: none; }
+}

@@ -427,16 +427,31 @@
         const backdrop = document.getElementById('sidebar-backdrop');
         if (!toggle || !sidebar || !backdrop) return;
 
+        // #354: on a touch phone the same #nexora-sidebar is a bottom sheet
+        // opened from the tab bar's "More" slot instead of the hamburger, so
+        // both drive one pair of functions and one `.open` class. The burger
+        // is display:none under the touch gate and the More button is
+        // display:none outside it, so only ever one of them is on screen.
+        const moreBtn = document.getElementById('nx-tabbar-more');
+
         function openSidebar() {
             sidebar.classList.add('open');
             backdrop.classList.add('open');
             toggle.querySelector('i').className = 'fas fa-times';
+            moreBtn?.setAttribute('aria-expanded', 'true');
         }
         function closeSidebar() {
             sidebar.classList.remove('open');
             backdrop.classList.remove('open');
             toggle.querySelector('i').className = 'fas fa-bars';
+            moreBtn?.setAttribute('aria-expanded', 'false');
         }
+
+        moreBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (sidebar.classList.contains('open')) closeSidebar();
+            else openSidebar();
+        });
 
         toggle.addEventListener('click', (e) => {
             e.stopPropagation();

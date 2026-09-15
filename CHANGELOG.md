@@ -19,6 +19,25 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   unconstrained ones while `engine_ms02_docfields_pg` is unset. Opt-in: the
   default response shape is unchanged. Mirrored on
   `/api/test/v1/workitems`.
+- **Phone navigation: a bottom tab bar and a bottom sheet** (#354) — on a
+  touch phone the nav moves into the thumb zone: a fixed bar with up to three
+  permission-filtered slots (the user's own tenant pages when they belong to
+  exactly one, otherwise Dashboard / Reporting / Workitems) plus a **More**
+  slot that raises the existing sidebar as a bottom sheet. Slots are built
+  from the sidebar's own `nav_items`, so a page the user may not open is never
+  rendered as a dead tab. The floating hamburger and the sidebar pin are
+  hidden there, and the bar clears the iOS home indicator
+  (`env(safe-area-inset-bottom)`).
+  **The phone layout can never appear on a computer:** it is gated on
+  `(max-width: 768px) and (pointer: coarse) and (hover: none)`, so a
+  half-screen window or a display at 200% browser zoom — both of which put a
+  desktop under 768 CSS px — keep the existing hamburger drawer, unchanged.
+  `tests/e2e/test_mobile_nav.py` pins both directions.
+- `templates/hero.html` (the public landing/login page) and
+  `templates/jd/jdvance.html` were missing `<meta name="viewport">` entirely
+  and rendered zoomed out on a phone — signing in is step zero of any phone
+  visit.
+
 ## [3.2.7] - 2026-09-15
 
 ### Fixed
