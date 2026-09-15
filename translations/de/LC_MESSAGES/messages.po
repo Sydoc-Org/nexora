@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-10 14:00+0200\n"
+"POT-Creation-Date: 2026-09-15 07:57+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -14,7 +14,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: nx_lib/octo.py:355
+#: nx_lib/octo.py:358
 msgid "Error fetching activity instance"
 msgstr "Fehler beim Abrufen der Aktivitätsinstanz"
 
@@ -750,12 +750,12 @@ msgstr "Nicht autorisiert"
 #: nx_lib/views/admin/users.py:573 nx_lib/views/dashboard.py:705
 #: nx_lib/views/dashboard.py:781 nx_lib/views/dashboard.py:851
 #: nx_lib/views/dashboard.py:905 nx_lib/views/dashboard.py:967
-#: nx_lib/views/generali/_crud.py:187 nx_lib/views/generali/attendance.py:98
+#: nx_lib/views/generali/_crud.py:187 nx_lib/views/generali/attendance.py:87
 #: nx_lib/views/generali/documents.py:316
 #: nx_lib/views/generali/documents.py:355
 #: nx_lib/views/generali/documents.py:529
 #: nx_lib/views/generali/documents.py:563
-#: nx_lib/views/generali/importstatus.py:119 nx_lib/views/generali/pdqm.py:102
+#: nx_lib/views/generali/importstatus.py:119 nx_lib/views/generali/pdqm.py:91
 #: nx_lib/views/generali/reporting.py:260
 #: nx_lib/views/generali/reporting.py:321 nx_lib/views/workitems.py:1399
 msgid "An unexpected error occurred"
@@ -3120,11 +3120,12 @@ msgstr "Abfrage"
 #: templates/api_docs.html:221 templates/api_docs.html:246
 #: templates/api_docs.html:252 templates/api_docs.html:288
 #: templates/api_docs.html:294 templates/api_docs.html:319
-#: templates/api_docs.html:325 templates/api_docs.html:366
-#: templates/api_docs.html:372 templates/api_docs.html:386
-#: templates/api_docs.html:392 templates/api_docs.html:412
-#: templates/api_docs.html:418 templates/api_docs.html:462
-#: templates/api_docs.html:468 templates/reporting.html:463
+#: templates/api_docs.html:325 templates/api_docs.html:362
+#: templates/api_docs.html:367 templates/api_docs.html:387
+#: templates/api_docs.html:393 templates/api_docs.html:407
+#: templates/api_docs.html:413 templates/api_docs.html:433
+#: templates/api_docs.html:439 templates/api_docs.html:483
+#: templates/api_docs.html:489 templates/reporting.html:463
 msgid "Copy"
 msgstr "Kopieren"
 
@@ -3199,7 +3200,7 @@ msgid "Endpoints"
 msgstr "Endpunkte"
 
 #: templates/api_docs.html:120 templates/api_docs.html:139
-#: templates/api_docs.html:458
+#: templates/api_docs.html:479
 msgid "Test sandbox"
 msgstr "Test-Sandbox"
 
@@ -3258,19 +3259,20 @@ msgstr ""
 #: templates/api_docs.html:221 templates/api_docs.html:246
 #: templates/api_docs.html:252 templates/api_docs.html:288
 #: templates/api_docs.html:294 templates/api_docs.html:319
-#: templates/api_docs.html:325 templates/api_docs.html:366
-#: templates/api_docs.html:372 templates/api_docs.html:386
-#: templates/api_docs.html:392 templates/api_docs.html:412
-#: templates/api_docs.html:418 templates/api_docs.html:462
-#: templates/api_docs.html:468
+#: templates/api_docs.html:325 templates/api_docs.html:362
+#: templates/api_docs.html:367 templates/api_docs.html:387
+#: templates/api_docs.html:393 templates/api_docs.html:407
+#: templates/api_docs.html:413 templates/api_docs.html:433
+#: templates/api_docs.html:439 templates/api_docs.html:483
+#: templates/api_docs.html:489
 msgid "Copy code"
 msgstr "Code kopieren"
 
 #: templates/api_docs.html:154 templates/api_docs.html:220
 #: templates/api_docs.html:251 templates/api_docs.html:293
-#: templates/api_docs.html:324 templates/api_docs.html:371
-#: templates/api_docs.html:391 templates/api_docs.html:417
-#: templates/api_docs.html:467
+#: templates/api_docs.html:324 templates/api_docs.html:366
+#: templates/api_docs.html:392 templates/api_docs.html:412
+#: templates/api_docs.html:438 templates/api_docs.html:488
 msgid "response"
 msgstr "Antwort"
 
@@ -3347,7 +3349,7 @@ msgstr "Body"
 #: templates/api_docs.html:189 templates/api_docs.html:230
 #: templates/api_docs.html:262 templates/api_docs.html:271
 #: templates/api_docs.html:303 templates/api_docs.html:345
-#: templates/api_docs.html:446
+#: templates/api_docs.html:467
 msgid "Meaning"
 msgstr "Bedeutung"
 
@@ -3428,19 +3430,19 @@ msgstr ""
 "Zahl wie die \"Current Backlog\"-KPI-Kachel des nexora-Dashboards."
 
 #: templates/api_docs.html:227 templates/api_docs.html:268
-#: templates/api_docs.html:300 templates/api_docs.html:443
+#: templates/api_docs.html:300 templates/api_docs.html:464
 msgid "Response fields"
 msgstr "Antwortfelder"
 
 #: templates/api_docs.html:230 templates/api_docs.html:271
-#: templates/api_docs.html:303 templates/api_docs.html:446
+#: templates/api_docs.html:303 templates/api_docs.html:467
 #: templates/js/_reporting_dashboard_js.html:38
 msgid "Field"
 msgstr "Feld"
 
 #: templates/admin/tenants_manage.html:74 templates/api_docs.html:230
 #: templates/api_docs.html:262 templates/api_docs.html:271
-#: templates/api_docs.html:303 templates/api_docs.html:446
+#: templates/api_docs.html:303 templates/api_docs.html:467
 #: templates/generali_documents.html:228 templates/js/_reporting_viz_js.html:11
 msgid "Type"
 msgstr "Typ"
@@ -3595,7 +3597,45 @@ msgstr ""
 "Seitenweise Ausgabe; per_page akzeptiert nur 40, 100, 200, 500 oder 1000 "
 "(Standard 40)"
 
-#: templates/api_docs.html:357
+#: templates/api_docs.html:354
+msgid ""
+"fields — also return each row's indexed document-field values (see "
+"below). Any other value answers 400."
+msgstr ""
+"fields — gibt zusätzlich die indexierten Dokumentfeld-Werte jeder Zeile "
+"zurück (siehe unten). Jeder andere Wert ergibt 400."
+
+#: templates/api_docs.html:358
+msgid "Field values without one call per row"
+msgstr "Feldwerte ohne einen Aufruf pro Zeile"
+
+#: templates/api_docs.html:359
+#, python-brace-format
+msgid ""
+"By default a row carries no document data, so reading a page's field "
+"values meant one /workitems/{id} call per row. Add include=fields and "
+"every row gets a fields object instead, resolved once per page."
+msgstr ""
+"Standardmäßig enthält eine Zeile keine Dokumentdaten, das Auslesen der "
+"Feldwerte einer Seite erforderte also einen /workitems/{id}-Aufruf pro "
+"Zeile. Mit include=fields erhält stattdessen jede Zeile ein fields-"
+"Objekt, das einmal pro Seite aufgelöst wird."
+
+#: templates/api_docs.html:377
+#, python-brace-format
+msgid ""
+"Indexed fields only — the same keys /workitems/fields lists. Table values"
+" and document/page information stay on /workitems/{id}. A workitem with "
+"nothing indexed gets an empty fields object, sensitive fields are never "
+"included, and without include the response is exactly what it was before."
+msgstr ""
+"Nur indexierte Felder — dieselben Schlüssel, die /workitems/fields "
+"auflistet. Tabellenwerte und Dokument-/Seiteninformationen bleiben auf "
+"/workitems/{id}. Ein Workitem ohne Indexwerte erhält ein leeres fields-"
+"Objekt, sensible Felder sind nie enthalten, und ohne include ist die "
+"Antwort exakt wie bisher."
+
+#: templates/api_docs.html:378
 msgid ""
 "Every invalid value returns a 400 with a plain-English error — nothing is"
 " silently coerced. Unknown and sensitive field keys answer identically "
@@ -3610,7 +3650,7 @@ msgstr ""
 "ist, sonst null. Dokumentfeld-Treffer unterliegen demselben Zeitfenster "
 "pro Prozess wie die Suche der Übersichtsseite."
 
-#: templates/api_docs.html:363
+#: templates/api_docs.html:384
 msgid ""
 "The field keys /workitems accepts in ?field= for your key's process "
 "scope, as the server resolves them right now — only fields mapped for at "
@@ -3623,7 +3663,7 @@ msgstr ""
 "sensible Felder. Rufen Sie diese Liste bevorzugt ab, statt Schlüsselnamen"
 " fest zu verdrahten."
 
-#: templates/api_docs.html:377
+#: templates/api_docs.html:398
 msgid ""
 "Keys are lowercase without separators. On /workitems an unknown key "
 "answers 400 Unknown field, and a real field outside your key's scope "
@@ -3636,7 +3676,7 @@ msgstr ""
 "process scope; ein fehlgeschlagenes Laden der Konfiguration liefert 500, "
 "nie eine unvollständige Liste."
 
-#: templates/api_docs.html:383
+#: templates/api_docs.html:404
 msgid ""
 "The count of workitems currently in each stage (Import, Extraction, "
 "Validation, Delivery) for your key's process scope. No parameters; the "
@@ -3647,7 +3687,7 @@ msgstr ""
 "Schlüssels. Keine Parameter; die Zahlen entsprechen immer einer nach "
 "Stufe gefilterten /workitems-Abfrage."
 
-#: templates/api_docs.html:403
+#: templates/api_docs.html:424
 msgid ""
 "datetime is the server-local timestamp the counts were computed at. An "
 "empty process scope returns all zeros; a degraded workitem source answers"
@@ -3660,7 +3700,7 @@ msgstr ""
 "unvollständiger Zahlen. Kein Caching: jeder Aufruf berechnet frische "
 "Zahlen."
 
-#: templates/api_docs.html:409
+#: templates/api_docs.html:430
 msgid ""
 "The document details the overview row-expand shows for one workitem: "
 "extracted field values and table values. No page images, confidence or "
@@ -3670,7 +3710,7 @@ msgstr ""
 " extrahierte Feldwerte und Tabellenwerte. Keine Seitenbilder, Konfidenzen"
 " oder Fundstellen; sensible Felder werden immer entfernt."
 
-#: templates/api_docs.html:448
+#: templates/api_docs.html:469
 msgid ""
 "Extracted field name → value, mapped through the same field-name mapping "
 "the overview uses"
@@ -3678,11 +3718,11 @@ msgstr ""
 "Extrahierter Feldname → Wert, abgebildet über dieselbe Feldnamen-"
 "Zuordnung wie in der Übersicht"
 
-#: templates/api_docs.html:449
+#: templates/api_docs.html:470
 msgid "Extracted tables: title, columns, and rows of column/value cells"
 msgstr "Extrahierte Tabellen: Titel, Spalten und Zeilen aus Spalte/Wert-Zellen"
 
-#: templates/api_docs.html:453
+#: templates/api_docs.html:474
 msgid ""
 "404 with a null detail is returned uniformly for an unknown id, an id "
 "outside your key's scope, and a document the runtime backend can't load "
@@ -3695,7 +3735,7 @@ msgstr ""
 "kaltes Workitem lädt live vom Laufzeitdienst und kann einige Sekunden "
 "dauern."
 
-#: templates/api_docs.html:459
+#: templates/api_docs.html:480
 msgid ""
 "Every endpoint above has a /api/test/v1/... twin: same path suffix, same "
 "Bearer-key auth, same response shape — but the numbers are random, not "
@@ -3708,7 +3748,7 @@ msgstr ""
 "Backend-Abfragen statt, daher lässt es sich beim Aufbau einer Integration"
 " beliebig oft aufrufen."
 
-#: templates/api_docs.html:474
+#: templates/api_docs.html:495
 msgid ""
 "Use a real (enabled) API key — the same auth errors (401/429) apply. "
 "Available for"
@@ -3716,7 +3756,7 @@ msgstr ""
 "Verwenden Sie einen echten (aktivierten) API-Schlüssel — dieselben Auth-"
 "Fehler (401/429) gelten. Verfügbar für"
 
-#: templates/api_docs.html:474
+#: templates/api_docs.html:495
 msgid "and"
 msgstr "und"
 
