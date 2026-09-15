@@ -6,6 +6,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [3.2.8] - 2026-09-15
+
 ### Added
 - **External API: `/api/v1/workitems?include=fields`** (#341) — the list
   endpoint can now return each row's indexed document-field values inline
@@ -19,6 +21,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   unconstrained ones while `engine_ms02_docfields_pg` is unset. Opt-in: the
   default response shape is unchanged. Mirrored on
   `/api/test/v1/workitems`.
+
 ## [3.2.7] - 2026-09-15
 
 ### Fixed
