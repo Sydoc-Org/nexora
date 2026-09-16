@@ -305,3 +305,30 @@ body.nx-app label.ml-toggle input[type="checkbox"] { opacity: 0; width: 0; heigh
      grow by well over 100px if each row were padded to 44 -- the card stops
      being scannable to fix a target you reach deliberately, one at a time. */
 }
+
+/* The restart row on the admin overview (#354 follow-up). Was three inline
+   styles on the wrapper and the select, which left no way to lay it out
+   differently on a phone -- the select, the button and the "Current env"
+   note collided into each other on one unwrappable line. */
+.admin-restart-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.admin-restart-row .nx-select { width: auto; }
+
+@media (max-width: 768px) and (pointer: coarse) {
+  /* Stacked, like the other phone toolbars: the select and the button each
+     take the full width and the env note sits under them, rather than three
+     things fighting over 390px. */
+  .admin-restart-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .admin-restart-row .nx-select,
+  .admin-restart-row .nx-btn { width: 100%; }
+  .admin-restart-row .nx-meta { align-self: flex-start; }
+}

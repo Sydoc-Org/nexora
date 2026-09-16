@@ -54,6 +54,23 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   visit.
 
 ### Fixed
+- **Phone toolbars are laid out for a phone, not wrapped** (#354) — wrapping
+  stopped pages scrolling sideways, but a row built for a desktop does not
+  become a phone layout by wrapping; it becomes ragged. On the workitems
+  overview "Advanced" and "Reset" ended up stranded on their own lines, the
+  search box was a different width from the process picker above it, and the
+  three action buttons broke 2 + 1 with a gap. Those toolbars now stack
+  full-width, matching the Generali documents filter panel, which was already
+  the one filter UI that read well on a phone. The admin overview's restart
+  row — a select, a button and a note fighting over 390px on one unwrappable
+  line — moved off inline styles into a class and stacks too.
+- **Buttons are no longer padded out for no reason** (#354) — the touch-target
+  work set a 44px minimum on *width* as well as height for every button, which
+  made ordinary text buttons chunky and amplified the ragged wrapping.
+  "Export CSV" was never hard to hit. Width minimums are now scoped to the
+  controls that genuinely need them: pagination page numbers, and icon-only
+  buttons, which are identifiable because they carry an `aria-label` in place
+  of text.
 - **The tab bar is no longer selectable text** (#354) — a long press on a
   slot selected its label instead of navigating, raising iOS's copy/look-up
   callout over the bar, and dragging across painted all four slots in

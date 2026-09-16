@@ -789,3 +789,49 @@ img.nx-wi-card__sheet { object-fit: cover; object-position: top; display: block;
         justify-content: center;
     }
 }
+
+/* Phone layout for the toolbars (#354 follow-up).
+
+   Wrapping stopped the page scrolling sideways, but a row built for a desktop
+   does not become a phone layout just because it wraps -- it becomes ragged.
+   "Advanced" and "Reset" ended up stranded on their own lines, the search box
+   was a different width from the process picker above it, and the three action
+   buttons broke 2 + 1 with a gap.
+
+   Stacked full-width instead, which is what the Generali documents filter
+   panel already does and is the one filter UI on a phone that reads well.
+   Touch-gated: a narrow desktop window keeps the wrapped row, which is the
+   right shape when a pointer is doing the work. */
+@media (max-width: 768px) and (pointer: coarse) {
+    .nx-wi-filter {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+    .nx-wi-filter > *,
+    .nx-wi-filter .nx-scope,
+    .nx-wi-filter .nx-scope-btn { width: 100%; }
+    /* A flex spacer has no meaning in a column. */
+    .nx-wi-filter__spacer { display: none; }
+    /* Labels sit on their own line above the control they name, so they do not
+       need to reserve a column's worth of width. */
+    .nx-wi-filter .nx-eyebrow { width: auto; }
+
+    /* "Advanced" and "Reset" are text links, not buttons. Stretched to full
+       width they became centred captions floating between the real controls.
+       Left at their natural width they read as what they are. */
+    .nx-wi-filter [data-testid="workitems-toggle-advanced"],
+    .nx-wi-filter [data-testid="workitems-reset"] {
+        width: auto;
+        align-self: flex-start;
+        justify-content: flex-start;
+    }
+
+    /* Export / Import / Prepared documents shared a wrapping row and broke
+       2 + 1 at uneven widths. Equal shares fill the row instead. */
+    .nx-wi-actions { gap: 8px; }
+    .nx-wi-actions > .nx-btn {
+        flex: 1 1 140px;
+        justify-content: center;
+    }
+}

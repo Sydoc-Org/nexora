@@ -1435,12 +1435,24 @@ html.dark .flatpickr-day:hover { background: var(--nx-alt); }
    ============================================================ */
 @media (pointer: coarse) {
   .nx-btn,
-  .nx-btn--sm {
-    min-height: 44px;
-    /* Width matters as much as height for the single-character ones: the
-       import-status pagination renders its page numbers as .nx-btn--sm and
-       they came out 29-32px wide, side by side. */
+  .nx-btn--sm { min-height: 44px; }
+
+  /* Width only where a control would otherwise be genuinely tiny. A blanket
+     min-width on every button padded ordinary text buttons out for no reason
+     and made a wrapped toolbar look chunky and accidental -- "Export CSV" was
+     never hard to hit. Single-character page numbers are: the import-status
+     pagination renders them as .nx-btn--sm and they came out 29-32px wide,
+     pressed against each other. */
+  #paginationControls .nx-btn,
+  .nx-pagination .nx-btn { min-width: 44px; }
+
+  /* Icon-only buttons have no text to give them width, and they carry an
+     aria-label precisely because of that -- which makes the attribute a
+     reliable signal for "this one needs a minimum width" without padding out
+     every button that already has a word in it. */
+  .nx-btn[aria-label] {
     min-width: 44px;
+    justify-content: center;
   }
 
   /* Segmented controls and pagination put their buttons flush against each
