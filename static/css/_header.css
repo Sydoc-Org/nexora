@@ -961,6 +961,16 @@ html.dark .shortcuts-row { color: #e2e8f0; }
    the gated block below ever reveals it. */
 .nx-tabbar { display: none; }
 
+:root {
+  /* The bar's own height, WITHOUT the safe-area inset. Three things have to
+     agree on it -- the bar, the body's bottom padding, and the bottom sheet's
+     -- and they were three hand-copied 56px literals. One knob instead, so
+     changing the bar's height cannot leave content hidden underneath it.
+     64px gives the icon and its label room to breathe; 56 was tight once the
+     home-indicator inset pushed everything up. */
+  --nx-tabbar-h: 64px;
+}
+
 @media (max-width: 768px) and (pointer: coarse) {
 
     /* ---- The bar ---- */
@@ -979,7 +989,13 @@ html.dark .shortcuts-row { color: #e2e8f0; }
     .nx-tabbar-item {
         flex: 1 1 0;
         min-width: 0;
-        min-height: 56px;          /* comfortably past the 48px touch target */
+        /* 64px clears the 48px touch target with room for the icon and its
+           label to breathe; 56 was tight once the home-indicator inset
+           pushed everything up. border-box so the padding below is inside
+           that figure, keeping --nx-tabbar-h equal to the bar's height and
+           therefore equal to what the body reserves for it. */
+        min-height: var(--nx-tabbar-h);
+        box-sizing: border-box;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -1008,10 +1024,10 @@ html.dark .shortcuts-row { color: #e2e8f0; }
     .sidebar-toggle-btn { display: none !important; }
     body {
         padding-top: 0;
-        padding-bottom: calc(56px + env(safe-area-inset-bottom));
+        padding-bottom: calc(var(--nx-tabbar-h) + env(safe-area-inset-bottom));
     }
     /* So an anchor jump or a focused input never lands under the bar. */
-    html { scroll-padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+    html { scroll-padding-bottom: calc(var(--nx-tabbar-h) + 8px + env(safe-area-inset-bottom)); }
 
     /* ---- The sidebar becomes a bottom sheet ----
        Same element, same markup, same group expand/collapse wiring -- only
@@ -1044,11 +1060,11 @@ html.dark .shortcuts-row { color: #e2e8f0; }
         border-radius: 18px 18px 0 0;
         box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.18);
         /* The sheet reaches bottom: 0 so translateY(100%) hides it completely,
-           but the tab bar paints over its last ~56px. Without this the rows
+           but the tab bar paints over its last --nx-tabbar-h. Without this the rows
            that live at the end of the sidebar -- dark mode, and the profile
            menu that holds Sign out and the build stamp -- sit underneath the
            bar and cannot be tapped. */
-        padding-bottom: calc(56px + env(safe-area-inset-bottom));
+        padding-bottom: calc(var(--nx-tabbar-h) + env(safe-area-inset-bottom));
     }
     /* The pinned variant has to be repeated here. `html.sidebar-pinned
        #nexora-sidebar` in the group above is specificity (1,1,1) -- higher

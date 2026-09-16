@@ -54,6 +54,34 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   visit.
 
 ### Fixed
+- **Reporting pages on a phone** (#354) — every one of the five overflowed,
+  `/reporting` by 212px, the worst in the app. The cause was not a
+  desktop-only design but one mistake repeated: a mobile override dropping
+  the `minmax(0, …)` its own desktop rule has. A bare `1fr` track has an
+  automatic minimum, so it grows to its content instead of clamping to the
+  container — on `/reporting` a 507px column inside a 302px shell. Fixed in
+  `.rc-body`, `.reporting-guide-layout`, `.rs-result-main` and
+  `.rs-wizard-grid`, plus `min-width: 0` on the grid/flex children. Two other
+  causes: `main.reporting-admin` shrink-wrapped to its widest table because
+  `margin: 0 auto` cancels `align-items: stretch` in the body's flex column;
+  and `.rc-topbar` / `.rc-screen-head` are single-line flex rows that pushed
+  their buttons past the viewport. All five now measure zero overflow.
+  Touch targets too — reporting has its own `rc-*` / `rs-*` component set, so
+  the shared sizing that fixed Generali and admin left it at 34–37px.
+- **Dashboard 14d/30d/90d switch** (#354) — a regression from the shared
+  touch sizing in this branch: `.nx-segmented` sets a fixed
+  `height: var(--ctl-h)` (~29px) with `overflow: hidden`, so raising only its
+  buttons to 44px clipped them inside a box less than half their height,
+  which read as bad padding and off-centre labels. The container now grows
+  with them and the labels are centred.
+- **Public maintenance page** (#354) — its two buttons were 39px. The page is
+  deliberately self-contained so it can render when the app is locked down,
+  which means it loads none of nexora's stylesheets and the shared sizing
+  could not reach it.
+- **Phone tab bar height** — raised from 56px to 64px, and the figure is now
+  one `--nx-tabbar-h` variable instead of three hand-copied literals (the
+  bar, the body's bottom padding, the bottom sheet's), so changing it cannot
+  leave content hidden underneath the bar.
 - **CSRF failures explain themselves** (#354) — submitting a form whose token
   no longer matched the session produced Werkzeug's raw 400: a white page
   reading "The CSRF session token is missing", with no explanation and

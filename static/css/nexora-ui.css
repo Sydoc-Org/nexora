@@ -1449,6 +1449,23 @@ html.dark .flatpickr-day:hover { background: var(--nx-alt); }
   .nx-segmented__btn,
   .pagination-link { min-width: 44px; min-height: 44px; }
 
+  /* The container must grow with them. `.nx-segmented` sets a fixed
+     `height: var(--ctl-h)` (~29px) and `overflow: hidden`, so raising only
+     the buttons clipped them inside a box less than half their height --
+     which read as bad padding and off-centre labels on the dashboard's
+     14d/30d/90d switch. Centre them too: with the box no longer exactly the
+     button height, the text needs to be told where to sit. */
+  .nx-segmented {
+    height: auto;
+    min-height: 44px;
+    align-items: stretch;
+  }
+  .nx-segmented__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
   /* Tabs size to their label, so a short one ("All") came out 33px wide.
      Where a tab strip scrolls on its own axis the extra width costs
      nothing, and tabs are primary navigation. */

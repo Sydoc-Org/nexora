@@ -111,6 +111,15 @@
             color: #475569;
         }
         .btn-ghost:hover { background: #f8fafc; }
+        /* Touch targets (#354). This page is deliberately self-contained --
+           it has to render when the app is locked down, so it loads none of
+           nexora's stylesheets and the shared 44px sizing cannot reach it.
+           Pointer-keyed like the rest: a desktop is untouched. Both buttons
+           measured 39px, and this is the one page a user meets when they
+           already cannot get in -- the retry needs to be easy to hit. */
+        @media (pointer: coarse) {
+            .btn { min-height: 44px; }
+        }
         .footer {
             margin-top: 24px;
             color: #94a3b8;
