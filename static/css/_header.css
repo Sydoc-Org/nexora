@@ -1009,6 +1009,16 @@ html.dark .shortcuts-row { color: #e2e8f0; }
         color: #6b7280;
         text-decoration: none;
         -webkit-tap-highlight-color: transparent;
+        /* Navigation chrome is not text. Without this a long press selects the
+           label instead of navigating -- iOS then raises its copy/look-up
+           callout over the bar, and a drag paints all four slots in selection
+           blue, which looks like the UI has broken. `touch-action:
+           manipulation` also drops the double-tap-to-zoom wait, so a tap on
+           the bar registers immediately. */
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
+        touch-action: manipulation;
     }
     .nx-tabbar-icon { font-size: 18px; line-height: 1; }
     .nx-tabbar-label {
@@ -1133,8 +1143,15 @@ html.dark .shortcuts-row { color: #e2e8f0; }
     /* Pinning a sheet open means nothing -- it is dismissed by tapping out. */
     #sidebar-pin-toggle { display: none; }
 
-    /* Sheet rows are touch targets, not dense desktop rows. */
-    .sidebar-nav-item { min-height: 44px; }
+    /* Sheet rows are touch targets, not dense desktop rows -- and, like the
+       bar's slots, they are chrome rather than text. */
+    .sidebar-nav-item {
+        min-height: 44px;
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
+        touch-action: manipulation;
+    }
 }
 
 html.dark .nx-tabbar {

@@ -533,3 +533,34 @@ def test_eddard_chat_panel_fits_a_phone(nexora_server, phone_page):
         f"the chat panel runs under the tab bar by "
         f"{round(box['panelBottom'] - box['barTop'])}px"
     )
+
+
+@pytest.mark.flaky_e2e
+def test_the_bar_is_not_selectable_text(nexora_server, phone_page):
+    """Navigation chrome is not text.
+
+    Without a user-select guard, a long press on a slot selects its label
+    instead of navigating -- iOS then raises its copy/look-up callout over the
+    bar, and dragging across paints all four slots in selection blue, which
+    reads as the UI having broken. Reported from a real phone.
+    """
+    page = phone_page
+    _login(page, nexora_server)
+
+    selected = page.evaluate(
+        "() => { const bar = document.querySelector('.nx-tabbar');"
+        "        const sel = window.getSelection(); sel.removeAllRanges();"
+        "        const range = document.createRange();"
+        "        range.selectNodeContents(bar); sel.addRange(range);"
+        "        return sel.toString().trim(); }"
+    )
+    assert selected == "", f"the tab bar's labels are selectable: {selected!r}"
+
+    # ...and the same for the sheet's rows, which are the same kind of chrome.
+    page.click('[data-testid="mobilenav-more"]')
+    page.wait_for_timeout(400)
+    item_select = page.evaluate(
+        "() => getComputedStyle(document.querySelector("
+        "  '#nexora-sidebar .sidebar-nav-item')).userSelect"
+    )
+    assert item_select == "none", f"sheet rows are selectable: {item_select}"

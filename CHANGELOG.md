@@ -54,6 +54,13 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   visit.
 
 ### Fixed
+- **The tab bar is no longer selectable text** (#354) — a long press on a
+  slot selected its label instead of navigating, raising iOS's copy/look-up
+  callout over the bar, and dragging across painted all four slots in
+  selection blue. Navigation chrome now sets `user-select: none` and
+  `-webkit-touch-callout: none`, and `touch-action: manipulation` drops the
+  double-tap-to-zoom wait so a tap registers immediately. Same for the rows
+  in the More sheet.
 - **Eddard's chat panel on a phone** (#354) — its header, and therefore its
   close button, sat off the top of the screen: there was no way to dismiss
   the assistant. The panel was anchored `bottom: 20px` with
