@@ -396,3 +396,58 @@ def test_admin_pages_fit_a_phone(nexora_server, phone_page, path):
         ".map(x => x.id + ' ' + Math.round(x.r.width) + 'x' + Math.round(x.r.height))"
     )
     assert too_small == [], f"controls too small to tap on {path}: {too_small}"
+
+
+@pytest.mark.flaky_e2e
+def test_installed_app_has_its_own_reload(nexora_server, phone_page):
+    """An installed home-screen app runs with no browser chrome -- no address
+    bar, no reload button. Android keeps pull-to-refresh there; iOS does not,
+    and iOS does not support `minimal-ui` either, so without this an installed
+    nexora on an iPhone cannot reload a page at all.
+
+    Two halves, tested separately because the `display-mode: standalone` gate
+    cannot be emulated from here -- neither CDP's Emulation.setEmulatedMedia
+    nor a --app= launch makes Chromium report it:
+
+      1. the control is hidden in a normal browser tab, where the browser's
+         own reload button makes it redundant, and the gate rule exists;
+      2. the click really reloads.
+    """
+    page = phone_page
+    _login(page, nexora_server)
+
+    btn = page.locator("#nx-reload")
+    assert btn.count() == 1, "the reload control is not in the page at all"
+    assert (
+        btn.evaluate("e => getComputedStyle(e).display") == "none"
+    ), "the reload control should be hidden in a browser tab"
+
+    gate = page.evaluate(
+        "() => { for (const sh of document.styleSheets) {"
+        "   let rs; try { rs = sh.cssRules; } catch (e) { continue; }"
+        "   for (const r of rs) {"
+        "     if (!r.conditionText || !r.conditionText.includes('display-mode')) continue;"
+        "     for (const inner of r.cssRules || [])"
+        "       if (inner.selectorText && inner.selectorText.includes('sidebar-reload'))"
+        "         return r.conditionText;"
+        "   } } return null; }"
+    )
+    assert (
+        gate == "(display-mode: standalone)"
+    ), f"the standalone gate for the reload control is missing or changed: {gate}"
+
+    # ...and it works when shown. Forced visible because the gate cannot be
+    # emulated; this exercises the handler, not the media query.
+    page.click('[data-testid="mobilenav-more"]')
+    page.wait_for_timeout(500)
+    page.evaluate(
+        "() => { window.__beforeReload = true;"
+        " document.getElementById('nx-reload').style.display = 'flex'; }"
+    )
+    page.locator("#nx-reload").scroll_into_view_if_needed()
+    page.click("#nx-reload")
+    page.wait_for_load_state("domcontentloaded")
+    page.wait_for_timeout(800)
+    assert page.evaluate(
+        "() => window.__beforeReload === undefined"
+    ), "clicking reload did not reload the page"

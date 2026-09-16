@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-16 09:13+0200\n"
+"POT-Creation-Date: 2026-09-16 10:00+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -2207,111 +2207,115 @@ msgstr "Workitems"
 msgid "Keep sidebar open"
 msgstr "Seitenleiste geöffnet halten"
 
-#: templates/_header.html:296 templates/js/_header_js.html:56
+#: templates/_header.html:305 templates/_header.html:307
+msgid "Reload"
+msgstr "Neu laden"
+
+#: templates/_header.html:311 templates/js/_header_js.html:56
 msgid "Toggle dark mode"
 msgstr "Dunkelmodus umschalten"
 
-#: templates/_header.html:298
+#: templates/_header.html:313
 msgid "Dark Mode"
 msgstr "Dunkelmodus"
 
-#: templates/_header.html:306 templates/profile.html:44
+#: templates/_header.html:321 templates/profile.html:44
 #: templates/profile.html:123
 msgid "Profile Picture"
 msgstr "Profilbild"
 
-#: templates/_header.html:316
+#: templates/_header.html:331
 msgid "Your profile"
 msgstr "Ihr Profil"
 
-#: templates/_header.html:320 templates/appearance.html:34
+#: templates/_header.html:335 templates/appearance.html:34
 #: templates/js/_header_js.html:57 templates/profile.html:75
 #: templates/profile.html:317
 msgid "Appearance"
 msgstr "Darstellung"
 
-#: templates/_header.html:324 templates/js/_header_js.html:58
+#: templates/_header.html:339 templates/js/_header_js.html:58
 #: templates/whats_new.html:79
 msgid "What's New"
 msgstr "Neuigkeiten"
 
-#: templates/_header.html:329 templates/feedback.html:34
+#: templates/_header.html:344 templates/feedback.html:34
 #: templates/js/_header_js.html:59
 msgid "Feedback"
 msgstr "Feedback"
 
-#: templates/_header.html:336 templates/_header.html:463
-#: templates/_header.html:466
+#: templates/_header.html:351 templates/_header.html:478
+#: templates/_header.html:481
 msgid "Keyboard shortcuts"
 msgstr "Tastenkombinationen"
 
-#: templates/_header.html:340 templates/_small_footer.html:28
+#: templates/_header.html:355 templates/_small_footer.html:28
 #: templates/reporting.html:86
 msgid "Help"
 msgstr "Hilfe"
 
-#: templates/_header.html:346 templates/_header.html:445
+#: templates/_header.html:361 templates/_header.html:460
 msgid "Switch user"
 msgstr "Benutzer wechseln"
 
-#: templates/_header.html:352 templates/js/_header_js.html:60
+#: templates/_header.html:367 templates/js/_header_js.html:60
 #: templates/profile.html:82
 msgid "Sign out"
 msgstr "Abmelden"
 
-#: templates/_header.html:395
+#: templates/_header.html:410
 msgid "Main navigation"
 msgstr "Hauptnavigation"
 
-#: templates/_header.html:420
+#: templates/_header.html:435
 msgid "More"
 msgstr "Mehr"
 
-#: templates/_header.html:426
+#: templates/_header.html:441
 msgid "Command palette"
 msgstr "Befehlspalette"
 
-#: templates/_header.html:430
+#: templates/_header.html:445
 msgid "Type a command or search..."
 msgstr "Befehl eingeben oder suchen..."
 
-#: templates/_header.html:435
+#: templates/_header.html:450
 msgid "navigate"
 msgstr "navigieren"
 
-#: templates/_header.html:436
+#: templates/_header.html:451
 msgid "open"
 msgstr "öffnen"
 
-#: templates/_header.html:437
+#: templates/_header.html:452
 msgid "close"
 msgstr "schließen"
 
-#: templates/_header.html:449
+#: templates/_header.html:464
 msgid "Switch to user..."
 msgstr "Zu Benutzer wechseln ..."
 
-#: templates/_header.html:470 templates/admin/access_control.html:130
+#: templates/_header.html:485 templates/admin/access_control.html:130
 msgid "Global"
 msgstr "Global"
 
-#: templates/_header.html:472
+#: templates/_header.html:487
 msgid "Open command palette"
 msgstr "Befehlspalette öffnen"
 
-#: templates/_header.html:476
+#: templates/_header.html:491
 msgid "Show this shortcuts overlay"
 msgstr "Diese Übersicht anzeigen"
 
-#: templates/_header.html:480
+#: templates/_header.html:495
 msgid "Close the open dialog or panel"
 msgstr "Das offene Dialogfeld oder Panel schließen"
 
-#: templates/_header.html:485
+#: templates/_header.html:500
 msgid "Document viewer"
 msgstr "Dokumentanzeige"
 
-#: templates/_header.html:487
+#: templates/_header.html:502
 msgid "Previous / next document page"
 msgstr "Vorherige / nächste Dokumentseite"
 
@@ -4226,7 +4230,7 @@ msgid "next in"
 msgstr "neu in"
 
 #: templates/admin/sessions.html:22 templates/dashboard.html:48
-#: templates/maintenance.html:154
+#: templates/maintenance.html:163
 msgid "Refresh"
 msgstr "Aktualisieren"
 
@@ -5380,21 +5384,21 @@ msgstr "Neues Passwort bestätigen"
 msgid "Maintenance - nexora"
 msgstr "Wartung - nexora"
 
-#: templates/maintenance.html:134
+#: templates/maintenance.html:143
 msgid "Scheduled Maintenance"
 msgstr "Geplante Wartung"
 
-#: templates/maintenance.html:135
+#: templates/maintenance.html:144
 msgid "The application is temporarily unavailable. Please check back shortly."
 msgstr ""
 "Die Anwendung ist vorübergehend nicht verfügbar. Bitte versuchen Sie es "
 "in Kürze erneut."
 
-#: templates/maintenance.html:157
+#: templates/maintenance.html:166
 msgid "Login"
 msgstr "Anmelden"
 
-#: templates/maintenance.html:163
+#: templates/maintenance.html:172
 msgid "Expected to end at"
 msgstr "Voraussichtliches Ende um"
 
@@ -8185,7 +8189,11 @@ msgid ""
 "This page had been open too long, so nexora could not verify the form you"
 " sent. Nothing went wrong and nothing was saved — load the page again and"
 " your next try will work."
-msgstr "Diese Seite war zu lange geöffnet, daher konnte nexora das gesendete Formular nicht prüfen. Es ist nichts schiefgegangen und nichts wurde gespeichert — laden Sie die Seite neu, dann funktioniert der nächste Versuch."
+msgstr ""
+"Diese Seite war zu lange geöffnet, daher konnte nexora das gesendete "
+"Formular nicht prüfen. Es ist nichts schiefgegangen und nichts wurde "
+"gespeichert — laden Sie die Seite neu, dann funktioniert der nächste "
+"Versuch."
 
 #: templates/handlers/csrf.html:16
 msgid "Try again"

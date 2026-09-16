@@ -54,6 +54,13 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   visit.
 
 ### Fixed
+- **Reload, for the installed app** (#354) — a home-screen launch runs with
+  no browser chrome at all: no address bar, no reload button. Android keeps
+  pull-to-refresh in standalone mode; **iOS does not, and does not support
+  `minimal-ui` either**, so an installed nexora on an iPhone had no way to
+  reload a page. The More sheet now carries a Reload, shown only when
+  `display-mode: standalone` — in a browser tab the browser's own button
+  makes it redundant.
 - **Reporting pages on a phone** (#354) — every one of the five overflowed,
   `/reporting` by 212px, the worst in the app. The cause was not a
   desktop-only design but one mistake repeated: a mobile override dropping

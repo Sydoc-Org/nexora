@@ -447,6 +447,14 @@
             moreBtn?.setAttribute('aria-expanded', 'false');
         }
 
+        // #354: an installed app has no browser reload button, and on iOS no
+        // pull-to-refresh either, so the sheet carries its own. CSS keeps it
+        // hidden unless display-mode: standalone, so this is a no-op in a tab.
+        document.getElementById('nx-reload')?.addEventListener('click', () => {
+            closeSidebar();
+            window.location.reload();
+        });
+
         moreBtn?.addEventListener('click', (e) => {
             e.stopPropagation();
             if (sidebar.classList.contains('open')) closeSidebar();

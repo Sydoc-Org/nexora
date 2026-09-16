@@ -292,6 +292,21 @@
                 <span class="sidebar-label" id="sidebar-pin-label">{{ _("Keep sidebar open") }}</span>
             </button>
 
+            {# Reload (#354). An installed home-screen app runs with no browser
+               chrome at all -- no address bar, no reload button -- so on iOS
+               there is otherwise NO way to reload a page. Android's standalone
+               mode keeps pull-to-refresh; iOS does not, and does not support
+               minimal-ui either, so the app has to offer this itself.
+
+               Hidden unless actually running installed (display-mode:
+               standalone), because in a browser tab the reload button already
+               exists and this would just be clutter. #}
+            <button id="nx-reload" class="sidebar-nav-item sidebar-reload" type="button"
+                    title="{{ _('Reload') }}" data-testid="header-reload">
+                <i class="fas fa-rotate-right sidebar-nav-icon"></i>
+                <span class="sidebar-label">{{ _("Reload") }}</span>
+            </button>
+
             <!-- Dark mode toggle -->
             <button id="dark-mode-toggle" class="sidebar-nav-item" title="{{ _('Toggle dark mode') }}" data-testid="header-dark-mode-toggle">
                 <i id="dark-mode-icon" class="fas fa-moon sidebar-nav-icon"></i>

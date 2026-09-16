@@ -1131,3 +1131,17 @@ html.dark .nx-tabbar-item:active { background: rgba(148, 163, 184, 0.12); }
 @media (prefers-reduced-motion: reduce) {
     #nexora-sidebar { transition: none; }
 }
+
+/* The in-app Reload (#354). Only shown when nexora is actually running as an
+   installed app: `display-mode: standalone` is true for a home-screen or
+   Start-menu launch and false in a normal browser tab, where the browser's own
+   reload button makes this redundant.
+
+   It earns its place because a standalone app has no browser chrome. Android
+   keeps pull-to-refresh there, but iOS does not, and iOS also does not support
+   `minimal-ui` -- so without this an installed nexora on an iPhone has no way
+   to reload a page at all. */
+.sidebar-reload { display: none; }
+@media (display-mode: standalone) {
+    .sidebar-reload { display: flex; }
+}
