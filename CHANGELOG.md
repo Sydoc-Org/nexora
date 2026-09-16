@@ -54,6 +54,15 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   visit.
 
 ### Fixed
+- **Eddard's chat panel on a phone** (#354) — its header, and therefore its
+  close button, sat off the top of the screen: there was no way to dismiss
+  the assistant. The panel was anchored `bottom: 20px` with
+  `height: calc(100dvh - 40px)`, and `dvh` counts the whole screen including
+  the status bar and home indicator, so once the pages opted into
+  `viewport-fit=cover` it grew taller than the usable area. It now anchors to
+  both edges with `height: auto`, fitting whatever sits between the insets,
+  and stops above the tab bar so its composer is not underneath the
+  navigation.
 - **The tab bar clears the iPhone home indicator** (#354) — the white bar at
   the bottom of a modern iPhone was sitting *inside* the nav. The padding for
   it was always there, but `env(safe-area-inset-bottom)` returns **zero**

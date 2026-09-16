@@ -487,3 +487,49 @@ def test_the_bar_marks_the_page_you_are_on(nexora_server, phone_page, path, expe
         "  '.nx-tabbar-item--active .nx-tabbar-label')).fontWeight"
     )
     assert int(weight) >= 600, f"the active label should be bolder, got {weight}"
+
+
+@pytest.mark.flaky_e2e
+def test_eddard_chat_panel_fits_a_phone(nexora_server, phone_page):
+    """The reporting assistant's panel must stay between the status bar and
+    the tab bar.
+
+    It was anchored `bottom: 20px` with `height: calc(100dvh - 40px)`. `dvh`
+    counts the whole screen including the status bar and home indicator, so
+    once the pages opted into `viewport-fit=cover` the panel grew taller than
+    the usable area and its top slid off-screen -- taking the header and its
+    close button with it, leaving no way to dismiss Eddard on a phone.
+
+    Comparisons here are rect-against-rect on purpose. getBoundingClientRect
+    reports scaled pixels under mobile emulation while getComputedStyle
+    reports CSS pixels; mixing the two invents discrepancies that are not
+    there.
+    """
+    page = phone_page
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting")
+    page.wait_for_load_state("load")
+    page.wait_for_timeout(1200)
+
+    page.click('[data-testid="reporting-chat-toggle"]')
+    page.wait_for_timeout(800)
+
+    box = page.evaluate(
+        "() => { const p = document.querySelector('.reporting-chat-panel');"
+        "        const t = document.querySelector('.nx-tabbar');"
+        "        const h = p.querySelector('.reporting-chat-head');"
+        "        if (!p || !t || !h) return null;"
+        "        const pr = p.getBoundingClientRect(), tr = t.getBoundingClientRect(),"
+        "              hr = h.getBoundingClientRect();"
+        "        return {panelTop: pr.top, panelBottom: pr.bottom,"
+        "                headTop: hr.top, headBottom: hr.bottom, barTop: tr.top}; }"
+    )
+    assert box, "chat panel, its header, or the tab bar is missing"
+    assert box["headTop"] >= 0, (
+        f"the chat header is off the top of the screen ({box['headTop']}px) -- "
+        "its close button is unreachable"
+    )
+    assert box["panelBottom"] <= box["barTop"] + 1, (
+        f"the chat panel runs under the tab bar by "
+        f"{round(box['panelBottom'] - box['barTop'])}px"
+    )
