@@ -54,6 +54,20 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   visit.
 
 ### Fixed
+- **CSRF failures explain themselves** (#354) — submitting a form whose token
+  no longer matched the session produced Werkzeug's raw 400: a white page
+  reading "The CSRF session token is missing", with no explanation and
+  nothing to click. There was no `CSRFError` handler at all. This is not an
+  edge case — the token is tied to the session, so a login page left open
+  past the 24-hour session lifetime, or one served from a browser cache after
+  its session expired, hits it every time. Now renders a `handlers/` page in
+  the same style as 403/404/500, saying the page expired and offering a
+  **Try again** link that re-GETs the path that was posted to, issuing a
+  fresh token. Enforcement is unchanged: still refused, still 400, and the
+  external API surface still gets JSON rather than a web page. The shared
+  error base gained an overridable primary action so the page can offer
+  "try again" instead of "take me home"; every existing error page is
+  byte-identical.
 - **Admin pages on a phone** (#354) — swept all twelve at 390px. As with
   Generali, **none overflowed**: the wide tables already scroll inside their
   own containers, so target size was the whole problem. `.nx-input` rendered

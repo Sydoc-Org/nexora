@@ -67,8 +67,13 @@
                         </svg>
                         <span>{{ _('Go back') }}</span>
                     </a>
-                    <a href="{{ url_for('index') }}" class="btn-cosmic btn-cosmic-primary" data-testid="error-{{ error_code }}-home">
-                        <span>{{ _('Take me home') }}</span>
+                    {# The primary action is overridable so a page can offer
+                       something more useful than "home". The CSRF page wants
+                       "try again" -- someone who just failed to sign in needs
+                       a fresh form, not the landing page. Defaults keep every
+                       existing handler byte-identical. #}
+                    <a href="{{ error_primary_url|default(url_for('index'), true) }}" class="btn-cosmic btn-cosmic-primary" data-testid="error-{{ error_code }}-home">
+                        <span>{{ error_primary_text|default(_('Take me home'), true) }}</span>
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3"/>
                         </svg>

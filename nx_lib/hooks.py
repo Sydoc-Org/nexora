@@ -17,6 +17,7 @@ from flask import (
     session,
     url_for,
 )
+from flask_wtf.csrf import CSRFError
 
 from . import user_cache
 from .branding import brand_for_org
@@ -320,6 +321,28 @@ def _forbidden_page(e):
     return render_template("handlers/403.html"), 403
 
 
+def _csrf_error(e):
+    """Render a CSRF failure as something a person can act on.
+
+    Flask-WTF raises CSRFError, and with no handler registered it fell through
+    to Werkzeug's raw 400: a white page reading "The CSRF session token is
+    missing" with nothing to click. That is what a user sees when they submit
+    a form whose token no longer matches their session -- a login page left
+    open past the 24-hour session lifetime, or one served from a browser cache
+    after the session behind it expired. The site is fine and their input was
+    never at risk; only the message was hostile.
+
+    CSRF enforcement itself is unchanged: this still refuses the request with
+    400, it just explains why. The retry link is a GET of the path that was
+    posted to, which issues a fresh page and a fresh token.
+    """
+    if _is_external_api_path(request.path):
+        return jsonify({"error": "CSRF validation failed"}), 400
+    retry_url = request.path if request.path.startswith("/") else url_for("index")
+    current_app.logger.info(f"CSRF rejected for {request.path}: {getattr(e, 'description', e)}")
+    return render_template("handlers/csrf.html", retry_url=retry_url), 400
+
+
 def _handle_permission_denied(e):
     if _is_external_api_path(request.path):
         return jsonify({"error": "Forbidden"}), 403
@@ -426,6 +449,7 @@ def init_app(app):
     app.register_error_handler(500, _internal_error)
     app.register_error_handler(403, _forbidden_page)
     app.register_error_handler(PermissionDenied, _handle_permission_denied)
+    app.register_error_handler(CSRFError, _csrf_error)
 
     app.context_processor(_inject_current_lang)
     app.context_processor(_inject_ui_prefs)
