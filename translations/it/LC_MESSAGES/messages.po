@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-16 10:00+0200\n"
+"POT-Creation-Date: 2026-09-16 15:11+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -2226,8 +2226,8 @@ msgstr "Novità"
 msgid "Feedback"
 msgstr "Feedback"
 
-#: templates/_header.html:351 templates/_header.html:478
-#: templates/_header.html:481
+#: templates/_header.html:351 templates/_header.html:492
+#: templates/_header.html:495
 msgid "Keyboard shortcuts"
 msgstr "Scorciatoie da tastiera"
 
@@ -2236,7 +2236,7 @@ msgstr "Scorciatoie da tastiera"
 msgid "Help"
 msgstr "Aiuto"
 
-#: templates/_header.html:361 templates/_header.html:460
+#: templates/_header.html:361 templates/_header.html:474
 msgid "Switch user"
 msgstr "Cambia utente"
 
@@ -2249,55 +2249,55 @@ msgstr "Disconnetti"
 msgid "Main navigation"
 msgstr "Navigazione principale"
 
-#: templates/_header.html:435
+#: templates/_header.html:449
 msgid "More"
 msgstr "Altro"
 
-#: templates/_header.html:441
+#: templates/_header.html:455
 msgid "Command palette"
 msgstr "Tavolozza dei comandi"
 
-#: templates/_header.html:445
+#: templates/_header.html:459
 msgid "Type a command or search..."
 msgstr "Digita un comando o cerca..."
 
-#: templates/_header.html:450
+#: templates/_header.html:464
 msgid "navigate"
 msgstr "naviga"
 
-#: templates/_header.html:451
+#: templates/_header.html:465
 msgid "open"
 msgstr "apri"
 
-#: templates/_header.html:452
+#: templates/_header.html:466
 msgid "close"
 msgstr "chiudi"
 
-#: templates/_header.html:464
+#: templates/_header.html:478
 msgid "Switch to user..."
 msgstr "Passa all'utente ..."
 
-#: templates/_header.html:485 templates/admin/access_control.html:130
+#: templates/_header.html:499 templates/admin/access_control.html:130
 msgid "Global"
 msgstr "Globale"
 
-#: templates/_header.html:487
+#: templates/_header.html:501
 msgid "Open command palette"
 msgstr "Apri la tavolozza dei comandi"
 
-#: templates/_header.html:491
+#: templates/_header.html:505
 msgid "Show this shortcuts overlay"
 msgstr "Mostra questa panoramica scorciatoie"
 
-#: templates/_header.html:495
+#: templates/_header.html:509
 msgid "Close the open dialog or panel"
 msgstr "Chiudi la finestra di dialogo o il pannello aperto"
 
-#: templates/_header.html:500
+#: templates/_header.html:514
 msgid "Document viewer"
 msgstr "Visualizzatore documenti"
 
-#: templates/_header.html:502
+#: templates/_header.html:516
 msgid "Previous / next document page"
 msgstr "Pagina documento precedente / successiva"
 
@@ -3225,11 +3225,11 @@ msgstr "Query"
 #: templates/api_docs.html:252 templates/api_docs.html:288
 #: templates/api_docs.html:294 templates/api_docs.html:319
 #: templates/api_docs.html:325 templates/api_docs.html:362
-#: templates/api_docs.html:367 templates/api_docs.html:387
-#: templates/api_docs.html:393 templates/api_docs.html:407
-#: templates/api_docs.html:413 templates/api_docs.html:433
-#: templates/api_docs.html:439 templates/api_docs.html:483
-#: templates/api_docs.html:489 templates/reporting.html:463
+#: templates/api_docs.html:367 templates/api_docs.html:389
+#: templates/api_docs.html:395 templates/api_docs.html:409
+#: templates/api_docs.html:415 templates/api_docs.html:435
+#: templates/api_docs.html:441 templates/api_docs.html:485
+#: templates/api_docs.html:491 templates/reporting.html:463
 msgid "Copy"
 msgstr "Copia"
 
@@ -3304,7 +3304,7 @@ msgid "Endpoints"
 msgstr "Endpoint"
 
 #: templates/api_docs.html:120 templates/api_docs.html:139
-#: templates/api_docs.html:479
+#: templates/api_docs.html:481
 msgid "Test sandbox"
 msgstr "Ambiente di test"
 
@@ -3364,19 +3364,19 @@ msgstr ""
 #: templates/api_docs.html:252 templates/api_docs.html:288
 #: templates/api_docs.html:294 templates/api_docs.html:319
 #: templates/api_docs.html:325 templates/api_docs.html:362
-#: templates/api_docs.html:367 templates/api_docs.html:387
-#: templates/api_docs.html:393 templates/api_docs.html:407
-#: templates/api_docs.html:413 templates/api_docs.html:433
-#: templates/api_docs.html:439 templates/api_docs.html:483
-#: templates/api_docs.html:489
+#: templates/api_docs.html:367 templates/api_docs.html:389
+#: templates/api_docs.html:395 templates/api_docs.html:409
+#: templates/api_docs.html:415 templates/api_docs.html:435
+#: templates/api_docs.html:441 templates/api_docs.html:485
+#: templates/api_docs.html:491
 msgid "Copy code"
 msgstr "Copia codice"
 
 #: templates/api_docs.html:154 templates/api_docs.html:220
 #: templates/api_docs.html:251 templates/api_docs.html:293
 #: templates/api_docs.html:324 templates/api_docs.html:366
-#: templates/api_docs.html:392 templates/api_docs.html:412
-#: templates/api_docs.html:438 templates/api_docs.html:488
+#: templates/api_docs.html:394 templates/api_docs.html:414
+#: templates/api_docs.html:440 templates/api_docs.html:490
 msgid "response"
 msgstr "risposta"
 
@@ -3453,7 +3453,7 @@ msgstr "Corpo"
 #: templates/api_docs.html:189 templates/api_docs.html:230
 #: templates/api_docs.html:262 templates/api_docs.html:271
 #: templates/api_docs.html:303 templates/api_docs.html:345
-#: templates/api_docs.html:467
+#: templates/api_docs.html:469
 msgid "Meaning"
 msgstr "Significato"
 
@@ -3536,19 +3536,19 @@ msgstr ""
 "tessera KPI \"Current Backlog\" della dashboard di nexora."
 
 #: templates/api_docs.html:227 templates/api_docs.html:268
-#: templates/api_docs.html:300 templates/api_docs.html:464
+#: templates/api_docs.html:300 templates/api_docs.html:466
 msgid "Response fields"
 msgstr "Campi della risposta"
 
 #: templates/api_docs.html:230 templates/api_docs.html:271
-#: templates/api_docs.html:303 templates/api_docs.html:467
+#: templates/api_docs.html:303 templates/api_docs.html:469
 #: templates/js/_reporting_dashboard_js.html:38
 msgid "Field"
 msgstr "Campo"
 
 #: templates/admin/tenants_manage.html:74 templates/api_docs.html:230
 #: templates/api_docs.html:262 templates/api_docs.html:271
-#: templates/api_docs.html:303 templates/api_docs.html:467
+#: templates/api_docs.html:303 templates/api_docs.html:469
 #: templates/generali_documents.html:228 templates/js/_reporting_viz_js.html:11
 msgid "Type"
 msgstr "Tipo"
@@ -3708,11 +3708,13 @@ msgstr ""
 
 #: templates/api_docs.html:354
 msgid ""
-"fields — also return each row's indexed document-field values (see "
-"below). Any other value answers 400."
+"fields — also return each row's indexed document-field values; "
+"fields:invoicenr,kundennr narrows that to the named keys (see below). Any"
+" other value answers 400."
 msgstr ""
 "fields — restituisce anche i valori dei campi documento indicizzati di "
-"ogni riga (vedi sotto). Qualsiasi altro valore risponde 400."
+"ogni riga; fields:invoicenr,kundennr li limita alle chiavi indicate (vedi"
+" sotto). Qualsiasi altro valore risponde 400."
 
 #: templates/api_docs.html:358
 msgid "Field values without one call per row"
@@ -3731,6 +3733,30 @@ msgstr ""
 "oggetto fields, risolto una sola volta per pagina."
 
 #: templates/api_docs.html:377
+msgid ""
+"To take only the keys you actually read each cycle, name them inline: "
+"include=fields:invoicenr,kundennr. Keys are case-insensitive and "
+"validated exactly like ?field= — an unknown or sensitive key answers 400 "
+"Unknown field, a key outside your process scope answers 400 Field not "
+"available. An empty list or more than 30 keys is also a 400."
+msgstr ""
+"Per ottenere solo le chiavi che leggete davvero a ogni ciclo, indicatele "
+"direttamente: include=fields:invoicenr,kundennr. Le chiavi non "
+"distinguono maiuscole e minuscole e sono validate esattamente come con "
+"?field= — una chiave sconosciuta o sensibile risponde 400 Unknown field, "
+"una chiave fuori dal vostro ambito di processi risponde 400 Field not "
+"available. Anche un elenco vuoto o più di 30 chiavi rispondono 400."
+
+#: templates/api_docs.html:378
+msgid ""
+"Naming keys does not make the query cheaper — the values sit in one wide "
+"row either way. What it saves is response size."
+msgstr ""
+"Indicare le chiavi non rende la query più economica — i valori si trovano"
+" comunque in un'unica riga larga. Ciò che si risparmia è la dimensione "
+"della risposta."
+
+#: templates/api_docs.html:379
 #, python-brace-format
 msgid ""
 "Indexed fields only — the same keys /workitems/fields lists. Table values"
@@ -3744,7 +3770,7 @@ msgstr ""
 "fields vuoto, i campi sensibili non sono mai inclusi e senza include la "
 "risposta è esattamente quella di prima."
 
-#: templates/api_docs.html:378
+#: templates/api_docs.html:380
 msgid ""
 "Every invalid value returns a 400 with a plain-English error — nothing is"
 " silently coerced. Unknown and sensitive field keys answer identically "
@@ -3760,7 +3786,7 @@ msgstr ""
 "rispettano la stessa finestra temporale per processo della ricerca della "
 "pagina Panoramica."
 
-#: templates/api_docs.html:384
+#: templates/api_docs.html:386
 msgid ""
 "The field keys /workitems accepts in ?field= for your key's process "
 "scope, as the server resolves them right now — only fields mapped for at "
@@ -3773,7 +3799,7 @@ msgstr ""
 "meno i campi sensibili. Preferisci recuperare questo elenco invece di "
 "codificare i nomi delle chiavi."
 
-#: templates/api_docs.html:398
+#: templates/api_docs.html:400
 msgid ""
 "Keys are lowercase without separators. On /workitems an unknown key "
 "answers 400 Unknown field, and a real field outside your key's scope "
@@ -3786,7 +3812,7 @@ msgstr ""
 "scope; una lettura di configurazione fallita restituisce 500, mai un "
 "elenco parziale."
 
-#: templates/api_docs.html:404
+#: templates/api_docs.html:406
 msgid ""
 "The count of workitems currently in each stage (Import, Extraction, "
 "Validation, Delivery) for your key's process scope. No parameters; the "
@@ -3797,7 +3823,7 @@ msgstr ""
 "parametro; i numeri corrispondono sempre a una query /workitems filtrata "
 "per fase."
 
-#: templates/api_docs.html:424
+#: templates/api_docs.html:426
 msgid ""
 "datetime is the server-local timestamp the counts were computed at. An "
 "empty process scope returns all zeros; a degraded workitem source answers"
@@ -3810,7 +3836,7 @@ msgstr ""
 "silenziosamente parziali. Nessuna cache: ogni chiamata calcola numeri "
 "aggiornati."
 
-#: templates/api_docs.html:430
+#: templates/api_docs.html:432
 msgid ""
 "The document details the overview row-expand shows for one workitem: "
 "extracted field values and table values. No page images, confidence or "
@@ -3821,7 +3847,7 @@ msgstr ""
 "pagina, confidenza o posizione di origine; i campi sensibili vengono "
 "sempre rimossi."
 
-#: templates/api_docs.html:469
+#: templates/api_docs.html:471
 msgid ""
 "Extracted field name → value, mapped through the same field-name mapping "
 "the overview uses"
@@ -3829,11 +3855,11 @@ msgstr ""
 "Nome del campo estratto → valore, mappato con la stessa mappatura dei "
 "nomi di campo della panoramica"
 
-#: templates/api_docs.html:470
+#: templates/api_docs.html:472
 msgid "Extracted tables: title, columns, and rows of column/value cells"
 msgstr "Tabelle estratte: titolo, colonne e righe di celle colonna/valore"
 
-#: templates/api_docs.html:474
+#: templates/api_docs.html:476
 msgid ""
 "404 with a null detail is returned uniformly for an unknown id, an id "
 "outside your key's scope, and a document the runtime backend can't load "
@@ -3846,7 +3872,7 @@ msgstr ""
 "a un workitem freddo carica in diretta dal servizio di runtime e può "
 "richiedere qualche secondo."
 
-#: templates/api_docs.html:480
+#: templates/api_docs.html:482
 msgid ""
 "Every endpoint above has a /api/test/v1/... twin: same path suffix, same "
 "Bearer-key auth, same response shape — but the numbers are random, not "
@@ -3859,7 +3885,7 @@ msgstr ""
 "nessuna query al backend, quindi è sicuro chiamarlo ripetutamente durante"
 " lo sviluppo di un'integrazione."
 
-#: templates/api_docs.html:495
+#: templates/api_docs.html:497
 msgid ""
 "Use a real (enabled) API key — the same auth errors (401/429) apply. "
 "Available for"
@@ -3867,7 +3893,7 @@ msgstr ""
 "Usa una vera chiave API (abilitata) — si applicano gli stessi errori di "
 "autenticazione (401/429). Disponibile per"
 
-#: templates/api_docs.html:495
+#: templates/api_docs.html:497
 msgid "and"
 msgstr "e"
 
@@ -8166,10 +8192,7 @@ msgid ""
 "This page had been open too long, so nexora could not verify the form you"
 " sent. Nothing went wrong and nothing was saved — load the page again and"
 " your next try will work."
-msgstr ""
-"Questa pagina è rimasta aperta troppo a lungo, quindi nexora non ha "
-"potuto verificare il modulo inviato. Non è andato storto nulla e nulla è "
-"stato salvato — ricarica la pagina e il prossimo tentativo funzionerà."
+msgstr "Questa pagina è rimasta aperta troppo a lungo, quindi nexora non ha potuto verificare il modulo inviato. Non è andato storto nulla e nulla è stato salvato — ricarica la pagina e il prossimo tentativo funzionerà."
 
 #: templates/handlers/csrf.html:16
 msgid "Try again"

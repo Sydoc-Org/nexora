@@ -7,18 +7,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
-- **External API: `/api/v1/workitems?include=fields`** (#341) — the list
-  endpoint can now return each row's indexed document-field values inline
-  (`"fields": {"invoicenr": "INV-2026-00123", ...}`), resolved **once per
-  page** from the same columnar statistik tables the doc-field filter reads.
-  A polling client previously needed one `/workitems/<id>` call per row —
-  900+ per refresh, well past the `60/minute` limit. Indexed fields only
-  (tables and document/media info stay on the detail endpoint); the
-  projection is scoped to the key's own processes, sensitive keys never
-  enter the select list, and MS02 rows return no fields rather than
-  unconstrained ones while `engine_ms02_docfields_pg` is unset. Opt-in: the
-  default response shape is unchanged. Mirrored on
-  `/api/test/v1/workitems`.
+
 - **Phone navigation: a bottom tab bar and a bottom sheet** (#354) — on a
   touch phone the nav moves into the thumb zone: a fixed bar with up to three
   permission-filtered slots (the user's own tenant pages when they belong to
@@ -54,6 +43,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   visit.
 
 ### Fixed
+
 - **The installed app stays signed in** (#354) — on any non-PROD host the
   session cookie was written with no `Expires`/`Max-Age`: a *browser session*
   cookie, discarded the moment the browsing session ends. An installed
@@ -259,9 +249,42 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   a back-button press on a shared machine redisplaying the previous user's
   page after sign-out.
 
+## [3.2.9] - 2026-09-15
+
+### Added
+
+- **External API: `?include=fields:<key>,<key>`** (#356) — the inline
+  key list added in #341's follow-up narrows the projection to the keys a
+  client actually reads, instead of every key mapped for its process scope.
+  Keys are case-insensitive and validated with the **same grammar `field=`
+  uses**: unknown and sensitive answer identically (`400 Unknown field`, no
+  sensitivity-existence oracle), a real-but-unmapped key names the scope
+  problem, and an empty list, more than 30 keys, or a key list beside another
+  include token all `400` — a typo fails loudly instead of looking like a
+  permanently empty field. Bare `include=fields` is unchanged. This saves
+  response size, **not** query cost: the values sit in one wide statistik row
+  either way. Mirrored on `/api/test/v1/workitems`.
+
+## [3.2.8] - 2026-09-15
+
+### Added
+
+- **External API: `/api/v1/workitems?include=fields`** (#341) — the list
+  endpoint can now return each row's indexed document-field values inline
+  (`"fields": {"invoicenr": "INV-2026-00123", ...}`), resolved **once per
+  page** from the same columnar statistik tables the doc-field filter reads.
+  A polling client previously needed one `/workitems/<id>` call per row —
+  900+ per refresh, well past the `60/minute` limit. Indexed fields only
+  (tables and document/media info stay on the detail endpoint); the
+  projection is scoped to the key's own processes, sensitive keys never
+  enter the select list, and MS02 rows return no fields rather than
+  unconstrained ones while `engine_ms02_docfields_pg` is unset. Opt-in: the
+  default response shape is unchanged. Mirrored on
+  `/api/test/v1/workitems`.
 ## [3.2.7] - 2026-09-15
 
 ### Fixed
+
 - **Generali dashboard: chart hover and tooltips** — three Chart.js defaults
   nobody had overridden on this page. The Recipient and Entry-channel bar
   charts kept `nearest` + `intersect`, so a tooltip only appeared with the
@@ -283,6 +306,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [3.2.6] - 2026-09-14
 
 ### Fixed
+
 - **The Generali dashboard shows the last 30 days instead of nothing when a
   date is missing** — `/api/generali/stats` answered a missing `startDate` or
   `endDate` with a 400, and the page rendered that as a dead screen: every KPI
@@ -301,6 +325,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [3.2.5] - 2026-09-14
 
 ### Added
+
 - **Hosted dev and staging environments** (#338) — `dev-nexora.sydoc.ch` (deploys on
   every non-`main` branch push, `ENVIRONMENT=INT`, INT databases) and
   `staging-nexora.sydoc.ch` (deploys on merge to `main` and nightly at 01:30,
@@ -484,6 +509,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and nothing bleeds in beside it; the editor preview re-runs on every change.
 
 ### Changed
+
 - **PROD deploys on a `v*` tag push, not on merge to `main`** (#338); `main` now
   deploys staging. The deploy steps moved from `deploy.yml` into the reusable
   `deploy-env.yml`; deploys no longer stop the ngrok service (one agent fronts three
@@ -571,6 +597,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   old copy still writes — see `scripts/generali-import/README.md`.
 
 ### Fixed
+
 - **Fireflies no longer drift across the New-report wizard** (#336) — the
   animated backdrop is held behind the page by promoting `<main>`, and
   Reporting is the one page whose content is not all inside `<main>`: the
@@ -866,6 +893,7 @@ Work toward the next release.
   fixed row height used to clip the fifth KPI tile and the table toggle).
 
 ### Fixed
+
 - **Reporting bug hunt** — Eddard's streamed answer no longer dies when a tool
   result carries dates/decimals; scheduled and AI runs of *latest*-mode metrics
   aggregate the newest snapshot like the screen does; the `run_sql` tool accepts
@@ -1101,6 +1129,7 @@ exora\Prune Sessions"
   to the documents. New `POST /api/reporting/contribution`; no new permission.
 
 ### Changed
+
 - **Pushing is fast again.** The pre-push hook no longer runs the test suite
   (it duplicated CI's fast tier against the same shared `NEXORA_TEST`, ~10 min
   per push and one more contender for the database lock); it only guards branch
@@ -1170,6 +1199,7 @@ exora\Prune Sessions"
   serves renamed codes for the deploy window and answers 403 — deploy off-hours.
 
 ### Removed
+
 - The `pull_request` trigger on `deploy.yml` — every branch push runs the fast test
   tier and its check shows on the PR (#338).
 
@@ -2148,7 +2178,6 @@ exora\Prune Sessions"
   Access Control / the user's overrides tab — granting and revoking stays
   there.
 
-
 - **Responses are gzipped.** Nexora ships each page's JavaScript inline (the
   `templates/js/*.html` partials), so an HTML response is the whole client for
   that page — `/reporting` is ~620 KB — and none of it was compressed. Flask
@@ -2273,7 +2302,6 @@ exora\Prune Sessions"
   the whole card is now grabbable, with a `grab` cursor, rather than looking
   static. Drop only clears the drag state.
 
-
 - **Dev-structure leftovers from the 2026-05 dev-env upgrade closed out**
   (#108). The camelCase template render kwargs the PR 6 handoff deferred are
   now snake_case (`pageV` -> `page_visibility`, `startDate`/`endDate` ->
@@ -2342,7 +2370,6 @@ exora\Prune Sessions"
   `get_source_for_workitem`'s existing collision fail-safe: more than one
   row for an id is ambiguous and is never guessed — it's omitted (forcing a
   re-probe) with an error logged.
-
 
 - **The three biggest JS partials now ship as cacheable static files** (#191).
   Nexora's per-page JavaScript lived inside Jinja partials only because that
@@ -2525,7 +2552,6 @@ exora\Prune Sessions"
   `"<name> (copy)"` and then leaves the copy open, so the next Save can't reach
   back to the original. A result that isn't a saved report yet (wizard run, an
   answer from Eddard) still asks for a name and creates one.
-
 
 - **Fireflies now tint with the chosen accent color.** The `fireflies`
   background option used a hardcoded teal/amber dot color instead of
@@ -4815,6 +4841,7 @@ Version bumped from 2.5.60; now single-sourced in `nx_lib/version.py`.
 - Workitems detail viewer: a parent/batch workitem now surfaces **all** of its child documents' page images, field values, and source-highlight overlays, flattening the document tree **recursively** to its leaf documents at any depth. Previously only a single, literal `DocumentType == "Batch"` level was flattened, so multi-level client document trees — e.g. the MS02 `MobScnBatch → MobScnDossier → MobScnDocument` hierarchy — rendered an **empty** detail panel on the container workitem (images and fields live on the leaf documents). The flatten is now keyed on the presence of `ChildDocuments` rather than the literal type name, shared by `nx_lib/octo.py`, `nx_lib/field_locations.py`, and `nx_lib/table_locations.py` so page-index/overlay alignment is preserved. Plain single-document and one-level-batch workitems are unaffected (same leaves, same order).
 
 ### Removed
+
 - The MS02 prepared-documents session-overlay model: the `pid_import:<token>`
   session stash, the `?pidImport=` read-back path (`pid_import_active` /
   `_pid_import_meta`), the row-merge + page-1-only synthetic-row append in
@@ -4823,6 +4850,7 @@ Version bumped from 2.5.60; now single-sourced in `nx_lib/version.py`.
   short-circuit. Superseded by the persistent `dbo.PreparedDocuments` register.
 
 ### Added
+
 - **Prepared Documents ⇄ Workitem detail cross-linking (MS02).** The register's
   Octo-Status cell gains a read-only **Preview** modal mirroring the full Workitems
   detail panel (page images + source highlighting + extracted fields + audit + tags +
@@ -5213,6 +5241,7 @@ Version bumped from 2.5.60; now single-sourced in `nx_lib/version.py`.
 - Git → Confluence docs sync: `scripts/confluence-publish.py` publishes `docs/howto/*`, `docs/design/*`, `README.md`, `CONTRIBUTING.md` and `CHANGELOG.md` to the Confluence space as a read-only mirror (md2conf engine, `git-managed` labels, orphan archiving); triggered by `.github/workflows/confluence-docs.yml` on push to `main`. Runbook: `docs/howto/confluence-sync.md`.
 
 ### Fixed
+
 - Reporting AI: prompts now require a date `grain` for per-month/week/quarter/year questions (drafts no longer bucket by raw day while claiming "monthly").
 - Reporting AI: "how many distinct X per Y" no longer groups by the counted field (prompt rule + a gate guard that drops the shadowing column).
 - Reporting AI agent: the grounding and the `run_sql` error now name the valid SQL targets, so the agent can self-repair instead of dying at the turn cap.
@@ -5318,7 +5347,9 @@ Version bumped from 2.5.60; now single-sourced in `nx_lib/version.py`.
   per value. The prompts now teach both surfaces the correct pattern: put the target
   field in `columns` and add a count metric, which makes the columns GROUP BY
   dimensions so each value appears once.
+
 ### Changed
+
 - Workitems list: a runtime-DB outage now renders an empty list with a "temporarily unavailable"
   banner instead of a 500 error (graceful degradation for the multi-source design).
 - **Reporting Simple wizard: curated breakdown dimensions.** For the Document
@@ -5459,6 +5490,7 @@ Version bumped from 2.5.60; now single-sourced in `nx_lib/version.py`.
 - **Reporting page reskinned to the shared nexora-ui design system.** The `/reporting` page (Simple + Advanced tabs, wizard, result views, AI bars and the share/schedule/name/SQL-ack modals) now uses the same `--nx-*` design tokens, cards and buttons as the admin and other pages, and renders correctly in dark mode (the residual hardcoded-hex Simple-pane styling was tokenized). No behavior or feature change.
 
 ### Fixed
+
 - **Generali add-modals no longer show an empty red strip.** The Tailwind v4
   browser CDN emits utilities inside `@layer utilities`, so the unlayered
   `.nx-flash { display:flex }` rule always beat the `hidden` utility and kept
@@ -5567,7 +5599,9 @@ Version bumped from 2.5.60; now single-sourced in `nx_lib/version.py`.
   per value. The prompts now teach both surfaces the correct pattern: put the target
   field in `columns` and add a count metric, which makes the columns GROUP BY
   dimensions so each value appears once.
+
 ### Removed
+
 - **`dbo.SearchConfig`:** dropped 12 unused columns (`col_scanbatchnr`, `col_pid`, `col_personalfileid`, `col_employmentfileid`, `col_doctypeidtargetsystem`, `col_doctypeidsydoc`, `col_registeridtargetsystem`, `col_masterdataseparatorsheettype`, `col_masterdatabirthday`, `col_masterdatafirstname`, `col_masterdatalastname`, `col_masterdataseparatorsheetid`) via migration `0002_remove_unused_columns_searchconfig.sql`.
 
 ## [2.5.61] - 2026-05-28
@@ -5575,6 +5609,7 @@ Version bumped from 2.5.60; now single-sourced in `nx_lib/version.py`.
 Dev-environment upgrade (10-PR bundle). No behavioural code changes — only structure, tooling, and naming. See `docs/superpowers/specs/2026-05-26-dev-env-upgrade-design.md` for the design and `docs/superpowers/plans/2026-05-27-dev-env-upgrade.md` for the step-by-step plan.
 
 ### Added
+
 - `bootstrap.ps1` one-shot dev-environment setup. Idempotent and re-runnable: detects Python, installs uv if missing, runs `uv sync --extra dev`, installs Playwright chromium, seeds `env/<E>.env` from templates (never overwrites existing), installs pre-commit hooks (pre-commit / commit-msg / pre-push), ensures `var/` subdirs exist, prints a checklist of remaining manual steps. Quick start collapses to `git clone … && .\bootstrap.ps1`.
 - `LICENSE` (proprietary Sydoc notice).
 - `CHANGELOG.md` (this file, Keep-a-Changelog format).
@@ -5587,6 +5622,7 @@ Dev-environment upgrade (10-PR bundle). No behavioural code changes — only str
 - `bin/` directory for dev CLI scripts. Currently holds `bin/nx.ps1`.
 
 ### Changed
+
 - `nx.ps1` moved to `bin/nx.ps1` (history preserved via `git mv`). `nx_lib.cli.NX_PS1` updated; the dir is excluded from the prod robocopy mirror.
 - All non-root `*.env` files moved under `env/` (`env/INT.env`, `env/PROD.env`, `env/STAGING.env`, `env/TEST.env`). `nx_lib/config.py` now loads from `env/{ENVIRONMENT}.env` with a one-release fallback to the legacy root location (emits a `DeprecationWarning` naming both paths). The root `.env` env-selector stays put. `.gitignore`: `*.env` still ignores secrets everywhere, with a `!env/*.env.example` exception to commit the templates. `.github/workflows/deploy.yml` copies `env/PROD.env` (legacy fallback included) and `env/TEST.env` into the workspace `env/`. `scripts/test_db_reset.py` reads `env/TEST.env`. **PROD pre-flight on SYAPP01:** move `D:\sydoc\nexora\{INT,PROD}.env` into `D:\sydoc\nexora\env\` before the 2.5.61 bundle merges; the deploy and the runtime loader both fall back with a warning if you don't.
 - Runtime data consolidated under `var/`: `uploads/`, `session/`, `logs/`, `screenshots/`, `backups/`, `test-results/` all moved out of the repo root. All Python writers now resolve their location through `nx_lib.config.PATHS` (e.g. `PATHS.logs`, `PATHS.uploads`), which auto-creates each dir at import time. The ops cleanup scripts (`ops/cleanup/csvLogs_toDB.ps1`, `ops/cleanup/cleanup_expired_sessionFiles.ps1`), pytest output paths (`--junitxml`, `--html`), and the GitHub Actions `test-results` artifact path are all updated. `static/uploads/` (Flask-served public chat assets) stays in place — only private runtime data moves. **PROD follow-up on SYAPP01:** move `D:\sydoc\nexora\{uploads,session,logs,screenshots,backups}\*` into `D:\sydoc\nexora\var\...` so the cron scripts pick up the new path on the next run.
@@ -5600,6 +5636,7 @@ Dev-environment upgrade (10-PR bundle). No behavioural code changes — only str
 - Jinja template files renamed to snake_case. All 30 camelCase templates (page templates, JS partials, error base, logo, version footer) renamed in lockstep with their includes / `render_template` callers. Highlights: `templates/admin/{accessControl,adminOverview,userDetail,archive/userManagement}.html` → snake_case; `templates/nexoraLogo/_nexoraLogo.html` → `templates/nexora_logo/_nexora_logo.html` (folder + file); `templates/handlers/_errorBase.html` → `_error_base.html`; all `templates/js/_<page>JS.html` and `templates/js/admin/_<page>JS.html` partials → `_<page>_js.html`; `templates/js/_generali-dashboardJS.html` also normalised hyphen → underscore. `messages.pot` and the three locale `.po` files re-extracted so source-path references match. Template-side identifiers (`pageV` kwargs, `active_page` strings) and the camelCase static CSS assets are intentionally out of scope.
 
 ### Removed
+
 - Empty placeholder folders: `cleanup/`, `export-help/`, `generali-import/`, `news/`.
 - Deprecated `environment_transfer_queries.tmp.sql` (superseded by `sql/_migrations/`).
 - `scripts/install-git-hooks.ps1` — the PR 4 deprecation shim. Use `.venv\Scripts\pre-commit.exe install ...` directly (which the shim was already calling on your behalf).
