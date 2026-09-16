@@ -985,6 +985,8 @@ html.dark .shortcuts-row { color: #e2e8f0; }
         /* The home indicator on a modern iPhone sits over the bottom edge --
            without this the last row of labels is under it. */
         padding-bottom: env(safe-area-inset-bottom);
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
     }
     .nx-tabbar-item {
         flex: 1 1 0;
@@ -1017,13 +1019,39 @@ html.dark .shortcuts-row { color: #e2e8f0; }
         text-overflow: ellipsis;
         white-space: nowrap;
     }
+    /* The active slot was marked by colour alone, which is easy to miss at a
+       glance and invisible to anyone who does not see that hue well. Give it
+       a filled pill behind the icon and a heavier label as well, so it reads
+       without relying on colour. */
     .nx-tabbar-item--active { color: var(--nx-accent, #4f46e5); }
+    .nx-tabbar-item--active .nx-tabbar-label { font-weight: 600; }
+    .nx-tabbar-item--active .nx-tabbar-icon {
+        position: relative;
+    }
+    .nx-tabbar-item--active .nx-tabbar-icon::before {
+        content: "";
+        position: absolute;
+        inset: -6px -14px;
+        border-radius: 999px;
+        background: var(--nx-accent-tint, #eef2ff);
+        z-index: -1;
+    }
     .nx-tabbar-item:active { background: var(--nx-accent-tint, #f5f3ff); }
 
     /* ---- Body: no floating hamburger to clear, but the bar to clear ---- */
     .sidebar-toggle-btn { display: none !important; }
     body {
-        padding-top: 0;
+        /* All four insets, now that every page opts into `viewport-fit=cover`.
+           That opt-in is what makes env() return real numbers -- without it
+           iOS reports 0 for every inset and the padding below silently does
+           nothing, which is exactly why the home indicator sat *inside* the
+           tab bar. The trade is that content now reaches the physical edges,
+           so the top and sides have to be guarded too: the status bar is
+           translucent here (apple-mobile-web-app-status-bar-style), and in
+           landscape on a notched phone the notch eats into one side. */
+        padding-top: env(safe-area-inset-top);
+        padding-left: env(safe-area-inset-left) !important;
+        padding-right: env(safe-area-inset-right) !important;
         padding-bottom: calc(var(--nx-tabbar-h) + env(safe-area-inset-bottom));
     }
     /* So an anchor jump or a focused input never lands under the bar. */

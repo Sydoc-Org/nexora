@@ -451,3 +451,39 @@ def test_installed_app_has_its_own_reload(nexora_server, phone_page):
     assert page.evaluate(
         "() => window.__beforeReload === undefined"
     ), "clicking reload did not reload the page"
+
+
+@pytest.mark.flaky_e2e
+@pytest.mark.parametrize(
+    ("path", "expected"),
+    [("/dashboard", "Dashboard"), ("/workitems", "Workitems"), ("/reporting", "Reporting")],
+)
+def test_the_bar_marks_the_page_you_are_on(nexora_server, phone_page, path, expected):
+    """Exactly one slot is marked, and it is the right one.
+
+    This was broken for the two pages people open most. The bar first reused
+    the sidebar's `active` flag, which asks "is the sidebar's *Global* entry
+    the current page" -- and for anyone scoped to a tenant the answer is
+    always no: a tenant-mounted Dashboard sets active_page to
+    `tenant_<code>_dashboard` (0097) and Workitems to `tenant_<code>_workitems`
+    (0098). In the sidebar that is correct, because the tenant's own group
+    lights instead; the bar has no tenant group, so nothing lit at all and
+    only /reporting ever looked right.
+    """
+    page = phone_page
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}{path}")
+    page.wait_for_load_state("load")
+    page.wait_for_timeout(400)
+
+    marked = page.eval_on_selector_all(
+        ".nx-tabbar-item--active .nx-tabbar-label", "els => els.map(e => e.textContent.trim())"
+    )
+    assert marked == [expected], f"{path} should mark exactly {expected!r}, marked {marked}"
+
+    # Colour alone is not enough of a signal, so the label also carries weight.
+    weight = page.evaluate(
+        "() => getComputedStyle(document.querySelector("
+        "  '.nx-tabbar-item--active .nx-tabbar-label')).fontWeight"
+    )
+    assert int(weight) >= 600, f"the active label should be bolder, got {weight}"

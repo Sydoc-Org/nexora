@@ -54,6 +54,24 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   visit.
 
 ### Fixed
+- **The tab bar clears the iPhone home indicator** (#354) — the white bar at
+  the bottom of a modern iPhone was sitting *inside* the nav. The padding for
+  it was always there, but `env(safe-area-inset-bottom)` returns **zero**
+  unless the page opts in with `viewport-fit=cover`, which none of the 46 page
+  templates did — so it had been doing nothing. With the opt-in the insets are
+  real; content now also reaches the top and side edges, so the body guards
+  all four (the status bar is translucent, and a notch eats into one side in
+  landscape).
+- **The tab bar shows which page you are on** (#354) — it did not, on the two
+  pages people open most. The bar reused the sidebar's `active` flag, which
+  asks whether the sidebar's *Global* entry is the current page; for anyone
+  scoped to a tenant that is always false, because a tenant-mounted Dashboard
+  sets `active_page` to `tenant_<code>_dashboard` (0097) and Workitems to
+  `tenant_<code>_workitems` (0098). Correct for the sidebar, where the
+  tenant's own group lights instead — but the bar has no tenant group, so
+  nothing lit and only `/reporting` ever looked right. The bar now matches
+  both spellings, and the active slot carries a filled pill and a heavier
+  label rather than relying on colour alone.
 - **Reload, for the installed app** (#354) — a home-screen launch runs with
   no browser chrome at all: no address bar, no reload button. Android keeps
   pull-to-refresh in standalone mode; **iOS does not, and does not support
