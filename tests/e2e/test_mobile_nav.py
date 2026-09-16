@@ -587,3 +587,27 @@ def test_the_bar_is_not_selectable_text(nexora_server, phone_page):
         "  '#nexora-sidebar .sidebar-nav-item')).userSelect"
     )
     assert item_select == "none", f"sheet rows are selectable: {item_select}"
+
+
+@pytest.mark.flaky_e2e
+def test_the_session_is_rechecked_when_the_app_comes_back(nexora_server, phone_page):
+    """An installed app must notice a dead session the moment you look at it.
+
+    The heartbeat polls every 30s, which is fine in a browser tab but not in
+    an installed app: iOS suspends timers while the app is backgrounded, so
+    reopening it left you on a page from before the phone was locked -- signed
+    out without knowing -- until a tick happened to fire. The session is now
+    rechecked on resume.
+    """
+    page = phone_page
+    _login(page, nexora_server)
+    page.wait_for_timeout(2500)  # let the startup ping go first
+
+    calls = []
+    page.on("request", lambda r: calls.append(r.url) if "heartbeat" in r.url else None)
+
+    before = len(calls)
+    page.evaluate("() => document.dispatchEvent(new Event('visibilitychange'))")
+    page.wait_for_timeout(800)
+
+    assert len(calls) > before, "coming back to the foreground did not recheck the session"

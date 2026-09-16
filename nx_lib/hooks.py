@@ -116,6 +116,31 @@ def _enforce_active_session():
     return redirect(url_for("login"))
 
 
+def _persist_session():
+    """Mark an authenticated session permanent, so its cookie carries an expiry.
+
+    Without this, Flask writes the cookie with no Expires/Max-Age -- a *browser
+    session* cookie, discarded the moment the browsing session ends. On a
+    desktop that is rarely noticed. In an installed home-screen app it is
+    constant: iOS evicts the web app from memory routinely, the cookie goes
+    with it, and the user is signed out again minutes after signing in. It
+    stops feeling like an app and starts feeling like a link that expires.
+
+    PROD never had the problem -- Flask-Session sets SESSION_PERMANENT there --
+    so this only ever bit INT/dev and any other non-PROD host. Measured:
+    dev sent `session=...; HttpOnly; Path=/; SameSite=Lax` while PROD sent the
+    same plus `Expires=...; Secure`.
+
+    Nothing is loosened. PERMANENT_SESSION_LIFETIME (24h) is what actually
+    bounds the session, it applies only to permanent sessions, and this simply
+    lets it apply everywhere rather than nowhere. Flask refreshes the expiry on
+    each request, so the window slides with use exactly as it already does on
+    PROD.
+    """
+    if "userid" in session:
+        session.permanent = True
+
+
 def _reload_user_permissions():
     """Refresh session['permissions'] on every non-static request, served from
     the per-process TTL cache (nx_lib/user_cache.py) so ~500 users no longer
@@ -438,6 +463,7 @@ def _inject_whats_new():
 def init_app(app):
     app.before_request(_start_timer)
     app.before_request(_enforce_active_session)
+    app.before_request(_persist_session)
     app.before_request(_reload_user_permissions)
     app.before_request(_load_user_locale)
     app.before_request(_load_user_ui_prefs)

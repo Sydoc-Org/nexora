@@ -54,6 +54,25 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   visit.
 
 ### Fixed
+- **The installed app stays signed in** (#354) — on any non-PROD host the
+  session cookie was written with no `Expires`/`Max-Age`: a *browser session*
+  cookie, discarded the moment the browsing session ends. An installed
+  home-screen app is evicted from memory routinely, so the cookie went with it
+  and you were signed out again minutes after signing in — a link that
+  expires, rather than an app. `SESSION_PERMANENT` sat inside the
+  `if IS_PROD:` block, so PROD was always correct and only dev/INT was
+  affected (measured: dev sent no expiry, PROD sent `Expires=…; Secure`).
+  Authenticated sessions are now permanent everywhere. Nothing is loosened —
+  the 24h `PERMANENT_SESSION_LIFETIME` is what bounds a session and applies
+  only to permanent ones, so it now applies rather than not applying. A
+  signed-out visitor still gets a non-persistent cookie.
+- **The app rechecks the session the moment it comes back** (#354) — the
+  heartbeat polls every 30s, which is fine in a browser tab but not in an
+  installed app: iOS suspends timers while it is backgrounded, so reopening it
+  showed a page from before the phone was locked until a tick happened to
+  fire. It now rechecks on `visibilitychange` and `pageshow`, so the app
+  either shows live data or goes to the login screen as soon as you look at
+  it.
 - **The active tab's icon no longer disappears** (#354) — selecting a tab made
   its icon vanish entirely. The pill added behind the active icon was written
   as `.nx-tabbar-icon::before { content: "" }`, and that is the same

@@ -42,6 +42,28 @@
         // First check after 2s, then every 30s.
         setTimeout(ping, 2000);
         setInterval(ping, 30000);
+
+        // ...and immediately whenever the app comes back to the foreground
+        // (#354). The interval alone is not enough for an installed app: iOS
+        // suspends timers while the app is backgrounded, so reopening it left
+        // you looking at a page from before the phone was locked -- signed out
+        // without knowing it -- until the next tick happened to fire. Checking
+        // on resume means the app either shows live data or sends you to the
+        // login screen the moment you look at it.
+        //
+        // Throttled, because visibilitychange and pageshow both fire on some
+        // resumes and a bfcache restore fires pageshow on its own.
+        let lastCheck = 0;
+        function checkOnResume() {
+            const now = Date.now();
+            if (now - lastCheck < 1000) return;
+            lastCheck = now;
+            ping();
+        }
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') checkOnResume();
+        });
+        window.addEventListener('pageshow', checkOnResume);
     })();
 
     /* ---- Command palette (Ctrl/Cmd+K) ----
