@@ -1407,12 +1407,24 @@ body.reporting-console .reporting-share-add .reporting-input {
 
 /* ---------- Responsive ---------- */
 @media (max-width: 900px) {
-  .rc-body { grid-template-columns: 1fr; }
+  /* `minmax(0, 1fr)`, not `1fr`. A bare `1fr` track has an automatic MINIMUM,
+     so the column grows to its content's min-content width instead of
+     clamping to the container -- here that was a 507px column inside a 302px
+     shell, dragging the whole page 212px sideways at 375px. The desktop rule
+     above and the rdb-fullbleed override below both already spell it
+     `minmax(0, 1fr)`; this one override was the odd one out. */
+  .rc-body { grid-template-columns: minmax(0, 1fr); }
+  /* Grid and flex children default to `min-width: auto`, which refuses to
+     shrink below content. Without these the track clamp above just moves the
+     overflow down a level. */
+  .rc-rail, .rc-content { min-width: 0; }
   .rc-rail { position: static; flex-direction: row; flex-wrap: wrap; }
   .rc-rail-label--sources, .rc-sources { display: none; }
-  .rs-result-main { grid-template-columns: 1fr; }
+  /* Same dropped minmax as .rc-body above -- these are the other two tracks
+     in this block, and their desktop rules both spell it minmax(0, ...). */
+  .rs-result-main { grid-template-columns: minmax(0, 1fr); }
   body.reporting-console .reporting-simple-grid.is-cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  body.reporting-console .rs-wizard-grid { grid-template-columns: 1fr; }
+  body.reporting-console .rs-wizard-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* ---------- Source visualizer ----------
@@ -1747,3 +1759,61 @@ body.reporting-console.rdb-fullbleed .reporting-layouts { max-width: none; paddi
 .reporting-dashboard:fullscreen .rdb-add-tile { display: none; }
 .reporting-dashboard:fullscreen #rdbPresent i::before { content: "\f066"; }  /* fa-compress */
 .reporting-dashboard:fullscreen .rdb-grid { --rdb-row: 132px; }
+
+/* ============================================================
+   PHONE (#354)
+
+   The console's own toolbars are single-line flex rows built for a wide
+   screen. They do not overflow their own box -- they push their buttons past
+   the viewport, which is why the page scrolled sideways with no single
+   too-wide element to blame.
+   ============================================================ */
+@media (max-width: 768px) {
+  .rc-topbar,
+  .rc-screen-head,
+  .rc-filter-row,
+  .rc-group-head {
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+  /* Children of those rows keep the grid/flex default of min-width: auto,
+     which refuses to shrink below content and re-creates the overflow one
+     level down. */
+  .rc-topbar > *,
+  .rc-screen-head > *,
+  .rc-filter-row > * { min-width: 0; }
+}
+
+/* Touch targets on the reporting pages (#354). Pointer-keyed like the rest of
+   this work, so a desktop is untouched at any width.
+
+   Reporting has its own component set (rc-*, rs-*, reporting-*) rather than
+   the shared .nx-btn / .nx-input, which is why the shared sizing fixed twelve
+   of thirteen Generali pages and all twelve admin ones but left this family
+   at 36-37px. */
+@media (pointer: coarse) {
+  .rc-btn,
+  .rc-nav { min-height: 44px; }
+  /* The icon-only ones (help, chat) are 42px wide. */
+  .rc-btn { min-width: 44px; }
+
+  /* The library toolbar and the layout switcher. */
+  [data-testid="rs-search"],
+  [data-testid="rs-sort"],
+  [data-testid="rs-layout-2"],
+  [data-testid="rs-layout-4"] { min-width: 44px; min-height: 44px; }
+
+
+  /* Edit / Delete in the registry tables were 26px and 43px wide, sitting
+     next to each other -- the one adjacency on these pages where a mis-tap
+     deletes something. Widened and separated rather than stretched to a full
+     44px tall, which would set the height of every table row. */
+  .reporting-link {
+    min-width: 44px;
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  td .reporting-link + .reporting-link { margin-left: 6px; }
+}
