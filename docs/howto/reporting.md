@@ -1075,6 +1075,47 @@ Both serialization paths neutralize spreadsheet formula injection (leading
 | `reporting.ai.sql.use` | Receive AI-drafted read-only T-SQL into the SQL editor. Grant alongside `reporting.sql.run`. Admins seeded. |
 | `reporting.ai.explain.use` | Let a result's rows reach the model: gates **auto captions** alone, and — combined with `reporting.sql.run` — the chat agent's `run_sql`/`compute_stats` tools (live-query narration). Grantable; admins seeded (see below). |
 
+### When a `table` source may be granted to a customer profile (#332)
+
+**Rule: only when the underlying object holds that customer's rows and nobody
+else's. Anything multi-tenant stays on the docprocessing/workitems path.**
+
+This is a rule rather than a preference because the two providers do not offer
+the same protection, and the difference is invisible from the permissions grid:
+
+| provider | row scoping |
+|---|---|
+| `docprocessing` | filters through `process.<client>.<name>.view` — a grant narrows *which rows*, not just whether the page opens |
+| `table` | **none.** `_prepare_run()` calls `build_generic_query(rd, baseObject, catalog, …)` with no scope argument at all |
+
+So for a `table` source the `reporting.source.<code>.use` grant is the entire
+gate: all-or-nothing over the whole object. It *is* enforced — `_prepare_run()`
+re-checks `has_permission(source["permission"])` at execution time and raises,
+so a hand-crafted POST to `/api/reporting/run` does not get through either — but
+there is no second line of defence behind it. A wrong grant is the whole breach,
+not the first step of one.
+
+In practice today that is safe, because the billing objects are already
+per-customer: `EM_Invoice` holds only Elektro-Material, `Compass_Invoice` only
+Compass, `PriveraInvoice` only Privera. Granting `Privera User` the
+`privera_invoice` source would expose nothing else. The risk is not the shape of
+the mechanism — it is granting the *wrong* source to a profile and nothing
+catching it.
+
+Two shapes are therefore flagged automatically by `scripts/perm-audit.py`
+(`/nx-perm-audit`), since neither is visible by reading the grid:
+
+- a profile holding `reporting.source.*` **without** `reporting.view` — dormant
+  today, live the moment somebody grants that profile reporting access for an
+  unrelated reason;
+- a profile carrying an `OrganizationCode` that holds a source belonging to a
+  different customer.
+
+The audit does not treat a shared tenant as permission: ISS and Generali sit in
+the `generali` tenant and read each other's sources by design, but Privera,
+Compass and Elektro-Material all sit in *sydoc*, which says they are the
+vendor's customers rather than one another's.
+
 **Scope permissions mirror the dashboard.** Migration
 `0005_seed_reporting_permissions.sql` auto-creates a
 `process.<client>.<process>.view` entry for every existing

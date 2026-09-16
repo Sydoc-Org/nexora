@@ -72,6 +72,13 @@ Codes the app mints at runtime rather than a migration:
 |---|---|---|
 | process scope | `process.<client>.<name>.view` | `/admin/processes` on saving a `(ClientCode, ProcessName)` row, granted to nobody |
 | reporting source | `reporting.source.<code>.use` | the `Permission` column of `dbo.ReportingSources` |
+
+A `reporting.source.*` grant on a **`table`**-provider source is the *entire* gate — that
+provider applies no row scoping, unlike `docprocessing`, which filters through
+`process.<client>.<name>.view`. So such a source may only be granted to a customer profile
+when the underlying object holds that customer's rows and nobody else's. The rule, why it
+matters and the two anomalies `scripts/perm-audit.py` flags automatically:
+`docs/howto/reporting.md` → "When a `table` source may be granted to a customer profile".
 | tenant | `tenant.<code>.view`, `tenant.<code>.edit`, `tenant.<code>.<object>.<action>[.<scope>]` | the tenant kernel when a tenant is created |
 
 One `process.<client>.<name>.view` code per process replaced the three older per-process families
