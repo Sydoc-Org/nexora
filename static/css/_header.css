@@ -1035,16 +1035,15 @@ html.dark .shortcuts-row { color: #e2e8f0; }
        without relying on colour. */
     .nx-tabbar-item--active { color: var(--nx-accent, #4f46e5); }
     .nx-tabbar-item--active .nx-tabbar-label { font-weight: 600; }
+    /* The pill is a background on the icon ELEMENT, never on its ::before.
+       Font Awesome draws the glyph itself in `.fas::before` via `content`, so
+       an `::before` rule here does not sit behind the icon -- it replaces it.
+       The first version of this set `content: ""` and the active tab's icon
+       vanished, measuring 0x0. */
     .nx-tabbar-item--active .nx-tabbar-icon {
-        position: relative;
-    }
-    .nx-tabbar-item--active .nx-tabbar-icon::before {
-        content: "";
-        position: absolute;
-        inset: -6px -14px;
-        border-radius: 999px;
         background: var(--nx-accent-tint, #eef2ff);
-        z-index: -1;
+        border-radius: 999px;
+        padding: 3px 14px;
     }
     .nx-tabbar-item:active { background: var(--nx-accent-tint, #f5f3ff); }
 

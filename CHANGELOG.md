@@ -54,6 +54,14 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   visit.
 
 ### Fixed
+- **The active tab's icon no longer disappears** (#354) — selecting a tab made
+  its icon vanish entirely. The pill added behind the active icon was written
+  as `.nx-tabbar-icon::before { content: "" }`, and that is the same
+  pseudo-element Font Awesome draws the glyph in — so it replaced the icon
+  instead of sitting behind it (measured: `content: ""`, 0×0). The pill is now
+  a background on the icon element itself. The active-tab test asserts the
+  glyph survives, which it previously did not: the class, colour and label
+  weight were all correct while the icon was simply gone.
 - **Phone toolbars are laid out for a phone, not wrapped** (#354) — wrapping
   stopped pages scrolling sideways, but a row built for a desktop does not
   become a phone layout by wrapping; it becomes ragged. On the workitems

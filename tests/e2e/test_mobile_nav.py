@@ -488,6 +488,29 @@ def test_the_bar_marks_the_page_you_are_on(nexora_server, phone_page, path, expe
     )
     assert int(weight) >= 600, f"the active label should be bolder, got {weight}"
 
+    # ...and the icon is still drawn. Font Awesome renders its glyph in
+    # `.fas::before` via `content`, so any rule that also targets that
+    # pseudo-element REPLACES the icon rather than decorating it. The first
+    # attempt at the active pill did exactly that: `content: ""`, and the
+    # active tab's icon vanished, measuring 0x0. Nothing else in this file
+    # would have caught it -- the class was set, the colour was right, the
+    # label was bold, and the icon was simply gone.
+    icon = page.evaluate(
+        "() => { const i = document.querySelector("
+        "          '.nx-tabbar-item--active .nx-tabbar-icon');"
+        "        if (!i) return null;"
+        "        const r = i.getBoundingClientRect();"
+        "        return {content: getComputedStyle(i, '::before').content,"
+        "                w: Math.round(r.width), h: Math.round(r.height)}; }"
+    )
+    assert icon, "the active slot has no icon element"
+    assert icon["content"] not in (
+        '""',
+        "none",
+        "",
+    ), f"the active tab's icon glyph was overwritten: content={icon['content']!r}"
+    assert icon["w"] > 0 and icon["h"] > 0, f"the active tab's icon collapsed: {icon}"
+
 
 @pytest.mark.flaky_e2e
 def test_eddard_chat_panel_fits_a_phone(nexora_server, phone_page):
