@@ -670,3 +670,168 @@ img.nx-wi-card__sheet { object-fit: cover; object-position: top; display: block;
     .input span .date { font-size: 11px; margin-top: 32px; }
     .input span .time { font-size: 10px; }
 }
+
+/* ============================================================
+   PHONE (#354). The page already had a ≤768px block; these are the things
+   that still broke at 375px once it was driven on a real touch viewport.
+   ============================================================ */
+
+@media (max-width: 768px) {
+    /* Three rows overflowed the viewport and made the whole page scroll
+       sideways. Each for the same underlying reason -- a flex row of controls
+       sized for a desktop that was never allowed to shrink or wrap. */
+
+    /* The export / import / prepared-documents cluster. Its shared component
+       carries flex-shrink: 0 (nexora-ui.css) so it kept its desktop width and
+       pushed 8px off the left edge and 8px off the right. */
+    .nx-wi-actions {
+        flex-wrap: wrap;
+        min-width: 0;
+        align-self: stretch;
+    }
+
+    /* The list header's children would not shrink inside the wrap. */
+    .nx-wi-listhead { min-width: 0; }
+    .nx-wi-listhead > * { min-width: 0; }
+
+    /* The status tab strip (All / In progress / Done / …) is wider than any
+       phone and cannot usefully wrap -- a half-row of tabs reads as broken.
+       Let it scroll on its own axis instead, which keeps every tab reachable
+       and keeps the strip's width off the page. min-width: 0 on the strip is
+       what actually stops it forcing the page wider. */
+    .nx-wi-statustabs,
+    [data-testid="workitems-status-tabs"] {
+        min-width: 0;
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+    [data-testid="workitems-status-tabs"]::-webkit-scrollbar { display: none; }
+    [data-testid="workitems-status-tabs"] .nx-tab { flex: 0 0 auto; }
+}
+
+/* The floating bulk-action bar sat at bottom: 12px, which is exactly where
+   the phone tab bar now is -- selecting rows put the actions underneath the
+   navigation. Lifted clear of it, and only under the same touch gate that
+   draws the tab bar: a narrow DESKTOP window has no tab bar, so it keeps the
+   12px it has today. */
+@media (max-width: 768px) and (pointer: coarse) {
+    #bulk-action-bar {
+        bottom: calc(56px + env(safe-area-inset-bottom) + 12px) !important;
+    }
+}
+
+/* Touch targets (#354). Pointer-keyed, like the rest: size follows the
+   finger, not the screen. The toolbar controls were 32-33px and the
+   per-row controls far smaller -- the details chevron measured 21x9. */
+@media (pointer: coarse) {
+    /* The `.nx-wi-filter` prefix is not decoration: the filter row already
+       sets `.nx-wi-filter .nx-scope-btn { min-height: var(--ctl-h) }` at
+       specificity (0,2,0), which beats a bare attribute selector (0,1,0) and
+       held the process picker at 29px. Matching the specificity beats it on
+       source order without reaching for !important. */
+    .nx-wi-filter [data-testid="workitems-process-filter-btn"],
+    .nx-wi-filter [data-testid="workitems-search"],
+    .nx-wi-filter [data-testid="workitems-stage-filter"],
+    .nx-wi-filter [data-testid="workitems-save-view"],
+    .nx-wi-filter [data-testid="workitems-toggle-advanced"],
+    .nx-wi-filter [data-testid="workitems-reset"],
+    [data-testid="workitems-export-csv"],
+    [data-testid="workitems-import"],
+    [data-testid="prepared-docs-link"],
+    [data-testid="workitems-process-filter-btn"],
+    [data-testid="workitems-search"],
+    [data-testid="workitems-stage-filter"],
+    [data-testid="workitems-save-view"],
+    [data-testid="workitems-toggle-advanced"],
+    [data-testid="workitems-reset"] {
+        min-height: 44px;
+    }
+
+    /* The status tabs (All / Ready / In progress / …) were 27px. They live in
+       the strip that scrolls horizontally above, so height is free to grow. */
+    [data-testid="workitems-status-tabs"] .nx-tab { min-height: 44px; }
+
+    /* "Reset" is a short word, so it cleared 44 tall but only 33 wide. */
+    [data-testid="workitems-reset"] {
+        min-width: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* The list/grid view switch -- two icon-only buttons, 35x30 each. */
+    [data-testid="workitems-view-toggle"] > * { min-width: 44px; min-height: 44px; }
+
+    /* Pagination. 30x30 page numbers sitting flush against each other is the
+       worst mis-tap shape on the page -- you aim for 3 and land on 4. */
+    .pagination-link { min-width: 44px; min-height: 44px; }
+    [data-testid="workitems-per-page"] { min-height: 44px; }
+
+    /* The bulk bar's own actions, which appear once rows are selected. */
+    #bulk-action-bar .nx-btn,
+    [data-testid="workitems-bulk-export"],
+    [data-testid="workitems-bulk-deselect"] { min-height: 44px; }
+
+    /* Per-row controls. Not stretched to a full 44px -- that would set the
+       height of every row in the list and halve how many fit on screen --
+       but lifted well clear of the 18px and 9px they were. */
+    [data-testid^="workitems-row-checkbox"] {
+        width: 24px;
+        height: 24px;
+    }
+    [data-testid^="workitems-details-toggle"] {
+        min-width: 32px;
+        min-height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+}
+
+/* Phone layout for the toolbars (#354 follow-up).
+
+   Wrapping stopped the page scrolling sideways, but a row built for a desktop
+   does not become a phone layout just because it wraps -- it becomes ragged.
+   "Advanced" and "Reset" ended up stranded on their own lines, the search box
+   was a different width from the process picker above it, and the three action
+   buttons broke 2 + 1 with a gap.
+
+   Stacked full-width instead, which is what the Generali documents filter
+   panel already does and is the one filter UI on a phone that reads well.
+   Touch-gated: a narrow desktop window keeps the wrapped row, which is the
+   right shape when a pointer is doing the work. */
+@media (max-width: 768px) and (pointer: coarse) {
+    .nx-wi-filter {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+    .nx-wi-filter > *,
+    .nx-wi-filter .nx-scope,
+    .nx-wi-filter .nx-scope-btn { width: 100%; }
+    /* A flex spacer has no meaning in a column. */
+    .nx-wi-filter__spacer { display: none; }
+    /* Labels sit on their own line above the control they name, so they do not
+       need to reserve a column's worth of width. */
+    .nx-wi-filter .nx-eyebrow { width: auto; }
+
+    /* "Advanced" and "Reset" are text links, not buttons. Stretched to full
+       width they became centred captions floating between the real controls.
+       Left at their natural width they read as what they are. */
+    .nx-wi-filter [data-testid="workitems-toggle-advanced"],
+    .nx-wi-filter [data-testid="workitems-reset"] {
+        width: auto;
+        align-self: flex-start;
+        justify-content: flex-start;
+    }
+
+    /* Export / Import / Prepared documents shared a wrapping row and broke
+       2 + 1 at uneven widths. Equal shares fill the row instead. */
+    .nx-wi-actions { gap: 8px; }
+    .nx-wi-actions > .nx-btn {
+        flex: 1 1 140px;
+        justify-content: center;
+    }
+}

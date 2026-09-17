@@ -921,3 +921,309 @@ html.dark .cmdk-kbd { background: #273449; border-color: #334155; color: #cbd5e1
 html.dark .shortcuts-panel-title { color: #e2e8f0; }
 html.dark .shortcuts-section-title { color: #64748b; }
 html.dark .shortcuts-row { color: #e2e8f0; }
+
+/* ============================================================
+   PHONE TAB BAR + BOTTOM SHEET (#354)
+
+   THE GATE. Every rule below is behind
+
+       (max-width: 768px) and (pointer: coarse)
+
+   because width alone cannot tell a phone from a narrow window. A mouse or
+   trackpad machine reports `pointer: fine` no matter how narrow it gets, so
+   it can never fall in here. That is what keeps the phone layout off a
+   desktop in the two cases width alone gets wrong:
+
+     - a browser window snapped to half a wide monitor (~760px);
+     - browser zoom at 200%, which drops the CSS viewport below 768px on a
+       perfectly large display.
+
+   Use `pointer:` and NEVER `any-pointer:`. A Windows laptop with a
+   touchscreen reports `any-pointer: coarse` (the screen) while `pointer`
+   stays `fine` (the trackpad is the primary input) -- `any-pointer` would
+   wrongly flip those machines into phone mode. When a browser is unsure it
+   reports `fine`, so the rule fails toward desktop, which is the safe
+   direction. Narrow + mouse keeps the hamburger drawer defined above.
+
+   `pointer: coarse` carries the whole guarantee on its own, so do NOT add
+   `and (hover: none)` back. It was in the first cut as belt-and-braces and
+   bought nothing -- any machine reporting `pointer: fine` is already
+   excluded -- while adding a second thing a phone browser can get wrong.
+   Several mobile browsers report `hover: hover` (a stylus, a paired mouse,
+   some Samsung Internet and Firefox Android builds), and each one of those
+   was a real phone silently dropped back to the hamburger.
+
+   This gate is deliberate and load-bearing: do not "simplify" it to a plain
+   max-width query. tests/e2e/test_mobile_nav.py pins both directions.
+   ============================================================ */
+
+/* Hidden everywhere by default -- the markup ships on every page, and only
+   the gated block below ever reveals it. */
+.nx-tabbar { display: none; }
+
+:root {
+  /* The bar's own height, WITHOUT the safe-area inset. Three things have to
+     agree on it -- the bar, the body's bottom padding, and the bottom sheet's
+     -- and they were three hand-copied 56px literals. One knob instead, so
+     changing the bar's height cannot leave content hidden underneath it.
+     64px gives the icon and its label room to breathe; 56 was tight once the
+     home-indicator inset pushed everything up. */
+  --nx-tabbar-h: 64px;
+}
+
+@media (max-width: 768px) and (pointer: coarse) {
+
+    /* ---- The bar ---- */
+    .nx-tabbar {
+        display: flex;
+        position: fixed;
+        left: 0; right: 0; bottom: 0;
+        z-index: var(--z-nav);
+        background: #ffffff;
+        border-top: 1px solid #e5e7eb;
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.06);
+        /* The home indicator on a modern iPhone sits over the bottom edge --
+           without this the last row of labels is under it. */
+        padding-bottom: env(safe-area-inset-bottom);
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
+    }
+    .nx-tabbar-item {
+        flex: 1 1 0;
+        min-width: 0;
+        /* 64px clears the 48px touch target with room for the icon and its
+           label to breathe; 56 was tight once the home-indicator inset
+           pushed everything up. border-box so the padding below is inside
+           that figure, keeping --nx-tabbar-h equal to the bar's height and
+           therefore equal to what the body reserves for it. */
+        min-height: var(--nx-tabbar-h);
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        padding: 6px 4px;
+        border: none;
+        background: none;
+        color: #6b7280;
+        text-decoration: none;
+        -webkit-tap-highlight-color: transparent;
+        /* Navigation chrome is not text. Without this a long press selects the
+           label instead of navigating -- iOS then raises its copy/look-up
+           callout over the bar, and a drag paints all four slots in selection
+           blue, which looks like the UI has broken. `touch-action:
+           manipulation` also drops the double-tap-to-zoom wait, so a tap on
+           the bar registers immediately. */
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
+        touch-action: manipulation;
+    }
+    .nx-tabbar-icon { font-size: 18px; line-height: 1; }
+    .nx-tabbar-label {
+        font-size: 11px;
+        line-height: 1.2;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    /* The active slot was marked by colour alone, which is easy to miss at a
+       glance and invisible to anyone who does not see that hue well. Give it
+       a filled pill behind the icon and a heavier label as well, so it reads
+       without relying on colour. */
+    .nx-tabbar-item--active { color: var(--nx-accent, #4f46e5); }
+    .nx-tabbar-item--active .nx-tabbar-label { font-weight: 600; }
+    /* The pill is a background on the icon ELEMENT, never on its ::before.
+       Font Awesome draws the glyph itself in `.fas::before` via `content`, so
+       an `::before` rule here does not sit behind the icon -- it replaces it.
+       The first version of this set `content: ""` and the active tab's icon
+       vanished, measuring 0x0. */
+    .nx-tabbar-item--active .nx-tabbar-icon {
+        background: var(--nx-accent-tint, #eef2ff);
+        border-radius: 999px;
+        padding: 3px 14px;
+    }
+    .nx-tabbar-item:active { background: var(--nx-accent-tint, #f5f3ff); }
+
+    /* ---- Body: no floating hamburger to clear, but the bar to clear ---- */
+    .sidebar-toggle-btn { display: none !important; }
+    body {
+        /* All four insets, now that every page opts into `viewport-fit=cover`.
+           That opt-in is what makes env() return real numbers -- without it
+           iOS reports 0 for every inset and the padding below silently does
+           nothing, which is exactly why the home indicator sat *inside* the
+           tab bar. The trade is that content now reaches the physical edges,
+           so the top and sides have to be guarded too: the status bar is
+           translucent here (apple-mobile-web-app-status-bar-style), and in
+           landscape on a notched phone the notch eats into one side. */
+        padding-top: env(safe-area-inset-top);
+        padding-left: env(safe-area-inset-left) !important;
+        padding-right: env(safe-area-inset-right) !important;
+        padding-bottom: calc(var(--nx-tabbar-h) + env(safe-area-inset-bottom));
+    }
+    /* So an anchor jump or a focused input never lands under the bar. */
+    html { scroll-padding-bottom: calc(var(--nx-tabbar-h) + 8px + env(safe-area-inset-bottom)); }
+
+    /* ---- The sidebar becomes a bottom sheet ----
+       Same element, same markup, same group expand/collapse wiring -- only
+       the geometry changes, so there is no second copy of the nav to keep in
+       sync. It slides up from the bottom rather than in from the left so it
+       stays under the thumb.
+       The selector repeats the hover/pinned variants from the desktop rules
+       above because those carry higher specificity than a bare #id. */
+    #nexora-sidebar,
+    #nexora-sidebar:hover,
+    #nexora-sidebar.pinned,
+    html.sidebar-pinned #nexora-sidebar {
+        top: auto;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        /* The sheet must never widen the page itself. Its nav rows are sized
+           from their labels, and a long tenant/page label in a translation
+           could otherwise push it past the viewport -- which on a mobile
+           layout viewport drags the whole document sideways with it. */
+        max-width: 100vw;
+        overflow-x: hidden;
+        height: auto;
+        max-height: 78vh;
+        transform: translateY(100%);
+        transition: transform 0.28s cubic-bezier(.4, 0, .2, 1);
+        border-right: none;
+        border-top: 1px solid #e5e7eb;
+        border-radius: 18px 18px 0 0;
+        box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.18);
+        /* The sheet reaches bottom: 0 so translateY(100%) hides it completely,
+           but the tab bar paints over its last --nx-tabbar-h. Without this the rows
+           that live at the end of the sidebar -- dark mode, and the profile
+           menu that holds Sign out and the build stamp -- sit underneath the
+           bar and cannot be tapped. */
+        padding-bottom: calc(var(--nx-tabbar-h) + env(safe-area-inset-bottom));
+    }
+    /* The pinned variant has to be repeated here. `html.sidebar-pinned
+       #nexora-sidebar` in the group above is specificity (1,1,1) -- higher
+       than a bare `#nexora-sidebar.open` (1,1,0) -- so for anyone who has
+       ever pinned the sidebar on a desktop, the base transform would win and
+       the sheet would stay parked off-screen no matter how often you tapped
+       More. (That pin is remembered per user, so this broke for exactly the
+       people who use the app most.) */
+    #nexora-sidebar.open,
+    html.sidebar-pinned #nexora-sidebar.open { transform: translateY(0); }
+
+    /* A grab handle, so the sheet reads as a sheet and not a stuck panel. */
+    #nexora-sidebar::before {
+        content: "";
+        position: absolute;
+        top: 8px; left: 50%;
+        width: 36px; height: 4px;
+        margin-left: -18px;
+        border-radius: 2px;
+        background: #d1d5db;
+    }
+
+    .sidebar-logo-area { padding-top: 18px; }
+    /* The desktop drawer shifted the logo clear of the floating hamburger;
+       there is no hamburger here. */
+    #nexora-sidebar.open .sidebar-logo-area { padding-left: 0; }
+
+    /* The sheet is short, so its nav is the part that scrolls. `contain` stops
+       the scroll chaining to the page underneath once the nav hits its end --
+       otherwise flicking through the tenant list drags the dashboard along
+       behind the sheet. */
+    .sidebar-nav {
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Pinning a sheet open means nothing -- it is dismissed by tapping out. */
+    #sidebar-pin-toggle { display: none; }
+
+    /* Sheet rows are touch targets, not dense desktop rows -- and, like the
+       bar's slots, they are chrome rather than text. */
+    .sidebar-nav-item {
+        min-height: 44px;
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
+        touch-action: manipulation;
+    }
+}
+
+html.dark .nx-tabbar {
+    background: #0f172a;
+    border-top-color: #1e293b;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.4);
+}
+html.dark .nx-tabbar-item { color: #94a3b8; }
+html.dark .nx-tabbar-item--active { color: var(--nx-accent, #a5b4fc); }
+html.dark .nx-tabbar-item:active { background: rgba(148, 163, 184, 0.12); }
+
+@media (max-width: 768px) and (pointer: coarse) {
+    html.dark #nexora-sidebar,
+    html.dark #nexora-sidebar:hover,
+    html.dark #nexora-sidebar.pinned,
+    html.dark.sidebar-pinned #nexora-sidebar {
+        border-top-color: #1e293b;
+    }
+    html.dark #nexora-sidebar::before { background: #334155; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #nexora-sidebar { transition: none; }
+}
+
+/* The in-app Reload (#354). Only shown when nexora is actually running as an
+   installed app: `display-mode: standalone` is true for a home-screen or
+   Start-menu launch and false in a normal browser tab, where the browser's own
+   reload button makes this redundant.
+
+   It earns its place because a standalone app has no browser chrome. Android
+   keeps pull-to-refresh there, but iOS does not, and iOS also does not support
+   `minimal-ui` -- so without this an installed nexora on an iPhone has no way
+   to reload a page at all. */
+.sidebar-reload { display: none; }
+@media (display-mode: standalone) {
+    .sidebar-reload { display: flex; }
+}
+
+/* The tab bar gets out of the way while the software keyboard is up (#354).
+
+   `interactive-widget=resizes-content` in the viewport meta makes the layout
+   viewport shrink when the keyboard opens, so everything anchored to
+   `bottom: 0` sits ABOVE the keyboard rather than behind it -- which is what
+   makes Eddard's composer visible while you type into it. The side effect is
+   that the tab bar would then sit on top of the keyboard, eating a row of the
+   little space that is left.
+
+   So while a field has focus the bar hides. Navigation is not what you are
+   doing mid-sentence, and the room is worth more. `body` keeps its bottom
+   padding, so nothing reflows and the page does not jump under your cursor --
+   only the bar itself disappears.
+
+   html.nx-typing is set by static/js/header.js on focusin/focusout. */
+@media (max-width: 768px) and (pointer: coarse) {
+    html.nx-typing .nx-tabbar { display: none; }
+}
+
+/* Focus ring for the bar. A touch device can still have a keyboard -- an iPad
+   with a Magic Keyboard reports `pointer: coarse` and Tabs through the page
+   like anything else -- and all four slots are reachable that way. They were
+   relying on the browser's default 1px `outline: auto`, which is close to
+   invisible against the bar's own background. `:focus-visible`, so it appears
+   for a Tab and not for a tap.
+
+   Note on the interaction with `html.nx-typing` above: while a field has
+   focus the bar is `display: none`, which correctly takes it out of the tab
+   order -- you should not be able to Tab into hidden navigation. The bar
+   returns on focusout. Tabbing straight out of the last field may therefore
+   skip the bar once, which is a fair trade for not having invisible focus
+   targets. */
+.nx-tabbar-item:focus-visible {
+    outline: 2px solid var(--nx-accent, #4f46e5);
+    outline-offset: -3px;
+    border-radius: 8px;
+}

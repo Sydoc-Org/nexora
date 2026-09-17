@@ -42,6 +42,28 @@
         // First check after 2s, then every 30s.
         setTimeout(ping, 2000);
         setInterval(ping, 30000);
+
+        // ...and immediately whenever the app comes back to the foreground
+        // (#354). The interval alone is not enough for an installed app: iOS
+        // suspends timers while the app is backgrounded, so reopening it left
+        // you looking at a page from before the phone was locked -- signed out
+        // without knowing it -- until the next tick happened to fire. Checking
+        // on resume means the app either shows live data or sends you to the
+        // login screen the moment you look at it.
+        //
+        // Throttled, because visibilitychange and pageshow both fire on some
+        // resumes and a bfcache restore fires pageshow on its own.
+        let lastCheck = 0;
+        function checkOnResume() {
+            const now = Date.now();
+            if (now - lastCheck < 1000) return;
+            lastCheck = now;
+            ping();
+        }
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') checkOnResume();
+        });
+        window.addEventListener('pageshow', checkOnResume);
     })();
 
     /* ---- Command palette (Ctrl/Cmd+K) ----
@@ -420,6 +442,45 @@
         });
     })();
 
+    /* ---- Software keyboard: get the tab bar out of the way (#354) ----
+       With interactive-widget=resizes-content the layout viewport shrinks when
+       the keyboard opens, so bottom-anchored things sit above it instead of
+       behind it -- Eddard's composer becomes visible while you type. The
+       trade is that the tab bar would then sit on the keyboard, taking a row
+       of what little height is left, so it hides while a field has focus.
+
+       Keyed off focusin/focusout rather than any keyboard API: there is no
+       reliable cross-browser way to ask whether the software keyboard is up,
+       and "a text field has focus" is the condition we actually care about.
+       Only text-entry controls count -- tapping a checkbox or a button must
+       not make the navigation vanish. */
+    (function() {
+        const TYPES_WITH_KEYBOARD = new Set([
+            'text', 'search', 'email', 'password', 'tel', 'url', 'number',
+            'date', 'datetime-local', 'month', 'time', 'week',
+        ]);
+
+        function opensKeyboard(el) {
+            if (!el) return false;
+            if (el.isContentEditable) return true;
+            const tag = el.tagName;
+            if (tag === 'TEXTAREA') return true;
+            if (tag !== 'INPUT') return false;
+            return TYPES_WITH_KEYBOARD.has((el.type || 'text').toLowerCase());
+        }
+
+        document.addEventListener('focusin', (e) => {
+            if (opensKeyboard(e.target)) {
+                document.documentElement.classList.add('nx-typing');
+            }
+        });
+        document.addEventListener('focusout', (e) => {
+            if (opensKeyboard(e.target)) {
+                document.documentElement.classList.remove('nx-typing');
+            }
+        });
+    })();
+
     /* ---- Mobile sidebar drawer toggle ---- */
     document.addEventListener('DOMContentLoaded', function () {
         const toggle   = document.getElementById('sidebar-toggle');
@@ -427,16 +488,39 @@
         const backdrop = document.getElementById('sidebar-backdrop');
         if (!toggle || !sidebar || !backdrop) return;
 
+        // #354: on a touch phone the same #nexora-sidebar is a bottom sheet
+        // opened from the tab bar's "More" slot instead of the hamburger, so
+        // both drive one pair of functions and one `.open` class. The burger
+        // is display:none under the touch gate and the More button is
+        // display:none outside it, so only ever one of them is on screen.
+        const moreBtn = document.getElementById('nx-tabbar-more');
+
         function openSidebar() {
             sidebar.classList.add('open');
             backdrop.classList.add('open');
             toggle.querySelector('i').className = 'fas fa-times';
+            moreBtn?.setAttribute('aria-expanded', 'true');
         }
         function closeSidebar() {
             sidebar.classList.remove('open');
             backdrop.classList.remove('open');
             toggle.querySelector('i').className = 'fas fa-bars';
+            moreBtn?.setAttribute('aria-expanded', 'false');
         }
+
+        // #354: an installed app has no browser reload button, and on iOS no
+        // pull-to-refresh either, so the sheet carries its own. CSS keeps it
+        // hidden unless display-mode: standalone, so this is a no-op in a tab.
+        document.getElementById('nx-reload')?.addEventListener('click', () => {
+            closeSidebar();
+            window.location.reload();
+        });
+
+        moreBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (sidebar.classList.contains('open')) closeSidebar();
+            else openSidebar();
+        });
 
         toggle.addEventListener('click', (e) => {
             e.stopPropagation();

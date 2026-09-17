@@ -6,9 +6,401 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Phone navigation: a bottom tab bar and a bottom sheet** (#354) — on a
+  touch phone the nav moves into the thumb zone: a fixed bar with up to three
+  permission-filtered slots (the user's own tenant pages when they belong to
+  exactly one, otherwise Dashboard / Reporting / Workitems) plus a **More**
+  slot that raises the existing sidebar as a bottom sheet. Slots are built
+  from the sidebar's own `nav_items`, so a page the user may not open is never
+  rendered as a dead tab. The floating hamburger and the sidebar pin are
+  hidden there, and the bar clears the iOS home indicator
+  (`env(safe-area-inset-bottom)`).
+  **The phone layout can never appear on a computer:** it is gated on
+  `(max-width: 768px) and (pointer: coarse)`, so a
+  half-screen window or a display at 200% browser zoom — both of which put a
+  desktop under 768 CSS px — keep the existing hamburger drawer, unchanged.
+  `tests/e2e/test_mobile_nav.py` pins both directions.
+- **nexora installs as an app** (#354) — a web app manifest at
+  `/manifest.webmanifest` plus icons, so Android and Windows offer *Install*
+  (app-drawer / Start-menu icon, own window, splash screen) and iOS offers
+  *Add to Home Screen* with a real icon instead of the first letter of the
+  page title. No App Store, no developer account, no cost, and nothing to
+  update: it is the live site, so a deploy reaches installed users the next
+  time they open it. Served as a route rather than a static file because
+  `start_url`/`scope` must carry the `/nexora` prefix on PROD and STAGING but
+  not on INT, and because the app name carries the environment — all three
+  hosts are installable and become identical icons otherwise. Icons are
+  generated from the real CSS logo by `scripts/make-app-icons.py`; a
+  home-screen icon cannot animate, so they are one frozen frame of it.
+  **No service worker**, deliberately — Chrome no longer requires one to
+  install, and it would put a cache in front of the app whose failure mode is
+  every installed user stuck on an old version.
+- `templates/hero.html` (the public landing/login page) and
+  `templates/jd/jdvance.html` were missing `<meta name="viewport">` entirely
+  and rendered zoomed out on a phone — signing in is step zero of any phone
+  visit.
+
+### Fixed
+
+- **The installed app stays signed in** (#354) — on any non-PROD host the
+  session cookie was written with no `Expires`/`Max-Age`: a *browser session*
+  cookie, discarded the moment the browsing session ends. An installed
+  home-screen app is evicted from memory routinely, so the cookie went with it
+  and you were signed out again minutes after signing in — a link that
+  expires, rather than an app. `SESSION_PERMANENT` sat inside the
+  `if IS_PROD:` block, so PROD was always correct and only dev/INT was
+  affected (measured: dev sent no expiry, PROD sent `Expires=…; Secure`).
+  Authenticated sessions are now permanent everywhere. Nothing is loosened —
+  the 24h `PERMANENT_SESSION_LIFETIME` is what bounds a session and applies
+  only to permanent ones, so it now applies rather than not applying. A
+  signed-out visitor still gets a non-persistent cookie.
+- **The app rechecks the session the moment it comes back** (#354) — the
+  heartbeat polls every 30s, which is fine in a browser tab but not in an
+  installed app: iOS suspends timers while it is backgrounded, so reopening it
+  showed a page from before the phone was locked until a tick happened to
+  fire. It now rechecks on `visibilitychange` and `pageshow`, so the app
+  either shows live data or goes to the login screen as soon as you look at
+  it.
+- **The active tab's icon no longer disappears** (#354) — selecting a tab made
+  its icon vanish entirely. The pill added behind the active icon was written
+  as `.nx-tabbar-icon::before { content: "" }`, and that is the same
+  pseudo-element Font Awesome draws the glyph in — so it replaced the icon
+  instead of sitting behind it (measured: `content: ""`, 0×0). The pill is now
+  a background on the icon element itself. The active-tab test asserts the
+  glyph survives, which it previously did not: the class, colour and label
+  weight were all correct while the icon was simply gone.
+- **Phone toolbars are laid out for a phone, not wrapped** (#354) — wrapping
+  stopped pages scrolling sideways, but a row built for a desktop does not
+  become a phone layout by wrapping; it becomes ragged. On the workitems
+  overview "Advanced" and "Reset" ended up stranded on their own lines, the
+  search box was a different width from the process picker above it, and the
+  three action buttons broke 2 + 1 with a gap. Those toolbars now stack
+  full-width, matching the Generali documents filter panel, which was already
+  the one filter UI that read well on a phone. The admin overview's restart
+  row — a select, a button and a note fighting over 390px on one unwrappable
+  line — moved off inline styles into a class and stacks too.
+- **Buttons are no longer padded out for no reason** (#354) — the touch-target
+  work set a 44px minimum on *width* as well as height for every button, which
+  made ordinary text buttons chunky and amplified the ragged wrapping.
+  "Export CSV" was never hard to hit. Width minimums are now scoped to the
+  controls that genuinely need them: pagination page numbers, and icon-only
+  buttons, which are identifiable because they carry an `aria-label` in place
+  of text.
+- **The tab bar is no longer selectable text** (#354) — a long press on a
+  slot selected its label instead of navigating, raising iOS's copy/look-up
+  callout over the bar, and dragging across painted all four slots in
+  selection blue. Navigation chrome now sets `user-select: none` and
+  `-webkit-touch-callout: none`, and `touch-action: manipulation` drops the
+  double-tap-to-zoom wait so a tap registers immediately. Same for the rows
+  in the More sheet.
+- **Eddard's chat panel on a phone** (#354) — its header, and therefore its
+  close button, sat off the top of the screen: there was no way to dismiss
+  the assistant. The panel was anchored `bottom: 20px` with
+  `height: calc(100dvh - 40px)`, and `dvh` counts the whole screen including
+  the status bar and home indicator, so once the pages opted into
+  `viewport-fit=cover` it grew taller than the usable area. It now anchors to
+  both edges with `height: auto`, fitting whatever sits between the insets,
+  and stops above the tab bar so its composer is not underneath the
+  navigation.
+- **The tab bar clears the iPhone home indicator** (#354) — the white bar at
+  the bottom of a modern iPhone was sitting *inside* the nav. The padding for
+  it was always there, but `env(safe-area-inset-bottom)` returns **zero**
+  unless the page opts in with `viewport-fit=cover`, which none of the 46 page
+  templates did — so it had been doing nothing. With the opt-in the insets are
+  real; content now also reaches the top and side edges, so the body guards
+  all four (the status bar is translucent, and a notch eats into one side in
+  landscape).
+- **The tab bar shows which page you are on** (#354) — it did not, on the two
+  pages people open most. The bar reused the sidebar's `active` flag, which
+  asks whether the sidebar's *Global* entry is the current page; for anyone
+  scoped to a tenant that is always false, because a tenant-mounted Dashboard
+  sets `active_page` to `tenant_<code>_dashboard` (0097) and Workitems to
+  `tenant_<code>_workitems` (0098). Correct for the sidebar, where the
+  tenant's own group lights instead — but the bar has no tenant group, so
+  nothing lit and only `/reporting` ever looked right. The bar now matches
+  both spellings, and the active slot carries a filled pill and a heavier
+  label rather than relying on colour alone.
+- **Reload, for the installed app** (#354) — a home-screen launch runs with
+  no browser chrome at all: no address bar, no reload button. Android keeps
+  pull-to-refresh in standalone mode; **iOS does not, and does not support
+  `minimal-ui` either**, so an installed nexora on an iPhone had no way to
+  reload a page. The More sheet now carries a Reload, shown only when
+  `display-mode: standalone` — in a browser tab the browser's own button
+  makes it redundant.
+- **The reporting console is laid out for a phone, not shrunk** (#354) —
+  fitting is not designing. After the overflow work the console still spent
+  **572px of an 844px screen on chrome before the first report**: a 117px
+  topbar, then the rail at 161px *wrapped across four ragged rows*, then a 91px
+  screen head and a 48px filter row. The rail is a left column on a desktop;
+  wrapping it into a grid is what made it a wall — six buttons at four
+  different vertical positions, reading as spilled rather than laid out. It is
+  now a single horizontally scrolling strip, the phone-native shape for
+  switching screens inside a page, at 59px instead of 161. The topbar packs
+  onto one row (53px, was 117) once the flex spacer stops pushing Help and
+  Eddard onto a line of their own and the "N sources" chip goes — that chip
+  counts the Sources rail cards, which have been hidden below 900px all along,
+  so on a phone it reported on something unreachable. **First report now at
+  407px instead of 572** — about a fifth of the screen handed back to content.
+  Tests assert the strip still offers every screen and that the last one can be
+  scrolled to and activated: a strip that hid screens would be worse than the
+  wall it replaced.
+- **The Library toolbar on a phone** (#354) — search, the sort dropdown and
+  the layout toggle shared one row. Sort and the toggle have intrinsic widths
+  and a text input does not, so search shrank to fit around them and ended up
+  **about 20px wide** — the one control you type into was the smallest thing on
+  the row. The toolbar is three bands now, in the order you reach for them:
+  *New dashboard* and *New report* side by side at equal widths (they were
+  sized to their labels, so one was half again as wide as the other), then
+  search on a row of its own, then sort and the layout toggle beneath it.
+  Inputs on the console also go to **16px** on a phone — below that iOS zooms
+  the page in when a field takes focus and leaves the layout scrolled sideways
+  after the keyboard closes. Three bands cost about 100px, most of which comes
+  back out of the page insets: the console kept a 44px desktop inset that
+  `body.nx-app .nx-main` had already dropped to 16px, so it was the odd one
+  out. Net **+34px of chrome** (first report 365px → 399px) — paid knowingly,
+  for a search field you can read and hit.
+- **Library search takes the row; sort becomes a filter button** (#354) — a
+  follow-up to the band layout above, from using it on a phone: the search now
+  runs the full width with a 48px filter button beside it, instead of giving
+  sort a row of its own. The button is the same `<select>` laid over an icon at
+  `opacity: 0`, so a tap opens the platform's own picker and the options stay
+  real `<option>`s — no menu to build, keep in sync or dismiss. The
+  2-vs-4-per-row toggle is hidden there: the ≤900px block already collapses
+  `is-cols-4` to two columns, so on a phone both settings drew the same grid
+  while costing the search its width. Help and Eddard lose their button boxes
+  on a phone too — their labels are hidden at that size, so they were bordered
+  boxes around a single glyph.
+- **Library card charts were cut off on a phone** (#354) — the card preview is
+  a row (facts left, chart right) whose fixed parts come to more than a ~150px
+  phone card: facts at 34%, a 28px gap, and a thumb with `min-width: 90px` that
+  therefore could not shrink. The chart ran 39px past the card's right edge and
+  `overflow: hidden` took the rest. Stacked on a phone, so the chart gets the
+  full card width and centres under the facts. That exposed two more: the
+  preview is pinned to a hard `height: 78px` in `reporting.css` while the
+  console rule only ever raised `min-height`, so taller stacked content clipped
+  from the bottom instead (the donut lost 31px, the line 51px); and `.rs-card`
+  is a `<button>`, which centres its content when the grid stretches it, so
+  once previews stopped being a uniform 78px one card's badge sat 24px lower
+  than its neighbour's.
+- **The new-report wizard is laid out for a phone** (#354) — the worst screen
+  of the lot. The step card was a **232px box floating in the middle of a 320px
+  column**, 44px of dead gutter either side, with the choices inside it at
+  186px of a 390px screen: `.rs-wizard-grid` carries `padding: 0 40px 40px`
+  from the pre-console layout, which was never restated for the console and on
+  a phone spends a quarter of the screen on nothing. The card now fills the
+  width and the choices are full-width rows rather than pills packed two to a
+  line at ragged widths.
+  **The footer is sticky there.** The measure step alone is ~4,600px of
+  options, so *Continue* sat that far below the option you had just tapped —
+  you had to scroll past every remaining choice to move on. It now pins to the
+  bottom of the screen, flush against the tab bar, and drops with the bar when
+  the keyboard opens. A test walks the whole wizard and asserts the forward
+  button is on screen at every step.
+  Also on a phone: the "So far" panel is hidden (it sat below that same
+  thousands-of-pixels list, where nobody will ever see it — the rail chips and
+  the footer's picked-count say the same thing where you are looking), the
+  redundant "Step 1 of 4" counter goes (the rail directly beneath it already
+  highlights the step), and the process rows, granularity select, "Add filter"
+  and the Library crumb all reach 44px.
+- **Fixed: the wizard's close button was a full-width bar** (#354) — the
+  Library screen's equal-halves rule (`.rc-screen-head > .rc-btn`) also matched
+  the wizard head, which reuses `.rc-screen-head`, so the `×` stretched across
+  the screen with a lone glyph in the middle. Icon buttons are excluded now.
+- **Dashboard head and filter row on a phone** (#354) — both rows end in a
+  block pushed right by `margin-left: auto`: the live clock plus *Refresh* in
+  the head, the 14/30/90 day switch in the filter row. On a wide desktop row
+  that is correct. On a phone the row wraps and the pushed block keeps its
+  right alignment **on a line of its own**, so it sat hard against the right
+  edge with half a row of dead space beside it — the range switch started
+  203px into a 355px row, and the clock 47px in. Both read as dropped there
+  rather than placed. The clock now starts at the page edge with *Refresh* at
+  the far end, and the range switch spans the row as three equal thirds, so it
+  reads as one control the width of the page. Desktop measured before and
+  after: the push, the spacer and the right-aligned switch are all unchanged.
+- **The API docs guide no longer sticks to a phone screen** (#354) —
+  `.apidocs-nav` is `position: sticky` so the section list stays beside the
+  docs while they scroll. Below 900px the layout is one column and the nav
+  becomes a full-width block *above* the text, so sticky pinned it to the top
+  of the screen and it rode down over the very content it exists to navigate —
+  582px of it, 55% of the screen, following every scroll. It scrolls away like
+  any other block on a phone now. Pointer-gated, and a test pins both
+  directions: a narrow desktop window keeps the sticky nav.
+- **Fixed: /api-docs scrolled sideways on a phone** (#354) — found while
+  fixing the above. The ≤900px rule set a bare `1fr` where the desktop rule
+  spells `minmax(0, 1fr)` — the same dropped `minmax` as the reporting pages.
+  A grid track's automatic minimum is its content, so a long URL inside a code
+  sample stretched the track to 473px and took the whole document to **490px
+  in a 390px viewport**. Everything went with it, including the fixed tab bar,
+  whose **More** slot ended up off the right edge and unreachable. Not
+  pointer-gated: a 390px desktop window was equally broken. Code samples were
+  already `overflow-x: auto`, so they scroll inside their own box as intended.
+- **The wizard step rail reads as one row on a phone** (#354) — four fully
+  labelled chips need about 495px, and the row is 320px, so *1 Measure ·
+  2 Processes · 3 Breakdown · 4 Time range* broke onto two lines with the
+  connector lines left dangling between them: four pills stacked two-by-two
+  instead of a progress row. Only the step you are on keeps its label now, the
+  rest are their number (or a tick once done), which is the usual phone
+  stepper and fits one line with nothing to scroll. The rail went from 70px to
+  35px with it.
+- **The wizard's close button is no longer a box** (#354) — a 44px bordered
+  square holding one small glyph. Same treatment as Help and Eddard: the box
+  goes, the 44px tap target stays.
+- **The dashboard builder fits a phone** (#354) — it runs full-bleed, and its
+  shell kept a 28px desktop inset: 56px of a 390px screen. That pushed the
+  Eddard button off the title row **by 14px**, so it sat alone on a second
+  line, and left the card grid narrower than every other screen. 16px there
+  now, matching `.nx-main` everywhere else — the topbar went from 108px to
+  53px and the whole view gained 27px of width.
+- **The dashboard builder's head is a tidy block on a phone** (#354) — it
+  wrapped into four ragged rows: *Library* alone, the title, then five controls
+  at three different heights (a 31px "Editing" pill, a 36px *Add card*, 48px
+  buttons) breaking two-and-two and stopping **170px short** of the right edge.
+  That hole was the odd gap on the side. The title now takes its own row and
+  the actions pair two to a row at equal widths, so every row ends flush; a
+  lone third action (the view-mode set is Present / Export / Edit) grows to the
+  full width instead of sitting in a corner, and all of them reach 44px. The
+  "Editing" pill goes: it only appears while editing, which is exactly when the
+  primary button reads *Done*. *Library* becomes a plain crumb like the
+  wizard's, so its row reads as a header line rather than one button marooned
+  in 254px of space. Scoped with `:not(.rl-head)` — the Report definitions list
+  reuses the same class for a different set of controls.
+- **The tab bar gets out of the way of the software keyboard** (#354) — the
+  bar is fixed to the bottom of the viewport, so on iOS the keyboard pushed it
+  up and parked four nav slots directly above the keys: every tap meant for a
+  letter risked navigating away mid-sentence. The bar now hides while a field
+  that opens a keyboard holds focus (`html.nx-typing`) and comes straight back
+  on blur. Keyed on the field type, not on a viewport-height guess — a
+  checkbox, a `<select>` or a date picker opens no keyboard and keeps the bar.
+  Viewports also gained `interactive-widget=resizes-content`, so the layout
+  viewport shrinks to the space left above the keyboard instead of the page
+  being scrolled under it. The bar's slots show a `:focus-visible` ring too,
+  for anyone on a phone with a hardware keyboard.
+- **Reporting pages on a phone** (#354) — every one of the five overflowed,
+  `/reporting` by 212px, the worst in the app. The cause was not a
+  desktop-only design but one mistake repeated: a mobile override dropping
+  the `minmax(0, …)` its own desktop rule has. A bare `1fr` track has an
+  automatic minimum, so it grows to its content instead of clamping to the
+  container — on `/reporting` a 507px column inside a 302px shell. Fixed in
+  `.rc-body`, `.reporting-guide-layout`, `.rs-result-main` and
+  `.rs-wizard-grid`, plus `min-width: 0` on the grid/flex children. Two other
+  causes: `main.reporting-admin` shrink-wrapped to its widest table because
+  `margin: 0 auto` cancels `align-items: stretch` in the body's flex column;
+  and `.rc-topbar` / `.rc-screen-head` are single-line flex rows that pushed
+  their buttons past the viewport. All five now measure zero overflow.
+  Touch targets too — reporting has its own `rc-*` / `rs-*` component set, so
+  the shared sizing that fixed Generali and admin left it at 34–37px.
+- **Dashboard 14d/30d/90d switch** (#354) — a regression from the shared
+  touch sizing in this branch: `.nx-segmented` sets a fixed
+  `height: var(--ctl-h)` (~29px) with `overflow: hidden`, so raising only its
+  buttons to 44px clipped them inside a box less than half their height,
+  which read as bad padding and off-centre labels. The container now grows
+  with them and the labels are centred.
+- **Public maintenance page** (#354) — its two buttons were 39px. The page is
+  deliberately self-contained so it can render when the app is locked down,
+  which means it loads none of nexora's stylesheets and the shared sizing
+  could not reach it.
+- **Phone tab bar height** — raised from 56px to 64px, and the figure is now
+  one `--nx-tabbar-h` variable instead of three hand-copied literals (the
+  bar, the body's bottom padding, the bottom sheet's), so changing it cannot
+  leave content hidden underneath the bar.
+- **CSRF failures explain themselves** (#354) — submitting a form whose token
+  no longer matched the session produced Werkzeug's raw 400: a white page
+  reading "The CSRF session token is missing", with no explanation and
+  nothing to click. There was no `CSRFError` handler at all. This is not an
+  edge case — the token is tied to the session, so a login page left open
+  past the 24-hour session lifetime, or one served from a browser cache after
+  its session expired, hits it every time. Now renders a `handlers/` page in
+  the same style as 403/404/500, saying the page expired and offering a
+  **Try again** link that re-GETs the path that was posted to, issuing a
+  fresh token. Enforcement is unchanged: still refused, still 400, and the
+  external API surface still gets JSON rather than a web page. The shared
+  error base gained an overridable primary action so the page can offer
+  "try again" instead of "take me home"; every existing error page is
+  byte-identical.
+- **Admin pages on a phone** (#354) — swept all twelve at 390px. As with
+  Generali, **none overflowed**: the wide tables already scroll inside their
+  own containers, so target size was the whole problem. `.nx-input` rendered
+  41px and `.nx-select` 39px — the shared components every admin search and
+  filter row is built from, now fixed once for every page that uses them —
+  plus admin-logs' own time-range presets (31–33px) and the overview's two
+  standalone quick links (355×21). Deliberately left alone: the links inside
+  the tenant cards on `/admin/tenants` (16–25px). Those are card content, not
+  toolbar controls, and a card listing six members would grow by over 100px
+  if each row were padded to 44 — it would stop being scannable to fix a
+  target you reach deliberately, one at a time.
+- **Generali pages on a phone** (#354) — swept all thirteen at 390px in a
+  real touch viewport. **None of them overflowed**; the layout was already
+  sound. The one problem was repeated on every page: the action buttons
+  rendered 34px tall. That is the shared `.nx-btn--sm`, which appears in 20
+  templates and was the most common too-small control in the app, so it is
+  fixed once in `nexora-ui.css` rather than forty times — along with
+  `.nx-btn`, `.nx-tab`, `.nx-segmented__btn` and `.pagination-link`, which
+  now clear 44px on a touch pointer. Page-specific leftovers: the dashboard's
+  pill-shaped trend chips (28–37px) and the import-status pagination, whose
+  page numbers render as `.nx-btn--sm` and came out 29–32px wide side by
+  side. All thirteen pages now measure zero overflow and zero undersized
+  controls. Pointer-keyed throughout, so nothing changes on a desktop.
+- **Workitems overview on a phone** (#354) — the page scrolled sideways by
+  27px. Three flex rows sized for a desktop could neither shrink nor wrap:
+  the export/import cluster (its shared `.nx-page-head__actions` carries
+  `flex-shrink: 0`, so it hung 8px off each edge), the list header, and the
+  status tab strip. The tab strip now scrolls on its own axis instead of
+  wrapping into a broken half-row, and every tab stays reachable. The
+  floating bulk-action bar sat at `bottom: 12px` — exactly where the new
+  phone tab bar is — so selecting rows hid the actions behind the
+  navigation; it now clears it, under the same touch gate that draws the bar,
+  so a narrow desktop window is unchanged. Touch targets: toolbar controls
+  were 32–33px, status tabs 27px, pagination 30×30 buttons flush against each
+  other, the details chevron 21×9 and row checkboxes 18×18. Toolbar,
+  pagination, tabs and bulk actions now clear 44px; the per-row controls are
+  lifted to 26 and 35px rather than 44, which would have set the height of
+  every row and halved how many fit on screen.
+- **Login and landing pages on a phone** (#354) — `auth.css` had no media
+  queries at all, so the page every user meets before signing in had no
+  small-screen rules. Neither page overflowed, but the controls were around
+  half the size a thumb needs: the shared footer links measured 20px tall,
+  the show-password eye 30px wide (the control most likely to be tapped on a
+  phone, where typing a password blind is hardest) and the theme toggles
+  40px. All now clear the 44px floor Apple and Google both publish, keyed on
+  `pointer: coarse` rather than a width — how big a control must be follows
+  the finger, not the screen, so a narrow desktop window is unchanged. The
+  landing headline was Tailwind's smallest step (`text-4xl`, 36px) and ran to
+  five lines and 198px, about a quarter of the screen, before a reader
+  reached a word about what nexora does; now 28px and 97px. The sydoc mark in
+  the footer drops from 96px to 64px below 480px.
+- **Dashboard fits a phone** (#354) — two layout bugs, both clipping content
+  rather than merely looking cramped. `.nx-main` kept its 40px desktop side
+  gutter at every width, spending 80px of a 375px screen on empty margin and
+  squeezing the content column to 287px; it now drops to 16px below 768px,
+  matching what `_header.css` already did for `.container`. And each KPI tile
+  held 187px of content in a 94px box — the 120px sparkline is
+  `flex-shrink: 0` and sat beside the value — so the number and its delta
+  were cut off; below 480px the sparkline is hidden (the same trend is drawn
+  full width in the charts below) and the tiles tighten up. Content width
+  287 → 340px, tile overflow 93 → 0px. Keyed on width, not on the phone
+  nav's touch gate: these bite any narrow window, a half-screen desktop one
+  included.
+- **Rendered pages are no longer cacheable** (#354) — HTML went out with no
+  `Cache-Control`, no `ETag` and no `Last-Modified` at all, leaving the
+  browser to guess. A nexora pinned to a phone home screen runs in its own
+  standalone context, guesses eagerly, and kept showing the version it was
+  pinned at for days. Worse than the stale version: each asset tag's
+  `?v=<mtime>` buster is baked into the HTML, so a stale page also pinned
+  stale asset URLs — the browser never requested the new CSS, and the
+  year-long `max-age` on `/static` (safe only while the HTML naming it is
+  fresh) kept serving the old file, making a deploy look like it had done
+  nothing. HTML responses now send `Cache-Control: no-store`; versioned
+  static assets keep their long cache. Every page is rendered for one
+  signed-in user, so none of it belonged in a cache anyway — this also stops
+  a back-button press on a shared machine redisplaying the previous user's
+  page after sign-out.
+
 ## [3.2.9] - 2026-09-15
 
 ### Added
+
 - **External API: `?include=fields:<key>,<key>`** (#356) — the inline
   key list added in #341's follow-up narrows the projection to the keys a
   client actually reads, instead of every key mapped for its process scope.
@@ -24,6 +416,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [3.2.8] - 2026-09-15
 
 ### Added
+
 - **External API: `/api/v1/workitems?include=fields`** (#341) — the list
   endpoint can now return each row's indexed document-field values inline
   (`"fields": {"invoicenr": "INV-2026-00123", ...}`), resolved **once per
@@ -36,10 +429,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   unconstrained ones while `engine_ms02_docfields_pg` is unset. Opt-in: the
   default response shape is unchanged. Mirrored on
   `/api/test/v1/workitems`.
-
 ## [3.2.7] - 2026-09-15
 
 ### Fixed
+
 - **Generali dashboard: chart hover and tooltips** — three Chart.js defaults
   nobody had overridden on this page. The Recipient and Entry-channel bar
   charts kept `nearest` + `intersect`, so a tooltip only appeared with the
@@ -61,6 +454,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [3.2.6] - 2026-09-14
 
 ### Fixed
+
 - **The Generali dashboard shows the last 30 days instead of nothing when a
   date is missing** — `/api/generali/stats` answered a missing `startDate` or
   `endDate` with a 400, and the page rendered that as a dead screen: every KPI
@@ -79,6 +473,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [3.2.5] - 2026-09-14
 
 ### Added
+
 - **Hosted dev and staging environments** (#338) — `dev-nexora.sydoc.ch` (deploys on
   every non-`main` branch push, `ENVIRONMENT=INT`, INT databases) and
   `staging-nexora.sydoc.ch` (deploys on merge to `main` and nightly at 01:30,
@@ -262,6 +657,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and nothing bleeds in beside it; the editor preview re-runs on every change.
 
 ### Changed
+
 - **PROD deploys on a `v*` tag push, not on merge to `main`** (#338); `main` now
   deploys staging. The deploy steps moved from `deploy.yml` into the reusable
   `deploy-env.yml`; deploys no longer stop the ngrok service (one agent fronts three
@@ -349,6 +745,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   old copy still writes — see `scripts/generali-import/README.md`.
 
 ### Fixed
+
 - **Fireflies no longer drift across the New-report wizard** (#336) — the
   animated backdrop is held behind the page by promoting `<main>`, and
   Reporting is the one page whose content is not all inside `<main>`: the
@@ -644,6 +1041,7 @@ Work toward the next release.
   fixed row height used to clip the fifth KPI tile and the table toggle).
 
 ### Fixed
+
 - **Reporting bug hunt** — Eddard's streamed answer no longer dies when a tool
   result carries dates/decimals; scheduled and AI runs of *latest*-mode metrics
   aggregate the newest snapshot like the screen does; the `run_sql` tool accepts
@@ -879,6 +1277,7 @@ exora\Prune Sessions"
   to the documents. New `POST /api/reporting/contribution`; no new permission.
 
 ### Changed
+
 - **Pushing is fast again.** The pre-push hook no longer runs the test suite
   (it duplicated CI's fast tier against the same shared `NEXORA_TEST`, ~10 min
   per push and one more contender for the database lock); it only guards branch
@@ -948,6 +1347,7 @@ exora\Prune Sessions"
   serves renamed codes for the deploy window and answers 403 — deploy off-hours.
 
 ### Removed
+
 - The `pull_request` trigger on `deploy.yml` — every branch push runs the fast test
   tier and its check shows on the PR (#338).
 
@@ -1926,7 +2326,6 @@ exora\Prune Sessions"
   Access Control / the user's overrides tab — granting and revoking stays
   there.
 
-
 - **Responses are gzipped.** Nexora ships each page's JavaScript inline (the
   `templates/js/*.html` partials), so an HTML response is the whole client for
   that page — `/reporting` is ~620 KB — and none of it was compressed. Flask
@@ -2051,7 +2450,6 @@ exora\Prune Sessions"
   the whole card is now grabbable, with a `grab` cursor, rather than looking
   static. Drop only clears the drag state.
 
-
 - **Dev-structure leftovers from the 2026-05 dev-env upgrade closed out**
   (#108). The camelCase template render kwargs the PR 6 handoff deferred are
   now snake_case (`pageV` -> `page_visibility`, `startDate`/`endDate` ->
@@ -2120,7 +2518,6 @@ exora\Prune Sessions"
   `get_source_for_workitem`'s existing collision fail-safe: more than one
   row for an id is ambiguous and is never guessed — it's omitted (forcing a
   re-probe) with an error logged.
-
 
 - **The three biggest JS partials now ship as cacheable static files** (#191).
   Nexora's per-page JavaScript lived inside Jinja partials only because that
@@ -2303,7 +2700,6 @@ exora\Prune Sessions"
   `"<name> (copy)"` and then leaves the copy open, so the next Save can't reach
   back to the original. A result that isn't a saved report yet (wizard run, an
   answer from Eddard) still asks for a name and creates one.
-
 
 - **Fireflies now tint with the chosen accent color.** The `fireflies`
   background option used a hardcoded teal/amber dot color instead of
@@ -4593,6 +4989,7 @@ Version bumped from 2.5.60; now single-sourced in `nx_lib/version.py`.
 - Workitems detail viewer: a parent/batch workitem now surfaces **all** of its child documents' page images, field values, and source-highlight overlays, flattening the document tree **recursively** to its leaf documents at any depth. Previously only a single, literal `DocumentType == "Batch"` level was flattened, so multi-level client document trees — e.g. the MS02 `MobScnBatch → MobScnDossier → MobScnDocument` hierarchy — rendered an **empty** detail panel on the container workitem (images and fields live on the leaf documents). The flatten is now keyed on the presence of `ChildDocuments` rather than the literal type name, shared by `nx_lib/octo.py`, `nx_lib/field_locations.py`, and `nx_lib/table_locations.py` so page-index/overlay alignment is preserved. Plain single-document and one-level-batch workitems are unaffected (same leaves, same order).
 
 ### Removed
+
 - The MS02 prepared-documents session-overlay model: the `pid_import:<token>`
   session stash, the `?pidImport=` read-back path (`pid_import_active` /
   `_pid_import_meta`), the row-merge + page-1-only synthetic-row append in
@@ -4601,6 +4998,7 @@ Version bumped from 2.5.60; now single-sourced in `nx_lib/version.py`.
   short-circuit. Superseded by the persistent `dbo.PreparedDocuments` register.
 
 ### Added
+
 - **Prepared Documents ⇄ Workitem detail cross-linking (MS02).** The register's
   Octo-Status cell gains a read-only **Preview** modal mirroring the full Workitems
   detail panel (page images + source highlighting + extracted fields + audit + tags +
@@ -4991,6 +5389,7 @@ Version bumped from 2.5.60; now single-sourced in `nx_lib/version.py`.
 - Git → Confluence docs sync: `scripts/confluence-publish.py` publishes `docs/howto/*`, `docs/design/*`, `README.md`, `CONTRIBUTING.md` and `CHANGELOG.md` to the Confluence space as a read-only mirror (md2conf engine, `git-managed` labels, orphan archiving); triggered by `.github/workflows/confluence-docs.yml` on push to `main`. Runbook: `docs/howto/confluence-sync.md`.
 
 ### Fixed
+
 - Reporting AI: prompts now require a date `grain` for per-month/week/quarter/year questions (drafts no longer bucket by raw day while claiming "monthly").
 - Reporting AI: "how many distinct X per Y" no longer groups by the counted field (prompt rule + a gate guard that drops the shadowing column).
 - Reporting AI agent: the grounding and the `run_sql` error now name the valid SQL targets, so the agent can self-repair instead of dying at the turn cap.
@@ -5096,7 +5495,9 @@ Version bumped from 2.5.60; now single-sourced in `nx_lib/version.py`.
   per value. The prompts now teach both surfaces the correct pattern: put the target
   field in `columns` and add a count metric, which makes the columns GROUP BY
   dimensions so each value appears once.
+
 ### Changed
+
 - Workitems list: a runtime-DB outage now renders an empty list with a "temporarily unavailable"
   banner instead of a 500 error (graceful degradation for the multi-source design).
 - **Reporting Simple wizard: curated breakdown dimensions.** For the Document
@@ -5237,6 +5638,7 @@ Version bumped from 2.5.60; now single-sourced in `nx_lib/version.py`.
 - **Reporting page reskinned to the shared nexora-ui design system.** The `/reporting` page (Simple + Advanced tabs, wizard, result views, AI bars and the share/schedule/name/SQL-ack modals) now uses the same `--nx-*` design tokens, cards and buttons as the admin and other pages, and renders correctly in dark mode (the residual hardcoded-hex Simple-pane styling was tokenized). No behavior or feature change.
 
 ### Fixed
+
 - **Generali add-modals no longer show an empty red strip.** The Tailwind v4
   browser CDN emits utilities inside `@layer utilities`, so the unlayered
   `.nx-flash { display:flex }` rule always beat the `hidden` utility and kept
@@ -5345,7 +5747,9 @@ Version bumped from 2.5.60; now single-sourced in `nx_lib/version.py`.
   per value. The prompts now teach both surfaces the correct pattern: put the target
   field in `columns` and add a count metric, which makes the columns GROUP BY
   dimensions so each value appears once.
+
 ### Removed
+
 - **`dbo.SearchConfig`:** dropped 12 unused columns (`col_scanbatchnr`, `col_pid`, `col_personalfileid`, `col_employmentfileid`, `col_doctypeidtargetsystem`, `col_doctypeidsydoc`, `col_registeridtargetsystem`, `col_masterdataseparatorsheettype`, `col_masterdatabirthday`, `col_masterdatafirstname`, `col_masterdatalastname`, `col_masterdataseparatorsheetid`) via migration `0002_remove_unused_columns_searchconfig.sql`.
 
 ## [2.5.61] - 2026-05-28
@@ -5353,6 +5757,7 @@ Version bumped from 2.5.60; now single-sourced in `nx_lib/version.py`.
 Dev-environment upgrade (10-PR bundle). No behavioural code changes — only structure, tooling, and naming. See `docs/superpowers/specs/2026-05-26-dev-env-upgrade-design.md` for the design and `docs/superpowers/plans/2026-05-27-dev-env-upgrade.md` for the step-by-step plan.
 
 ### Added
+
 - `bootstrap.ps1` one-shot dev-environment setup. Idempotent and re-runnable: detects Python, installs uv if missing, runs `uv sync --extra dev`, installs Playwright chromium, seeds `env/<E>.env` from templates (never overwrites existing), installs pre-commit hooks (pre-commit / commit-msg / pre-push), ensures `var/` subdirs exist, prints a checklist of remaining manual steps. Quick start collapses to `git clone … && .\bootstrap.ps1`.
 - `LICENSE` (proprietary Sydoc notice).
 - `CHANGELOG.md` (this file, Keep-a-Changelog format).
@@ -5365,6 +5770,7 @@ Dev-environment upgrade (10-PR bundle). No behavioural code changes — only str
 - `bin/` directory for dev CLI scripts. Currently holds `bin/nx.ps1`.
 
 ### Changed
+
 - `nx.ps1` moved to `bin/nx.ps1` (history preserved via `git mv`). `nx_lib.cli.NX_PS1` updated; the dir is excluded from the prod robocopy mirror.
 - All non-root `*.env` files moved under `env/` (`env/INT.env`, `env/PROD.env`, `env/STAGING.env`, `env/TEST.env`). `nx_lib/config.py` now loads from `env/{ENVIRONMENT}.env` with a one-release fallback to the legacy root location (emits a `DeprecationWarning` naming both paths). The root `.env` env-selector stays put. `.gitignore`: `*.env` still ignores secrets everywhere, with a `!env/*.env.example` exception to commit the templates. `.github/workflows/deploy.yml` copies `env/PROD.env` (legacy fallback included) and `env/TEST.env` into the workspace `env/`. `scripts/test_db_reset.py` reads `env/TEST.env`. **PROD pre-flight on SYAPP01:** move `D:\sydoc\nexora\{INT,PROD}.env` into `D:\sydoc\nexora\env\` before the 2.5.61 bundle merges; the deploy and the runtime loader both fall back with a warning if you don't.
 - Runtime data consolidated under `var/`: `uploads/`, `session/`, `logs/`, `screenshots/`, `backups/`, `test-results/` all moved out of the repo root. All Python writers now resolve their location through `nx_lib.config.PATHS` (e.g. `PATHS.logs`, `PATHS.uploads`), which auto-creates each dir at import time. The ops cleanup scripts (`ops/cleanup/csvLogs_toDB.ps1`, `ops/cleanup/cleanup_expired_sessionFiles.ps1`), pytest output paths (`--junitxml`, `--html`), and the GitHub Actions `test-results` artifact path are all updated. `static/uploads/` (Flask-served public chat assets) stays in place — only private runtime data moves. **PROD follow-up on SYAPP01:** move `D:\sydoc\nexora\{uploads,session,logs,screenshots,backups}\*` into `D:\sydoc\nexora\var\...` so the cron scripts pick up the new path on the next run.
@@ -5378,6 +5784,7 @@ Dev-environment upgrade (10-PR bundle). No behavioural code changes — only str
 - Jinja template files renamed to snake_case. All 30 camelCase templates (page templates, JS partials, error base, logo, version footer) renamed in lockstep with their includes / `render_template` callers. Highlights: `templates/admin/{accessControl,adminOverview,userDetail,archive/userManagement}.html` → snake_case; `templates/nexoraLogo/_nexoraLogo.html` → `templates/nexora_logo/_nexora_logo.html` (folder + file); `templates/handlers/_errorBase.html` → `_error_base.html`; all `templates/js/_<page>JS.html` and `templates/js/admin/_<page>JS.html` partials → `_<page>_js.html`; `templates/js/_generali-dashboardJS.html` also normalised hyphen → underscore. `messages.pot` and the three locale `.po` files re-extracted so source-path references match. Template-side identifiers (`pageV` kwargs, `active_page` strings) and the camelCase static CSS assets are intentionally out of scope.
 
 ### Removed
+
 - Empty placeholder folders: `cleanup/`, `export-help/`, `generali-import/`, `news/`.
 - Deprecated `environment_transfer_queries.tmp.sql` (superseded by `sql/_migrations/`).
 - `scripts/install-git-hooks.ps1` — the PR 4 deprecation shim. Use `.venv\Scripts\pre-commit.exe install ...` directly (which the shim was already calling on your behalf).

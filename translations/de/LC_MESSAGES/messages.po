@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-15 12:45+0200\n"
+"POT-Creation-Date: 2026-09-16 15:11+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -1918,7 +1918,7 @@ msgid "Could not export query"
 msgstr "Abfrage konnte nicht exportiert werden"
 
 #: nx_lib/views/reporting/export.py:128 nx_lib/views/reporting/export.py:175
-#: nx_lib/views/reporting/export.py:210 templates/hero.html:165
+#: nx_lib/views/reporting/export.py:210 templates/hero.html:167
 #: templates/js/_reporting_js.html:33
 #: templates/js/_reporting_scheduled_js.html:15 templates/reporting.html:573
 msgid "Report"
@@ -2094,39 +2094,39 @@ msgstr "Zeitplan konnte nicht aktualisiert werden"
 msgid "Could not delete schedule"
 msgstr "Zeitplan konnte nicht gelöscht werden"
 
-#: templates/_header.html:40
+#: templates/_header.html:41
 msgid "Open navigation"
 msgstr "Navigation öffnen"
 
-#: templates/_header.html:57 templates/js/_header_js.html:17
+#: templates/_header.html:58 templates/js/_header_js.html:17
 #: templates/js/_header_js.html:18 templates/js/_header_js.html:19
 #: templates/js/_header_js.html:20 templates/js/_header_js.html:21
 msgid "Admin"
 msgstr "Admin"
 
-#: templates/_header.html:64 templates/_header.html:118
+#: templates/_header.html:65 templates/_header.html:119
 msgid "Overview"
 msgstr "Übersicht"
 
-#: templates/_header.html:69 templates/admin/access_control.html:19
+#: templates/_header.html:70 templates/admin/access_control.html:19
 #: templates/admin/admin_overview.html:75 templates/js/_header_js.html:18
 msgid "Access Control"
 msgstr "Zugriffskontrolle"
 
-#: templates/_header.html:74 templates/admin/admin_overview.html:85
+#: templates/_header.html:75 templates/admin/admin_overview.html:85
 #: templates/admin/permissions.html:21 templates/admin/user_detail.html:88
 msgid "Permissions"
 msgstr "Berechtigungen"
 
-#: templates/_header.html:79
+#: templates/_header.html:80
 msgid "Sessions"
 msgstr "Sitzungen"
 
-#: templates/_header.html:84
+#: templates/_header.html:85
 msgid "Logs"
 msgstr "Protokolle"
 
-#: templates/_header.html:90 templates/admin/logs.html:66
+#: templates/_header.html:91 templates/admin/logs.html:66
 #: templates/admin/logs.html:99 templates/admin/tenants_manage.html:78
 #: templates/admin/user_detail.html:222 templates/api_docs.html:189
 #: templates/appearance.html:369 templates/generali_importstatus.html:50
@@ -2135,155 +2135,187 @@ msgstr "Protokolle"
 msgid "Status"
 msgstr "Status"
 
-#: templates/_header.html:97
+#: templates/_header.html:98
 msgid "Maintenance"
 msgstr "Wartung"
 
-#: templates/_header.html:111 templates/admin/tenants.html:149
+#: templates/_header.html:112 templates/admin/tenants.html:149
 msgid "Tenants"
 msgstr "Tenants"
 
-#: templates/_header.html:124
+#: templates/_header.html:125
 msgid "Manage"
 msgstr "Verwalten"
 
-#: templates/_header.html:130 templates/admin/admin_overview.html:95
+#: templates/_header.html:131 templates/admin/admin_overview.html:95
 #: templates/admin/organizations.html:19 templates/admin/tenants_manage.html:38
 #: templates/js/_header_js.html:19
 msgid "Organizations"
 msgstr "Organisationen"
 
-#: templates/_header.html:136 templates/admin/clients.html:19
+#: templates/_header.html:137 templates/admin/clients.html:19
 msgid "Data Connections"
 msgstr "Datenverbindungen"
 
-#: templates/_header.html:143 templates/admin/processes.html:19
+#: templates/_header.html:144 templates/admin/processes.html:19
 msgid "Process Configurations"
 msgstr "Prozesskonfigurationen"
 
-#: templates/_header.html:157
+#: templates/_header.html:158
 msgid "Development"
 msgstr "Entwicklung"
 
-#: templates/_header.html:164 templates/api_docs.html:76
+#: templates/_header.html:165 templates/api_docs.html:76
 msgid "API Documentation"
 msgstr "API-Dokumentation"
 
-#: templates/_header.html:171 templates/dashboard.html:32
+#: templates/_header.html:179 templates/dashboard.html:32
 msgid "Global Dashboard"
 msgstr "Globales Dashboard"
 
-#: templates/_header.html:172
+#: templates/_header.html:179 templates/appearance.html:338
+#: templates/dashboard.html:30 templates/generali_documents.html:41
+#: templates/generali_reporting.html:56 templates/js/_header_js.html:30
+#: templates/js/_header_js.html:36
+msgid "Dashboard"
+msgstr "Dashboard"
+
+#: templates/_header.html:180
 msgid "Global Reporting"
 msgstr "Globales Reporting"
 
-#: templates/_header.html:173 templates/workitems_overview.html:66
+#: templates/_header.html:180 templates/generali-dashboard.html:73
+#: templates/generali_additionalservices.html:52
+#: templates/generali_baseservices.html:52 templates/generali_documents.html:45
+#: templates/generali_projectmanagement.html:52 templates/js/_header_js.html:42
+#: templates/reporting.html:79
+msgid "Reporting"
+msgstr "Reporting"
+
+#: templates/_header.html:181 templates/workitems_overview.html:66
 msgid "Global Workitems"
 msgstr "Globale Workitems"
 
-#: templates/_header.html:282 templates/_header.html:284
+#: templates/_header.html:181 templates/workitems_overview.html:64
+#: templates/workitems_overview.html:320
+msgid "Workitems"
+msgstr "Workitems"
+
+#: templates/_header.html:290 templates/_header.html:292
 #: templates/appearance.html:302 templates/appearance.html:307
 #: templates/js/_header_js.html:13
 msgid "Keep sidebar open"
 msgstr "Seitenleiste geöffnet halten"
 
-#: templates/_header.html:288 templates/js/_header_js.html:56
+#: templates/_header.html:305 templates/_header.html:307
+msgid "Reload"
+msgstr "Neu laden"
+
+#: templates/_header.html:311 templates/js/_header_js.html:56
 msgid "Toggle dark mode"
 msgstr "Dunkelmodus umschalten"
 
-#: templates/_header.html:290
+#: templates/_header.html:313
 msgid "Dark Mode"
 msgstr "Dunkelmodus"
 
-#: templates/_header.html:298 templates/profile.html:44
+#: templates/_header.html:321 templates/profile.html:44
 #: templates/profile.html:123
 msgid "Profile Picture"
 msgstr "Profilbild"
 
-#: templates/_header.html:308
+#: templates/_header.html:331
 msgid "Your profile"
 msgstr "Ihr Profil"
 
-#: templates/_header.html:312 templates/appearance.html:34
+#: templates/_header.html:335 templates/appearance.html:34
 #: templates/js/_header_js.html:57 templates/profile.html:75
 #: templates/profile.html:317
 msgid "Appearance"
 msgstr "Darstellung"
 
-#: templates/_header.html:316 templates/js/_header_js.html:58
+#: templates/_header.html:339 templates/js/_header_js.html:58
 #: templates/whats_new.html:79
 msgid "What's New"
 msgstr "Neuigkeiten"
 
-#: templates/_header.html:321 templates/feedback.html:34
+#: templates/_header.html:344 templates/feedback.html:34
 #: templates/js/_header_js.html:59
 msgid "Feedback"
 msgstr "Feedback"
 
-#: templates/_header.html:328 templates/_header.html:398
-#: templates/_header.html:401
+#: templates/_header.html:351 templates/_header.html:492
+#: templates/_header.html:495
 msgid "Keyboard shortcuts"
 msgstr "Tastenkombinationen"
 
-#: templates/_header.html:332 templates/_small_footer.html:28
+#: templates/_header.html:355 templates/_small_footer.html:28
 #: templates/reporting.html:86
 msgid "Help"
 msgstr "Hilfe"
 
-#: templates/_header.html:338 templates/_header.html:380
+#: templates/_header.html:361 templates/_header.html:474
 msgid "Switch user"
 msgstr "Benutzer wechseln"
 
-#: templates/_header.html:344 templates/js/_header_js.html:60
+#: templates/_header.html:367 templates/js/_header_js.html:60
 #: templates/profile.html:82
 msgid "Sign out"
 msgstr "Abmelden"
 
-#: templates/_header.html:361
+#: templates/_header.html:410
+msgid "Main navigation"
+msgstr "Hauptnavigation"
+
+#: templates/_header.html:449
+msgid "More"
+msgstr "Mehr"
+
+#: templates/_header.html:455
 msgid "Command palette"
 msgstr "Befehlspalette"
 
-#: templates/_header.html:365
+#: templates/_header.html:459
 msgid "Type a command or search..."
 msgstr "Befehl eingeben oder suchen..."
 
-#: templates/_header.html:370
+#: templates/_header.html:464
 msgid "navigate"
 msgstr "navigieren"
 
-#: templates/_header.html:371
+#: templates/_header.html:465
 msgid "open"
 msgstr "öffnen"
 
-#: templates/_header.html:372
+#: templates/_header.html:466
 msgid "close"
 msgstr "schließen"
 
-#: templates/_header.html:384
+#: templates/_header.html:478
 msgid "Switch to user..."
 msgstr "Zu Benutzer wechseln ..."
 
-#: templates/_header.html:405 templates/admin/access_control.html:130
+#: templates/_header.html:499 templates/admin/access_control.html:130
 msgid "Global"
 msgstr "Global"
 
-#: templates/_header.html:407
+#: templates/_header.html:501
 msgid "Open command palette"
 msgstr "Befehlspalette öffnen"
 
-#: templates/_header.html:411
+#: templates/_header.html:505
 msgid "Show this shortcuts overlay"
 msgstr "Diese Übersicht anzeigen"
 
-#: templates/_header.html:415
+#: templates/_header.html:509
 msgid "Close the open dialog or panel"
 msgstr "Das offene Dialogfeld oder Panel schließen"
 
-#: templates/_header.html:420
+#: templates/_header.html:514
 msgid "Document viewer"
 msgstr "Dokumentanzeige"
 
-#: templates/_header.html:422
+#: templates/_header.html:516
 msgid "Previous / next document page"
 msgstr "Vorherige / nächste Dokumentseite"
 
@@ -4174,12 +4206,6 @@ msgstr "Live-Vorschau"
 msgid "Replay"
 msgstr "Erneut abspielen"
 
-#: templates/appearance.html:338 templates/dashboard.html:30
-#: templates/generali_documents.html:41 templates/generali_reporting.html:56
-#: templates/js/_header_js.html:30 templates/js/_header_js.html:36
-msgid "Dashboard"
-msgstr "Dashboard"
-
 #: templates/appearance.html:339
 msgid "Today at a glance"
 msgstr "Heute im Überblick"
@@ -4229,7 +4255,7 @@ msgid "next in"
 msgstr "neu in"
 
 #: templates/admin/sessions.html:22 templates/dashboard.html:48
-#: templates/maintenance.html:154
+#: templates/maintenance.html:163
 msgid "Refresh"
 msgstr "Aktualisieren"
 
@@ -4363,8 +4389,8 @@ msgstr "Weiteres senden"
 msgid "Forgot password - nexora"
 msgstr "Passwort vergessen - nexora"
 
-#: templates/forgot_password.html:75 templates/hero.html:92
-#: templates/index.html:78 templates/init_2FA.html:75
+#: templates/forgot_password.html:75 templates/hero.html:94
+#: templates/index.html:79 templates/init_2FA.html:75
 #: templates/init_reset.html:77 templates/reset_password.html:77
 #: templates/set_password.html:77
 msgid "Switch to dark mode"
@@ -4399,36 +4425,28 @@ msgstr "Zurück zur Anmeldung"
 msgid "Generali Dashboard - nexora"
 msgstr "Generali Dashboard - nexora"
 
-#: templates/generali-dashboard.html:57
+#: templates/generali-dashboard.html:61
 msgid "Generali Dashboard"
 msgstr "Generali Dashboard"
 
-#: templates/generali-dashboard.html:58
+#: templates/generali-dashboard.html:62
 msgid "Dashboard for Generali Document processing"
 msgstr "Dashboard für die Generali Dokumentenverarbeitung"
 
-#: templates/generali-dashboard.html:65 templates/generali_reporting.html:48
+#: templates/generali-dashboard.html:69 templates/generali_reporting.html:48
 #: templates/js/_header_js.html:39
 msgid "Document List"
 msgstr "Dokumentenliste"
 
-#: templates/generali-dashboard.html:69
-#: templates/generali_additionalservices.html:52
-#: templates/generali_baseservices.html:52 templates/generali_documents.html:45
-#: templates/generali_projectmanagement.html:52 templates/js/_header_js.html:42
-#: templates/reporting.html:79
-msgid "Reporting"
-msgstr "Reporting"
-
-#: templates/generali-dashboard.html:77
+#: templates/generali-dashboard.html:81
 msgid "From"
 msgstr "Von"
 
-#: templates/generali-dashboard.html:82
+#: templates/generali-dashboard.html:86
 msgid "To"
 msgstr "Bis"
 
-#: templates/admin/permissions.html:45 templates/generali-dashboard.html:90
+#: templates/admin/permissions.html:45 templates/generali-dashboard.html:94
 #: templates/generali_additionalservices.html:122
 #: templates/generali_baseservices.html:110
 #: templates/generali_documents.html:208
@@ -4440,31 +4458,31 @@ msgstr "Bis"
 msgid "Reset"
 msgstr "Zurücksetzen"
 
-#: templates/generali-dashboard.html:101
+#: templates/generali-dashboard.html:105
 msgid "Total Documents"
 msgstr "Dokumente gesamt"
 
-#: templates/generali-dashboard.html:108
+#: templates/generali-dashboard.html:112
 msgid "NK1 Pass Rate"
 msgstr "NK1 Erfolgsrate"
 
-#: templates/generali-dashboard.html:115
+#: templates/generali-dashboard.html:119
 msgid "NK2 Pass Rate"
 msgstr "NK2 Erfolgsrate"
 
-#: templates/generali-dashboard.html:122
+#: templates/generali-dashboard.html:126
 msgid "NK1 & NK2 Pass Rate"
 msgstr "NK1 & NK2 Erfolgsrate"
 
-#: templates/generali-dashboard.html:129
+#: templates/generali-dashboard.html:133
 msgid "Avg Daily Documents"
 msgstr "Durchschn. tägliche Dokumente"
 
-#: templates/generali-dashboard.html:140
+#: templates/generali-dashboard.html:144
 msgid "Daily Processing Volume"
 msgstr "Tägliches Verarbeitungsvolumen"
 
-#: templates/generali-dashboard.html:144 templates/generali_documents.html:36
+#: templates/generali-dashboard.html:148 templates/generali_documents.html:36
 #: templates/js/_generali_dashboard_js.html:25
 #: templates/js/_reporting_js.html:50
 #: templates/js/_reporting_layouts_js.html:37
@@ -4473,40 +4491,40 @@ msgstr "Tägliches Verarbeitungsvolumen"
 msgid "Total"
 msgstr "Gesamt"
 
-#: templates/generali-dashboard.html:147
+#: templates/generali-dashboard.html:151
 #: templates/js/_generali_dashboard_js.html:26
 msgid "Expected"
 msgstr "Erwartet"
 
-#: templates/generali-dashboard.html:151
+#: templates/generali-dashboard.html:155
 msgid "Kommunikation"
 msgstr "Kommunikation"
 
-#: templates/generali-dashboard.html:157 templates/workitems_overview.html:349
+#: templates/generali-dashboard.html:161 templates/workitems_overview.html:349
 msgid "Select all"
 msgstr "Alle auswählen"
 
-#: templates/admin/organizations.html:80 templates/generali-dashboard.html:158
+#: templates/admin/organizations.html:80 templates/generali-dashboard.html:162
 msgid "Clear"
 msgstr "Zurücksetzen"
 
-#: templates/generali-dashboard.html:169
+#: templates/generali-dashboard.html:173
 msgid "Document Type Distribution"
 msgstr "Dokumenttyp-Verteilung"
 
-#: templates/generali-dashboard.html:179
+#: templates/generali-dashboard.html:183
 msgid "Recipient Distribution"
 msgstr "Empfänger-Verteilung"
 
-#: templates/generali-dashboard.html:185
+#: templates/generali-dashboard.html:189
 msgid "NK1 / NK2 Quality Control"
 msgstr "NK1 / NK2 Qualitätskontrolle"
 
-#: templates/generali-dashboard.html:195
+#: templates/generali-dashboard.html:199
 msgid "Language Distribution"
 msgstr "Sprachverteilung"
 
-#: templates/generali-dashboard.html:201
+#: templates/generali-dashboard.html:205
 msgid "Entry Channel"
 msgstr "Eingangskanal"
 
@@ -5140,7 +5158,7 @@ msgstr "Berichtsdatum"
 msgid "Email Received"
 msgstr "E-Mail erhalten"
 
-#: templates/generali_reporting.html:298 templates/hero.html:224
+#: templates/generali_reporting.html:298 templates/hero.html:226
 #: templates/js/_generali_reporting_js.html:21
 msgid "Delivery"
 msgstr "Zustellung"
@@ -5150,19 +5168,19 @@ msgstr "Zustellung"
 msgid "Latest Delivery"
 msgstr "Späteste Zustellung"
 
-#: templates/hero.html:97 templates/hero.html:100
+#: templates/hero.html:99 templates/hero.html:102
 msgid "Sign In"
 msgstr "Anmelden"
 
-#: templates/hero.html:113 templates/hero.html:145
+#: templates/hero.html:115 templates/hero.html:147
 msgid "Real-time updates"
 msgstr "Echtzeit-Updates"
 
-#: templates/hero.html:115
+#: templates/hero.html:117
 msgid "Seamless Document Tracking, Complete Peace of Mind."
 msgstr "Nahtlose Dokumentenverfolgung, vollständige Sorglosigkeit."
 
-#: templates/hero.html:118
+#: templates/hero.html:120
 msgid ""
 "Welcome to nexora. Securely monitor your document's journey from import "
 "to validation and final delivery in real-time. Access a complete, "
@@ -5173,39 +5191,39 @@ msgstr ""
 "Echtzeit. Greifen Sie rund um die Uhr auf eine vollständige, "
 "nachvollziehbare Historie zu."
 
-#: templates/hero.html:122
+#: templates/hero.html:124
 msgid "Access Your Portal"
 msgstr "Zugang zu Ihrem Portal"
 
-#: templates/hero.html:126 templates/hero.html:248
+#: templates/hero.html:128 templates/hero.html:250
 msgid "Real-time tracking"
 msgstr "Echtzeit-Verfolgung"
 
-#: templates/hero.html:127 templates/hero.html:255
+#: templates/hero.html:129 templates/hero.html:257
 msgid "Document history"
 msgstr "Dokumenthistorie"
 
-#: templates/hero.html:128 templates/hero.html:262
+#: templates/hero.html:130 templates/hero.html:264
 msgid "Secure access"
 msgstr "Sicherer Zugang"
 
-#: templates/hero.html:138 templates/hero.html:144
+#: templates/hero.html:140 templates/hero.html:146
 msgid "Document Status"
 msgstr "Dokumentstatus"
 
-#: templates/hero.html:151
+#: templates/hero.html:153
 msgid "Invoice"
 msgstr "Rechnung"
 
-#: templates/hero.html:158
+#: templates/hero.html:160
 msgid "Contract"
 msgstr "Vertrag"
 
-#: templates/hero.html:183
+#: templates/hero.html:185
 msgid "Visualize Your Document's Journey"
 msgstr "Visualisieren Sie den Weg Ihres Dokuments"
 
-#: templates/hero.html:186
+#: templates/hero.html:188
 msgid ""
 "Our automated system handles every step with precision and security. "
 "Follow along as a document is processed in real-time."
@@ -5213,32 +5231,32 @@ msgstr ""
 "Unser automatisiertes System verarbeitet jeden Schritt präzise und "
 "sicher. Verfolgen Sie in Echtzeit, wie ein Dokument verarbeitet wird."
 
-#: templates/hero.html:203 templates/js/_workitems_overview_js.html:17
+#: templates/hero.html:205 templates/js/_workitems_overview_js.html:17
 #: templates/workitems_overview.html:81
 msgid "Import"
 msgstr "Import"
 
-#: templates/hero.html:210
+#: templates/hero.html:212
 msgid "Extraction"
 msgstr "Extraktion"
 
-#: templates/hero.html:217
+#: templates/hero.html:219
 msgid "Validation"
 msgstr "Validierung"
 
-#: templates/hero.html:230
+#: templates/hero.html:232
 msgid "Initializing..."
 msgstr "Initialisierung..."
 
-#: templates/hero.html:240
+#: templates/hero.html:242
 msgid "Why use nexora"
 msgstr "Warum nexora nutzen"
 
-#: templates/hero.html:241
+#: templates/hero.html:243
 msgid "Everything you need in one secure and convenient place"
 msgstr "Alles, was Sie brauchen, an einem sicheren und praktischen Ort"
 
-#: templates/hero.html:249
+#: templates/hero.html:251
 msgid ""
 "Monitor your document's journey from import to validation and final "
 "delivery, every step of the way"
@@ -5246,7 +5264,7 @@ msgstr ""
 "Überwachen Sie den Weg Ihres Dokuments von der Einlieferung bis zur "
 "Validierung und abschließenden Zustellung — Schritt für Schritt."
 
-#: templates/hero.html:256
+#: templates/hero.html:258
 msgid ""
 "Access a complete, auditable history of all your processed documents "
 "available 24/7."
@@ -5254,7 +5272,7 @@ msgstr ""
 "Greifen Sie rund um die Uhr auf eine vollständige, nachvollziehbare "
 "Historie aller verarbeiteten Dokumente zu."
 
-#: templates/hero.html:263
+#: templates/hero.html:265
 msgid ""
 "Your data is protected with industry-leading security protocols, ensuring"
 " complete confidentiality"
@@ -5262,11 +5280,11 @@ msgstr ""
 "Ihre Daten sind mit branchenführenden Sicherheitsprotokollen geschützt "
 "und vollständige Vertraulichkeit ist gewährleistet."
 
-#: templates/hero.html:272
+#: templates/hero.html:274
 msgid "Ready to See Your Documents in Action?"
 msgstr "Bereit, Ihre Dokumente in Aktion zu sehen?"
 
-#: templates/hero.html:275
+#: templates/hero.html:277
 msgid ""
 "Log in to your portal to access real-time tracking, view your history, "
 "and manage your workflow with confidence."
@@ -5274,7 +5292,7 @@ msgstr ""
 "Melden Sie sich bei Ihrem Portal an, um Echtzeit-Verfolgung zu nutzen, "
 "Ihre Historie einzusehen und Ihren Workflow souverän zu verwalten."
 
-#: templates/hero.html:278
+#: templates/hero.html:280
 msgid "Access Your Portal Now"
 msgstr "Jetzt auf Ihr Portal zugreifen"
 
@@ -5284,22 +5302,22 @@ msgstr "Anmeldung - nexora"
 
 #: templates/admin/access_control.html:156 templates/admin/logs.html:44
 #: templates/admin/modals/_user_modals.html:32 templates/admin/sessions.html:29
-#: templates/admin/user_detail.html:37 templates/index.html:98
+#: templates/admin/user_detail.html:37 templates/index.html:99
 #: templates/profile.html:137
 msgid "Username"
 msgstr "Benutzername"
 
-#: templates/index.html:105
+#: templates/index.html:106
 msgid "Your Username"
 msgstr "Ihr Benutzername"
 
 #: templates/admin/access_control.html:191
-#: templates/admin/modals/_user_modals.html:71 templates/index.html:109
+#: templates/admin/modals/_user_modals.html:71 templates/index.html:110
 #: templates/profile.html:65 templates/set_password.html:106
 msgid "Password"
 msgstr "Passwort"
 
-#: templates/index.html:118 templates/init_reset.html:112
+#: templates/index.html:119 templates/init_reset.html:112
 #: templates/init_reset.html:127 templates/profile.html:198
 #: templates/profile.html:209 templates/profile.html:226
 #: templates/reset_password.html:112 templates/reset_password.html:127
@@ -5307,15 +5325,15 @@ msgstr "Passwort"
 msgid "Toggle password visibility"
 msgstr "Passwortsichtbarkeit umschalten"
 
-#: templates/index.html:127
+#: templates/index.html:128
 msgid "Remember me"
 msgstr "Angemeldet bleiben"
 
-#: templates/index.html:130
+#: templates/index.html:131
 msgid "Forgot password"
 msgstr "Passwort vergessen"
 
-#: templates/index.html:134
+#: templates/index.html:135
 msgid "Sign in"
 msgstr "Anmelden"
 
@@ -5391,21 +5409,21 @@ msgstr "Neues Passwort bestätigen"
 msgid "Maintenance - nexora"
 msgstr "Wartung - nexora"
 
-#: templates/maintenance.html:134
+#: templates/maintenance.html:143
 msgid "Scheduled Maintenance"
 msgstr "Geplante Wartung"
 
-#: templates/maintenance.html:135
+#: templates/maintenance.html:144
 msgid "The application is temporarily unavailable. Please check back shortly."
 msgstr ""
 "Die Anwendung ist vorübergehend nicht verfügbar. Bitte versuchen Sie es "
 "in Kürze erneut."
 
-#: templates/maintenance.html:157
+#: templates/maintenance.html:166
 msgid "Login"
 msgstr "Anmelden"
 
-#: templates/maintenance.html:163
+#: templates/maintenance.html:172
 msgid "Expected to end at"
 msgstr "Voraussichtliches Ende um"
 
@@ -6392,10 +6410,6 @@ msgstr "%(tenant)s Workitems"
 #: templates/workitems_overview.html:62
 msgid "Workitems of this tenant's processes only."
 msgstr "Nur Workitems aus den Prozessen dieses Tenants."
-
-#: templates/workitems_overview.html:64 templates/workitems_overview.html:320
-msgid "Workitems"
-msgstr "Workitems"
 
 #: templates/workitems_overview.html:67
 msgid "Every workitem you may see, across all tenants."
@@ -8103,6 +8117,7 @@ msgid "What does an 403 Error mean?"
 msgstr "Was bedeutet ein 403-Fehler?"
 
 #: templates/handlers/403.html:7 templates/handlers/500.html:7
+#: templates/handlers/csrf.html:19
 msgid "Report a problem"
 msgstr "Problem melden"
 
@@ -8154,37 +8169,60 @@ msgstr "Was bedeutet ein 500-Fehler?"
 msgid "Go back"
 msgstr "Zurück"
 
-#: templates/handlers/_error_base.html:71
+#: templates/handlers/_error_base.html:76
 msgid "Take me home"
 msgstr "Zur Startseite"
 
-#: templates/handlers/_error_base.html:87
+#: templates/handlers/_error_base.html:92
 msgid "Documentation"
 msgstr "Dokumentation"
 
-#: templates/handlers/_error_base.html:90
+#: templates/handlers/_error_base.html:95
 msgid "Read documentation"
 msgstr "Dokumentation lesen"
 
-#: templates/handlers/_error_base.html:103
+#: templates/handlers/_error_base.html:108
 msgid "Our client magazine"
 msgstr "Unser Kundenmagazin"
 
-#: templates/handlers/_error_base.html:104
+#: templates/handlers/_error_base.html:109
 msgid "Read the latest edition on our website."
 msgstr "Lesen Sie die neueste Ausgabe auf unserer Website."
 
-#: templates/handlers/_error_base.html:106
+#: templates/handlers/_error_base.html:111
 msgid "Read latest edition"
 msgstr "Neueste Ausgabe lesen"
 
-#: templates/handlers/_error_base.html:119
+#: templates/handlers/_error_base.html:124
 msgid "Chat to us"
 msgstr "Mit uns chatten"
 
-#: templates/handlers/_error_base.html:122
+#: templates/handlers/_error_base.html:127
 msgid "Chat to our team"
 msgstr "Mit unserem Team chatten"
+
+#: templates/handlers/csrf.html:12
+msgid "Page out of date"
+msgstr "Seite veraltet"
+
+#: templates/handlers/csrf.html:13
+msgid "This page expired"
+msgstr "Diese Seite ist abgelaufen"
+
+#: templates/handlers/csrf.html:14
+msgid ""
+"This page had been open too long, so nexora could not verify the form you"
+" sent. Nothing went wrong and nothing was saved — load the page again and"
+" your next try will work."
+msgstr "Diese Seite war zu lange geöffnet, daher konnte nexora das gesendete Formular nicht prüfen. Es ist nichts schiefgegangen und nichts wurde gespeichert — laden Sie die Seite neu, dann funktioniert der nächste Versuch."
+
+#: templates/handlers/csrf.html:16
+msgid "Try again"
+msgstr "Erneut versuchen"
+
+#: templates/handlers/csrf.html:18
+msgid "Why does a page expire?"
+msgstr "Warum läuft eine Seite ab?"
 
 #: templates/js/_dashboard_js.html:14
 msgid "No data to display"

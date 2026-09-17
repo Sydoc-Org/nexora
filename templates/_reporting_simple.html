@@ -26,10 +26,18 @@
       <span class="rs-search-wrap"><i class="fas fa-magnifying-glass" aria-hidden="true"></i>
         <input id="rsSearch" class="rc-input reporting-simple-search"
                placeholder="{{ _('Search reports…') }}" data-testid="rs-search"></span>
-      <select id="rsSort" class="rc-select" data-testid="rs-sort" aria-label="{{ _('Sort reports') }}">
-        <option value="updated">{{ _("Recently updated") }}</option>
-        <option value="name">{{ _("Name") }}</option>
-      </select>
+      {# The wrapper is display:contents on a desktop, so the select stays a
+         direct flex child of the row and nothing changes there. On a phone it
+         becomes a 48px box holding the icon, with the select laid over it at
+         opacity 0 -- a tap opens the native picker, which is a better list of
+         options than anything we would build, and needs no new JS. #}
+      <span class="rs-sort-wrap">
+        <i class="fas fa-sliders rs-sort-ico" aria-hidden="true"></i>
+        <select id="rsSort" class="rc-select" data-testid="rs-sort" aria-label="{{ _('Sort reports') }}">
+          <option value="updated">{{ _("Recently updated") }}</option>
+          <option value="name">{{ _("Name") }}</option>
+        </select>
+      </span>
       <span class="rc-layout-toggle" role="group" aria-label="{{ _('Card layout') }}">
         <button type="button" id="rsLayout2" title="{{ _('2 per row') }}" aria-label="{{ _('2 per row') }}"
                 data-testid="rs-layout-2"><i class="fas fa-table-cells-large" aria-hidden="true"></i></button>

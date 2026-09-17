@@ -252,6 +252,14 @@ body.nx-app .nx-main {
   padding: 44px 40px 28px;
   box-sizing: border-box;
 }
+/* The 40px side gutter is a desktop measure. On a 375px screen it spent 80px
+   -- over a fifth of the display -- on empty margin, squeezing the content
+   column to 287px and making every table, tile and chart narrower than it
+   needed to be. Mirrors what _header.css already does for `.container` at
+   this width (#354 follow-up). */
+@media (max-width: 768px) {
+  body.nx-app .nx-main { padding: 24px 16px 20px; }
+}
 
 /* Page header: title + subtitle on the left, actions on the right,
    with a hair-thin accent keyline under the title block. */
@@ -566,6 +574,27 @@ html.dark.nx-stripes .admin-table tbody tr:not(.details-row):nth-child(even) td 
   .nx-kpi { padding: 14px 18px 12px; }
   .nx-kpi:nth-child(odd)  { border-left: none; }
   .nx-kpi:nth-child(n+3)  { border-top: 1px solid var(--nx-divider); }
+}
+
+/* Phone tuning (#354 follow-up). Deliberately keyed on WIDTH, not on the
+   touch gate that guards the phone nav in _header.css: these are plain
+   layout bugs that bite any narrow window, a half-screen desktop one
+   included, and both were clipping content rather than merely looking
+   cramped. The nav is the thing that must never turn phone-shaped on a
+   desktop; a KPI tile that fits its own box is just correct everywhere. */
+@media (max-width: 480px) {
+  /* The sparkline is 120px with flex-shrink: 0, sitting beside the value in
+     a tile whose content box is ~94px at 375px wide -- so each tile held
+     187px of content in 94px and simply cut the value and delta off. Below
+     ~480px there is no width where a 120px spark and the number both fit,
+     and the number is the point: the same trend is drawn full width in the
+     charts further down the page. */
+  .nx-kpi__spark { display: none; }
+  .nx-kpi__body { gap: 8px; }
+  .nx-kpi { padding: 12px 14px 10px; }
+  /* The label is uppercase with .09em tracking, so "AVG. PROCESSING TIME"
+     ran to three lines and shoved the number down. */
+  .nx-kpi__label { letter-spacing: .05em; }
 }
 
 /* ---------- Segmented control ---------- */
@@ -1351,3 +1380,113 @@ html.dark .flatpickr-calendar.arrowTop::after { border-bottom-color: var(--nx-ca
 html.dark .flatpickr-calendar.arrowBottom::before,
 html.dark .flatpickr-calendar.arrowBottom::after { border-top-color: var(--nx-card); }
 html.dark .flatpickr-day:hover { background: var(--nx-alt); }
+
+/* ============================================================
+   TOUCH TARGETS ON THE SIGNED-OUT PAGES (#354)
+
+   Keyed on `pointer: coarse`, NOT on width -- deliberately, and for a
+   different reason than the phone nav's gate. Target size is a property of
+   the *finger*, not of the screen: a 20px link is just as hard to hit on a
+   tablet as on a phone, and perfectly fine with a mouse at any width. So this
+   follows the input device wherever it is, and a narrow desktop window keeps
+   the compact footer it has today.
+
+   44px is the floor both Apple and Google publish for a touch target. The
+   footer links and the forgot-password link measured 20px tall -- roughly half
+   of that -- on the two pages every user meets before they are signed in.
+   ============================================================ */
+@media (pointer: coarse) {
+  .nx-footer-links a,
+  [data-testid="login-forgot"] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    /* Short words ("Help", "Team") were only ~35px wide, which with the row's
+       16px gap leaves neighbouring targets close enough to mis-tap. */
+    min-width: 44px;
+    padding-inline: 2px;
+  }
+}
+
+/* The shared signed-out footer (templates/_small_footer.html) carries the
+   sydoc mark at h-24 (96px). On a 375px screen that makes it the largest
+   thing on the login page after the form itself. Lives here rather than in
+   hero.css because the login page loads auth.css, not hero.css -- both load
+   this file. Width-keyed: it is about how much room the image takes. */
+@media (max-width: 480px) {
+  footer img[alt="sydoc-logo"] { height: 4rem; }
+}
+
+/* ============================================================
+   SHARED CONTROL SIZING ON TOUCH (#354)
+
+   Pointer-keyed, not width-keyed: how big a control must be follows the
+   finger, not the screen, so a narrow desktop window is untouched and a
+   tablet gets the same treatment as a phone.
+
+   These are the shared components, so one rule here covers pages that were
+   never individually reviewed. `.nx-btn--sm` alone appears in 20 templates
+   and rendered 34px tall -- it was the single most common too-small control
+   in the app, and the only thing wrong with all thirteen Generali pages,
+   none of which overflow.
+
+   44px is the floor Apple and Google both publish.
+   ============================================================ */
+@media (pointer: coarse) {
+  .nx-btn,
+  .nx-btn--sm { min-height: 44px; }
+
+  /* Width only where a control would otherwise be genuinely tiny. A blanket
+     min-width on every button padded ordinary text buttons out for no reason
+     and made a wrapped toolbar look chunky and accidental -- "Export CSV" was
+     never hard to hit. Single-character page numbers are: the import-status
+     pagination renders them as .nx-btn--sm and they came out 29-32px wide,
+     pressed against each other. */
+  #paginationControls .nx-btn,
+  .nx-pagination .nx-btn { min-width: 44px; }
+
+  /* Icon-only buttons have no text to give them width, and they carry an
+     aria-label precisely because of that -- which makes the attribute a
+     reliable signal for "this one needs a minimum width" without padding out
+     every button that already has a word in it. */
+  .nx-btn[aria-label] {
+    min-width: 44px;
+    justify-content: center;
+  }
+
+  /* Segmented controls and pagination put their buttons flush against each
+     other, so an undersized one is not just hard to hit -- it is easy to hit
+     the wrong one. */
+  .nx-segmented__btn,
+  .pagination-link { min-width: 44px; min-height: 44px; }
+
+  /* The container must grow with them. `.nx-segmented` sets a fixed
+     `height: var(--ctl-h)` (~29px) and `overflow: hidden`, so raising only
+     the buttons clipped them inside a box less than half their height --
+     which read as bad padding and off-centre labels on the dashboard's
+     14d/30d/90d switch. Centre them too: with the box no longer exactly the
+     button height, the text needs to be told where to sit. */
+  .nx-segmented {
+    height: auto;
+    min-height: 44px;
+    align-items: stretch;
+  }
+  .nx-segmented__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Tabs size to their label, so a short one ("All") came out 33px wide.
+     Where a tab strip scrolls on its own axis the extra width costs
+     nothing, and tabs are primary navigation. */
+  .nx-tab { min-height: 44px; min-width: 44px; justify-content: center; }
+
+  /* Form controls. `.nx-input` rendered 41px and `.nx-select` 39px -- close
+     enough to look fine and still under the floor, and they are what every
+     admin page's search and filter row is built from. */
+  .nx-input,
+  .nx-select,
+  textarea.nx-input { min-height: 44px; }
+}

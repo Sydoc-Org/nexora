@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="{{ static_v('css/nexora-ui.css') }}">
     <link rel="stylesheet" href="{{ static_v('css/_header.css') }}">
     <link rel="icon" type="image/x-icon" href="{{ static_v('images/favicon.ico') }}">
+    {% include '_app_manifest.html' %}
     <script nonce="{{ csp_nonce() }}">
         /* Delegated click binding for `data-nx-click="someGlobalFn()"`. The
            #193 CSP work dropped inline onclick attributes; the admin
@@ -167,10 +168,17 @@
             </div>
             {% endif %}
 
+            {# Two consumers: the sidebar loop right below, and the phone tab
+               bar after </aside> (#354). Keep this set above both -- moving it
+               down would silently empty the tab bar's slots.
+               'short' is the tab bar's label: a bar slot is ~90px wide, where
+               "Global Dashboard" renders as "Global Dash...". The sidebar
+               keeps the full label, which is what disambiguates it from a
+               tenant's own mounted Dashboard. #}
             {% set nav_items = [
-                {'perm': page_visibility.dashboardPagePerm,  'url': url_for('dashboard', tenant=''), 'icon': 'fa-gauge-high',          'label': _('Global Dashboard'),              'active': active_page == 'dashboard'},
-                {'perm': page_visibility.reportingPagePerm, 'url': url_for('reporting'),           'icon': 'fa-chart-column',        'label': _('Global Reporting'),       'active': active_page == 'reporting', 'always': true},
-{'perm': page_visibility.workitemsPagePerm, 'url': url_for('workitems_overview', tenant=''), 'icon': 'fa-layer-group',         'label': _('Global Workitems'),              'active': active_page == 'workitems_overview'},
+                {'perm': page_visibility.dashboardPagePerm,  'key': 'dashboard', 'url': url_for('dashboard', tenant=''), 'icon': 'fa-gauge-high',          'label': _('Global Dashboard'), 'short': _('Dashboard'),              'active': active_page == 'dashboard'},
+                {'perm': page_visibility.reportingPagePerm, 'key': 'reporting', 'url': url_for('reporting'),           'icon': 'fa-chart-column',        'label': _('Global Reporting'), 'short': _('Reporting'),       'active': active_page == 'reporting', 'always': true},
+{'perm': page_visibility.workitemsPagePerm, 'key': 'workitems', 'url': url_for('workitems_overview', tenant=''), 'icon': 'fa-layer-group',         'label': _('Global Workitems'), 'short': _('Workitems'),              'active': active_page == 'workitems_overview'},
             ] %}
 
             {# A user inside exactly ONE tenant reaches Dashboard/Workitems through
@@ -284,6 +292,21 @@
                 <span class="sidebar-label" id="sidebar-pin-label">{{ _("Keep sidebar open") }}</span>
             </button>
 
+            {# Reload (#354). An installed home-screen app runs with no browser
+               chrome at all -- no address bar, no reload button -- so on iOS
+               there is otherwise NO way to reload a page. Android's standalone
+               mode keeps pull-to-refresh; iOS does not, and does not support
+               minimal-ui either, so the app has to offer this itself.
+
+               Hidden unless actually running installed (display-mode:
+               standalone), because in a browser tab the reload button already
+               exists and this would just be clutter. #}
+            <button id="nx-reload" class="sidebar-nav-item sidebar-reload" type="button"
+                    title="{{ _('Reload') }}" data-testid="header-reload">
+                <i class="fas fa-rotate-right sidebar-nav-icon"></i>
+                <span class="sidebar-label">{{ _("Reload") }}</span>
+            </button>
+
             <!-- Dark mode toggle -->
             <button id="dark-mode-toggle" class="sidebar-nav-item" title="{{ _('Toggle dark mode') }}" data-testid="header-dark-mode-toggle">
                 <i id="dark-mode-icon" class="fas fa-moon sidebar-nav-icon"></i>
@@ -355,6 +378,77 @@
         </div>
     </aside>
     <!-- ========== END SIDEBAR ========== -->
+
+    {# ========== PHONE TAB BAR (#354) ==========
+       A bottom bar in the thumb zone, and the sidebar above re-styled as a
+       bottom sheet behind its "More" slot. Both are visible ONLY under the
+       touch gate in _header.css -- `(max-width: 768px) and (pointer: coarse)
+       and (hover: none)`. A narrow DESKTOP window (a half-screen window, or
+       200% browser zoom, both of which drop the CSS viewport under 768px)
+       keeps the hamburger drawer instead, because a mouse machine reports
+       `pointer: fine` / `hover: hover` whatever its width. See the CSS block
+       for why the gate uses `pointer:` and never `any-pointer:`.
+
+       Rendered on every page and display:none otherwise -- no user-agent
+       sniffing on the server, so nothing here can be fooled by a UA string
+       and nothing varies by cache key.
+
+       Slots reuse the sidebar's own permission-filtered sources, never a
+       second copy of the permission logic: `nav_items` (set above, inside the
+       sidebar nav -- keep it above this block) for a staff/multi-tenant user,
+       or the user's own tenant pages for a `tenant_solo` one, which are
+       already filtered by _tenant_nav_page() (#300). A slot the user may not
+       see is not rendered at all -- never a dead tab. #}
+    {% macro tabbar_item(url, icon, label, on, testid) -%}
+    <a href="{{ url }}" class="nx-tabbar-item {{ 'nx-tabbar-item--active' if on else '' }}"
+       {% if on %}aria-current="page"{% endif %} data-testid="{{ testid }}">
+        <i class="fas {{ icon }} nx-tabbar-icon"></i>
+        <span class="nx-tabbar-label">{{ label }}</span>
+    </a>
+    {%- endmacro %}
+
+    <nav class="nx-tabbar" aria-label="{{ _('Main navigation') }}" data-testid="mobilenav-bar">
+        {% if tenant_solo and tenant_nav %}
+        {# The tenant's own pages ARE this user's workspace (#255), so the bar
+           carries the first three of them rather than the Global entries,
+           which for them would be the same pages under another name. #}
+        {% set t = tenant_nav[0] %}
+        {% for p in t.pages[:3] %}
+        {% if p.page_type == 'custom' %}
+        {% set on = (active_page == p.active) if p.active != p.endpoint else (tenant_scoped == t.code and active_page == p.endpoint) %}
+        {% set icon = p.icon %}
+        {% else %}
+        {% set on = active_page == ('tenant_' ~ t.code ~ '_' ~ p.key) %}
+        {% set icon = 'fa-table-list' %}
+        {% endif %}
+        {{ tabbar_item(p.url, icon, p.label, on, 'mobilenav-slot-' ~ p.key) }}
+        {% endfor %}
+        {% else %}
+        {# The bar cannot reuse `item.active`. That flag answers "is the SIDEBAR's
+           Global entry the current page", and for anyone scoped to a tenant the
+           answer is always no: a tenant-mounted Dashboard sets active_page to
+           `tenant_<code>_dashboard` (0097) and Workitems to
+           `tenant_<code>_workitems` (0098), neither of which equals 'dashboard'
+           or 'workitems_overview'. In the sidebar that is right -- the tenant's
+           own group lights up instead -- but the bar has no tenant group to
+           light, so no slot lit at all on the two pages people open most.
+           Match both spellings here. Every reporting sub-page already sets
+           active_page = 'reporting'. #}
+        {% set ap = active_page or '' %}
+        {% for item in nav_items if item.perm %}
+        {% set on = (item.key == 'dashboard' and (ap == 'dashboard' or ap.endswith('_dashboard')))
+                 or (item.key == 'workitems' and (ap == 'workitems_overview' or ap.endswith('_workitems')))
+                 or (item.key == 'reporting' and ap == 'reporting') %}
+        {{ tabbar_item(item.url, item.icon, item.short, on, 'mobilenav-slot-' ~ loop.index) }}
+        {% endfor %}
+        {% endif %}
+
+        <button type="button" id="nx-tabbar-more" class="nx-tabbar-item"
+                aria-controls="nexora-sidebar" aria-expanded="false" data-testid="mobilenav-more">
+            <i class="fas fa-ellipsis nx-tabbar-icon"></i>
+            <span class="nx-tabbar-label">{{ _("More") }}</span>
+        </button>
+    </nav>
 
     <!-- ========== COMMAND PALETTE (Ctrl/Cmd+K) ========== -->
     <div id="cmdkOverlay" class="cmdk-overlay" hidden>
