@@ -253,6 +253,19 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   line, and left the card grid narrower than every other screen. 16px there
   now, matching `.nx-main` everywhere else — the topbar went from 108px to
   53px and the whole view gained 27px of width.
+- **The dashboard builder's head is a tidy block on a phone** (#354) — it
+  wrapped into four ragged rows: *Library* alone, the title, then five controls
+  at three different heights (a 31px "Editing" pill, a 36px *Add card*, 48px
+  buttons) breaking two-and-two and stopping **170px short** of the right edge.
+  That hole was the odd gap on the side. The title now takes its own row and
+  the actions pair two to a row at equal widths, so every row ends flush; a
+  lone third action (the view-mode set is Present / Export / Edit) grows to the
+  full width instead of sitting in a corner, and all of them reach 44px. The
+  "Editing" pill goes: it only appears while editing, which is exactly when the
+  primary button reads *Done*. *Library* becomes a plain crumb like the
+  wizard's, so its row reads as a header line rather than one button marooned
+  in 254px of space. Scoped with `:not(.rl-head)` — the Report definitions list
+  reuses the same class for a different set of controls.
 - **The tab bar gets out of the way of the software keyboard** (#354) — the
   bar is fixed to the bottom of the viewport, so on iOS the keyboard pushed it
   up and parked four nav slots directly above the keys: every tap meant for a

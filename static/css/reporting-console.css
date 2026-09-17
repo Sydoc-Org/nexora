@@ -2100,6 +2100,43 @@ body.reporting-console.rdb-fullbleed .reporting-layouts { max-width: none; paddi
     body.reporting-console.rdb-fullbleed .rc-shell,
     body.reporting-console.rdb-fullbleed .reporting-shell { padding-inline: 16px; }
 
+    /* The builder head wrapped into four ragged rows: Back alone, the title,
+       then five controls at three different heights -- a 31px pill, a 36px
+       "Add card", 48px buttons -- breaking two-and-two and leaving a 170px
+       hole after Done. That gap is the "weird space on the side".
+
+       The title takes its own row, and the actions pair up two to a row at
+       equal widths so the row always ends flush. A lone third action (the
+       view-mode set is Present / Export / Edit) grows to the full width
+       rather than sitting in a corner.
+
+       `:not(.rl-head)` because the Report definitions list reuses the same
+       class for its own head -- these rules are about the builder's controls,
+       and that screen has a different set. */
+    body.reporting-console .rdb-head:not(.rl-head) { row-gap: 10px; column-gap: 8px; }
+    body.reporting-console .rdb-head:not(.rl-head) > .rdb-spacer { display: none; }
+    body.reporting-console .rdb-head:not(.rl-head) > .rdb-titleblock { flex: 1 0 100%; }
+    body.reporting-console .rdb-head:not(.rl-head) > .nx-btn:not(#rdbBack),
+    body.reporting-console .rdb-head:not(.rl-head) > .rdb-addcard-btn {
+        flex: 1 1 calc(50% - 8px);
+        justify-content: center;
+        min-height: 44px;
+    }
+    /* The pill only appears while editing, which is precisely when the primary
+       button reads "Done" -- the same fact twice, and a phone row cannot
+       afford to say anything twice. */
+    body.reporting-console #rdbEditingPill { display: none; }
+    /* Back keeps its own row, so as a bordered button it read as one button
+       marooned in 254px of empty space. Stripped to a plain crumb -- the same
+       shape the wizard uses one screen earlier -- that row reads as a header
+       line instead, and the space beside it stops looking like a gap. */
+    body.reporting-console #rdbBack {
+        background: transparent;
+        border-color: transparent;
+        padding-left: 0;
+        padding-right: 0;
+    }
+
     /* The "So far" panel sits below a step list that runs into the thousands
        of pixels, so on a phone it is never where you are looking. The rail
        chips and the footer's picked-count already carry the same information

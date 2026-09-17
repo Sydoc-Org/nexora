@@ -1089,6 +1089,75 @@ def test_api_docs_nav_still_sticks_on_a_narrow_desktop_window(nexora_server, nar
     ), "a narrow desktop window lost the sticky docs nav -- the gate is matching on width alone"
 
 
+def test_dashboard_builder_head_fits_a_phone(nexora_server, phone_page):
+    """New dashboard's head wrapped into four ragged rows: Back alone, the
+    title, then five controls at three different heights -- a 31px "Editing"
+    pill, a 36px Add card, 48px buttons -- breaking two-and-two and leaving a
+    170px hole after Done.
+
+    The title takes its own row now and the actions pair up two to a row at
+    equal widths, so each row ends flush with the head. The pill goes: it only
+    shows while editing, which is exactly when the primary button reads
+    "Done".
+    """
+    page = phone_page
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting")
+    page.wait_for_load_state("load")
+    page.wait_for_timeout(1500)
+    page.click("#rsNewDashboard")
+    page.locator(".rdb-head:not(.rl-head)").wait_for(state="visible")
+    page.wait_for_timeout(900)
+
+    got = page.evaluate(
+        "() => { const q = s => document.querySelector(s);"
+        "        const head = q('.rdb-head:not(.rl-head)');"
+        "        const hr = head.getBoundingClientRect();"
+        "        const acts = [...head.children].filter(e =>"
+        "            e.getClientRects().length && /BUTTON/.test(e.tagName)"
+        "            && e.id !== 'rdbBack')"
+        "          .map(e => { const r = e.getBoundingClientRect();"
+        "              return {id: e.id, t: Math.round(r.top),"
+        "                      w: Math.round(r.width), h: Math.round(r.height),"
+        "                      right: Math.round(r.right)}; });"
+        "        const pill = q('#rdbEditingPill');"
+        "        return {headRight: Math.round(hr.right),"
+        "                headWidth: Math.round(hr.width),"
+        "                acts,"
+        "                pillShown: pill ? !!pill.getClientRects().length : null,"
+        "                scrollW: document.documentElement.scrollWidth,"
+        "                vw: document.documentElement.clientWidth}; }"
+    )
+
+    assert not got["pillShown"], (
+        "the Editing pill is back on a phone -- it repeats what the Done button "
+        "already says and costs a row"
+    )
+    acts = got["acts"]
+    assert len(acts) >= 3, f"expected the builder's action buttons, got {acts}"
+    for a in acts:
+        assert a["h"] >= 44, f"{a['id']} is {a['h']}px tall, under the 44px target"
+
+    # Every row of actions must end flush with the head -- the ragged hole was
+    # a row that stopped 170px short.
+    rows = {}
+    for a in acts:
+        rows.setdefault(a["t"], []).append(a)
+    for top, row in rows.items():
+        widest_gap = got["headRight"] - max(x["right"] for x in row)
+        assert widest_gap <= 4, (
+            f"the action row at {top}px stops {widest_gap}px short of the head's "
+            "right edge, leaving the gap back"
+        )
+        if len(row) > 1:
+            ws = [x["w"] for x in row]
+            assert max(ws) - min(ws) <= 3, f"actions on one row are uneven: {ws}"
+
+    assert (
+        got["scrollW"] <= got["vw"] + 1
+    ), f"the builder scrolls sideways: {got['scrollW']}px in {got['vw']}px"
+
+
 def _bar_shown(page):
     return page.evaluate(
         "() => { const b = document.querySelector('.nx-tabbar');"
