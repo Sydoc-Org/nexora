@@ -208,6 +208,17 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Library screen's equal-halves rule (`.rc-screen-head > .rc-btn`) also matched
   the wizard head, which reuses `.rc-screen-head`, so the `×` stretched across
   the screen with a lone glyph in the middle. Icon buttons are excluded now.
+- **Dashboard head and filter row on a phone** (#354) — both rows end in a
+  block pushed right by `margin-left: auto`: the live clock plus *Refresh* in
+  the head, the 14/30/90 day switch in the filter row. On a wide desktop row
+  that is correct. On a phone the row wraps and the pushed block keeps its
+  right alignment **on a line of its own**, so it sat hard against the right
+  edge with half a row of dead space beside it — the range switch started
+  203px into a 355px row, and the clock 47px in. Both read as dropped there
+  rather than placed. The clock now starts at the page edge with *Refresh* at
+  the far end, and the range switch spans the row as three equal thirds, so it
+  reads as one control the width of the page. Desktop measured before and
+  after: the push, the spacer and the right-aligned switch are all unchanged.
 - **The tab bar gets out of the way of the software keyboard** (#354) — the
   bar is fixed to the bottom of the viewport, so on iOS the keyboard pushed it
   up and parked four nav slots directly above the keys: every tap meant for a

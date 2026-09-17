@@ -934,6 +934,69 @@ def test_new_report_wizard_fits_a_phone(nexora_server, phone_page):
     assert seen_any, "the wizard never offered a way forward"
 
 
+def test_dashboard_controls_are_not_stranded_on_a_phone(nexora_server, phone_page):
+    """Both dashboard rows end in a block pushed right by `margin-left: auto`
+    -- the live clock plus Refresh in the head, the 14/30/90 switch in the
+    filter row. On a wide desktop row that is right. On a phone the row wraps
+    and the pushed block keeps its right alignment on a line of its own, so it
+    sat hard against the right edge with half a row of dead space beside it:
+    measured, the range switch started 203px into a 355px row, which is what
+    "out of place" looked like.
+
+    Both rows should now use the full content width.
+    """
+    page = phone_page
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/dashboard")
+    page.wait_for_load_state("load")
+    page.locator("#dash-range").wait_for(state="visible")
+    page.wait_for_timeout(600)
+
+    got = page.evaluate(
+        "() => { const q = s => document.querySelector(s);"
+        "        const r = e => e.getBoundingClientRect();"
+        "        const head = q('.nx-dash-head'), right = q('.nx-dash-head__right');"
+        "        const row = q('.nx-dash-filter'), seg = q('#dash-range');"
+        "        const btns = [...seg.querySelectorAll('.nx-segmented__btn')]"
+        "                       .map(b => Math.round(r(b).width));"
+        "        return {headL: Math.round(r(head).left),"
+        "                headW: Math.round(r(head).width),"
+        "                rightL: Math.round(r(right).left),"
+        "                rightW: Math.round(r(right).width),"
+        "                rowL: Math.round(r(row).left),"
+        "                rowW: Math.round(r(row).width),"
+        "                segL: Math.round(r(seg).left),"
+        "                segW: Math.round(r(seg).width),"
+        "                btns,"
+        "                scrollW: document.documentElement.scrollWidth,"
+        "                vw: document.documentElement.clientWidth}; }"
+    )
+
+    # Rect against rect throughout -- scaled pixels under mobile emulation.
+    assert got["rightL"] <= got["headL"] + 2, (
+        f"the Updated/Refresh block starts {got['rightL'] - got['headL']}px in from "
+        "the page edge -- it is still being pushed right onto its own line"
+    )
+    assert got["rightW"] > got["headW"] * 0.9, (
+        f"that block is {got['rightW']}px of a {got['headW']}px row, so the clock "
+        "and Refresh are still bunched at one end"
+    )
+    assert got["segL"] <= got["rowL"] + 2, (
+        f"the 14/30/90 switch starts {got['segL'] - got['rowL']}px into the row -- "
+        "stranded against the right edge again"
+    )
+    assert got["segW"] > got["rowW"] * 0.9, (
+        f"the switch is {got['segW']}px of a {got['rowW']}px row rather than " "spanning it"
+    )
+    assert len(got["btns"]) == 3, f"expected three range buttons, got {got['btns']}"
+    assert (
+        max(got["btns"]) - min(got["btns"]) <= 3
+    ), f"the three range buttons are uneven: {got['btns']}"
+    assert (
+        got["scrollW"] <= got["vw"] + 1
+    ), f"the dashboard scrolls sideways: {got['scrollW']}px in {got['vw']}px"
+
+
 def _bar_shown(page):
     return page.evaluate(
         "() => { const b = document.querySelector('.nx-tabbar');"
