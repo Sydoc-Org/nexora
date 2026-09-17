@@ -1902,8 +1902,10 @@ body.reporting-console.rdb-fullbleed .reporting-layouts { max-width: none; paddi
        pay for the break twice. */
     .rc-screen-head > .rc-screen-spacer { flex: 1 0 100%; height: 0; }
     /* Equal halves rather than each sized to its label, which left "New
-       dashboard" half again as wide as "New report". */
-    .rc-screen-head > .rc-btn {
+       dashboard" half again as wide as "New report". Icon buttons are
+       excluded: the wizard head reuses .rc-screen-head, and its close button
+       was being stretched into a full-width bar with a lone x in the middle. */
+    .rc-screen-head > .rc-btn:not(.rc-btn--icon) {
         flex: 1 1 0;
         justify-content: center;
         margin-top: 10px;
@@ -1975,6 +1977,20 @@ body.reporting-console.rdb-fullbleed .reporting-layouts { max-width: none; paddi
     .rc-body { gap: 12px; margin-top: 14px; }
     .reporting-simple { padding-block: 8px 24px; }
 
+    /* The wizard head reuses .rc-screen-head but is a title bar, not a pair of
+       actions: the line break that puts New dashboard / New report on their
+       own row leaves the close button stranded on one. */
+    .rs-wizard-head > .rc-screen-spacer { flex: 1 1 auto; height: 0; }
+    .rs-wizard-head > .rc-btn { margin-top: 0; }
+    /* Needs the body class to outrank `body.reporting-console .rc-h1`, which
+       the title also carries -- at the desktop size it filled the row on its
+       own and pushed the close button onto a line of its own. */
+    body.reporting-console .rs-wizard-title { font-size: 1.3rem; }
+    /* "Step 1 of 4" repeats what the rail directly below it already shows,
+       with the current step highlighted. On a phone that row is the scarcest
+       space on the screen. */
+    body.reporting-console .rs-wizard-stepno { display: none; }
+
     /* Help and Eddard are icon-only on a phone -- their labels are hidden
        below the sm breakpoint -- and a bordered box around a single glyph
        reads as two little empty cards sitting in the header. Drop the box and
@@ -2027,5 +2043,102 @@ body.reporting-console.rdb-fullbleed .reporting-layouts { max-width: none; paddi
         min-width: 0;
         width: 100%;
         justify-content: center;
+    }
+}
+
+/* The new-report wizard on a phone (#354).
+
+   Measured before this: the step card was a 232px box floating in the middle
+   of a 320px column with 44px of dead gutter either side, and the choices
+   inside it were 186px of a 390px screen. That is the "small box" -- it comes
+   from `.rs-wizard-grid`'s `padding: 0 40px 40px`, written for a 1120px
+   centred layout and never re-stated for the console. */
+@media (max-width: 768px) and (pointer: coarse) {
+    body.reporting-console .rs-wizard-grid {
+        padding: 0 0 20px;
+        gap: 10px;
+        margin-top: 10px;
+    }
+    body.reporting-console .rs-wizard-stepcard { padding: 14px; }
+
+    /* The "So far" panel sits below a step list that runs into the thousands
+       of pixels, so on a phone it is never where you are looking. The rail
+       chips and the footer's picked-count already carry the same information
+       where you can see them. */
+    body.reporting-console .rs-wizard-summary { display: none; }
+
+    /* Choices were pills sized to their own text, so they packed two to a row
+       at ragged widths and a long measure name wrapped inside a 183px pill.
+       One full-width row each: easier to hit, and the name reads on one line.
+       Left-aligned because a column of centred labels has no edge to scan. */
+    body.reporting-console .reporting-simple-choices {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 8px;
+    }
+    body.reporting-console .reporting-simple-choice {
+        width: 100%;
+        text-align: left;
+        border-radius: 10px;
+        padding: 11px 14px;
+        min-height: 44px;
+        font-size: 14px;
+    }
+
+    /* The measure step alone is ~4,600px of choices, which put Continue that
+       far below the thing you just tapped -- you had to scroll past every
+       remaining option to move on. Sticky pins it to the bottom of the screen
+       instead, clearing the tab bar and the home indicator. */
+    body.reporting-console .rs-wizard-footer {
+        position: sticky;
+        /* Flush against the tab bar, with no gap: an 8px one let a strip of
+           the choices scroll visibly between the two bars, which read as the
+           footer having come loose. */
+        bottom: calc(var(--nx-tabbar-h) + env(safe-area-inset-bottom));
+        z-index: 2;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 16px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+        /* Same colour as the card it sits in, so the choices scrolling behind
+           it are covered rather than showing through. */
+        background: var(--nx-card);
+    }
+    /* The tab bar hides while a field holds focus (the date range, a filter
+       value), so the footer has to drop with it or it hangs in mid-air. */
+    html.nx-typing body.reporting-console .rs-wizard-footer {
+        bottom: env(safe-area-inset-bottom);
+    }
+    body.reporting-console .rs-wizard-footer .nx-btn--primary {
+        flex: 1 1 auto;
+        justify-content: center;
+    }
+
+    /* Thumb-sized targets for the wizard's own controls, which are plain
+       labels and links rather than the rc- and rs- components the touch block
+       above covers. Measured at 30px (process rows), 33px (granularity),
+       35px (add filter) and 20px (the Library crumb). */
+    body.reporting-console .reporting-simple-scopestep label {
+        display: flex;
+        align-items: center;
+        min-height: 44px;
+    }
+    /* Deliberately smaller than 44px: the box itself only has to be visible,
+       because the label around it is the target and that is now 44px tall and
+       the full width of the card. Do not "fix" this one. */
+    body.reporting-console .reporting-simple-scopestep input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+    }
+    body.reporting-console #rsGrain,
+    body.reporting-console #rsTimeField { min-height: 44px; }
+    body.reporting-console #rsAddFilter { min-height: 44px; }
+    /* Padding rather than a taller line: the crumb keeps its text size and
+       just gets a box you can actually hit. */
+    body.reporting-console .rs-wizard-head .rc-crumb-link {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
     }
 }

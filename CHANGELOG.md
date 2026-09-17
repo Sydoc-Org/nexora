@@ -184,6 +184,30 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   is a `<button>`, which centres its content when the grid stretches it, so
   once previews stopped being a uniform 78px one card's badge sat 24px lower
   than its neighbour's.
+- **The new-report wizard is laid out for a phone** (#354) — the worst screen
+  of the lot. The step card was a **232px box floating in the middle of a 320px
+  column**, 44px of dead gutter either side, with the choices inside it at
+  186px of a 390px screen: `.rs-wizard-grid` carries `padding: 0 40px 40px`
+  from the pre-console layout, which was never restated for the console and on
+  a phone spends a quarter of the screen on nothing. The card now fills the
+  width and the choices are full-width rows rather than pills packed two to a
+  line at ragged widths.
+  **The footer is sticky there.** The measure step alone is ~4,600px of
+  options, so *Continue* sat that far below the option you had just tapped —
+  you had to scroll past every remaining choice to move on. It now pins to the
+  bottom of the screen, flush against the tab bar, and drops with the bar when
+  the keyboard opens. A test walks the whole wizard and asserts the forward
+  button is on screen at every step.
+  Also on a phone: the "So far" panel is hidden (it sat below that same
+  thousands-of-pixels list, where nobody will ever see it — the rail chips and
+  the footer's picked-count say the same thing where you are looking), the
+  redundant "Step 1 of 4" counter goes (the rail directly beneath it already
+  highlights the step), and the process rows, granularity select, "Add filter"
+  and the Library crumb all reach 44px.
+- **Fixed: the wizard's close button was a full-width bar** (#354) — the
+  Library screen's equal-halves rule (`.rc-screen-head > .rc-btn`) also matched
+  the wizard head, which reuses `.rc-screen-head`, so the `×` stretched across
+  the screen with a lone glyph in the middle. Icon buttons are excluded now.
 - **The tab bar gets out of the way of the software keyboard** (#354) — the
   bar is fixed to the bottom of the viewport, so on iOS the keyboard pushed it
   up and parked four nav slots directly above the keys: every tap meant for a

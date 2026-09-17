@@ -23,6 +23,8 @@ import pytest
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import expect
 
+from tests.e2e.test_reporting_simple import _stub_catalogs
+
 PHONE = {"width": 390, "height": 844}
 
 
@@ -842,6 +844,94 @@ def test_library_card_charts_are_not_clipped_on_a_phone(nexora_server, phone_pag
     finally:
         for rid in made:
             page.request.delete(f"{nexora_server}/api/reporting/reports/{rid}", headers=headers)
+
+
+def test_new_report_wizard_fits_a_phone(nexora_server, phone_page):
+    """Creating a report was the worst screen on a phone: the step card was a
+    232px box floating in the middle of a 320px column with 44px of dead gutter
+    either side, and the choices inside it were 186px of a 390px screen. The
+    cause was `.rs-wizard-grid`'s `padding: 0 40px 40px`, written for a 1120px
+    centred layout and never restated for the console.
+
+    The measure step alone runs about 4,600px of options, so Continue sat that
+    far below the option you had just tapped -- you had to scroll past every
+    remaining choice to move on. The footer is sticky on a phone now, which is
+    what walking the wizard proves: at every step, the button that moves you
+    forward is on screen without scrolling.
+
+    Catalogs are stubbed (same helper the reporting suite uses) because the
+    measure list is empty without seeded metrics, and an empty list would make
+    every assertion below vacuous.
+    """
+    page = phone_page
+    _stub_catalogs(page)
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.wait_for_load_state("load")
+    page.wait_for_timeout(1200)
+    page.get_by_test_id("rs-new-report").click()
+    page.locator("#rsWizard").wait_for(state="visible")
+    page.locator(".reporting-simple-choice").first.wait_for(state="visible")
+
+    layout = page.evaluate(
+        "() => { const q = s => document.querySelector(s);"
+        "        const r = e => e.getBoundingClientRect();"
+        "        return {cardW: Math.round(r(q('.rs-wizard-stepcard')).width),"
+        "                gridW: Math.round(r(q('.rs-wizard-grid')).width),"
+        "                choiceW: Math.round(r(q('.reporting-simple-choice')).width),"
+        "                closeW: Math.round(r(q('#rsWizardClose')).width),"
+        "                scrollW: document.documentElement.scrollWidth,"
+        "                vw: document.documentElement.clientWidth}; }"
+    )
+    # Rect against rect -- these are scaled pixels under mobile emulation.
+    assert layout["cardW"] > layout["gridW"] * 0.95, (
+        f"the step card is {layout['cardW']}px inside a {layout['gridW']}px column "
+        "-- the desktop side padding is back, so it is a small box again"
+    )
+    assert layout["choiceW"] > layout["cardW"] * 0.8, (
+        f"choices are {layout['choiceW']}px in a {layout['cardW']}px card -- they "
+        "are packing as pills again instead of full-width rows"
+    )
+    assert layout["closeW"] < layout["gridW"] * 0.5, (
+        f"the close button is {layout['closeW']}px wide -- the Library screen's "
+        "equal-halves rule is stretching it into a bar again"
+    )
+    assert (
+        layout["scrollW"] <= layout["vw"] + 1
+    ), f"the wizard scrolls sideways: {layout['scrollW']}px in {layout['vw']}px"
+
+    # Walk it. Which steps appear depends on the source (a single-process one
+    # skips "Which processes?"), so follow whichever forward button is showing
+    # rather than assuming a fixed four.
+    forward_ids = ["#rsMeasureNext", "#rsScopeNext", "#rsBreakdownNext", "#rsWizardRun"]
+    page.locator(".reporting-simple-choice").first.click()
+    page.wait_for_timeout(600)
+
+    seen_any = False
+    for _ in range(len(forward_ids)):
+        state = page.evaluate(
+            "(ids) => { for (const id of ids) {"
+            "   const e = document.querySelector(id);"
+            "   if (!e || e.hidden || !e.getClientRects().length) continue;"
+            "   const r = e.getBoundingClientRect();"
+            "   return {id, top: Math.round(r.top),"
+            "           onScreen: r.top >= 0 && r.bottom <= window.innerHeight + 1}; }"
+            " return null; }",
+            forward_ids,
+        )
+        assert state is not None, "no forward button is showing, so the wizard is a dead end"
+        assert state["onScreen"], (
+            f"{state['id']} is at {state['top']}px, off the bottom of the screen -- "
+            "the footer is not sticking, so you would have to scroll the whole "
+            "option list to move on"
+        )
+        seen_any = True
+        if state["id"] == "#rsWizardRun":
+            break
+        page.click(state["id"])
+        page.wait_for_timeout(900)
+
+    assert seen_any, "the wizard never offered a way forward"
 
 
 def _bar_shown(page):
