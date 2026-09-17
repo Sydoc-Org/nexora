@@ -161,6 +161,29 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `body.nx-app .nx-main` had already dropped to 16px, so it was the odd one
   out. Net **+34px of chrome** (first report 365px → 399px) — paid knowingly,
   for a search field you can read and hit.
+- **Library search takes the row; sort becomes a filter button** (#354) — a
+  follow-up to the band layout above, from using it on a phone: the search now
+  runs the full width with a 48px filter button beside it, instead of giving
+  sort a row of its own. The button is the same `<select>` laid over an icon at
+  `opacity: 0`, so a tap opens the platform's own picker and the options stay
+  real `<option>`s — no menu to build, keep in sync or dismiss. The
+  2-vs-4-per-row toggle is hidden there: the ≤900px block already collapses
+  `is-cols-4` to two columns, so on a phone both settings drew the same grid
+  while costing the search its width. Help and Eddard lose their button boxes
+  on a phone too — their labels are hidden at that size, so they were bordered
+  boxes around a single glyph.
+- **Library card charts were cut off on a phone** (#354) — the card preview is
+  a row (facts left, chart right) whose fixed parts come to more than a ~150px
+  phone card: facts at 34%, a 28px gap, and a thumb with `min-width: 90px` that
+  therefore could not shrink. The chart ran 39px past the card's right edge and
+  `overflow: hidden` took the rest. Stacked on a phone, so the chart gets the
+  full card width and centres under the facts. That exposed two more: the
+  preview is pinned to a hard `height: 78px` in `reporting.css` while the
+  console rule only ever raised `min-height`, so taller stacked content clipped
+  from the bottom instead (the donut lost 31px, the line 51px); and `.rs-card`
+  is a `<button>`, which centres its content when the grid stretches it, so
+  once previews stopped being a uniform 78px one card's badge sat 24px lower
+  than its neighbour's.
 - **The tab bar gets out of the way of the software keyboard** (#354) — the
   bar is fixed to the bottom of the viewport, so on iOS the keyboard pushed it
   up and parked four nav slots directly above the keys: every tap meant for a

@@ -697,10 +697,11 @@ def test_library_search_gets_a_row_of_its_own(nexora_server, phone_page):
     search collapsed to about the width of its own magnifier -- roughly 20px
     for the one control you type into.
 
-    Search now takes a whole row, which pushes sort onto the next one, and the
-    two primary actions share a row at equal widths. Also checks the font is at
-    least 16px: below that iOS zooms the page in when the field takes focus and
-    leaves the layout scrolled sideways after the keyboard closes.
+    Search now takes the row, with sort collapsed to a 48px filter button
+    beside it, and the two primary actions share a row above at equal widths.
+    Also checks the font is at least 16px: below that iOS zooms the page in
+    when the field takes focus and leaves the layout scrolled sideways after
+    the keyboard closes.
     """
     page = phone_page
     _login(page, nexora_server)
@@ -717,7 +718,10 @@ def test_library_search_gets_a_row_of_its_own(nexora_server, phone_page):
         "                searchW: Math.round(r(search).width),"
         "                searchH: Math.round(r(search).height),"
         "                fontPx: parseFloat(getComputedStyle(search).fontSize),"
-        "                sortTop: Math.round(r(q('#rsSort')).top),"
+        "                sortLeft: Math.round(r(q('.rs-sort-wrap')).left),"
+        "                sortW: Math.round(r(q('.rs-sort-wrap')).width),"
+        "                searchRight: Math.round(r(search).right),"
+        "                toggleShown: !!q('.rc-layout-toggle').getClientRects().length,"
         "                searchTop: Math.round(r(search).top),"
         "                dashW: Math.round(r(a).width), repW: Math.round(r(b).width),"
         "                dashTop: Math.round(r(a).top), repTop: Math.round(r(b).top)}; }"
@@ -725,12 +729,22 @@ def test_library_search_gets_a_row_of_its_own(nexora_server, phone_page):
 
     # Rect widths are scaled under mobile emulation, so compare rect to rect
     # rather than to a CSS pixel count.
-    assert got["searchW"] > got["rowW"] * 0.9, (
-        f"search is {got['searchW']}px of a {got['rowW']}px row -- it is sharing "
-        "the row again instead of owning one"
+    assert got["searchW"] > got["rowW"] * 0.7, (
+        f"search is {got['searchW']}px of a {got['rowW']}px row -- the controls "
+        "beside it are eating the width again"
     )
-    assert got["sortTop"] > got["searchTop"], (
-        "the sort dropdown is back on the search's row " f"(both at {got['searchTop']}px)"
+    assert not got["toggleShown"], (
+        "the 2-vs-4-per-row toggle is visible on a phone, where the <=900px "
+        "block already forces two columns, so it changes nothing and costs the "
+        "search its width"
+    )
+    assert got["sortLeft"] >= got["searchRight"] - 1, (
+        f"the filter button (left {got['sortLeft']}px) overlaps the search "
+        f"(right {got['searchRight']}px) instead of sitting beside it"
+    )
+    assert got["sortW"] < got["searchW"], (
+        f"the filter button is {got['sortW']}px wide against a {got['searchW']}px "
+        "search -- it is still rendering as a full dropdown"
     )
     assert got["fontPx"] >= 16, f"search is {got['fontPx']}px -- iOS will zoom the page in on focus"
     assert got["dashTop"] == got["repTop"], (
@@ -740,6 +754,94 @@ def test_library_search_gets_a_row_of_its_own(nexora_server, phone_page):
     assert (
         abs(got["dashW"] - got["repW"]) <= 2
     ), f"the two actions are unequal: {got['dashW']}px vs {got['repW']}px"
+
+
+def test_library_card_charts_are_not_clipped_on_a_phone(nexora_server, phone_page):
+    """The card preview is a row on a desktop: facts left, chart right. At
+    phone width the card is ~150px and the row's fixed parts (facts at 34%, a
+    28px gap, a thumb that will not go below 90px) add up to more, so the chart
+    ran past the card's right edge and was cut off by `overflow: hidden`.
+
+    Stacking it exposed a second cut: reporting.css pins the preview to a hard
+    `height: 78px` and the console rule only raised `min-height`, so the taller
+    stacked content clipped from the bottom instead.
+
+    Seeds real reports because an empty Library renders no cards at all, and
+    deletes them again -- this runs against the shared INT database.
+    """
+    page = phone_page
+    _login(page, nexora_server)
+    token = page.evaluate("() => document.querySelector('meta[name=csrf-token]').content")
+    headers = {"X-CSRFToken": token, "Content-Type": "application/json"}
+    # No "kind": the list API then calls it "table". The Library drops
+    # kind == "sql", so a SQL definition would render nothing to measure.
+    defs = [
+        (
+            "zz-phone-clip-donut",
+            {
+                "source": "statistics",
+                "visualization": "donut",
+                "columns": [{"field": "Status"}, {"field": "Total"}],
+            },
+        ),
+        (
+            "zz-phone-clip-line",
+            {
+                "source": "statistics",
+                "visualization": "line",
+                "columns": [{"field": "CreatedDate", "grain": "month"}, {"field": "Total"}],
+            },
+        ),
+    ]
+    made = []
+    try:
+        for name, defn in defs:
+            res = page.request.post(
+                f"{nexora_server}/api/reporting/reports",
+                headers=headers,
+                data={"name": name, "definition": defn},
+            )
+            assert res.ok, res.text()
+            made.append(res.json()["id"])
+
+        page.goto(f"{nexora_server}/reporting")
+        page.wait_for_load_state("load")
+        page.locator(".rs-card").first.wait_for(state="visible")
+        page.wait_for_timeout(600)
+
+        cards = page.evaluate(
+            "() => [...document.querySelectorAll('.rs-card')].map(c => {"
+            "  const r = e => e.getBoundingClientRect();"
+            "  const pv = c.querySelector('.rs-card-preview');"
+            "  const sv = c.querySelector('.rs-card-svg');"
+            "  const tag = c.querySelector('.rs-card-tag');"
+            "  if (!pv || !sv) return null;"
+            "  return {name: (c.querySelector('.rs-card-name')||{}).innerText || '',"
+            "          overRight: Math.round(r(sv).right - r(c).right),"
+            "          overBottom: Math.round(r(sv).bottom - r(pv).bottom),"
+            "          badgeTop: Math.round(r(tag).top)};"
+            "}).filter(Boolean)"
+        )
+        assert cards, "no cards with charts rendered, so nothing was measured"
+        for c in cards:
+            assert c["overRight"] <= 1, (
+                f"{c['name']!r}: the chart runs {c['overRight']}px past the card's "
+                "right edge, so overflow:hidden cuts it off"
+            )
+            assert c["overBottom"] <= 1, (
+                f"{c['name']!r}: the chart runs {c['overBottom']}px below the "
+                "preview box, so its bottom is cut off"
+            )
+        # A <button> centres its content when the grid stretches it taller than
+        # that content, which left one card's badge sitting lower than its
+        # neighbour's once previews stopped being a fixed height.
+        tops = {c["badgeTop"] for c in cards}
+        assert (
+            len(tops) <= 1 or max(tops) - min(tops) <= 2
+        ), f"cards in a row start their content at different heights: {sorted(tops)}"
+    finally:
+        for rid in made:
+            page.request.delete(f"{nexora_server}/api/reporting/reports/{rid}", headers=headers)
 
 
 def _bar_shown(page):

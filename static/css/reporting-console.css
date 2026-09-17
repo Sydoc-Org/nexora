@@ -292,6 +292,11 @@ html.nx-motion-reduced .src-pulse { animation: none; }
   margin-top: 12px;
 }
 body.reporting-console .rs-search-wrap { position: relative; flex: 1; display: block; }
+/* Sort wrapper: `contents` means the select is still the row's own flex child
+   here, so the desktop filter row lays out exactly as it did before the
+   wrapper existed. The phone block below turns it into a real box. */
+body.reporting-console .rs-sort-wrap { display: contents; }
+body.reporting-console .rs-sort-ico { display: none; }
 body.reporting-console .rs-search-wrap > i {
   position: absolute;
   left: 10px;
@@ -1904,15 +1909,55 @@ body.reporting-console.rdb-fullbleed .reporting-layouts { max-width: none; paddi
         margin-top: 10px;
     }
 
-    .rc-filter-row { flex-wrap: wrap; row-gap: 8px; }
-    /* Needs `body.reporting-console` to outrank the `flex: 1` on the same
-       element further up; `1 0 100%` takes a whole row, which is what pushes
-       sort and the toggle down instead of leaving them to compete with the
-       input for space. The wrapper stays `display: block` and positioned --
-       the magnifier inside it is absolute against it. */
-    body.reporting-console .rc-filter-row > .rs-search-wrap { flex: 1 0 100%; }
-    .rc-filter-row > .rc-select { flex: 1 1 auto; }
-    .rc-filter-row > .rc-layout-toggle { flex: 0 0 auto; }
+    /* One row: the search takes everything the filter button does not.
+       `body.reporting-console` is needed to outrank the `flex: 1` set on the
+       same element further up. The wrapper stays `display: block` and
+       positioned -- the magnifier inside it is absolute against it. */
+    .rc-filter-row { flex-wrap: nowrap; }
+    body.reporting-console .rc-filter-row > .rs-search-wrap { flex: 1 1 auto; min-width: 0; }
+
+    /* The 2-vs-4-per-row toggle does nothing on a phone: the ≤900px block
+       above already collapses `.is-cols-4` to two columns, so both settings
+       render the same grid. A control with no effect is not worth the width
+       the search needs. */
+    .rc-filter-row > .rc-layout-toggle { display: none; }
+
+    /* Sort becomes the filter button beside the search. The select covers the
+       box at opacity 0 rather than being restyled: a tap anywhere on the box
+       opens the platform's own picker, and the options stay real <option>s,
+       so nothing here has to reimplement a menu, keep it in sync, or handle
+       its own dismissal. */
+    body.reporting-console .rs-sort-wrap {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        width: 48px;
+        min-height: 44px;
+        border: 1px solid var(--nx-border);
+        border-radius: calc(var(--nx-radius-scale, 1) * 8px);
+        background: var(--nx-card);
+    }
+    body.reporting-console .rs-sort-ico {
+        display: block;
+        font-size: 15px;
+        color: var(--nx-text-sec);
+    }
+    body.reporting-console .rs-sort-wrap > .rc-select {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        min-height: 0;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        opacity: 0;
+        /* Invisible, but iOS still reads the font size and zooms the page in
+           below 16px when the picker opens. */
+        font-size: 16px;
+    }
 
     /* 16px is the threshold below which iOS zooms the page in when a field
        takes focus, which then leaves the layout scrolled sideways after the
@@ -1929,4 +1974,58 @@ body.reporting-console.rdb-fullbleed .reporting-layouts { max-width: none; paddi
     body.reporting-console .rc-shell { padding-top: 16px; padding-bottom: 16px; }
     .rc-body { gap: 12px; margin-top: 14px; }
     .reporting-simple { padding-block: 8px 24px; }
+
+    /* Help and Eddard are icon-only on a phone -- their labels are hidden
+       below the sm breakpoint -- and a bordered box around a single glyph
+       reads as two little empty cards sitting in the header. Drop the box and
+       keep the glyph; the 44px tap target comes from the touch block above
+       and is unaffected. */
+    #rpHelpToggle,
+    #rpChatToggle {
+        background: transparent;
+        border-color: transparent;
+        padding: 0;
+        justify-content: center;
+    }
+
+    /* The card preview is a row on a desktop: facts on the left, chart on the
+       right. On a phone the card is ~150px wide, and the row's fixed parts --
+       facts at 34%, a 28px gap, and a thumb that refuses to go below 90px --
+       add up to more than that. The thumb could not shrink, so it ran past
+       the card's right edge and `overflow: hidden` cut the chart in half
+       (measured: a 153px card with its thumbnail ending 39px outside it).
+       Stacked instead, so the chart gets the card's full width and sits
+       centred under the facts. */
+    body.reporting-console .rs-card-preview {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
+        /* reporting.css pins this box to a hard `height: 78px` from the older
+           card design, and the console rule only ever raised `min-height`, so
+           the height stood. Stacked content is ~93px, and the box clips, which
+           is what cut the bottom third off every chart (measured: the donut
+           lost 31px, the line 51px). */
+        height: auto;
+    }
+    /* A <button> centres its content vertically when it is taller than that
+       content, and the grid stretches every card in a row to the tallest one.
+       That was invisible while every preview was a fixed 78px (identical
+       content heights); now that previews size to their facts, a card with
+       fewer facts had its badge and title sitting 24px lower than its
+       neighbour's. Making the button an explicit flex column puts its
+       content back at the top; `align-content: flex-start` does not reach a
+       button's anonymous box in Chromium (tried, measured, no change). */
+    body.reporting-console .rs-card {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: flex-start;
+    }
+    body.reporting-console .rs-card-facts { flex: 0 0 auto; }
+    body.reporting-console .rs-card-thumb {
+        flex: 0 0 auto;
+        min-width: 0;
+        width: 100%;
+        justify-content: center;
+    }
 }
