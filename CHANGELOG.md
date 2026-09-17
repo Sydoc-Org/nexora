@@ -129,6 +129,23 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   reload a page. The More sheet now carries a Reload, shown only when
   `display-mode: standalone` — in a browser tab the browser's own button
   makes it redundant.
+- **The reporting console is laid out for a phone, not shrunk** (#354) —
+  fitting is not designing. After the overflow work the console still spent
+  **572px of an 844px screen on chrome before the first report**: a 117px
+  topbar, then the rail at 161px *wrapped across four ragged rows*, then a 91px
+  screen head and a 48px filter row. The rail is a left column on a desktop;
+  wrapping it into a grid is what made it a wall — six buttons at four
+  different vertical positions, reading as spilled rather than laid out. It is
+  now a single horizontally scrolling strip, the phone-native shape for
+  switching screens inside a page, at 59px instead of 161. The topbar packs
+  onto one row (53px, was 117) once the flex spacer stops pushing Help and
+  Eddard onto a line of their own and the "N sources" chip goes — that chip
+  counts the Sources rail cards, which have been hidden below 900px all along,
+  so on a phone it reported on something unreachable. **First report now at
+  407px instead of 572** — about a fifth of the screen handed back to content.
+  Tests assert the strip still offers every screen and that the last one can be
+  scrolled to and activated: a strip that hid screens would be worse than the
+  wall it replaced.
 - **Reporting pages on a phone** (#354) — every one of the five overflowed,
   `/reporting` by 212px, the worst in the app. The cause was not a
   desktop-only design but one mistake repeated: a mobile override dropping

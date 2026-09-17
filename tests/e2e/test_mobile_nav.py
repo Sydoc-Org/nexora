@@ -611,3 +611,74 @@ def test_the_session_is_rechecked_when_the_app_comes_back(nexora_server, phone_p
     page.wait_for_timeout(800)
 
     assert len(calls) > before, "coming back to the foreground did not recheck the session"
+
+
+@pytest.mark.flaky_e2e
+def test_reporting_rail_is_a_scrollable_strip_on_a_phone(nexora_server, phone_page):
+    """The console's rail is a left column on a desktop. Wrapped onto a phone it
+    became six buttons at four different vertical positions -- 161px of ragged
+    chrome, which is what "it's just a smaller version of the desktop page"
+    meant. It is now one horizontally scrolling strip.
+
+    The thing that must not break: a strip that hides screens with no way to
+    reach them would be worse than the wall it replaced. So this asserts the
+    strip really scrolls, still offers every screen, and that the last one can
+    be brought into view and activated.
+    """
+    page = phone_page
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting")
+    page.wait_for_load_state("load")
+    page.wait_for_timeout(1500)
+
+    strip = page.evaluate(
+        "() => { const rail = document.querySelector('.rc-rail');"
+        "        const navs = [...rail.querySelectorAll('.rc-nav')];"
+        "        return {scrollable: rail.scrollWidth > rail.clientWidth + 1,"
+        "                count: navs.length,"
+        "                rows: new Set(navs.map(n =>"
+        "                        Math.round(n.getBoundingClientRect().top))).size}; }"
+    )
+    assert strip["count"] >= 4, f"the rail lost screens: {strip}"
+    assert (
+        strip["rows"] <= 2
+    ), f"the rail is wrapping onto {strip['rows']} rows again, not scrolling: {strip}"
+    assert strip[
+        "scrollable"
+    ], "the strip is not scrollable, so any screen past the fold is unreachable"
+
+    last = page.locator(".rc-rail .rc-nav").last
+    last.scroll_into_view_if_needed()
+    page.wait_for_timeout(300)
+    last.click()
+    page.wait_for_timeout(800)
+    # Assert the class rather than reading the label: the button's text
+    # carries a count on its own line, and escaping a newline through to
+    # page.evaluate is a trap that has already bitten this file twice.
+    assert last.evaluate(
+        "e => e.classList.contains('is-active')"
+    ), "clicking the last screen in the strip did not activate it"
+
+
+@pytest.mark.flaky_e2e
+def test_reporting_does_not_spend_the_screen_on_chrome(nexora_server, phone_page):
+    """Measured before this work: 572px of an 844px phone screen went on chrome
+    before the first report -- a 117px topbar, a 161px wrapped rail, a 91px
+    screen head and a 48px filter row. Fitting is not designing.
+    """
+    page = phone_page
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting")
+    page.wait_for_load_state("load")
+    page.wait_for_timeout(1500)
+
+    top = page.evaluate(
+        "() => { const e = document.querySelector('.rc-group-head')"
+        "                || document.querySelector('.rs-group-empty-name');"
+        "        return e ? Math.round(e.getBoundingClientRect().top) : null; }"
+    )
+    assert top is not None, "no report group rendered, so nothing to measure"
+    assert top < 470, (
+        f"the first report starts {top}px down the screen -- the console is "
+        "spending the phone on chrome again"
+    )

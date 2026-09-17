@@ -1817,3 +1817,64 @@ body.reporting-console.rdb-fullbleed .reporting-layouts { max-width: none; paddi
   }
   td .reporting-link + .reporting-link { margin-left: 6px; }
 }
+
+/* ============================================================
+   PHONE: the console's own navigation (#354 follow-up)
+
+   Making the page FIT a phone is not the same as designing it for one. After
+   the overflow work this page still spent 572px of an 844px screen on chrome
+   before the first report: a 117px topbar, then the rail at 161px wrapped
+   across FOUR ragged rows, then a 91px screen head and a 48px filter row.
+
+   The rail is a left column on a desktop. Wrapping it into a grid is what
+   makes it a wall -- six buttons at four different vertical positions, none
+   aligned, reading as spilled rather than laid out. A single horizontally
+   scrolling strip is the phone-native shape for switching between screens
+   inside a page, and it costs one row instead of four. Every screen stays
+   reachable; the partially-visible next button is the affordance that says so.
+   ============================================================ */
+@media (max-width: 768px) and (pointer: coarse) {
+    .rc-rail {
+        flex-direction: row;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        /* Do not let a flick through the screens drag the page with it. */
+        overscroll-behavior-x: contain;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        gap: 6px;
+        /* No margin of its own -- .rc-body already supplies the gap above, and
+           adding one here stacked two spacings into a visible dead band. */
+        margin-top: 0;
+    }
+    .rc-rail::-webkit-scrollbar { display: none; }
+
+    /* "WORKSPACE" is a column heading for a column that no longer exists, and
+       it was taking a slot in the strip. The strip needs no title. */
+    .rc-rail > .rc-rail-label { display: none; }
+
+    /* Each button keeps its own width and stops shrinking -- without this the
+       flex row squeezes them all to fit and the labels ellipsis away. */
+    .rc-rail .rc-nav {
+        flex: 0 0 auto;
+        white-space: nowrap;
+    }
+
+    /* The topbar was 117px because a flex spacer sat between the title and the
+       Help/Eddard buttons: in a wrapping row a spacer takes the whole
+       remainder and pushes whatever follows onto its own line. Dropping it
+       lets the two icon buttons sit on the title row, and a slightly smaller
+       title leaves room for them. */
+    .rc-topbar-spacer { display: none; }
+    .rc-apptitle { font-size: 1.35rem; }
+    /* column-gap 10 rather than the desktop 15: with the chip gone the row
+       was SIX pixels short of fitting Eddard beside Help, and four gaps at
+       5px less finds far more than six. */
+    .rc-topbar { row-gap: 6px; column-gap: 10px; }
+
+    /* The "N sources" chip counts the Sources rail cards -- which the ≤900px
+       block above already hides, so on a phone it reports on something you
+       cannot reach. It was also the 74px that stopped Help and Eddard fitting
+       on the title row. */
+    .rc-sync { display: none !important; }
+}
