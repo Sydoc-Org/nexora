@@ -997,6 +997,76 @@ def test_dashboard_controls_are_not_stranded_on_a_phone(nexora_server, phone_pag
     ), f"the dashboard scrolls sideways: {got['scrollW']}px in {got['vw']}px"
 
 
+def test_api_docs_nav_does_not_stick_on_a_phone(nexora_server, phone_page):
+    """`.apidocs-nav` is `position: sticky` so the section list stays beside
+    the docs while they scroll. Below 900px the layout collapses to one column
+    and the nav becomes a full-width block above the text -- sticky then pins
+    it to the top of the screen and it rides down over the content it exists to
+    navigate. Measured on a phone: 582px tall, 55% of the screen, following
+    every scroll.
+    """
+    page = phone_page
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/api-docs")
+    page.wait_for_load_state("load")
+    page.locator(".apidocs-nav").wait_for(state="visible")
+    page.wait_for_timeout(500)
+
+    assert (
+        page.evaluate("() => getComputedStyle(document.querySelector('.apidocs-nav')).position")
+        == "static"
+    ), "the docs nav is still sticky on a phone"
+
+    before = page.evaluate(
+        "() => Math.round(document.querySelector('.apidocs-nav').getBoundingClientRect().top)"
+    )
+    page.mouse.wheel(0, 1400)
+    page.wait_for_timeout(600)
+    after = page.evaluate(
+        "() => Math.round(document.querySelector('.apidocs-nav').getBoundingClientRect().top)"
+    )
+    assert after < before - 400, (
+        f"the nav barely moved when the page scrolled ({before}px -> {after}px), so "
+        "it is still pinned to the screen"
+    )
+
+    # Found while fixing the above: the <=900px rule set a bare `1fr`, whose
+    # automatic minimum is its content, so a long URL in a code sample took the
+    # whole document to 490px in a 390px viewport -- dragging the fixed tab bar
+    # with it until its More slot sat off-screen.
+    over = page.evaluate(
+        "() => ({scrollW: document.documentElement.scrollWidth,"
+        "        vw: document.documentElement.clientWidth,"
+        "        moreOnScreen: (() => {"
+        "          const m = document.querySelector('[data-testid=mobilenav-more]');"
+        "          if (!m) return null;"
+        "          const r = m.getBoundingClientRect();"
+        "          return r.right <= document.documentElement.clientWidth + 1; })()})"
+    )
+    assert (
+        over["scrollW"] <= over["vw"] + 1
+    ), f"the docs page scrolls sideways: {over['scrollW']}px in {over['vw']}px"
+    assert over["moreOnScreen"], "the tab bar's More slot is pushed off the screen"
+
+
+def test_api_docs_nav_still_sticks_on_a_narrow_desktop_window(nexora_server, narrow_desktop_page):
+    """The other direction of the same gate: a 390px-wide mouse window is a
+    snapped or zoomed desktop, and there the sticky nav is the desktop
+    behaviour we must not take away.
+    """
+    page = narrow_desktop_page
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/api-docs")
+    page.wait_for_load_state("load")
+    page.locator(".apidocs-nav").wait_for(state="visible")
+    page.wait_for_timeout(500)
+
+    assert (
+        page.evaluate("() => getComputedStyle(document.querySelector('.apidocs-nav')).position")
+        == "sticky"
+    ), "a narrow desktop window lost the sticky docs nav -- the gate is matching on width alone"
+
+
 def _bar_shown(page):
     return page.evaluate(
         "() => { const b = document.querySelector('.nx-tabbar');"

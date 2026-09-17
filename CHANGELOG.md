@@ -219,6 +219,23 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the far end, and the range switch spans the row as three equal thirds, so it
   reads as one control the width of the page. Desktop measured before and
   after: the push, the spacer and the right-aligned switch are all unchanged.
+- **The API docs guide no longer sticks to a phone screen** (#354) —
+  `.apidocs-nav` is `position: sticky` so the section list stays beside the
+  docs while they scroll. Below 900px the layout is one column and the nav
+  becomes a full-width block *above* the text, so sticky pinned it to the top
+  of the screen and it rode down over the very content it exists to navigate —
+  582px of it, 55% of the screen, following every scroll. It scrolls away like
+  any other block on a phone now. Pointer-gated, and a test pins both
+  directions: a narrow desktop window keeps the sticky nav.
+- **Fixed: /api-docs scrolled sideways on a phone** (#354) — found while
+  fixing the above. The ≤900px rule set a bare `1fr` where the desktop rule
+  spells `minmax(0, 1fr)` — the same dropped `minmax` as the reporting pages.
+  A grid track's automatic minimum is its content, so a long URL inside a code
+  sample stretched the track to 473px and took the whole document to **490px
+  in a 390px viewport**. Everything went with it, including the fixed tab bar,
+  whose **More** slot ended up off the right edge and unreachable. Not
+  pointer-gated: a 390px desktop window was equally broken. Code samples were
+  already `overflow-x: auto`, so they scroll inside their own box as intended.
 - **The tab bar gets out of the way of the software keyboard** (#354) — the
   bar is fixed to the bottom of the viewport, so on iOS the keyboard pushed it
   up and parked four nav slots directly above the keys: every tap meant for a
