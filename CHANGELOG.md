@@ -236,6 +236,23 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   whose **More** slot ended up off the right edge and unreachable. Not
   pointer-gated: a 390px desktop window was equally broken. Code samples were
   already `overflow-x: auto`, so they scroll inside their own box as intended.
+- **The wizard step rail reads as one row on a phone** (#354) — four fully
+  labelled chips need about 495px, and the row is 320px, so *1 Measure ·
+  2 Processes · 3 Breakdown · 4 Time range* broke onto two lines with the
+  connector lines left dangling between them: four pills stacked two-by-two
+  instead of a progress row. Only the step you are on keeps its label now, the
+  rest are their number (or a tick once done), which is the usual phone
+  stepper and fits one line with nothing to scroll. The rail went from 70px to
+  35px with it.
+- **The wizard's close button is no longer a box** (#354) — a 44px bordered
+  square holding one small glyph. Same treatment as Help and Eddard: the box
+  goes, the 44px tap target stays.
+- **The dashboard builder fits a phone** (#354) — it runs full-bleed, and its
+  shell kept a 28px desktop inset: 56px of a 390px screen. That pushed the
+  Eddard button off the title row **by 14px**, so it sat alone on a second
+  line, and left the card grid narrower than every other screen. 16px there
+  now, matching `.nx-main` everywhere else — the topbar went from 108px to
+  53px and the whole view gained 27px of width.
 - **The tab bar gets out of the way of the software keyboard** (#354) — the
   bar is fixed to the bottom of the viewport, so on iOS the keyboard pushed it
   up and parked four nav slots directly above the keys: every tap meant for a

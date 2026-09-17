@@ -2061,6 +2061,45 @@ body.reporting-console.rdb-fullbleed .reporting-layouts { max-width: none; paddi
     }
     body.reporting-console .rs-wizard-stepcard { padding: 14px; }
 
+    /* The four step chips need about 495px fully labelled; the row is 320px,
+       so they broke onto two lines with the connector lines left dangling
+       between them -- four pills stacked two-by-two rather than a progress
+       row. Only the step you are on keeps its label now; the others are their
+       number, or a tick once done. That is how a phone stepper usually reads,
+       it fits one row, and nothing has to scroll to be seen. */
+    body.reporting-console .rs-wizard-rail { flex-wrap: nowrap; }
+    body.reporting-console .rs-rail-step { flex: 0 0 auto; }
+    body.reporting-console .rs-rail-step:not(.is-active) .rs-rail-title { display: none; }
+    body.reporting-console .rs-rail-step:not(.is-active) { padding: 6px 9px; }
+    /* The one labelled chip takes the slack and ellipsises rather than
+       pushing the later steps off the row. */
+    body.reporting-console .rs-rail-step.is-active { flex: 0 1 auto; min-width: 0; }
+    body.reporting-console .rs-rail-step.is-active .rs-rail-title {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    /* Connectors shrink to spread the chips across the row instead of holding
+       a fixed 22px each. */
+    body.reporting-console .rs-rail-line { flex: 1 1 auto; width: auto; min-width: 8px; }
+
+    /* A 44px bordered box holding one small glyph reads as a button looking
+       for a job. Same treatment as Help and Eddard: drop the box, keep the
+       44px target from the touch block. */
+    body.reporting-console #rsWizardClose {
+        background: transparent;
+        border-color: transparent;
+        padding: 0;
+        justify-content: center;
+    }
+
+    /* The dashboard builder runs full-bleed, and its shell keeps a 28px
+       desktop inset -- 56px of a 390px phone. That is what pushed the Eddard
+       button off the title row by 14px, and it left the card grid narrower
+       than every other screen. 16px matches .nx-main everywhere else. */
+    body.reporting-console.rdb-fullbleed .rc-shell,
+    body.reporting-console.rdb-fullbleed .reporting-shell { padding-inline: 16px; }
+
     /* The "So far" panel sits below a step list that runs into the thousands
        of pixels, so on a phone it is never where you are looking. The rail
        chips and the footer's picked-count already carry the same information

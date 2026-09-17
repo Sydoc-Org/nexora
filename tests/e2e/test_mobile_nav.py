@@ -900,6 +900,28 @@ def test_new_report_wizard_fits_a_phone(nexora_server, phone_page):
         layout["scrollW"] <= layout["vw"] + 1
     ), f"the wizard scrolls sideways: {layout['scrollW']}px in {layout['vw']}px"
 
+    # Four fully labelled step chips need ~495px in a 320px row, so they broke
+    # onto two lines with the connectors dangling between them. Only the active
+    # step is labelled now, which fits one row.
+    rail = page.evaluate(
+        "() => { const steps = [...document.querySelectorAll('.rs-rail-step')];"
+        "        const tops = new Set(steps.map(e =>"
+        "                       Math.round(e.getBoundingClientRect().top)));"
+        "        const labelled = steps.filter(e => {"
+        "          const t = e.querySelector('.rs-rail-title');"
+        "          return t && t.getClientRects().length; }).length;"
+        "        return {count: steps.length, rows: tops.size, labelled}; }"
+    )
+    assert rail["count"] >= 3, f"the step rail lost steps: {rail}"
+    assert rail["rows"] == 1, (
+        f"the step rail is on {rail['rows']} rows again -- the chips are stacking "
+        "two-by-two instead of reading as one progress row"
+    )
+    assert rail["labelled"] == 1, (
+        f"{rail['labelled']} step chips are labelled -- only the current one should "
+        "be, or they will not fit a phone row"
+    )
+
     # Walk it. Which steps appear depends on the source (a single-process one
     # skips "Which processes?"), so follow whichever forward button is showing
     # rather than assuming a fixed four.
