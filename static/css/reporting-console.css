@@ -1878,3 +1878,55 @@ body.reporting-console.rdb-fullbleed .reporting-layouts { max-width: none; paddi
        on the title row. */
     .rc-sync { display: none !important; }
 }
+/* Library screen toolbar on a phone (#354 follow-up).
+
+   The search box had collapsed to roughly the width of its own magnifier: it
+   shared a row with the sort dropdown and the layout toggle, and those two have
+   intrinsic widths while a text input shrinks to nothing. The one control you
+   actually type into was the smallest thing on the row.
+
+   Laid out as bands instead, in the order you reach for them: the two primary
+   actions side by side, then search on a row of its own, then sort and the
+   layout toggle sharing the row beneath it. */
+@media (max-width: 768px) and (pointer: coarse) {
+    .rc-screen-head { flex-wrap: wrap; row-gap: 0; }
+    /* The spacer's only job here is to end the title's line so the two actions
+       start a fresh one -- `flex-basis: 100%` is the flexbox line break. That
+       line is empty and 0px tall, so the gap under the title comes from the
+       buttons' own margin; `row-gap` would also apply to the empty line and
+       pay for the break twice. */
+    .rc-screen-head > .rc-screen-spacer { flex: 1 0 100%; height: 0; }
+    /* Equal halves rather than each sized to its label, which left "New
+       dashboard" half again as wide as "New report". */
+    .rc-screen-head > .rc-btn {
+        flex: 1 1 0;
+        justify-content: center;
+        margin-top: 10px;
+    }
+
+    .rc-filter-row { flex-wrap: wrap; row-gap: 8px; }
+    /* Needs `body.reporting-console` to outrank the `flex: 1` on the same
+       element further up; `1 0 100%` takes a whole row, which is what pushes
+       sort and the toggle down instead of leaving them to compete with the
+       input for space. The wrapper stays `display: block` and positioned --
+       the magnifier inside it is absolute against it. */
+    body.reporting-console .rc-filter-row > .rs-search-wrap { flex: 1 0 100%; }
+    .rc-filter-row > .rc-select { flex: 1 1 auto; }
+    .rc-filter-row > .rc-layout-toggle { flex: 0 0 auto; }
+
+    /* 16px is the threshold below which iOS zooms the page in when a field
+       takes focus, which then leaves the layout scrolled sideways after the
+       keyboard closes. The console's inputs are 12.5px by design on a desktop,
+       so raise them only where a keyboard can actually open. */
+    body.reporting-console .rc-input,
+    body.reporting-console .rc-select,
+    body.reporting-console .rc-textarea { font-size: 16px; }
+
+    /* Giving search and the actions a row each cost about 100px of the screen,
+       so pay it back out of the insets, which were sized for a desktop window.
+       44px of page padding matches .nx-main -- and .nx-main is already 16px on
+       a phone, so the console was the odd one out. */
+    body.reporting-console .rc-shell { padding-top: 16px; padding-bottom: 16px; }
+    .rc-body { gap: 12px; margin-top: 14px; }
+    .reporting-simple { padding-block: 8px 24px; }
+}

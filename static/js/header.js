@@ -442,6 +442,45 @@
         });
     })();
 
+    /* ---- Software keyboard: get the tab bar out of the way (#354) ----
+       With interactive-widget=resizes-content the layout viewport shrinks when
+       the keyboard opens, so bottom-anchored things sit above it instead of
+       behind it -- Eddard's composer becomes visible while you type. The
+       trade is that the tab bar would then sit on the keyboard, taking a row
+       of what little height is left, so it hides while a field has focus.
+
+       Keyed off focusin/focusout rather than any keyboard API: there is no
+       reliable cross-browser way to ask whether the software keyboard is up,
+       and "a text field has focus" is the condition we actually care about.
+       Only text-entry controls count -- tapping a checkbox or a button must
+       not make the navigation vanish. */
+    (function() {
+        const TYPES_WITH_KEYBOARD = new Set([
+            'text', 'search', 'email', 'password', 'tel', 'url', 'number',
+            'date', 'datetime-local', 'month', 'time', 'week',
+        ]);
+
+        function opensKeyboard(el) {
+            if (!el) return false;
+            if (el.isContentEditable) return true;
+            const tag = el.tagName;
+            if (tag === 'TEXTAREA') return true;
+            if (tag !== 'INPUT') return false;
+            return TYPES_WITH_KEYBOARD.has((el.type || 'text').toLowerCase());
+        }
+
+        document.addEventListener('focusin', (e) => {
+            if (opensKeyboard(e.target)) {
+                document.documentElement.classList.add('nx-typing');
+            }
+        });
+        document.addEventListener('focusout', (e) => {
+            if (opensKeyboard(e.target)) {
+                document.documentElement.classList.remove('nx-typing');
+            }
+        });
+    })();
+
     /* ---- Mobile sidebar drawer toggle ---- */
     document.addEventListener('DOMContentLoaded', function () {
         const toggle   = document.getElementById('sidebar-toggle');

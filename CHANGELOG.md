@@ -146,6 +146,32 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Tests assert the strip still offers every screen and that the last one can be
   scrolled to and activated: a strip that hid screens would be worse than the
   wall it replaced.
+- **The Library toolbar on a phone** (#354) — search, the sort dropdown and
+  the layout toggle shared one row. Sort and the toggle have intrinsic widths
+  and a text input does not, so search shrank to fit around them and ended up
+  **about 20px wide** — the one control you type into was the smallest thing on
+  the row. The toolbar is three bands now, in the order you reach for them:
+  *New dashboard* and *New report* side by side at equal widths (they were
+  sized to their labels, so one was half again as wide as the other), then
+  search on a row of its own, then sort and the layout toggle beneath it.
+  Inputs on the console also go to **16px** on a phone — below that iOS zooms
+  the page in when a field takes focus and leaves the layout scrolled sideways
+  after the keyboard closes. Three bands cost about 100px, most of which comes
+  back out of the page insets: the console kept a 44px desktop inset that
+  `body.nx-app .nx-main` had already dropped to 16px, so it was the odd one
+  out. Net **+34px of chrome** (first report 365px → 399px) — paid knowingly,
+  for a search field you can read and hit.
+- **The tab bar gets out of the way of the software keyboard** (#354) — the
+  bar is fixed to the bottom of the viewport, so on iOS the keyboard pushed it
+  up and parked four nav slots directly above the keys: every tap meant for a
+  letter risked navigating away mid-sentence. The bar now hides while a field
+  that opens a keyboard holds focus (`html.nx-typing`) and comes straight back
+  on blur. Keyed on the field type, not on a viewport-height guess — a
+  checkbox, a `<select>` or a date picker opens no keyboard and keeps the bar.
+  Viewports also gained `interactive-widget=resizes-content`, so the layout
+  viewport shrinks to the space left above the keyboard instead of the page
+  being scrolled under it. The bar's slots show a `:focus-visible` ring too,
+  for anyone on a phone with a hardware keyboard.
 - **Reporting pages on a phone** (#354) — every one of the five overflowed,
   `/reporting` by 212px, the worst in the app. The cause was not a
   desktop-only design but one mistake repeated: a mobile override dropping

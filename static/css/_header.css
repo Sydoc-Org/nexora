@@ -1189,3 +1189,41 @@ html.dark .nx-tabbar-item:active { background: rgba(148, 163, 184, 0.12); }
 @media (display-mode: standalone) {
     .sidebar-reload { display: flex; }
 }
+
+/* The tab bar gets out of the way while the software keyboard is up (#354).
+
+   `interactive-widget=resizes-content` in the viewport meta makes the layout
+   viewport shrink when the keyboard opens, so everything anchored to
+   `bottom: 0` sits ABOVE the keyboard rather than behind it -- which is what
+   makes Eddard's composer visible while you type into it. The side effect is
+   that the tab bar would then sit on top of the keyboard, eating a row of the
+   little space that is left.
+
+   So while a field has focus the bar hides. Navigation is not what you are
+   doing mid-sentence, and the room is worth more. `body` keeps its bottom
+   padding, so nothing reflows and the page does not jump under your cursor --
+   only the bar itself disappears.
+
+   html.nx-typing is set by static/js/header.js on focusin/focusout. */
+@media (max-width: 768px) and (pointer: coarse) {
+    html.nx-typing .nx-tabbar { display: none; }
+}
+
+/* Focus ring for the bar. A touch device can still have a keyboard -- an iPad
+   with a Magic Keyboard reports `pointer: coarse` and Tabs through the page
+   like anything else -- and all four slots are reachable that way. They were
+   relying on the browser's default 1px `outline: auto`, which is close to
+   invisible against the bar's own background. `:focus-visible`, so it appears
+   for a Tab and not for a tap.
+
+   Note on the interaction with `html.nx-typing` above: while a field has
+   focus the bar is `display: none`, which correctly takes it out of the tab
+   order -- you should not be able to Tab into hidden navigation. The bar
+   returns on focusout. Tabbing straight out of the last field may therefore
+   skip the bar once, which is a fair trade for not having invisible focus
+   targets. */
+.nx-tabbar-item:focus-visible {
+    outline: 2px solid var(--nx-accent, #4f46e5);
+    outline-offset: -3px;
+    border-radius: 8px;
+}

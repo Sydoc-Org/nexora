@@ -545,17 +545,24 @@ def test_eddard_chat_panel_fits_a_phone(nexora_server, phone_page):
         "        const pr = p.getBoundingClientRect(), tr = t.getBoundingClientRect(),"
         "              hr = h.getBoundingClientRect();"
         "        return {panelTop: pr.top, panelBottom: pr.bottom,"
-        "                headTop: hr.top, headBottom: hr.bottom, barTop: tr.top}; }"
+        "                headTop: hr.top, headBottom: hr.bottom, barTop: tr.top,"
+        "                barShown: getComputedStyle(t).display !== 'none'}; }"
     )
     assert box, "chat panel, its header, or the tab bar is missing"
     assert box["headTop"] >= 0, (
         f"the chat header is off the top of the screen ({box['headTop']}px) -- "
         "its close button is unreachable"
     )
-    assert box["panelBottom"] <= box["barTop"] + 1, (
-        f"the chat panel runs under the tab bar by "
-        f"{round(box['panelBottom'] - box['barTop'])}px"
-    )
+    # Only meaningful while the bar is actually displayed. Opening the chat
+    # focuses its composer, and a focused text field hides the bar on purpose
+    # (it would otherwise sit on the software keyboard) -- a display:none
+    # element reports a zero rect, so comparing against it invents an overlap
+    # of nearly a whole screen.
+    if box["barShown"]:
+        assert box["panelBottom"] <= box["barTop"] + 1, (
+            f"the chat panel runs under the tab bar by "
+            f"{round(box['panelBottom'] - box['barTop'])}px"
+        )
 
 
 @pytest.mark.flaky_e2e
@@ -678,7 +685,153 @@ def test_reporting_does_not_spend_the_screen_on_chrome(nexora_server, phone_page
         "        return e ? Math.round(e.getBoundingClientRect().top) : null; }"
     )
     assert top is not None, "no report group rendered, so nothing to measure"
-    assert top < 470, (
+    assert top < 420, (
         f"the first report starts {top}px down the screen -- the console is "
         "spending the phone on chrome again"
     )
+
+
+def test_library_search_gets_a_row_of_its_own(nexora_server, phone_page):
+    """The Library toolbar put search, sort and the layout toggle on one row.
+    Sort and the toggle have intrinsic widths and a text input does not, so
+    search collapsed to about the width of its own magnifier -- roughly 20px
+    for the one control you type into.
+
+    Search now takes a whole row, which pushes sort onto the next one, and the
+    two primary actions share a row at equal widths. Also checks the font is at
+    least 16px: below that iOS zooms the page in when the field takes focus and
+    leaves the layout scrolled sideways after the keyboard closes.
+    """
+    page = phone_page
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting")
+    page.wait_for_load_state("load")
+    page.wait_for_timeout(1500)
+
+    got = page.evaluate(
+        "() => { const q = s => document.querySelector(s);"
+        "        const r = e => e.getBoundingClientRect();"
+        "        const row = q('.rc-filter-row'), search = q('#rsSearch');"
+        "        const a = q('#rsNewDashboard'), b = q('#rsNewReport');"
+        "        return {rowW: Math.round(r(row).width),"
+        "                searchW: Math.round(r(search).width),"
+        "                searchH: Math.round(r(search).height),"
+        "                fontPx: parseFloat(getComputedStyle(search).fontSize),"
+        "                sortTop: Math.round(r(q('#rsSort')).top),"
+        "                searchTop: Math.round(r(search).top),"
+        "                dashW: Math.round(r(a).width), repW: Math.round(r(b).width),"
+        "                dashTop: Math.round(r(a).top), repTop: Math.round(r(b).top)}; }"
+    )
+
+    # Rect widths are scaled under mobile emulation, so compare rect to rect
+    # rather than to a CSS pixel count.
+    assert got["searchW"] > got["rowW"] * 0.9, (
+        f"search is {got['searchW']}px of a {got['rowW']}px row -- it is sharing "
+        "the row again instead of owning one"
+    )
+    assert got["sortTop"] > got["searchTop"], (
+        "the sort dropdown is back on the search's row " f"(both at {got['searchTop']}px)"
+    )
+    assert got["fontPx"] >= 16, f"search is {got['fontPx']}px -- iOS will zoom the page in on focus"
+    assert got["dashTop"] == got["repTop"], (
+        f"New dashboard ({got['dashTop']}px) and New report ({got['repTop']}px) "
+        "are on different rows"
+    )
+    assert (
+        abs(got["dashW"] - got["repW"]) <= 2
+    ), f"the two actions are unequal: {got['dashW']}px vs {got['repW']}px"
+
+
+def _bar_shown(page):
+    return page.evaluate(
+        "() => { const b = document.querySelector('.nx-tabbar');"
+        "        return b ? getComputedStyle(b).display !== 'none' : null; }"
+    )
+
+
+@pytest.mark.flaky_e2e
+def test_the_bar_yields_to_the_software_keyboard(nexora_server, phone_page):
+    """With `interactive-widget=resizes-content` the layout viewport shrinks
+    when the keyboard opens, so bottom-anchored things sit above it rather than
+    behind it -- which is what makes Eddard's composer visible while you type
+    into it. The trade is that the tab bar would then sit on the keyboard,
+    taking a row of what little height is left, so it hides while a field has
+    focus.
+
+    Playwright has no software keyboard, so this tests the condition the rule
+    actually keys off -- a text field holding focus -- and the two things that
+    would make it wrong.
+    """
+    page = phone_page
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/workitems")
+    page.wait_for_load_state("load")
+    page.wait_for_timeout(800)
+
+    assert _bar_shown(page), "the bar should be visible at rest"
+
+    search = page.locator('[data-testid="workitems-search"]')
+    search.focus()
+    page.wait_for_timeout(250)
+    assert not _bar_shown(page), "the bar should get out of the way of the keyboard"
+
+    search.blur()
+    page.wait_for_timeout(250)
+    assert _bar_shown(page), "the bar must come back when the field loses focus"
+
+
+@pytest.mark.flaky_e2e
+def test_controls_that_open_no_keyboard_keep_the_bar(nexora_server, phone_page):
+    """Tapping a checkbox or a select must not make the navigation vanish --
+    neither opens a keyboard, and losing the nav for them would be a bug, not
+    a feature."""
+    page = phone_page
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/workitems")
+    page.wait_for_load_state("load")
+    page.wait_for_timeout(1200)
+
+    for selector, what in (('input[type="checkbox"]', "a checkbox"), ("select", "a select")):
+        el = page.locator(selector).first
+        if not el.count():
+            continue
+        el.focus()
+        page.wait_for_timeout(250)
+        assert _bar_shown(page), f"focusing {what} hid the navigation"
+
+
+@pytest.mark.flaky_e2e
+def test_the_layout_resizes_for_the_keyboard(nexora_server, phone_page):
+    """The viewport opt-in this depends on. Without it the layout viewport does
+    not shrink and anything at `bottom: 0` -- the bar, and Eddard's composer --
+    ends up behind the keyboard."""
+    page = phone_page
+    _login(page, nexora_server)
+    content = page.evaluate("() => document.querySelector('meta[name=viewport]').content")
+    assert "interactive-widget=resizes-content" in content, content
+    # and the inset opt-in from the home-indicator work, same tag
+    assert "viewport-fit=cover" in content, content
+
+
+@pytest.mark.flaky_e2e
+def test_the_bar_shows_focus_for_a_keyboard(nexora_server, phone_page):
+    """A touch device can still have a keyboard -- an iPad with a Magic
+    Keyboard reports `pointer: coarse` and Tabs like anything else. The slots
+    were relying on the browser's default hairline outline, near-invisible
+    against the bar's own background."""
+    page = phone_page
+    _login(page, nexora_server)
+    page.wait_for_timeout(600)
+
+    slot = page.locator('[data-testid="mobilenav-more"]')
+    slot.focus()
+    page.wait_for_timeout(200)
+    ring = page.evaluate(
+        "() => { const cs = getComputedStyle("
+        "          document.querySelector('[data-testid=\"mobilenav-more\"]'));"
+        "        return {style: cs.outlineStyle,"
+        "                width: parseFloat(cs.outlineWidth) || 0}; }"
+    )
+    assert ring["style"] != "none", "the focused slot has no outline at all"
+    # scaled px under mobile emulation, so compare generously against a hairline
+    assert ring["width"] > 1.2, f"the focus ring is a hairline: {ring}"
