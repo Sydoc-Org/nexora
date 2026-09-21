@@ -1319,6 +1319,121 @@ def test_the_top_strip_follows_the_theme(nexora_server, phone_page):
             )
 
 
+def test_workitems_overview_spends_less_of_the_phone_on_chrome(nexora_server, phone_page):
+    """#362 / #364 -- the overview stacked every filter into its own full-width
+    row and broke the three action buttons 2 + 1, which put roughly 640px of
+    chrome above the first workitem on an 844px screen: measured, the first row
+    started at 809px, i.e. under the tab bar.
+
+    Search now takes a row, the process picker and the stage filter share the
+    next, and the actions are one scrolling toolbar. Measured after: filter
+    399px -> 179px, actions 106px -> 48px, first row 809px -> 532px.
+    """
+    page = phone_page
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/workitems")
+    page.wait_for_load_state("load")
+    page.wait_for_timeout(2000)
+
+    got = page.evaluate(
+        "() => { const q = s => document.querySelector(s);"
+        "        const h = e => e ? Math.round(e.getBoundingClientRect().height) : null;"
+        "        const filter = q('.nx-wi-filter'), actions = q('.nx-wi-actions');"
+        "        const search = q('.nx-wi-search');"
+        "        const scope = q('.nx-wi-filter > .nx-scope');"
+        "        const stage = q('[data-testid=workitems-stage-filter]');"
+        "        const r = e => e ? e.getBoundingClientRect() : null;"
+        "        const row = q('tbody tr');"
+        "        return {filterH: h(filter), actionsH: h(actions),"
+        "                firstRowTop: row"
+        "                  ? Math.round(row.getBoundingClientRect().top) : null,"
+        "                searchW: search ? Math.round(r(search).width) : null,"
+        "                filterW: filter ? Math.round(r(filter).width) : null,"
+        "                scopeTop: scope ? Math.round(r(scope).top) : null,"
+        "                stageTop: stage ? Math.round(r(stage).top) : null,"
+        "                searchTop: search ? Math.round(r(search).top) : null,"
+        "                actionsScrollable: actions"
+        "                  ? actions.scrollWidth > actions.clientWidth + 1 : null,"
+        "                actionRows: actions"
+        "                  ? new Set([...actions.children]"
+        "                      .filter(e => e.getClientRects().length)"
+        "                      .map(e => Math.round(e.getBoundingClientRect().top))).size"
+        "                  : null,"
+        "                scrollW: document.documentElement.scrollWidth,"
+        "                vw: document.documentElement.clientWidth}; }"
+    )
+
+    assert got["actionRows"] == 1, (
+        f"the action buttons are on {got['actionRows']} rows again -- they should "
+        "be one scrolling toolbar, not a 2 + 1 stack of blocks"
+    )
+    assert got["filterH"] < 260, (
+        f"the filter block is {got['filterH']}px tall -- it is back to a column "
+        "of full-width rows"
+    )
+    # Search owns its row; the two pickers share the one below it.
+    assert got["searchW"] > got["filterW"] * 0.9, (
+        f"search is {got['searchW']}px of a {got['filterW']}px row, so it is "
+        "sharing with something again"
+    )
+    assert got["scopeTop"] == got["stageTop"], (
+        f"the process picker ({got['scopeTop']}px) and the stage filter "
+        f"({got['stageTop']}px) are not sharing a row"
+    )
+    assert (
+        got["searchTop"] < got["scopeTop"]
+    ), "search should sit above the two pickers, not below them"
+    assert got["firstRowTop"] is not None, "no workitem rows rendered, so nothing to measure"
+    assert (
+        got["firstRowTop"] < 620
+    ), f"the first workitem starts {got['firstRowTop']}px down an 844px screen"
+    assert (
+        got["scrollW"] <= got["vw"] + 1
+    ), f"the overview scrolls sideways: {got['scrollW']}px in {got['vw']}px"
+
+
+def test_workitem_stage_indicator_gets_its_own_line(nexora_server, phone_page):
+    """#363 -- each row is a card, and every cell is one flex line spread by
+    `space-between`. The Workitem cell holds two values, the id and the stage
+    indicator, so the label, the id, the four ticks and the stage name all
+    shared one 355px line: "WORKITEM 18995 - - - Validation", with the pair
+    crushed into 131px at the right edge.
+    """
+    page = phone_page
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/workitems")
+    page.wait_for_load_state("load")
+    page.locator("tbody tr").first.wait_for(state="visible")
+    page.wait_for_timeout(600)
+
+    got = page.evaluate(
+        "() => { const cell = document.querySelector('.nx-wi-cell-stage');"
+        "        if (!cell) return null;"
+        "        const td = cell.closest('td');"
+        "        const id = td.querySelector('.nx-wi-cell-id');"
+        "        const r = e => e.getBoundingClientRect();"
+        "        const tick = cell.querySelector('.nx-wi-tick');"
+        "        return {stageW: Math.round(r(cell).width),"
+        "                tdW: Math.round(r(td).width),"
+        "                stageTop: Math.round(r(cell).top),"
+        "                idTop: Math.round(r(id).top),"
+        "                tickH: tick ? Math.round(r(tick).height) : null}; }"
+    )
+    if got is None:
+        # The indicator only renders for a workitem that has a stage, and the
+        # seeded rows here may not. Skipping is honest: there is nothing to
+        # measure. It is exercised against INT data, where stages exist.
+        pytest.skip("no workitem in this environment carries a stage indicator")
+    assert got["stageTop"] > got["idTop"], (
+        f"the stage indicator is on the same line as the id (both around "
+        f"{got['idTop']}px) -- it is being crushed to the right again"
+    )
+    assert got["stageW"] > got["tdW"] * 0.8, (
+        f"the stage indicator is {got['stageW']}px of a {got['tdW']}px cell "
+        "rather than having the line to itself"
+    )
+
+
 def _bar_shown(page):
     return page.evaluate(
         "() => { const b = document.querySelector('.nx-tabbar');"

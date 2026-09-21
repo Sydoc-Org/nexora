@@ -709,6 +709,26 @@ img.nx-wi-card__sheet { object-fit: cover; object-position: top; display: block;
     }
     [data-testid="workitems-status-tabs"]::-webkit-scrollbar { display: none; }
     [data-testid="workitems-status-tabs"] .nx-tab { flex: 0 0 auto; }
+
+    /* Each row is a card here, and every cell is one flex line:
+       `[data-label] [value]`, spread by `space-between`. The Workitem cell
+       holds two values though -- the id and the stage indicator -- so all
+       three items shared one 355px line and came out as
+       "WORKITEM  18995  - - -  Validation", with the ticks and the stage name
+       crushed against the right edge (#363, measured at 131px for the pair).
+
+       The stage gets its own line under the id, still right-aligned so it
+       lines up with the values in the cells above and below it. */
+    .nx-wi-table td[data-label] { flex-wrap: wrap; }
+    .nx-wi-table td .nx-wi-cell-stage {
+        flex: 1 0 100%;
+        justify-content: flex-end;
+        margin-top: 6px;
+    }
+    /* 3px reads as a hairline rather than progress once it is the only thing
+       telling you which stage a workitem is at. */
+    .nx-wi-tick { height: 4px; }
+    .nx-wi-cell-stage > span:last-child { font-size: 12px; }
 }
 
 /* The floating bulk-action bar sat at bottom: 12px, which is exactly where
@@ -717,8 +737,12 @@ img.nx-wi-card__sheet { object-fit: cover; object-position: top; display: block;
    draws the tab bar: a narrow DESKTOP window has no tab bar, so it keeps the
    12px it has today. */
 @media (max-width: 768px) and (pointer: coarse) {
+    /* `--nx-tabbar-h`, not a literal: this was written as 56px when the bar
+       was that tall, and the bar is 64px now, so the actions had crept back
+       to 8px of overlap with the navigation. The variable exists precisely so
+       the bar's height is stated in one place. */
     #bulk-action-bar {
-        bottom: calc(56px + env(safe-area-inset-bottom) + 12px) !important;
+        bottom: calc(var(--nx-tabbar-h) + env(safe-area-inset-bottom) + 12px) !important;
     }
 }
 
@@ -803,19 +827,41 @@ img.nx-wi-card__sheet { object-fit: cover; object-position: top; display: block;
    Touch-gated: a narrow desktop window keeps the wrapped row, which is the
    right shape when a pointer is doing the work. */
 @media (max-width: 768px) and (pointer: coarse) {
+    /* Was a single stacked column: six full-width rows of filters, which with
+       the action buttons above put ~640px of chrome before the first workitem
+       on an 844px screen (#364). Two of those rows hold controls narrow enough
+       to share one, and one row was only a label.
+
+       Back to a wrapping row, with the pieces placed deliberately:
+         search on a row of its own, first, because it is the control people
+         actually reach for; the process picker and the stage filter side by
+         side; then the three text-ish controls together. */
     .nx-wi-filter {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 10px;
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
     }
-    .nx-wi-filter > *,
-    .nx-wi-filter .nx-scope,
+    /* `order: -1` rather than moving it in the template: the form's field
+       order is what the serializer and the saved-view code read. */
+    .nx-wi-filter > .nx-wi-search {
+        order: -1;
+        flex: 1 0 100%;
+        width: auto;
+    }
+    .nx-wi-filter > .nx-scope,
+    .nx-wi-filter > [data-testid="workitems-stage-filter"] {
+        flex: 1 1 calc(50% - 4px);
+        min-width: 0;
+        width: auto;
+    }
     .nx-wi-filter .nx-scope-btn { width: 100%; }
-    /* A flex spacer has no meaning in a column. */
+    /* A flex spacer would take the whole remainder of a wrapping row and
+       push everything after it onto a line of its own. */
     .nx-wi-filter__spacer { display: none; }
-    /* Labels sit on their own line above the control they name, so they do not
-       need to reserve a column's worth of width. */
-    .nx-wi-filter .nx-eyebrow { width: auto; }
+    /* "Process" names a picker whose own label already reads "All Processes",
+       so on a phone it was a row spent saying nothing. */
+    .nx-wi-filter > .nx-eyebrow { display: none; }
 
     /* "Advanced" and "Reset" are text links, not buttons. Stretched to full
        width they became centred captions floating between the real controls.
@@ -823,16 +869,33 @@ img.nx-wi-card__sheet { object-fit: cover; object-position: top; display: block;
     .nx-wi-filter [data-testid="workitems-toggle-advanced"],
     .nx-wi-filter [data-testid="workitems-reset"] {
         width: auto;
-        align-self: flex-start;
+        flex: 0 0 auto;
         justify-content: flex-start;
     }
+    .nx-wi-filter > [data-testid="workitems-save-view"] {
+        flex: 0 0 auto;
+        width: auto;
+    }
 
-    /* Export / Import / Prepared documents shared a wrapping row and broke
-       2 + 1 at uneven widths. Equal shares fill the row instead. */
-    .nx-wi-actions { gap: 8px; }
-    .nx-wi-actions > .nx-btn {
-        flex: 1 1 140px;
-        justify-content: center;
+    /* Export CSV / Import / Prepared documents broke 2 + 1, so the third sat
+       alone on a full-width row and the group read as a stack of blocks
+       rather than a toolbar. Their labels are too long to fit three across a
+       355px row without truncating, so they get one line that scrolls -- the
+       same shape as the reporting console's screen rail. */
+    .nx-wi-actions {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        gap: 8px;
+    }
+    .nx-wi-actions::-webkit-scrollbar { display: none; }
+    .nx-wi-actions > .nx-btn,
+    .nx-wi-actions > .inline-block,
+    .nx-wi-actions > .inline-block > .nx-btn {
+        flex: 0 0 auto;
+        white-space: nowrap;
     }
 }
 

@@ -301,6 +301,39 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   toggle, the Appearance panel, and a `system` theme following the OS — rather
   than re-deriving the theme or keying off `prefers-color-scheme`, which would
   get anyone whose chosen theme differs from their OS exactly backwards.
+- **The workitems overview spends far less of a phone on chrome** (#362, #364)
+  — every filter had its own full-width row and the three action buttons broke
+  2 + 1, so the first workitem started **809px down an 844px screen**: under
+  the tab bar, with nothing to see until you scrolled. Search now takes a row,
+  the process picker and the stage filter share the next, and *Advanced /
+  Save view / Reset* sit together. The "Process" eyebrow goes — it labels a
+  picker whose own button already reads "All Processes". *Export CSV /
+  Import / Prepared documents* become one horizontally scrolling toolbar,
+  since their labels cannot fit three across 355px without truncating.
+  Measured: filter block **399px → 179px**, actions **106px → 48px**, first
+  row **809px → 532px**.
+- **The workitem stage indicator gets its own line** (#363) — each row is a
+  card on a phone and every cell is one flex line spread by `space-between`.
+  The Workitem cell carries two values, the id *and* the stage indicator, so
+  the label, the id, the four ticks and the stage name all shared one 355px
+  line — `WORKITEM 18995 - - - Validation`, with the pair crushed into 131px
+  against the right edge. The indicator now has the line under the id to
+  itself (318px), and the ticks are 4px rather than 3px, which is the
+  difference between reading as progress and reading as a hairline.
+- **Fixed: the bulk-action bar overlapped the tab bar again** (#354) — it
+  cleared `56px`, written when the tab bar was that tall. The bar has been
+  **64px** since, so selecting rows put the actions 8px under the navigation.
+  It now uses `--nx-tabbar-h`, which exists so the bar's height is stated in
+  one place.
+- **Fixed: a comment could fail the flatpickr load-order guard** — the
+  flatpickr load-order guard decided what was a comment by checking whether a
+  line *starts* with `/*`, `*` or `//`. This codebase indents the continuation
+  lines of a `/* … */` block as plain prose, so a sentence in a comment that
+  mentioned flatpickr and happened to end in a comma was read as a selector
+  list and failed the build. Comments are now removed as blocks before the
+  scan. Verified the guard still fails on a real unprefixed
+  `.flatpickr-day.selected` rule, so it is no weaker — just no longer tripped
+  by explaining in a comment which fields flatpickr renders.
 - **The tab bar gets out of the way of the software keyboard** (#354) — the
   bar is fixed to the bottom of the viewport, so on iOS the keyboard pushed it
   up and parked four nav slots directly above the keys: every tap meant for a
