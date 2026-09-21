@@ -1257,12 +1257,25 @@ html.dark .nx-tabbar-item:active { background: rgba(148, 163, 184, 0.12); }
        any stylesheet rule without it. These two are the only ones that need it
        -- everything else below is ordinary cascade. */
     #nexora-sidebar el-menu[popover] {
-        left: 12px !important;
-        right: 12px !important;
+        /* Flush to the sheet's edges and sitting on the tab bar, so it reads
+           as a panel that slid up over the list. Anchored to the row you
+           tapped, it was a 366px card bottom-aligned to that row and
+           extending 412px UPWARDS, with the sheet visible above it and 12px
+           of sheet down each side -- a box dropped on top of the menu rather
+           than part of it.
+
+           `top: auto` is what releases it from the anchor's vertical
+           placement; without that the bottom rule below fights it. */
+        top: auto !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: calc(var(--nx-tabbar-h) + env(safe-area-inset-bottom)) !important;
         width: auto;
         max-width: none;
         margin: 0;
-        /* A long menu must not run off the bottom behind the tab bar. */
+        /* Only the top corners: the bottom edge meets the tab bar. */
+        border-radius: 14px 14px 0 0;
+        /* A long menu must not run off the top of the sheet either. */
         max-height: 60dvh;
         overflow-y: auto;
         overscroll-behavior: contain;

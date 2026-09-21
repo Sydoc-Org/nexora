@@ -392,6 +392,22 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   affected. **Two labels still truncate**: the longest document types run past
   40 characters, and Chart.js clips rather than shortens. Tapping the slice
   still shows the full name.
+- **The reporting topbar stops repeating itself on a phone** — it carried a
+  48px app icon and a 154px "Reporting BETA", **202px of a 355px row**, while
+  the tab bar below already showed Reporting highlighted and the screen's own
+  `<h1>` said *Library*. Three labels for one location. Icon, title and the
+  beta chip are hidden on a touch phone; Help and Eddard stay, because they
+  are the only two things in that row you can act on, and they right-align
+  once nothing precedes them. The beta chip is the judgement call — it is
+  product information rather than decoration, is still shown at every other
+  width, and restoring it on phones is deleting one line.
+- **The profile menu is a panel, not a floating card** — opened from the user
+  row it anchored to that row's bottom edge and extended **412px upwards**, a
+  366px card covering the middle of the sheet's nav list with sheet visible
+  above it and 12px down each side. It now spans the sheet's full width and
+  sits flush on the tab bar with only its top corners rounded, so it reads as
+  a panel that slid up over the list. `top: auto` is what releases it from the
+  anchor's vertical placement.
 - **The tab bar gets out of the way of the software keyboard** (#354) — the
   bar is fixed to the bottom of the viewport, so on iOS the keyboard pushed it
   up and parked four nav slots directly above the keys: every tap meant for a

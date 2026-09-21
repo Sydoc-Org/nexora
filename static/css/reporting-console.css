@@ -1877,6 +1877,26 @@ body.reporting-console.rdb-fullbleed .reporting-layouts { max-width: none; paddi
        5px less finds far more than six. */
     .rc-topbar { row-gap: 6px; column-gap: 10px; }
 
+    /* The row was telling you where you are for the third time. The tab bar
+       at the bottom already shows Reporting highlighted, and the screen's own
+       <h1> below the rail says "Library" -- so a 48px app icon and a 154px
+       "Reporting BETA" were 202px of a 355px row spent repeating it.
+
+       Icon, title and the beta chip go; Help and Eddard stay, because those
+       are the only two things in the row you can act on. They right-align on
+       their own once the items before them are gone.
+
+       The beta chip is the one judgement here: it is product information, not
+       decoration. It is still shown at every other width, and the reporting
+       guide still says so -- but if it should be on a phone too, restoring it
+       is deleting one line. */
+    body.reporting-console .rc-appicon,
+    body.reporting-console .rc-apptitle,
+    body.reporting-console .rc-beta { display: none; }
+    /* With the title gone the row has nothing to set its height but the two
+       44px buttons, so it no longer needs the desktop's top padding. */
+    body.reporting-console .rc-topbar { padding-top: 0; justify-content: flex-end; }
+
     /* The "N sources" chip counts the Sources rail cards -- which the ≤900px
        block above already hides, so on a phone it reports on something you
        cannot reach. It was also the 74px that stopped Help and Eddard fitting
