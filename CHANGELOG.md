@@ -266,6 +266,41 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   wizard's, so its row reads as a header line rather than one button marooned
   in 254px of space. Scoped with `:not(.rl-head)` — the Report definitions list
   reuses the same class for a different set of controls.
+- **The profile menu was off the side of the screen** (#372) — "all pages on
+  profile are gone". Profile, Appearance, What's New, Feedback, Keyboard
+  shortcuts, Help, Switch user and **Sign out** were all rendered, opened and
+  clickable — drawn at `left: -176px`, almost entirely outside a 390px
+  viewport. The sidebar's user row opens an `<el-menu anchor="right end"
+  popover>`: in the 240px desktop sidebar the card lands beside the row, but in
+  the full-width bottom sheet there is no "beside", so the browser resolved the
+  anchor off the left edge. Being unable to sign out was the serious half. The
+  card now spans the sheet, scrolls if it is long, and its rows are 44px. The
+  two inset properties need `!important` — the elements library writes the
+  anchor result as an *inline* style, which no stylesheet rule can outrank.
+- **Text fields no longer zoom the page in on a phone** (#369) — "search button
+  breaks page design (it zooms everything out)". Safari zooms in when a focused
+  field's font is under 16px and **does not zoom back out** when the keyboard
+  closes, leaving the layout at twice its size and scrolled sideways. Measured
+  under the threshold: the workitems search at **12.5px**, `.nx-input` at 13px
+  on `/appearance` and on the Generali flatpickr date fields, and
+  `.profile-input` at 14px across six fields on `/profile`. All raised to 16px
+  on coarse pointers, at the shared component rather than per field. The
+  workitems search needed its own rule at matching specificity — the filter
+  row sets `font-size` at (0,2,0), which outranks the shared `.nx-input`.
+- **The strip above the page is no longer stuck in dark mode** (#370) — "the
+  top part is stuck in darkmode". Two theme-dependent things live outside the
+  stylesheet: the `theme-color` meta, which was one hardcoded `#0f172a`, and
+  the inline `background-color`/`color-scheme` the pre-paint scripts put on
+  `<html>` to prevent a flash of the wrong colour. **Both were written once,
+  before paint, and never updated** — so switching to light mode left `<html>`
+  painted navy while the body went light, and with `viewport-fit=cover` the
+  html canvas is exactly what shows through the safe areas, i.e. the strip
+  behind the status bar. An inline style also beats any stylesheet rule, so
+  this was not fixable in CSS. All three now follow `html.dark`, which is the
+  one thing every theme path already agrees on — pre-paint, the sidebar
+  toggle, the Appearance panel, and a `system` theme following the OS — rather
+  than re-deriving the theme or keying off `prefers-color-scheme`, which would
+  get anyone whose chosen theme differs from their OS exactly backwards.
 - **The tab bar gets out of the way of the software keyboard** (#354) — the
   bar is fixed to the bottom of the viewport, so on iOS the keyboard pushed it
   up and parked four nav slots directly above the keys: every tap meant for a

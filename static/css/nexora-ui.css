@@ -1489,4 +1489,20 @@ html.dark .flatpickr-day:hover { background: var(--nx-alt); }
   .nx-input,
   .nx-select,
   textarea.nx-input { min-height: 44px; }
+
+  /* 16px is not a taste decision (#369). Below it, iOS zooms the page in when
+     a field takes focus -- and it does not zoom back out when the keyboard
+     closes, so you are left on a page scrolled sideways with the layout
+     twice its intended size. "Search button breaks page design (it zooms
+     everything out)" is exactly that, from the workitems search at 12.5px.
+
+     Measured under 16px before this: `.nx-input` at 12.5px (workitems search)
+     and 13px (appearance, and the Generali flatpickr date fields),
+     `.profile-input` at 14px across six fields on /profile. Anything a
+     keyboard can open needs to clear the threshold, so they are all here. */
+  .nx-input,
+  .nx-select,
+  textarea.nx-input,
+  .profile-input,
+  textarea.profile-input { font-size: 16px; }
 }

@@ -1227,3 +1227,42 @@ html.dark .nx-tabbar-item:active { background: rgba(148, 163, 184, 0.12); }
     outline-offset: -3px;
     border-radius: 8px;
 }
+
+/* The profile menu inside the bottom sheet (#372).
+
+   The sidebar's user row opens an <el-menu anchor="right end" popover> -- a
+   192px card that anchors to the right of the row. In the desktop sidebar the
+   row is 240px wide and the menu lands beside it. In the bottom sheet the row
+   spans the screen, so there is no "beside": the browser resolved the anchor
+   to left: -176px and drew the card almost entirely off the left edge.
+
+   That is the whole of "all pages on profile are gone" -- Profile, Appearance,
+   Feedback, Help and Sign out were all rendered, opened and clickable, just
+   176px outside the viewport. Sign out being unreachable is the serious half.
+
+   Anchoring is overridden rather than removed: the element keeps its popover
+   behaviour (top layer, light-dismiss, Esc), it just spans the sheet instead
+   of hanging off it. */
+@media (max-width: 768px) and (pointer: coarse) {
+    /* `!important` on the two inset properties, which is not a style choice:
+       the elements library writes the anchor result as an INLINE style
+       (`left: calc(-2px - var(--anchor-gap))`), and an inline declaration beats
+       any stylesheet rule without it. These two are the only ones that need it
+       -- everything else below is ordinary cascade. */
+    #nexora-sidebar el-menu[popover] {
+        left: 12px !important;
+        right: 12px !important;
+        width: auto;
+        max-width: none;
+        margin: 0;
+        /* A long menu must not run off the bottom behind the tab bar. */
+        max-height: 60dvh;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+    /* 36px rows in a menu you reach with a thumb. */
+    #nexora-sidebar el-menu[popover] > a,
+    #nexora-sidebar el-menu[popover] > button {
+        min-height: 44px;
+    }
+}

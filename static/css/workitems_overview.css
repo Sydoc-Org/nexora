@@ -835,3 +835,18 @@ img.nx-wi-card__sheet { object-fit: cover; object-position: top; display: block;
         justify-content: center;
     }
 }
+
+/* The search field must clear iOS's 16px zoom threshold (#369).
+
+   `.nx-wi-filter .nx-input` sets `font-size: var(--fs-control)` (12.5px) at
+   specificity (0,2,0), which beats the shared `.nx-input` rule in
+   nexora-ui.css, so the filter row stayed under the threshold after that one
+   was raised. Matching the specificity beats it on source order without
+   reaching for !important.
+
+   Pointer-keyed with no width clause, like the shared rule: the zoom is a
+   touch-keyboard behaviour, so a coarse-pointer tablet needs it too. */
+@media (pointer: coarse) {
+    .nx-wi-filter .nx-input,
+    .nx-wi-filter .nx-select { font-size: 16px; }
+}

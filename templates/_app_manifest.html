@@ -21,7 +21,61 @@
    Icons are generated from the real CSS logo by scripts/make-app-icons.py --
    a home screen icon cannot animate, so they are one frozen frame of it. #}
 <link rel="manifest" href="{{ url_for('web_app_manifest') }}">
+{# theme-color tints the browser's own top strip and, in an installed app,
+   the area behind the status bar. A single dark value left that strip navy
+   while the page below it was light -- "the top part is stuck in darkmode"
+   (#370).
+
+   It has to follow nexora's OWN theme, not `prefers-color-scheme`: the theme
+   is a UI pref, so somebody on a light OS can be in dark mode and vice versa,
+   and a media-scoped pair of tags would get exactly those people wrong.
+   `html.dark` is the single thing every theme path already agrees on --
+   the pre-paint scripts set it before first paint, the sidebar toggle and the
+   Appearance panel set it after, and `theme: system` flips it when the OS
+   does -- so the meta follows that class rather than re-deriving the theme.
+   Both values mirror nexora-ui.css's --nx-page token. #}
 <meta name="theme-color" content="#0f172a">
+<script nonce="{{ csp_nonce() }}">
+    /* Keeps the three theme-dependent things that live OUTSIDE the stylesheet
+       in step with `html.dark`: the theme-color meta, and the inline
+       background-color / color-scheme that the pre-paint scripts put on <html>
+       to stop a flash of the wrong colour before the CSS lands.
+
+       Those two inline styles were the real bug behind #370. They are written
+       once, before paint, and nothing updated them afterwards -- so switching
+       to light mode left <html> painted #0f172a while the body went light.
+       With `viewport-fit=cover` the html canvas is what shows through the
+       safe areas, which is why the strip behind the status bar stayed dark
+       while everything under it was light. An inline style also beats any
+       stylesheet rule, so this could not be fixed in CSS.
+
+       Driven off the class rather than re-deriving the theme: every path
+       (pre-paint, the sidebar toggle, the Appearance panel, a `system` theme
+       following the OS) already agrees on that class. Values mirror
+       nexora-ui.css's --nx-page token. */
+    (function () {
+        var root = document.documentElement;
+        var meta = document.querySelector('meta[name="theme-color"]');
+        function sync() {
+            var dark = root.classList.contains('dark');
+            if (meta) meta.setAttribute('content', dark ? '#0f172a' : '#f9fafb');
+            /* Only touch these if the pre-paint script actually set them --
+               otherwise the stylesheet is already in charge and an inline
+               value here would be one more thing to keep in step. */
+            if (root.style.backgroundColor) {
+                root.style.backgroundColor = dark ? '#0f172a' : '#f9fafb';
+            }
+            if (root.style.colorScheme) {
+                root.style.colorScheme = dark ? 'dark' : 'light';
+            }
+        }
+        sync();
+        try {
+            new MutationObserver(sync).observe(root,
+                { attributes: true, attributeFilter: ['class'] });
+        } catch (e) { /* no observer: the values set above still stand */ }
+    })();
+</script>
 <link rel="apple-touch-icon" href="{{ static_v('images/icon-180.png') }}">
 <meta name="apple-mobile-web-app-title" content="nexora">
 <meta name="apple-mobile-web-app-capable" content="yes">

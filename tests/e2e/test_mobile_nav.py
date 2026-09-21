@@ -1158,6 +1158,167 @@ def test_dashboard_builder_head_fits_a_phone(nexora_server, phone_page):
     ), f"the builder scrolls sideways: {got['scrollW']}px in {got['vw']}px"
 
 
+def test_profile_menu_is_reachable_from_the_sheet(nexora_server, phone_page):
+    """#372 -- "all pages on profile are gone": Profile, Appearance, Feedback,
+    Help and Sign out were all rendered and clickable, just drawn 176px off
+    the left edge of the screen.
+
+    The sidebar's user row opens an el-menu with anchor="right end" as a
+    popover. In the 240px desktop sidebar the card lands beside the row; in
+    the full-width bottom sheet there is no "beside", and the browser resolved
+    the anchor to left: -176px. Sign out being unreachable is the serious half.
+    """
+    page = phone_page
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/dashboard")
+    page.wait_for_load_state("load")
+    page.wait_for_timeout(800)
+
+    page.locator('[data-testid="mobilenav-more"]').click()
+    _assert_sheet_is_on_screen(page)
+    toggle = page.locator('[data-testid="header-profile-toggle"]')
+    toggle.scroll_into_view_if_needed()
+    toggle.click()
+    page.wait_for_timeout(700)
+
+    wanted = [
+        "header-profile-link",
+        "header-appearance-link",
+        "header-feedback-link",
+        "header-logout-link",
+    ]
+    got = page.evaluate(
+        "(ids) => { const vw = document.documentElement.clientWidth;"
+        "           const vh = window.innerHeight;"
+        "           const out = {};"
+        "           ids.forEach(id => {"
+        "             const e = document.querySelector('[data-testid=' + id + ']');"
+        "             if (!e) { out[id] = null; return; }"
+        "             const r = e.getBoundingClientRect();"
+        "             out[id] = {l: Math.round(r.left), rg: Math.round(r.right),"
+        "                        h: Math.round(r.height),"
+        "                        onScreen: r.width > 0 && r.left >= 0"
+        "                                  && r.right <= vw + 1 && r.top >= 0"
+        "                                  && r.bottom <= vh + 1};"
+        "           });"
+        "           return out; }",
+        wanted,
+    )
+    for tid in wanted:
+        box = got[tid]
+        assert box is not None, f"{tid} is not in the DOM at all"
+        assert box["onScreen"], (
+            f"{tid} is off the screen (left {box['l']}, right {box['rg']}) -- the "
+            "profile menu is anchored outside the sheet again"
+        )
+        assert box["h"] >= 44, f"{tid} is {box['h']}px tall, under the 44px target"
+
+    # Reaching it is the point, so prove one actually navigates.
+    page.locator('[data-testid="header-profile-link"]').click()
+    page.wait_for_load_state("load")
+    assert page.url.endswith("/profile"), f"Your profile went to {page.url}"
+
+
+@pytest.mark.parametrize(
+    "path", ["/workitems", "/profile", "/appearance", "/reporting", "/dashboard"]
+)
+def test_text_fields_do_not_zoom_ios_in(nexora_server, phone_page, path):
+    """#369 -- "search button breaks page design (it zooms everything out)".
+
+    Safari zooms the page in when a focused field's font is under 16px, and it
+    does not zoom back out when the keyboard closes: you are left on a layout
+    twice its intended size, scrolled sideways. Measured offenders were the
+    workitems search at 12.5px, .nx-input at 13px on /appearance and the
+    Generali date pickers, and .profile-input at 14px across six fields.
+
+    Only types that open a keyboard count -- a checkbox does not zoom.
+    """
+    page = phone_page
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}{path}")
+    page.wait_for_load_state("load")
+    page.wait_for_timeout(1200)
+
+    small = page.evaluate(
+        "() => { const TYPES = ['text','search','email','password','tel','url',"
+        "            'number','date','datetime-local','month','time','week'];"
+        "        const out = [];"
+        "        document.querySelectorAll('input, textarea').forEach(e => {"
+        "          if (e.tagName === 'INPUT'"
+        "              && !TYPES.includes((e.type || 'text').toLowerCase())) return;"
+        "          if (!e.getClientRects().length) return;"
+        "          const fs = parseFloat(getComputedStyle(e).fontSize);"
+        "          if (fs >= 16) return;"
+        "          out.push({cls: String(e.className).trim().slice(0, 40),"
+        "                    id: e.id || null, px: fs});"
+        "        });"
+        "        return out; }"
+    )
+    assert not small, (
+        f"{path} has text fields under 16px, so iOS will zoom the page in when "
+        f"they take focus: {small}"
+    )
+
+
+def test_the_top_strip_follows_the_theme(nexora_server, phone_page):
+    """#370 -- "the top part is stuck in darkmode".
+
+    Two things that live outside the stylesheet decide the colour above the
+    page: the theme-color meta, and the inline background the pre-paint script
+    puts on <html> to avoid a flash. Both were written once, before paint, and
+    never updated -- so switching to light mode left <html> painted #0f172a
+    while the body went light. With viewport-fit=cover the html canvas is what
+    shows through the safe areas, which is the strip behind the status bar. An
+    inline style also beats any stylesheet rule, so CSS could not fix it.
+    """
+    page = phone_page
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/dashboard")
+    page.wait_for_load_state("load")
+    page.wait_for_timeout(800)
+
+    def state():
+        return page.evaluate(
+            "() => { const m = document.querySelector('meta[name=theme-color]');"
+            "        const root = document.documentElement;"
+            "        return {dark: root.classList.contains('dark'),"
+            "                meta: m ? m.getAttribute('content') : null,"
+            "                htmlBg: root.style.backgroundColor,"
+            "                bodyBg: getComputedStyle(document.body)"
+            "                          .backgroundColor}; }"
+        )
+
+    page.locator('[data-testid="mobilenav-more"]').click()
+    page.wait_for_timeout(600)
+    toggle = page.locator('[data-testid="header-dark-mode-toggle"]')
+    toggle.scroll_into_view_if_needed()
+
+    seen = []
+    for _ in range(2):
+        toggle.click()
+        page.wait_for_timeout(700)
+        seen.append(state())
+
+    assert {s["dark"] for s in seen} == {
+        True,
+        False,
+    }, f"the toggle did not actually change the theme: {seen}"
+    for st in seen:
+        want = "#0f172a" if st["dark"] else "#f9fafb"
+        assert st["meta"] == want, (
+            f"theme-color is {st['meta']} while dark={st['dark']} -- the browser's "
+            "top strip is showing the other theme's colour"
+        )
+        # The pre-paint script sets this inline; if it is set at all it must
+        # match, because it is what paints the safe areas.
+        if st["htmlBg"]:
+            assert st["htmlBg"] == st["bodyBg"], (
+                f"<html> is painted {st['htmlBg']} while the body is "
+                f"{st['bodyBg']} (dark={st['dark']}) -- the strip behind the "
+                "status bar is stuck on the old theme"
+            )
+
+
 def _bar_shown(page):
     return page.evaluate(
         "() => { const b = document.querySelector('.nx-tabbar');"
