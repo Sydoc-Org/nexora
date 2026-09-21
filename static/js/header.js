@@ -469,15 +469,41 @@
             return TYPES_WITH_KEYBOARD.has((el.type || 'text').toLowerCase());
         }
 
-        document.addEventListener('focusin', (e) => {
-            if (opensKeyboard(e.target)) {
-                document.documentElement.classList.add('nx-typing');
-            }
+        /* Derive the class from what is focused RIGHT NOW rather than
+           toggling it per event (#373: "navbar breaks every now and then").
+
+           The bar being hidden is the only state here you cannot get out of:
+           the navigation is gone, so there is nothing left to tap. The old
+           pair of handlers relied on a focusout arriving for every focusin --
+           and if one never came, the class stayed and the bar stayed hidden
+           until a reload.
+
+           Chromium does fire focusout when the focused field is removed from
+           the DOM, hidden, or left behind by a navigation (all three checked),
+           so this is not a reproduction of the report -- it removes one way
+           the report COULD be true, on an engine I cannot test here. Reading
+           activeElement means any missed event self-corrects on the next one,
+           and the two lifecycle events below re-check on the paths where a
+           phone browser is most likely to have skipped something: coming back
+           to a backgrounded app, and a back/forward restore from the page
+           cache. */
+        function syncTyping() {
+            const root = document.documentElement;
+            const typing = opensKeyboard(document.activeElement);
+            root.classList.toggle('nx-typing', typing);
+        }
+
+        document.addEventListener('focusin', syncTyping);
+        document.addEventListener('focusout', () => {
+            /* focusout fires BEFORE focus lands on the next element, so
+               activeElement is still the old one (or body) at this point.
+               Defer by a frame so a field-to-field move does not flash the
+               bar back in between the two. */
+            requestAnimationFrame(syncTyping);
         });
-        document.addEventListener('focusout', (e) => {
-            if (opensKeyboard(e.target)) {
-                document.documentElement.classList.remove('nx-typing');
-            }
+        window.addEventListener('pageshow', syncTyping);
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) syncTyping();
         });
     })();
 

@@ -3233,3 +3233,42 @@ body.reporting-console.rdb-fullbleed .reporting-dashboard:fullscreen { padding: 
   }
   td .reporting-link + .reporting-link { margin-left: 6px; }
 }
+
+/* Eddard on a phone (#371).
+
+   The panel itself fits now (it is re-anchored top and bottom under #354), so
+   what was left is what you actually touch inside it. The starter suggestions
+   are the first thing anyone taps on an empty thread and they were 28px tall
+   with 3px between them -- four pills stacked nearly touching, at 11px type.
+   The close button is a bordered box holding one glyph, the same thing that
+   was wrong on the wizard.
+
+   Pointer-keyed with no width clause: a chip is too small for a finger on a
+   tablet too. */
+@media (pointer: coarse) {
+  .rp-chat-starter {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 44px;
+    margin: 0;
+    padding: 10px 14px;
+    font-size: 13px;
+    text-align: left;
+    border-radius: 12px;
+  }
+  /* The chips are laid out by their container's flow, so the gap goes there
+     rather than back onto each chip's margin. */
+  .reporting-chat-empty .rp-chat-starter + .rp-chat-starter { margin-top: 8px; }
+
+  #rpChatClose {
+    min-height: 44px;
+    min-width: 44px;
+    justify-content: center;
+    background: transparent;
+    border-color: transparent;
+  }
+  /* The answer-depth picker sits in the composer beside the send button, so
+     it is one of the two things you reach for most in the panel. 33px. */
+  #rpChatEffortBtn { min-height: 44px; }
+}

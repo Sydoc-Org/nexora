@@ -1506,3 +1506,28 @@ html.dark .flatpickr-day:hover { background: var(--nx-alt); }
   .profile-input,
   textarea.profile-input { font-size: 16px; }
 }
+
+/* Filter grids on a phone (#367).
+
+   Twelve templates -- eight Generali pages, three admin ones and the tenant
+   page -- build their filter row as `grid grid-cols-1 sm:grid-cols-2
+   lg:grid-cols-4`. Tailwind's `sm:` starts at 640px, so a phone gets ONE
+   column: on Generali Documents that put four label-plus-dropdown blocks in a
+   vertical stack 352px tall, and with the page head above it the first
+   document row started around 570px down an 844px screen.
+
+   Two columns at 150px each is enough for "All Recipients" and the rest, and
+   halves that block. Not three or four: the labels are what need the width,
+   not the values.
+
+   Keyed on the utility pair rather than a new class because the pattern is
+   identical in all twelve files and means the same thing in each -- one
+   column on a phone was the assumption being corrected, not a per-page
+   choice. Width AND pointer, because it is a layout change. */
+@media (max-width: 768px) and (pointer: coarse) {
+  body.nx-app .grid.grid-cols-1.sm\:grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  /* The selects inside must be allowed to shrink into their half. */
+  body.nx-app .grid.grid-cols-1.sm\:grid-cols-2 > * { min-width: 0; }
+}

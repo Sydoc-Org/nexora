@@ -334,6 +334,52 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   scan. Verified the guard still fails on a real unprefixed
   `.flatpickr-day.selected` rule, so it is no weaker — just no longer tripped
   by explaining in a comment which fields flatpickr renders.
+- **One card-table row now reads as one item** (#366, #367) — "no clear space
+  between the workitems". Every Generali list stacks its rows into cards on a
+  phone, and in dark mode the card's own border and the dividers *between its
+  cells* were both `#334155`. A Generali document has nine cells, so it drew
+  nine identical lines and nothing marked where one document ended and the
+  next began. The hexes were hardcoded, which is why a separate dark-mode
+  block had to exist and how the two colours drifted into agreement. Tokens
+  now, from one source for both themes: the edge is `--nx-border-strong`, the
+  inner dividers `--nx-divider`, and the gap between cards (1rem) is wider
+  than any gap inside one. Measured in dark mode: edge `rgb(100,116,139)`
+  against dividers `rgb(51,65,85)`; in light, `rgb(148,163,184)` against
+  `rgb(226,232,240)`.
+- **Filter grids are two columns on a phone** (#367) — twelve templates (eight
+  Generali, three admin, the tenant page) build their filter row as
+  `grid-cols-1 sm:grid-cols-2 lg:grid-cols-4`. Tailwind's `sm:` starts at
+  640px, so a phone got **one** column: on Generali Documents that was four
+  label-plus-dropdown blocks stacked **352px** tall. Two columns halves it to
+  167px, and every affected page was re-measured for damage — **zero** clipped
+  controls and no new overflow anywhere.
+- **Eddard is sized for a thumb** (#371) — the panel's geometry was already
+  fixed under #354, so what was left was what you touch inside it. The starter
+  suggestions are the first thing anyone taps on an empty thread and they were
+  **28px** tall with 3px between them, at 11px type; they are now full-width
+  44px rows at 13px. The close button loses its box (the same thing that was
+  wrong on the wizard) and the answer-depth picker goes from 33px to 44px.
+  Every control in the panel now clears 44px.
+- **The tab bar's hidden state is self-correcting** (#373) — "navbar breaks
+  every now and then". The bar hides while a keyboard field holds focus, and
+  that is the one state here you cannot escape: the navigation is gone, so
+  there is nothing left to tap. It relied on a `focusout` arriving for every
+  `focusin`, and a missed one left the bar hidden until a reload. It now
+  derives the class from `document.activeElement`, so any missed event
+  self-corrects on the next one, and re-checks on `pageshow` and on becoming
+  visible again — the two paths where a phone browser is most likely to have
+  skipped something. **This is not a reproduction:** Chromium fires
+  `focusout` when the focused field is removed, hidden, or left behind by a
+  navigation (all three checked), so the report's actual trigger is still
+  unknown. It removes one way it could be true on an engine that cannot be
+  tested here.
+- **Fixed: error pages rocked sideways on a phone** — found while checking the
+  Generali routes, since a mistyped URL is how you meet this page. A 404
+  scrolled 7px horizontally. The decorative `.starfield` / `.nebula` layers
+  are `position: fixed; inset: 0`, so they report whatever width the document
+  has — the symptom, not the cause. The axis is clipped at the root instead:
+  the page is stacked full-bleed gradients with no horizontal content, so
+  there is nothing a reader could lose.
 - **The tab bar gets out of the way of the software keyboard** (#354) — the
   bar is fixed to the bottom of the viewport, so on iOS the keyboard pushed it
   up and parked four nav slots directly above the keys: every tap meant for a

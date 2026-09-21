@@ -732,12 +732,22 @@ html.dark .sidebar-toggle-btn {
     .responsive-card-table tbody {
         background: transparent !important;
     }
+    /* One row is one item, so its edge has to be the strongest line in the
+       stack. It was not: the card border and the dividers between its cells
+       were both #334155 in dark mode, so a nine-cell Generali document drew
+       nine identical lines and nothing marked where one document ended and
+       the next began (#366, #367).
+
+       Tokens rather than hardcoded hexes -- which is also why a separate
+       dark-mode block had to exist below, and why it got out of step. The
+       edge uses --nx-border-strong, the inner dividers --nx-divider, and the
+       gap between cards is wider than any gap inside one. */
     .responsive-card-table tr {
-        margin: 0 0 0.75rem 0 !important;
+        margin: 0 0 1rem 0 !important;
         padding: 0.25rem 0;
-        border: 1px solid #e5e7eb;
+        border: 1px solid var(--nx-border-strong);
         border-radius: 0.9rem;
-        background: #ffffff;
+        background: var(--nx-card);
         box-shadow: 0 1px 3px rgba(0,0,0,0.03);
         overflow: hidden;
     }
@@ -753,7 +763,7 @@ html.dark .sidebar-toggle-btn {
         padding: 0.6rem 1rem !important;
         text-align: right;
         border: none !important;
-        border-bottom: 1px solid #f3f4f6 !important;
+        border-bottom: 1px solid var(--nx-divider) !important;
         white-space: normal !important;
         min-height: 2.5rem;
     }
@@ -764,7 +774,7 @@ html.dark .sidebar-toggle-btn {
         content: attr(data-label);
         flex-shrink: 0;
         font-weight: 600;
-        color: #6b7280;
+        color: var(--nx-text-meta);
         text-transform: uppercase;
         font-size: 0.68rem;
         letter-spacing: 0.05em;
@@ -804,14 +814,11 @@ html.dark .sidebar-toggle-btn {
         margin: 16px 0 32px;
     }
 
-    /* Dark mode card frames */
-    html.dark .responsive-card-table tr {
-        background: #1e293b;
-        border-color: #334155;
-    }
-    html.dark .responsive-card-table td {
-        border-bottom-color: #334155 !important;
-    }
+    /* No dark-mode block here any more: the rules above are token-driven, so
+       both themes come from one source. The pair that used to live here set
+       the card border and the cell dividers to the same #334155, which is
+       precisely the bug -- two lines that mean different things cannot be
+       the same colour. */
 }
 
 /* ============================================================
