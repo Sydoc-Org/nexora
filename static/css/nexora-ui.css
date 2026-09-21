@@ -1531,3 +1531,23 @@ html.dark .flatpickr-day:hover { background: var(--nx-alt); }
   /* The selects inside must be allowed to shrink into their half. */
   body.nx-app .grid.grid-cols-1.sm\:grid-cols-2 > * { min-width: 0; }
 }
+
+/* The Generali dashboard's two doughnuts on a phone (#365).
+
+   Their legends move underneath on a touch phone, because a legend on the
+   right was taking its width out of a 304px canvas and chopping labels
+   mid-word -- "KORRESPONDENZ S", "ANTRAG / ÄNDERUN" (see the
+   `donutLegendSide` note in templates/js/_generali_dashboard_js.html).
+
+   Underneath, the legend needs vertical room the box did not have: the
+   container is Tailwind `h-48` (192px) below 640px, sized when the legend sat
+   beside the chart, so the last legend row was cut off by the card's edge.
+   Selected by `:has()` on the canvas id rather than by adding a class,
+   because these two are exactly the charts whose legend moved -- the other
+   four keep their layout and their height. */
+@media (max-width: 768px) and (pointer: coarse) {
+  body.nx-app div:has(> #doctypeChart),
+  body.nx-app div:has(> #languageChart) {
+    height: 21rem;
+  }
+}

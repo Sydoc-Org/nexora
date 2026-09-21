@@ -199,6 +199,16 @@
             destroyCharts();
 
             const chartDefaults = { responsive: true, maintainAspectRatio: false };
+            /* Chart.js draws the legend INSIDE the canvas, so a legend on the
+               right takes its width out of the chart. The canvas is 304px on
+               a phone, which left about 150px for labels and chopped them
+               mid-word -- "KORRESPONDENZ S", "ANTRAG / ÄNDERUN" (#365).
+               Underneath, each label gets the full width.
+
+               Same touch gate as the CSS, so a narrow desktop window keeps
+               the legend beside the donut where there is room for it. */
+            const donutLegendSide = window.matchMedia(
+                '(max-width: 768px) and (pointer: coarse)').matches ? 'bottom' : 'right';
 
             trendData = data.trend;
             pruneTrendStateToData();
@@ -220,7 +230,7 @@
                         // over the chart in dark mode -- same fault as #326).
                         borderColor: () => token('--nx-card', '#ffffff') }]
                 },
-                options: { ...chartDefaults, cutout: '65%', plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } } } }
+                options: { ...chartDefaults, cutout: '65%', plugins: { legend: { position: donutLegendSide, labels: { boxWidth: 12, font: { size: 11 } } } } }
             });
 
             charts.empfaenger = new Chart(document.getElementById('empfaengerChart'), {
@@ -310,7 +320,7 @@
                         // over the chart in dark mode -- same fault as #326).
                         borderColor: () => token('--nx-card', '#ffffff') }]
                 },
-                options: { ...chartDefaults, cutout: '65%', plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } } } }
+                options: { ...chartDefaults, cutout: '65%', plugins: { legend: { position: donutLegendSide, labels: { boxWidth: 12, font: { size: 11 } } } } }
             });
 
             charts.channel = new Chart(document.getElementById('channelChart'), {

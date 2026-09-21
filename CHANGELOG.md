@@ -380,6 +380,18 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   has — the symptom, not the cause. The axis is clipped at the root instead:
   the page is stacked full-bleed gradients with no horizontal content, so
   there is nothing a reader could lose.
+- **Generali dashboard donut legends read in full on a phone** (#365) —
+  Chart.js draws the legend *inside* the canvas, so a legend on the right took
+  its width out of a 304px chart and left about 150px for labels. They were
+  chopped mid-word: "KORRESPONDENZ S", "ANTRAG / ÄNDERUN". The two doughnuts
+  put their legend underneath on a touch phone, where each label gets the full
+  width, and their boxes grow from Tailwind's `h-48` (192px, sized when the
+  legend sat beside the chart) to 21rem so the last row is not cut off by the
+  card edge. The other four charts keep their layout and height — they are
+  selected by `:has()` on the canvas id, so only the two that moved are
+  affected. **Two labels still truncate**: the longest document types run past
+  40 characters, and Chart.js clips rather than shortens. Tapping the slice
+  still shows the full name.
 - **The tab bar gets out of the way of the software keyboard** (#354) — the
   bar is fixed to the bottom of the viewport, so on iOS the keyboard pushed it
   up and parked four nav slots directly above the keys: every tap meant for a
