@@ -623,50 +623,107 @@ def test_the_session_is_rechecked_when_the_app_comes_back(nexora_server, phone_p
 
 
 @pytest.mark.flaky_e2e
-def test_reporting_rail_is_a_scrollable_strip_on_a_phone(nexora_server, phone_page):
-    """The console's rail is a left column on a desktop. Wrapped onto a phone it
-    became six buttons at four different vertical positions -- 161px of ragged
-    chrome, which is what "it's just a smaller version of the desktop page"
-    meant. It is now one horizontally scrolling strip.
+def test_reporting_rail_fits_without_scrolling_sideways(nexora_server, phone_page):
+    """The rail was a side-scrolling strip, because six labelled buttons need
+    756px and the row is 358px. That solved the width and created a worse
+    problem: dragging left or right on the rail is the same gesture as
+    switching view, so the two compete.
 
-    The thing that must not break: a strip that hides screens with no way to
-    reach them would be worse than the wall it replaced. So this asserts the
-    strip really scrolls, still offers every screen, and that the last one can
-    be brought into view and activated.
+    It is a three-column grid now -- no scrolling and no ragged wrap. What made
+    the original wrap look broken was six buttons at four different vertical
+    positions with dangling connector lines, not the wrapping itself; an even
+    3 x 2 reads as deliberate.
+
+    What must not break: every screen reachable without a scroll, and no label
+    truncated to get there.
     """
     page = phone_page
     _login(page, nexora_server)
     page.goto(f"{nexora_server}/reporting")
     page.wait_for_load_state("load")
-    page.wait_for_timeout(1500)
+    page.locator(".rc-rail .rc-nav").first.wait_for(state="visible")
+    page.wait_for_timeout(900)
 
-    strip = page.evaluate(
+    got = page.evaluate(
         "() => { const rail = document.querySelector('.rc-rail');"
         "        const navs = [...rail.querySelectorAll('.rc-nav')];"
-        "        return {scrollable: rail.scrollWidth > rail.clientWidth + 1,"
-        "                count: navs.length,"
+        "        const vw = document.documentElement.clientWidth;"
+        "        const vh = window.innerHeight;"
+        "        return {count: navs.length,"
+        "                scrolls: rail.scrollWidth > rail.clientWidth + 1,"
         "                rows: new Set(navs.map(n =>"
-        "                        Math.round(n.getBoundingClientRect().top))).size}; }"
+        "                        Math.round(n.getBoundingClientRect().top))).size,"
+        "                offScreen: navs.filter(n => {"
+        "                    const r = n.getBoundingClientRect();"
+        "                    return r.left < -1 || r.right > vw + 1"
+        "                           || r.top < 0 || r.bottom > vh + 1; })"
+        "                  .map(n => n.innerText.trim().split(String.fromCharCode(10))[0]),"
+        "                truncated: navs.filter(n =>"
+        "                    n.scrollWidth > n.clientWidth + 1)"
+        "                  .map(n => n.innerText.trim().split(String.fromCharCode(10))[0])}; }"
     )
-    assert strip["count"] >= 4, f"the rail lost screens: {strip}"
-    assert (
-        strip["rows"] <= 2
-    ), f"the rail is wrapping onto {strip['rows']} rows again, not scrolling: {strip}"
-    assert strip[
-        "scrollable"
-    ], "the strip is not scrollable, so any screen past the fold is unreachable"
+    assert got["count"] >= 4, f"the rail lost screens: {got}"
+    assert not got["scrolls"], (
+        "the rail scrolls sideways again -- that gesture belongs to switching " "view on a phone"
+    )
+    assert not got["offScreen"], f"these screens are off the screen: {got['offScreen']}"
+    assert not got["truncated"], (
+        f"these labels are cut off to make them fit: {got['truncated']} -- a long "
+        "one should wrap inside its own button"
+    )
 
+    # Reachable without scrolling is the point, so click the last one as-is.
     last = page.locator(".rc-rail .rc-nav").last
-    last.scroll_into_view_if_needed()
-    page.wait_for_timeout(300)
     last.click()
-    page.wait_for_timeout(800)
+    page.wait_for_timeout(900)
     # Assert the class rather than reading the label: the button's text
     # carries a count on its own line, and escaping a newline through to
     # page.evaluate is a trap that has already bitten this file twice.
     assert last.evaluate(
         "e => e.classList.contains('is-active')"
-    ), "clicking the last screen in the strip did not activate it"
+    ), "clicking the last screen did not activate it"
+
+
+@pytest.mark.parametrize(
+    "path", ["/dashboard", "/workitems", "/reporting", "/profile", "/generali-dashboard"]
+)
+def test_nothing_scrolls_sideways_on_a_phone(nexora_server, phone_page, path):
+    """On a phone, left and right belong to moving between views (#368) -- so
+    no region inside a page may claim the same gesture.
+
+    This is about elements a finger can actually drag: `overflow-x: auto` or
+    `scroll` AND content wider than the box. A clipped overflow cannot be
+    dragged, so it does not compete.
+
+    Two offenders when this was written: the reporting rail (756px of content
+    in a 358px box) and the workitems status tabs, over by six pixels.
+    """
+    page = phone_page
+    _login(page, nexora_server)
+    resp = page.goto(f"{nexora_server}{path}")
+    if resp is not None and resp.status >= 400:
+        pytest.skip(f"{path} returned {resp.status} for this user")
+    page.wait_for_load_state("load")
+    page.wait_for_timeout(1800)
+
+    draggable = page.evaluate(
+        "() => { const out = [];"
+        "        document.querySelectorAll('*').forEach(e => {"
+        "          if (!e.getClientRects().length) return;"
+        "          const over = e.scrollWidth - e.clientWidth;"
+        "          if (over <= 1) return;"
+        "          const ox = getComputedStyle(e).overflowX;"
+        "          if (ox !== 'auto' && ox !== 'scroll') return;"
+        "          out.push({cls: String(e.className).slice(0, 34)"
+        "                         || e.tagName.toLowerCase(),"
+        "                    id: e.id || null, over});"
+        "        });"
+        "        return out; }"
+    )
+    assert not draggable, (
+        f"{path} has regions a finger can drag sideways, which fights swiping "
+        f"between views: {draggable}"
+    )
 
 
 @pytest.mark.flaky_e2e

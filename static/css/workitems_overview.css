@@ -699,16 +699,24 @@ img.nx-wi-card__sheet { object-fit: cover; object-position: top; display: block;
        Let it scroll on its own axis instead, which keeps every tab reachable
        and keeps the strip's width off the page. min-width: 0 on the strip is
        what actually stops it forcing the page wider. */
+    /* These missed fitting by SIX pixels -- 364px of tabs in a 358px row --
+       which is not worth a scrolling strip, and a strip here costs the same
+       left-right gesture the views want (#368). Tightened instead: a smaller
+       gap and a little less padding per tab closes six pixels several times
+       over, and if a future status name pushes it past the row again it wraps
+       evenly rather than hiding a tab off-screen. */
     .nx-wi-statustabs,
     [data-testid="workitems-status-tabs"] {
         min-width: 0;
-        overflow-x: auto;
-        flex-wrap: nowrap;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
+        overflow-x: visible;
+        flex-wrap: wrap;
+        row-gap: 6px;
+        column-gap: 4px;
     }
-    [data-testid="workitems-status-tabs"]::-webkit-scrollbar { display: none; }
-    [data-testid="workitems-status-tabs"] .nx-tab { flex: 0 0 auto; }
+    [data-testid="workitems-status-tabs"] .nx-tab {
+        flex: 0 0 auto;
+        padding-inline: 7px;
+    }
 
     /* Each row is a card here, and every cell is one flex line:
        `[data-label] [value]`, spread by `space-between`. The Workitem cell

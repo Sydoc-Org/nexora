@@ -1839,30 +1839,45 @@ body.reporting-console.rdb-fullbleed .reporting-layouts { max-width: none; paddi
    reachable; the partially-visible next button is the affordance that says so.
    ============================================================ */
 @media (max-width: 768px) and (pointer: coarse) {
+    /* A three-column grid, not a side-scrolling strip.
+
+       It was a strip because six labelled buttons need 756px and the row is
+       358px. Scrolling solved the width and created a worse problem: a
+       left-right drag on the rail is the same gesture as switching view, so
+       the two fight each other -- and the owner's call is that on a phone,
+       left and right belong to the views.
+
+       A grid is the third option: no scrolling AND no ragged wrap. Six items
+       land as an even 3 x 2 with every label readable, which is the thing
+       that made the original wrap look broken -- four buttons at four
+       different vertical positions with dangling connector lines, not the
+       wrapping itself. `minmax(0, 1fr)` so a long label shrinks its column
+       rather than widening the grid; `white-space: normal` so "Report
+       definitions" wraps inside its own button instead of truncating. */
     .rc-rail {
-        flex-direction: row;
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        /* Do not let a flick through the screens drag the page with it. */
-        overscroll-behavior-x: contain;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 6px;
-        /* No margin of its own -- .rc-body already supplies the gap above, and
-           adding one here stacked two spacings into a visible dead band. */
+        overflow-x: visible;
+        /* .rc-body already supplies the gap above; a margin here stacked two
+           spacings into a visible dead band. */
         margin-top: 0;
     }
-    .rc-rail::-webkit-scrollbar { display: none; }
 
     /* "WORKSPACE" is a column heading for a column that no longer exists, and
        it was taking a slot in the strip. The strip needs no title. */
     .rc-rail > .rc-rail-label { display: none; }
 
-    /* Each button keeps its own width and stops shrinking -- without this the
-       flex row squeezes them all to fit and the labels ellipsis away. */
+    /* The opposite of what the strip needed: in a grid the column decides the
+       width, so the button fills it and lets its label wrap. Centred, because
+       a grid cell wider than its text looks accidental left-aligned. */
     .rc-rail .rc-nav {
-        flex: 0 0 auto;
-        white-space: nowrap;
+        width: 100%;
+        min-width: 0;
+        white-space: normal;
+        justify-content: center;
+        text-align: center;
+        line-height: 1.25;
     }
 
     /* The topbar was 117px because a flex spacer sat between the title and the

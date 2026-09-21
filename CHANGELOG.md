@@ -430,6 +430,20 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   you a fat, wrong-looking switch, so a transparent `::after` inset by −10px
   grows the *hit area* to 44px instead. Verified by tapping 18px above the
   pill, outside it and inside the hit area: it toggles.
+- **Nothing on a phone scrolls sideways any more** — left and right belong to
+  moving between views (#368), so no region inside a page may claim the same
+  gesture. Measured across eight pages, exactly two did: the **reporting screen
+  rail** (756px of content in a 358px box) and the **workitems status tabs**,
+  over by *six pixels*. The rail is a three-column grid now — no scrolling and
+  no ragged wrap, an even 3×2 with every label readable and "Report
+  definitions" wrapping inside its own button rather than truncating. What made
+  the original wrap look broken was six buttons at four different vertical
+  positions with dangling connector lines, not the wrapping. The status tabs
+  missed by six pixels, which is not worth a scrolling strip, so they are
+  tightened and wrap evenly if a future status name pushes them over. A new
+  parametrised test pins the invariant: no element with a draggable
+  `overflow-x` may hold content wider than its box. Clipped overflow is
+  exempt — a finger cannot drag it, so it does not compete.
 - **The tab bar gets out of the way of the software keyboard** (#354) — the
   bar is fixed to the bottom of the viewport, so on iOS the keyboard pushed it
   up and parked four nav slots directly above the keys: every tap meant for a
