@@ -6,6 +6,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [3.2.10] - 2026-09-21
+
 ### Added
 
 - **Phone navigation: a bottom tab bar and a bottom sheet** (#354) — on a
