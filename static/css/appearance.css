@@ -188,3 +188,14 @@ html.nx-compact .appearance-canvas .nx-table tbody td { padding: 6px 10px; }
 @media (prefers-reduced-motion: reduce) {
     .appearance-custom-wrap, .profile-accent { transition: none; }
 }
+
+
+/* Touch targets on /appearance (#354 follow-up). "Back to profile" was 29px
+   and is the only way out of the page other than the browser's own back. */
+@media (pointer: coarse) {
+  .appearance-back {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+}

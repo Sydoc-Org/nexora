@@ -55,6 +55,22 @@
             font-size: 0.8125rem; font-weight: 600; color: var(--nx-accent, #4f46e5); text-decoration: none;
         }
         .whatsnew-open:hover { text-decoration: underline; }
+        /* Touch targets (#354 follow-up). "Try it" measured 20px tall -- the
+           smallest control anywhere in the app, and the only thing on the
+           page you are meant to act on. The back link was 32px. Pointer-keyed
+           so a desktop keeps the tighter inline look. */
+        @media (pointer: coarse) {
+            .whatsnew-open {
+                min-height: 44px;
+                display: inline-flex;
+                align-items: center;
+            }
+            .whatsnew-back {
+                min-height: 44px;
+                display: inline-flex;
+                align-items: center;
+            }
+        }
         html.dark .whatsnew-card { background: #1e293b; border-color: #334155; }
         html.dark .whatsnew-card h2 { color: #e2e8f0; }
         html.dark .whatsnew-card p { color: #94a3b8; }

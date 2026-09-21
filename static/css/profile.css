@@ -866,3 +866,56 @@ body.admin-page main {
     text-align: center;
     font-size: 0.9rem;
 }
+
+
+/* Touch targets on /profile (#354 follow-up). The jump-nav links came out
+   38px -- close enough to look deliberate and still under the floor, and they
+   are how you move around the page on a phone, where the whole form is one
+   long column. */
+@media (pointer: coarse) {
+  .profile-jumpnav-link {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+  /* Shared with /appearance and /feedback, which is why raising it here fixes
+     the segmented pickers on all three. */
+  .profile-seg-btn { min-height: 44px; }
+
+  /* The primary action of each page -- "Save changes" on /profile, "Send
+     feedback" on /feedback -- measured 40px. Four pixels short is the worst
+     kind of near-miss: it looks deliberate, so nobody checks it. */
+  .profile-btn { min-height: 44px; }
+  .profile-signout { min-height: 44px; }
+  /* The show/hide-password eye was 30px, sitting inside a 44px field where a
+     near-miss puts your thumb in the field instead. */
+  .profile-pw-toggle {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  /* The accent swatches are a wrapping grid, so 44px costs rows rather than
+     overflow. They are colour choices you tap, not decoration. */
+  .profile-accent { min-width: 44px; min-height: 44px; }
+
+  /* The toggles are <button role="switch"> at 42x24, so raising their height
+     to 44px would give you a fat, wrong-looking switch. Grow the HIT AREA
+     instead and leave the pill alone: a transparent ::after inset by -10px
+     reaches 44px in both directions. The knob is its own <span>, so both
+     pseudo-elements were free. */
+  .profile-switch { position: relative; }
+  .profile-switch::after {
+    content: "";
+    position: absolute;
+    inset: -10px;
+  }
+  /* Two pixels short, and it is the field you type a hex value into. */
+  .appearance-custom-input { min-height: 44px; }
+
+  /* NOT raised, deliberately: .profile-photo-input is the hidden <input
+     type=file> behind the avatar's own label -- it measures 1px because it is
+     never tapped directly, and giving it a tap target would put an invisible
+     44px control over the page. */
+}

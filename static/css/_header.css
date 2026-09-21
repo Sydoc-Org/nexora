@@ -1285,4 +1285,17 @@ html.dark .nx-tabbar-item:active { background: rgba(148, 163, 184, 0.12); }
     #nexora-sidebar el-menu[popover] > button {
         min-height: 44px;
     }
+
+    /* "Keyboard shortcuts" opens a list of Ctrl/Cmd bindings, and the device
+       reading this has no keyboard to press them on. It is the one row in the
+       menu that can only disappoint, so it does not appear. The overlay
+       itself stays -- a phone with a hardware keyboard attached still reaches
+       it through the "?" shortcut, which is how it is opened on a desktop
+       anyway. */
+    #nexora-sidebar [data-testid="header-shortcuts-link"] { display: none; }
+
+    /* The sheet's brand link measured 38px on every single page -- it is wide
+       (129px) so it never felt hard to hit, which is exactly why it went
+       unnoticed for the whole sweep. */
+    #nexora-sidebar .brand { min-height: 44px; }
 }

@@ -407,6 +407,27 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   sits flush on the tab bar with only its top corners rounded, so it reads as
   a panel that slid up over the list. `top: auto` is what releases it from the
   anchor's vertical placement.
+- **The profile menu's section works with a thumb** — "Keyboard shortcuts" is
+  hidden on a touch phone: it opens a list of Ctrl/Cmd bindings on a device
+  with no keyboard, the one row in that menu that can only disappoint. The
+  overlay itself stays, still reachable by the `?` shortcut if a hardware
+  keyboard is attached. Then the four pages the menu leads to, which fit a
+  phone but were built for a mouse — **101 controls under 44px between them**:
+  What's New's *Try it* links at **20px** (the smallest control in the app),
+  the accent swatches and password eye at 30px, the segmented pickers at 33px,
+  the *Back to profile* links at 29px, and both pages' primary action —
+  *Save changes*, *Send feedback* — at 40px, which is the worst kind of
+  near-miss because it looks deliberate. Also the sheet's brand link at 38px,
+  on **every page**; it is 129px wide so it never felt hard to hit, which is
+  why a whole sweep missed it. Now: What's New **0**, /profile and /feedback
+  **1** each, /appearance **3**.
+  Two deliberate exceptions, documented in the CSS so nobody "fixes" them:
+  `.profile-photo-input` is the hidden `<input type="file">` behind the
+  avatar's label and measures 1px because it is never tapped directly; and the
+  `role="switch"` toggles keep their 42×24 pill — raising the button would give
+  you a fat, wrong-looking switch, so a transparent `::after` inset by −10px
+  grows the *hit area* to 44px instead. Verified by tapping 18px above the
+  pill, outside it and inside the hit area: it toggles.
 - **The tab bar gets out of the way of the software keyboard** (#354) — the
   bar is fixed to the bottom of the viewport, so on iOS the keyboard pushed it
   up and parked four nav slots directly above the keys: every tap meant for a
