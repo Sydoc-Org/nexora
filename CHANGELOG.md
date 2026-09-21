@@ -444,6 +444,12 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   parametrised test pins the invariant: no element with a draggable
   `overflow-x` may hold content wider than its box. Clipped overflow is
   exempt — a finger cannot drag it, so it does not compete.
+  The workitems action toolbar got the same treatment for the same reason,
+  and it exposed a hole in how this was being tested: it **fit at 390px and
+  was draggable by 13px at 375** — an iPhone SE or 8. Every measurement up to
+  this point had been taken at one width. Re-checked at six real iPhone widths
+  (375 through 430) after the change: no page overflows and nothing is
+  draggable at any of them.
 - **The tab bar gets out of the way of the software keyboard** (#354) — the
   bar is fixed to the bottom of the viewport, so on iOS the keyboard pushed it
   up and parked four nav slots directly above the keys: every tap meant for a

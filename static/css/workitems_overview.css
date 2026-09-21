@@ -890,20 +890,30 @@ img.nx-wi-card__sheet { object-fit: cover; object-position: top; display: block;
        rather than a toolbar. Their labels are too long to fit three across a
        355px row without truncating, so they get one line that scrolls -- the
        same shape as the reporting console's screen rail. */
+    /* Three equal columns, wrapping labels -- the same answer the reporting
+       rail got, and for the same reason: a side-scrolling strip claims the
+       left-right gesture that belongs to switching views (#368).
+
+       It fit at 390px and was draggable by 13px at 375 (an SE or an 8), which
+       is exactly the kind of thing one test width hides. A grid cannot
+       overflow: the columns divide whatever width there is, and a long label
+       like "Prepared documents" wraps inside its own button instead of
+       widening the row or being cut off. */
     .nx-wi-actions {
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        overscroll-behavior-x: contain;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 8px;
+        overflow-x: visible;
     }
-    .nx-wi-actions::-webkit-scrollbar { display: none; }
     .nx-wi-actions > .nx-btn,
     .nx-wi-actions > .inline-block,
     .nx-wi-actions > .inline-block > .nx-btn {
-        flex: 0 0 auto;
-        white-space: nowrap;
+        width: 100%;
+        min-width: 0;
+        white-space: normal;
+        justify-content: center;
+        text-align: center;
+        line-height: 1.25;
     }
 }
 

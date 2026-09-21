@@ -1411,6 +1411,10 @@ def test_workitems_overview_spends_less_of_the_phone_on_chrome(nexora_server, ph
         "                searchTop: search ? Math.round(r(search).top) : null,"
         "                actionsScrollable: actions"
         "                  ? actions.scrollWidth > actions.clientWidth + 1 : null,"
+        "                actionsTruncated: actions"
+        "                  ? [...actions.querySelectorAll('.nx-btn')]"
+        "                      .filter(x => x.scrollWidth > x.clientWidth + 1)"
+        "                      .map(x => x.innerText.trim().slice(0, 18)) : [],"
         "                actionRows: actions"
         "                  ? new Set([...actions.children]"
         "                      .filter(e => e.getClientRects().length)"
@@ -1420,9 +1424,22 @@ def test_workitems_overview_spends_less_of_the_phone_on_chrome(nexora_server, ph
         "                vw: document.documentElement.clientWidth}; }"
     )
 
-    assert got["actionRows"] == 1, (
-        f"the action buttons are on {got['actionRows']} rows again -- they should "
-        "be one scrolling toolbar, not a 2 + 1 stack of blocks"
+    # Was "must be exactly one row", which described the side-scrolling strip
+    # this replaced. The strip claimed the left-right gesture that belongs to
+    # switching views (#368), so the actions are a three-column grid now. An
+    # even grid row is fine; what must not come back is the draggable strip or
+    # a label truncated to fit one.
+    assert not got["actionsScrollable"], (
+        "the action toolbar scrolls sideways again -- that gesture belongs to "
+        "switching view on a phone"
+    )
+    assert got["actionRows"] <= 2, (
+        f"the actions are on {got['actionRows']} rows -- a three-column grid "
+        "should need at most two"
+    )
+    assert not got["actionsTruncated"], (
+        f"these action labels are cut off to make them fit: "
+        f"{got['actionsTruncated']} -- a long one should wrap inside its button"
     )
     assert got["filterH"] < 260, (
         f"the filter block is {got['filterH']}px tall -- it is back to a column "
