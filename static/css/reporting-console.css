@@ -1882,20 +1882,19 @@ body.reporting-console.rdb-fullbleed .reporting-layouts { max-width: none; paddi
        <h1> below the rail says "Library" -- so a 48px app icon and a 154px
        "Reporting BETA" were 202px of a 355px row spent repeating it.
 
-       Icon, title and the beta chip go; Help and Eddard stay, because those
-       are the only two things in the row you can act on. They right-align on
-       their own once the items before them are gone.
+       Only the 48px app icon goes: the tab bar at the bottom already draws
+       that same icon, and highlights it. "Reporting BETA" stays, because the
+       beta chip is the point -- reporting is not generally available yet and
+       people need to see that on a phone as much as anywhere. A chip on its
+       own would label nothing, so the title keeps it company.
 
-       The beta chip is the one judgement here: it is product information, not
-       decoration. It is still shown at every other width, and the reporting
-       guide still says so -- but if it should be on a phone too, restoring it
-       is deleting one line. */
-    body.reporting-console .rc-appicon,
-    body.reporting-console .rc-apptitle,
-    body.reporting-console .rc-beta { display: none; }
-    /* With the title gone the row has nothing to set its height but the two
-       44px buttons, so it no longer needs the desktop's top padding. */
-    body.reporting-console .rc-topbar { padding-top: 0; justify-content: flex-end; }
+       That leaves title + chip on the left and the two actions on the right,
+       which is why the spacer between them is restored here -- the ≤768px
+       block above hides it, and without it the buttons would sit against the
+       chip. */
+    body.reporting-console .rc-appicon { display: none; }
+    body.reporting-console .rc-topbar-spacer { display: block; flex: 1; }
+    body.reporting-console .rc-topbar { padding-top: 0; }
 
     /* The "N sources" chip counts the Sources rail cards -- which the ≤900px
        block above already hides, so on a phone it reports on something you

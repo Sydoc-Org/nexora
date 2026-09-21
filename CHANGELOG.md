@@ -392,15 +392,14 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   affected. **Two labels still truncate**: the longest document types run past
   40 characters, and Chart.js clips rather than shortens. Tapping the slice
   still shows the full name.
-- **The reporting topbar stops repeating itself on a phone** — it carried a
-  48px app icon and a 154px "Reporting BETA", **202px of a 355px row**, while
-  the tab bar below already showed Reporting highlighted and the screen's own
-  `<h1>` said *Library*. Three labels for one location. Icon, title and the
-  beta chip are hidden on a touch phone; Help and Eddard stay, because they
-  are the only two things in that row you can act on, and they right-align
-  once nothing precedes them. The beta chip is the judgement call — it is
-  product information rather than decoration, is still shown at every other
-  width, and restoring it on phones is deleting one line.
+- **The reporting topbar drops its app icon on a phone** — it spent 48px on an
+  icon the tab bar below already draws *and highlights*, in a 355px row that
+  also had to hold Help and Eddard. The icon is hidden on a touch phone;
+  **"Reporting BETA" stays** — reporting is not generally available yet, so the
+  chip has to be visible on a phone as much as anywhere, and a chip on its own
+  would label nothing, so the title keeps it company. Measured after: title
+  18–125, chip 136–184, the two 44px actions ending exactly on the content
+  edge at 372, all on one 48px row, and the screen rail comes up 5px.
 - **The profile menu is a panel, not a floating card** — opened from the user
   row it anchored to that row's bottom edge and extended **412px upwards**, a
   366px card covering the middle of the sheet's nav list with sheet visible
