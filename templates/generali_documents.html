@@ -37,11 +37,11 @@
           <span class="nx-count-pill__value" id="totalItemsCount">—</span>
         </div>
         <a href="{{ url_for('generali_evaluation') }}"
-           class="nx-btn nx-btn--secondary" data-testid="generali-documents-dashboard-link">
+           class="nx-btn nx-btn--secondary" data-testid="generali-documents-dashboard-link" aria-label="{{ _('Dashboard') }}">
           <i class="fas fa-chart-line"></i><span class="hidden sm:inline">{{ _("Dashboard") }}</span>
         </a>
         <a href="{{ url_for('generali_reporting') }}"
-           class="nx-btn nx-btn--secondary" data-testid="generali-documents-reporting-link">
+           class="nx-btn nx-btn--secondary" data-testid="generali-documents-reporting-link" aria-label="{{ _('Reporting') }}">
           <i class="fas fa-clipboard-list"></i><span class="hidden sm:inline">{{ _("Reporting") }}</span>
         </a>
       </div>

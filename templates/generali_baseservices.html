@@ -35,20 +35,20 @@
       <div class="nx-page-head__actions">
         {% if can_add %}
         <button id="openAddModalBtn"
-          class="nx-btn nx-btn--primary" data-testid="generali-base-services-add-entry">
+          class="nx-btn nx-btn--primary" data-testid="generali-base-services-add-entry" aria-label="{{ _('Add Entry') }}">
           <i class="fas fa-plus"></i><span class="hidden sm:inline">{{ _("Add Entry") }}</span>
         </button>
         {% endif %}
         <button id="exportExcelBtn"
-          class="nx-btn nx-btn--secondary" data-testid="generali-base-services-export-excel">
+          class="nx-btn nx-btn--secondary" data-testid="generali-base-services-export-excel" aria-label="{{ _('Export Excel') }}">
           <i class="fas fa-file-excel"></i><span class="hidden sm:inline">{{ _("Export Excel") }}</span>
         </button>
         <a href="{{ url_for('generali_baseservices_monthreport') }}"
-           class="nx-btn nx-btn--secondary" data-testid="generali-base-services-monthreport-link">
+           class="nx-btn nx-btn--secondary" data-testid="generali-base-services-monthreport-link" aria-label="{{ _('Month Report') }}">
           <i class="fas fa-calendar-alt"></i><span class="hidden sm:inline">{{ _("Month Report") }}</span>
         </a>
         <a href="{{ url_for('generali_reporting') }}"
-           class="nx-btn nx-btn--secondary" data-testid="generali-base-services-reporting-link">
+           class="nx-btn nx-btn--secondary" data-testid="generali-base-services-reporting-link" aria-label="{{ _('Reporting') }}">
           <i class="fas fa-clipboard-list"></i><span class="hidden sm:inline">{{ _("Reporting") }}</span>
         </a>
       </div>

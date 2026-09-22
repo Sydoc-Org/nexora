@@ -146,8 +146,12 @@ PROBE = r"""() => {
         'a,button,input,select,textarea,[role=button],[onclick]')) {
     if (!shown(el)) continue;
     const r = el.getBoundingClientRect();
-    if (r.width < 44 || r.height < 44)
-      out.tiny.push({sel: path(el), w: Math.round(r.width), h: Math.round(r.height)});
+    // Round before comparing. getBoundingClientRect reports sub-pixel widths,
+    // so a control laid out at exactly 44px can measure 43.99 and be reported
+    // as too small forever -- which it did, on two Generali dashboard buttons
+    // that were already the right size.
+    const w = Math.round(r.width), h = Math.round(r.height);
+    if (w < 44 || h < 44) out.tiny.push({sel: path(el), w: w, h: h});
   }
   out.wide.sort((a, b) => b.over - a.over);
   out.wide = out.wide.slice(0, 12);

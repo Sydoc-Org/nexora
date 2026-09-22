@@ -347,7 +347,15 @@ a.nx-card:hover, .nx-card--link:hover {
 
 /* Stat / KPI card */
 .nx-stat { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-.nx-stat__label { font-size: 11px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase; color: var(--nx-text-meta); margin: 0 0 6px; }
+/* `overflow-wrap: anywhere` is doing real work here, not tidying. German
+   compounds these labels into single unbreakable words -- "On-Time Rate"
+   becomes "Pünktlichkeitsquote", 19 characters with nowhere to wrap. In a
+   two-column stat grid on a 375px phone the label overflowed its card by 5px
+   and shoved the icon chip 61px past the edge, which is what let the Generali
+   month report be dragged sideways on every iPhone. `hyphens: auto` first so
+   a locale with hyphenation patterns breaks the word properly (the <html>
+   element carries lang), with `anywhere` as the guarantee when it does not. */
+.nx-stat__label { font-size: 11px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase; color: var(--nx-text-meta); margin: 0 0 6px; hyphens: auto; overflow-wrap: anywhere; }
 .nx-stat__value { font-family: var(--nx-mono); font-variant-numeric: tabular-nums; font-size: 30px; font-weight: 600; letter-spacing: -1px; line-height: 1; color: var(--nx-text); }
 .nx-stat__icon  { font-size: 18px; color: var(--nx-text-meta); opacity: .55; transition: color var(--nx-dur) var(--nx-ease), opacity var(--nx-dur) var(--nx-ease); }
 .nx-card--link:hover .nx-stat__icon { opacity: 1; color: var(--nx-accent); }
@@ -1479,6 +1487,22 @@ html.dark .flatpickr-day:hover { background: var(--nx-alt); }
      every button that already has a word in it. */
   .nx-btn[aria-label] {
     min-width: 44px;
+    justify-content: center;
+  }
+
+  /* The Generali per-row actions. Icon-only buttons built in JS, so they are
+     not .nx-btn and nothing above reached them: edit came out 28x20, delete
+     27x20, and the documents list's detail toggle 14x20 -- the smallest
+     target in the app, forty of them stacked down one page. They are
+     Generali's, but they live here because those pages load no stylesheet of
+     their own beyond this one and workitems_overview.css. */
+  .edit-record-btn,
+  .delete-record-btn,
+  .gen-detail-btn {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
     justify-content: center;
   }
 

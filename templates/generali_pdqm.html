@@ -35,16 +35,16 @@
       <div class="nx-page-head__actions flex-wrap">
         {% if can_add %}
         <button id="openAddModalBtn"
-          class="nx-btn nx-btn--primary" data-testid="generali-pdqm-add-entry">
+          class="nx-btn nx-btn--primary" data-testid="generali-pdqm-add-entry" aria-label="{{ _('Add Entry') }}">
           <i class="fas fa-plus"></i><span class="hidden sm:inline">{{ _("Add Entry") }}</span>
         </button>
         {% endif %}
         <button id="exportExcelBtn"
-          class="nx-btn nx-btn--secondary" data-testid="generali-pdqm-export-excel">
+          class="nx-btn nx-btn--secondary" data-testid="generali-pdqm-export-excel" aria-label="{{ _('Export Excel') }}">
           <i class="fas fa-file-excel"></i><span class="hidden sm:inline">{{ _("Export Excel") }}</span>
         </button>
         <a href="{{ url_for('generali_pdqm_monthreport') }}"
-           class="nx-btn nx-btn--secondary" data-testid="generali-pdqm-month-report-link">
+           class="nx-btn nx-btn--secondary" data-testid="generali-pdqm-month-report-link" aria-label="{{ _('Month Report') }}">
           <i class="fas fa-calendar-alt"></i><span class="hidden sm:inline">{{ _("Month Report") }}</span>
         </a>
       </div>

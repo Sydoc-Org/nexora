@@ -8,6 +8,30 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **80 controls across nine Generali pages had no accessible name.** Their
+  labels are written as `<span class="hidden sm:inline">`, and Tailwind's `sm:`
+  starts at 640px — so on every phone the span is `display: none` and the
+  button is icon-only with nothing to announce it. VoiceOver read "Add Entry",
+  "Export Excel", "Month Report", "Back" and the rest as just "button". The
+  per-row edit and delete actions were worse: icon-only at **every** width, so
+  they were unnamed on desktop too. All now carry an `aria-label` reusing the
+  label's existing msgid, so there is no new translation work, plus the three
+  pagination chevrons on the month report and import status. The documents
+  list's detail toggle had an `aria-label` but a hardcoded English one; it is
+  translated now.
+  This also fixed their tap targets for free: `nexora-ui.css` already grants
+  `min-width: 44px` to `.nx-btn[aria-label]`, on the reasoning that an
+  aria-label is a reliable signal for "icon-only, so nothing gives it width".
+- **The Generali month report could be dragged sideways on every iPhone** —
+  11–45px, both engines, reporting section only. Not a grid bug, as it first
+  appeared: German compounds "On-Time Rate" into **"Pünktlichkeitsquote"**, one
+  unbreakable 19-character word that could not fit its 146px card, so it
+  overflowed 5px and shoved the icon chip 61px past the edge. `.nx-stat__label`
+  now sets `hyphens: auto` with `overflow-wrap: anywhere` as the guarantee,
+  which helps every over-long label in the app rather than this one page.
+- **The Generali per-row action buttons were far too small to tap** — edit
+  28×20, delete 27×20, and the documents list's detail toggle **14×20**, the
+  smallest target in nexora, forty of them stacked down one page. All now 44px.
 - **The reporting app icon is back in the phone topbar.** It had been hidden on
   the argument that the row named the screen three times over — the tab bar
   highlights Reporting and the `<h1>` below the rail says "Library" — but that
