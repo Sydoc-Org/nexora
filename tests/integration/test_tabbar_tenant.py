@@ -281,3 +281,21 @@ def test_one_tenant_is_not_a_choice(user_client, monkeypatch):
     _staff_in_acme(monkeypatch)  # a single tenant in the nav
     html = user_client.get("/dashboard").data.decode()
     assert 'data-testid="tenant-switcher"' not in html
+
+
+def test_rendered_slots_carry_distinct_view_transition_names(user_client, monkeypatch):
+    """Named per page, so the browser slides a slot to its new position.
+
+    Duplicates inside one document would make the transition invalid, so the
+    distinctness matters as much as the naming.
+    """
+    import re
+
+    _staff_in_acme(monkeypatch, pages=WINDOW_PAGES)
+    bar = _bar(user_client.get(f"/dashboard?tenant={TENANT_CODE}").data.decode())
+    names = re.findall(r"view-transition-name:\s*([a-z0-9-]+)", bar)
+
+    assert "nx-tab-more" in names, "More must be anchored across the transition"
+    slots = [n for n in names if n != "nx-tab-more"]
+    assert slots == ["nx-tab-charlie", "nx-tab-delta", "nx-tab-echo"], slots
+    assert len(set(names)) == len(names), f"duplicate transition names: {names}"

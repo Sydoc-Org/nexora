@@ -146,6 +146,13 @@ def create_app():
         return _sw(nav, active_page, own_tenant, remembered, solo)
 
     @app.template_global()
+    def slot_vt_name(key):
+        """view-transition-name for a tab-bar slot -- see nx_lib/tabbar.py."""
+        from .tabbar import slot_transition_name
+
+        return slot_transition_name(key)
+
+    @app.template_global()
     def static_v(filename):
         """url_for('static') with an mtime cache-buster (#191).
 

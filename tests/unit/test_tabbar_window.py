@@ -214,3 +214,51 @@ def test_switcher_agrees_with_the_bar_about_the_current_tenant():
         assert active_tenant_code(nav, active) == expected, active
         current = [c for c, _, _, cur in tenant_switcher(nav, active) if cur]
         assert current == ([expected] if expected else []), active
+
+
+# --------------------------------------------- slot view-transition names --
+
+from nx_lib.tabbar import slot_transition_name  # noqa: E402
+
+
+def test_a_slot_is_named_after_its_page_not_its_position():
+    """The whole carousel effect rests on this.
+
+    Same page -> same name in both documents, so the browser morphs it from
+    the slot it used to occupy to the one it occupies now. Naming by position
+    would pin every slot in place and cross-fade its label into a different
+    page's, which reads as a glitch rather than as movement.
+    """
+    assert slot_transition_name("documents") == "nx-tab-documents"
+    assert slot_transition_name("import-status") == "nx-tab-import-status"
+
+
+def test_transition_names_are_valid_css_idents():
+    """A malformed ident silently drops the whole declaration."""
+    assert slot_transition_name("Weird Key!") == "nx-tab-weird-key"
+    assert slot_transition_name("a/b c") == "nx-tab-a-b-c"
+    assert slot_transition_name("--leading") == "nx-tab-leading"
+
+
+def test_a_missing_key_still_yields_something_usable():
+    assert slot_transition_name("") == "nx-tab-slot"
+    assert slot_transition_name(None) == "nx-tab-slot"
+
+
+def test_every_slot_in_a_window_gets_a_distinct_name():
+    """Duplicate names inside one document make the transition invalid."""
+    for active in ("generali_dashboard", "generali_reporting", "generali_importstatus"):
+        names = [slot_transition_name(p["key"]) for p, _ in tabbar_window([GENERALI], active)]
+        assert len(names) == len(set(names)), (active, names)
+
+
+def test_a_page_keeps_its_name_as_the_window_slides_past_it():
+    """documents is slot 2 before the swipe and slot 1 after -- same name."""
+    before = {
+        p["key"]: i for i, (p, _) in enumerate(tabbar_window([GENERALI], "generali_documents"))
+    }
+    after = {
+        p["key"]: i for i, (p, _) in enumerate(tabbar_window([GENERALI], "generali_reporting"))
+    }
+    assert before["documents"] == 1 and after["documents"] == 0, (before, after)
+    assert slot_transition_name("documents") == slot_transition_name("documents")

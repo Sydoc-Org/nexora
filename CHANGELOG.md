@@ -8,6 +8,17 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **The tab bar's slots now slide between windows instead of blinking.** Each
+  slot carries a `view-transition-name` keyed on the **page** it holds rather
+  than the position it sits in, so when a page is in both the outgoing and the
+  incoming window — "documents" is the second slot before a swipe and the
+  first one after — the browser sees the same name in both documents and
+  morphs it from the old position to the new one. That is the carousel, drawn
+  by the browser: no keyframes, no transform, no JavaScript and no direction
+  tracking. Pages leaving the window fade out, pages entering fade in, and
+  "More" is named too so it visibly stays put while the slots move past it.
+  Reduced motion already cancels it — the existing `::view-transition-*`
+  rules match `(*)`, which covers named transitions.
 - **A tenant switcher at the top of the phone sheet.** One tap moves between
   the tenants a session can see. It sits at the top because on a phone the
   sheet is the only way in and the tenant groups are several scrolls down —

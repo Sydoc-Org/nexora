@@ -42,7 +42,37 @@ reads as having gone the wrong way, with nothing to say you looped.
 
 from __future__ import annotations
 
+import re
+
 SLOTS = 3
+
+_IDENT = re.compile(r"[^a-z0-9-]+")
+
+
+def slot_transition_name(key) -> str:
+    """A `view-transition-name` for one tab-bar slot, keyed on the PAGE.
+
+    Naming a slot after the page it holds rather than the position it sits in
+    is what turns the bar into a carousel, and it costs nothing: when a page
+    is in both the outgoing and the incoming window -- "documents" is the
+    second slot before the swipe and the first one after it -- the browser
+    sees the same name in both documents and *morphs it from the old position
+    to the new one*. That is the slide, drawn by the browser. Pages that leave
+    the window fade out, pages that enter fade in, and "More" never moves
+    because its name is on both sides in the same place.
+
+    Naming them by position (`nx-tab-1/2/3`) would do the opposite: every slot
+    would appear to stay put while its label cross-faded into a different
+    page's, which reads as a glitch rather than as movement.
+
+    The value has to be a CSS custom-ident, so anything outside [a-z0-9-] is
+    collapsed to a hyphen. Registry keys are already ident-safe
+    ("import-status", "additional-services"); this is a guard for a key that
+    one day is not, since a malformed ident would silently drop the whole
+    declaration.
+    """
+    slug = _IDENT.sub("-", str(key or "").lower()).strip("-")
+    return f"nx-tab-{slug}" if slug else "nx-tab-slot"
 
 
 def _is_active(page: dict, active_page: str) -> bool:

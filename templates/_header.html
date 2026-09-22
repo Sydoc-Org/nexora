@@ -431,8 +431,16 @@
        or the user's own tenant pages for a `tenant_solo` one, which are
        already filtered by _tenant_nav_page() (#300). A slot the user may not
        see is not rendered at all -- never a dead tab. #}
-    {% macro tabbar_item(url, icon, label, on, testid) -%}
+    {# `vt` is a view-transition-name keyed on the PAGE, which is what makes the
+       slots slide instead of cross-fade -- see nx_lib/tabbar.py's
+       slot_transition_name. Written as an inline style because
+       view-transition-name cannot be produced from attr() and must differ per
+       element; style-src already allows 'unsafe-inline'. Harmless off a
+       phone: `.nx-tabbar` is display:none by default, and a display:none
+       element takes no part in a transition. #}
+    {% macro tabbar_item(url, icon, label, on, testid, vt=none) -%}
     <a href="{{ url }}" class="nx-tabbar-item {{ 'nx-tabbar-item--active' if on else '' }}"
+       {% if vt %}style="view-transition-name: {{ vt }}"{% endif %}
        {% if on %}aria-current="page"{% endif %} data-testid="{{ testid }}">
         <i class="fas {{ icon }} nx-tabbar-icon"></i>
         <span class="nx-tabbar-label">{{ label }}</span>
@@ -476,7 +484,7 @@
         {% if tabslots %}
         {% for p, on in tabslots %}
         {{ tabbar_item(p.url, p.icon if p.page_type == 'custom' else 'fa-table-list',
-                       p.label, on, 'mobilenav-slot-' ~ p.key) }}
+                       p.label, on, 'mobilenav-slot-' ~ p.key, slot_vt_name(p.key)) }}
         {% endfor %}
         {% else %}
         {# The bar cannot reuse `item.active`. That flag answers "is the SIDEBAR's
@@ -494,11 +502,14 @@
         {% set on = (item.key == 'dashboard' and (ap == 'dashboard' or ap.endswith('_dashboard')))
                  or (item.key == 'workitems' and (ap == 'workitems_overview' or ap.endswith('_workitems')))
                  or (item.key == 'reporting' and ap == 'reporting') %}
-        {{ tabbar_item(item.url, item.icon, item.short, on, 'mobilenav-slot-' ~ loop.index) }}
+        {{ tabbar_item(item.url, item.icon, item.short, on, 'mobilenav-slot-' ~ loop.index, slot_vt_name(item.key)) }}
         {% endfor %}
         {% endif %}
 
+        {# Named as well, so the browser anchors it across the transition and it
+           visibly stays put while the slots move past it. #}
         <button type="button" id="nx-tabbar-more" class="nx-tabbar-item"
+                style="view-transition-name: nx-tab-more"
                 aria-controls="nexora-sidebar" aria-expanded="false" data-testid="mobilenav-more">
             <i class="fas fa-ellipsis nx-tabbar-icon"></i>
             <span class="nx-tabbar-label">{{ _("More") }}</span>
