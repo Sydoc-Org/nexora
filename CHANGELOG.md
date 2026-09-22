@@ -6,6 +6,27 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **POE moves from Basisleistungen to Zusatzleistungen (Generali), effective
+  2026-10-01.** Requested by Generali: from 1 October they report POE hours
+  under Additional Services instead of Base Services.
+  In **Zusatzleistungen** POE is a parent category with no subcategory
+  (migration `GeneraliDB/0016`) — the same shape as the existing `PDQM` and
+  `Weitere Tätigkeiten`, so the page already renders an em-dash in the
+  subcategory dropdown and disables it. No `CategoryTerms` row: the page falls
+  back to the German term when a lookup misses, and "POE" is the same string
+  in all four locales.
+  In **Basisleistungen** POE moves from `BASE_CATEGORIES` to
+  `LEGACY_CATEGORIES` — no longer bookable, **still filterable**. Deleting it
+  outright would have orphaned every hour booked before the move: those rows
+  stay in `BaseServiceEntries` and keep counting in the month report, but
+  nothing in the UI could have selected them. Guarded by
+  `tests/unit/test_generali_base_categories.py`.
+  **Timing matters:** this reaches PROD when a `v*` tag is pushed, not when it
+  merges. Tag at the end of September — tagging earlier removes POE from
+  Basisleistungen while people are still booking September hours there.
+
 ### Added
 
 - **The tab bar's slots now slide between windows instead of blinking.** Each

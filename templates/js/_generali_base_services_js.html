@@ -9,11 +9,18 @@
     const BASE_CATEGORIES = [
         "Physical Mailroom, AVOR & Scanning",
         "Nk1 & NK2",
-        "POE",
         "PPR"
     ];
-    // ponytail: legacy combined category still on old rows — filterable, not addable
-    const LEGACY_CATEGORIES = ["POE / PPR"];
+    // Filterable but NOT addable: categories that sit on historical rows and
+    // may no longer be booked. Dropping one from this list instead of moving
+    // it here would orphan every entry that already carries it -- the rows
+    // stay in the table and in the month report, but the filter could no
+    // longer select them.
+    //   "POE / PPR" -- legacy combined category, split long ago.
+    //   "POE"       -- moved to Zusatzleistungen on 2026-10-01 at Generali's
+    //                  request (migration GeneraliDB/0016). September's POE
+    //                  hours were booked here and must stay reachable.
+    const LEGACY_CATEGORIES = ["POE / PPR", "POE"];
 
     let _currentRecords = [];
 
