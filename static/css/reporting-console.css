@@ -1892,22 +1892,28 @@ body.reporting-console.rdb-fullbleed .reporting-layouts { max-width: none; paddi
        5px less finds far more than six. */
     .rc-topbar { row-gap: 6px; column-gap: 10px; }
 
-    /* The row was telling you where you are for the third time. The tab bar
-       at the bottom already shows Reporting highlighted, and the screen's own
-       <h1> below the rail says "Library" -- so a 48px app icon and a 154px
-       "Reporting BETA" were 202px of a 355px row spent repeating it.
+    /* The whole row is kept, icon included.
 
-       Only the 48px app icon goes: the tab bar at the bottom already draws
-       that same icon, and highlights it. "Reporting BETA" stays, because the
-       beta chip is the point -- reporting is not generally available yet and
-       people need to see that on a phone as much as anywhere. A chip on its
-       own would label nothing, so the title keeps it company.
+       It was hidden for a while on the argument that the row told you where
+       you are three times over -- the tab bar highlights Reporting, the <h1>
+       below the rail names the screen, so a 48px icon looked like spent
+       width. That was a density judgement, not a fit problem, and the owner
+       asked for the icon back: without it the page read as though something
+       had failed to load.
 
-       That leaves title + chip on the left and the two actions on the right,
-       which is why the spacer between them is restored here -- the ≤768px
-       block above hides it, and without it the buttons would sit against the
-       chip. */
-    body.reporting-console .rc-appicon { display: none; }
+       It fits with room to spare. Measured at the narrowest phone, 375px, in
+       both Chromium and WebKit: icon 16-60, title 70-168, beta 178-221, Help
+       261-305, Eddard 315-359 -- a single 44px row, both actions inside the
+       viewport with 16px left over, nothing wrapped and nothing clipped. The
+       flex spacer between the chip and the actions absorbs the difference,
+       which is why it is restored here; the <=768px block above hides it, and
+       without it the buttons would sit against the chip instead of the row's
+       right edge.
+
+       "Reporting BETA" stays for its own reason: reporting is not generally
+       available yet, and that has to be visible on a phone as much as
+       anywhere. */
+    body.reporting-console .rc-appicon { display: inline-flex; }
     body.reporting-console .rc-topbar-spacer { display: block; flex: 1; }
     body.reporting-console .rc-topbar { padding-top: 0; }
 

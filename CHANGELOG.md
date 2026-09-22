@@ -8,6 +8,15 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **The reporting app icon is back in the phone topbar.** It had been hidden on
+  the argument that the row named the screen three times over — the tab bar
+  highlights Reporting and the `<h1>` below the rail says "Library" — but that
+  was a density judgement, and without the icon the header read as though
+  something had failed to load. It fits with room to spare: measured at the
+  narrowest phone (375px) in both engines, icon 16–60, title 70–168, beta
+  178–221, Help 261–305, Eddard 315–359 — one 44px row, both actions inside
+  the viewport with 16px left over, nothing wrapped or clipped.
+
 - **The reporting page could be dragged 53px sideways on an iPhone — in Safari
   only.** The sort control is a 48px box with the `<select>` laid over it at
   `opacity: 0`, but a `<select>` reports the intrinsic width of its longest
