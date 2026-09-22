@@ -6,6 +6,25 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Admins can see who is locked out, and unlock them in one click.** A
+  "Locked accounts" panel on `/admin/sessions` lists every account whose
+  lockout is live right now — who, which step (password or two-factor), how
+  many failed attempts, and until when — with an Unlock button per row. It is
+  hidden entirely when nobody is locked, which is almost always.
+  Until now `dbo.LoginLockout` was read and written only by
+  `nx_lib/views/auth.py`. Nothing surfaced it anywhere, so unsticking a
+  locked-out colleague meant a hand-written `DELETE` against the production
+  database — and the lockout is invisible from every other screen: the person
+  is told "too many attempts" and support is told nothing at all.
+  Unlocking clears **both** keys. The password step locks under the bare
+  userid and the two-factor step under `2fa:<userid>`, and they lock
+  independently — an admin pressing Unlock means "let them in", not "let them
+  past one of the two doors". Expired rows are not listed: `auth.py` only
+  deletes a row on a successful login, so the table keeps rows for people who
+  can already log in fine.
+
 ### Changed
 
 - **POE moves from Basisleistungen to Zusatzleistungen (Generali), effective
