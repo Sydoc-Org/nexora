@@ -1508,6 +1508,182 @@ def test_workitem_stage_indicator_gets_its_own_line(nexora_server, phone_page):
     )
 
 
+# A swipe, dispatched as touch events at chosen coordinates. Hand-dragging a
+# mouse in a headed browser is not reproducible; this exercises each rule on
+# purpose. `touches` is empty on touchend because the finger has lifted --
+# reading e.touches there is the classic mistake, so the fixture models it.
+_SWIPE = """
+([x1, y1, x2, y2]) => {
+  const target = document.elementFromPoint(x1, y1) || document.body;
+  const mk = (type, x, y) => {
+    const t = new Touch({identifier: 1, target,
+                         clientX: x, clientY: y, screenX: x, screenY: y});
+    return new TouchEvent(type, {bubbles: true, cancelable: true,
+                                 touches: type === 'touchend' ? [] : [t],
+                                 changedTouches: [t]});
+  };
+  target.dispatchEvent(mk('touchstart', x1, y1));
+  target.dispatchEvent(mk('touchend', x2, y2));
+}
+"""
+
+
+def _swipe(page, x1, y1, x2, y2):
+    """One swipe, then long enough for a navigation to settle.
+
+    The wait is deliberately generous: /reporting takes about three seconds to
+    boot, and a shorter wait made this look like the swipe had been ignored
+    when it had actually worked -- a false failure that cost real time.
+    """
+    page.evaluate(_SWIPE, [x1, y1, x2, y2])
+    page.wait_for_timeout(3200)
+    return page.url
+
+
+def test_swiping_moves_between_the_bar_s_views(nexora_server, phone_page):
+    """#368 -- a swipe across the middle of the screen moves to the next view.
+
+    The order comes from the tab bar itself, whose slots are permission-
+    filtered links built from the sidebar's own nav_items, so there is no
+    second list of pages to drift out of step. It also means a user scoped to
+    one tenant swipes between that tenant's pages with no extra code.
+
+    No wrap at the ends: arriving back at the first view from the last reads
+    as having gone the wrong way, with no cue that you looped.
+    """
+    page = phone_page
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/dashboard")
+    page.wait_for_load_state("load")
+    page.wait_for_timeout(1200)
+
+    slots = page.evaluate(
+        "() => [...document.querySelectorAll('.nx-tabbar a.nx-tabbar-item')]"
+        "        .map(a => a.getAttribute('href'))"
+    )
+    if len(slots) < 3:
+        pytest.skip(f"this user has {len(slots)} swipeable views; need 3")
+
+    # Left pulls the next view in, the way a page turns.
+    assert "/reporting" in _swipe(
+        page, 300, 400, 100, 410
+    ), "swiping left from the first view did not reach the second"
+    assert "/workitems" in _swipe(
+        page, 300, 400, 100, 410
+    ), "swiping left again did not reach the third view"
+    # And back.
+    assert "/reporting" in _swipe(page, 100, 400, 300, 410), "swiping right did not go back a view"
+    assert "/dashboard" in _swipe(
+        page, 100, 400, 300, 410
+    ), "swiping right did not return to the first view"
+    # Off the end: stays put.
+    assert "/dashboard" in _swipe(
+        page, 100, 400, 300, 410
+    ), "swiping right past the first view wrapped around to the last"
+
+
+def test_swipe_leaves_the_edges_to_the_browser(nexora_server, phone_page):
+    """The outer 30px belong to the platform's back/forward gesture, which in
+    an installed app is the ONLY way back out of a page -- there is no browser
+    chrome to press. Taking it would trap people, and Safari ignores attempts
+    to suppress it anyway.
+
+    Also checks the two cheaper exclusions: a drag that travelled further
+    vertically than horizontally is a scroll (a thumb pivots at the joint, so
+    every scroll drifts sideways), and a short drag is a sloppy tap.
+    """
+    page = phone_page
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/dashboard")
+    page.wait_for_load_state("load")
+    page.wait_for_timeout(1200)
+
+    start = page.url
+    assert _swipe(page, 10, 400, 260, 410) == start, (
+        "a swipe starting 10px from the edge navigated -- that gesture belongs "
+        "to the browser's back/forward"
+    )
+    assert (
+        _swipe(page, 200, 600, 140, 200) == start
+    ), "a drag of 400px up and 60px sideways navigated -- that is a scroll"
+    assert (
+        _swipe(page, 200, 400, 160, 405) == start
+    ), "a 40px swipe navigated -- under the distance threshold"
+
+
+def test_view_transitions_are_opted_in_on_a_phone(nexora_server, phone_page):
+    """The white flash between page loads is the one thing that gives an
+    installed nexora away as a web page -- and it is not slowness. Measured on
+    dev: 16-68ms to first byte with 3-9KB over the wire, because everything
+    else is cached. The seam is the browser rebuilding the page.
+
+    `@view-transition` hides it with no JavaScript. Both the page you leave and
+    the page you arrive at must carry the rule, which is why it lives in the
+    globally loaded sheet.
+    """
+    page = phone_page
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/dashboard")
+    page.wait_for_load_state("load")
+    page.wait_for_timeout(900)
+
+    got = page.evaluate(
+        "() => { let cond = null, reduced = 0;"
+        "        for (const sh of document.styleSheets) {"
+        "          let rules; try { rules = sh.cssRules; } catch (e) { continue; }"
+        "          for (const r of rules) {"
+        "            if (r.constructor.name === 'CSSMediaRule') {"
+        "              for (const i of r.cssRules) {"
+        "                if (i.constructor.name === 'CSSViewTransitionRule')"
+        "                  cond = r.conditionText;"
+        "              }"
+        "            }"
+        "            if ((r.cssText || '').includes('view-transition-group'))"
+        "              reduced++;"
+        "          }"
+        "        }"
+        "        return {cond, reduced,"
+        "                matches: cond ? matchMedia(cond).matches : null}; }"
+    )
+    assert got["cond"], "no @view-transition opt-in reached the page"
+    assert got["matches"], f"the opt-in is gated on {got['cond']!r}, which does not match a phone"
+    assert got["reduced"] >= 2, (
+        "reduced motion has no way to cancel the animation -- a transition "
+        "cannot be half-off, so the animation must be switched off rather than "
+        f"the opt-in removed (found {got['reduced']} rules)"
+    )
+
+
+def test_view_transitions_stay_off_on_a_narrow_desktop_window(nexora_server, narrow_desktop_page):
+    """The other direction of the gate. A 390px mouse window is a snapped or
+    zoomed desktop, where the page sits in browser chrome and nobody expects
+    app-style transitions between navigations.
+    """
+    page = narrow_desktop_page
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/dashboard")
+    page.wait_for_load_state("load")
+    page.wait_for_timeout(900)
+
+    matches = page.evaluate(
+        "() => { for (const sh of document.styleSheets) {"
+        "          let rules; try { rules = sh.cssRules; } catch (e) { continue; }"
+        "          for (const r of rules) {"
+        "            if (r.constructor.name !== 'CSSMediaRule') continue;"
+        "            for (const i of r.cssRules) {"
+        "              if (i.constructor.name === 'CSSViewTransitionRule')"
+        "                return matchMedia(r.conditionText).matches;"
+        "            }"
+        "          }"
+        "        }"
+        "        return null; }"
+    )
+    assert matches is False, (
+        f"view transitions apply to a narrow desktop window (matches={matches}) "
+        "-- the gate is keying on width alone"
+    )
+
+
 def _bar_shown(page):
     return page.evaluate(
         "() => { const b = document.querySelector('.nx-tabbar');"

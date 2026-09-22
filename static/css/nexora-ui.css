@@ -1551,3 +1551,47 @@ html.dark .flatpickr-day:hover { background: var(--nx-alt); }
     height: 21rem;
   }
 }
+
+/* ============================================================
+   CROSS-DOCUMENT VIEW TRANSITIONS ON A PHONE (#354)
+
+   An installed nexora looks like an app until you navigate, and then the
+   browser throws the page away and rebuilds it -- a white flash that is the
+   one thing giving it away as a web page. It is not slowness: measured on
+   dev, a dashboard/reporting navigation is 16-68ms to first byte with only
+   3-9KB crossing the wire, because everything else is already cached. The
+   seam is the rebuild, not the fetch.
+
+   So hide the seam. The browser holds the outgoing page's pixels, loads the
+   next one, and animates between them. No JavaScript, no framework, and
+   nothing to maintain.
+
+   Both the page you leave AND the page you arrive at must carry the rule,
+   which is why it lives in the globally loaded sheet. Browsers without it
+   (any Safari before 18.2) simply navigate the old way -- there is no
+   fallback to write.
+
+   Phone-gated like the rest of this work: the flash is what makes a phone
+   feel like a web page, and a desktop user navigating in a window with
+   browser chrome has no such expectation. `@view-transition` inside `@media`
+   is valid and parses as a CSSViewTransitionRule -- checked, not assumed.
+   ============================================================ */
+@media (max-width: 768px) and (pointer: coarse) {
+  @view-transition { navigation: auto; }
+}
+
+/* A transition cannot be half-off, so reduced motion cancels the animation
+   rather than removing the opt-in. Two sources, because nexora's own
+   preference and the OS setting are different things: the pre-paint script
+   sets `nx-motion-reduced` from the user's stored pref (which may be an
+   explicit choice that differs from their OS), and the media query catches
+   anyone who set it at the system level without touching nexora. */
+html.nx-motion-reduced::view-transition-group(*),
+html.nx-motion-reduced::view-transition-old(*),
+html.nx-motion-reduced::view-transition-new(*) { animation: none !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) { animation: none !important; }
+}
