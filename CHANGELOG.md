@@ -10,6 +10,35 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Swipe between views on a phone** (#368) — a swipe across the middle of the
+  screen moves to the next or previous view in the bottom bar. The order comes
+  from the **bar itself**, whose slots are permission-filtered links built from
+  the sidebar's own `nav_items`, so there is no second list of pages to drift
+  out of step — and a user scoped to one tenant swipes between *that tenant's*
+  pages with no extra code. No wrap at the ends: arriving back at the first
+  view from the last reads as having gone the wrong way, with nothing to say
+  you looped.
+  **The outer 30px are left alone**, deliberately. That is the platform's
+  back/forward gesture, and in an installed app it is the *only* way back out
+  of a page — there is no browser chrome to press. Taking it would trap
+  people, Safari ignores attempts to suppress it anyway, and native iOS works
+  exactly this way: edges go back, the middle belongs to the app. Nothing here
+  calls `preventDefault`, so both listeners stay `{ passive: true }` and
+  scrolling keeps its smoothness. It also stands down while a keyboard field
+  has focus and while the More sheet is open.
+- **Cross-document view transitions on a phone** — the white flash between
+  page loads was the one thing giving an installed nexora away as a web page,
+  and it is not slowness: measured on dev, a dashboard↔reporting navigation is
+  **16–68ms to first byte with 3–9KB over the wire**, because everything else
+  is cached. The seam is the browser rebuilding the page, so
+  `@view-transition { navigation: auto; }` hides it — no JavaScript, no
+  framework. Both the page you leave and the one you arrive at need the rule,
+  hence the globally loaded sheet. Browsers without support (Safari before
+  18.2) navigate the old way, so there is no fallback to write. Phone-gated,
+  and reduced motion **cancels the animation** rather than removing the opt-in
+  — a transition cannot be half-off — from both nexora's own
+  `nx-motion-reduced` preference and the OS `prefers-reduced-motion` setting,
+  which are different things.
 - **Phone navigation: a bottom tab bar and a bottom sheet** (#354) — on a
   touch phone the nav moves into the thumb zone: a fixed bar with up to three
   permission-filtered slots (the user's own tenant pages when they belong to
