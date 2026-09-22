@@ -6,6 +6,37 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The reporting page could be dragged 53px sideways on an iPhone — in Safari
+  only.** The sort control is a 48px box with the `<select>` laid over it at
+  `opacity: 0`, but a `<select>` reports the intrinsic width of its longest
+  `<option>` (~132px) as scroll overflow even while invisible and absolutely
+  positioned. Safari propagates that to the document; Chromium discards it. So
+  the page measured perfectly clean in every browser available here while
+  overflowing on all seven iPhone geometries in WebKit — which is why it went
+  undiagnosed through a whole round of phone fixes. One `overflow: hidden` on
+  the wrapper, which costs nothing visually: the select is invisible and the
+  picker it opens is drawn by the platform, not inside the box.
+- **`/appearance` and `/profile` scrolled sideways on narrow phones** — 37px
+  and 13px at 375px wide, both engines, tapering out by 414px. Both pages
+  collapse to a single column on a phone with `grid-template-columns: 1fr`,
+  and a `1fr` track takes **min-content** as its automatic minimum, so the
+  widest thing in the preview card or the identity card pushed the track past
+  the screen. Now `minmax(0, 1fr)` with `min-width: 0` on the items — the
+  desktop rule in `appearance.css` already used the `minmax` form for this
+  exact reason and the responsive override had dropped back to the bare
+  keyword.
+- **Every per-row control on the workitems list now meets 44px** (#354
+  follow-up). The row checkbox was 24px and the details toggle 32px across 40
+  rows — the largest mis-tap surface on the page. They were capped there
+  deliberately, on the reasoning that stretching them would halve how many
+  rows fit; measuring the phone layout shows each row is a 289px card with
+  281px of clear space between one checkbox and the next, so the real cost is
+  289px → 321px, about 11% fewer rows, not a halving. Also `Advanced` in the
+  filter bar, which cleared 44 tall but sat at 43 wide — the `min-width` rule
+  that fixed `Reset` for the same reason had missed it.
+
 ### Added
 
 - **`scripts/phone-sweep.py` — the phone layout, measured instead of eyeballed.**

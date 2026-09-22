@@ -60,7 +60,12 @@ body.admin-page main {
     align-items: start;
 }
 @media (max-width: 980px) {
-    .profile-grid { grid-template-columns: 1fr; }
+    /* minmax(0, 1fr) rather than 1fr, and min-width: 0 on the items: both a
+       `1fr` track and a grid item take min-content as their automatic
+       minimum, so the identity card pushed the page 13px wider than a 375px
+       screen and it could be dragged sideways. */
+    .profile-grid { grid-template-columns: minmax(0, 1fr); }
+    .profile-identity, .profile-sections { min-width: 0; }
 }
 
 /* ---------- Identity card ---------- */

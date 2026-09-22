@@ -1974,6 +1974,16 @@ body.reporting-console.rdb-fullbleed .reporting-layouts { max-width: none; paddi
         border: 1px solid var(--nx-border);
         border-radius: calc(var(--nx-radius-scale, 1) * 8px);
         background: var(--nx-card);
+        /* The select inside is 48px wide but its longest <option> is ~132px,
+           and a <select> reports that intrinsic text width as scroll overflow
+           even while invisible and absolutely positioned. Safari propagates
+           that overflow up to the document and Chromium does not, so the
+           whole reporting page could be dragged 53px sideways on an iPhone
+           and measured perfectly clean in every desktop browser we tested.
+           Clipping here costs nothing visually -- the select is opacity 0,
+           and the native picker it opens is drawn by the platform, not
+           inside this box. */
+        overflow: hidden;
     }
     body.reporting-console .rs-sort-ico {
         display: block;

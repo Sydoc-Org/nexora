@@ -785,8 +785,11 @@ img.nx-wi-card__sheet { object-fit: cover; object-position: top; display: block;
        the strip that scrolls horizontally above, so height is free to grow. */
     [data-testid="workitems-status-tabs"] .nx-tab { min-height: 44px; }
 
-    /* "Reset" is a short word, so it cleared 44 tall but only 33 wide. */
-    [data-testid="workitems-reset"] {
+    /* "Reset" is a short word, so it cleared 44 tall but only 33 wide.
+       "Advanced" was missed by the same rule and landed at 43 -- one pixel
+       short, which no amount of looking would ever have caught. */
+    [data-testid="workitems-reset"],
+    [data-testid="workitems-toggle-advanced"] {
         min-width: 44px;
         display: inline-flex;
         align-items: center;
@@ -806,16 +809,29 @@ img.nx-wi-card__sheet { object-fit: cover; object-position: top; display: block;
     [data-testid="workitems-bulk-export"],
     [data-testid="workitems-bulk-deselect"] { min-height: 44px; }
 
-    /* Per-row controls. Not stretched to a full 44px -- that would set the
-       height of every row in the list and halve how many fit on screen --
-       but lifted well clear of the 18px and 9px they were. */
+    /* Per-row controls, at the full 44px.
+
+       #354 capped these at 24px and 32px on the reasoning that stretching
+       them would "set the height of every row and halve how many fit on
+       screen". That holds for a compact list, but the phone layout does not
+       render one: each row is a **289px card**, with 281px of clear space
+       between one row's checkbox and the next, so the cost is nothing like
+       halving.
+
+       Measured, both engines, seven devices: the row goes 289px -> 321px, so
+       about 11% fewer rows on a screen, and nothing moves past the right
+       edge. That is the real trade and it is worth naming rather than
+       implying it is free -- 40 rows of 24px checkboxes is the single worst
+       mis-tap surface on the page, and 11% is not the halving the cap was
+       guarding against. Revert by putting 24px/32px back here if the density
+       turns out to matter more. */
     [data-testid^="workitems-row-checkbox"] {
-        width: 24px;
-        height: 24px;
+        width: 44px;
+        height: 44px;
     }
     [data-testid^="workitems-details-toggle"] {
-        min-width: 32px;
-        min-height: 32px;
+        min-width: 44px;
+        min-height: 44px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
