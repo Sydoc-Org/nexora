@@ -1,3 +1,8 @@
+> **SUPERSEDED — a newer handoff shares this date.** Start at
+> [`2026-09-22-phone-tabbar-carousel-plan.md`](2026-09-22-phone-tabbar-carousel-plan.md).
+> The three phone symptoms below were worked after this was written: one was
+> reproduced and fixed, two are still unreproduced. This file is kept for history.
+
 # Handoff — START WITH THE PHONE-VIEW FIXES
 
 **Date:** 2026-09-22 · **Branch:** `feat/354-phone-tabbar` · **42 commits ahead of `main`**,
