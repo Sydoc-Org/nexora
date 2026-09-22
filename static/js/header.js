@@ -792,3 +792,49 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         });
 });
+// detect swipe
+
+(function () {
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchEndX = 0;
+    let touchEndY = 0;
+
+    function handleGesture() {
+        const dx = touchEndX - touchStartX;
+        const dy = touchEndY - touchStartY;
+
+        if (Math.abs(dy) > Math.abs(dx)) return;
+        if (Math.abs(dx) < 20) return;
+
+        if (dx < 0) console.log("swipe left");
+        else console.log("swipe right");
+    }
+
+    document.addEventListener(
+        "touchstart",
+        (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+            touchStartY = e.changedTouches[0].screenY;
+        },
+        { passive: true },
+    );
+
+    document.addEventListener(
+        "touchend",
+        (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            touchEndY = e.changedTouches[0].screenY;
+            handleGesture();
+        },
+        { passive: true },
+    );
+    function startedInSideScroller(el) {
+        let node = el;
+        while (node && node !== document.body) {
+            if (node.scrollWidth > node.clientWidth) return true;
+            node = node.parentElement;
+        }
+        return false;
+    }
+})();
