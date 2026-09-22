@@ -19,9 +19,35 @@
             title=_('Active Sessions'),
             subtitle=_('Users active within the last 30 minutes'),
             back_url=url_for('admin_dashboard'),
-            actions=[{'label': _('Refresh'), 'icon': 'fa-sync-alt', 'onclick': 'fetchActiveSessions()', 'variant': 'secondary'}],
+            actions=[{'label': _('Refresh'), 'icon': 'fa-sync-alt', 'onclick': 'refreshSessionsPage()', 'variant': 'secondary'}],
             icon='fa-signal'
         ) }}
+
+        {# ---- Locked accounts ----
+           A lockout is invisible from every other screen: the person is told
+           "too many attempts" and support is told nothing at all. Worse, it
+           outlives a password reset -- the reset path never clears the
+           counter -- so the obvious fix leaves them locked and their new
+           password is never even compared. Until this panel, unsticking
+           someone meant a hand-written DELETE against production.
+
+           Hidden entirely when nobody is locked, which is almost always. #}
+        <div id="locked-accounts-wrap" class="nx-card" style="margin-bottom:20px" hidden
+             data-testid="admin-locked-accounts">
+            <div class="nx-section" style="margin-bottom:12px">
+                <i class="fas fa-lock" style="margin-right:8px"></i>{{ _('Locked accounts') }}
+            </div>
+            <table class="nx-table">
+                {{ a.table_header([
+                    {'label': _('Username')},
+                    {'label': _('Stage'), 'width': '150px'},
+                    {'label': _('Failed attempts'), 'width': '150px'},
+                    {'label': _('Locked until'), 'width': '170px'},
+                    {'label': _('Actions'), 'align': 'right', 'width': '150px'}
+                ]) }}
+                <tbody id="locked-accounts-body"></tbody>
+            </table>
+        </div>
 
         <div class="nx-table-wrap">
             <table class="nx-table">
