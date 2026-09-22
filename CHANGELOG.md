@@ -27,8 +27,13 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   appeared: German compounds "On-Time Rate" into **"Pünktlichkeitsquote"**, one
   unbreakable 19-character word that could not fit its 146px card, so it
   overflowed 5px and shoved the icon chip 61px past the edge. `.nx-stat__label`
-  now sets `hyphens: auto` with `overflow-wrap: anywhere` as the guarantee,
-  which helps every over-long label in the app rather than this one page.
+  reads on one line again because **stat-card grids are now a single column on
+  a phone**. Two columns leave a stat card only a 69px text column once the
+  44px icon chip is taken out, and that word needs 128px unbroken even at zero
+  letter-spacing — no font size fits it, so it could only be broken at an
+  arbitrary letter. `.nx-stat__label` also sets `hyphens: auto` (with the
+  `-webkit-` prefix, which Safari requires) and `overflow-wrap: break-word` as
+  a last resort for other long labels.
 - **The Generali per-row action buttons were far too small to tap** — edit
   28×20, delete 27×20, and the documents list's detail toggle **14×20**, the
   smallest target in nexora, forty of them stacked down one page. All now 44px.

@@ -352,10 +352,15 @@ a.nx-card:hover, .nx-card--link:hover {
    becomes "Pünktlichkeitsquote", 19 characters with nowhere to wrap. In a
    two-column stat grid on a 375px phone the label overflowed its card by 5px
    and shoved the icon chip 61px past the edge, which is what let the Generali
-   month report be dragged sideways on every iPhone. `hyphens: auto` first so
-   a locale with hyphenation patterns breaks the word properly (the <html>
-   element carries lang), with `anywhere` as the guarantee when it does not. */
-.nx-stat__label { font-size: 11px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase; color: var(--nx-text-meta); margin: 0 0 6px; hyphens: auto; overflow-wrap: anywhere; }
+   month report be dragged sideways on every iPhone. Hyphenation first, and
+   `-webkit-hyphens` is not optional -- Safari ignores the unprefixed
+   property, so without it WebKit fell straight through to `overflow-wrap:
+   anywhere` and broke the word wherever it happened to land: "PUENKTLICH /
+   KEITSQUOT / E", three lines with one letter on the last. The <html> element
+   carries `lang`, which is what lets a browser hyphenate at real syllable
+   boundaries. `anywhere` stays as the guarantee for a locale with no
+   hyphenation patterns, where a break anywhere still beats an overflow. */
+.nx-stat__label { font-size: 11px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase; color: var(--nx-text-meta); margin: 0 0 6px; -webkit-hyphens: auto; hyphens: auto; overflow-wrap: break-word; }
 .nx-stat__value { font-family: var(--nx-mono); font-variant-numeric: tabular-nums; font-size: 30px; font-weight: 600; letter-spacing: -1px; line-height: 1; color: var(--nx-text); }
 .nx-stat__icon  { font-size: 18px; color: var(--nx-text-meta); opacity: .55; transition: color var(--nx-dur) var(--nx-ease), opacity var(--nx-dur) var(--nx-ease); }
 .nx-card--link:hover .nx-stat__icon { opacity: 1; color: var(--nx-accent); }
@@ -1581,6 +1586,19 @@ html.dark .flatpickr-day:hover { background: var(--nx-alt); }
   }
   /* The selects inside must be allowed to shrink into their half. */
   body.nx-app .grid.grid-cols-1.sm\:grid-cols-2 > * { min-width: 0; }
+
+  /* Stat cards are the exception, and they are why the rule above says what
+     it means rather than what it matches. A filter cell is a label over a
+     dropdown, and half a phone is plenty. A stat card spends 44px of its
+     width on the icon chip, which leaves a 69px text column -- and
+     "Pünktlichkeitsquote", German for "On-Time Rate", needs 128px unbroken
+     even at zero letter-spacing. No font size fits it there; it can only
+     wrap, and wrapping a single compound word means breaking it at an
+     arbitrary letter. One column gives ~248px and every label reads on one
+     line. */
+  body.nx-app .grid.grid-cols-1.sm\:grid-cols-2:has(> .nx-stat) {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 /* The Generali dashboard's two doughnuts on a phone (#365).
