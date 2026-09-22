@@ -547,6 +547,131 @@ def admin_revoke_all_sessions(user_id):
     return jsonify({"success": True, "revoked": revoked})
 
 
+# ------------------------------------------------- locked accounts (#lockout) --
+#
+# dbo.LoginLockout is the account-level failed-login counter (migration 0062).
+# Until now nothing outside nx_lib/views/auth.py ever read it, so unsticking a
+# locked-out colleague meant running a DELETE against the production database
+# by hand -- which is how this came up.
+#
+# Two things make it worth a panel rather than a badge somewhere. A lockout is
+# invisible: the user is told "too many attempts" and support is told nothing
+# at all. And it survives a password reset, because the reset path never
+# clears the counter -- so the obvious fix leaves the person locked and the
+# new password is not even compared.
+#
+# The table holds two kinds of key: a bare userid for the password step, and
+# "2fa:<userid>" for the TOTP step (both set in auth.py). They lock
+# independently, so the panel names which one, and unlocking clears both --
+# an admin unlocking an account means "let them in", not "let them past one
+# of the two doors".
+
+
+def _lockout_keys(user_id):
+    """Both keys auth.py can lock a user under."""
+    return (str(user_id), f"2fa:{user_id}")
+
+
+def _iso(value):
+    """DATETIME2 as an ISO string, whatever the driver handed back.
+
+    Not defensive programming for its own sake: this column comes back as a
+    `str` under the TEST database and as a `datetime` under INT/PROD, so
+    calling .isoformat() unconditionally works locally and 500s in the suite.
+    `auth.py::_login_locked_until` carries the same guard for the same reason.
+    """
+    if value is None:
+        return None
+    return value if isinstance(value, str) else value.isoformat()
+
+
+@require_permission("admin.sessions.view")
+def api_admin_locked_accounts():
+    """Accounts locked *right now*, newest lock first.
+
+    Expired rows are left in the table by auth.py (it only deletes on a
+    successful login), so filter on locked_until rather than on existence.
+    """
+    conn = None
+    cursor = None
+    try:
+        conn = engine_nexora_db.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT l.userid                AS lock_key,
+                   l.failed_count,
+                   l.locked_until,
+                   l.updated_at,
+                   u.userID,
+                   u.username,
+                   u.fullname
+            FROM dbo.LoginLockout l
+            LEFT JOIN Users u
+                   ON CAST(u.userID AS NVARCHAR(64)) =
+                      CASE WHEN l.userid LIKE '2fa:%'
+                           THEN SUBSTRING(l.userid, 5, 64)
+                           ELSE l.userid END
+            WHERE l.locked_until IS NOT NULL
+              AND l.locked_until > SYSUTCDATETIME()
+            ORDER BY l.locked_until DESC
+        """)
+        rows = [
+            dict(zip([c[0] for c in cursor.description], row, strict=False))
+            for row in cursor.fetchall()
+        ]
+        for r in rows:
+            key = r.pop("lock_key", "") or ""
+            r["stage"] = "2fa" if key.startswith("2fa:") else "password"
+            r["locked_until"] = _iso(r["locked_until"])
+            r["updated_at"] = _iso(r["updated_at"])
+        return jsonify({"success": True, "locked": rows})
+    except Exception as e:
+        current_app.logger.error(f"Failed to list locked accounts: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        if cursor:
+            with suppress(Exception):
+                cursor.close()
+        if conn:
+            with suppress(Exception):
+                conn.close()
+
+
+@require_permission("admin.users.overrides.edit")
+def admin_unlock_user(user_id):
+    """Clear both lockout counters for one user.
+
+    Deliberately not "reset the counter to zero": auth.py's own
+    _clear_login_lockout deletes the row on a successful login, so deleting
+    is the state the application already treats as normal.
+    """
+    conn = None
+    cursor = None
+    try:
+        conn = engine_nexora_db.raw_connection()
+        cursor = conn.cursor()
+        cleared = 0
+        for key in _lockout_keys(user_id):
+            cursor.execute("DELETE FROM dbo.LoginLockout WHERE userid = ?", (key,))
+            cleared += max(0, cursor.rowcount)
+        conn.commit()
+        current_app.logger.info(
+            f"Admin {session.get('username')} unlocked user {user_id} "
+            f"({cleared} lockout row(s) cleared)"
+        )
+        return jsonify({"success": True, "cleared": cleared})
+    except Exception as e:
+        current_app.logger.error(f"Failed to unlock user {user_id}: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        if cursor:
+            with suppress(Exception):
+                cursor.close()
+        if conn:
+            with suppress(Exception):
+                conn.close()
+
+
 @require_permission("admin.users.view")
 def api_admin_users_list():
     if "username" not in session:
@@ -708,6 +833,17 @@ def register_routes(app):
         endpoint="admin_revoke_all_sessions",
         view_func=admin_revoke_all_sessions,
         methods=["POST"],
+    )
+    app.add_url_rule(
+        "/admin/users/<int:user_id>/unlock",
+        endpoint="admin_unlock_user",
+        view_func=admin_unlock_user,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/api/admin/locked_accounts",
+        endpoint="api_admin_locked_accounts",
+        view_func=api_admin_locked_accounts,
     )
     app.add_url_rule(
         "/api/admin/users/list", endpoint="api_admin_users_list", view_func=api_admin_users_list

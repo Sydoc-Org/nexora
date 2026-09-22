@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-15 12:45+0200\n"
+"POT-Creation-Date: 2026-09-22 15:27+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -847,7 +847,7 @@ msgstr "Non autorisé"
 #: nx_lib/views/admin/permissions.py:604 nx_lib/views/admin/system.py:148
 #: nx_lib/views/admin/system.py:191 nx_lib/views/admin/system.py:234
 #: nx_lib/views/admin/system.py:254 nx_lib/views/admin/users.py:421
-#: nx_lib/views/admin/users.py:573 nx_lib/views/dashboard.py:705
+#: nx_lib/views/admin/users.py:698 nx_lib/views/dashboard.py:705
 #: nx_lib/views/dashboard.py:781 nx_lib/views/dashboard.py:851
 #: nx_lib/views/dashboard.py:905 nx_lib/views/dashboard.py:967
 #: nx_lib/views/generali/_crud.py:187 nx_lib/views/generali/attendance.py:87
@@ -1639,11 +1639,11 @@ msgstr "Utilisateur introuvable."
 msgid "User deleted successfully."
 msgstr "Utilisateur supprimé avec succès."
 
-#: nx_lib/views/admin/users.py:618
+#: nx_lib/views/admin/users.py:743
 msgid "Could not fetch logs"
 msgstr "Impossible de récupérer les journaux"
 
-#: nx_lib/views/admin/users.py:667
+#: nx_lib/views/admin/users.py:792
 msgid "Could not fetch sessions"
 msgstr "Impossible de récupérer les sessions"
 
@@ -4670,8 +4670,8 @@ msgstr "Enregistré à"
 
 #: templates/admin/access_control.html:92 templates/admin/clients.html:57
 #: templates/admin/maintenance.html:39 templates/admin/organizations.html:34
-#: templates/admin/processes.html:78 templates/admin/sessions.html:34
-#: templates/admin/tenants_manage.html:41
+#: templates/admin/processes.html:78 templates/admin/sessions.html:46
+#: templates/admin/sessions.html:60 templates/admin/tenants_manage.html:41
 #: templates/admin/tenants_manage.html:79
 #: templates/generali_additionalservices.html:167
 #: templates/generali_baseservices.html:141 templates/generali_pdqm.html:165
@@ -5287,9 +5287,9 @@ msgid "Login - nexora"
 msgstr "Connexion - nexora"
 
 #: templates/admin/access_control.html:156 templates/admin/logs.html:44
-#: templates/admin/modals/_user_modals.html:32 templates/admin/sessions.html:29
-#: templates/admin/user_detail.html:37 templates/index.html:98
-#: templates/profile.html:137
+#: templates/admin/modals/_user_modals.html:32 templates/admin/sessions.html:42
+#: templates/admin/sessions.html:55 templates/admin/user_detail.html:37
+#: templates/index.html:98 templates/profile.html:137
 msgid "Username"
 msgstr "Nom d'utilisateur"
 
@@ -5299,7 +5299,8 @@ msgstr "Votre nom d'utilisateur"
 
 #: templates/admin/access_control.html:191
 #: templates/admin/modals/_user_modals.html:71 templates/index.html:109
-#: templates/profile.html:65 templates/set_password.html:106
+#: templates/js/admin/_sessions_js.html:136 templates/profile.html:65
+#: templates/set_password.html:106
 msgid "Password"
 msgstr "Mot de passe"
 
@@ -6712,7 +6713,7 @@ msgid "Overrides"
 msgstr "Remplacements"
 
 #: templates/admin/access_control.html:96 templates/admin/logs.html:106
-#: templates/admin/sessions.html:37 templates/admin/user_detail.html:128
+#: templates/admin/sessions.html:63 templates/admin/user_detail.html:128
 #: templates/admin/user_detail.html:226 templates/js/admin/_sessions_js.html:37
 #: templates/js/admin/_user_detail_js.html:443
 #: templates/js/admin/_user_detail_js.html:556
@@ -7499,19 +7500,35 @@ msgstr "Sessions actives"
 msgid "Users active within the last 30 minutes"
 msgstr "Utilisateurs actifs au cours des 30 dernières minutes"
 
-#: templates/admin/sessions.html:30
+#: templates/admin/sessions.html:38
+msgid "Locked accounts"
+msgstr "Comptes verrouillés"
+
+#: templates/admin/sessions.html:43
+msgid "Stage"
+msgstr "Étape"
+
+#: templates/admin/sessions.html:44
+msgid "Failed attempts"
+msgstr "Tentatives échouées"
+
+#: templates/admin/sessions.html:45
+msgid "Locked until"
+msgstr "Verrouillé jusqu’à"
+
+#: templates/admin/sessions.html:56
 msgid "User ID"
 msgstr "ID utilisateur"
 
-#: templates/admin/sessions.html:31
+#: templates/admin/sessions.html:57
 msgid "IP Address"
 msgstr "Adresse IP"
 
-#: templates/admin/sessions.html:32
+#: templates/admin/sessions.html:58
 msgid "Last seen"
 msgstr "Dernière activité"
 
-#: templates/admin/sessions.html:33
+#: templates/admin/sessions.html:59
 msgid "Logged in"
 msgstr "Connecté"
 
@@ -8300,7 +8317,8 @@ msgstr "Erreur lors de l'enregistrement."
 #: templates/js/_generali_pdqm_js.html:524
 #: templates/js/_generali_project_management_js.html:217
 #: templates/js/_generali_project_management_js.html:282
-#: templates/js/admin/_sessions_js.html:138
+#: templates/js/admin/_sessions_js.html:180
+#: templates/js/admin/_sessions_js.html:209
 msgid "Network error."
 msgstr "Erreur réseau."
 
@@ -10408,11 +10426,31 @@ msgstr "Révoquer"
 msgid "Could not load sessions."
 msgstr "Impossible de charger les sessions."
 
-#: templates/js/admin/_sessions_js.html:124
+#: templates/js/admin/_sessions_js.html:133
+msgid "unknown user"
+msgstr "utilisateur inconnu"
+
+#: templates/js/admin/_sessions_js.html:135
+msgid "Two-factor code"
+msgstr "Code à deux facteurs"
+
+#: templates/js/admin/_sessions_js.html:148
+msgid "Unlock"
+msgstr "Déverrouiller"
+
+#: templates/js/admin/_sessions_js.html:166
+msgid "Unlock the account for"
+msgstr "Déverrouiller le compte de"
+
+#: templates/js/admin/_sessions_js.html:176
+msgid "Could not unlock the account."
+msgstr "Impossible de déverrouiller le compte."
+
+#: templates/js/admin/_sessions_js.html:195
 msgid "Revoke the active session for"
 msgstr "Révoquer la session active pour"
 
-#: templates/js/admin/_sessions_js.html:134
+#: templates/js/admin/_sessions_js.html:205
 msgid "Could not revoke session."
 msgstr "Impossible de révoquer la session."
 
