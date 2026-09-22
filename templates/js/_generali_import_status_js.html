@@ -243,6 +243,9 @@
             const i = document.createElement('i');
             i.className = label.iconClass;
             b.appendChild(i);
+            // An icon-only button has no text to name it, so a screen reader
+            // announced these two as just "button".
+            if (label.name) b.setAttribute('aria-label', label.name);
         }
         if (!disabled) b.onclick = () => loadRecords(targetPage);
         return b;
@@ -253,7 +256,7 @@
         container.replaceChildren();
         if (totalPages <= 1) return;
 
-        container.appendChild(makePagButton({ iconClass: 'fas fa-chevron-left' }, page - 1, page === 1, false));
+        container.appendChild(makePagButton({ iconClass: 'fas fa-chevron-left', name: {{ _('Previous')|tojson }} }, page - 1, page === 1, false));
         const pages = new Set([1, totalPages, page]);
         if (page > 2) pages.add(page - 1);
         if (page < totalPages - 1) pages.add(page + 1);
@@ -268,7 +271,7 @@
             container.appendChild(makePagButton(String(p), p, false, p === page));
             prev = p;
         });
-        container.appendChild(makePagButton({ iconClass: 'fas fa-chevron-right' }, page + 1, page === totalPages, false));
+        container.appendChild(makePagButton({ iconClass: 'fas fa-chevron-right', name: {{ _('Next')|tojson }} }, page + 1, page === totalPages, false));
     }
 
     let _filterTimer;

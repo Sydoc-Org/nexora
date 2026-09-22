@@ -31,7 +31,7 @@
       </div>
       <div class="nx-page-head__actions flex-wrap">
         <a href="{{ back_url }}"
-           class="nx-btn nx-btn--secondary" data-testid="generali-month-report-back">
+           class="nx-btn nx-btn--secondary" data-testid="generali-month-report-back" aria-label="{{ _('Back') }}">
           <i class="fas fa-arrow-left"></i><span class="hidden sm:inline">{{ _("Back") }}</span>
         </a>
       </div>
@@ -40,17 +40,20 @@
     <!-- Month Navigation -->
     <div class="flex items-center justify-center gap-4 mb-6 nx-rise-2">
       <a href="?year={{ prev_year }}&month={{ prev_month }}"
-         class="nx-btn nx-btn--secondary" data-testid="generali-month-report-prev">
+         class="nx-btn nx-btn--secondary" data-testid="generali-month-report-prev"
+         aria-label="{{ _('Previous') }}">
         <i class="fas fa-chevron-left"></i>
       </a>
       <span class="text-lg font-bold min-w-36 text-center nx-mono">{{ month_label }}</span>
       {% if is_current_month %}
-      <span class="nx-btn nx-btn--secondary cursor-not-allowed select-none [opacity:.45]!" aria-disabled="true">
+      <span class="nx-btn nx-btn--secondary cursor-not-allowed select-none [opacity:.45]!"
+            aria-disabled="true" aria-label="{{ _('Next') }}">
         <i class="fas fa-chevron-right"></i>
       </span>
       {% else %}
       <a href="?year={{ next_year }}&month={{ next_month }}"
-         class="nx-btn nx-btn--secondary" data-testid="generali-month-report-next">
+         class="nx-btn nx-btn--secondary" data-testid="generali-month-report-next"
+         aria-label="{{ _('Next') }}">
         <i class="fas fa-chevron-right"></i>
       </a>
       {% endif %}

@@ -6,14 +6,34 @@
     const formatDateTime = window.NX.formatDateTime;
     const formatHours = window.NX.formatHours;
 
+    // POE moves to Zusatzleistungen on 2026-10-01 at Generali's request
+    // (migration GeneraliDB/0016). The cut-over is decided HERE, by the
+    // server's own date, rather than by picking the right day to deploy:
+    // a deploy date is a thing somebody has to remember, and getting it
+    // wrong in either direction is a real cost. Ship it early and people
+    // cannot book their September hours; ship it late and they cannot book
+    // their October ones.
+    //
+    // `poe_moved` is decided in nx_lib/views/generali/baseservices.py against
+    // the server's local date, so the list flips by itself the first time the
+    // page is opened on or after the cut-over.
     const BASE_CATEGORIES = [
         "Physical Mailroom, AVOR & Scanning",
         "Nk1 & NK2",
-        "POE",
+        {% if not poe_moved %}"POE",{% endif %}
         "PPR"
     ];
-    // ponytail: legacy combined category still on old rows — filterable, not addable
-    const LEGACY_CATEGORIES = ["POE / PPR"];
+    // Filterable but NOT addable: categories that sit on historical rows and
+    // may no longer be booked. Dropping one from this list instead of moving
+    // it here would orphan every entry that already carries it -- the rows
+    // stay in the table and in the month report, but the filter could no
+    // longer select them.
+    //   "POE / PPR" -- legacy combined category, split long ago.
+    //   "POE"       -- filterable from the cut-over onwards; every hour booked
+    //                  up to 30 September was booked here and must stay
+    //                  reachable. Before the cut-over it is in BASE_CATEGORIES
+    //                  above, so listing it here too would double it up.
+    const LEGACY_CATEGORIES = ["POE / PPR"{% if poe_moved %}, "POE"{% endif %}];
 
     let _currentRecords = [];
 
@@ -80,8 +100,8 @@
         let actionBtns = '';
         // #193 finding 10: onclick="" attribute handlers aren't nonce-covered by CSP —
         // row actions go through the delegated tbody listener below instead.
-        if (crud.canEdit)   actionBtns += `<button ${editable  ? '' : 'disabled'} class="edit-record-btn inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg transition mr-1 ${editable  ? 'text-[var(--nx-accent)] hover:text-[var(--nx-accent-hover)] hover:bg-[var(--nx-accent-tint)]' : 'text-gray-300 cursor-not-allowed'}" data-id="${r.id}" data-testid="generali-base-services-row-edit-${r.id}"><i class="fas fa-pen text-xs"></i></button>`;
-        if (crud.canDelete) actionBtns += `<button ${deletable ? '' : 'disabled'} class="delete-record-btn inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg transition ${deletable ? 'text-red-500 hover:text-red-700 hover:bg-red-50' : 'text-gray-300 cursor-not-allowed'}" data-id="${r.id}" data-testid="generali-base-services-row-delete-${r.id}"><i class="fas fa-trash text-xs"></i></button>`;
+        if (crud.canEdit)   actionBtns += `<button ${editable  ? '' : 'disabled'} aria-label="{{ _('Edit') }}" class="edit-record-btn inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg transition mr-1 ${editable  ? 'text-[var(--nx-accent)] hover:text-[var(--nx-accent-hover)] hover:bg-[var(--nx-accent-tint)]' : 'text-gray-300 cursor-not-allowed'}" data-id="${r.id}" data-testid="generali-base-services-row-edit-${r.id}"><i class="fas fa-pen text-xs"></i></button>`;
+        if (crud.canDelete) actionBtns += `<button ${deletable ? '' : 'disabled'} aria-label="{{ _('Delete') }}" class="delete-record-btn inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg transition ${deletable ? 'text-red-500 hover:text-red-700 hover:bg-red-50' : 'text-gray-300 cursor-not-allowed'}" data-id="${r.id}" data-testid="generali-base-services-row-delete-${r.id}"><i class="fas fa-trash text-xs"></i></button>`;
         const actionsCell = showActions ? `<td class="px-4 py-3 text-center whitespace-nowrap">${actionBtns}</td>` : '';
 
         return `<tr data-record-id="${r.id}" data-for-date="${r.forDate || ''}" data-category="${(r.category||'').replace(/"/g,'&quot;')}" data-effort="${r.effortInHours !== null ? r.effortInHours : ''}">

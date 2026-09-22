@@ -6,6 +6,43 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [3.2.11] - 2026-09-22
+
+### Changed
+
+- **POE moves from Basisleistungen to Zusatzleistungen (Generali) on
+  2026-10-01 — by date, not by deploy.** Generali book POE hours under
+  Additional Services from 1 October.
+  In **Zusatzleistungen** POE is a parent category with no subcategory
+  (migration `GeneraliDB/0016`), the same shape as the existing `PDQM` and
+  `Weitere Tätigkeiten`, so the page already renders an em-dash in the
+  subcategory dropdown and disables it. No `CategoryTerms` row: the page falls
+  back to the German term on a miss, and "POE" is the same string in all four
+  locales.
+  In **Basisleistungen** the cut-over is decided by `POE_CUTOVER` in
+  `nx_lib/views/generali/baseservices.py` against the server's local date,
+  **not** by choosing a release day. Both kinds of timing mistake cost real
+  work — ship early and nobody can book their September hours, ship late and
+  nobody can book their October ones — so the release can go out whenever it
+  suits and the list flips itself on the right morning. POE becomes
+  filter-only rather than disappearing: every hour booked up to 30 September is
+  still in `BaseServiceEntries` and still counts in the month report, and
+  without the filter option those rows could not be selected in the UI at all.
+
+### Fixed
+
+- **80 icon-only controls across nine Generali pages had no accessible name.**
+  Their labels are written as `<span class="hidden sm:inline">`, and Tailwind's
+  `sm:` starts at 640px, so on any narrow viewport the span is `display: none`
+  and the button is icon-only with nothing to announce it — VoiceOver read
+  "Add Entry", "Export Excel", "Month Report" and "Back" as just "button". The
+  per-row edit and delete actions were worse: icon-only at **every** width, so
+  unnamed on a desktop too. All now carry an `aria-label` reusing the label's
+  existing msgid, so there is no new translation work, plus the three
+  pagination chevrons on the month report and import status. The documents
+  list's detail toggle had an `aria-label` but a hardcoded English one; it is
+  translated now.
+
 ## [3.2.10] - 2026-09-22
 
 ### Added
