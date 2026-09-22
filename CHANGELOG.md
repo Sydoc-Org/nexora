@@ -8,6 +8,21 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **A tenant switcher at the top of the phone sheet.** One tap moves between
+  the tenants a session can see. It sits at the top because on a phone the
+  sheet is the only way in and the tenant groups are several scrolls down —
+  which is exactly how this was found ("how do i select the tenants", with the
+  sidebar right there).
+  Each chip links the tenant's **first page**, not `?tenant=<code>`: that query
+  parameter is only honoured by routes calling `apply_tenant_scope`, and
+  Generali's are custom routes that never do, so a picker built on it would
+  appear to do nothing for the tenant that needed it most. Landing on a real
+  page is also what makes the tab bar follow, since the bar matches the page
+  you are on — the chip and the bar read the same rule, so they cannot
+  disagree.
+  Phone only: on a desktop the sidebar already lists every tenant as its own
+  group. Absent for a `tenant_solo` user, whose UI never names their tenant
+  (#255), and for anyone with a single tenant, which is not a choice.
 - **The phone tab bar follows the tenant you are in, and its three slots are
   now a window over that tenant's whole page list.** Standing on a Generali
   page the bar showed the *Global* entries with **no slot lit at all** — and

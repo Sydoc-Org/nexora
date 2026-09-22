@@ -135,6 +135,17 @@ def create_app():
         return _win(nav, active_page, own_tenant, remembered, solo)
 
     @app.template_global()
+    def tenant_switcher(nav, active_page, own_tenant=None, remembered=None, solo=False):
+        """The phone sheet's tenant chips -- see nx_lib/tabbar.py.
+
+        Shares `active_tenant_code` with the tab bar, so the chip marked
+        current and the pages in the bar can never disagree.
+        """
+        from .tabbar import tenant_switcher as _sw
+
+        return _sw(nav, active_page, own_tenant, remembered, solo)
+
+    @app.template_global()
     def static_v(filename):
         """url_for('static') with an mtime cache-buster (#191).
 

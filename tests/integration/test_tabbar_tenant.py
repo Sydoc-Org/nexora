@@ -236,3 +236,48 @@ def test_window_renders_all_of_a_short_list(user_client, monkeypatch):
 
     bar = _bar(user_client.get(f"/dashboard?tenant={TENANT_CODE}").data.decode())
     assert [key for _, key in _slots(bar)] == ["alpha", "bravo"]
+
+
+# ------------------------------------------------ the phone tenant switcher --
+
+
+def _two_tenants(monkeypatch):
+    other = {"code": "other", "label": "Other Co", "pages": [_list_page("zulu", "Zulu")]}
+    _staff_in_acme(monkeypatch)
+    monkeypatch.setattr(tv, "visible_tenant_nav", lambda: [*_nav(FIVE_PAGES), other])
+
+
+def test_sheet_offers_a_chip_per_tenant(user_client, monkeypatch):
+    _two_tenants(monkeypatch)
+    html = user_client.get("/dashboard").data.decode()
+    assert 'data-testid="tenant-switcher"' in html
+    assert 'data-testid="tenant-switch-acme"' in html
+    assert 'data-testid="tenant-switch-other"' in html
+
+
+def test_chips_link_a_real_page_not_a_tenant_query(user_client, monkeypatch):
+    """`?tenant=` is only honoured by routes calling apply_tenant_scope."""
+    import re
+
+    _two_tenants(monkeypatch)
+    html = user_client.get("/dashboard").data.decode()
+    hrefs = re.findall(r'<a href="([^"]+)"[^>]*class="nx-tenant-chip', html)
+    assert hrefs, "no chips rendered"
+    assert all(not h.startswith("?tenant=") for h in hrefs), hrefs
+
+
+def test_a_solo_tenant_user_gets_no_switcher_and_is_never_told_the_name(user_client, monkeypatch):
+    """#255: for a member the tenant IS the portal, so the UI never names it."""
+    _staff_in_acme(monkeypatch)
+    monkeypatch.setattr(tv, "organization_tenant", lambda org: TENANT_CODE)
+    monkeypatch.setattr(_registry_mod, "organization_tenant", lambda org: TENANT_CODE)
+
+    html = user_client.get("/dashboard").data.decode()
+    assert 'data-testid="tenant-switcher"' not in html
+    assert "Acme" not in html
+
+
+def test_one_tenant_is_not_a_choice(user_client, monkeypatch):
+    _staff_in_acme(monkeypatch)  # a single tenant in the nav
+    html = user_client.get("/dashboard").data.decode()
+    assert 'data-testid="tenant-switcher"' not in html

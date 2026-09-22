@@ -1299,3 +1299,52 @@ html.dark .nx-tabbar-item:active { background: rgba(148, 163, 184, 0.12); }
        unnoticed for the whole sweep. */
     #nexora-sidebar .brand { min-height: 44px; }
 }
+
+/* ---- Tenant switcher in the phone sheet (#354 follow-up) ----
+
+   Hidden everywhere else. On a desktop the sidebar already lists every tenant
+   as its own collapsible group, so a second control for the same thing would
+   just be clutter; on a phone that group is several scrolls down inside a
+   bottom sheet, which is why "how do i select the tenants" was a fair
+   question with the sidebar right there.
+
+   Pointer-keyed as well as width-keyed, like every other phone rule here: a
+   half-screen desktop window and 200% browser zoom both drop under 768px and
+   must keep the desktop sidebar. See the gate's own comment above. */
+.nx-tenant-switch { display: none; }
+
+@media (max-width: 768px) and (pointer: coarse) {
+    .nx-tenant-switch {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 4px 4px 12px;
+        margin-bottom: 8px;
+        border-bottom: 1px solid var(--nx-border);
+    }
+    .nx-tenant-chip {
+        display: inline-flex;
+        align-items: center;
+        /* 44px is the floor Apple and Google both publish, and these sit next
+           to each other -- an undersized chip here is not just hard to hit,
+           it is easy to hit the wrong tenant. */
+        min-height: 44px;
+        padding: 0 14px;
+        border: 1px solid var(--nx-border);
+        border-radius: var(--nx-radius-pill);
+        background: var(--nx-card);
+        color: var(--nx-text-sec);
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+    .nx-tenant-chip.is-current {
+        background: var(--nx-accent);
+        border-color: var(--nx-accent);
+        color: #ffffff;
+    }
+    .nx-tenant-chip:active { background: var(--nx-accent-soft); }
+    .nx-tenant-chip.is-current:active { background: var(--nx-accent-hover); }
+}

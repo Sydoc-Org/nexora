@@ -50,6 +50,38 @@
         </div>
 
         <nav class="sidebar-nav">
+            {# ---- Tenant switcher (phone sheet only) ----
+               One tap to move between the tenants this session can see. It
+               sits at the TOP because on a phone the sheet is the only way
+               in, and the tenant groups below it are several scrolls down --
+               which is how the owner found this: "how do i select the
+               tenants".
+
+               Each chip links the tenant's FIRST PAGE, not `?tenant=<code>`.
+               The query parameter is only honoured by routes that call
+               apply_tenant_scope, and Generali's are custom routes that never
+               do -- a picker built on it would appear to do nothing for the
+               tenant that needed it most. Landing on a real page is also what
+               makes the tab bar follow, since the bar matches the page you
+               are on.
+
+               Hidden on a desktop by CSS: the sidebar already lists every
+               tenant as its own group there, so this would be a second way to
+               do the same thing. Empty for a `tenant_solo` user, whose UI
+               never names their tenant (#255), and for anyone with only one
+               tenant, which is not a choice. #}
+            {% set tenant_chips = tenant_switcher(tenant_nav, active_page, tenant_scoped, tenant_current, tenant_solo) %}
+            {% if tenant_chips %}
+            <div class="nx-tenant-switch" role="group"
+                 aria-label="{{ _('Tenants') }}" data-testid="tenant-switcher">
+                {% for code, label, url, current in tenant_chips %}
+                <a href="{{ url }}" class="nx-tenant-chip {{ 'is-current' if current else '' }}"
+                   {% if current %}aria-current="true"{% endif %}
+                   data-testid="tenant-switch-{{ code }}">{{ label }}</a>
+                {% endfor %}
+            </div>
+            {% endif %}
+
             {% if page_visibility.adminPagePerm or page_visibility.adminMaintenanceViewPerm or page_visibility.adminStatusPagePerm or page_visibility.adminClientsPagePerm or page_visibility.adminProcessesPagePerm %}
             {% set admin_active = active_page in ['adminOverview','organizations','admin_access','admin_logs','admin_sessions','admin_user_detail','maintenance','admin_status','clients','processes','admin_tenants','admin_tenants_manage'] %}
             <div class="sidebar-nav-group" id="adminNavGroup" data-active="{{ 'true' if admin_active else 'false' }}">

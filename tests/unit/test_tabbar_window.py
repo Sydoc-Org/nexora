@@ -156,3 +156,61 @@ def test_window_start_is_clamped_arithmetic():
     assert window_start(4, 8) == 3
     assert window_start(7, 8) == 5
     assert window_start(1, 2) == 0  # shorter than the window
+
+
+# ------------------------------------------------- the phone tenant switcher --
+
+from nx_lib.tabbar import active_tenant_code, tenant_switcher  # noqa: E402
+
+MS02 = tenant("ms02", [custom("dashboard", "tenant_ms02_dashboard"), listpage("workitems")])
+SYDOC = tenant("sydoc", [custom("dashboard", "tenant_sydoc_dashboard"), listpage("workitems")])
+
+
+def test_switcher_offers_every_tenant_and_marks_the_current_one():
+    rows = tenant_switcher([GENERALI, MS02, SYDOC], "generali_pdqm")
+    assert [code for code, _, _, _ in rows] == ["generali", "ms02", "sydoc"]
+    assert [code for code, _, _, cur in rows if cur] == ["generali"]
+
+
+def test_switcher_links_the_tenants_first_page_not_a_query_parameter():
+    """`?tenant=<code>` only works for routes that call apply_tenant_scope.
+
+    Generali's pages are custom routes and never do, so a switcher built on
+    the query parameter would appear to do nothing for the tenant that needed
+    it most. Linking a real page is what makes the bar follow.
+    """
+    rows = tenant_switcher([GENERALI, MS02], "generali_pdqm")
+    urls = {code: url for code, _, url, _ in rows}
+    assert urls["generali"] == "/dashboard"  # Generali's first page
+    assert "?tenant=" not in urls["generali"]
+
+
+def test_switcher_is_empty_for_a_solo_tenant_user():
+    """#255: for a member the tenant IS the portal, so it is never named."""
+    assert tenant_switcher([GENERALI], "generali_pdqm", solo=True) == []
+
+
+def test_switcher_is_empty_with_nothing_to_switch_between():
+    assert tenant_switcher([GENERALI], "generali_pdqm") == []
+    assert tenant_switcher([], "anything") == []
+
+
+def test_switcher_skips_a_tenant_with_no_visible_pages():
+    """Permission filtering can empty a tenant's page list; a chip linking
+    nowhere is worse than no chip."""
+    empty = tenant("ghost", [])
+    rows = tenant_switcher([GENERALI, MS02, empty], "generali_pdqm")
+    assert "ghost" not in [code for code, _, _, _ in rows]
+
+
+def test_switcher_agrees_with_the_bar_about_the_current_tenant():
+    """One rule, two readers -- the chip and the bar cannot disagree."""
+    nav = [GENERALI, MS02, SYDOC]
+    for active, expected in [
+        ("generali_documents", "generali"),
+        ("tenant_ms02_dashboard", "ms02"),
+        ("profile", None),
+    ]:
+        assert active_tenant_code(nav, active) == expected, active
+        current = [c for c, _, _, cur in tenant_switcher(nav, active) if cur]
+        assert current == ([expected] if expected else []), active

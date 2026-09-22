@@ -108,6 +108,49 @@ def window_start(active: int, total: int, slots: int = SLOTS) -> int:
     return max(0, min(active - (slots - 1) // 2, max(0, total - slots)))
 
 
+def active_tenant_code(nav, active_page, own_tenant=None, remembered=None, solo=False):
+    """Which tenant the UI is currently showing, or ``None`` for Global.
+
+    Same answer the tab bar uses, so the phone sheet's tenant switcher cannot
+    disagree with the bar underneath it -- one rule, two readers.
+    """
+    tenant, _ = _pick(nav, active_page or "", own_tenant, remembered, solo)
+    return tenant.get("code") if tenant else None
+
+
+def tenant_switcher(nav, active_page, own_tenant=None, remembered=None, solo=False):
+    """``[(code, label, url, is_current), ...]`` for the phone tenant switcher.
+
+    ``[]`` when there is nothing to switch between: a ``tenant_solo`` user has
+    exactly one tenant and the UI never names it (#255), and a single tenant
+    is not a choice.
+
+    Each entry links the tenant's **first page**, not ``?tenant=<code>``. The
+    query parameter only works for routes that call ``apply_tenant_scope``,
+    which Generali's custom routes do not -- so a picker built on it would
+    appear to do nothing for the one tenant that needed it most. Landing on a
+    real page of that tenant is what makes the bar follow, because the bar
+    matches the page you are on.
+    """
+    if solo or not nav or len(nav) < 2:
+        return []
+    current = active_tenant_code(nav, active_page, own_tenant, remembered, solo)
+    out = []
+    for tenant in nav:
+        pages = tenant.get("pages") or []
+        if not pages:
+            continue
+        out.append(
+            (
+                tenant.get("code"),
+                tenant.get("label"),
+                pages[0].get("url"),
+                tenant.get("code") == current,
+            )
+        )
+    return out
+
+
 def tabbar_window(nav, active_page, own_tenant=None, remembered=None, solo=False, slots=SLOTS):
     """The bar's page slots: ``[(page, is_active), ...]``, or ``[]``.
 
