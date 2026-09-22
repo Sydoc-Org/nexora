@@ -122,6 +122,19 @@ def create_app():
         return resp
 
     @app.template_global()
+    def tabbar_window(nav, active_page, own_tenant=None, remembered=None, solo=False):
+        """The phone tab bar's three slots -- see nx_lib/tabbar.py.
+
+        A template global rather than a context processor because it needs
+        `active_page`, which each page template sets with `{% set %}` just
+        before including _header.html; a context processor runs too early to
+        see it.
+        """
+        from .tabbar import tabbar_window as _win
+
+        return _win(nav, active_page, own_tenant, remembered, solo)
+
+    @app.template_global()
     def static_v(filename):
         """url_for('static') with an mtime cache-buster (#191).
 

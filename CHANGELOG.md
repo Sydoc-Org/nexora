@@ -6,6 +6,28 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **The phone tab bar follows the tenant you are in, and its three slots are
+  now a window over that tenant's whole page list.** Standing on a Generali
+  page the bar showed the *Global* entries with **no slot lit at all** — and
+  because `swipe_nav.js` locates itself by the active slot, swiping between
+  views did nothing on every one of those pages. The bar was dead weight
+  exactly where the work was.
+  Which tenant is found by matching the page you are **on**, not the session's
+  `tenant_scope`: that scope is only written by routes calling
+  `apply_tenant_scope`, and a tenant whose pages are custom routes (Generali's
+  `/generali/*`) never touches it, so it names whichever tenant you were in
+  before. Where two tenants claim the same `active_page` — sydoc and MS02 both
+  mount the shared `workitems_overview` — the viewer's own tenant breaks the
+  tie, and if it cannot, the bar shows the Global entries rather than guessing.
+  The three slots are centred on the active page and clamped at both ends, no
+  wrap (#368). Centring is what makes the carousel free: the rendered slots
+  *are* `[previous, active, next]`, so `swipe_nav.js` is **not modified** —
+  swiping now walks all eight Generali pages and stops at the end.
+  The rules live in `nx_lib/tabbar.py` as pure functions rather than in the
+  template, because two of the three needed a paragraph of comment each.
+
 ### Fixed
 
 - **80 controls across nine Generali pages had no accessible name.** Their

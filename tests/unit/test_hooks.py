@@ -572,6 +572,10 @@ def test_inject_tenant_nav_delegates_to_visible_tenant_nav(app, monkeypatch):
         assert _inject_tenant_nav() == {
             "tenant_nav": [{"code": "ms02", "label": "MS02", "pages": []}],
             "tenant_scoped": "ms02",
+            # A different question from tenant_scoped: which tenant is the
+            # page in front of them ABOUT, as remembered by apply_tenant_scope.
+            # Nothing set it in this request context, so None.
+            "tenant_current": None,
             # member of exactly this one tenant -> the UI never names it (#255)
             "tenant_solo": True,
         }

@@ -431,9 +431,20 @@ def _inject_tenant_nav():
     # portal, so the UI never names it (no sidebar label, no "<Tenant>
     # Dashboard" heading) -- naming it only leaks an internal concept (#255).
     # Staff, and members holding grants on other tenants, need the names.
+    # `tenant_scoped` and `tenant_current` are different questions and the
+    # phone tab bar needs the second one:
+    #   tenant_scoped  -- which tenant does this user's ORGANIZATION belong to?
+    #                     Fixed per user, and None for sydoc staff.
+    #   tenant_current -- which tenant is the page in front of them ABOUT?
+    #                     Set by apply_tenant_scope from `?tenant=<code>` and
+    #                     remembered across requests, so it follows navigation.
+    # Staff standing on a Generali page have tenant_scoped None and
+    # tenant_current 'generali'. The bar keyed off the first and therefore
+    # showed the Global entries with nothing lit; it wants the second.
     return {
         "tenant_nav": nav,
         "tenant_scoped": scoped,
+        "tenant_current": session.get("tenant_scope"),
         "tenant_solo": bool(scoped) and len(nav) == 1 and nav[0]["code"] == scoped,
     }
 

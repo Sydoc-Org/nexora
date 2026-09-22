@@ -408,20 +408,43 @@
     {%- endmacro %}
 
     <nav class="nx-tabbar" aria-label="{{ _('Main navigation') }}" data-testid="mobilenav-bar">
-        {% if tenant_solo and tenant_nav %}
-        {# The tenant's own pages ARE this user's workspace (#255), so the bar
-           carries the first three of them rather than the Global entries,
-           which for them would be the same pages under another name. #}
-        {% set t = tenant_nav[0] %}
-        {% for p in t.pages[:3] %}
-        {% if p.page_type == 'custom' %}
-        {% set on = (active_page == p.active) if p.active != p.endpoint else (tenant_scoped == t.code and active_page == p.endpoint) %}
-        {% set icon = p.icon %}
-        {% else %}
-        {% set on = active_page == ('tenant_' ~ t.code ~ '_' ~ p.key) %}
-        {% set icon = 'fa-table-list' %}
-        {% endif %}
-        {{ tabbar_item(p.url, icon, p.label, on, 'mobilenav-slot-' ~ p.key) }}
+        {# Which list does the bar carry? Three cases, in order:
+
+           1. a `tenant_solo` user -- the tenant's own pages ARE their
+              workspace (#255), so the bar carries them rather than the Global
+              entries, which for them would be the same pages renamed;
+           2. anyone else standing INSIDE a tenant -- staff, and members who
+              hold grants on other tenants. These used to fall through to the
+              Global entries *even while on a tenant page*, which left no slot
+              lit at all: a tenant-mounted Dashboard sets active_page to
+              `tenant_<code>_dashboard`, never 'dashboard'. That is worse than
+              it looks -- swipe_nav.js finds its position by looking for the
+              active slot, so with none lit, swiping between views did nothing
+              on every tenant page. The bar was dead weight exactly where the
+              user was working;
+           3. everybody else -- the Global entries, exactly as before.
+
+           Matching `tenant_current` against `tenant_nav` cannot widen access:
+           the scope comes from apply_tenant_scope, which already 403s a tenant
+           the session may not view, and visible_tenant_nav() only ever returns
+           viewable ones. Two already-filtered sources agreeing, not a new
+           permission decision. #}
+        {# Which three pages, and which is lit, is decided in
+           nx_lib/tabbar.py -- two of the three rules are fiddly enough that a
+           Jinja expression needing a paragraph of comment would be a rule
+           nobody could change safely. Read that module for the why; in short:
+           the tenant is found by the page you are ON (the session's scope is
+           not written by Generali's custom routes, so it names the wrong
+           tenant there), and the three slots are a window over the whole list
+           with the active page in the middle.
+
+           An empty result means no tenant applies -- fall through to the
+           Global entries, exactly as before. #}
+        {% set tabslots = tabbar_window(tenant_nav, active_page, tenant_scoped, tenant_current, tenant_solo) %}
+        {% if tabslots %}
+        {% for p, on in tabslots %}
+        {{ tabbar_item(p.url, p.icon if p.page_type == 'custom' else 'fa-table-list',
+                       p.label, on, 'mobilenav-slot-' ~ p.key) }}
         {% endfor %}
         {% else %}
         {# The bar cannot reuse `item.active`. That flag answers "is the SIDEBAR's
