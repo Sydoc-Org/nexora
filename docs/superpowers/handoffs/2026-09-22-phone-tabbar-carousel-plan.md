@@ -1,3 +1,8 @@
+> **SUPERSEDED — a newer handoff shares this date.** Start at
+> [`2026-09-22-two-prod-releases-and-a-staging-error.md`](2026-09-22-two-prod-releases-and-a-staging-error.md).
+> The plan this file points at has since been executed in full, and two releases have
+> been merged to `main`. Kept for history.
+
 # Handoff — phone bugs measured and fixed, carousel planned
 
 **Date:** 2026-09-22 · **Branch:** `feat/354-phone-tabbar` · **55 commits ahead of `main`**,
