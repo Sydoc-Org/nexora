@@ -6,6 +6,45 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **`scripts/phone-sweep.py` — the phone layout, measured instead of eyeballed.**
+  Loads any set of pages across seven real iPhone geometries in both Chromium
+  and WebKit, and reports four things a person actually notices: the page
+  scrolling sideways, a box whose content is cut off with no way to reach it,
+  an inner box that slides under the finger while the page stays put, and tap
+  targets under 44px. It exists because three symptoms reported from a real
+  iPhone could not be reproduced here at all, and both reasons were structural
+  rather than bad luck — see the token change below, and **Chromium is not
+  Safari**: WebKit is Safari's engine, and the reporting page overflows by
+  53px there at every width while measuring perfectly clean in Chromium.
+  Install the engine once with `python -m playwright install webkit`.
+  In Git Bash the command needs `MSYS_NO_PATHCONV=1`, or MSYS rewrites
+  `--pages /reporting` into a Windows path.
+
+### Changed
+
+- **The safe-area insets are read through `--nx-sa-*` tokens** rather than
+  `env(safe-area-inset-*)` at each of the sixteen use sites. Partly the same
+  argument that produced `--nx-tabbar-h` — the tab bar, the body padding, the
+  reporting rail and three floating bars all have to agree about how much room
+  the home indicator takes, and hand-copied calls drift. Mostly, though,
+  because **`env()` cannot be overridden**: setting it from a stylesheet or
+  the console does nothing, and every emulator reports 0 for all four edges
+  while a real iPhone reports ~59px top and ~34px bottom. Every layout bug
+  living in that band was invisible outside the physical phone. Read through a
+  custom property the values *can* be set, so the sweep above reproduces each
+  device's true geometry on a desktop.
+  Rendering is unchanged — measured identical with the insets at their real
+  values in both engines. The tokens carry a `0px` fallback, which is
+  load-bearing rather than tidy: a bare `env()` is invalid where the function
+  is unsupported, and an invalid custom property makes every `var()` reading
+  it collapse and the declaration drop entirely, so without the fallback such
+  a browser would lose the padding rather than merely lose the inset.
+  Guarded by `tests/unit/test_safe_area_tokens.py`, which strips comments as
+  whole blocks — this codebase's prose names `env(safe-area-inset-*)` often
+  enough that a line-oriented filter would read it as CSS.
+
 ## [3.2.10] - 2026-09-21
 
 ### Added

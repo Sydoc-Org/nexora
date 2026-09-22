@@ -750,7 +750,7 @@ img.nx-wi-card__sheet { object-fit: cover; object-position: top; display: block;
        to 8px of overlap with the navigation. The variable exists precisely so
        the bar's height is stated in one place. */
     #bulk-action-bar {
-        bottom: calc(var(--nx-tabbar-h) + env(safe-area-inset-bottom) + 12px) !important;
+        bottom: calc(var(--nx-tabbar-h) + var(--nx-sa-bottom) + 12px) !important;
     }
 }
 

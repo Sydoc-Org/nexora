@@ -991,9 +991,9 @@ html.dark .shortcuts-row { color: #e2e8f0; }
         box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.06);
         /* The home indicator on a modern iPhone sits over the bottom edge --
            without this the last row of labels is under it. */
-        padding-bottom: env(safe-area-inset-bottom);
-        padding-left: env(safe-area-inset-left);
-        padding-right: env(safe-area-inset-right);
+        padding-bottom: var(--nx-sa-bottom);
+        padding-left: var(--nx-sa-left);
+        padding-right: var(--nx-sa-right);
     }
     .nx-tabbar-item {
         flex: 1 1 0;
@@ -1065,13 +1065,13 @@ html.dark .shortcuts-row { color: #e2e8f0; }
            so the top and sides have to be guarded too: the status bar is
            translucent here (apple-mobile-web-app-status-bar-style), and in
            landscape on a notched phone the notch eats into one side. */
-        padding-top: env(safe-area-inset-top);
-        padding-left: env(safe-area-inset-left) !important;
-        padding-right: env(safe-area-inset-right) !important;
-        padding-bottom: calc(var(--nx-tabbar-h) + env(safe-area-inset-bottom));
+        padding-top: var(--nx-sa-top);
+        padding-left: var(--nx-sa-left) !important;
+        padding-right: var(--nx-sa-right) !important;
+        padding-bottom: calc(var(--nx-tabbar-h) + var(--nx-sa-bottom));
     }
     /* So an anchor jump or a focused input never lands under the bar. */
-    html { scroll-padding-bottom: calc(var(--nx-tabbar-h) + 8px + env(safe-area-inset-bottom)); }
+    html { scroll-padding-bottom: calc(var(--nx-tabbar-h) + 8px + var(--nx-sa-bottom)); }
 
     /* ---- The sidebar becomes a bottom sheet ----
        Same element, same markup, same group expand/collapse wiring -- only
@@ -1108,7 +1108,7 @@ html.dark .shortcuts-row { color: #e2e8f0; }
            that live at the end of the sidebar -- dark mode, and the profile
            menu that holds Sign out and the build stamp -- sit underneath the
            bar and cannot be tapped. */
-        padding-bottom: calc(var(--nx-tabbar-h) + env(safe-area-inset-bottom));
+        padding-bottom: calc(var(--nx-tabbar-h) + var(--nx-sa-bottom));
     }
     /* The pinned variant has to be repeated here. `html.sidebar-pinned
        #nexora-sidebar` in the group above is specificity (1,1,1) -- higher
@@ -1269,7 +1269,7 @@ html.dark .nx-tabbar-item:active { background: rgba(148, 163, 184, 0.12); }
         top: auto !important;
         left: 0 !important;
         right: 0 !important;
-        bottom: calc(var(--nx-tabbar-h) + env(safe-area-inset-bottom)) !important;
+        bottom: calc(var(--nx-tabbar-h) + var(--nx-sa-bottom)) !important;
         width: auto;
         max-width: none;
         margin: 0;

@@ -1574,8 +1574,8 @@ html.dark .reporting-sqlview pre .sql-comment, html.dark .reporting-ai-sql .sql-
     left: 20px;
     right: 20px;
     width: auto;
-    top: calc(env(safe-area-inset-top) + 12px);
-    bottom: calc(env(safe-area-inset-bottom) + 12px);
+    top: calc(var(--nx-sa-top) + 12px);
+    bottom: calc(var(--nx-sa-bottom) + 12px);
     height: auto;
     max-height: none;
   }
@@ -1587,7 +1587,7 @@ html.dark .reporting-sqlview pre .sql-comment, html.dark .reporting-ai-sql .sql-
    and must not reserve room for one. */
 @media (max-width: 768px) and (pointer: coarse) {
   .reporting-chat-panel {
-    bottom: calc(var(--nx-tabbar-h) + env(safe-area-inset-bottom) + 12px);
+    bottom: calc(var(--nx-tabbar-h) + var(--nx-sa-bottom) + 12px);
   }
 }
 

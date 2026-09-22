@@ -2204,7 +2204,7 @@ body.reporting-console.rdb-fullbleed .reporting-layouts { max-width: none; paddi
         /* Flush against the tab bar, with no gap: an 8px one let a strip of
            the choices scroll visibly between the two bars, which read as the
            footer having come loose. */
-        bottom: calc(var(--nx-tabbar-h) + env(safe-area-inset-bottom));
+        bottom: calc(var(--nx-tabbar-h) + var(--nx-sa-bottom));
         z-index: 2;
         flex-wrap: wrap;
         gap: 8px;
@@ -2218,7 +2218,7 @@ body.reporting-console.rdb-fullbleed .reporting-layouts { max-width: none; paddi
     /* The tab bar hides while a field holds focus (the date range, a filter
        value), so the footer has to drop with it or it hangs in mid-air. */
     html.nx-typing body.reporting-console .rs-wizard-footer {
-        bottom: env(safe-area-inset-bottom);
+        bottom: var(--nx-sa-bottom);
     }
     body.reporting-console .rs-wizard-footer .nx-btn--primary {
         flex: 1 1 auto;

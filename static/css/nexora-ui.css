@@ -104,6 +104,33 @@
   --nx-radius-hero: calc(var(--nx-radius-scale, 1) * 16px);
   --nx-card-hover-border: color-mix(in srgb, var(--nx-accent) 40%, white);
   --nx-card-hover-shadow: 0 8px 24px -8px color-mix(in srgb, var(--nx-accent) 18%, transparent);
+
+  /* — Safe areas (the notch and the home indicator) —
+
+     One token per edge instead of `env(safe-area-inset-*)` at each use
+     site. Two reasons, and the second is why they exist at all:
+
+       1. Same argument as --nx-tabbar-h in _header.css: the tab bar, the
+          body padding, the reporting rail and three floating bars all have
+          to agree about how much room the home indicator takes. Hand-copied
+          env() calls drift.
+       2. `env()` cannot be overridden -- setting it from a stylesheet or the
+          console does nothing, and browser device emulation reports 0 for
+          every inset. That makes every layout bug in the safe areas
+          invisible outside a real iPhone (~59px top, ~34px bottom). Read
+          through a custom property, the same values CAN be set, so the
+          phone's geometry is reproducible in a desktop browser and in the
+          Playwright suite -- that is what `scripts/phone-sweep.py` drives.
+          The convention is guarded by tests/unit/test_safe_area_tokens.py.
+
+     The `0px` fallbacks are load-bearing: a bare env() is invalid where the
+     function is unsupported, and an invalid custom property makes every
+     var() reading it collapse to nothing -- which would silently drop the
+     padding rather than fall back to zero. */
+  --nx-sa-top:    env(safe-area-inset-top, 0px);
+  --nx-sa-bottom: env(safe-area-inset-bottom, 0px);
+  --nx-sa-left:   env(safe-area-inset-left, 0px);
+  --nx-sa-right:  env(safe-area-inset-right, 0px);
 }
 
 html.dark {
