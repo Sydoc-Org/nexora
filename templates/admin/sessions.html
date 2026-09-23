@@ -31,8 +31,15 @@
            password is never even compared. Until this panel, unsticking
            someone meant a hand-written DELETE against production.
 
-           Hidden entirely when nobody is locked, which is almost always. #}
-        <div id="locked-accounts-wrap" class="nx-card" style="margin-bottom:20px" hidden
+           This was hidden when empty at first, on the theory that an empty
+           table teaches people to scroll past it. That was wrong, and the
+           way it was wrong is worth keeping: the owner went looking for the
+           panel twice on a quiet system and could not tell "nobody is locked"
+           from "the feature did not deploy". A support tool you cannot find
+           is worse than one you learn to ignore -- and the whole point of
+           this panel is that a lockout is otherwise invisible. So it always
+           renders, and says so when there is nobody in it. #}
+        <div id="locked-accounts-wrap" class="nx-card" style="margin-bottom:20px"
              data-testid="admin-locked-accounts">
             <div class="nx-section" style="margin-bottom:12px">
                 <i class="fas fa-lock" style="margin-right:8px"></i>{{ _('Locked accounts') }}
@@ -45,7 +52,9 @@
                     {'label': _('Locked until'), 'width': '170px'},
                     {'label': _('Actions'), 'align': 'right', 'width': '150px'}
                 ]) }}
-                <tbody id="locked-accounts-body"></tbody>
+                <tbody id="locked-accounts-body">
+                    {{ a.empty_state('fa-spinner fa-spin', _('Loading...'), colspan=5) }}
+                </tbody>
             </table>
         </div>
 

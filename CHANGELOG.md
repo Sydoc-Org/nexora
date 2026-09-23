@@ -6,6 +6,19 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [3.2.12] - 2026-09-23
+
+### Fixed
+
+- **The "Locked accounts" panel is always visible, and says when it is empty.**
+  It was hidden whenever nobody was locked, on the theory that an empty table
+  teaches people to scroll past it. That was the wrong call: on a quiet system
+  you could not tell *"nobody is locked"* from *"the feature never deployed"*,
+  and the panel was hunted for twice before anyone said so. A support tool you
+  cannot find is worse than one you learn to ignore — and the whole point of
+  this panel is that a lockout is otherwise invisible. It now renders either
+  way and shows "No locked accounts." when there is nobody in it.
+
 ## [3.2.11] - 2026-09-22
 
 ### Changed
