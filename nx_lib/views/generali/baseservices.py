@@ -6,6 +6,8 @@ the ``BASESERVICES`` descriptor by ``._crud`` and bound below under its original
 function name, so ``gv.<fn>``, the URLs and the endpoint names are unchanged.
 """
 
+from datetime import date
+
 from flask import current_app, redirect, render_template, session, url_for
 
 from ...security import has_permission, page_visibility, require_permission
@@ -22,6 +24,30 @@ from ._crud import (
 
 # ----------------------------- Generali Base Services ----------------------- #
 
+# POE moves from Basisleistungen to Zusatzleistungen on this date, at
+# Generali's request (migration GeneraliDB/0016 adds it to the Zusatzleistungen
+# catalogue).
+#
+# It is a date rather than a deploy decision on purpose. "Deploy this on the
+# 30th" is a thing somebody has to remember, and both kinds of mistake cost
+# real work: too early and nobody can book their September hours, too late and
+# nobody can book their October ones. Pinning the date means the release can go
+# out whenever it is convenient and the cut-over still happens on the right
+# morning.
+#
+# Server-local date, which is what "1 October" means to the people typing the
+# hours -- the alternative, UTC, would flip two hours early in Swiss winter.
+POE_CUTOVER = date(2026, 10, 1)
+
+
+def poe_has_moved(today=None):
+    """True once POE is booked under Zusatzleistungen rather than here.
+
+    Split out so the behaviour is testable without waiting for October or
+    monkeypatching the clock module-wide.
+    """
+    return (today or date.today()) >= POE_CUTOVER
+
 
 @require_permission("tenant.generali.baseservices.view")
 def generali_base_services():
@@ -30,6 +56,8 @@ def generali_base_services():
             return redirect(url_for("login"))
         return render_template(
             "generali_baseservices.html",
+            # Flips itself on POE_CUTOVER -- see the constant above.
+            poe_moved=poe_has_moved(),
             logged_in_user=session.get("username"),
             userid=session.get("userid"),
             page_visibility=page_visibility(),
