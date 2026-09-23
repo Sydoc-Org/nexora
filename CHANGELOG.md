@@ -17,6 +17,12 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Admin page titles are no longer hidden behind the "+ Add …" button on a
   phone (#382).** Maintenance, Organizations, Processes, Data Connections and
   Manage Tenants: the button now drops below the title when both don't fit.
+- **No more big empty gap under page titles on narrow screens.** The #382 fix
+  above gave the title block an 18rem flex *basis*. On pages that stack their
+  header as a column below 768px (Workitems, Prepared Documents and every
+  Generali page) a basis is a height, so ~300px of blank space opened up
+  between the title and its buttons. It is a minimum width now, which wraps
+  the admin buttons exactly as before without touching column headers.
 - **Row actions stay on one line on desktop (#383, #384).** On
   `/admin/organizations`, "Delete" dropped to a second line under "Edit" and
   "Branding". On `/reporting/metrics`, "Edit" and "Delete" were stacked on
