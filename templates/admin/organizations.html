@@ -45,7 +45,7 @@
                             <span class="nx-c-meta">—</span>
                             {% endif %}
                         </td>
-                        <td class="align-right">
+                        <td class="align-right whitespace-nowrap">
                             <button data-organization='{{ {'organizationcode': organization.organizationcode, 'organization': organization.organization, 'tenant_code': organization.tenant_code}|tojson|safe }}' class="edit-organization-btn nx-btn nx-btn--ghost nx-btn--sm" type="button" data-testid="admin-org-edit-{{ organization.organizationcode }}">{{ _("Edit") }}</button>
                             {% if can_edit_branding %}
                             <button class="branding-organization-btn nx-btn nx-btn--ghost nx-btn--sm" type="button" data-organizationcode="{{ organization.organizationcode }}" data-testid="admin-org-branding-{{ organization.organizationcode }}">{{ _("Branding") }}</button>

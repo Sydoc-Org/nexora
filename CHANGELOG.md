@@ -6,6 +6,14 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Row actions stay on one line on desktop (#383, #384).** On
+  `/admin/organizations`, "Delete" dropped to a second line under "Edit" and
+  "Branding". On `/reporting/metrics`, "Edit" and "Delete" were stacked on
+  top of each other. Both now sit side by side, and the metrics pair gets a
+  small gap.
+
 ## [3.2.14] - 2026-09-23
 
 ### Fixed
