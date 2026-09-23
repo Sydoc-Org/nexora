@@ -113,9 +113,13 @@
         }
 
         // ---- Locked accounts ----
-        // Rendered only when somebody is actually locked, which is almost
-        // never -- an always-visible empty table would train people to
-        // ignore the one place this information appears.
+        // Always rendered, including when empty. It was hidden-when-empty at
+        // first; the owner then went looking for it twice on a quiet system
+        // and could not tell "nobody is locked" from "it never deployed".
+        // Saying "no locked accounts" costs one row and answers that.
+        const LOCKED_EMPTY = `<tr><td colspan="5" class="admin-empty">` +
+            `<i class="fas fa-circle-check"></i> &nbsp; {{ _("No locked accounts.") }}</td></tr>`;
+
         async function fetchLockedAccounts() {
             const wrap = document.getElementById('locked-accounts-wrap');
             const body = document.getElementById('locked-accounts-body');
@@ -124,7 +128,7 @@
                 const res = await fetch(`${API_PREFIX}api/admin/locked_accounts`);
                 const data = await res.json();
                 const rows = (data && data.locked) || [];
-                if (!rows.length) { wrap.hidden = true; body.innerHTML = ''; return; }
+                if (!rows.length) { body.innerHTML = LOCKED_EMPTY; return; }
                 body.innerHTML = rows.map(r => {
                     // A row whose user was deleted still locks the key; show the
                     // raw id rather than dropping it silently.
@@ -150,10 +154,11 @@
                         </td>
                       </tr>`;
                 }).join('');
-                wrap.hidden = false;
             } catch {
                 // A failed poll must not blank a panel that is telling the
-                // truth; leave whatever is on screen.
+                // truth; leave whatever is on screen. On the very first load
+                // that means the server-rendered spinner stays, which is the
+                // honest state -- we do not know yet.
             }
         }
 
