@@ -390,6 +390,13 @@ html { scroll-padding-top: 84px; }
   .reporting-guide-toc, .reporting-guide-article { min-width: 0; }
   .reporting-guide-toc { position: static; }
 }
+/* Phone tap targets (#394): the guide's contents links were 16px tall, one
+   line of 13px text. A 44px row is Apple's minimum; touch-gated so the
+   desktop sidebar keeps its tight list. */
+@media (max-width: 768px) and (pointer: coarse) {
+  .reporting-guide-toc ul { gap: 0; }
+  .reporting-guide-toc a { display: flex; align-items: center; min-height: 44px; }
+}
 
 /* Tips & help modal */
 .reporting-help-box { max-width: 560px; }

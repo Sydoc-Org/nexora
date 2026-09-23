@@ -83,6 +83,24 @@ when there isn't enough room.
   template, because two of the three needed a paragraph of comment each.
 
 ### Fixed — phone view
+- **Seven phone-view cut-offs found in a WebKit sweep on an iPhone SE
+  (#388–#394).**
+  - **Prepared Documents:** "Clear list" wraps to a second line instead of
+    running off the edge.
+  - **Generali dashboard:** a KPI icon that does not fit beside its number
+    drops under it, instead of sticking out of the card.
+  - **Card tables:** long values without spaces (permission codes, e-mail
+    addresses) wrap instead of being cut off. This covers the source registry
+    and Access Control.
+  - **Access Control:** the empty first row is gone, and name, username and
+    e-mail stack.
+  - **Appearance:** the live preview's second card fits.
+  - **Generali filters:** a dropdown value that does not fit its half ends in
+    "…" instead of a letter cut in two.
+  - **Reporting:** the guide's contents links and the report card's "…" menu
+    are 44px tap targets.
+  - All except the tap targets only engage when content does not fit, and a
+    pixel diff of every desktop page shows no change.
 - **The Generali month report could be dragged sideways on every iPhone** —
   11–45px, both engines, reporting section only. Not a grid bug, as it first
   appeared: German compounds "On-Time Rate" into **"Pünktlichkeitsquote"**, one

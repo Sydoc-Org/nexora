@@ -591,6 +591,11 @@ body.reporting-console .rs-card-avatar {
   cursor: pointer;
 }
 .rs-card-kebab:hover { background: var(--nx-sunken); color: var(--nx-text); }
+/* Phone tap target (#394): the card's "…" menu was a 22px square in the
+   corner. 44px on touch, anchored in the corner (the icon moves 3px). */
+@media (max-width: 768px) and (pointer: coarse) {
+  .rs-card-kebab { width: 44px; height: 44px; top: 0; right: 0; }
+}
 .rs-card-menu {
   position: absolute;
   top: 34px;

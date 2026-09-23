@@ -766,6 +766,17 @@ html.dark .sidebar-toggle-btn {
         border-bottom: 1px solid var(--nx-divider) !important;
         white-space: normal !important;
         min-height: 2.5rem;
+        /* A value with no spaces -- an e-mail, a permission code such as
+           reporting.source.docprocessing.use -- cannot wrap at a space, so it
+           ran under the card's overflow: hidden edge and was cut off (#390,
+           #393). `anywhere` also lowers the cell's min-content, so it wraps
+           instead of pushing. Only engages when a value does not fit. */
+        overflow-wrap: anywhere;
+    }
+    /* An empty cell (a spacer column on desktop) was a blank 2.5rem row at
+       the top of every Access Control card (#393). Nothing to show, no row. */
+    .responsive-card-table td:empty {
+        display: none;
     }
     .responsive-card-table td:last-child {
         border-bottom: none !important;

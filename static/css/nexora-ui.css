@@ -319,7 +319,10 @@ body.nx-app .nx-main {
   color: var(--nx-text-sec);
   margin: 4px 0 0;
 }
-.nx-page-head__actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+/* flex-wrap + max-width: a row of actions wider than the screen wraps onto a
+   second line instead of running off the right edge (#388, Prepared
+   Documents' "Clear list"). Both only engage when the row does not fit. */
+.nx-page-head__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; flex-shrink: 0; max-width: 100%; }
 .nx-section {
   font-size: 16px; font-weight: 600; letter-spacing: -0.2px;
   color: var(--nx-text); margin: 0;
@@ -354,7 +357,16 @@ a.nx-card:hover, .nx-card--link:hover {
 }
 
 /* Stat / KPI card */
-.nx-stat { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+/* flex-wrap: when the number and the 44px icon chip no longer fit side by
+   side, the chip drops under the number instead of sticking out of the card
+   (#389, the Generali dashboard's "206.542" on an iPhone SE). */
+.nx-stat { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px; }
+/* Wrap is decided on each item's hypothetical size. At the default basis
+   that is the text block's max-content -- the label on one line -- so the
+   chip dropped even in cards where the label would simply have wrapped (the
+   /appearance preview on desktop). A 0 basis with a min-content floor means
+   the chip only drops when the unbreakable number itself cannot sit beside it. */
+.nx-stat > :not(.nx-stat__chip):not(.nx-stat__icon) { flex: 1 1 0; min-width: min-content; }
 /* `overflow-wrap: anywhere` is doing real work here, not tidying. German
    compounds these labels into single unbreakable words -- "On-Time Rate"
    becomes "Pünktlichkeitsquote", 19 characters with nowhere to wrap. In a
@@ -1594,6 +1606,13 @@ html.dark .flatpickr-day:hover { background: var(--nx-alt); }
   }
   /* The selects inside must be allowed to shrink into their half. */
   body.nx-app .grid.grid-cols-1.sm\:grid-cols-2 > * { min-width: 0; }
+  /* ...and when a value still does not fit its half, end it with "…"
+     rather than slicing a letter in two ("All Organi:", #392). 150px was
+     enough at 390px wide, not on an SE. pr-10's 40px of arrow room was
+     twice what the chevron needs; 16px text stays, or iOS zooms on focus. */
+  body.nx-app .grid.grid-cols-1.sm\:grid-cols-2 select.nx-select {
+    padding-right: 1.75rem; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;
+  }
 
   /* Stat cards are the exception, and they are why the rule above says what
      it means rather than what it matches. A filter cell is a label over a

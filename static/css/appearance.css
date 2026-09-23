@@ -117,7 +117,9 @@ html.dark[data-bg="fireflies"] .appearance-canvas {
 .appearance-mock-title { font-size: 15px; font-weight: 600; color: var(--nx-text); line-height: 1.2; }
 .appearance-mock-sub { font-size: 11.5px; color: var(--nx-text-sec); }
 
-.appearance-mock-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+/* minmax(0, 1fr): a bare 1fr track grows to its card's min-content, which
+   pushed the Backlog card past the preview's clipped edge on a phone (#391). */
+.appearance-mock-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .appearance-mock-stats .nx-stat__value { font-size: 22px; }
 .appearance-mock-stats .nx-stat__chip { width: 34px; height: 34px; font-size: 14px; border-radius: var(--nx-radius-sm); }
 
