@@ -101,10 +101,26 @@
         {% include '_small_footer.html' %}
 
     <script nonce="{{ csp_nonce() }}">
-        document.getElementById('code').addEventListener('input', function (e) {
+        // Send the code once. The form submits itself at 6 digits, and people
+        // still press Enter or click Verify out of habit. The second POST
+        // carries the CSRF token of the session the first one just replaced,
+        // so it 400s -- harmless to the user, but every one showed up as a
+        // "failed login" on /admin.
+        const codeInput = document.getElementById('code');
+        let sent = false;
+        codeInput.form.addEventListener('submit', function (e) {
+            if (sent) {
+                e.preventDefault();
+                return;
+            }
+            sent = true;
+        });
+        // A page restored from the back/forward cache keeps `sent`; reset it.
+        window.addEventListener('pageshow', function () { sent = false; });
+        codeInput.addEventListener('input', function (e) {
             const digits = e.target.value.replace(/\D/g, '').slice(0, 6);
             e.target.value = digits;
-            if (digits.length === 6) {
+            if (digits.length === 6 && !sent) {
                 e.target.form.requestSubmit();
             }
         });

@@ -52,11 +52,16 @@ def admin_dashboard():
         if row:
             active_sessions_count = row[0]
 
+        # 401 = wrong password or code, 429 = tried while locked out. Not
+        # ">= 400": a 400 here is a stale CSRF token (a double-sent 2FA form,
+        # a login page left open overnight), and 503 is our own outage --
+        # neither is someone getting their credentials wrong.
+        # HttpResponseCode is NVARCHAR, so compare as text.
         cursor.execute("""
             SELECT COUNT(*) FROM Logs
             WHERE Path IN ('/login', '/verify_2fa')
               AND HttpRequestMethod = 'POST'
-              AND HttpResponseCode >= 400
+              AND HttpResponseCode IN ('401', '429')
               AND Timestamp >= CAST(GETDATE() AS DATE)
         """)
         row = cursor.fetchone()

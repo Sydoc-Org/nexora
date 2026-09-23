@@ -8,6 +8,14 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **"Failed logins today" on `/admin` counts only real failures.** The 2FA
+  page sends the code by itself once 6 digits are typed. People who also
+  pressed Enter or clicked "Verify" sent it a second time. That second send
+  carried an old security token and got a 400. The user was already signed
+  in and never noticed, but each one counted as a failed login (all five on
+  PROD on 2026-09-23 were this). The page now sends the code only once, and
+  the tile counts only 401 (wrong password or code) and 429 (tried while
+  locked), not every error.
 - **A password reset now unlocks the account.** After five wrong passwords
   the account is locked for 15 minutes, and the login checks the lock
   *before* it looks at the password. The reset never cleared the lock, so
