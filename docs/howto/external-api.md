@@ -253,6 +253,11 @@ process scope"}`. An empty list, more than **30** keys, or a key list next to
 any other include token is also a `400`. A typo therefore fails loudly instead
 of looking like a field that is always empty.
 
+A process scope wider than 30 keys is possible, so the cap can sit below your
+own published list. It is not a limit on what you can read: if you want more
+than 30 keys, use a bare `include=fields`, which returns every key in your
+scope in the same single read.
+
 **This does not make the query cheaper.** The values sit in one wide row, so
 `fields:invoicenr` and a bare `fields` are the same single read per process per
 page — what you save is response size and the work of ignoring keys you did not

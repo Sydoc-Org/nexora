@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 08:43+0200\n"
+"POT-Creation-Date: 2026-09-23 10:53+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -801,7 +801,7 @@ msgstr ""
 msgid "New Password musn't be previously used password"
 msgstr "Le nouveau mot de passe ne doit pas être un mot de passe déjà utilisé"
 
-#: nx_lib/views/auth.py:525 nx_lib/views/auth.py:890
+#: nx_lib/views/auth.py:525 nx_lib/views/auth.py:899
 msgid "Something went wrong, please try again"
 msgstr "Une erreur s'est produite, veuillez réessayer"
 
@@ -813,21 +813,21 @@ msgstr "Identifiants invalides"
 msgid "Login temporarily unavailable"
 msgstr "Connexion temporairement indisponible"
 
-#: nx_lib/views/auth.py:875
+#: nx_lib/views/auth.py:884
 msgid "Password set. You can now sign in."
 msgstr "Mot de passe défini. Vous pouvez maintenant vous connecter."
 
-#: nx_lib/views/auth.py:877
+#: nx_lib/views/auth.py:886
 msgid "Password changed"
 msgstr "Mot de passe modifié"
 
-#: nx_lib/views/auth.py:1050
+#: nx_lib/views/auth.py:1059
 msgid "If that email is registered, a reset link has been sent."
 msgstr ""
 "Si cette adresse e-mail est enregistrée, un lien de réinitialisation du "
 "mot de passe a été envoyé."
 
-#: nx_lib/views/auth.py:1054
+#: nx_lib/views/auth.py:1063
 msgid "Unexpected error occurred"
 msgstr "Une erreur inattendue s'est produite"
 
@@ -3217,11 +3217,11 @@ msgstr "Requête"
 #: templates/api_docs.html:252 templates/api_docs.html:288
 #: templates/api_docs.html:294 templates/api_docs.html:319
 #: templates/api_docs.html:325 templates/api_docs.html:362
-#: templates/api_docs.html:367 templates/api_docs.html:389
-#: templates/api_docs.html:395 templates/api_docs.html:409
-#: templates/api_docs.html:415 templates/api_docs.html:435
-#: templates/api_docs.html:441 templates/api_docs.html:485
-#: templates/api_docs.html:491 templates/reporting.html:463
+#: templates/api_docs.html:367 templates/api_docs.html:390
+#: templates/api_docs.html:396 templates/api_docs.html:410
+#: templates/api_docs.html:416 templates/api_docs.html:436
+#: templates/api_docs.html:442 templates/api_docs.html:486
+#: templates/api_docs.html:492 templates/reporting.html:463
 msgid "Copy"
 msgstr "Copier"
 
@@ -3296,7 +3296,7 @@ msgid "Endpoints"
 msgstr "Points de terminaison"
 
 #: templates/api_docs.html:120 templates/api_docs.html:139
-#: templates/api_docs.html:481
+#: templates/api_docs.html:482
 msgid "Test sandbox"
 msgstr "Bac à sable de test"
 
@@ -3354,19 +3354,19 @@ msgstr "Un en-tête, un GET — avec une clé API en main, voici toute l'intégr
 #: templates/api_docs.html:252 templates/api_docs.html:288
 #: templates/api_docs.html:294 templates/api_docs.html:319
 #: templates/api_docs.html:325 templates/api_docs.html:362
-#: templates/api_docs.html:367 templates/api_docs.html:389
-#: templates/api_docs.html:395 templates/api_docs.html:409
-#: templates/api_docs.html:415 templates/api_docs.html:435
-#: templates/api_docs.html:441 templates/api_docs.html:485
-#: templates/api_docs.html:491
+#: templates/api_docs.html:367 templates/api_docs.html:390
+#: templates/api_docs.html:396 templates/api_docs.html:410
+#: templates/api_docs.html:416 templates/api_docs.html:436
+#: templates/api_docs.html:442 templates/api_docs.html:486
+#: templates/api_docs.html:492
 msgid "Copy code"
 msgstr "Copier le code"
 
 #: templates/api_docs.html:154 templates/api_docs.html:220
 #: templates/api_docs.html:251 templates/api_docs.html:293
 #: templates/api_docs.html:324 templates/api_docs.html:366
-#: templates/api_docs.html:394 templates/api_docs.html:414
-#: templates/api_docs.html:440 templates/api_docs.html:490
+#: templates/api_docs.html:395 templates/api_docs.html:415
+#: templates/api_docs.html:441 templates/api_docs.html:491
 msgid "response"
 msgstr "réponse"
 
@@ -3445,7 +3445,7 @@ msgstr "Corps"
 #: templates/api_docs.html:189 templates/api_docs.html:230
 #: templates/api_docs.html:262 templates/api_docs.html:271
 #: templates/api_docs.html:303 templates/api_docs.html:345
-#: templates/api_docs.html:469
+#: templates/api_docs.html:470
 msgid "Meaning"
 msgstr "Signification"
 
@@ -3526,19 +3526,19 @@ msgstr ""
 "la tuile KPI \"Current Backlog\" du tableau de bord nexora."
 
 #: templates/api_docs.html:227 templates/api_docs.html:268
-#: templates/api_docs.html:300 templates/api_docs.html:466
+#: templates/api_docs.html:300 templates/api_docs.html:467
 msgid "Response fields"
 msgstr "Champs de réponse"
 
 #: templates/api_docs.html:230 templates/api_docs.html:271
-#: templates/api_docs.html:303 templates/api_docs.html:469
+#: templates/api_docs.html:303 templates/api_docs.html:470
 #: templates/js/_reporting_dashboard_js.html:38
 msgid "Field"
 msgstr "Champ"
 
 #: templates/admin/tenants_manage.html:74 templates/api_docs.html:230
 #: templates/api_docs.html:262 templates/api_docs.html:271
-#: templates/api_docs.html:303 templates/api_docs.html:469
+#: templates/api_docs.html:303 templates/api_docs.html:470
 #: templates/generali_documents.html:228 templates/js/_reporting_viz_js.html:11
 msgid "Type"
 msgstr "Type"
@@ -3735,6 +3735,19 @@ msgstr ""
 
 #: templates/api_docs.html:378
 msgid ""
+"A process scope can be wider than 30 keys, so the cap may sit below your "
+"own published list. It is not a limit on what you can read: to get more "
+"than 30 keys, use a bare include=fields, which returns every key in your "
+"scope in the same single read."
+msgstr ""
+"Un périmètre de processus peut compter plus de 30 clés ; le plafond peut "
+"donc se situer en deçà de votre propre liste publiée. Ce n'est pas une "
+"limite à ce que vous pouvez lire : pour plus de 30 clés, utilisez un "
+"simple include=fields, qui renvoie toutes les clés de votre périmètre "
+"dans la même lecture unique."
+
+#: templates/api_docs.html:379
+msgid ""
 "Naming keys does not make the query cheaper — the values sit in one wide "
 "row either way. What it saves is response size."
 msgstr ""
@@ -3742,7 +3755,7 @@ msgstr ""
 "trouvent de toute façon dans une seule ligne large. Ce que vous "
 "économisez, c'est la taille de la réponse."
 
-#: templates/api_docs.html:379
+#: templates/api_docs.html:380
 #, python-brace-format
 msgid ""
 "Indexed fields only — the same keys /workitems/fields lists. Table values"
@@ -3756,7 +3769,7 @@ msgstr ""
 "indexée reçoit un objet fields vide, les champs sensibles n'y figurent "
 "jamais, et sans include la réponse est exactement celle d'avant."
 
-#: templates/api_docs.html:380
+#: templates/api_docs.html:381
 msgid ""
 "Every invalid value returns a 400 with a plain-English error — nothing is"
 " silently coerced. Unknown and sensitive field keys answer identically "
@@ -3772,7 +3785,7 @@ msgstr ""
 "respectent la même fenêtre temporelle par processus que la recherche de "
 "la page Vue d'ensemble."
 
-#: templates/api_docs.html:386
+#: templates/api_docs.html:387
 msgid ""
 "The field keys /workitems accepts in ?field= for your key's process "
 "scope, as the server resolves them right now — only fields mapped for at "
@@ -3785,7 +3798,7 @@ msgstr ""
 "moins les champs sensibles. Préférez récupérer cette liste plutôt que de "
 "coder les noms en dur."
 
-#: templates/api_docs.html:400
+#: templates/api_docs.html:401
 msgid ""
 "Keys are lowercase without separators. On /workitems an unknown key "
 "answers 400 Unknown field, and a real field outside your key's scope "
@@ -3798,7 +3811,7 @@ msgstr ""
 "échec de lecture de la configuration renvoie 500, jamais une liste "
 "partielle."
 
-#: templates/api_docs.html:406
+#: templates/api_docs.html:407
 msgid ""
 "The count of workitems currently in each stage (Import, Extraction, "
 "Validation, Delivery) for your key's process scope. No parameters; the "
@@ -3809,7 +3822,7 @@ msgstr ""
 " clé. Aucun paramètre ; les chiffres correspondent toujours à une requête"
 " /workitems filtrée par étape."
 
-#: templates/api_docs.html:426
+#: templates/api_docs.html:427
 msgid ""
 "datetime is the server-local timestamp the counts were computed at. An "
 "empty process scope returns all zeros; a degraded workitem source answers"
@@ -3822,7 +3835,7 @@ msgstr ""
 "silencieusement partiels. Pas de cache : chaque appel calcule des "
 "chiffres à jour."
 
-#: templates/api_docs.html:432
+#: templates/api_docs.html:433
 msgid ""
 "The document details the overview row-expand shows for one workitem: "
 "extracted field values and table values. No page images, confidence or "
@@ -3833,7 +3846,7 @@ msgstr ""
 "de pages, de confiances ni d'emplacements sources ; les champs sensibles "
 "sont toujours retirés."
 
-#: templates/api_docs.html:471
+#: templates/api_docs.html:472
 msgid ""
 "Extracted field name → value, mapped through the same field-name mapping "
 "the overview uses"
@@ -3841,11 +3854,11 @@ msgstr ""
 "Nom de champ extrait → valeur, passé par la même correspondance de noms "
 "de champs que la vue d'ensemble"
 
-#: templates/api_docs.html:472
+#: templates/api_docs.html:473
 msgid "Extracted tables: title, columns, and rows of column/value cells"
 msgstr "Tableaux extraits : titre, colonnes et lignes de cellules colonne/valeur"
 
-#: templates/api_docs.html:476
+#: templates/api_docs.html:477
 msgid ""
 "404 with a null detail is returned uniformly for an unknown id, an id "
 "outside your key's scope, and a document the runtime backend can't load "
@@ -3858,7 +3871,7 @@ msgstr ""
 "workitem froid charge en direct depuis le service d'exécution et peut "
 "prendre quelques secondes."
 
-#: templates/api_docs.html:482
+#: templates/api_docs.html:483
 msgid ""
 "Every endpoint above has a /api/test/v1/... twin: same path suffix, same "
 "Bearer-key auth, same response shape — but the numbers are random, not "
@@ -3871,7 +3884,7 @@ msgstr ""
 "requête backend n'a lieu, donc il est sûr de l'appeler à volonté pendant "
 "la construction d'une intégration."
 
-#: templates/api_docs.html:497
+#: templates/api_docs.html:498
 msgid ""
 "Use a real (enabled) API key — the same auth errors (401/429) apply. "
 "Available for"
@@ -3879,7 +3892,7 @@ msgstr ""
 "Utilisez une vraie clé API (activée) — les mêmes erreurs "
 "d'authentification (401/429) s'appliquent. Disponible pour"
 
-#: templates/api_docs.html:497
+#: templates/api_docs.html:498
 msgid "and"
 msgstr "et"
 
