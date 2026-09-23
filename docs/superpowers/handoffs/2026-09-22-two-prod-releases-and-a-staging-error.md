@@ -1,3 +1,8 @@
+> **SUPERSEDED.** Start at
+> [`2026-09-23-prod-caught-up-on-3-2-13.md`](2026-09-23-prod-caught-up-on-3-2-13.md).
+> Every open item below is resolved: PROD is on v3.2.13 and current, and the staging
+> sessions error was an expired session rather than a failure. Kept for history.
+
 > **UPDATE — both headline items resolved after this was written.**
 >
 > **PROD is live on 3.2.11** (`9348b43`). The owner pushed the tag at 15:12; verified
