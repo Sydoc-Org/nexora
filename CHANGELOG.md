@@ -6,6 +6,21 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Reporting pages fit on a phone again (#381).** `/reporting`, report
+  definitions, the source registry and the guide were up to 160 px wider than
+  an iPhone screen, so buttons were cut off at the right edge and the page
+  scrolled sideways. The single-column layout now shrinks to the screen, and
+  the top bar, the Library heading and the filter row wrap when they run out
+  of room.
+- **Admin page titles are no longer hidden behind the "+ Add …" button on a
+  phone (#382).** Maintenance, Organizations, Processes, Data Connections and
+  Manage Tenants: the button now drops below the title when both don't fit.
+
+Neither fix changes anything on a desktop screen: both only kick in when
+there isn't enough room.
+
 ## [3.2.14] - 2026-09-23
 
 ### Fixed
