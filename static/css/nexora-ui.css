@@ -298,11 +298,14 @@ body.nx-app .nx-main {
   gap: 16px;
   margin-bottom: 24px;
 }
-/* The 18rem basis is what makes the actions drop below the title once the
+/* The 18rem minimum is what makes the actions drop below the title once the
    two no longer fit side by side. Without wrapping, min-width: 0 let the
    title shrink under the non-shrinking "+ Add …" button on a phone (#382).
-   On any desktop width 18rem + the actions fit, so nothing moves there. */
-.nx-page-head__main { flex: 1 1 18rem; min-width: 0; }
+   On any desktop width 18rem + the actions fit, so nothing moves there.
+   A min-width, not a flex-basis: several pages turn this header into a
+   column on narrow screens (workitems_overview.css, the phone view), and
+   there a basis is a HEIGHT -- 18rem put a ~300px gap under every title. */
+.nx-page-head__main { flex: 1 1 0; min-width: min(100%, 18rem); }
 .nx-title {
   font-size: 24px;
   font-weight: 600;
