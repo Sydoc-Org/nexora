@@ -383,7 +383,8 @@
 .reporting-guide-article hr { border: 0; border-top: 1px solid var(--nx-border, #e5e7eb); margin: 24px 0; }
 html { scroll-padding-top: 84px; }
 @media (max-width: 900px) {
-  .reporting-guide-layout { grid-template-columns: 1fr; }
+  /* minmax(0, …): a bare 1fr track grows to the article's min-content (#381). */
+  .reporting-guide-layout { grid-template-columns: minmax(0, 1fr); }
   .reporting-guide-toc { position: static; }
 }
 
@@ -476,7 +477,9 @@ html { scroll-padding-top: 84px; }
 }
 
 /* --- A3: source-registry admin page --- */
-.reporting-admin { padding: 20px; max-width: 1100px; margin: 0 auto; }
+/* width: 100% like .nx-main: body is a flex column, and an auto-margined
+   flex item is sized to its content, not to the screen (#381). */
+.reporting-admin { padding: 20px; max-width: 1100px; margin: 0 auto; width: 100%; box-sizing: border-box; }
 .reporting-admin-note { color: var(--nx-text-sec); font-size: 13px; margin: 4px 0 16px; }
 .reporting-admin section {
   background: var(--nx-card); border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 14px); padding: 14px; margin-bottom: 16px;
