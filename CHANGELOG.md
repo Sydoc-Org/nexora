@@ -34,6 +34,17 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   server error. `static/js/nx_core.js` now spots a request that ended on the
   login page and takes you there.
 
+### Changed
+- **Written down: when a `table` reporting source may be granted to a customer
+  profile** (#332) — only when the underlying object holds that customer's rows
+  and nobody else's. The `table` provider applies **no row scoping** (unlike
+  `docprocessing`, which filters through `process.<client>.<name>.view`), so the
+  source permission is the entire gate. It is enforced at execution, but there
+  is no second line of defence behind it, and none of that is visible from the
+  permissions grid. `docs/howto/reporting.md` carries the rule and the two
+  anomalies `scripts/perm-audit.py` already flags; `docs/design/permissions.md`
+  points at it from the source-permission family.
+
 ## [3.2.13] - 2026-09-23
 
 ### Fixed
