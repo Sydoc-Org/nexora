@@ -43,12 +43,13 @@
         tr.appendChild(td(v));
       });
       var act = document.createElement('td');
+      act.className = 'whitespace-nowrap';  // keep Edit and Delete on one line (#384)
       var e = document.createElement('button');
       e.className = 'reporting-link';
       e.textContent = '{{ _("Edit") }}';
       e.onclick = function () { fillForm(r); };
       var d = document.createElement('button');
-      d.className = 'reporting-link';
+      d.className = 'reporting-link ml-2';
       d.textContent = '{{ _("Delete") }}';
       d.onclick = function () { if (window.confirm('{{ _("Delete this metric?") }}')) del(r.id); };
       act.appendChild(e);

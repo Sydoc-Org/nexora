@@ -17,9 +17,14 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Admin page titles are no longer hidden behind the "+ Add …" button on a
   phone (#382).** Maintenance, Organizations, Processes, Data Connections and
   Manage Tenants: the button now drops below the title when both don't fit.
+- **Row actions stay on one line on desktop (#383, #384).** On
+  `/admin/organizations`, "Delete" dropped to a second line under "Edit" and
+  "Branding". On `/reporting/metrics`, "Edit" and "Delete" were stacked on
+  top of each other. Both now sit side by side, and the metrics pair gets a
+  small gap.
 
-Neither fix changes anything on a desktop screen: both only kick in when
-there isn't enough room.
+The two phone fixes change nothing on a desktop screen: they only kick in
+when there isn't enough room.
 
 ## [3.2.14] - 2026-09-23
 
