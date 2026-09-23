@@ -6,9 +6,21 @@
     const formatDateTime = window.NX.formatDateTime;
     const formatHours = window.NX.formatHours;
 
+    // POE moves to Zusatzleistungen on 2026-10-01 at Generali's request
+    // (migration GeneraliDB/0016). The cut-over is decided HERE, by the
+    // server's own date, rather than by picking the right day to deploy:
+    // a deploy date is a thing somebody has to remember, and getting it
+    // wrong in either direction is a real cost. Ship it early and people
+    // cannot book their September hours; ship it late and they cannot book
+    // their October ones.
+    //
+    // `poe_moved` is decided in nx_lib/views/generali/baseservices.py against
+    // the server's local date, so the list flips by itself the first time the
+    // page is opened on or after the cut-over.
     const BASE_CATEGORIES = [
         "Physical Mailroom, AVOR & Scanning",
         "Nk1 & NK2",
+        {% if not poe_moved %}"POE",{% endif %}
         "PPR"
     ];
     // Filterable but NOT addable: categories that sit on historical rows and
@@ -17,10 +29,11 @@
     // stay in the table and in the month report, but the filter could no
     // longer select them.
     //   "POE / PPR" -- legacy combined category, split long ago.
-    //   "POE"       -- moved to Zusatzleistungen on 2026-10-01 at Generali's
-    //                  request (migration GeneraliDB/0016). September's POE
-    //                  hours were booked here and must stay reachable.
-    const LEGACY_CATEGORIES = ["POE / PPR", "POE"];
+    //   "POE"       -- filterable from the cut-over onwards; every hour booked
+    //                  up to 30 September was booked here and must stay
+    //                  reachable. Before the cut-over it is in BASE_CATEGORIES
+    //                  above, so listing it here too would double it up.
+    const LEGACY_CATEGORIES = ["POE / PPR"{% if poe_moved %}, "POE"{% endif %}];
 
     let _currentRecords = [];
 

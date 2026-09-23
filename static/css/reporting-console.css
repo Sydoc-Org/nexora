@@ -24,6 +24,7 @@ html.nx-compact body.reporting-console .rc-shell {
 /* ---------- Top bar ---------- */
 .rc-topbar {
   display: flex;
+  flex-wrap: wrap; /* only wraps when the buttons no longer fit (#381) */
   align-items: center;
   gap: 14px;
   padding-top: 4px;
@@ -271,7 +272,7 @@ html.nx-motion-reduced .src-pulse { animation: none; }
 }
 
 /* ---------- Screen scaffolding ---------- */
-.rc-screen-head { display: flex; align-items: center; gap: 10px; }
+.rc-screen-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .rc-h1 {
   margin: 0;
   font-size: 19px;
@@ -287,11 +288,14 @@ html.nx-motion-reduced .src-pulse { animation: none; }
 }
 .rc-filter-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   margin-top: 12px;
 }
-body.reporting-console .rs-search-wrap { position: relative; flex: 1; display: block; }
+/* 12rem basis: on a phone the sort select and layout toggle wrap under the
+   search box instead of squeezing it down to its icon (#381). */
+body.reporting-console .rs-search-wrap { position: relative; flex: 1 1 12rem; display: block; }
 /* Sort wrapper: `contents` means the select is still the row's own flex child
    here, so the desktop filter row lays out exactly as it did before the
    wrapper existed. The phone block below turns it into a real box. */

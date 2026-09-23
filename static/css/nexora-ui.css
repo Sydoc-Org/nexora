@@ -292,12 +292,17 @@ body.nx-app .nx-main {
    with a hair-thin accent keyline under the title block. */
 .nx-page-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 24px;
 }
-.nx-page-head__main { min-width: 0; }
+/* The 18rem basis is what makes the actions drop below the title once the
+   two no longer fit side by side. Without wrapping, min-width: 0 let the
+   title shrink under the non-shrinking "+ Add …" button on a phone (#382).
+   On any desktop width 18rem + the actions fit, so nothing moves there. */
+.nx-page-head__main { flex: 1 1 18rem; min-width: 0; }
 .nx-title {
   font-size: 24px;
   font-weight: 600;

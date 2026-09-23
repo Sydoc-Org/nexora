@@ -78,6 +78,37 @@ def test_admin_dashboard_with_perm_renders(admin_client):
     assert resp.status_code == 200
 
 
+def test_failed_logins_tile_counts_wrong_credentials_not_stale_forms(admin_client, monkeypatch):
+    """The 2FA form sends itself at 6 digits; an extra Enter sends it again
+    with the CSRF token of the session the first send replaced, which 400s.
+    Those, and our own 503s, are not someone getting a password wrong. Only
+    401 (wrong password/code) and 429 (tried while locked) count.
+
+    NEXORA_TEST has no dbo.Logs (sql/test/schema.sql is a subset), so this
+    pins the query the tile sends rather than seeding rows."""
+    import nx_lib.views.admin.overview as overview
+
+    sent = []
+    cursor = MagicMock()
+    cursor.execute.side_effect = lambda sql, *a: sent.append(" ".join(sql.split()))
+    cursor.fetchone.return_value = (7,)
+    conn = MagicMock()
+    conn.cursor.return_value = cursor
+    # Only overview's own name -- the shared engine also serves the
+    # permission refresh, and faking that turns the page into a 403.
+    monkeypatch.setattr(
+        overview, "engine_nexora_db", _types.SimpleNamespace(raw_connection=lambda: conn)
+    )
+
+    resp = admin_client.get("/admin")
+    assert resp.status_code == 200
+
+    logs_sql = next(q for q in sent if "FROM Logs" in q)
+    assert "HttpResponseCode IN ('401', '429')" in logs_sql
+    assert ">= 400" not in logs_sql
+    assert re.search(rb"Failed logins today</div>\s*<div[^>]*>\s*7\b", resp.data)
+
+
 @pytest.fixture()
 def no_restart_perm(monkeypatch):
     """Drop admin.server.restart the way STAGING does (#198): it resolves NexoraDB to

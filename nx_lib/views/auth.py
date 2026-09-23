@@ -833,7 +833,7 @@ def set_new_password():
         if row is None:
             # No matching user for this email -- surfaces via the outer except.
             raise ValueError("set_new_password: user not found")
-        stored_hash = row[0]
+        stored_hash, stored_userid = row[0], row[1]
 
         if isinstance(stored_hash, str):
             stored_hash = stored_hash.encode("utf-8")
@@ -847,14 +847,23 @@ def set_new_password():
         hash_bytes = bcrypt.hashpw(new_password.encode("utf-8"), salt)
         hash_str = hash_bytes.decode("utf-8")
 
+        # Write the row we just read, by userid, and prove it landed: the old
+        # UPDATE ... WHERE email = ? reported success even when it matched
+        # nothing, so the user was told "Password changed" while the old
+        # password stayed live.
         cursor.execute(
-            """
-            UPDATE Users
-            SET password = ?
-            WHERE email = ?
-            """,
-            (hash_str, email_for_password_reset),
+            "UPDATE Users SET password = ? WHERE userid = ?",
+            (hash_str, stored_userid),
         )
+        if cursor.rowcount != 1:
+            conn.rollback()
+            raise ValueError(f"set_new_password: update matched {cursor.rowcount} rows")
+        # A reset is how a locked-out user gets unstuck. login() checks the
+        # lockout BEFORE comparing the password, so leaving the counter in
+        # place meant the new password was refused for the rest of the
+        # window. Only the password counter: the "2fa:<id>" key guards the
+        # TOTP step, which a mailed reset link does not prove anything about.
+        cursor.execute("DELETE FROM dbo.LoginLockout WHERE userid = ?", (str(stored_userid),))
         conn.commit()
 
         # D-RESET: the reset token is only marked single-use-spent -- and the

@@ -125,3 +125,37 @@ def test_unlock_needs_a_permission(user_client):
     """A plain user must not be able to unlock accounts."""
     resp = user_client.post(f"/admin/users/{_a_userid()}/unlock")
     assert resp.status_code in (401, 403), resp.status_code
+
+
+# ------------------------------------------------ the panel's empty state --
+
+
+def _sessions_page(client):
+    resp = client.get("/admin/sessions")
+    assert resp.status_code == 200, resp.status_code
+    return resp.data.decode()
+
+
+def test_the_panel_renders_even_when_nobody_is_locked(admin_client):
+    """It was hidden-when-empty at first, and that was the wrong call.
+
+    On a quiet system you could not tell "nobody is locked" from "the feature
+    never deployed" -- the owner went looking for the panel twice before
+    saying so. A support tool you cannot find is worse than one you learn to
+    ignore, and the whole point of this panel is that a lockout is otherwise
+    invisible.
+    """
+    html = _sessions_page(admin_client)
+    assert 'id="locked-accounts-wrap"' in html, "the panel is not on the page at all"
+    open_tag = html[html.index('id="locked-accounts-wrap"') :]
+    open_tag = open_tag[: open_tag.index(">")]
+    assert (
+        "hidden" not in open_tag
+    ), "the panel is hidden again -- it must render whether or not anyone is locked"
+
+
+def test_an_empty_panel_says_so_rather_than_showing_a_blank_table(admin_client):
+    """A blank tbody reads as a broken panel, not as good news."""
+    html = _sessions_page(admin_client)
+    assert "LOCKED_EMPTY" in html, "the empty-state row was removed"
+    assert "locked-accounts-body" in html
