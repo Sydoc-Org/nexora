@@ -1,3 +1,17 @@
+> **UPDATE — both headline items resolved after this was written.**
+>
+> **PROD is live on 3.2.11** (`9348b43`). The owner pushed the tag at 15:12; verified
+> from the footer on nexora.sydoc.ch, not from a green workflow. Step 2 below is done.
+>
+> **The staging `/admin/sessions` error is not a failure** — it is an expired session.
+> The API 302s to `/login`, `fetch` follows redirects, and the final response is a
+> legitimate 200 HTML login page, so `if (!response.ok)` passes and `.json()` throws
+> into the catch that prints "Could not load sessions". Reproduced exactly against a
+> signed-out browser. Staging hits it easily because the nightly 01:00 restore from
+> PROD wipes `dbo.ActiveSessions` out from under a live session. **Step 1 needs no
+> DevTools status code.** A task is chipped to make `NX.api` treat a redirect as
+> "signed out"; every fetch-based admin page shares the blind spot.
+
 # Handoff — two PROD releases merged, one staging error unexplained
 
 **Date:** 2026-09-22 · **Branch:** `feat/354-phone-tabbar` · **58 commits ahead of `origin/main`**,
