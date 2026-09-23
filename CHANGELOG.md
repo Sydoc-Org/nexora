@@ -6,6 +6,26 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **A password reset now unlocks the account.** After five wrong passwords
+  the account is locked for 15 minutes, and the login checks the lock
+  *before* it looks at the password. The reset never cleared the lock, so
+  someone who reset their password to get back in was still refused, even
+  with the new password. The reset now clears the password lock. The 2FA
+  lock stays: a reset link in your mailbox says nothing about your
+  authenticator app.
+- **A password reset that changes nothing now says so.** It used to write by
+  email address and show "Password changed" even when no row was written. It
+  now writes by user id, checks that exactly one row changed, and shows the
+  error page otherwise. The reset link stays usable.
+- **An expired session sends you to the login page instead of "could not
+  load".** When your session had run out, a page's background requests got
+  bounced to `/login`. The browser followed that quietly and handed the page
+  the login screen as if it were a good answer, so admin pages showed a
+  server error. `static/js/nx_core.js` now spots a request that ended on the
+  login page and takes you there.
+
 ## [3.2.13] - 2026-09-23
 
 ### Fixed
