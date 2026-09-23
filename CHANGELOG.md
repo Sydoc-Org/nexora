@@ -6,6 +6,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [3.2.14] - 2026-09-23
+
 ### Fixed
 
 - **"Failed logins today" on `/admin` counts only real failures.** The 2FA
