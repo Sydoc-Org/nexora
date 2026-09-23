@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-15 12:45+0200\n"
+"POT-Creation-Date: 2026-09-23 08:43+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -847,7 +847,7 @@ msgstr "Non autorisé"
 #: nx_lib/views/admin/permissions.py:604 nx_lib/views/admin/system.py:148
 #: nx_lib/views/admin/system.py:191 nx_lib/views/admin/system.py:234
 #: nx_lib/views/admin/system.py:254 nx_lib/views/admin/users.py:421
-#: nx_lib/views/admin/users.py:573 nx_lib/views/dashboard.py:705
+#: nx_lib/views/admin/users.py:698 nx_lib/views/dashboard.py:705
 #: nx_lib/views/dashboard.py:781 nx_lib/views/dashboard.py:851
 #: nx_lib/views/dashboard.py:905 nx_lib/views/dashboard.py:967
 #: nx_lib/views/generali/_crud.py:187 nx_lib/views/generali/attendance.py:87
@@ -1639,11 +1639,11 @@ msgstr "Utilisateur introuvable."
 msgid "User deleted successfully."
 msgstr "Utilisateur supprimé avec succès."
 
-#: nx_lib/views/admin/users.py:618
+#: nx_lib/views/admin/users.py:743
 msgid "Could not fetch logs"
 msgstr "Impossible de récupérer les journaux"
 
-#: nx_lib/views/admin/users.py:667
+#: nx_lib/views/admin/users.py:792
 msgid "Could not fetch sessions"
 msgstr "Impossible de récupérer les sessions"
 
@@ -2976,6 +2976,7 @@ msgstr ""
 " retirez-les là, sans reconstruire le rapport."
 
 #: templates/_reporting_simple.html:125 templates/admin/_admin_helpers.html:12
+#: templates/generali_monthreport.html:34
 #: templates/generali_monthreport.html:35
 msgid "Back"
 msgstr "Retour"
@@ -4179,7 +4180,8 @@ msgid "Replay"
 msgstr "Rejouer"
 
 #: templates/appearance.html:338 templates/dashboard.html:30
-#: templates/generali_documents.html:41 templates/generali_reporting.html:56
+#: templates/generali_documents.html:40 templates/generali_documents.html:41
+#: templates/generali_reporting.html:55 templates/generali_reporting.html:56
 #: templates/js/_header_js.html:30 templates/js/_header_js.html:36
 msgid "Dashboard"
 msgstr "Tableau de bord"
@@ -4314,7 +4316,7 @@ msgstr ""
 #: templates/generali_baseservices.html:137
 #: templates/generali_baseservices.html:202
 #: templates/generali_baseservices.html:248
-#: templates/generali_monthreport.html:123
+#: templates/generali_monthreport.html:126
 #: templates/generali_projectmanagement.html:190
 #: templates/generali_reporting.html:75 templates/generali_reporting.html:158
 #: templates/js/_reporting_viz_js.html:12
@@ -4411,14 +4413,19 @@ msgstr "Tableau de bord Generali"
 msgid "Dashboard for Generali Document processing"
 msgstr "Tableau de bord pour le traitement des documents Generali"
 
-#: templates/generali-dashboard.html:65 templates/generali_reporting.html:48
+#: templates/generali-dashboard.html:64 templates/generali-dashboard.html:65
+#: templates/generali_reporting.html:47 templates/generali_reporting.html:48
 #: templates/js/_header_js.html:39
 msgid "Document List"
 msgstr "Liste des documents"
 
-#: templates/generali-dashboard.html:69
+#: templates/generali-dashboard.html:68 templates/generali-dashboard.html:69
+#: templates/generali_additionalservices.html:51
 #: templates/generali_additionalservices.html:52
-#: templates/generali_baseservices.html:52 templates/generali_documents.html:45
+#: templates/generali_baseservices.html:51
+#: templates/generali_baseservices.html:52 templates/generali_documents.html:44
+#: templates/generali_documents.html:45
+#: templates/generali_projectmanagement.html:51
 #: templates/generali_projectmanagement.html:52 templates/js/_header_js.html:42
 #: templates/reporting.html:79
 msgid "Reporting"
@@ -4527,23 +4534,31 @@ msgstr "Generali Services supplémentaires"
 msgid "Daily effort tracking by category"
 msgstr "Suivi journalier des efforts par catégorie"
 
+#: templates/generali_additionalservices.html:38
 #: templates/generali_additionalservices.html:39
 #: templates/generali_additionalservices.html:200
 msgid "Add Attendance"
 msgstr "Ajouter une présence"
 
+#: templates/generali_additionalservices.html:43
 #: templates/generali_additionalservices.html:44
-#: templates/generali_baseservices.html:44 templates/generali_pdqm.html:44
+#: templates/generali_baseservices.html:43
+#: templates/generali_baseservices.html:44 templates/generali_pdqm.html:43
+#: templates/generali_pdqm.html:44 templates/generali_projectmanagement.html:43
 #: templates/generali_projectmanagement.html:44
-#: templates/generali_reporting.html:44
+#: templates/generali_reporting.html:43 templates/generali_reporting.html:44
 msgid "Export Excel"
 msgstr "Exporter Excel"
 
+#: templates/generali_additionalservices.html:47
 #: templates/generali_additionalservices.html:48
+#: templates/generali_baseservices.html:47
 #: templates/generali_baseservices.html:48
 #: templates/generali_monthreport.html:8 templates/generali_monthreport.html:27
-#: templates/generali_pdqm.html:48 templates/generali_projectmanagement.html:48
-#: templates/generali_reporting.html:52
+#: templates/generali_pdqm.html:47 templates/generali_pdqm.html:48
+#: templates/generali_projectmanagement.html:47
+#: templates/generali_projectmanagement.html:48
+#: templates/generali_reporting.html:51 templates/generali_reporting.html:52
 msgid "Month Report"
 msgstr "Rapport mensuel"
 
@@ -4670,8 +4685,8 @@ msgstr "Enregistré à"
 
 #: templates/admin/access_control.html:92 templates/admin/clients.html:57
 #: templates/admin/maintenance.html:39 templates/admin/organizations.html:34
-#: templates/admin/processes.html:78 templates/admin/sessions.html:34
-#: templates/admin/tenants_manage.html:41
+#: templates/admin/processes.html:78 templates/admin/sessions.html:53
+#: templates/admin/sessions.html:69 templates/admin/tenants_manage.html:41
 #: templates/admin/tenants_manage.html:79
 #: templates/generali_additionalservices.html:167
 #: templates/generali_baseservices.html:141 templates/generali_pdqm.html:165
@@ -4779,12 +4794,16 @@ msgstr "Cette action est irréversible."
 #: templates/generali_baseservices.html:298 templates/generali_pdqm.html:373
 #: templates/generali_projectmanagement.html:284
 #: templates/generali_reporting.html:341
+#: templates/js/_generali_additional_services_js.html:125
 #: templates/js/_generali_additional_services_js.html:431
 #: templates/js/_generali_additional_services_js.html:441
-#: templates/js/_generali_base_services_js.html:348
-#: templates/js/_generali_base_services_js.html:361
+#: templates/js/_generali_base_services_js.html:104
+#: templates/js/_generali_base_services_js.html:368
+#: templates/js/_generali_base_services_js.html:381
+#: templates/js/_generali_pdqm_js.html:179
 #: templates/js/_generali_pdqm_js.html:569
 #: templates/js/_generali_pdqm_js.html:584
+#: templates/js/_generali_project_management_js.html:57
 #: templates/js/_generali_project_management_js.html:324
 #: templates/js/_generali_project_management_js.html:338
 #: templates/js/_generali_reporting_js.html:40
@@ -4805,9 +4824,11 @@ msgstr "Generali Services de base - nexora"
 msgid "Generali Base Services"
 msgstr "Generali Services de base"
 
+#: templates/generali_baseservices.html:38
 #: templates/generali_baseservices.html:39
-#: templates/generali_baseservices.html:173 templates/generali_pdqm.html:39
-#: templates/generali_pdqm.html:199
+#: templates/generali_baseservices.html:173 templates/generali_pdqm.html:38
+#: templates/generali_pdqm.html:39 templates/generali_pdqm.html:199
+#: templates/generali_projectmanagement.html:38
 #: templates/generali_projectmanagement.html:39
 #: templates/generali_projectmanagement.html:161
 msgid "Add Entry"
@@ -4970,45 +4991,67 @@ msgstr "Lignes CSV"
 msgid "New"
 msgstr "Nouveau"
 
-#: templates/generali_monthreport.html:64
+#: templates/admin/logs.html:108 templates/admin/user_detail.html:232
+#: templates/generali_monthreport.html:44
+#: templates/js/_generali_documents_js.html:270
+#: templates/js/_generali_import_status_js.html:259
+#: templates/js/_workitems_overview_js.html:41
+#: templates/prepared_documents.html:234 templates/tenant/page.html:100
+#: templates/workitems_overview.html:578
+msgid "Previous"
+msgstr "Précédent"
+
+#: templates/admin/logs.html:109 templates/admin/user_detail.html:233
+#: templates/generali_monthreport.html:50
+#: templates/generali_monthreport.html:56
+#: templates/js/_generali_documents_js.html:274
+#: templates/js/_generali_import_status_js.html:274
+#: templates/js/_generali_reporting_js.html:18
+#: templates/js/_workitems_overview_js.html:42
+#: templates/prepared_documents.html:240 templates/tenant/page.html:101
+#: templates/workitems_overview.html:579
+msgid "Next"
+msgstr "Suivant"
+
+#: templates/generali_monthreport.html:67
 msgid "Total Entries"
 msgstr "Total des entrées"
 
-#: templates/generali_monthreport.html:73
-#: templates/generali_monthreport.html:130
+#: templates/generali_monthreport.html:76
+#: templates/generali_monthreport.html:133
 #: templates/generali_reporting.html:121 templates/generali_reporting.html:161
 #: templates/generali_reporting.html:288 templates/generali_reporting.html:289
 #: templates/js/_generali_reporting_js.html:10
 msgid "On Time"
 msgstr "Dans les délais"
 
-#: templates/generali_monthreport.html:80
-#: templates/generali_monthreport.html:133
+#: templates/generali_monthreport.html:83
+#: templates/generali_monthreport.html:136
 #: templates/generali_reporting.html:122
 #: templates/js/_generali_reporting_js.html:11
 msgid "Late"
 msgstr "En retard"
 
-#: templates/generali_monthreport.html:87
-#: templates/generali_monthreport.html:136
+#: templates/generali_monthreport.html:90
+#: templates/generali_monthreport.html:139
 msgid "On-Time Rate"
 msgstr "Taux de ponctualité"
 
-#: templates/generali_monthreport.html:96
-#: templates/generali_monthreport.html:140
+#: templates/generali_monthreport.html:99
+#: templates/generali_monthreport.html:143
 msgid "Total Quantity"
 msgstr "Quantité totale"
 
-#: templates/generali_monthreport.html:105
-#: templates/generali_monthreport.html:144
+#: templates/generali_monthreport.html:108
+#: templates/generali_monthreport.html:147
 msgid "Total Hours"
 msgstr "Heures totales"
 
-#: templates/generali_monthreport.html:126
+#: templates/generali_monthreport.html:129
 msgid "Entries"
 msgstr "Entrées"
 
-#: templates/generali_monthreport.html:174
+#: templates/generali_monthreport.html:177
 msgid "No data for this month."
 msgstr "Aucune donnée pour ce mois."
 
@@ -5089,7 +5132,8 @@ msgstr "Rapports Generali"
 msgid "Daily task completion reporting"
 msgstr "Rapport journalier d'achèvement des tâches"
 
-#: templates/generali_reporting.html:39 templates/generali_reporting.html:205
+#: templates/generali_reporting.html:38 templates/generali_reporting.html:39
+#: templates/generali_reporting.html:205
 msgid "Add Report"
 msgstr "Ajouter un rapport"
 
@@ -5287,9 +5331,9 @@ msgid "Login - nexora"
 msgstr "Connexion - nexora"
 
 #: templates/admin/access_control.html:156 templates/admin/logs.html:44
-#: templates/admin/modals/_user_modals.html:32 templates/admin/sessions.html:29
-#: templates/admin/user_detail.html:37 templates/index.html:98
-#: templates/profile.html:137
+#: templates/admin/modals/_user_modals.html:32 templates/admin/sessions.html:49
+#: templates/admin/sessions.html:64 templates/admin/user_detail.html:37
+#: templates/index.html:98 templates/profile.html:137
 msgid "Username"
 msgstr "Nom d'utilisateur"
 
@@ -5299,7 +5343,8 @@ msgstr "Votre nom d'utilisateur"
 
 #: templates/admin/access_control.html:191
 #: templates/admin/modals/_user_modals.html:71 templates/index.html:109
-#: templates/profile.html:65 templates/set_password.html:106
+#: templates/js/admin/_sessions_js.html:140 templates/profile.html:65
+#: templates/set_password.html:106
 msgid "Password"
 msgstr "Mot de passe"
 
@@ -5507,23 +5552,6 @@ msgid "No prepared documents yet. Upload an Excel to get started."
 msgstr ""
 "Aucun document préparé pour l'instant. Importez un fichier Excel pour "
 "commencer."
-
-#: templates/admin/logs.html:108 templates/admin/user_detail.html:232
-#: templates/js/_generali_documents_js.html:270
-#: templates/js/_workitems_overview_js.html:41
-#: templates/prepared_documents.html:234 templates/tenant/page.html:100
-#: templates/workitems_overview.html:578
-msgid "Previous"
-msgstr "Précédent"
-
-#: templates/admin/logs.html:109 templates/admin/user_detail.html:233
-#: templates/js/_generali_documents_js.html:274
-#: templates/js/_generali_reporting_js.html:18
-#: templates/js/_workitems_overview_js.html:42
-#: templates/prepared_documents.html:240 templates/tenant/page.html:101
-#: templates/workitems_overview.html:579
-msgid "Next"
-msgstr "Suivant"
 
 #: templates/prepared_documents.html:251 templates/reporting.html:274
 msgid "Workitem preview"
@@ -6545,7 +6573,8 @@ msgstr "Documents"
 msgid "Last movement"
 msgstr "Dernier mouvement"
 
-#: templates/admin/logs.html:101 templates/js/_generali_reporting_js.html:15
+#: templates/admin/logs.html:101 templates/js/_generali_documents_js.html:135
+#: templates/js/_generali_reporting_js.html:15
 #: templates/workitems_overview.html:354
 msgid "Details"
 msgstr "Détails"
@@ -6712,8 +6741,9 @@ msgid "Overrides"
 msgstr "Remplacements"
 
 #: templates/admin/access_control.html:96 templates/admin/logs.html:106
-#: templates/admin/sessions.html:37 templates/admin/user_detail.html:128
-#: templates/admin/user_detail.html:226 templates/js/admin/_sessions_js.html:37
+#: templates/admin/sessions.html:56 templates/admin/sessions.html:72
+#: templates/admin/user_detail.html:128 templates/admin/user_detail.html:226
+#: templates/js/admin/_sessions_js.html:37
 #: templates/js/admin/_user_detail_js.html:443
 #: templates/js/admin/_user_detail_js.html:556
 msgid "Loading..."
@@ -6732,6 +6762,11 @@ msgstr "Ajouter un profil"
 #: templates/admin/organizations.html:49 templates/admin/permissions.html:73
 #: templates/admin/processes.html:64 templates/admin/processes.html:88
 #: templates/admin/tenants_manage.html:54
+#: templates/js/_generali_additional_services_js.html:124
+#: templates/js/_generali_base_services_js.html:103
+#: templates/js/_generali_pdqm_js.html:178
+#: templates/js/_generali_project_management_js.html:56
+#: templates/js/_generali_reporting_js.html:41
 #: templates/js/_reporting_dashboard_js.html:7
 #: templates/js/_reporting_layouts_js.html:8
 #: templates/js/_reporting_metrics_js.html:48
@@ -7499,19 +7534,35 @@ msgstr "Sessions actives"
 msgid "Users active within the last 30 minutes"
 msgstr "Utilisateurs actifs au cours des 30 dernières minutes"
 
-#: templates/admin/sessions.html:30
+#: templates/admin/sessions.html:45
+msgid "Locked accounts"
+msgstr "Comptes verrouillés"
+
+#: templates/admin/sessions.html:50
+msgid "Stage"
+msgstr "Étape"
+
+#: templates/admin/sessions.html:51
+msgid "Failed attempts"
+msgstr "Tentatives échouées"
+
+#: templates/admin/sessions.html:52
+msgid "Locked until"
+msgstr "Verrouillé jusqu’à"
+
+#: templates/admin/sessions.html:65
 msgid "User ID"
 msgstr "ID utilisateur"
 
-#: templates/admin/sessions.html:31
+#: templates/admin/sessions.html:66
 msgid "IP Address"
 msgstr "Adresse IP"
 
-#: templates/admin/sessions.html:32
+#: templates/admin/sessions.html:67
 msgid "Last seen"
 msgstr "Dernière activité"
 
-#: templates/admin/sessions.html:33
+#: templates/admin/sessions.html:68
 msgid "Logged in"
 msgstr "Connecté"
 
@@ -8247,7 +8298,7 @@ msgid "Sending…"
 msgstr "Envoi en cours…"
 
 #: templates/js/_generali_additional_services_js.html:177
-#: templates/js/_generali_base_services_js.html:125
+#: templates/js/_generali_base_services_js.html:145
 #: templates/js/_generali_pdqm_js.html:233
 #: templates/js/_generali_project_management_js.html:103
 #: templates/js/_generali_reporting_js.html:13
@@ -8255,7 +8306,7 @@ msgid "No records found"
 msgstr "Aucun enregistrement trouvé."
 
 #: templates/js/_generali_additional_services_js.html:178
-#: templates/js/_generali_base_services_js.html:126
+#: templates/js/_generali_base_services_js.html:146
 #: templates/js/_generali_pdqm_js.html:234
 #: templates/js/_generali_project_management_js.html:104
 #: templates/js/_generali_reporting_js.html:14
@@ -8263,17 +8314,17 @@ msgid "Try adjusting your filters or resetting the search."
 msgstr "Essayez d'ajuster vos filtres ou de réinitialiser la recherche."
 
 #: templates/js/_generali_additional_services_js.html:192
-#: templates/js/_generali_base_services_js.html:139
+#: templates/js/_generali_base_services_js.html:159
 #: templates/js/_generali_pdqm_js.html:249
 #: templates/js/_generali_project_management_js.html:117
-#: templates/js/_generali_reporting_js.html:42
+#: templates/js/_generali_reporting_js.html:43
 msgid "Export failed."
 msgstr "L'exportation a échoué."
 
 #: templates/js/_generali_additional_services_js.html:278
 #: templates/js/_generali_additional_services_js.html:363
-#: templates/js/_generali_base_services_js.html:210
-#: templates/js/_generali_base_services_js.html:281
+#: templates/js/_generali_base_services_js.html:230
+#: templates/js/_generali_base_services_js.html:301
 #: templates/js/_generali_pdqm_js.html:389
 #: templates/js/_generali_pdqm_js.html:494
 #: templates/js/_generali_project_management_js.html:187
@@ -8283,8 +8334,8 @@ msgstr "Veuillez remplir tous les champs."
 
 #: templates/js/_generali_additional_services_js.html:302
 #: templates/js/_generali_additional_services_js.html:381
-#: templates/js/_generali_base_services_js.html:234
-#: templates/js/_generali_base_services_js.html:299
+#: templates/js/_generali_base_services_js.html:254
+#: templates/js/_generali_base_services_js.html:319
 #: templates/js/_generali_pdqm_js.html:415
 #: templates/js/_generali_pdqm_js.html:518
 #: templates/js/_generali_project_management_js.html:211
@@ -8294,18 +8345,19 @@ msgstr "Erreur lors de l'enregistrement."
 
 #: templates/js/_generali_additional_services_js.html:308
 #: templates/js/_generali_additional_services_js.html:387
-#: templates/js/_generali_base_services_js.html:240
-#: templates/js/_generali_base_services_js.html:305
+#: templates/js/_generali_base_services_js.html:260
+#: templates/js/_generali_base_services_js.html:325
 #: templates/js/_generali_pdqm_js.html:421
 #: templates/js/_generali_pdqm_js.html:524
 #: templates/js/_generali_project_management_js.html:217
 #: templates/js/_generali_project_management_js.html:282
-#: templates/js/admin/_sessions_js.html:138
+#: templates/js/admin/_sessions_js.html:185
+#: templates/js/admin/_sessions_js.html:214
 msgid "Network error."
 msgstr "Erreur réseau."
 
 #: templates/js/_generali_additional_services_js.html:423
-#: templates/js/_generali_base_services_js.html:340
+#: templates/js/_generali_base_services_js.html:360
 #: templates/js/_generali_pdqm_js.html:561
 #: templates/js/_generali_project_management_js.html:316
 #: templates/js/_generali_reporting_js.html:39
@@ -8313,10 +8365,10 @@ msgid "Deleting…"
 msgstr "Suppression…"
 
 #: templates/js/_generali_additional_services_js.html:436
-#: templates/js/_generali_base_services_js.html:354
+#: templates/js/_generali_base_services_js.html:374
 #: templates/js/_generali_pdqm_js.html:577
 #: templates/js/_generali_project_management_js.html:331
-#: templates/js/_generali_reporting_js.html:41
+#: templates/js/_generali_reporting_js.html:42
 msgid "Error deleting record."
 msgstr "Erreur lors de la suppression."
 
@@ -10408,11 +10460,35 @@ msgstr "Révoquer"
 msgid "Could not load sessions."
 msgstr "Impossible de charger les sessions."
 
-#: templates/js/admin/_sessions_js.html:124
+#: templates/js/admin/_sessions_js.html:121
+msgid "No locked accounts."
+msgstr "Aucun compte verrouillé."
+
+#: templates/js/admin/_sessions_js.html:137
+msgid "unknown user"
+msgstr "utilisateur inconnu"
+
+#: templates/js/admin/_sessions_js.html:139
+msgid "Two-factor code"
+msgstr "Code à deux facteurs"
+
+#: templates/js/admin/_sessions_js.html:152
+msgid "Unlock"
+msgstr "Déverrouiller"
+
+#: templates/js/admin/_sessions_js.html:171
+msgid "Unlock the account for"
+msgstr "Déverrouiller le compte de"
+
+#: templates/js/admin/_sessions_js.html:181
+msgid "Could not unlock the account."
+msgstr "Impossible de déverrouiller le compte."
+
+#: templates/js/admin/_sessions_js.html:200
 msgid "Revoke the active session for"
 msgstr "Révoquer la session active pour"
 
-#: templates/js/admin/_sessions_js.html:134
+#: templates/js/admin/_sessions_js.html:210
 msgid "Could not revoke session."
 msgstr "Impossible de révoquer la session."
 

@@ -19,9 +19,44 @@
             title=_('Active Sessions'),
             subtitle=_('Users active within the last 30 minutes'),
             back_url=url_for('admin_dashboard'),
-            actions=[{'label': _('Refresh'), 'icon': 'fa-sync-alt', 'onclick': 'fetchActiveSessions()', 'variant': 'secondary'}],
+            actions=[{'label': _('Refresh'), 'icon': 'fa-sync-alt', 'onclick': 'refreshSessionsPage()', 'variant': 'secondary'}],
             icon='fa-signal'
         ) }}
+
+        {# ---- Locked accounts ----
+           A lockout is invisible from every other screen: the person is told
+           "too many attempts" and support is told nothing at all. Worse, it
+           outlives a password reset -- the reset path never clears the
+           counter -- so the obvious fix leaves them locked and their new
+           password is never even compared. Until this panel, unsticking
+           someone meant a hand-written DELETE against production.
+
+           This was hidden when empty at first, on the theory that an empty
+           table teaches people to scroll past it. That was wrong, and the
+           way it was wrong is worth keeping: the owner went looking for the
+           panel twice on a quiet system and could not tell "nobody is locked"
+           from "the feature did not deploy". A support tool you cannot find
+           is worse than one you learn to ignore -- and the whole point of
+           this panel is that a lockout is otherwise invisible. So it always
+           renders, and says so when there is nobody in it. #}
+        <div id="locked-accounts-wrap" class="nx-card" style="margin-bottom:20px"
+             data-testid="admin-locked-accounts">
+            <div class="nx-section" style="margin-bottom:12px">
+                <i class="fas fa-lock" style="margin-right:8px"></i>{{ _('Locked accounts') }}
+            </div>
+            <table class="nx-table">
+                {{ a.table_header([
+                    {'label': _('Username')},
+                    {'label': _('Stage'), 'width': '150px'},
+                    {'label': _('Failed attempts'), 'width': '150px'},
+                    {'label': _('Locked until'), 'width': '170px'},
+                    {'label': _('Actions'), 'align': 'right', 'width': '150px'}
+                ]) }}
+                <tbody id="locked-accounts-body">
+                    {{ a.empty_state('fa-spinner fa-spin', _('Loading...'), colspan=5) }}
+                </tbody>
+            </table>
+        </div>
 
         <div class="nx-table-wrap">
             <table class="nx-table">

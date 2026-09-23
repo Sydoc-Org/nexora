@@ -6,6 +6,26 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **A password reset now unlocks the account.** After five wrong passwords
+  the account is locked for 15 minutes, and the login checks the lock
+  *before* it looks at the password. The reset never cleared the lock, so
+  someone who reset their password to get back in was still refused, even
+  with the new password. The reset now clears the password lock. The 2FA
+  lock stays: a reset link in your mailbox says nothing about your
+  authenticator app.
+- **A password reset that changes nothing now says so.** It used to write by
+  email address and show "Password changed" even when no row was written. It
+  now writes by user id, checks that exactly one row changed, and shows the
+  error page otherwise. The reset link stays usable.
+- **An expired session sends you to the login page instead of "could not
+  load".** When your session had run out, a page's background requests got
+  bounced to `/login`. The browser followed that quietly and handed the page
+  the login screen as if it were a good answer, so admin pages showed a
+  server error. `static/js/nx_core.js` now spots a request that ended on the
+  login page and takes you there.
+
 ### Changed
 - **Written down: when a `table` reporting source may be granted to a customer
   profile** (#332) — only when the underlying object holds that customer's rows
@@ -16,6 +36,78 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   permissions grid. `docs/howto/reporting.md` carries the rule and the two
   anomalies `scripts/perm-audit.py` already flags; `docs/design/permissions.md`
   points at it from the source-permission family.
+
+## [3.2.13] - 2026-09-23
+
+### Fixed
+
+- **The "Locked accounts" panel is always visible, and says when it is empty.**
+  It was hidden whenever nobody was locked, on the theory that an empty table
+  teaches people to scroll past it. That was the wrong call: on a quiet system
+  you could not tell *"nobody is locked"* from *"the feature never deployed"*,
+  and the panel was hunted for twice before anyone said so. A support tool you
+  cannot find is worse than one you learn to ignore — and the whole point of
+  this panel is that a lockout is otherwise invisible. It now renders either
+  way and shows "No locked accounts." when there is nobody in it.
+
+## [3.2.11] - 2026-09-22
+
+### Changed
+
+- **POE moves from Basisleistungen to Zusatzleistungen (Generali) on
+  2026-10-01 — by date, not by deploy.** Generali book POE hours under
+  Additional Services from 1 October.
+  In **Zusatzleistungen** POE is a parent category with no subcategory
+  (migration `GeneraliDB/0016`), the same shape as the existing `PDQM` and
+  `Weitere Tätigkeiten`, so the page already renders an em-dash in the
+  subcategory dropdown and disables it. No `CategoryTerms` row: the page falls
+  back to the German term on a miss, and "POE" is the same string in all four
+  locales.
+  In **Basisleistungen** the cut-over is decided by `POE_CUTOVER` in
+  `nx_lib/views/generali/baseservices.py` against the server's local date,
+  **not** by choosing a release day. Both kinds of timing mistake cost real
+  work — ship early and nobody can book their September hours, ship late and
+  nobody can book their October ones — so the release can go out whenever it
+  suits and the list flips itself on the right morning. POE becomes
+  filter-only rather than disappearing: every hour booked up to 30 September is
+  still in `BaseServiceEntries` and still counts in the month report, and
+  without the filter option those rows could not be selected in the UI at all.
+
+### Fixed
+
+- **80 icon-only controls across nine Generali pages had no accessible name.**
+  Their labels are written as `<span class="hidden sm:inline">`, and Tailwind's
+  `sm:` starts at 640px, so on any narrow viewport the span is `display: none`
+  and the button is icon-only with nothing to announce it — VoiceOver read
+  "Add Entry", "Export Excel", "Month Report" and "Back" as just "button". The
+  per-row edit and delete actions were worse: icon-only at **every** width, so
+  unnamed on a desktop too. All now carry an `aria-label` reusing the label's
+  existing msgid, so there is no new translation work, plus the three
+  pagination chevrons on the month report and import status. The documents
+  list's detail toggle had an `aria-label` but a hardcoded English one; it is
+  translated now.
+
+## [3.2.10] - 2026-09-22
+
+### Added
+
+- **Admins can see who is locked out, and unlock them in one click.** A
+  "Locked accounts" panel on `/admin/sessions` lists every account whose
+  lockout is live right now — who, which step (password or two-factor), how
+  many failed attempts, and until when — with an Unlock button per row. Hidden
+  entirely when nobody is locked, which is almost always.
+  Until now `dbo.LoginLockout` was read and written only by
+  `nx_lib/views/auth.py`. Nothing surfaced it anywhere, so unsticking a
+  locked-out colleague meant a hand-written `DELETE` against the production
+  database — and the lockout is invisible from every other screen: the person
+  is told "too many attempts" and support is told nothing at all. It also
+  outlives a password reset, because the reset path never clears the counter,
+  so the obvious fix leaves them locked and their new password is not even
+  compared.
+  Unlocking clears **both** keys: the password step locks under the bare
+  userid and the two-factor step under `2fa:<userid>`, independently. Expired
+  rows are not listed — `auth.py` only deletes a row on a successful login, so
+  the table keeps rows for people who can already log in fine.
 
 ## [3.2.9] - 2026-09-15
 
