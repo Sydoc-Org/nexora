@@ -252,14 +252,6 @@
                 options: { ...chartDefaults, cutout: '65%', plugins: { legend: { position: donutLegendSide, labels: donutLegendLabels } } }
             });
 
-            // Phone: every recipient gets its own readable row. The box is
-            // h-48 (192px); with a dozen-plus recipients Chart.js skipped every
-            // other label, so half the bars had no name. Grow the box with the
-            // number of bars (28px each) and never skip a label.
-            if (onPhone) {
-                const box = document.getElementById('empfaengerChart').parentElement;
-                box.style.height = Math.max(192, data.empfaenger.labels.length * 28 + 40) + 'px';
-            }
             charts.empfaenger = new Chart(document.getElementById('empfaengerChart'), {
                 type: 'bar',
                 data: {
@@ -287,6 +279,16 @@
                     }
                 }
             });
+
+            // Phone: every recipient gets its own readable row. The box is
+            // h-48 (192px); with a dozen-plus recipients Chart.js skipped every
+            // other label, so half the bars had no name. Grow the box with the
+            // number of bars (28px each); the chart is responsive and follows
+            // its box, and its y ticks never skip on a phone (autoSkip above).
+            if (onPhone) {
+                charts.empfaenger.canvas.parentElement.style.height =
+                    Math.max(192, data.empfaenger.labels.length * 28 + 40) + 'px';
+            }
 
             // Aggregate NK1 and NK2 counts per status value independently
             const nkStatuses = [...new Set([...data.nk.map(r => r.nk1), ...data.nk.map(r => r.nk2)])];
