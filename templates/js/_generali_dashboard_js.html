@@ -207,8 +207,27 @@
 
                Same touch gate as the CSS, so a narrow desktop window keeps
                the legend beside the donut where there is room for it. */
-            const donutLegendSide = window.matchMedia(
-                '(max-width: 768px) and (pointer: coarse)').matches ? 'bottom' : 'right';
+            const onPhone = window.matchMedia('(max-width: 768px) and (pointer: coarse)').matches;
+            const donutLegendSide = onPhone ? 'bottom' : 'right';
+            // Phone legends: a document type like "ANTRAG / ÄNDERUNGSANTRAG /
+            // GESUNDHEITSFRAGEN / ..." wrapped onto a second legend line with
+            // no colour square, so it could not be matched to its slice. On a
+            // phone each legend entry is cut to one line with "…"; the tooltip
+            // still shows the full name (it reads data.labels, not the legend).
+            const LEGEND_MAX = 28;
+            // A legend entry's text is not always a string (null for an
+            // unnamed slice); treat it as text so one odd label cannot stop
+            // every chart below it from drawing.
+            const shortLegend = t => { const x = t == null ? '' : String(t);
+                return x.length > LEGEND_MAX ? x.slice(0, LEGEND_MAX - 1).trimEnd() + '…' : x; };
+            const phoneLegendLabels = {
+                boxWidth: 12, font: { size: 11 },
+                // Chart.overrides.doughnut, not Chart.defaults: a doughnut's legend lists
+                // its slices, the general default lists datasets (one, unnamed).
+                generateLabels: chart => Chart.overrides.doughnut.plugins.legend.labels.generateLabels(chart).map(l => (
+                    { ...l, text: shortLegend(l.text) }))
+            };
+            const donutLegendLabels = onPhone ? phoneLegendLabels : { boxWidth: 12, font: { size: 11 } };
 
             trendData = data.trend;
             pruneTrendStateToData();
@@ -230,9 +249,17 @@
                         // over the chart in dark mode -- same fault as #326).
                         borderColor: () => token('--nx-card', '#ffffff') }]
                 },
-                options: { ...chartDefaults, cutout: '65%', plugins: { legend: { position: donutLegendSide, labels: { boxWidth: 12, font: { size: 11 } } } } }
+                options: { ...chartDefaults, cutout: '65%', plugins: { legend: { position: donutLegendSide, labels: donutLegendLabels } } }
             });
 
+            // Phone: every recipient gets its own readable row. The box is
+            // h-48 (192px); with a dozen-plus recipients Chart.js skipped every
+            // other label, so half the bars had no name. Grow the box with the
+            // number of bars (28px each) and never skip a label.
+            if (onPhone) {
+                const box = document.getElementById('empfaengerChart').parentElement;
+                box.style.height = Math.max(192, data.empfaenger.labels.length * 28 + 40) + 'px';
+            }
             charts.empfaenger = new Chart(document.getElementById('empfaengerChart'), {
                 type: 'bar',
                 data: {
@@ -254,7 +281,10 @@
                     // empty track. Index mode makes the row hoverable.
                     interaction: { mode: 'index', intersect: false },
                     plugins: { legend: { display: false } },
-                    scales: { x: { beginAtZero: true, ticks: { precision: 0 } } }
+                    scales: {
+                        x: { beginAtZero: true, ticks: { precision: 0 } },
+                        y: { ticks: { autoSkip: !onPhone, font: { size: onPhone ? 12 : undefined } } }
+                    }
                 }
             });
 
@@ -320,7 +350,7 @@
                         // over the chart in dark mode -- same fault as #326).
                         borderColor: () => token('--nx-card', '#ffffff') }]
                 },
-                options: { ...chartDefaults, cutout: '65%', plugins: { legend: { position: donutLegendSide, labels: { boxWidth: 12, font: { size: 11 } } } } }
+                options: { ...chartDefaults, cutout: '65%', plugins: { legend: { position: donutLegendSide, labels: donutLegendLabels } } }
             });
 
             charts.channel = new Chart(document.getElementById('channelChart'), {

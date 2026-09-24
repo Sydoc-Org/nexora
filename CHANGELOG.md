@@ -89,6 +89,12 @@ when there isn't enough room.
   report form with that KPI already chosen. Below the rows: this month's
   on-time rate, linking to the month report. It uses the existing list API,
   so it shows exactly what the viewer may see. Touch phones only.
+- **Readable boxes on the phone (Generali Reporting and Dashboard).** Today rows
+  put the KPI name on its own full-width line with the status under it; report
+  cards' labels are brighter; the report form's KPI dropdown gets its own line.
+  On the dashboard, the recipient chart grows with its number of bars so every
+  bar keeps its name, and doughnut legend names that would wrap end in "…"
+  (the tooltip keeps the full name). Desktop pixel-identical.
 - **Filters are folded away on a phone.** Every list page with a filter
   block (Generali, admin, tenant pages) opens with one "Filters" button
   instead of the fields. The button shows how many filters are set, so

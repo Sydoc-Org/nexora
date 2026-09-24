@@ -799,9 +799,12 @@ html.dark .sidebar-toggle-btn {
         content: attr(data-label);
         flex-shrink: 0;
         font-weight: 600;
-        color: var(--nx-text-meta);
+        /* --nx-text-sec, not -meta: the meta grey on a dark card was the
+           faintest text on the phone, and these labels are what tell you
+           which value is which. */
+        color: var(--nx-text-sec);
         text-transform: uppercase;
-        font-size: 0.68rem;
+        font-size: 0.75rem;
         letter-spacing: 0.05em;
         text-align: left;
         padding-right: 0.5rem;
