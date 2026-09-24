@@ -82,6 +82,18 @@ when there isn't enough room.
   The rules live in `nx_lib/tabbar.py` as pure functions rather than in the
   template, because two of the three needed a paragraph of comment each.
 
+### Added — phone view
+- **Generali Reporting opens with "Today" on a phone.** Above everything else,
+  one large row per KPI: on time, late, both, or not reported yet, with who
+  reported it and when. A missing KPI is a "Report now" button that opens the
+  report form with that KPI already chosen. Below the rows: this month's
+  on-time rate, linking to the month report. It uses the existing list API,
+  so it shows exactly what the viewer may see. Touch phones only.
+- **Filters are folded away on a phone.** Every list page with a filter
+  block (Generali, admin, tenant pages) opens with one "Filters" button
+  instead of the fields. The button shows how many filters are set, so
+  nothing is hidden silently. Desktop unchanged.
+
 ### Fixed — phone view
 - **Seven phone-view cut-offs found in a WebKit sweep on an iPhone SE
   (#388–#394).**

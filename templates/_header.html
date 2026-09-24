@@ -28,6 +28,14 @@
             if (typeof fn === 'function') fn.call(el);
         });
 
+        /* Translated strings for static/js/nx_core.js, which is a static file
+           and has no gettext of its own (#191). */
+        window.NX_I18N_CORE = {
+            filters: {{ _("Filters")|tojson }},
+            showFilters: {{ _("Show filters")|tojson }},
+            hideFilters: {{ _("Hide filters")|tojson }}
+        };
+
         {# UI prefs pre-paint (#155, #243). JS only, no <script> tag: it is
            included INSIDE this <script nonce> so the rendered output is
            unchanged, and so pre-auth pages can reuse it. See the partial. #}

@@ -58,6 +58,20 @@
       </div>
     </div>
 
+    {# Phone only: today's post status per KPI, above everything else. The
+       whole point of the phone version is "did the post come on time today?",
+       so that answer comes first and one tap on a missing KPI opens the report
+       form with that KPI already chosen. Rendered hidden; generali_reporting.js
+       fills and shows it only on a touch phone, so desktop never sees it. #}
+    <section id="rpToday" class="rp-today" data-testid="generali-reporting-today" hidden>
+      <div class="rp-today__head">
+        <h2 class="rp-today__title">{{ _("Today") }}</h2>
+        <span class="rp-today__date" id="rpTodayDate"></span>
+      </div>
+      <div class="rp-today__list" id="rpTodayList" data-testid="generali-reporting-today-list"></div>
+      <a class="rp-today__month" id="rpTodayMonth" href="{{ url_for('generali_reporting_monthreport') }}" data-testid="generali-reporting-today-month" hidden></a>
+    </section>
+
     <!-- Filter Bar -->
     <div class="nx-filter mb-6">
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -233,6 +233,60 @@
     flatpickrDefaults();
     document.addEventListener('DOMContentLoaded', flatpickrDefaults);
 
+    // ---- filters folded away on a phone ----------------------------------------
+    // Every list page opens with a filter block (dates, category, organisation,
+    // user, status...), and on a phone that block filled the whole first screen:
+    // the entries people came for started below it. On a touch phone each
+    // .nx-filter now starts folded behind one "Filters" button, which says how
+    // many filters are set, so nothing is hidden silently. Desktop untouched.
+    var PHONE_MQ = '(max-width: 768px) and (pointer: coarse)';
+    function activeFilterCount(box) {
+        var n = 0;
+        box.querySelectorAll('input, select').forEach(function (el) {
+            if (el.type === 'hidden' || el.type === 'button' || el.type === 'submit') return;
+            if (el.tagName === 'SELECT') { if (el.selectedIndex > 0) n++; }
+            else if (el.type === 'checkbox' || el.type === 'radio') { if (el.checked) n++; }
+            else if ((el.value || '').trim()) n++;
+        });
+        return n;
+    }
+    function foldFilters() {
+        if (!window.matchMedia(PHONE_MQ).matches) return;
+        var L = window.NX_I18N_CORE || {};
+        document.querySelectorAll('.nx-filter').forEach(function (box) {
+            if (box.dataset.nxFold) return;
+            box.dataset.nxFold = '1';
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'nx-btn nx-btn--secondary nx-filter-toggle';
+            btn.setAttribute('aria-expanded', 'false');
+            btn.setAttribute('data-testid', 'nx-filter-toggle');
+            function paint() {
+                var open = !box.classList.contains('nx-filter--folded');
+                var n = activeFilterCount(box);
+                btn.setAttribute('aria-expanded', String(open));
+                btn.setAttribute('aria-label', open ? (L.hideFilters || 'Hide filters') : (L.showFilters || 'Show filters'));
+                btn.innerHTML = '<i class="fas fa-sliders" aria-hidden="true"></i><span>' + esc(L.filters || 'Filters') + '</span>' +
+                    (n ? '<span class="nx-filter-toggle__n">' + n + '</span>' : '') +
+                    '<i class="fas fa-chevron-' + (open ? 'up' : 'down') + ' nx-filter-toggle__chev" aria-hidden="true"></i>';
+            }
+            box.classList.add('nx-filter--folded');
+            box.parentNode.insertBefore(btn, box);
+            btn.addEventListener('click', function () { box.classList.toggle('nx-filter--folded'); paint(); });
+            box.addEventListener('change', paint);
+            box.addEventListener('input', paint);
+            paint();
+            // Pages fill some filters from script after load (default dates,
+            // organisation lists); recount once they have had the chance.
+            setTimeout(paint, 1500);
+        });
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', foldFilters);
+    } else {
+        foldFilters();
+    }
+
     // ---- stat-card icons: all or none per row -------------------------------
     // .nx-stat wraps its icon chip under the number when the two do not fit
     // side by side. On a phone that gave a row of KPI cards an extra line in

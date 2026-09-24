@@ -535,10 +535,16 @@
     }
 
     // ----------------------------- open / close ----------------------------- //
-    function openModal() {
+    // `preset` = { category } from the phone Today board: the form opens with
+    // that KPI already chosen, so reporting a missing one is two taps.
+    function openModal(preset) {
         document.getElementById('dateGroups').innerHTML = '';
         document.getElementById('dateGroups').appendChild(buildDateGroup(getToday()));
         syncDateGroups();
+        if (preset && preset.category) {
+            const sel = document.querySelector('#dateGroups .entry-category');
+            if (sel) { sel.value = preset.category; sel.dispatchEvent(new Event('change')); }
+        }
         if (modalError) { modalError.classList.add('hidden'); document.getElementById('modalErrorText').textContent = ''; }
         modal.classList.remove('hidden');
         modal.classList.add('flex');
@@ -549,7 +555,7 @@
         modal.classList.remove('flex');
     }
 
-    if (openBtn)   openBtn.addEventListener('click', openModal);
+    if (openBtn)   openBtn.addEventListener('click', () => openModal());
     if (closeBtn)  closeBtn.addEventListener('click', closeModal);
     if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
     if (modal)     modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
@@ -633,6 +639,7 @@
             } else {
                 closeModal();
                 fetchRecords(1);
+                loadToday();
             }
         });
     }
@@ -768,6 +775,7 @@
             if (!data.success) throw new Error(data.error);
             closeEditModal();
             fetchRecords(currentPage);
+            loadToday();
         } catch (e) {
             editError.textContent = e.message || I18N.saveFailed;
             editError.classList.remove('hidden');
@@ -820,6 +828,7 @@
             closeDeleteModal();
             if (data.success) {
                 fetchRecords(currentPage);
+                loadToday();
             } else {
                 const errDiv = document.createElement('div');
                 errDiv.className = 'fixed bottom-4 right-4 z-50 bg-red-500 text-white text-sm font-semibold px-4 py-3 rounded-xl shadow-lg';
@@ -908,8 +917,107 @@
         }
     }
 
+    // ----------------------------- phone "Today" board ----------------------------- //
+    // One row per KPI: on time / late / not reported yet, who reported it and
+    // when. A missing KPI is a big "Report now" button that opens the form with
+    // that KPI chosen. Built from the same list API as the table (today's
+    // reports fit on one page), so it shows exactly what this user may see.
+    // Touch phones only -- same gate as the rest of the phone view.
+    const PHONE = window.matchMedia('(max-width: 768px) and (pointer: coarse)');
+    const pad2 = n => String(n).padStart(2, '0');
+    function localDay(d) { return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`; }
+    function hhmm(iso) {
+        const d = iso ? new Date(iso) : null;
+        return d && !isNaN(d) ? `${pad2(d.getHours())}:${pad2(d.getMinutes())}` : '';
+    }
+    // "KPI 1: Delivery physical post" -> ["KPI 1", "Delivery physical post"]
+    function splitKpi(label) {
+        const i = (label || '').indexOf(':');
+        return i > 0 ? [label.slice(0, i).trim(), label.slice(i + 1).trim()] : ['', label || ''];
+    }
+    async function countRecords(params) {
+        const res = await fetch(`${API_PREFIX}api/generali/reporting?${params.toString()}`, {
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+        return data;
+    }
+
+    async function loadToday() {
+        const box = document.getElementById('rpToday');
+        if (!box) return;
+        if (!PHONE.matches) { box.hidden = true; return; }
+        box.hidden = false;
+        const now = new Date();
+        const today = localDay(now);
+        document.getElementById('rpTodayDate').textContent = formatDate(today);
+        const list = document.getElementById('rpTodayList');
+
+        let records = [];
+        try {
+            const p = new URLSearchParams({ startDate: today, endDate: today, page: 1 });
+            records = (await countRecords(p)).records || [];
+        } catch (e) {
+            list.innerHTML = `<p class="rp-today__error">${NX.esc(I18N.failedToLoad)}</p>`;
+            return;
+        }
+
+        list.innerHTML = '';
+        ALL_CATEGORIES.forEach(cat => {
+            const recs = records.filter(r => r.category === cat.value);
+            const [kpi, name] = splitKpi(cat.label);
+            let state, statusText, meta = '';
+            if (!recs.length) {
+                state = 'open'; statusText = I18N.notReportedYet;
+            } else {
+                const late = recs.filter(r => !r.ontime).length;
+                state = late === 0 ? 'ok' : (late === recs.length ? 'late' : 'mixed');
+                statusText = state === 'ok' ? I18N.onTime : state === 'late' ? I18N.late : I18N.mixed;
+                meta = recs.map(r => `${r.fullname || ''} · ${hhmm(r.reportTimeStamp)}`).join(', ');
+            }
+            const icon = { ok: 'fa-circle-check', late: 'fa-circle-xmark', mixed: 'fa-circle-exclamation', open: 'fa-circle' }[state];
+            const row = document.createElement(state === 'open' && openBtn ? 'button' : 'div');
+            row.className = `rp-kpi rp-kpi--${state}`;
+            row.setAttribute('data-testid', `generali-reporting-today-${cat.value}`);
+            row.innerHTML = `
+                <i class="fas ${icon} rp-kpi__icon" aria-hidden="true"></i>
+                <span class="rp-kpi__text">
+                    <span class="rp-kpi__name">${NX.esc(name)}</span>
+                    <span class="rp-kpi__sub">${NX.esc(kpi)}${meta ? ' · ' + NX.esc(meta) : ''}</span>
+                </span>
+                <span class="rp-kpi__status">${NX.esc(state === 'open' && openBtn ? I18N.reportNow : statusText)}</span>`;
+            if (row.tagName === 'BUTTON') {
+                row.type = 'button';
+                row.setAttribute('aria-label', `${I18N.reportNow}: ${name}`);
+                row.addEventListener('click', () => openModal({ category: cat.value }));
+            }
+            list.appendChild(row);
+        });
+
+        // This month's on-time rate from two counts on the same API, so it
+        // needs no new endpoint: all reports this month, and the on-time ones.
+        const monthEl = document.getElementById('rpTodayMonth');
+        try {
+            const first = localDay(new Date(now.getFullYear(), now.getMonth(), 1));
+            const base = { startDate: first, endDate: today, page: 1 };
+            const all = await countRecords(new URLSearchParams(base));
+            const ok  = await countRecords(new URLSearchParams({ ...base, onTime: 'true' }));
+            const total = (all.pagination || {}).total_records || 0;
+            const ontime = (ok.pagination || {}).total_records || 0;
+            monthEl.textContent = total
+                ? I18N.monthLine.replace('{pct}', Math.round(ontime / total * 100)).replace('{ontime}', ontime).replace('{total}', total)
+                : I18N.monthNone;
+            monthEl.hidden = false;
+        } catch (e) {
+            monthEl.hidden = true;
+        }
+    }
+    PHONE.addEventListener('change', loadToday);
+
     // ----------------------------- init ----------------------------- //
     loadOrganizations();
     nxUserFilter.init(API_PREFIX + 'api/generali/reporting/filterUsers', applyFiltersSoon);
     fetchRecords(1);
+    loadToday();
 }());

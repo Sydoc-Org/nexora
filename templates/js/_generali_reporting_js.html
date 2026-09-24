@@ -40,7 +40,16 @@
     delete: {{ _("Delete")|tojson }},
     edit: {{ _("Edit")|tojson }},
     errorDeleting: {{ _("Error deleting record.")|tojson }},
-    exportFailed: {{ _("Export failed.")|tojson }}
+    exportFailed: {{ _("Export failed.")|tojson }},
+    // Phone "Today" board
+    notReportedYet: {{ _("Not reported yet")|tojson }},
+    reportNow: {{ _("Report now")|tojson }},
+    mixed: {{ _("On time and late")|tojson }},
+    // "This month: 92% on time · 46 of 50 reports" -- {placeholders} are
+    // filled in by generali_reporting.js. Jinja's newstyle gettext always
+    // %-formats, so the literal percent sign has to be written %%.
+    monthLine: {{ _("This month: {pct}%% on time · {ontime} of {total} reports")|tojson }},
+    monthNone: {{ _("No reports this month yet")|tojson }}
   };
 </script>
 <script src="{{ static_v('js/generali_reporting.js') }}"></script>

@@ -1631,6 +1631,62 @@ html.dark .flatpickr-day:hover { background: var(--nx-alt); }
   }
 }
 
+/* Generali Reporting on a phone: the "Today" board (templates/generali_reporting.html,
+   filled by generali_reporting.js). The people using it are mailroom staff
+   and managers, many no longer young, asking one question -- did the post
+   come on time today? So: large type, one row per KPI, colour AND an icon
+   AND a word for the state (never colour alone), and a whole row as the tap
+   target for "Report now". The JS only un-hides it on a touch phone; the
+   gate here keeps the styling from leaking anywhere else. */
+@media (max-width: 768px) and (pointer: coarse) {
+  .rp-today { margin: 0 0 20px; }
+  .rp-today__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 10px; }
+  .rp-today__title { margin: 0; font-size: 22px; font-weight: 700; color: var(--nx-text); }
+  .rp-today__date { font-size: 15px; color: var(--nx-text-sec); font-variant-numeric: tabular-nums; }
+  .rp-today__list { display: grid; gap: 10px; }
+  .rp-kpi {
+    display: flex; align-items: center; gap: 14px; width: 100%; min-height: 64px;
+    padding: 12px 14px; border-radius: 14px; text-align: left;
+    background: var(--nx-card); border: 1px solid var(--nx-border-strong); color: var(--nx-text);
+  }
+  .rp-kpi__icon { font-size: 26px; flex: none; }
+  .rp-kpi__text { display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto; min-width: 0; }
+  .rp-kpi__name { font-size: 16px; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
+  .rp-kpi__sub { font-size: 13px; color: var(--nx-text-sec); overflow-wrap: anywhere; }
+  .rp-kpi__status { flex: none; font-size: 14px; font-weight: 700; padding: 6px 10px; border-radius: 999px; white-space: nowrap; }
+  .rp-kpi--ok    .rp-kpi__icon   { color: var(--nx-l-green-fg); }
+  .rp-kpi--ok    .rp-kpi__status { background: var(--nx-l-green); color: var(--nx-l-green-fg); }
+  .rp-kpi--late  .rp-kpi__icon   { color: var(--nx-l-red-fg); }
+  .rp-kpi--late  .rp-kpi__status { background: var(--nx-l-red); color: var(--nx-l-red-fg); }
+  .rp-kpi--mixed .rp-kpi__icon   { color: var(--nx-l-amber-fg); }
+  .rp-kpi--mixed .rp-kpi__status { background: var(--nx-l-amber); color: var(--nx-l-amber-fg); }
+  .rp-kpi--open  .rp-kpi__icon   { color: var(--nx-text-meta); }
+  .rp-kpi--open  .rp-kpi__status { background: var(--nx-sunken); color: var(--nx-text-sec); }
+  /* A missing KPI the viewer may report: the row is the button. */
+  button.rp-kpi--open { cursor: pointer; border-style: dashed; border-color: var(--nx-accent); }
+  button.rp-kpi--open .rp-kpi__status { background: var(--nx-accent); color: var(--nx-on-accent); }
+  .rp-today__month {
+    display: block; margin-top: 12px; padding: 12px 14px; border-radius: 12px;
+    font-size: 15px; font-weight: 600; color: var(--nx-text); text-decoration: none;
+    background: var(--nx-sunken);
+  }
+  .rp-today__month::after { content: " ›"; color: var(--nx-text-meta); }
+  .rp-today__error { color: var(--nx-danger); font-size: 14px; }
+
+  /* Folded filter blocks (nx_core.js adds the button and the class). */
+  .nx-filter.nx-filter--folded { display: none; }
+  .nx-filter-toggle {
+    display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px;
+    margin: 0 0 12px; padding: 10px 14px; font-size: 16px; font-weight: 600;
+  }
+  .nx-filter-toggle__n {
+    min-width: 24px; height: 24px; padding: 0 7px; border-radius: 999px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--nx-accent); color: var(--nx-on-accent); font-size: 13px; font-weight: 700;
+  }
+  .nx-filter-toggle__chev { margin-left: auto; color: var(--nx-text-meta); }
+}
+
 /* The Generali dashboard's two doughnuts on a phone (#365).
 
    Their legends move underneath on a touch phone, because a legend on the
