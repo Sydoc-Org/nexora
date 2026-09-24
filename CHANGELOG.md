@@ -6,6 +6,24 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Terms of Service and Privacy Policy pages** at `/terms` and `/privacy`
+  (#260), public on purpose (a privacy notice readable only after signing in
+  cannot inform the decision to sign in), linked under **Help** in the profile
+  menu and from the login-screen footer. The text is filled in from
+  management's answers (2026-09-24): Sydoc AG, Baar, as controller,
+  `privacy@sydoc.ch`, retention as implemented (request log 180 days, sessions
+  8 days, accounts until the client asks), sub-processors named (Microsoft
+  Azure CH, Microsoft 365, ngrok), requests answered within 30 days. nexora is
+  not sold standalone, so the Terms supplement the client contract. German is
+  the authoritative text, English a courtesy version, picked by the UI
+  language with a `?lang=de|en` switch. **Still a draft** -- the banner stays
+  until management signs it off; open points are in
+  `docs/design/legal-pages-open-questions.md`. Until then the pages are **live
+  on dev and staging only**: on PROD `LEGAL_PAGES_LIVE` (in `nx_lib/config.py`)
+  makes both routes 404 and hides the menu and footer links.
+
 ### Fixed
 
 - **Reporting pages fit on a phone again (#381).** `/reporting`, report

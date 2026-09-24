@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 10:53+0200\n"
+"POT-Creation-Date: 2026-09-24 11:39+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -816,6 +816,16 @@ msgstr ""
 #: nx_lib/views/auth.py:1063
 msgid "Unexpected error occurred"
 msgstr "Si è verificato un errore imprevisto"
+
+#: nx_lib/views/core.py:57 templates/_header.html:337
+#: templates/_small_footer.html:28
+msgid "Terms of Service"
+msgstr "Condizioni di utilizzo"
+
+#: nx_lib/views/core.py:68 templates/_header.html:341
+#: templates/_small_footer.html:32
+msgid "Privacy Policy"
+msgstr "Informativa sulla privacy"
 
 #: nx_lib/views/admin/permissions.py:255 nx_lib/views/admin/permissions.py:573
 #: nx_lib/views/admin/permissions.py:615 nx_lib/views/admin/permissions.py:660
@@ -2202,70 +2212,70 @@ msgstr "Novità"
 msgid "Feedback"
 msgstr "Feedback"
 
-#: templates/_header.html:328 templates/_header.html:398
-#: templates/_header.html:401
+#: templates/_header.html:328 templates/_header.html:407
+#: templates/_header.html:410
 msgid "Keyboard shortcuts"
 msgstr "Scorciatoie da tastiera"
 
-#: templates/_header.html:332 templates/_small_footer.html:28
+#: templates/_header.html:332 templates/_small_footer.html:36
 #: templates/reporting.html:86
 msgid "Help"
 msgstr "Aiuto"
 
-#: templates/_header.html:338 templates/_header.html:380
+#: templates/_header.html:347 templates/_header.html:389
 msgid "Switch user"
 msgstr "Cambia utente"
 
-#: templates/_header.html:344 templates/js/_header_js.html:60
+#: templates/_header.html:353 templates/js/_header_js.html:60
 #: templates/profile.html:82
 msgid "Sign out"
 msgstr "Disconnetti"
 
-#: templates/_header.html:361
+#: templates/_header.html:370
 msgid "Command palette"
 msgstr "Tavolozza dei comandi"
 
-#: templates/_header.html:365
+#: templates/_header.html:374
 msgid "Type a command or search..."
 msgstr "Digita un comando o cerca..."
 
-#: templates/_header.html:370
+#: templates/_header.html:379
 msgid "navigate"
 msgstr "naviga"
 
-#: templates/_header.html:371
+#: templates/_header.html:380
 msgid "open"
 msgstr "apri"
 
-#: templates/_header.html:372
+#: templates/_header.html:381
 msgid "close"
 msgstr "chiudi"
 
-#: templates/_header.html:384
+#: templates/_header.html:393
 msgid "Switch to user..."
 msgstr "Passa all'utente ..."
 
-#: templates/_header.html:405 templates/admin/access_control.html:130
+#: templates/_header.html:414 templates/admin/access_control.html:130
 msgid "Global"
 msgstr "Globale"
 
-#: templates/_header.html:407
+#: templates/_header.html:416
 msgid "Open command palette"
 msgstr "Apri la tavolozza dei comandi"
 
-#: templates/_header.html:411
+#: templates/_header.html:420
 msgid "Show this shortcuts overlay"
 msgstr "Mostra questa panoramica scorciatoie"
 
-#: templates/_header.html:415
+#: templates/_header.html:424
 msgid "Close the open dialog or panel"
 msgstr "Chiudi la finestra di dialogo o il pannello aperto"
 
-#: templates/_header.html:420
+#: templates/_header.html:429
 msgid "Document viewer"
 msgstr "Visualizzatore documenti"
 
-#: templates/_header.html:422
+#: templates/_header.html:431
 msgid "Previous / next document page"
 msgstr "Pagina documento precedente / successiva"
 
@@ -2980,7 +2990,7 @@ msgstr "Finora"
 
 #: templates/_reporting_simple.html:160 templates/appearance.html:37
 #: templates/js/_reporting_js.html:65
-#: templates/js/_reporting_metrics_js.html:134
+#: templates/js/_reporting_metrics_js.html:135
 #: templates/js/_reporting_sources_js.html:102
 msgid "Saved"
 msgstr "Salvato"
@@ -4801,7 +4811,7 @@ msgstr "Questa azione non può essere annullata."
 #: templates/js/_generali_project_management_js.html:338
 #: templates/js/_generali_reporting_js.html:40
 #: templates/js/_reporting_layouts_js.html:10
-#: templates/js/_reporting_metrics_js.html:52
+#: templates/js/_reporting_metrics_js.html:53
 #: templates/js/_reporting_sources_js.html:40
 #: templates/js/_tenant_page_js.html:30
 #: templates/js/admin/_maintenance_js.html:132
@@ -5428,6 +5438,30 @@ msgstr "Conferma la nuova password"
 msgid "Confirm your new password"
 msgstr "Conferma la tua nuova password"
 
+#: templates/legal.html:76
+msgid "Back to nexora"
+msgstr "Torna a nexora"
+
+#: templates/legal.html:80
+msgid "Sydoc AG"
+msgstr "Sydoc AG"
+
+#: templates/legal.html:88
+msgid "Draft — not yet in force."
+msgstr "Bozza – non ancora in vigore."
+
+#: templates/legal.html:89
+msgid ""
+"The facts on this page were confirmed by Sydoc management and read from "
+"the application itself. The text still has to be reviewed and approved "
+"before it is published; the points marked as open are still being "
+"clarified."
+msgstr ""
+"Le informazioni di questa pagina sono state confermate dalla direzione di"
+" Sydoc e lette dall'applicazione stessa. Il testo deve ancora essere "
+"verificato e approvato prima della pubblicazione; i punti indicati come "
+"aperti sono in fase di chiarimento."
+
 #: templates/maintenance.html:6
 msgid "Maintenance - nexora"
 msgstr "Manutenzione - nexora"
@@ -5903,7 +5937,7 @@ msgstr "Query inviata al database"
 msgid "Metrics"
 msgstr "Metriche"
 
-#: templates/js/_reporting_metrics_js.html:101 templates/reporting.html:472
+#: templates/js/_reporting_metrics_js.html:102 templates/reporting.html:472
 #: templates/reporting_metrics.html:50
 msgid "Add metric"
 msgstr "Aggiungi metrica"
@@ -6747,7 +6781,7 @@ msgstr "Aggiungi profilo"
 #: templates/js/_generali_reporting_js.html:41
 #: templates/js/_reporting_dashboard_js.html:7
 #: templates/js/_reporting_layouts_js.html:8
-#: templates/js/_reporting_metrics_js.html:48
+#: templates/js/_reporting_metrics_js.html:49
 #: templates/js/_reporting_sources_js.html:36
 #: templates/js/_tenant_page_js.html:29
 #: templates/js/admin/_maintenance_js.html:126
@@ -9363,11 +9397,11 @@ msgstr "Indicatore"
 msgid "Not available for this report"
 msgstr "Non disponibile per questo report"
 
-#: templates/js/_reporting_metrics_js.html:53
+#: templates/js/_reporting_metrics_js.html:54
 msgid "Delete this metric?"
 msgstr "Eliminare questa metrica?"
 
-#: templates/js/_reporting_metrics_js.html:82
+#: templates/js/_reporting_metrics_js.html:83
 msgid "Edit metric"
 msgstr "Modifica metrica"
 

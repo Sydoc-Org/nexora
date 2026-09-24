@@ -1,6 +1,6 @@
 """Core routes that don't fit a larger domain: landing page, jdvance,
 public maintenance view, session liveness probe, API documentation page,
-org-branding logo serve."""
+org-branding logo serve, terms of service and privacy policy."""
 
 import os
 
@@ -10,11 +10,15 @@ from flask import (
     jsonify,
     redirect,
     render_template,
+    request,
     send_from_directory,
     session,
     url_for,
 )
+from flask_babel import get_locale
+from flask_babel import gettext as _
 
+from .. import config as _config
 from ..branding import brand_for_org
 from ..config import PATHS
 from ..db import engine_nexora_db
@@ -26,6 +30,52 @@ def index():
     if "username" in session:
         return redirect(url_for(startpage_redirect_to(page_visibility())))
     return render_template("hero.html")
+
+
+# The legal texts exist in German (authoritative, written in German) and in
+# English (a courtesy version) only -- not in all four UI languages (#260,
+# decided 2026-09-24). German for a German UI, English for everyone else;
+# ?lang=de|en is the switch on the page itself.
+LEGAL_TEXT_DATE = "2026-09-24"
+
+
+def _legal_text_lang():
+    asked = request.args.get("lang", "")
+    if asked in ("de", "en"):
+        lang = asked
+    else:
+        lang = "de" if str(get_locale() or "").startswith("de") else "en"
+    return {"text_lang": lang, "text_date": LEGAL_TEXT_DATE}
+
+
+def _legal_gate():
+    """404 on PROD until the draft is approved -- see LEGAL_PAGES_LIVE."""
+    if not _config.LEGAL_PAGES_LIVE:
+        abort(404)
+
+
+def legal_terms():
+    """Terms of service. Deliberately NOT permission-gated and reachable
+
+    signed out: it is linked from the footer of the login and 2FA screens,
+    where there is no session yet. The page renders no user data.
+    """
+    _legal_gate()
+    return render_template(
+        "legal.html", doc="terms", page_title=_("Terms of Service"), **_legal_text_lang()
+    )
+
+
+def legal_privacy():
+    """Privacy policy. Public for the same reason as legal_terms(), and
+
+    additionally because a privacy notice that can only be read after signing
+    in cannot inform the decision to sign in.
+    """
+    _legal_gate()
+    return render_template(
+        "legal.html", doc="privacy", page_title=_("Privacy Policy"), **_legal_text_lang()
+    )
 
 
 @require_permission("jd.view")
@@ -210,6 +260,8 @@ def register_routes(app):
     app.add_url_rule("/", endpoint="index", view_func=index)
     app.add_url_rule("/jdvance", endpoint="jdvance", view_func=jdvance)
     app.add_url_rule("/api-docs", endpoint="api_docs", view_func=api_docs)
+    app.add_url_rule("/terms", endpoint="legal_terms", view_func=legal_terms)
+    app.add_url_rule("/privacy", endpoint="legal_privacy", view_func=legal_privacy)
     app.add_url_rule("/maintenance", endpoint="maintenance_page", view_func=maintenance_page)
     app.add_url_rule(
         "/api/maintenance/active",

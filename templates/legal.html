@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="{{ get_locale }}">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>{{ page_title }} - nexora</title>
+    {# _small_footer.html is built entirely from Tailwind utilities (container,
+       flex, h-24, text-sm). Without Tailwind those classes are inert: the sydoc
+       logo loses its height cap and renders at natural size, and the link row
+       collapses out of its flex layout. Same CDN the other standalone pages
+       use (hero.html, verify_2fa.html). #}
+    <script src="https://cdn.tailwindcss.com"></script>
+    {# Must come AFTER the CDN script -- setting tailwind.config before it is
+       silently discarded (see the same note in hero.html). Without
+       darkMode:'class', Tailwind defaults to 'media', so every dark: utility
+       follows the OS prefers-color-scheme instead of this page's .dark class:
+       on a machine with a dark OS theme the footer logo's
+       `dark:brightness-0 dark:invert` fires while the page is still light,
+       and the logo renders inverted on a white background. #}
+    <script nonce="{{ csp_nonce() }}">
+        tailwind.config = { darkMode: 'class' };
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous">
+    <link rel="icon" type="image/x-icon" href="{{ static_v('images/favicon.ico') }}">
+    <link rel="stylesheet" href="{{ static_v('css/nexora-ui.css') }}">
+    {# Theme only, and deliberately not the full prefs pre-paint: this page is
+       reachable signed out, so the server has no prefs to hand over, and the
+       localStorage mirror _header.html writes is the only source. Dark/light
+       decides whether the text is readable; the accent has almost no surface
+       on a page that is prose and one back-link, so the 40 lines of accent
+       derivation would be copied for nothing. Same keys and same fallback
+       order as hero.html. #}
+    <script nonce="{{ csp_nonce() }}">
+        (function () {
+            try {
+                var ls = function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } };
+                var stored = {};
+                try { stored = JSON.parse(ls('nexora-ui-prefs')) || {}; } catch (e) {}
+                var theme = stored.theme || (ls('nexora-theme') === 'dark' ? 'dark' : 'light');
+                if (theme === 'dark' ||
+                    (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                    document.documentElement.classList.add('dark');
+                }
+            } catch (e) {}
+        })();
+    </script>
+    <style>
+        body { background: var(--nx-page); color: var(--nx-text); font-family: var(--nx-font); }
+        .legal-wrap { max-width: 46rem; margin: 0 auto; padding: 3rem 1.5rem 4rem; }
+        .legal-wrap h1 { font-size: 1.75rem; font-weight: 600; letter-spacing: -0.3px; margin: 0 0 0.5rem; }
+        .legal-wrap h2 { font-size: 1.05rem; font-weight: 600; margin: 2rem 0 0.6rem; }
+        /* --nx-text, not -sec: these are the terms people are bound by, so the
+           body text reads at full contrast, not as grey fine print. */
+        .legal-wrap p, .legal-wrap li { font-size: 0.95rem; line-height: 1.65; color: var(--nx-text); }
+        .legal-wrap ul { padding-left: 1.15rem; }
+        .legal-wrap li { margin-bottom: 0.35rem; }
+        .legal-meta { font-size: 0.8rem; color: var(--nx-text-meta); margin: 0 0 2rem; }
+        .legal-todo { background: var(--nx-l-amber); border: 1px solid var(--nx-l-amber-fg);
+                      border-radius: var(--nx-radius); padding: 1rem 1.15rem; margin: 0 0 2rem; }
+        .legal-todo p { color: var(--nx-l-amber-fg); margin: 0; font-size: 0.875rem; }
+        .legal-todo strong { font-weight: 600; }
+        .legal-gap { border-left: 3px solid var(--nx-border-strong); padding: 0.15rem 0 0.15rem 0.9rem;
+                     margin: 0.75rem 0; color: var(--nx-text-meta); font-style: italic; font-size: 0.85rem; }
+        .legal-back { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem;
+                      color: var(--nx-accent); text-decoration: none; margin-bottom: 1.5rem; }
+        .legal-back:hover { color: var(--nx-accent-hover); }
+        .legal-switch { color: var(--nx-accent); }
+        .legal-text a { color: var(--nx-accent); }
+    </style>
+</head>
+
+<body class="nx-app">
+    <div class="legal-wrap">
+        <a href="{{ url_for('index') }}" class="legal-back" data-testid="legal-back">
+            <i class="fas fa-arrow-left"></i>{{ _('Back to nexora') }}
+        </a>
+
+        <h1>{{ page_title }}</h1>
+        <p class="legal-meta">{{ _('Sydoc AG') }}</p>
+
+        {# Deliberately prominent and deliberately not styled as fine print. The
+           facts are filled in from management's answers (2026-09-24) and the
+           schema, but the text is not approved yet: this banner comes off last,
+           once it is (tests/integration/test_legal_pages.py pins it). #}
+        <div class="legal-todo" data-testid="legal-draft-notice">
+            <p>
+                <strong>{{ _('Draft — not yet in force.') }}</strong>
+                {{ _('The facts on this page were confirmed by Sydoc management and read from the application itself. The text still has to be reviewed and approved before it is published; the points marked as open are still being clarified.') }}
+            </p>
+        </div>
+
+        {# The texts themselves live in legal/<doc>_<lang>.html, German (the
+           authoritative version) and English only -- see _legal_text_lang() in
+           nx_lib/views/core.py. The chrome around them stays translated. #}
+        <p class="legal-meta" data-testid="legal-text-lang">
+            {% if text_lang == 'de' %}Stand: {{ text_date[8:10] }}.{{ text_date[5:7] }}.{{ text_date[:4] }} · Massgebend ist diese deutsche Fassung.
+            · <a href="?lang=en" class="legal-switch" data-testid="legal-switch-en">English version</a>
+            {% else %}Last updated: {{ text_date }} · The German version is authoritative; this English text is provided for convenience.
+            · <a href="?lang=de" class="legal-switch" data-testid="legal-switch-de">Deutsche Fassung</a>
+            {% endif %}
+        </p>
+        <div class="legal-text" lang="{{ text_lang }}">
+            {% include 'legal/' ~ doc ~ '_' ~ text_lang ~ '.html' %}
+        </div>
+    </div>
+
+    {% include '_small_footer.html' %}
+</body>
+
+</html>

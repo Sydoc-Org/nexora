@@ -100,6 +100,13 @@ DOTENV_KEYS = frozenset(os.environ) - _pre_dotenv_keys
 # filesystem sessions and /dev/* lockout as PROD.
 IS_PROD = os.environ.get("ENVIRONMENT") in ("PROD", "STAGING")
 
+# /terms and /privacy are still a draft awaiting management sign-off (#260).
+# They are live on dev and staging so they can be reviewed there, and off on
+# PROD -- routes 404, menu and footer links hidden -- until the text is
+# approved. Keyed on ENVIRONMENT itself, not IS_PROD, which is true on
+# STAGING too. Going live = delete this switch and its three uses.
+LEGAL_PAGES_LIVE = os.environ.get("ENVIRONMENT") != "PROD"
+
 # --- Runtime paths -----------------------------------------------------------
 # Every runtime-writable dir lives under var/. Gitignored except .gitkeep.
 VAR_DIR = REPO_ROOT / "var"
