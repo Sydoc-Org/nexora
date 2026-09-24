@@ -729,6 +729,20 @@ html.dark .sidebar-toggle-btn {
     .responsive-card-table thead {
         display: none;
     }
+    /* Once each row is its own card, the table's wrapper (.nx-table-wrap:
+       background, border, radius) drew a second box of the same kind around
+       all of them -- cards inside a card on Generali Documents and every
+       admin list. In card mode only the cards keep the box. Same width
+       condition as the card layout itself, so the desktop table keeps its
+       frame. */
+    .nx-table-wrap:has(> .responsive-card-table),
+    .nx-table-wrap:has(> * > .responsive-card-table) {
+        background: transparent;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+        overflow: visible;
+    }
     .responsive-card-table tbody {
         background: transparent !important;
     }

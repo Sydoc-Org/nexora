@@ -107,6 +107,11 @@ when there isn't enough room.
   Generali dashboard on an iPhone SE). Where they fit (larger iPhones,
   full-width cards, desktop) they stay. `static/js/nx_core.js` checks each
   group on load, when a number arrives, and on resize.
+- **No more box inside a box on phone lists.** On Generali Documents (and every
+  admin list) each row becomes its own card on a phone, and the table's frame
+  drew a second box of the same kind around all of them. In card mode the frame
+  now steps aside so only the cards have a box. The desktop table keeps its
+  frame.
 - **Date fields on a phone look like every other field.** flatpickr used to
   swap each date input for the iPhone's native date field. That field ignored
   nexora's styling, showed no "yyyy-mm-dd" hint while empty and formatted
