@@ -332,14 +332,14 @@
                         <i class="fas fa-circle-question w-4"></i> {{ _("Help") }}
                     </a>
                     {# Terms and privacy sit under Help, where the owner's boss asked for them (#260). #}
-                    <a href="{{ url_for('legal_terms') }}"
+                    {% if legal_pages_live %}<a href="{{ url_for('legal_terms') }}"
                         class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-slate-300 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-[var(--nx-accent)] transition-colors" data-testid="header-terms-link">
                         <i class="fas fa-file-contract w-4"></i> {{ _('Terms of Service') }}
-                    </a>
-                    <a href="{{ url_for('legal_privacy') }}"
+                    </a>{% endif %}
+                    {% if legal_pages_live %}<a href="{{ url_for('legal_privacy') }}"
                         class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-slate-300 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-[var(--nx-accent)] transition-colors" data-testid="header-privacy-link">
                         <i class="fas fa-user-shield w-4"></i> {{ _('Privacy Policy') }}
-                    </a>
+                    </a>{% endif %}
                     {% if not is_prod %}
                     <div class="my-1 border-t border-gray-100 dark:border-slate-700"></div>
                     <button type="button" id="switchUserBtn"

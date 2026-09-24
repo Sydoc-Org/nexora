@@ -18,6 +18,7 @@ from flask import (
     url_for,
 )
 
+from . import config as _config
 from . import user_cache
 from .branding import brand_for_org
 from .config import IS_PROD, PATHS
@@ -395,6 +396,8 @@ def _utility_processor():
         "get_user_icon_url": resolve_user_icon_url,
         "has_permission": has_permission,
         "is_prod": IS_PROD,
+        # read per render, so a test (or a later flip) sees the current value
+        "legal_pages_live": _config.LEGAL_PAGES_LIVE,
     }
 
 

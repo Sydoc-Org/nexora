@@ -115,3 +115,16 @@ def test_user_menu_puts_terms_and_privacy_under_help(user_client):
         < body.index('data-testid="header-terms-link"')
         < body.index('data-testid="header-privacy-link"')
     )
+
+
+def test_draft_pages_are_off_on_prod(client, monkeypatch):
+    """Draft until management signs it off: live on dev and staging for
+    review, 404 on PROD with the menu and footer links hidden (#260)."""
+    import nx_lib.config as config
+
+    monkeypatch.setattr(config, "LEGAL_PAGES_LIVE", False)
+    assert client.get("/terms").status_code == 404
+    assert client.get("/privacy").status_code == 404
+    body = client.get("/login").get_data(as_text=True)
+    assert 'data-testid="footer-terms"' not in body
+    assert 'data-testid="footer-privacy"' not in body

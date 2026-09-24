@@ -18,6 +18,7 @@ from flask import (
 from flask_babel import get_locale
 from flask_babel import gettext as _
 
+from .. import config as _config
 from ..branding import brand_for_org
 from ..config import PATHS
 from ..db import engine_nexora_db
@@ -47,12 +48,19 @@ def _legal_text_lang():
     return {"text_lang": lang, "text_date": LEGAL_TEXT_DATE}
 
 
+def _legal_gate():
+    """404 on PROD until the draft is approved -- see LEGAL_PAGES_LIVE."""
+    if not _config.LEGAL_PAGES_LIVE:
+        abort(404)
+
+
 def legal_terms():
     """Terms of service. Deliberately NOT permission-gated and reachable
 
     signed out: it is linked from the footer of the login and 2FA screens,
     where there is no session yet. The page renders no user data.
     """
+    _legal_gate()
     return render_template(
         "legal.html", doc="terms", page_title=_("Terms of Service"), **_legal_text_lang()
     )
@@ -64,6 +72,7 @@ def legal_privacy():
     additionally because a privacy notice that can only be read after signing
     in cannot inform the decision to sign in.
     """
+    _legal_gate()
     return render_template(
         "legal.html", doc="privacy", page_title=_("Privacy Policy"), **_legal_text_lang()
     )

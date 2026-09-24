@@ -20,7 +20,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the authoritative text, English a courtesy version, picked by the UI
   language with a `?lang=de|en` switch. **Still a draft** -- the banner stays
   until management signs it off; open points are in
-  `docs/design/legal-pages-open-questions.md`.
+  `docs/design/legal-pages-open-questions.md`. Until then the pages are **live
+  on dev and staging only**: on PROD `LEGAL_PAGES_LIVE` (in `nx_lib/config.py`)
+  makes both routes 404 and hides the menu and footer links.
 
 ### Fixed
 
