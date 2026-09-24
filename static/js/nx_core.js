@@ -215,4 +215,52 @@
         formatHours: formatHours,
         csrfToken: csrfToken
     };
+
+    // ---- stat-card icons: all or none per row -------------------------------
+    // .nx-stat wraps its icon chip under the number when the two do not fit
+    // side by side. On a phone that gave a row of KPI cards an extra line in
+    // some cards and not others -- uneven boxes for a decorative icon. So if
+    // ANY card in a group has to wrap its chip, hide the chips of the whole
+    // group (.nx-stats--no-chips); where they all fit, they stay. Desktop cards
+    // never wrap, so nothing changes there. Re-checked when a number loads
+    // (the KPIs arrive by fetch, "—" first) and on resize.
+    function chipWrapped(stat) {
+        var chip = stat.querySelector(':scope > .nx-stat__chip');
+        if (!chip) return false;
+        var text = stat.firstElementChild === chip ? chip.nextElementSibling : stat.firstElementChild;
+        if (!text) return false;
+        return chip.getBoundingClientRect().top >= text.getBoundingClientRect().bottom - 1;
+    }
+    function fitStatChips() {
+        var groups = [];
+        document.querySelectorAll('.nx-stat').forEach(function (s) {
+            if (s.parentElement && groups.indexOf(s.parentElement) < 0) groups.push(s.parentElement);
+        });
+        groups.forEach(function (g) {
+            g.classList.remove('nx-stats--no-chips');
+            var stats = Array.prototype.filter.call(g.children, function (c) { return c.classList.contains('nx-stat'); });
+            if (stats.some(chipWrapped)) g.classList.add('nx-stats--no-chips');
+        });
+    }
+    var fitQueued = false;
+    function queueFit() {
+        if (fitQueued) return;
+        fitQueued = true;
+        window.requestAnimationFrame(function () { fitQueued = false; fitStatChips(); });
+    }
+    function watchStats() {
+        queueFit();
+        // Text and child changes only -- toggling the class is an attribute
+        // change, so the observer cannot feed itself.
+        var mo = new MutationObserver(queueFit);
+        document.querySelectorAll('.nx-stat').forEach(function (s) {
+            mo.observe(s, { childList: true, characterData: true, subtree: true });
+        });
+        window.addEventListener('resize', queueFit);
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', watchStats);
+    } else {
+        watchStats();
+    }
 })(window, document);

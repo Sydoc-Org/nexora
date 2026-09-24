@@ -101,6 +101,12 @@ when there isn't enough room.
     are 44px tap targets.
   - All except the tap targets only engage when content does not fit, and a
     pixel diff of every desktop page shows no change.
+- **Stat-card icons are all-or-none per row on a phone.** When any card in a
+  row is too narrow for its icon beside the number, none of that row's cards
+  show one, so the boxes stay even instead of some growing an extra line (the
+  Generali dashboard on an iPhone SE). Where they fit (larger iPhones,
+  full-width cards, desktop) they stay. `static/js/nx_core.js` checks each
+  group on load, when a number arrives, and on resize.
 - **The Generali month report could be dragged sideways on every iPhone** —
   11–45px, both engines, reporting section only. Not a grid bug, as it first
   appeared: German compounds "On-Time Rate" into **"Pünktlichkeitsquote"**, one

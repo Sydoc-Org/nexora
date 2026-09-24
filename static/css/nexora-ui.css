@@ -367,6 +367,9 @@ a.nx-card:hover, .nx-card--link:hover {
    /appearance preview on desktop). A 0 basis with a min-content floor means
    the chip only drops when the unbreakable number itself cannot sit beside it. */
 .nx-stat > :not(.nx-stat__chip):not(.nx-stat__icon) { flex: 1 1 0; min-width: min-content; }
+/* Set by nx_core.js when any card in the group would wrap its chip: then no
+   card in that group shows one, so the boxes stay even (phone KPI rows). */
+.nx-stats--no-chips .nx-stat__chip { display: none; }
 /* `overflow-wrap: anywhere` is doing real work here, not tidying. German
    compounds these labels into single unbreakable words -- "On-Time Rate"
    becomes "Pünktlichkeitsquote", 19 characters with nowhere to wrap. In a
