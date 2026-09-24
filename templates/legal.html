@@ -52,7 +52,9 @@
         .legal-wrap { max-width: 46rem; margin: 0 auto; padding: 3rem 1.5rem 4rem; }
         .legal-wrap h1 { font-size: 1.75rem; font-weight: 600; letter-spacing: -0.3px; margin: 0 0 0.5rem; }
         .legal-wrap h2 { font-size: 1.05rem; font-weight: 600; margin: 2rem 0 0.6rem; }
-        .legal-wrap p, .legal-wrap li { font-size: 0.9rem; line-height: 1.65; color: var(--nx-text-sec); }
+        /* --nx-text, not -sec: these are the terms people are bound by, so the
+           body text reads at full contrast, not as grey fine print. */
+        .legal-wrap p, .legal-wrap li { font-size: 0.95rem; line-height: 1.65; color: var(--nx-text); }
         .legal-wrap ul { padding-left: 1.15rem; }
         .legal-wrap li { margin-bottom: 0.35rem; }
         .legal-meta { font-size: 0.8rem; color: var(--nx-text-meta); margin: 0 0 2rem; }
@@ -65,6 +67,8 @@
         .legal-back { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem;
                       color: var(--nx-accent); text-decoration: none; margin-bottom: 1.5rem; }
         .legal-back:hover { color: var(--nx-accent-hover); }
+        .legal-switch { color: var(--nx-accent); }
+        .legal-text a { color: var(--nx-accent); }
     </style>
 </head>
 
@@ -77,81 +81,30 @@
         <h1>{{ page_title }}</h1>
         <p class="legal-meta">{{ _('Sydoc AG') }}</p>
 
-        {# Deliberately prominent and deliberately not styled as fine print. This
-           document is a skeleton: the headings are the ones a Swiss DSG / GDPR
-           text needs, and the factual sections below were read off the schema,
-           but nothing here has been reviewed by anyone qualified to write it. #}
+        {# Deliberately prominent and deliberately not styled as fine print. The
+           facts are filled in from management's answers (2026-09-24) and the
+           schema, but the text is not approved yet: this banner comes off last,
+           once it is (tests/integration/test_legal_pages.py pins it). #}
         <div class="legal-todo" data-testid="legal-draft-notice">
             <p>
                 <strong>{{ _('Draft — not yet in force.') }}</strong>
-                {{ _('This page is a skeleton prepared for legal review. The factual sections describing what the system stores were read from the application itself and are accurate; the wording, the legal bases, the retention periods and the contact details still have to be written and approved before this is published.') }}
+                {{ _('The facts on this page were confirmed by Sydoc management and read from the application itself. The text still has to be reviewed and approved before it is published; the points marked as open are still being clarified.') }}
             </p>
         </div>
 
-        {% if doc == 'privacy' %}
-            <h2>{{ _('Who is responsible') }}</h2>
-            <p>{{ _("Sydoc AG is responsible for the account, session and request-log data described below. For the business documents processed through the platform, Sydoc acts on behalf of the client organisation whose data it is, and that organisation decides what happens to it.") }}</p>
-            <div class="legal-gap">{{ _("To be completed: the full legal entity name, the registered address, and a named contact or mailbox for data-protection questions. A privacy notice without a reachable contact does not do its job.") }}</div>
-
-            <h2>{{ _('What nexora stores about you') }}</h2>
-            <p>{{ _('The following is read from the application and is factually accurate as of this release:') }}</p>
-            <ul>
-                <li>{{ _('Account details: name, username, e-mail address, organisation, language and interface preferences.') }}</li>
-                <li>{{ _('Sign-in security: a password hash and, where enabled, a two-factor secret.') }}</li>
-                <li>{{ _('Active sessions: a session identifier, your IP address, and the times the session was created and last used.') }}</li>
-                <li>{{ _('Request log: for each page or API call, the time, the path, the method and the account that made it.') }}</li>
-                <li>{{ _('Business documents and their index fields, on behalf of the organisation whose data is being processed.') }}</li>
-            </ul>
-
-            <h2>{{ _('Why it is stored') }}</h2>
-            <p>{{ _("Account details exist so that access can be granted and so the interface can be shown in your language. The password hash and the two-factor secret exist to establish that you are who you say you are. Session records keep you signed in between requests and let an administrator see which sessions are currently active. The request log exists so that faults can be traced and misuse of an account can be detected. Business documents are processed to deliver the service the client organisation has contracted for.") }}</p>
-            <div class="legal-gap">{{ _("To be completed: the legal basis for each of those purposes. Note in particular that the request log and the IP addresses held against sessions currently have no stated purpose limit and no retention period, which is the weakest point in this notice.") }}</div>
-
-            <h2>{{ _('How long it is kept') }}</h2>
-            <p>{{ _('Nothing in nexora currently has a defined retention period: session rows, the request log, document data and closed accounts are all kept indefinitely.') }}</p>
-            <div class="legal-gap">{{ _('To be completed: a retention period for each category, for the request log, for document data and for closed accounts. An automatic eight-day prune of the session table is written but not yet in service; this section must not claim it until it is.') }}</div>
-
-            <h2>{{ _('Who it is shared with') }}</h2>
-            <p>{{ _("nexora runs on Sydoc infrastructure. Outbound mail, including scheduled report delivery, goes through Microsoft Graph. One client runtime is hosted on Microsoft Azure.") }}</p>
-            <p>{{ _("The reporting assistant sends the structure of the databases it can read, meaning table and column names and their types, to an external AI provider in order to translate a question into a query. Result rows are only sent as well for the small number of accounts that hold both the data-explanation and the live-query permissions; for everyone else no business data leaves the platform through the assistant.") }}</p>
-            <div class="legal-gap">{{ _("To be completed: name the AI provider actually configured in production and the region its data is processed in, name the Azure regions in use, and confirm a data-processing agreement is in place with each. Also cover the tunnel used to publish the site.") }}</div>
-
-            <h2>{{ _('Your rights') }}</h2>
-            <p>{{ _("You can ask what is held about you, ask for it to be corrected, ask for it to be deleted, and object to how it is used. Where the data belongs to your employer rather than to Sydoc, the request is passed to them, because they decide.") }}</p>
-            <p>{{ _("You can also complain to the Federal Data Protection and Information Commissioner.") }}</p>
-            <div class="legal-gap">{{ _("To be completed: where a request should be sent, how long a response takes, and how the requester's identity is checked before anything is disclosed.") }}</div>
-        {% else %}
-            <h2>{{ _('Scope') }}</h2>
-            <p>{{ _("nexora is an internal business platform operated by Sydoc AG. It is not a public service: there is no self-registration, and every account is created by Sydoc on the instruction of the organisation the account holder works for.") }}</p>
-            <p>{{ _("What an account can see is decided by the permissions attached to it. An account may only be used by the person it was issued to, and only for that person's work for their organisation.") }}</p>
-            <div class="legal-gap">{{ _("To be completed: which Sydoc legal entity these terms are entered into with, and whether they sit underneath a master service agreement that takes precedence.") }}</div>
-
-            <h2>{{ _('Acceptable use') }}</h2>
-            <p>{{ _("Accounts are personal. Do not share your password, do not let someone else use your session, and keep your second factor on a device only you control. Tell Sydoc as soon as you suspect either has been compromised.") }}</p>
-            <p>{{ _("Do not attempt to reach data your permissions do not grant you, and do not use automated access except through an API key issued to you for that purpose. Sydoc may suspend an account that is being misused, or at the instruction of the organisation the account belongs to.") }}</p>
-            <div class="legal-gap">{{ _("To be completed: whether suspension carries notice, and who inside the client organisation is entitled to request it.") }}</div>
-
-            <h2>{{ _('Availability') }}</h2>
-            <p>{{ _("Planned maintenance is announced in the application beforehand and may prevent sign-in while it runs. A release normally involves a short restart of well under a minute.") }}</p>
-            <p>{{ _("Unplanned outages are picked up by automated monitoring and communicated to the affected organisations. This page does not itself promise any level of availability.") }}</p>
-            <div class="legal-gap">{{ _("To be completed: the hours during which the platform is supported, and whether an availability commitment exists in the underlying contract. Do not state a figure here that the contract does not support.") }}</div>
-
-            <h2>{{ _('Confidentiality') }}</h2>
-            <p>{{ _("The documents and index data visible through nexora belong to the organisation whose business they concern, not to Sydoc and not to the account holder. Treat everything you can see as confidential.") }}</p>
-            <p>{{ _("Do not copy, export or forward content beyond what your work requires, and do not retain it after you no longer need it. These obligations continue after an account is closed.") }}</p>
-            <div class="legal-gap">{{ _("To be completed: how this relates to the confidentiality terms in the master agreement and to individual non-disclosure undertakings.") }}</div>
-
-            <h2>{{ _('Liability') }}</h2>
-            <p>{{ _("Sydoc operates nexora with reasonable care and skill. The platform presents data drawn from other systems, and decisions taken on the basis of what it displays remain the responsibility of the organisation taking them.") }}</p>
-            <div class="legal-gap">{{ _("To be completed, and by a lawyer: the limitation of liability, any cap, the treatment of indirect and consequential loss, and how all of that lines up with the master agreement. Nothing should be written in this section by anyone else.") }}</div>
-
-            <h2>{{ _('Governing law') }}</h2>
-            <p>{{ _("These terms are governed by Swiss law, and the place of jurisdiction is the registered seat of Sydoc AG.") }}</p>
-            <div class="legal-gap">{{ _("To be completed: name the city of the registered seat, and confirm that no client contract assigns jurisdiction elsewhere.") }}</div>
-        {% endif %}
-
-        <h2>{{ _('Changes to this document') }}</h2>
-        <div class="legal-gap">{{ _("To be completed: how a change to this document is announced, how much notice a material change gets, and whether continued use counts as acceptance. Nothing currently announces a change to this page, and the page shows no date it last changed -- adding one belongs with this section.") }}</div>
+        {# The texts themselves live in legal/<doc>_<lang>.html, German (the
+           authoritative version) and English only -- see _legal_text_lang() in
+           nx_lib/views/core.py. The chrome around them stays translated. #}
+        <p class="legal-meta" data-testid="legal-text-lang">
+            {% if text_lang == 'de' %}Stand: {{ text_date[8:10] }}.{{ text_date[5:7] }}.{{ text_date[:4] }} · Massgebend ist diese deutsche Fassung.
+            · <a href="?lang=en" class="legal-switch" data-testid="legal-switch-en">English version</a>
+            {% else %}Last updated: {{ text_date }} · The German version is authoritative; this English text is provided for convenience.
+            · <a href="?lang=de" class="legal-switch" data-testid="legal-switch-de">Deutsche Fassung</a>
+            {% endif %}
+        </p>
+        <div class="legal-text" lang="{{ text_lang }}">
+            {% include 'legal/' ~ doc ~ '_' ~ text_lang ~ '.html' %}
+        </div>
     </div>
 
     {% include '_small_footer.html' %}

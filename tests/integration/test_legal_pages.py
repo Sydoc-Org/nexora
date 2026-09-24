@@ -45,14 +45,48 @@ def test_privacy_lists_what_is_actually_stored(client):
     assert "Request log" in body
 
 
-def test_privacy_does_not_claim_a_retention_it_does_not_have(client):
-    """The page used to state that session rows are deleted after eight days.
-    Nothing deletes them: the prune is #227, still an open PR, and even merged
-    it needs a scheduled task on the host. A draft may be vague; it may not be
-    wrong, and the banner above vouches for the factual sections."""
-    body = client.get("/privacy").get_data(as_text=True)
-    assert "eight days" not in body, "retention claimed before it is in service"
-    assert "no defined retention period" in body or "kept indefinitely" in body
+def test_privacy_retention_matches_what_the_code_deletes(client):
+    """The retention periods on the page are promises. They must be the ones
+    the prune jobs actually apply (ops/cleanup/prune_request_log.py,
+    prune_active_sessions.py), in both language versions -- change the config
+    and this fails until the text follows."""
+    from nx_lib.config import REQUEST_LOG_RETENTION, SESSION_LIFETIME, SESSION_ROW_RETENTION_GRACE
+
+    log_days = REQUEST_LOG_RETENTION.days
+    session_days = (SESSION_LIFETIME + SESSION_ROW_RETENTION_GRACE).days
+    de = client.get("/privacy?lang=de").get_data(as_text=True)
+    en = client.get("/privacy?lang=en").get_data(as_text=True)
+    assert f"Zugriffsprotokoll: {log_days} Tage" in de
+    assert f"IP-Adresse: {session_days} Tage" in de
+    assert f"Request log: {log_days} days" in en
+    assert f"IP address: {session_days} days" in en
+
+
+def test_legal_text_is_german_or_english_and_says_which_is_authoritative(client):
+    """German (authoritative) and English only, decided 2026-09-24."""
+    de = client.get("/terms?lang=de").get_data(as_text=True)
+    en = client.get("/terms?lang=en").get_data(as_text=True)
+    assert "Massgebend ist diese deutsche Fassung" in de and "Geltungsbereich" in de
+    assert "The German version is authoritative" in en and "Scope" in en
+    assert 'data-testid="legal-switch-en"' in de and 'data-testid="legal-switch-de"' in en
+
+
+def test_legal_text_follows_the_ui_language_by_default(client):
+    with client.session_transaction() as sess:
+        sess["locale"] = "de"
+    assert "Massgebend ist diese deutsche Fassung" in client.get("/privacy").get_data(as_text=True)
+    with client.session_transaction() as sess:
+        sess["locale"] = "fr"
+    assert "The German version is authoritative" in client.get("/privacy").get_data(as_text=True)
+
+
+def test_privacy_names_the_controller_and_the_contact(client):
+    for lang in ("de", "en"):
+        body = client.get(f"/privacy?lang={lang}").get_data(as_text=True)
+        assert "Sydoc AG" in body and "CHE-112.467.492" in body and "6340 Baar" in body, lang
+        assert "privacy@sydoc.ch" in body, lang
+        # revDSG: a request for information is answered within 30 days.
+        assert "30" in body, lang
 
 
 def test_login_page_links_to_both(client):
@@ -70,3 +104,14 @@ def test_pages_survive_a_dark_theme_preference(client):
         body = client.get(path).get_data(as_text=True)
         assert "nexora-ui-prefs" in body, path
         assert "prefers-color-scheme" in body, path
+
+
+def test_user_menu_puts_terms_and_privacy_under_help(user_client):
+    """Management asked for them under Help in the profile menu (2026-09-24)."""
+    body = user_client.get("/profile").get_data(as_text=True)
+    help_at = body.index('data-testid="header-help-link"')
+    assert (
+        help_at
+        < body.index('data-testid="header-terms-link"')
+        < body.index('data-testid="header-privacy-link"')
+    )

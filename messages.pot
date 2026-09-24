@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 10:53+0200\n"
+"POT-Creation-Date: 2026-09-24 11:39+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -661,6 +661,16 @@ msgstr ""
 
 #: nx_lib/views/auth.py:1063
 msgid "Unexpected error occurred"
+msgstr ""
+
+#: nx_lib/views/core.py:57 templates/_header.html:337
+#: templates/_small_footer.html:28
+msgid "Terms of Service"
+msgstr ""
+
+#: nx_lib/views/core.py:68 templates/_header.html:341
+#: templates/_small_footer.html:32
+msgid "Privacy Policy"
 msgstr ""
 
 #: nx_lib/views/admin/permissions.py:255 nx_lib/views/admin/permissions.py:573
@@ -1985,70 +1995,70 @@ msgstr ""
 msgid "Feedback"
 msgstr ""
 
-#: templates/_header.html:328 templates/_header.html:398
-#: templates/_header.html:401
+#: templates/_header.html:328 templates/_header.html:407
+#: templates/_header.html:410
 msgid "Keyboard shortcuts"
 msgstr ""
 
-#: templates/_header.html:332 templates/_small_footer.html:28
+#: templates/_header.html:332 templates/_small_footer.html:36
 #: templates/reporting.html:86
 msgid "Help"
 msgstr ""
 
-#: templates/_header.html:338 templates/_header.html:380
+#: templates/_header.html:347 templates/_header.html:389
 msgid "Switch user"
 msgstr ""
 
-#: templates/_header.html:344 templates/js/_header_js.html:60
+#: templates/_header.html:353 templates/js/_header_js.html:60
 #: templates/profile.html:82
 msgid "Sign out"
 msgstr ""
 
-#: templates/_header.html:361
+#: templates/_header.html:370
 msgid "Command palette"
 msgstr ""
 
-#: templates/_header.html:365
+#: templates/_header.html:374
 msgid "Type a command or search..."
 msgstr ""
 
-#: templates/_header.html:370
+#: templates/_header.html:379
 msgid "navigate"
 msgstr ""
 
-#: templates/_header.html:371
+#: templates/_header.html:380
 msgid "open"
 msgstr ""
 
-#: templates/_header.html:372
+#: templates/_header.html:381
 msgid "close"
 msgstr ""
 
-#: templates/_header.html:384
+#: templates/_header.html:393
 msgid "Switch to user..."
 msgstr ""
 
-#: templates/_header.html:405 templates/admin/access_control.html:130
+#: templates/_header.html:414 templates/admin/access_control.html:130
 msgid "Global"
 msgstr ""
 
-#: templates/_header.html:407
+#: templates/_header.html:416
 msgid "Open command palette"
 msgstr ""
 
-#: templates/_header.html:411
+#: templates/_header.html:420
 msgid "Show this shortcuts overlay"
 msgstr ""
 
-#: templates/_header.html:415
+#: templates/_header.html:424
 msgid "Close the open dialog or panel"
 msgstr ""
 
-#: templates/_header.html:420
+#: templates/_header.html:429
 msgid "Document viewer"
 msgstr ""
 
-#: templates/_header.html:422
+#: templates/_header.html:431
 msgid "Previous / next document page"
 msgstr ""
 
@@ -2590,7 +2600,7 @@ msgstr ""
 
 #: templates/_reporting_simple.html:160 templates/appearance.html:37
 #: templates/js/_reporting_js.html:65
-#: templates/js/_reporting_metrics_js.html:134
+#: templates/js/_reporting_metrics_js.html:135
 #: templates/js/_reporting_sources_js.html:102
 msgid "Saved"
 msgstr ""
@@ -4254,7 +4264,7 @@ msgstr ""
 #: templates/js/_generali_project_management_js.html:338
 #: templates/js/_generali_reporting_js.html:40
 #: templates/js/_reporting_layouts_js.html:10
-#: templates/js/_reporting_metrics_js.html:52
+#: templates/js/_reporting_metrics_js.html:53
 #: templates/js/_reporting_sources_js.html:40
 #: templates/js/_tenant_page_js.html:30
 #: templates/js/admin/_maintenance_js.html:132
@@ -4864,6 +4874,26 @@ msgstr ""
 msgid "Confirm your new password"
 msgstr ""
 
+#: templates/legal.html:76
+msgid "Back to nexora"
+msgstr ""
+
+#: templates/legal.html:80
+msgid "Sydoc AG"
+msgstr ""
+
+#: templates/legal.html:88
+msgid "Draft — not yet in force."
+msgstr ""
+
+#: templates/legal.html:89
+msgid ""
+"The facts on this page were confirmed by Sydoc management and read from "
+"the application itself. The text still has to be reviewed and approved "
+"before it is published; the points marked as open are still being "
+"clarified."
+msgstr ""
+
 #: templates/maintenance.html:6
 msgid "Maintenance - nexora"
 msgstr ""
@@ -5330,7 +5360,7 @@ msgstr ""
 msgid "Metrics"
 msgstr ""
 
-#: templates/js/_reporting_metrics_js.html:101 templates/reporting.html:472
+#: templates/js/_reporting_metrics_js.html:102 templates/reporting.html:472
 #: templates/reporting_metrics.html:50
 msgid "Add metric"
 msgstr ""
@@ -6145,7 +6175,7 @@ msgstr ""
 #: templates/js/_generali_reporting_js.html:41
 #: templates/js/_reporting_dashboard_js.html:7
 #: templates/js/_reporting_layouts_js.html:8
-#: templates/js/_reporting_metrics_js.html:48
+#: templates/js/_reporting_metrics_js.html:49
 #: templates/js/_reporting_sources_js.html:36
 #: templates/js/_tenant_page_js.html:29
 #: templates/js/admin/_maintenance_js.html:126
@@ -8646,11 +8676,11 @@ msgstr ""
 msgid "Not available for this report"
 msgstr ""
 
-#: templates/js/_reporting_metrics_js.html:53
+#: templates/js/_reporting_metrics_js.html:54
 msgid "Delete this metric?"
 msgstr ""
 
-#: templates/js/_reporting_metrics_js.html:82
+#: templates/js/_reporting_metrics_js.html:83
 msgid "Edit metric"
 msgstr ""
 

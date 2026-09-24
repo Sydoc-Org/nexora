@@ -6,6 +6,22 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Terms of Service and Privacy Policy pages** at `/terms` and `/privacy`
+  (#260), public on purpose (a privacy notice readable only after signing in
+  cannot inform the decision to sign in), linked under **Help** in the profile
+  menu and from the login-screen footer. The text is filled in from
+  management's answers (2026-09-24): Sydoc AG, Baar, as controller,
+  `privacy@sydoc.ch`, retention as implemented (request log 180 days, sessions
+  8 days, accounts until the client asks), sub-processors named (Microsoft
+  Azure CH, Microsoft 365, ngrok), requests answered within 30 days. nexora is
+  not sold standalone, so the Terms supplement the client contract. German is
+  the authoritative text, English a courtesy version, picked by the UI
+  language with a `?lang=de|en` switch. **Still a draft** -- the banner stays
+  until management signs it off; open points are in
+  `docs/design/legal-pages-open-questions.md`.
+
 ### Fixed
 
 - **Reporting pages fit on a phone again (#381).** `/reporting`, report
@@ -1323,42 +1339,6 @@ exora\Prune Sessions"
   the header band and hover nearly invisible with header text around 3:1 --
   those surfaces are now separated for `html.dark` rather than by moving the
   shared tokens, which would repaint every component that depends on them.
-
-### Added
-
-- **Terms of Service and Privacy Policy pages** at `/terms` and `/privacy`,
-  linked from the user menu and from the footer that the login and 2FA
-  screens carry. Both are public on purpose: a privacy notice readable only
-  after signing in cannot inform the decision to sign in, and neither page
-  renders any user data.
-
-  **They ship as a skeleton for legal review, and say so prominently.** The
-  headings are the ones a Swiss DSG / GDPR text needs; the wording, legal
-  bases, retention periods and contact details are marked as outstanding.
-  What *is* written is factual and was read from the application: the
-  privacy page lists the account fields, the session row (identifier, IP,
-  timestamps) and the per-request log. Retention is stated as what it is
-  today -- undefined for every category -- because the eight-day session
-  prune (#227) is written but not yet in service, and a draft may be vague
-  without being wrong. Filling in the rest needs someone qualified to write
-  it -- publishing plausible-sounding legal text would be worse than
-  publishing none.
-
-  Both documents now carry drafted prose in every section rather than a bare
-  list of headings, in en/de/fr/it, with a `To be completed` note left wherever
-  the answer is not the author's to give: the controller identity and contact,
-  the legal basis for each purpose, the retention periods, the named
-  sub-processors and their DPAs, the contracting entity, the place of
-  jurisdiction, and -- explicitly reserved for a lawyer -- the limitation of
-  liability. The privacy page discloses that the reporting assistant sends
-  database *structure* to the AI provider, and result rows only for accounts
-  holding both `reporting.ai.explain_data` and `reporting.sql.run`.
-
-  `docs/design/legal-pages-open-questions.md` carries the 12 remaining gaps as
-  questions to put to whoever owns the decision, grouped by whether they are a
-  register lookup, a contract question, a business decision, or a third party
-  that already receives data and needs a DPA. It also lists what was verified
-  off the running system so nobody researches it twice.
 
 ## [3.2.4] - 2026-09-03
 

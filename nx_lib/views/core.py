@@ -10,10 +10,12 @@ from flask import (
     jsonify,
     redirect,
     render_template,
+    request,
     send_from_directory,
     session,
     url_for,
 )
+from flask_babel import get_locale
 from flask_babel import gettext as _
 
 from ..branding import brand_for_org
@@ -29,13 +31,31 @@ def index():
     return render_template("hero.html")
 
 
+# The legal texts exist in German (authoritative, written in German) and in
+# English (a courtesy version) only -- not in all four UI languages (#260,
+# decided 2026-09-24). German for a German UI, English for everyone else;
+# ?lang=de|en is the switch on the page itself.
+LEGAL_TEXT_DATE = "2026-09-24"
+
+
+def _legal_text_lang():
+    asked = request.args.get("lang", "")
+    if asked in ("de", "en"):
+        lang = asked
+    else:
+        lang = "de" if str(get_locale() or "").startswith("de") else "en"
+    return {"text_lang": lang, "text_date": LEGAL_TEXT_DATE}
+
+
 def legal_terms():
     """Terms of service. Deliberately NOT permission-gated and reachable
 
     signed out: it is linked from the footer of the login and 2FA screens,
     where there is no session yet. The page renders no user data.
     """
-    return render_template("legal.html", doc="terms", page_title=_("Terms of Service"))
+    return render_template(
+        "legal.html", doc="terms", page_title=_("Terms of Service"), **_legal_text_lang()
+    )
 
 
 def legal_privacy():
@@ -44,7 +64,9 @@ def legal_privacy():
     additionally because a privacy notice that can only be read after signing
     in cannot inform the decision to sign in.
     """
-    return render_template("legal.html", doc="privacy", page_title=_("Privacy Policy"))
+    return render_template(
+        "legal.html", doc="privacy", page_title=_("Privacy Policy"), **_legal_text_lang()
+    )
 
 
 @require_permission("jd.view")

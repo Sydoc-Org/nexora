@@ -10,51 +10,57 @@ put to whoever owns the decision. It is deliberately not a legal document and
 not legal advice — it is the set of facts and choices the pages need before
 they can be published.
 
-> ## PARKED until late September 2026
+> ## Answered 2026-09-24 — text filled in, still a draft
 >
-> Waiting on the person who owns the client contracts, who is away for about
-> two weeks from 2026-09-07. The three of us — contract owner, Ben and Gregory
-> — will work through the questions below together and agree a finished text
-> before anything goes on the site.
+> Management answered a one-page German question sheet (20 questions) and
+> settled the placement in a chat. The pages now carry real text, German
+> (authoritative, written in German) and English (courtesy), in
+> `templates/legal/{privacy,terms}_{de,en}.html`; the page picks German for a
+> German UI and English otherwise, with a `?lang=de|en` switch. Branch
+> `feat/260-legal-content` (cut from `feat/260-legal-pages`, main merged in).
+> **Not merged, not pushed** — pushing any branch takes over the dev host.
 >
-> **Nothing is blocked by this and nothing is exposed.** `/terms` and
-> `/privacy` do not exist on `main`: no template, no routes in
-> `nx_lib/views/core.py`, no links in the header or footer. PR #264 is closed,
-> so there is no open pull request, no CI running on this branch, and nothing
-> to review or accidentally merge.
+> **Decided:**
 >
-> **Leave this branch completely alone until then.** It touches
-> `messages.pot`, all three `.po`/`.mo` catalogues and
-> `templates/_header.html` — the files most likely to move under us, and
-> exactly the ones the permission rename will rewrite. Merging `main` in
-> repeatedly means resolving the same conflicts several times.
+> - Controller: Sydoc AG, Mühlegasse 18, 6340 Baar, UID CHE-112.467.492; seat
+>   and place of jurisdiction Baar. Contact `privacy@sydoc.ch`.
+> - nexora is **not sold standalone** — it stays an extension of Sydoc's
+>   services, so the Terms supplement the client contract, which already covers
+>   liability, availability and jurisdiction and prevails on conflict. A
+>   data-processing agreement is concluded as standard.
+> - Links sit **under Help in the profile menu** (plus the login-page footer, so
+>   they are readable signed out).
+> - Retention: request log 180 days, sessions 8 days (both implemented and
+>   pinned to `nx_lib/config.py` by a test); accounts are never deleted
+>   automatically — the client requests it (per-user billing); the client's
+>   admin may have accounts blocked or deleted, and that is recorded.
+> - No availability or support-hours promise in nexora; changes announced on
+>   the page with a "Stand"/"last updated" date. German is authoritative.
+> - Azure region Switzerland; ngrok (USA) has a contract (details with Ben);
+>   no EU users today, left open via the DPA. Management reviews the text.
 >
-> **To resume:**
+> **Still open before publishing:**
 >
-> 1. Merge `main` in **once**. Do not hand-merge the catalogues — take
->    `main`'s version wholesale, then re-run `pybabel extract → update →
->    compile` and re-translate the legal strings. See CLAUDE.md on generated
->    files.
-> 2. Work through sections 1–4 with the contract owner. Section 5 says which
->    of them the contract can answer instead of the page.
-> 3. Expect **engineering work, not only wording**, from the retention
->    answers: there is no request-log expiry at all, and the session prune
->    (#227) needs a scheduled task on the app host before it deletes anything.
-> 4. Remove the draft banner **last**, once a qualified reviewer has signed
->    the text off. `tests/integration/test_legal_pages.py` pins the banner and
->    the absence of any retention claim, so both are deliberate failures if
->    you remove them early.
+> 1. **Create the `privacy@sydoc.ch` mailbox.** (The sheet also said
+>    "sydoch.ch" once — read as a typo.)
+> 2. **Q17 was "no guaranteed deadline"** — the revDSG requires an answer to a
+>    request for information within **30 days**, so the page says 30 days.
+>    Confirm with management.
+> 3. **Document retention (Q7/Q9)** — the answer assumed nexora keeps customer
+>    documents 8 days; nexora keeps no copy of its own, it shows them from the
+>    processing systems, and entries made in nexora (reports, hours) live in
+>    the tenant DB. The page says "as set out in the contract" and marks the
+>    rest open. Confirm the wording.
+> 4. **AI provider (Q11) unknown** — which provider production uses, where, and
+>    whether a DPA exists. Ask Ben; marked open on the page.
+> 5. **ngrok = data outside Switzerland** — named on the page; confirm the ngrok
+>    contract includes data-processing terms.
+> 6. **fr/it users get the English text** — confirm that is acceptable.
+> 7. Management review and sign-off → then remove the draft banner
+>    (`test_both_pages_carry_the_draft_notice` pins it) and merge.
 >
-> **Not pushed.** The three commits on `feat/260-legal-pages` are local only.
-> The pre-push gate failed three times on the shared `NEXORA_TEST` database
-> while another developer was working against it — three different,
-> non-reproducible breakages, none in this change. Retrying holds that shared
-> lock for ten to twenty minutes each time, which is worse than waiting. Push
-> once the permission-rename branch has landed and the database is stable.
-
-**Status:** 13 sections drafted, 12 gaps open. Every gap is marked in the page
-itself as a *To be completed* note, so the page and this document cannot drift
-apart silently.
+> The questions below are the original list, kept for the reasoning behind
+> each one.
 
 ---
 
