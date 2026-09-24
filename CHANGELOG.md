@@ -120,6 +120,13 @@ when there isn't enough room.
   "small" the report sheet, the Undo bar and the tab bar came out ~11% wider
   than the screen and taps landed beside Edit/Delete. The phone's own text
   size setting still works. Desktop unchanged.
+- **The home-screen app updates itself.** An iPhone home-screen app shows the
+  page it had in memory instead of reloading, so after a deploy it kept the
+  old layout while Safari already had the fix. When the installed app comes
+  back to the front, `nx_core.js` asks the new public `GET /build.json`
+  (`{"build": <deploy stamp>}`, `no-store`) and reloads once if the build
+  changed — not while a field has focus or a dialog is open. Browser tabs and
+  local dev (empty stamp) are untouched.
 - **Phone: smaller On Time / Late buttons** in the report sheet, 44px tap
   targets for the Generali page links, footer links, organizations table and
   reporting sort box; the reporting table no longer adds a new click listener

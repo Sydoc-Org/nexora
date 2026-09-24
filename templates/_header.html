@@ -38,6 +38,8 @@
         {# Phone start page by role: someone who reports post lands on the
            Reporting page after signing in on a touch phone (nx_core.js). The
            desktop start page (startpage_redirect_to) is unchanged. #}
+        {# The build this page came from; nx_core.js compares it with /build.json. #}
+        window.NX_BUILD = {{ nexora_build|tojson }};
         window.NX_PHONE_START = {{ (url_for('generali_reporting') if has_permission('tenant.generali.reporting.add') else none)|tojson }};
 
         {# UI prefs pre-paint (#155, #243). JS only, no <script> tag: it is

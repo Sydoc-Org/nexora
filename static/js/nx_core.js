@@ -308,6 +308,43 @@
         phoneStart();
     }
 
+    // ---- installed app: reload when a new version is live ------------------
+    // An iPhone home-screen app does not reload when it is opened again: it
+    // shows the page it had in memory, however old. After a deploy that kept
+    // the old, broken layout on screen while Safari already had the fix. So
+    // when the installed app comes back to the front, ask the server which
+    // build is live and reload once if it is not this page's build. Skipped
+    // while something is being typed or a dialog is open, so nobody loses a
+    // half-filled form. Not in a browser tab, where reload is one tap away.
+    function isInstalledApp() {
+        return window.navigator.standalone === true ||
+            (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+    }
+    function busy() {
+        var a = document.activeElement;
+        if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return true;
+        // Only dialogs actually on screen: the command palette's panels carry
+        // aria-modal even while closed.
+        return Array.prototype.some.call(
+            document.querySelectorAll('[aria-modal="true"], .fixed.inset-0.flex'),
+            function (el) { return el.getClientRects().length > 0; });
+    }
+    var checkingBuild = false;
+    function checkBuild() {
+        var mine = window.NX_BUILD;
+        if (!mine || checkingBuild || document.visibilityState !== 'visible' || !isInstalledApp()) return;
+        checkingBuild = true;
+        window.fetch(API_PREFIX + 'build.json', { cache: 'no-store', credentials: 'same-origin' })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (d) {
+                if (d && d.build && d.build !== mine && !busy()) window.location.reload();
+            })
+            .catch(function () { /* offline or restarting: try again next time */ })
+            .then(function () { checkingBuild = false; });
+    }
+    document.addEventListener('visibilitychange', checkBuild);
+    window.addEventListener('pageshow', function (e) { if (e.persisted) checkBuild(); });
+
     // ---- stat-card icons: all or none per row -------------------------------
     // .nx-stat wraps its icon chip under the number when the two do not fit
     // side by side. On a phone that gave a row of KPI cards an extra line in

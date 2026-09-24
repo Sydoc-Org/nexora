@@ -22,6 +22,7 @@ from ..config import PATHS
 from ..db import engine_nexora_db
 from ..maintenance import _get_blocking_maintenance, _maintenance_iso
 from ..security import page_visibility, require_permission, startpage_redirect_to
+from ..version import BUILD_STAMP
 
 
 def index():
@@ -283,11 +284,23 @@ def session_heartbeat():
     return jsonify({"ok": True})
 
 
+def build_info():
+    """The deployed build stamp, for the installed app's self-update check
+    (nx_core.js). An iPhone home-screen app resumes the page it last showed
+    instead of reloading it, so after a deploy it kept running the old page
+    until someone knew to reload. Public: the same stamp is in every footer,
+    the login page's included. "" locally, where there is no deploy."""
+    resp = jsonify({"build": BUILD_STAMP})
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
+
+
 def register_routes(app):
     app.add_url_rule("/", endpoint="index", view_func=index)
     app.add_url_rule(
         "/manifest.webmanifest", endpoint="web_app_manifest", view_func=web_app_manifest
     )
+    app.add_url_rule("/build.json", endpoint="build_info", view_func=build_info)
     app.add_url_rule("/jdvance", endpoint="jdvance", view_func=jdvance)
     app.add_url_rule("/api-docs", endpoint="api_docs", view_func=api_docs)
     app.add_url_rule("/maintenance", endpoint="maintenance_page", view_func=maintenance_page)

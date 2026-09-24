@@ -38,3 +38,13 @@ def test_header_sets_phone_start_only_for_post_reporters(user_client, monkeypatc
     )
     html = user_client.get("/install").get_data(as_text=True)
     assert "window.NX_PHONE_START = null;" in html
+
+
+def test_build_json_is_public_and_never_cached(client, monkeypatch):
+    import nx_lib.views.core as core
+
+    monkeypatch.setattr(core, "BUILD_STAMP", "abc1234 · 2026-09-24")
+    resp = client.get("/build.json")
+    assert resp.status_code == 200
+    assert resp.get_json() == {"build": "abc1234 · 2026-09-24"}
+    assert resp.headers["Cache-Control"] == "no-store"
