@@ -44,6 +44,7 @@ item in it is resolved except the eye-toggle question (see Next steps).
 | `5859d4a7` | merge of the #387 fix branch |
 | `761d7deb` | #388–#394: page-head actions wrap; `.nx-stat` wrap with a min-content floor; card tables `overflow-wrap: anywhere` + `td:empty` hidden; Access Control user cell stacked; appearance preview `minmax(0,1fr)`; phone filter dropdowns ellipsis; touch-gated 44px targets (guide TOC, card kebab) |
 | `dee257ae` | owner request: stat-card icons **all-or-none per group** — `nx_core.js` adds `.nx-stats--no-chips` when any chip in a group would wrap |
+| `c849f7e7` | owner request: Generali Documents had cards inside a same-looking box -- in card mode `.nx-table-wrap` drops its frame (`_header.css`) |
 | `071358b9` | owner request: Generali From/To looked "weird" on a phone — flatpickr swapped them for iOS native date fields. `nx_core.js` sets `flatpickr.setDefaults({ disableMobile: true })` once; same input + calendar as desktop (fits 320px) |
 
 **GitHub housekeeping:** closed #329 (six billing sources live), trimmed #332 to its MediaMarkt
