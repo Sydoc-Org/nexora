@@ -336,3 +336,24 @@ html.dark .step-icon-wrapper.completed {
     .process-step .step-label { font-size: 0.75rem; }
     .process-step i { font-size: 1rem !important; }
 }
+
+/* The hero headline is Tailwind `text-4xl` (36px), which is Tailwind's
+   smallest step for it -- there is no `sm:` below the default, so shrinking it
+   for a phone needs real CSS. At 375px it ran to five lines and 198px tall,
+   about a quarter of the screen, before the reader reached a single word of
+   what nexora does. Width-keyed: this is about how much text fits on a line,
+   which a narrow desktop window has exactly as much of. */
+@media (max-width: 480px) {
+    /* `h1.hero-title`, not `.hero-title`: Tailwind's browser build injects
+       its utilities into a <style> at runtime, so `.text-4xl` lands later
+       in the document and wins a specificity tie. The element selector
+       breaks the tie without an !important. */
+    h1.hero-title { font-size: 1.75rem; line-height: 1.15; }
+}
+
+/* Touch targets in the landing header (#354). Pointer-keyed for the same
+   reason as the login form's: size follows the finger, not the screen. */
+@media (pointer: coarse) {
+    [data-testid="hero-theme-toggle"] { min-width: 44px; min-height: 44px; }
+    [data-testid="hero-signin-mobile"] { min-height: 44px; }
+}

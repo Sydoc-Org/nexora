@@ -117,7 +117,9 @@ html.dark[data-bg="fireflies"] .appearance-canvas {
 .appearance-mock-title { font-size: 15px; font-weight: 600; color: var(--nx-text); line-height: 1.2; }
 .appearance-mock-sub { font-size: 11.5px; color: var(--nx-text-sec); }
 
-.appearance-mock-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+/* minmax(0, 1fr): a bare 1fr track grows to its card's min-content, which
+   pushed the Backlog card past the preview's clipped edge on a phone (#391). */
+.appearance-mock-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .appearance-mock-stats .nx-stat__value { font-size: 22px; }
 .appearance-mock-stats .nx-stat__chip { width: 34px; height: 34px; font-size: 14px; border-radius: var(--nx-radius-sm); }
 
@@ -180,11 +182,29 @@ html.nx-compact .appearance-canvas .nx-table tbody td { padding: 6px 10px; }
 
 /* ---------- Responsive ---------- */
 @media (max-width: 1100px) {
-    .appearance-grid { grid-template-columns: 1fr; }
-    .appearance-preview { position: static; order: -1; }
+    /* minmax(0, 1fr), not 1fr: a `1fr` track takes min-content as its
+       automatic minimum, so the widest thing in the preview card pushed the
+       track past the viewport and the whole page could be dragged 37px
+       sideways at 375px wide. The desktop rule above already uses minmax(0,
+       1fr) for the same reason; this override had dropped back to the bare
+       keyword. `min-width: 0` on the items is the other half -- a grid item
+       carries the same automatic min-content minimum of its own. */
+    .appearance-grid { grid-template-columns: minmax(0, 1fr); }
+    .appearance-preview { position: static; order: -1; min-width: 0; }
 }
 
 /* ---------- Reduced motion ---------- */
 @media (prefers-reduced-motion: reduce) {
     .appearance-custom-wrap, .profile-accent { transition: none; }
+}
+
+
+/* Touch targets on /appearance (#354 follow-up). "Back to profile" was 29px
+   and is the only way out of the page other than the browser's own back. */
+@media (pointer: coarse) {
+  .appearance-back {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
 }

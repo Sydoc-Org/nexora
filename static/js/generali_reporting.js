@@ -204,8 +204,8 @@
             const deletable = canDeleteRecord(r);
             const showActions = canEdit || canDelete;
             let actionBtns = '';
-            if (canEdit)   actionBtns += `<button class="edit-record-btn inline-flex items-center text-xs font-semibold px-2 py-1 rounded-lg transition mr-1 ${editable  ? 'text-[var(--nx-accent)] hover:text-[var(--nx-accent-hover)] hover:bg-[var(--nx-accent-tint)]' : 'text-gray-300 cursor-not-allowed'}" data-id="${r.id}" ${editable  ? '' : 'disabled'} data-testid="generali-reporting-row-edit-${r.id}"><i class="fas fa-pen text-xs"></i></button>`;
-            if (canDelete) actionBtns += `<button class="delete-record-btn inline-flex items-center text-xs font-semibold px-2 py-1 rounded-lg transition ${deletable ? 'text-red-500 hover:text-red-700 hover:bg-red-50' : 'text-gray-300 cursor-not-allowed'}" data-id="${r.id}" ${deletable ? '' : 'disabled'} data-testid="generali-reporting-row-delete-${r.id}"><i class="fas fa-trash text-xs"></i></button>`;
+            if (canEdit)   actionBtns += `<button aria-label="${I18N.edit}" class="edit-record-btn inline-flex items-center text-xs font-semibold px-2 py-1 rounded-lg transition mr-1 ${editable  ? 'text-[var(--nx-accent)] hover:text-[var(--nx-accent-hover)] hover:bg-[var(--nx-accent-tint)]' : 'text-gray-300 cursor-not-allowed'}" data-id="${r.id}" ${editable  ? '' : 'disabled'} data-testid="generali-reporting-row-edit-${r.id}"><i class="fas fa-pen text-xs"></i></button>`;
+            if (canDelete) actionBtns += `<button aria-label="${I18N.delete}" class="delete-record-btn inline-flex items-center text-xs font-semibold px-2 py-1 rounded-lg transition ${deletable ? 'text-red-500 hover:text-red-700 hover:bg-red-50' : 'text-gray-300 cursor-not-allowed'}" data-id="${r.id}" ${deletable ? '' : 'disabled'} data-testid="generali-reporting-row-delete-${r.id}"><i class="fas fa-trash text-xs"></i></button>`;
             const actionsCell = showActions ? `<td class="px-4 py-3 text-center whitespace-nowrap">${actionBtns}</td>` : '';
 
             const tr = document.createElement('tr');

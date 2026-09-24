@@ -89,6 +89,69 @@ def create_app():
             resp.headers["Cache-Control"] = f"public, max-age={static_max_age_seconds}"
         return resp
 
+    @app.after_request
+    def _html_no_store(resp):
+        """Never let a rendered page be cached (#354).
+
+        HTML went out with no Cache-Control, no ETag and no Last-Modified at
+        all, so a browser had nothing to go on and fell back to heuristic
+        freshness -- which a home-screen shortcut, running in its own
+        standalone context, applies far more eagerly than a normal tab. The
+        visible symptom was a pinned nexora that kept showing the version it
+        was pinned at, for days.
+
+        The knock-on effect is the real damage. Every asset tag's `?v=<mtime>`
+        cache-buster is baked into the HTML, so a stale page also pins stale
+        asset URLs: the browser never even asks for the new CSS, and the
+        year-long max-age on /static above -- which is only safe because the
+        HTML that references it is supposed to be fresh -- keeps serving the
+        old file. A deploy then appears to do nothing.
+
+        `no-store` rather than `no-cache`: every page here is rendered for one
+        signed-in user (their name, their permissions, their tenant), so none
+        of it should ever be written to a shared or on-disk cache in the first
+        place. That also stops a back-button press on a shared machine
+        redisplaying the previous user's page after they signed out.
+
+        setdefault, so a view that deliberately sets its own policy keeps it.
+        Static assets are untouched: they are versioned, and their long
+        max-age is what makes navigation fast.
+        """
+        if resp.mimetype == "text/html":
+            resp.headers.setdefault("Cache-Control", "no-store")
+        return resp
+
+    @app.template_global()
+    def tabbar_window(nav, active_page, own_tenant=None, remembered=None, solo=False):
+        """The phone tab bar's three slots -- see nx_lib/tabbar.py.
+
+        A template global rather than a context processor because it needs
+        `active_page`, which each page template sets with `{% set %}` just
+        before including _header.html; a context processor runs too early to
+        see it.
+        """
+        from .tabbar import tabbar_window as _win
+
+        return _win(nav, active_page, own_tenant, remembered, solo)
+
+    @app.template_global()
+    def tenant_switcher(nav, active_page, own_tenant=None, remembered=None, solo=False):
+        """The phone sheet's tenant chips -- see nx_lib/tabbar.py.
+
+        Shares `active_tenant_code` with the tab bar, so the chip marked
+        current and the pages in the bar can never disagree.
+        """
+        from .tabbar import tenant_switcher as _sw
+
+        return _sw(nav, active_page, own_tenant, remembered, solo)
+
+    @app.template_global()
+    def slot_vt_name(key):
+        """view-transition-name for a tab-bar slot -- see nx_lib/tabbar.py."""
+        from .tabbar import slot_transition_name
+
+        return slot_transition_name(key)
+
     @app.template_global()
     def static_v(filename):
         """url_for('static') with an mtime cache-buster (#191).

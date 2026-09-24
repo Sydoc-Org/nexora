@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="{{ static_v('css/nexora-ui.css') }}">
     <link rel="stylesheet" href="{{ static_v('css/_header.css') }}">
     <link rel="icon" type="image/x-icon" href="{{ static_v('images/favicon.ico') }}">
+    {% include '_app_manifest.html' %}
     <script nonce="{{ csp_nonce() }}">
         /* Delegated click binding for `data-nx-click="someGlobalFn()"`. The
            #193 CSP work dropped inline onclick attributes; the admin
@@ -49,6 +50,38 @@
         </div>
 
         <nav class="sidebar-nav">
+            {# ---- Tenant switcher (phone sheet only) ----
+               One tap to move between the tenants this session can see. It
+               sits at the TOP because on a phone the sheet is the only way
+               in, and the tenant groups below it are several scrolls down --
+               which is how the owner found this: "how do i select the
+               tenants".
+
+               Each chip links the tenant's FIRST PAGE, not `?tenant=<code>`.
+               The query parameter is only honoured by routes that call
+               apply_tenant_scope, and Generali's are custom routes that never
+               do -- a picker built on it would appear to do nothing for the
+               tenant that needed it most. Landing on a real page is also what
+               makes the tab bar follow, since the bar matches the page you
+               are on.
+
+               Hidden on a desktop by CSS: the sidebar already lists every
+               tenant as its own group there, so this would be a second way to
+               do the same thing. Empty for a `tenant_solo` user, whose UI
+               never names their tenant (#255), and for anyone with only one
+               tenant, which is not a choice. #}
+            {% set tenant_chips = tenant_switcher(tenant_nav, active_page, tenant_scoped, tenant_current, tenant_solo) %}
+            {% if tenant_chips %}
+            <div class="nx-tenant-switch" role="group"
+                 aria-label="{{ _('Tenants') }}" data-testid="tenant-switcher">
+                {% for code, label, url, current in tenant_chips %}
+                <a href="{{ url }}" class="nx-tenant-chip {{ 'is-current' if current else '' }}"
+                   {% if current %}aria-current="true"{% endif %}
+                   data-testid="tenant-switch-{{ code }}">{{ label }}</a>
+                {% endfor %}
+            </div>
+            {% endif %}
+
             {% if page_visibility.adminPagePerm or page_visibility.adminMaintenanceViewPerm or page_visibility.adminStatusPagePerm or page_visibility.adminClientsPagePerm or page_visibility.adminProcessesPagePerm %}
             {% set admin_active = active_page in ['adminOverview','organizations','admin_access','admin_logs','admin_sessions','admin_user_detail','maintenance','admin_status','clients','processes','admin_tenants','admin_tenants_manage'] %}
             <div class="sidebar-nav-group" id="adminNavGroup" data-active="{{ 'true' if admin_active else 'false' }}">
@@ -167,10 +200,17 @@
             </div>
             {% endif %}
 
+            {# Two consumers: the sidebar loop right below, and the phone tab
+               bar after </aside> (#354). Keep this set above both -- moving it
+               down would silently empty the tab bar's slots.
+               'short' is the tab bar's label: a bar slot is ~90px wide, where
+               "Global Dashboard" renders as "Global Dash...". The sidebar
+               keeps the full label, which is what disambiguates it from a
+               tenant's own mounted Dashboard. #}
             {% set nav_items = [
-                {'perm': page_visibility.dashboardPagePerm,  'url': url_for('dashboard', tenant=''), 'icon': 'fa-gauge-high',          'label': _('Global Dashboard'),              'active': active_page == 'dashboard'},
-                {'perm': page_visibility.reportingPagePerm, 'url': url_for('reporting'),           'icon': 'fa-chart-column',        'label': _('Global Reporting'),       'active': active_page == 'reporting', 'always': true},
-{'perm': page_visibility.workitemsPagePerm, 'url': url_for('workitems_overview', tenant=''), 'icon': 'fa-layer-group',         'label': _('Global Workitems'),              'active': active_page == 'workitems_overview'},
+                {'perm': page_visibility.dashboardPagePerm,  'key': 'dashboard', 'url': url_for('dashboard', tenant=''), 'icon': 'fa-gauge-high',          'label': _('Global Dashboard'), 'short': _('Dashboard'),              'active': active_page == 'dashboard'},
+                {'perm': page_visibility.reportingPagePerm, 'key': 'reporting', 'url': url_for('reporting'),           'icon': 'fa-chart-column',        'label': _('Global Reporting'), 'short': _('Reporting'),       'active': active_page == 'reporting', 'always': true},
+{'perm': page_visibility.workitemsPagePerm, 'key': 'workitems', 'url': url_for('workitems_overview', tenant=''), 'icon': 'fa-layer-group',         'label': _('Global Workitems'), 'short': _('Workitems'),              'active': active_page == 'workitems_overview'},
             ] %}
 
             {# A user inside exactly ONE tenant reaches Dashboard/Workitems through
@@ -284,6 +324,21 @@
                 <span class="sidebar-label" id="sidebar-pin-label">{{ _("Keep sidebar open") }}</span>
             </button>
 
+            {# Reload (#354). An installed home-screen app runs with no browser
+               chrome at all -- no address bar, no reload button -- so on iOS
+               there is otherwise NO way to reload a page. Android's standalone
+               mode keeps pull-to-refresh; iOS does not, and does not support
+               minimal-ui either, so the app has to offer this itself.
+
+               Hidden unless actually running installed (display-mode:
+               standalone), because in a browser tab the reload button already
+               exists and this would just be clutter. #}
+            <button id="nx-reload" class="sidebar-nav-item sidebar-reload" type="button"
+                    title="{{ _('Reload') }}" data-testid="header-reload">
+                <i class="fas fa-rotate-right sidebar-nav-icon"></i>
+                <span class="sidebar-label">{{ _("Reload") }}</span>
+            </button>
+
             <!-- Dark mode toggle -->
             <button id="dark-mode-toggle" class="sidebar-nav-item" title="{{ _('Toggle dark mode') }}" data-testid="header-dark-mode-toggle">
                 <i id="dark-mode-icon" class="fas fa-moon sidebar-nav-icon"></i>
@@ -355,6 +410,111 @@
         </div>
     </aside>
     <!-- ========== END SIDEBAR ========== -->
+
+    {# ========== PHONE TAB BAR (#354) ==========
+       A bottom bar in the thumb zone, and the sidebar above re-styled as a
+       bottom sheet behind its "More" slot. Both are visible ONLY under the
+       touch gate in _header.css -- `(max-width: 768px) and (pointer: coarse)
+       and (hover: none)`. A narrow DESKTOP window (a half-screen window, or
+       200% browser zoom, both of which drop the CSS viewport under 768px)
+       keeps the hamburger drawer instead, because a mouse machine reports
+       `pointer: fine` / `hover: hover` whatever its width. See the CSS block
+       for why the gate uses `pointer:` and never `any-pointer:`.
+
+       Rendered on every page and display:none otherwise -- no user-agent
+       sniffing on the server, so nothing here can be fooled by a UA string
+       and nothing varies by cache key.
+
+       Slots reuse the sidebar's own permission-filtered sources, never a
+       second copy of the permission logic: `nav_items` (set above, inside the
+       sidebar nav -- keep it above this block) for a staff/multi-tenant user,
+       or the user's own tenant pages for a `tenant_solo` one, which are
+       already filtered by _tenant_nav_page() (#300). A slot the user may not
+       see is not rendered at all -- never a dead tab. #}
+    {# `vt` is a view-transition-name keyed on the PAGE, which is what makes the
+       slots slide instead of cross-fade -- see nx_lib/tabbar.py's
+       slot_transition_name. Written as an inline style because
+       view-transition-name cannot be produced from attr() and must differ per
+       element; style-src already allows 'unsafe-inline'. Harmless off a
+       phone: `.nx-tabbar` is display:none by default, and a display:none
+       element takes no part in a transition. #}
+    {% macro tabbar_item(url, icon, label, on, testid, vt=none) -%}
+    <a href="{{ url }}" class="nx-tabbar-item {{ 'nx-tabbar-item--active' if on else '' }}"
+       {% if vt %}style="view-transition-name: {{ vt }}"{% endif %}
+       {% if on %}aria-current="page"{% endif %} data-testid="{{ testid }}">
+        <i class="fas {{ icon }} nx-tabbar-icon"></i>
+        <span class="nx-tabbar-label">{{ label }}</span>
+    </a>
+    {%- endmacro %}
+
+    <nav class="nx-tabbar" aria-label="{{ _('Main navigation') }}" data-testid="mobilenav-bar">
+        {# Which list does the bar carry? Three cases, in order:
+
+           1. a `tenant_solo` user -- the tenant's own pages ARE their
+              workspace (#255), so the bar carries them rather than the Global
+              entries, which for them would be the same pages renamed;
+           2. anyone else standing INSIDE a tenant -- staff, and members who
+              hold grants on other tenants. These used to fall through to the
+              Global entries *even while on a tenant page*, which left no slot
+              lit at all: a tenant-mounted Dashboard sets active_page to
+              `tenant_<code>_dashboard`, never 'dashboard'. That is worse than
+              it looks -- swipe_nav.js finds its position by looking for the
+              active slot, so with none lit, swiping between views did nothing
+              on every tenant page. The bar was dead weight exactly where the
+              user was working;
+           3. everybody else -- the Global entries, exactly as before.
+
+           Matching `tenant_current` against `tenant_nav` cannot widen access:
+           the scope comes from apply_tenant_scope, which already 403s a tenant
+           the session may not view, and visible_tenant_nav() only ever returns
+           viewable ones. Two already-filtered sources agreeing, not a new
+           permission decision. #}
+        {# Which three pages, and which is lit, is decided in
+           nx_lib/tabbar.py -- two of the three rules are fiddly enough that a
+           Jinja expression needing a paragraph of comment would be a rule
+           nobody could change safely. Read that module for the why; in short:
+           the tenant is found by the page you are ON (the session's scope is
+           not written by Generali's custom routes, so it names the wrong
+           tenant there), and the three slots are a window over the whole list
+           with the active page in the middle.
+
+           An empty result means no tenant applies -- fall through to the
+           Global entries, exactly as before. #}
+        {% set tabslots = tabbar_window(tenant_nav, active_page, tenant_scoped, tenant_current, tenant_solo) %}
+        {% if tabslots %}
+        {% for p, on in tabslots %}
+        {{ tabbar_item(p.url, p.icon if p.page_type == 'custom' else 'fa-table-list',
+                       p.label, on, 'mobilenav-slot-' ~ p.key, slot_vt_name(p.key)) }}
+        {% endfor %}
+        {% else %}
+        {# The bar cannot reuse `item.active`. That flag answers "is the SIDEBAR's
+           Global entry the current page", and for anyone scoped to a tenant the
+           answer is always no: a tenant-mounted Dashboard sets active_page to
+           `tenant_<code>_dashboard` (0097) and Workitems to
+           `tenant_<code>_workitems` (0098), neither of which equals 'dashboard'
+           or 'workitems_overview'. In the sidebar that is right -- the tenant's
+           own group lights up instead -- but the bar has no tenant group to
+           light, so no slot lit at all on the two pages people open most.
+           Match both spellings here. Every reporting sub-page already sets
+           active_page = 'reporting'. #}
+        {% set ap = active_page or '' %}
+        {% for item in nav_items if item.perm %}
+        {% set on = (item.key == 'dashboard' and (ap == 'dashboard' or ap.endswith('_dashboard')))
+                 or (item.key == 'workitems' and (ap == 'workitems_overview' or ap.endswith('_workitems')))
+                 or (item.key == 'reporting' and ap == 'reporting') %}
+        {{ tabbar_item(item.url, item.icon, item.short, on, 'mobilenav-slot-' ~ loop.index, slot_vt_name(item.key)) }}
+        {% endfor %}
+        {% endif %}
+
+        {# Named as well, so the browser anchors it across the transition and it
+           visibly stays put while the slots move past it. #}
+        <button type="button" id="nx-tabbar-more" class="nx-tabbar-item"
+                style="view-transition-name: nx-tab-more"
+                aria-controls="nexora-sidebar" aria-expanded="false" data-testid="mobilenav-more">
+            <i class="fas fa-ellipsis nx-tabbar-icon"></i>
+            <span class="nx-tabbar-label">{{ _("More") }}</span>
+        </button>
+    </nav>
 
     <!-- ========== COMMAND PALETTE (Ctrl/Cmd+K) ========== -->
     <div id="cmdkOverlay" class="cmdk-overlay" hidden>

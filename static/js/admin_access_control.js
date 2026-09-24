@@ -105,9 +105,11 @@ function renderUsersTable(users) {
         tr.innerHTML = `
             <td></td>
             <td>
-                <div class="font-medium text-gray-900 text-sm">${escapeHtml(u.fullname)}</div>
-                <div class="text-xs text-gray-400">@${escapeHtml(u.username)}</div>
-                <div class="text-xs text-gray-400">${escapeHtml(u.email || '')}</div>
+                <div class="min-w-0">
+                    <div class="font-medium text-gray-900 text-sm">${escapeHtml(u.fullname)}</div>
+                    <div class="text-xs text-gray-400">@${escapeHtml(u.username)}</div>
+                    <div class="text-xs text-gray-400">${escapeHtml(u.email || '')}</div>
+                </div>
             </td>
             <td>${badge}</td>
             <td class="text-sm text-gray-600">${escapeHtml(u.organization || '—')}</td>

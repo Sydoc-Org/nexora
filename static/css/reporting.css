@@ -383,9 +383,19 @@
 .reporting-guide-article hr { border: 0; border-top: 1px solid var(--nx-border, #e5e7eb); margin: 24px 0; }
 html { scroll-padding-top: 84px; }
 @media (max-width: 900px) {
-  /* minmax(0, …): a bare 1fr track grows to the article's min-content (#381). */
+  /* minmax(0, ...) like the desktop rule above, not a bare 1fr: an
+     automatic-minimum track grows to its content instead of clamping
+     to the container, which pushed this page 114px sideways. */
   .reporting-guide-layout { grid-template-columns: minmax(0, 1fr); }
+  .reporting-guide-toc, .reporting-guide-article { min-width: 0; }
   .reporting-guide-toc { position: static; }
+}
+/* Phone tap targets (#394): the guide's contents links were 16px tall, one
+   line of 13px text. A 44px row is Apple's minimum; touch-gated so the
+   desktop sidebar keeps its tight list. */
+@media (max-width: 768px) and (pointer: coarse) {
+  .reporting-guide-toc ul { gap: 0; }
+  .reporting-guide-toc a { display: flex; align-items: center; min-height: 44px; }
 }
 
 /* Tips & help modal */
@@ -485,7 +495,8 @@ html { scroll-padding-top: 84px; }
   background: var(--nx-card); border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 14px); padding: 14px; margin-bottom: 16px;
 }
 .reporting-admin section h3 { margin-top: 0; }
-.reporting-admin-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 16px; }
+/* minmax(0, ...) so a long value cannot push the grid past its container. */
+.reporting-admin-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; }
 .reporting-admin-grid label,
 .reporting-admin-cols {
   display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: var(--nx-text-sec);
@@ -1559,7 +1570,34 @@ html.dark .reporting-sqlview pre .sql-comment, html.dark .reporting-ai-sql .sql-
   .reporting-chat-panel:not([hidden]) { animation: none; }
 }
 @media (max-width: 900px) {
-  .reporting-chat-panel { width: calc(100vw - 40px); height: calc(100dvh - 40px); }
+  /* Anchor to BOTH edges rather than setting a height. `height: 100dvh - 40px`
+     used to be close enough, but `dvh` counts the full screen including the
+     status bar and the home indicator -- so once the pages opted into
+     `viewport-fit=cover` (#354) the panel became taller than the usable area
+     and its top slid off-screen, taking the header and its close button with
+     it. There was no way to dismiss Eddard on a phone.
+
+     Top and bottom with `height: auto` makes the panel fit whatever is
+     actually between the insets, whatever they turn out to be. */
+  .reporting-chat-panel {
+    left: 20px;
+    right: 20px;
+    width: auto;
+    top: calc(var(--nx-sa-top) + 12px);
+    bottom: calc(var(--nx-sa-bottom) + 12px);
+    height: auto;
+    max-height: none;
+  }
+}
+
+/* On a touch phone the tab bar owns the bottom of the screen, so the panel
+   stops above it -- otherwise its composer sits underneath the navigation.
+   Gated on touch like the bar itself: a narrow desktop window has no tab bar
+   and must not reserve room for one. */
+@media (max-width: 768px) and (pointer: coarse) {
+  .reporting-chat-panel {
+    bottom: calc(var(--nx-tabbar-h) + var(--nx-sa-bottom) + 12px);
+  }
 }
 
 .reporting-chat-head {
@@ -3152,4 +3190,94 @@ body.reporting-console.rdb-fullbleed .reporting-dashboard:fullscreen { padding: 
 /* 3. Phone / very narrow rail: one column all the way down. */
 @container reporting (max-width: 700px) {
   .reporting-main:not(.reporting-main--single) { grid-template-columns: 1fr; }
+}
+
+/* ============================================================
+   PHONE (#354)
+
+   The reporting pages keep desktop gutters at every width: the console shell
+   spends 80px of a 375px screen on padding, and the admin pages 40px. Width
+   is the scarcest thing on this page family -- the console is a rail plus a
+   content column, and the admin pages are wide tables.
+   ============================================================ */
+@media (max-width: 768px) {
+  .reporting-shell,
+  .reporting-main,
+  .reporting-simple { padding-inline: 16px; }
+
+  .reporting-admin {
+    padding: 16px 12px;
+    min-width: 0;
+    /* `margin: 0 auto` on a flex item cancels align-items: stretch, so this
+       shrink-wrapped to its widest table (506px) instead of filling the 390px
+       body -- body.nx-app is a flex column. Filling the width lets the tables
+       overflow inside their own containers rather than dragging the page. */
+    width: 100%;
+    box-sizing: border-box;
+  }
+}
+
+/* Touch targets in the reporting registry forms (#354).
+
+   Lives here rather than in reporting-console.css: /reporting/sources and
+   /reporting/metrics load nexora-ui.css + reporting.css only, not the console
+   stylesheet. These forms use bare input/select rather than the shared
+   .nx-input, so the sizing that fixed every admin page did not reach them.
+
+   Pointer-keyed, so a desktop is untouched at any width. */
+@media (pointer: coarse) {
+  .reporting-admin input:not([type="checkbox"]):not([type="hidden"]),
+  .reporting-admin select,
+  .reporting-admin textarea { min-height: 44px; }
+  .reporting-admin input[type="checkbox"] { width: 22px; height: 22px; }
+  /* Save / Reset / the per-column format pickers are bare <button>s here, not
+     .nx-btn, so they came out 35-41px. */
+  .reporting-admin button { min-height: 44px; }
+  .reporting-link {
+    min-width: 44px;
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  td .reporting-link + .reporting-link { margin-left: 6px; }
+}
+
+/* Eddard on a phone (#371).
+
+   The panel itself fits now (it is re-anchored top and bottom under #354), so
+   what was left is what you actually touch inside it. The starter suggestions
+   are the first thing anyone taps on an empty thread and they were 28px tall
+   with 3px between them -- four pills stacked nearly touching, at 11px type.
+   The close button is a bordered box holding one glyph, the same thing that
+   was wrong on the wizard.
+
+   Pointer-keyed with no width clause: a chip is too small for a finger on a
+   tablet too. */
+@media (pointer: coarse) {
+  .rp-chat-starter {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 44px;
+    margin: 0;
+    padding: 10px 14px;
+    font-size: 13px;
+    text-align: left;
+    border-radius: 12px;
+  }
+  /* The chips are laid out by their container's flow, so the gap goes there
+     rather than back onto each chip's margin. */
+  .reporting-chat-empty .rp-chat-starter + .rp-chat-starter { margin-top: 8px; }
+
+  #rpChatClose {
+    min-height: 44px;
+    min-width: 44px;
+    justify-content: center;
+    background: transparent;
+    border-color: transparent;
+  }
+  /* The answer-depth picker sits in the composer beside the send button, so
+     it is one of the two things you reach for most in the panel. 33px. */
+  #rpChatEffortBtn { min-height: 44px; }
 }

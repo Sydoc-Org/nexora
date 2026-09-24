@@ -274,3 +274,61 @@ body.nx-app label.ml-toggle input[type="checkbox"] { opacity: 0; width: 0; heigh
 
 /* Tenant management (#256): organization picker in the tenant modal */
 .tenant-org-picker { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px 14px; max-height: 220px; overflow: auto; padding: 8px 10px; border: 1px solid var(--nx-border); border-radius: 8px; }
+
+/* Touch targets on the admin pages (#354). Pointer-keyed like the rest: size
+   follows the finger, not the screen, so a desktop is untouched at any width.
+
+   Everything else on these pages is built from the shared components fixed in
+   nexora-ui.css (.nx-btn, .nx-input, .nx-select, .nx-tab). These two are
+   admin-logs' own: the time-range presets rendered 33px and the save-preset
+   button 31px. No admin page overflows at phone width -- the wide tables
+   already scroll inside their own containers -- so target size was the whole
+   of the problem here. */
+@media (pointer: coarse) {
+  .log-preset,
+  .save-preset-btn { min-height: 44px; }
+
+  /* The overview's two standalone quick links were 355x21 -- wide enough to
+     hit but thin. They are the only plain text links on these pages that act
+     as primary controls. */
+  [data-testid="admin-overview-docs-link"],
+  [data-testid="admin-overview-ngrok-link"] {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  /* Deliberately NOT touched: the links inside the tenant cards on
+     /admin/tenants (tenant name, the member list, "Open Process
+     Configuration"), which run 16-25px tall. Those are content inside a card
+     rather than controls in a toolbar, and a card listing six members would
+     grow by well over 100px if each row were padded to 44 -- the card stops
+     being scannable to fix a target you reach deliberately, one at a time. */
+}
+
+/* The restart row on the admin overview (#354 follow-up). Was three inline
+   styles on the wrapper and the select, which left no way to lay it out
+   differently on a phone -- the select, the button and the "Current env"
+   note collided into each other on one unwrappable line. */
+.admin-restart-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.admin-restart-row .nx-select { width: auto; }
+
+@media (max-width: 768px) and (pointer: coarse) {
+  /* Stacked, like the other phone toolbars: the select and the button each
+     take the full width and the env note sits under them, rather than three
+     things fighting over 390px. */
+  .admin-restart-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .admin-restart-row .nx-select,
+  .admin-restart-row .nx-btn { width: 100%; }
+  .admin-restart-row .nx-meta { align-self: flex-start; }
+}

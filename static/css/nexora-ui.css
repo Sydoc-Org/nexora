@@ -104,6 +104,33 @@
   --nx-radius-hero: calc(var(--nx-radius-scale, 1) * 16px);
   --nx-card-hover-border: color-mix(in srgb, var(--nx-accent) 40%, white);
   --nx-card-hover-shadow: 0 8px 24px -8px color-mix(in srgb, var(--nx-accent) 18%, transparent);
+
+  /* — Safe areas (the notch and the home indicator) —
+
+     One token per edge instead of `env(safe-area-inset-*)` at each use
+     site. Two reasons, and the second is why they exist at all:
+
+       1. Same argument as --nx-tabbar-h in _header.css: the tab bar, the
+          body padding, the reporting rail and three floating bars all have
+          to agree about how much room the home indicator takes. Hand-copied
+          env() calls drift.
+       2. `env()` cannot be overridden -- setting it from a stylesheet or the
+          console does nothing, and browser device emulation reports 0 for
+          every inset. That makes every layout bug in the safe areas
+          invisible outside a real iPhone (~59px top, ~34px bottom). Read
+          through a custom property, the same values CAN be set, so the
+          phone's geometry is reproducible in a desktop browser and in the
+          Playwright suite -- that is what `scripts/phone-sweep.py` drives.
+          The convention is guarded by tests/unit/test_safe_area_tokens.py.
+
+     The `0px` fallbacks are load-bearing: a bare env() is invalid where the
+     function is unsupported, and an invalid custom property makes every
+     var() reading it collapse to nothing -- which would silently drop the
+     padding rather than fall back to zero. */
+  --nx-sa-top:    env(safe-area-inset-top, 0px);
+  --nx-sa-bottom: env(safe-area-inset-bottom, 0px);
+  --nx-sa-left:   env(safe-area-inset-left, 0px);
+  --nx-sa-right:  env(safe-area-inset-right, 0px);
 }
 
 html.dark {
@@ -252,6 +279,14 @@ body.nx-app .nx-main {
   padding: 44px 40px 28px;
   box-sizing: border-box;
 }
+/* The 40px side gutter is a desktop measure. On a 375px screen it spent 80px
+   -- over a fifth of the display -- on empty margin, squeezing the content
+   column to 287px and making every table, tile and chart narrower than it
+   needed to be. Mirrors what _header.css already does for `.container` at
+   this width (#354 follow-up). */
+@media (max-width: 768px) {
+  body.nx-app .nx-main { padding: 24px 16px 20px; }
+}
 
 /* Page header: title + subtitle on the left, actions on the right,
    with a hair-thin accent keyline under the title block. */
@@ -284,7 +319,10 @@ body.nx-app .nx-main {
   color: var(--nx-text-sec);
   margin: 4px 0 0;
 }
-.nx-page-head__actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+/* flex-wrap + max-width: a row of actions wider than the screen wraps onto a
+   second line instead of running off the right edge (#388, Prepared
+   Documents' "Clear list"). Both only engage when the row does not fit. */
+.nx-page-head__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; flex-shrink: 0; max-width: 100%; }
 .nx-section {
   font-size: 16px; font-weight: 600; letter-spacing: -0.2px;
   color: var(--nx-text); margin: 0;
@@ -319,8 +357,33 @@ a.nx-card:hover, .nx-card--link:hover {
 }
 
 /* Stat / KPI card */
-.nx-stat { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-.nx-stat__label { font-size: 11px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase; color: var(--nx-text-meta); margin: 0 0 6px; }
+/* flex-wrap: when the number and the 44px icon chip no longer fit side by
+   side, the chip drops under the number instead of sticking out of the card
+   (#389, the Generali dashboard's "206.542" on an iPhone SE). */
+.nx-stat { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px; }
+/* Wrap is decided on each item's hypothetical size. At the default basis
+   that is the text block's max-content -- the label on one line -- so the
+   chip dropped even in cards where the label would simply have wrapped (the
+   /appearance preview on desktop). A 0 basis with a min-content floor means
+   the chip only drops when the unbreakable number itself cannot sit beside it. */
+.nx-stat > :not(.nx-stat__chip):not(.nx-stat__icon) { flex: 1 1 0; min-width: min-content; }
+/* Set by nx_core.js when any card in the group would wrap its chip: then no
+   card in that group shows one, so the boxes stay even (phone KPI rows). */
+.nx-stats--no-chips .nx-stat__chip { display: none; }
+/* `overflow-wrap: anywhere` is doing real work here, not tidying. German
+   compounds these labels into single unbreakable words -- "On-Time Rate"
+   becomes "Pünktlichkeitsquote", 19 characters with nowhere to wrap. In a
+   two-column stat grid on a 375px phone the label overflowed its card by 5px
+   and shoved the icon chip 61px past the edge, which is what let the Generali
+   month report be dragged sideways on every iPhone. Hyphenation first, and
+   `-webkit-hyphens` is not optional -- Safari ignores the unprefixed
+   property, so without it WebKit fell straight through to `overflow-wrap:
+   anywhere` and broke the word wherever it happened to land: "PUENKTLICH /
+   KEITSQUOT / E", three lines with one letter on the last. The <html> element
+   carries `lang`, which is what lets a browser hyphenate at real syllable
+   boundaries. `anywhere` stays as the guarantee for a locale with no
+   hyphenation patterns, where a break anywhere still beats an overflow. */
+.nx-stat__label { font-size: 11px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase; color: var(--nx-text-meta); margin: 0 0 6px; -webkit-hyphens: auto; hyphens: auto; overflow-wrap: break-word; }
 .nx-stat__value { font-family: var(--nx-mono); font-variant-numeric: tabular-nums; font-size: 30px; font-weight: 600; letter-spacing: -1px; line-height: 1; color: var(--nx-text); }
 .nx-stat__icon  { font-size: 18px; color: var(--nx-text-meta); opacity: .55; transition: color var(--nx-dur) var(--nx-ease), opacity var(--nx-dur) var(--nx-ease); }
 .nx-card--link:hover .nx-stat__icon { opacity: 1; color: var(--nx-accent); }
@@ -574,6 +637,27 @@ html.dark.nx-stripes .admin-table tbody tr:not(.details-row):nth-child(even) td 
   .nx-kpi { padding: 14px 18px 12px; }
   .nx-kpi:nth-child(odd)  { border-left: none; }
   .nx-kpi:nth-child(n+3)  { border-top: 1px solid var(--nx-divider); }
+}
+
+/* Phone tuning (#354 follow-up). Deliberately keyed on WIDTH, not on the
+   touch gate that guards the phone nav in _header.css: these are plain
+   layout bugs that bite any narrow window, a half-screen desktop one
+   included, and both were clipping content rather than merely looking
+   cramped. The nav is the thing that must never turn phone-shaped on a
+   desktop; a KPI tile that fits its own box is just correct everywhere. */
+@media (max-width: 480px) {
+  /* The sparkline is 120px with flex-shrink: 0, sitting beside the value in
+     a tile whose content box is ~94px at 375px wide -- so each tile held
+     187px of content in 94px and simply cut the value and delta off. Below
+     ~480px there is no width where a 120px spark and the number both fit,
+     and the number is the point: the same trend is drawn full width in the
+     charts further down the page. */
+  .nx-kpi__spark { display: none; }
+  .nx-kpi__body { gap: 8px; }
+  .nx-kpi { padding: 12px 14px 10px; }
+  /* The label is uppercase with .09em tracking, so "AVG. PROCESSING TIME"
+     ran to three lines and shoved the number down. */
+  .nx-kpi__label { letter-spacing: .05em; }
 }
 
 /* ---------- Segmented control ---------- */
@@ -1359,3 +1443,254 @@ html.dark .flatpickr-calendar.arrowTop::after { border-bottom-color: var(--nx-ca
 html.dark .flatpickr-calendar.arrowBottom::before,
 html.dark .flatpickr-calendar.arrowBottom::after { border-top-color: var(--nx-card); }
 html.dark .flatpickr-day:hover { background: var(--nx-alt); }
+
+/* ============================================================
+   TOUCH TARGETS ON THE SIGNED-OUT PAGES (#354)
+
+   Keyed on `pointer: coarse`, NOT on width -- deliberately, and for a
+   different reason than the phone nav's gate. Target size is a property of
+   the *finger*, not of the screen: a 20px link is just as hard to hit on a
+   tablet as on a phone, and perfectly fine with a mouse at any width. So this
+   follows the input device wherever it is, and a narrow desktop window keeps
+   the compact footer it has today.
+
+   44px is the floor both Apple and Google publish for a touch target. The
+   footer links and the forgot-password link measured 20px tall -- roughly half
+   of that -- on the two pages every user meets before they are signed in.
+   ============================================================ */
+@media (pointer: coarse) {
+  .nx-footer-links a,
+  [data-testid="login-forgot"] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    /* Short words ("Help", "Team") were only ~35px wide, which with the row's
+       16px gap leaves neighbouring targets close enough to mis-tap. */
+    min-width: 44px;
+    padding-inline: 2px;
+  }
+}
+
+/* The shared signed-out footer (templates/_small_footer.html) carries the
+   sydoc mark at h-24 (96px). On a 375px screen that makes it the largest
+   thing on the login page after the form itself. Lives here rather than in
+   hero.css because the login page loads auth.css, not hero.css -- both load
+   this file. Width-keyed: it is about how much room the image takes. */
+@media (max-width: 480px) {
+  footer img[alt="sydoc-logo"] { height: 4rem; }
+}
+
+/* ============================================================
+   SHARED CONTROL SIZING ON TOUCH (#354)
+
+   Pointer-keyed, not width-keyed: how big a control must be follows the
+   finger, not the screen, so a narrow desktop window is untouched and a
+   tablet gets the same treatment as a phone.
+
+   These are the shared components, so one rule here covers pages that were
+   never individually reviewed. `.nx-btn--sm` alone appears in 20 templates
+   and rendered 34px tall -- it was the single most common too-small control
+   in the app, and the only thing wrong with all thirteen Generali pages,
+   none of which overflow.
+
+   44px is the floor Apple and Google both publish.
+   ============================================================ */
+@media (pointer: coarse) {
+  .nx-btn,
+  .nx-btn--sm { min-height: 44px; }
+
+  /* Width only where a control would otherwise be genuinely tiny. A blanket
+     min-width on every button padded ordinary text buttons out for no reason
+     and made a wrapped toolbar look chunky and accidental -- "Export CSV" was
+     never hard to hit. Single-character page numbers are: the import-status
+     pagination renders them as .nx-btn--sm and they came out 29-32px wide,
+     pressed against each other. */
+  #paginationControls .nx-btn,
+  .nx-pagination .nx-btn { min-width: 44px; }
+
+  /* Icon-only buttons have no text to give them width, and they carry an
+     aria-label precisely because of that -- which makes the attribute a
+     reliable signal for "this one needs a minimum width" without padding out
+     every button that already has a word in it. */
+  .nx-btn[aria-label] {
+    min-width: 44px;
+    justify-content: center;
+  }
+
+  /* The Generali per-row actions. Icon-only buttons built in JS, so they are
+     not .nx-btn and nothing above reached them: edit came out 28x20, delete
+     27x20, and the documents list's detail toggle 14x20 -- the smallest
+     target in the app, forty of them stacked down one page. They are
+     Generali's, but they live here because those pages load no stylesheet of
+     their own beyond this one and workitems_overview.css. */
+  .edit-record-btn,
+  .delete-record-btn,
+  .gen-detail-btn {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Segmented controls and pagination put their buttons flush against each
+     other, so an undersized one is not just hard to hit -- it is easy to hit
+     the wrong one. */
+  .nx-segmented__btn,
+  .pagination-link { min-width: 44px; min-height: 44px; }
+
+  /* The container must grow with them. `.nx-segmented` sets a fixed
+     `height: var(--ctl-h)` (~29px) and `overflow: hidden`, so raising only
+     the buttons clipped them inside a box less than half their height --
+     which read as bad padding and off-centre labels on the dashboard's
+     14d/30d/90d switch. Centre them too: with the box no longer exactly the
+     button height, the text needs to be told where to sit. */
+  .nx-segmented {
+    height: auto;
+    min-height: 44px;
+    align-items: stretch;
+  }
+  .nx-segmented__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Tabs size to their label, so a short one ("All") came out 33px wide.
+     Where a tab strip scrolls on its own axis the extra width costs
+     nothing, and tabs are primary navigation. */
+  .nx-tab { min-height: 44px; min-width: 44px; justify-content: center; }
+
+  /* Form controls. `.nx-input` rendered 41px and `.nx-select` 39px -- close
+     enough to look fine and still under the floor, and they are what every
+     admin page's search and filter row is built from. */
+  .nx-input,
+  .nx-select,
+  textarea.nx-input { min-height: 44px; }
+
+  /* 16px is not a taste decision (#369). Below it, iOS zooms the page in when
+     a field takes focus -- and it does not zoom back out when the keyboard
+     closes, so you are left on a page scrolled sideways with the layout
+     twice its intended size. "Search button breaks page design (it zooms
+     everything out)" is exactly that, from the workitems search at 12.5px.
+
+     Measured under 16px before this: `.nx-input` at 12.5px (workitems search)
+     and 13px (appearance, and the Generali flatpickr date fields),
+     `.profile-input` at 14px across six fields on /profile. Anything a
+     keyboard can open needs to clear the threshold, so they are all here. */
+  .nx-input,
+  .nx-select,
+  textarea.nx-input,
+  .profile-input,
+  textarea.profile-input { font-size: 16px; }
+}
+
+/* Filter grids on a phone (#367).
+
+   Twelve templates -- eight Generali pages, three admin ones and the tenant
+   page -- build their filter row as `grid grid-cols-1 sm:grid-cols-2
+   lg:grid-cols-4`. Tailwind's `sm:` starts at 640px, so a phone gets ONE
+   column: on Generali Documents that put four label-plus-dropdown blocks in a
+   vertical stack 352px tall, and with the page head above it the first
+   document row started around 570px down an 844px screen.
+
+   Two columns at 150px each is enough for "All Recipients" and the rest, and
+   halves that block. Not three or four: the labels are what need the width,
+   not the values.
+
+   Keyed on the utility pair rather than a new class because the pattern is
+   identical in all twelve files and means the same thing in each -- one
+   column on a phone was the assumption being corrected, not a per-page
+   choice. Width AND pointer, because it is a layout change. */
+@media (max-width: 768px) and (pointer: coarse) {
+  body.nx-app .grid.grid-cols-1.sm\:grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  /* The selects inside must be allowed to shrink into their half. */
+  body.nx-app .grid.grid-cols-1.sm\:grid-cols-2 > * { min-width: 0; }
+  /* ...and when a value still does not fit its half, end it with "…"
+     rather than slicing a letter in two ("All Organi:", #392). 150px was
+     enough at 390px wide, not on an SE. pr-10's 40px of arrow room was
+     twice what the chevron needs; 16px text stays, or iOS zooms on focus. */
+  body.nx-app .grid.grid-cols-1.sm\:grid-cols-2 select.nx-select {
+    padding-right: 1.75rem; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;
+  }
+
+  /* Stat cards are the exception, and they are why the rule above says what
+     it means rather than what it matches. A filter cell is a label over a
+     dropdown, and half a phone is plenty. A stat card spends 44px of its
+     width on the icon chip, which leaves a 69px text column -- and
+     "Pünktlichkeitsquote", German for "On-Time Rate", needs 128px unbroken
+     even at zero letter-spacing. No font size fits it there; it can only
+     wrap, and wrapping a single compound word means breaking it at an
+     arbitrary letter. One column gives ~248px and every label reads on one
+     line. */
+  body.nx-app .grid.grid-cols-1.sm\:grid-cols-2:has(> .nx-stat) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* The Generali dashboard's two doughnuts on a phone (#365).
+
+   Their legends move underneath on a touch phone, because a legend on the
+   right was taking its width out of a 304px canvas and chopping labels
+   mid-word -- "KORRESPONDENZ S", "ANTRAG / ÄNDERUN" (see the
+   `donutLegendSide` note in templates/js/_generali_dashboard_js.html).
+
+   Underneath, the legend needs vertical room the box did not have: the
+   container is Tailwind `h-48` (192px) below 640px, sized when the legend sat
+   beside the chart, so the last legend row was cut off by the card's edge.
+   Selected by `:has()` on the canvas id rather than by adding a class,
+   because these two are exactly the charts whose legend moved -- the other
+   four keep their layout and their height. */
+@media (max-width: 768px) and (pointer: coarse) {
+  body.nx-app div:has(> #doctypeChart),
+  body.nx-app div:has(> #languageChart) {
+    height: 21rem;
+  }
+}
+
+/* ============================================================
+   CROSS-DOCUMENT VIEW TRANSITIONS ON A PHONE (#354)
+
+   An installed nexora looks like an app until you navigate, and then the
+   browser throws the page away and rebuilds it -- a white flash that is the
+   one thing giving it away as a web page. It is not slowness: measured on
+   dev, a dashboard/reporting navigation is 16-68ms to first byte with only
+   3-9KB crossing the wire, because everything else is already cached. The
+   seam is the rebuild, not the fetch.
+
+   So hide the seam. The browser holds the outgoing page's pixels, loads the
+   next one, and animates between them. No JavaScript, no framework, and
+   nothing to maintain.
+
+   Both the page you leave AND the page you arrive at must carry the rule,
+   which is why it lives in the globally loaded sheet. Browsers without it
+   (any Safari before 18.2) simply navigate the old way -- there is no
+   fallback to write.
+
+   Phone-gated like the rest of this work: the flash is what makes a phone
+   feel like a web page, and a desktop user navigating in a window with
+   browser chrome has no such expectation. `@view-transition` inside `@media`
+   is valid and parses as a CSSViewTransitionRule -- checked, not assumed.
+   ============================================================ */
+@media (max-width: 768px) and (pointer: coarse) {
+  @view-transition { navigation: auto; }
+}
+
+/* A transition cannot be half-off, so reduced motion cancels the animation
+   rather than removing the opt-in. Two sources, because nexora's own
+   preference and the OS setting are different things: the pre-paint script
+   sets `nx-motion-reduced` from the user's stored pref (which may be an
+   explicit choice that differs from their OS), and the media query catches
+   anyone who set it at the system level without touching nexora. */
+html.nx-motion-reduced::view-transition-group(*),
+html.nx-motion-reduced::view-transition-old(*),
+html.nx-motion-reduced::view-transition-new(*) { animation: none !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) { animation: none !important; }
+}

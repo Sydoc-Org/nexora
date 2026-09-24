@@ -2,7 +2,7 @@
 <html lang="{{ get_locale }}">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
   {% include '_theme_prepaint.html' %}
   <link rel="stylesheet" href="{{ static_v('css/nexora-ui.css') }}">
   <title>{{ _("Month Report") }} — {{ section_title }} - nexora</title>
@@ -60,7 +60,13 @@
     </div>
 
     <!-- Stat Cards -->
-    <div class="grid grid-cols-2 {% if section == 'reporting' %}lg:grid-cols-4{% else %}lg:grid-cols-2{% endif %} gap-4 mb-6 nx-rise-2">
+    {# One column on a phone. `grid-cols-2` with no smaller base put two ~162px
+       columns on a 375px screen, and the reporting section's stat cards need
+       ~217px -- so that page could be dragged 11-45px sideways on every iPhone
+       in both engines. Same family as the twelve templates fixed in #366/#367,
+       missed here because there was no `grid-cols-1` to correct: Tailwind's
+       `sm:` starts at 640px, which is wider than any phone. #}
+    <div class="grid grid-cols-1 sm:grid-cols-2 {% if section == 'reporting' %}lg:grid-cols-4{% else %}lg:grid-cols-2{% endif %} gap-4 mb-6 nx-rise-2">
 
       <div class="nx-card nx-card--pad nx-stat">
         <div>

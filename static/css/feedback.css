@@ -125,3 +125,15 @@
     .feedback-grid { padding: 0 16px 40px; }
     .feedback-category { flex-direction: column; }
 }
+
+
+/* Touch targets on /feedback (#354 follow-up). Same 29px back link as
+   /appearance, and the Bug / Idea / Question picker at 33px. */
+@media (pointer: coarse) {
+  .feedback-back {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .profile-seg-btn { min-height: 44px; }
+}

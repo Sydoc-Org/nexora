@@ -111,6 +111,13 @@ The `nx` CLI starts and inspects the dev server. Full reference: `docs/howto/nx.
 
 Playwright screenshot artifacts go in `var/screenshots/`, never the repo root.
 
+**Phone layout** — `scripts/phone-sweep.py` measures any page across seven iPhone
+geometries in Chromium **and WebKit** (Safari's engine — install once with
+`python -m playwright install webkit`; several bugs reproduce only there). It injects
+each device's real safe-area insets, which is only possible because the CSS reads them
+through `--nx-sa-*` tokens instead of `env(safe-area-inset-*)` — `env()` cannot be
+overridden and every emulator reports 0. Never measure at one width.
+
 ## Translations (Flask-Babel)
 
 Mark strings `{{ _('...') }}` in templates, `_('...')` / `gettext(...)` in Python. English is the source locale and has no `.po`. `babel.cfg` extracts from `nx_lib/**.py`, root `*.py`, and `templates/**.html`.

@@ -32,6 +32,783 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 The two phone fixes change nothing on a desktop screen: they only kick in
 when there isn't enough room.
 
+<!-- Everything below, down to the next release heading, is the phone view from
+     feat/354-phone-tabbar. It is NOT on main: fold it in only when that branch merges. -->
+
+### Added — phone view
+- **The tab bar's slots now slide between windows instead of blinking.** Each
+  slot carries a `view-transition-name` keyed on the **page** it holds rather
+  than the position it sits in, so when a page is in both the outgoing and the
+  incoming window — "documents" is the second slot before a swipe and the
+  first one after — the browser sees the same name in both documents and
+  morphs it from the old position to the new one. That is the carousel, drawn
+  by the browser: no keyframes, no transform, no JavaScript and no direction
+  tracking. Pages leaving the window fade out, pages entering fade in, and
+  "More" is named too so it visibly stays put while the slots move past it.
+  Reduced motion already cancels it — the existing `::view-transition-*`
+  rules match `(*)`, which covers named transitions.
+- **A tenant switcher at the top of the phone sheet.** One tap moves between
+  the tenants a session can see. It sits at the top because on a phone the
+  sheet is the only way in and the tenant groups are several scrolls down —
+  which is exactly how this was found ("how do i select the tenants", with the
+  sidebar right there).
+  Each chip links the tenant's **first page**, not `?tenant=<code>`: that query
+  parameter is only honoured by routes calling `apply_tenant_scope`, and
+  Generali's are custom routes that never do, so a picker built on it would
+  appear to do nothing for the tenant that needed it most. Landing on a real
+  page is also what makes the tab bar follow, since the bar matches the page
+  you are on — the chip and the bar read the same rule, so they cannot
+  disagree.
+  Phone only: on a desktop the sidebar already lists every tenant as its own
+  group. Absent for a `tenant_solo` user, whose UI never names their tenant
+  (#255), and for anyone with a single tenant, which is not a choice.
+- **The phone tab bar follows the tenant you are in, and its three slots are
+  now a window over that tenant's whole page list.** Standing on a Generali
+  page the bar showed the *Global* entries with **no slot lit at all** — and
+  because `swipe_nav.js` locates itself by the active slot, swiping between
+  views did nothing on every one of those pages. The bar was dead weight
+  exactly where the work was.
+  Which tenant is found by matching the page you are **on**, not the session's
+  `tenant_scope`: that scope is only written by routes calling
+  `apply_tenant_scope`, and a tenant whose pages are custom routes (Generali's
+  `/generali/*`) never touches it, so it names whichever tenant you were in
+  before. Where two tenants claim the same `active_page` — sydoc and MS02 both
+  mount the shared `workitems_overview` — the viewer's own tenant breaks the
+  tie, and if it cannot, the bar shows the Global entries rather than guessing.
+  The three slots are centred on the active page and clamped at both ends, no
+  wrap (#368). Centring is what makes the carousel free: the rendered slots
+  *are* `[previous, active, next]`, so `swipe_nav.js` is **not modified** —
+  swiping now walks all eight Generali pages and stops at the end.
+  The rules live in `nx_lib/tabbar.py` as pure functions rather than in the
+  template, because two of the three needed a paragraph of comment each.
+
+### Fixed — phone view
+- **Seven phone-view cut-offs found in a WebKit sweep on an iPhone SE
+  (#388–#394).**
+  - **Prepared Documents:** "Clear list" wraps to a second line instead of
+    running off the edge.
+  - **Generali dashboard:** a KPI icon that does not fit beside its number
+    drops under it, instead of sticking out of the card.
+  - **Card tables:** long values without spaces (permission codes, e-mail
+    addresses) wrap instead of being cut off. This covers the source registry
+    and Access Control.
+  - **Access Control:** the empty first row is gone, and name, username and
+    e-mail stack.
+  - **Appearance:** the live preview's second card fits.
+  - **Generali filters:** a dropdown value that does not fit its half ends in
+    "…" instead of a letter cut in two.
+  - **Reporting:** the guide's contents links and the report card's "…" menu
+    are 44px tap targets.
+  - All except the tap targets only engage when content does not fit, and a
+    pixel diff of every desktop page shows no change.
+- **Stat-card icons are all-or-none per row on a phone.** When any card in a
+  row is too narrow for its icon beside the number, none of that row's cards
+  show one, so the boxes stay even instead of some growing an extra line (the
+  Generali dashboard on an iPhone SE). Where they fit (larger iPhones,
+  full-width cards, desktop) they stay. `static/js/nx_core.js` checks each
+  group on load, when a number arrives, and on resize.
+- **No more box inside a box on phone lists.** On Generali Documents (and every
+  admin list) each row becomes its own card on a phone, and the table's frame
+  drew a second box of the same kind around all of them. In card mode the frame
+  now steps aside so only the cards have a box. The desktop table keeps its
+  frame.
+- **Date fields on a phone look like every other field.** flatpickr used to
+  swap each date input for the iPhone's native date field. That field ignored
+  nexora's styling, showed no "yyyy-mm-dd" hint while empty and formatted
+  dates its own way, so the Generali From/To pair looked out of place.
+  `nx_core.js` now sets `disableMobile` once for every flatpickr, so phones
+  get the same input and calendar as desktop. The calendar fits a 320px
+  screen.
+- **The Generali month report could be dragged sideways on every iPhone** —
+  11–45px, both engines, reporting section only. Not a grid bug, as it first
+  appeared: German compounds "On-Time Rate" into **"Pünktlichkeitsquote"**, one
+  unbreakable 19-character word that could not fit its 146px card, so it
+  overflowed 5px and shoved the icon chip 61px past the edge. `.nx-stat__label`
+  reads on one line again because **stat-card grids are now a single column on
+  a phone**. Two columns leave a stat card only a 69px text column once the
+  44px icon chip is taken out, and that word needs 128px unbroken even at zero
+  letter-spacing — no font size fits it, so it could only be broken at an
+  arbitrary letter. `.nx-stat__label` also sets `hyphens: auto` (with the
+  `-webkit-` prefix, which Safari requires) and `overflow-wrap: break-word` as
+  a last resort for other long labels.
+- **The Generali per-row action buttons were far too small to tap** — edit
+  28×20, delete 27×20, and the documents list's detail toggle **14×20**, the
+  smallest target in nexora, forty of them stacked down one page. All now 44px.
+- **The reporting app icon is back in the phone topbar.** It had been hidden on
+  the argument that the row named the screen three times over — the tab bar
+  highlights Reporting and the `<h1>` below the rail says "Library" — but that
+  was a density judgement, and without the icon the header read as though
+  something had failed to load. It fits with room to spare: measured at the
+  narrowest phone (375px) in both engines, icon 16–60, title 70–168, beta
+  178–221, Help 261–305, Eddard 315–359 — one 44px row, both actions inside
+  the viewport with 16px left over, nothing wrapped or clipped.
+
+- **The reporting page could be dragged 53px sideways on an iPhone — in Safari
+  only.** The sort control is a 48px box with the `<select>` laid over it at
+  `opacity: 0`, but a `<select>` reports the intrinsic width of its longest
+  `<option>` (~132px) as scroll overflow even while invisible and absolutely
+  positioned. Safari propagates that to the document; Chromium discards it. So
+  the page measured perfectly clean in every browser available here while
+  overflowing on all seven iPhone geometries in WebKit — which is why it went
+  undiagnosed through a whole round of phone fixes. One `overflow: hidden` on
+  the wrapper, which costs nothing visually: the select is invisible and the
+  picker it opens is drawn by the platform, not inside the box.
+- **`/appearance` and `/profile` scrolled sideways on narrow phones** — 37px
+  and 13px at 375px wide, both engines, tapering out by 414px. Both pages
+  collapse to a single column on a phone with `grid-template-columns: 1fr`,
+  and a `1fr` track takes **min-content** as its automatic minimum, so the
+  widest thing in the preview card or the identity card pushed the track past
+  the screen. Now `minmax(0, 1fr)` with `min-width: 0` on the items — the
+  desktop rule in `appearance.css` already used the `minmax` form for this
+  exact reason and the responsive override had dropped back to the bare
+  keyword.
+- **Every per-row control on the workitems list now meets 44px** (#354
+  follow-up). The row checkbox was 24px and the details toggle 32px across 40
+  rows — the largest mis-tap surface on the page. They were capped there
+  deliberately, on the reasoning that stretching them would halve how many
+  rows fit; measuring the phone layout shows each row is a 289px card with
+  281px of clear space between one checkbox and the next, so the real cost is
+  289px → 321px, about 11% fewer rows, not a halving. Also `Advanced` in the
+  filter bar, which cleared 44 tall but sat at 43 wide — the `min-width` rule
+  that fixed `Reset` for the same reason had missed it.
+
+### Added — phone view
+- **`scripts/phone-sweep.py` — the phone layout, measured instead of eyeballed.**
+  Loads any set of pages across seven real iPhone geometries in both Chromium
+  and WebKit, and reports four things a person actually notices: the page
+  scrolling sideways, a box whose content is cut off with no way to reach it,
+  an inner box that slides under the finger while the page stays put, and tap
+  targets under 44px. It exists because three symptoms reported from a real
+  iPhone could not be reproduced here at all, and both reasons were structural
+  rather than bad luck — see the token change below, and **Chromium is not
+  Safari**: WebKit is Safari's engine, and the reporting page overflows by
+  53px there at every width while measuring perfectly clean in Chromium.
+  Install the engine once with `python -m playwright install webkit`.
+  In Git Bash the command needs `MSYS_NO_PATHCONV=1`, or MSYS rewrites
+  `--pages /reporting` into a Windows path.
+
+### Changed — phone view
+- **The safe-area insets are read through `--nx-sa-*` tokens** rather than
+  `env(safe-area-inset-*)` at each of the sixteen use sites. Partly the same
+  argument that produced `--nx-tabbar-h` — the tab bar, the body padding, the
+  reporting rail and three floating bars all have to agree about how much room
+  the home indicator takes, and hand-copied calls drift. Mostly, though,
+  because **`env()` cannot be overridden**: setting it from a stylesheet or
+  the console does nothing, and every emulator reports 0 for all four edges
+  while a real iPhone reports ~59px top and ~34px bottom. Every layout bug
+  living in that band was invisible outside the physical phone. Read through a
+  custom property the values *can* be set, so the sweep above reproduces each
+  device's true geometry on a desktop.
+  Rendering is unchanged — measured identical with the insets at their real
+  values in both engines. The tokens carry a `0px` fallback, which is
+  load-bearing rather than tidy: a bare `env()` is invalid where the function
+  is unsupported, and an invalid custom property makes every `var()` reading
+  it collapse and the declaration drop entirely, so without the fallback such
+  a browser would lose the padding rather than merely lose the inset.
+  Guarded by `tests/unit/test_safe_area_tokens.py`, which strips comments as
+  whole blocks — this codebase's prose names `env(safe-area-inset-*)` often
+  enough that a line-oriented filter would read it as CSS.
+
+### Added — phone view
+- **Swipe between views on a phone** (#368) — a swipe across the middle of the
+  screen moves to the next or previous view in the bottom bar. The order comes
+  from the **bar itself**, whose slots are permission-filtered links built from
+  the sidebar's own `nav_items`, so there is no second list of pages to drift
+  out of step — and a user scoped to one tenant swipes between *that tenant's*
+  pages with no extra code. No wrap at the ends: arriving back at the first
+  view from the last reads as having gone the wrong way, with nothing to say
+  you looped.
+  **The outer 30px are left alone**, deliberately. That is the platform's
+  back/forward gesture, and in an installed app it is the *only* way back out
+  of a page — there is no browser chrome to press. Taking it would trap
+  people, Safari ignores attempts to suppress it anyway, and native iOS works
+  exactly this way: edges go back, the middle belongs to the app. Nothing here
+  calls `preventDefault`, so both listeners stay `{ passive: true }` and
+  scrolling keeps its smoothness. It also stands down while a keyboard field
+  has focus and while the More sheet is open.
+- **Cross-document view transitions on a phone** — the white flash between
+  page loads was the one thing giving an installed nexora away as a web page,
+  and it is not slowness: measured on dev, a dashboard↔reporting navigation is
+  **16–68ms to first byte with 3–9KB over the wire**, because everything else
+  is cached. The seam is the browser rebuilding the page, so
+  `@view-transition { navigation: auto; }` hides it — no JavaScript, no
+  framework. Both the page you leave and the one you arrive at need the rule,
+  hence the globally loaded sheet. Browsers without support (Safari before
+  18.2) navigate the old way, so there is no fallback to write. Phone-gated,
+  and reduced motion **cancels the animation** rather than removing the opt-in
+  — a transition cannot be half-off — from both nexora's own
+  `nx-motion-reduced` preference and the OS `prefers-reduced-motion` setting,
+  which are different things.
+- **Phone navigation: a bottom tab bar and a bottom sheet** (#354) — on a
+  touch phone the nav moves into the thumb zone: a fixed bar with up to three
+  permission-filtered slots (the user's own tenant pages when they belong to
+  exactly one, otherwise Dashboard / Reporting / Workitems) plus a **More**
+  slot that raises the existing sidebar as a bottom sheet. Slots are built
+  from the sidebar's own `nav_items`, so a page the user may not open is never
+  rendered as a dead tab. The floating hamburger and the sidebar pin are
+  hidden there, and the bar clears the iOS home indicator
+  (`env(safe-area-inset-bottom)`).
+  **The phone layout can never appear on a computer:** it is gated on
+  `(max-width: 768px) and (pointer: coarse)`, so a
+  half-screen window or a display at 200% browser zoom — both of which put a
+  desktop under 768 CSS px — keep the existing hamburger drawer, unchanged.
+  `tests/e2e/test_mobile_nav.py` pins both directions.
+- **nexora installs as an app** (#354) — a web app manifest at
+  `/manifest.webmanifest` plus icons, so Android and Windows offer *Install*
+  (app-drawer / Start-menu icon, own window, splash screen) and iOS offers
+  *Add to Home Screen* with a real icon instead of the first letter of the
+  page title. No App Store, no developer account, no cost, and nothing to
+  update: it is the live site, so a deploy reaches installed users the next
+  time they open it. Served as a route rather than a static file because
+  `start_url`/`scope` must carry the `/nexora` prefix on PROD and STAGING but
+  not on INT, and because the app name carries the environment — all three
+  hosts are installable and become identical icons otherwise. Icons are
+  generated from the real CSS logo by `scripts/make-app-icons.py`; a
+  home-screen icon cannot animate, so they are one frozen frame of it.
+  **No service worker**, deliberately — Chrome no longer requires one to
+  install, and it would put a cache in front of the app whose failure mode is
+  every installed user stuck on an old version.
+- `templates/hero.html` (the public landing/login page) and
+  `templates/jd/jdvance.html` were missing `<meta name="viewport">` entirely
+  and rendered zoomed out on a phone — signing in is step zero of any phone
+  visit.
+
+### Fixed — phone view
+- **The installed app stays signed in** (#354) — on any non-PROD host the
+  session cookie was written with no `Expires`/`Max-Age`: a *browser session*
+  cookie, discarded the moment the browsing session ends. An installed
+  home-screen app is evicted from memory routinely, so the cookie went with it
+  and you were signed out again minutes after signing in — a link that
+  expires, rather than an app. `SESSION_PERMANENT` sat inside the
+  `if IS_PROD:` block, so PROD was always correct and only dev/INT was
+  affected (measured: dev sent no expiry, PROD sent `Expires=…; Secure`).
+  Authenticated sessions are now permanent everywhere. Nothing is loosened —
+  the 24h `PERMANENT_SESSION_LIFETIME` is what bounds a session and applies
+  only to permanent ones, so it now applies rather than not applying. A
+  signed-out visitor still gets a non-persistent cookie.
+- **The app rechecks the session the moment it comes back** (#354) — the
+  heartbeat polls every 30s, which is fine in a browser tab but not in an
+  installed app: iOS suspends timers while it is backgrounded, so reopening it
+  showed a page from before the phone was locked until a tick happened to
+  fire. It now rechecks on `visibilitychange` and `pageshow`, so the app
+  either shows live data or goes to the login screen as soon as you look at
+  it.
+- **The active tab's icon no longer disappears** (#354) — selecting a tab made
+  its icon vanish entirely. The pill added behind the active icon was written
+  as `.nx-tabbar-icon::before { content: "" }`, and that is the same
+  pseudo-element Font Awesome draws the glyph in — so it replaced the icon
+  instead of sitting behind it (measured: `content: ""`, 0×0). The pill is now
+  a background on the icon element itself. The active-tab test asserts the
+  glyph survives, which it previously did not: the class, colour and label
+  weight were all correct while the icon was simply gone.
+- **Phone toolbars are laid out for a phone, not wrapped** (#354) — wrapping
+  stopped pages scrolling sideways, but a row built for a desktop does not
+  become a phone layout by wrapping; it becomes ragged. On the workitems
+  overview "Advanced" and "Reset" ended up stranded on their own lines, the
+  search box was a different width from the process picker above it, and the
+  three action buttons broke 2 + 1 with a gap. Those toolbars now stack
+  full-width, matching the Generali documents filter panel, which was already
+  the one filter UI that read well on a phone. The admin overview's restart
+  row — a select, a button and a note fighting over 390px on one unwrappable
+  line — moved off inline styles into a class and stacks too.
+- **Buttons are no longer padded out for no reason** (#354) — the touch-target
+  work set a 44px minimum on *width* as well as height for every button, which
+  made ordinary text buttons chunky and amplified the ragged wrapping.
+  "Export CSV" was never hard to hit. Width minimums are now scoped to the
+  controls that genuinely need them: pagination page numbers, and icon-only
+  buttons, which are identifiable because they carry an `aria-label` in place
+  of text.
+- **The tab bar is no longer selectable text** (#354) — a long press on a
+  slot selected its label instead of navigating, raising iOS's copy/look-up
+  callout over the bar, and dragging across painted all four slots in
+  selection blue. Navigation chrome now sets `user-select: none` and
+  `-webkit-touch-callout: none`, and `touch-action: manipulation` drops the
+  double-tap-to-zoom wait so a tap registers immediately. Same for the rows
+  in the More sheet.
+- **Eddard's chat panel on a phone** (#354) — its header, and therefore its
+  close button, sat off the top of the screen: there was no way to dismiss
+  the assistant. The panel was anchored `bottom: 20px` with
+  `height: calc(100dvh - 40px)`, and `dvh` counts the whole screen including
+  the status bar and home indicator, so once the pages opted into
+  `viewport-fit=cover` it grew taller than the usable area. It now anchors to
+  both edges with `height: auto`, fitting whatever sits between the insets,
+  and stops above the tab bar so its composer is not underneath the
+  navigation.
+- **The tab bar clears the iPhone home indicator** (#354) — the white bar at
+  the bottom of a modern iPhone was sitting *inside* the nav. The padding for
+  it was always there, but `env(safe-area-inset-bottom)` returns **zero**
+  unless the page opts in with `viewport-fit=cover`, which none of the 46 page
+  templates did — so it had been doing nothing. With the opt-in the insets are
+  real; content now also reaches the top and side edges, so the body guards
+  all four (the status bar is translucent, and a notch eats into one side in
+  landscape).
+- **The tab bar shows which page you are on** (#354) — it did not, on the two
+  pages people open most. The bar reused the sidebar's `active` flag, which
+  asks whether the sidebar's *Global* entry is the current page; for anyone
+  scoped to a tenant that is always false, because a tenant-mounted Dashboard
+  sets `active_page` to `tenant_<code>_dashboard` (0097) and Workitems to
+  `tenant_<code>_workitems` (0098). Correct for the sidebar, where the
+  tenant's own group lights instead — but the bar has no tenant group, so
+  nothing lit and only `/reporting` ever looked right. The bar now matches
+  both spellings, and the active slot carries a filled pill and a heavier
+  label rather than relying on colour alone.
+- **Reload, for the installed app** (#354) — a home-screen launch runs with
+  no browser chrome at all: no address bar, no reload button. Android keeps
+  pull-to-refresh in standalone mode; **iOS does not, and does not support
+  `minimal-ui` either**, so an installed nexora on an iPhone had no way to
+  reload a page. The More sheet now carries a Reload, shown only when
+  `display-mode: standalone` — in a browser tab the browser's own button
+  makes it redundant.
+- **The reporting console is laid out for a phone, not shrunk** (#354) —
+  fitting is not designing. After the overflow work the console still spent
+  **572px of an 844px screen on chrome before the first report**: a 117px
+  topbar, then the rail at 161px *wrapped across four ragged rows*, then a 91px
+  screen head and a 48px filter row. The rail is a left column on a desktop;
+  wrapping it into a grid is what made it a wall — six buttons at four
+  different vertical positions, reading as spilled rather than laid out. It is
+  now a single horizontally scrolling strip, the phone-native shape for
+  switching screens inside a page, at 59px instead of 161. The topbar packs
+  onto one row (53px, was 117) once the flex spacer stops pushing Help and
+  Eddard onto a line of their own and the "N sources" chip goes — that chip
+  counts the Sources rail cards, which have been hidden below 900px all along,
+  so on a phone it reported on something unreachable. **First report now at
+  407px instead of 572** — about a fifth of the screen handed back to content.
+  Tests assert the strip still offers every screen and that the last one can be
+  scrolled to and activated: a strip that hid screens would be worse than the
+  wall it replaced.
+- **The Library toolbar on a phone** (#354) — search, the sort dropdown and
+  the layout toggle shared one row. Sort and the toggle have intrinsic widths
+  and a text input does not, so search shrank to fit around them and ended up
+  **about 20px wide** — the one control you type into was the smallest thing on
+  the row. The toolbar is three bands now, in the order you reach for them:
+  *New dashboard* and *New report* side by side at equal widths (they were
+  sized to their labels, so one was half again as wide as the other), then
+  search on a row of its own, then sort and the layout toggle beneath it.
+  Inputs on the console also go to **16px** on a phone — below that iOS zooms
+  the page in when a field takes focus and leaves the layout scrolled sideways
+  after the keyboard closes. Three bands cost about 100px, most of which comes
+  back out of the page insets: the console kept a 44px desktop inset that
+  `body.nx-app .nx-main` had already dropped to 16px, so it was the odd one
+  out. Net **+34px of chrome** (first report 365px → 399px) — paid knowingly,
+  for a search field you can read and hit.
+- **Library search takes the row; sort becomes a filter button** (#354) — a
+  follow-up to the band layout above, from using it on a phone: the search now
+  runs the full width with a 48px filter button beside it, instead of giving
+  sort a row of its own. The button is the same `<select>` laid over an icon at
+  `opacity: 0`, so a tap opens the platform's own picker and the options stay
+  real `<option>`s — no menu to build, keep in sync or dismiss. The
+  2-vs-4-per-row toggle is hidden there: the ≤900px block already collapses
+  `is-cols-4` to two columns, so on a phone both settings drew the same grid
+  while costing the search its width. Help and Eddard lose their button boxes
+  on a phone too — their labels are hidden at that size, so they were bordered
+  boxes around a single glyph.
+- **Library card charts were cut off on a phone** (#354) — the card preview is
+  a row (facts left, chart right) whose fixed parts come to more than a ~150px
+  phone card: facts at 34%, a 28px gap, and a thumb with `min-width: 90px` that
+  therefore could not shrink. The chart ran 39px past the card's right edge and
+  `overflow: hidden` took the rest. Stacked on a phone, so the chart gets the
+  full card width and centres under the facts. That exposed two more: the
+  preview is pinned to a hard `height: 78px` in `reporting.css` while the
+  console rule only ever raised `min-height`, so taller stacked content clipped
+  from the bottom instead (the donut lost 31px, the line 51px); and `.rs-card`
+  is a `<button>`, which centres its content when the grid stretches it, so
+  once previews stopped being a uniform 78px one card's badge sat 24px lower
+  than its neighbour's.
+- **The new-report wizard is laid out for a phone** (#354) — the worst screen
+  of the lot. The step card was a **232px box floating in the middle of a 320px
+  column**, 44px of dead gutter either side, with the choices inside it at
+  186px of a 390px screen: `.rs-wizard-grid` carries `padding: 0 40px 40px`
+  from the pre-console layout, which was never restated for the console and on
+  a phone spends a quarter of the screen on nothing. The card now fills the
+  width and the choices are full-width rows rather than pills packed two to a
+  line at ragged widths.
+  **The footer is sticky there.** The measure step alone is ~4,600px of
+  options, so *Continue* sat that far below the option you had just tapped —
+  you had to scroll past every remaining choice to move on. It now pins to the
+  bottom of the screen, flush against the tab bar, and drops with the bar when
+  the keyboard opens. A test walks the whole wizard and asserts the forward
+  button is on screen at every step.
+  Also on a phone: the "So far" panel is hidden (it sat below that same
+  thousands-of-pixels list, where nobody will ever see it — the rail chips and
+  the footer's picked-count say the same thing where you are looking), the
+  redundant "Step 1 of 4" counter goes (the rail directly beneath it already
+  highlights the step), and the process rows, granularity select, "Add filter"
+  and the Library crumb all reach 44px.
+- **Fixed: the wizard's close button was a full-width bar** (#354) — the
+  Library screen's equal-halves rule (`.rc-screen-head > .rc-btn`) also matched
+  the wizard head, which reuses `.rc-screen-head`, so the `×` stretched across
+  the screen with a lone glyph in the middle. Icon buttons are excluded now.
+- **Dashboard head and filter row on a phone** (#354) — both rows end in a
+  block pushed right by `margin-left: auto`: the live clock plus *Refresh* in
+  the head, the 14/30/90 day switch in the filter row. On a wide desktop row
+  that is correct. On a phone the row wraps and the pushed block keeps its
+  right alignment **on a line of its own**, so it sat hard against the right
+  edge with half a row of dead space beside it — the range switch started
+  203px into a 355px row, and the clock 47px in. Both read as dropped there
+  rather than placed. The clock now starts at the page edge with *Refresh* at
+  the far end, and the range switch spans the row as three equal thirds, so it
+  reads as one control the width of the page. Desktop measured before and
+  after: the push, the spacer and the right-aligned switch are all unchanged.
+- **The API docs guide no longer sticks to a phone screen** (#354) —
+  `.apidocs-nav` is `position: sticky` so the section list stays beside the
+  docs while they scroll. Below 900px the layout is one column and the nav
+  becomes a full-width block *above* the text, so sticky pinned it to the top
+  of the screen and it rode down over the very content it exists to navigate —
+  582px of it, 55% of the screen, following every scroll. It scrolls away like
+  any other block on a phone now. Pointer-gated, and a test pins both
+  directions: a narrow desktop window keeps the sticky nav.
+- **Fixed: /api-docs scrolled sideways on a phone** (#354) — found while
+  fixing the above. The ≤900px rule set a bare `1fr` where the desktop rule
+  spells `minmax(0, 1fr)` — the same dropped `minmax` as the reporting pages.
+  A grid track's automatic minimum is its content, so a long URL inside a code
+  sample stretched the track to 473px and took the whole document to **490px
+  in a 390px viewport**. Everything went with it, including the fixed tab bar,
+  whose **More** slot ended up off the right edge and unreachable. Not
+  pointer-gated: a 390px desktop window was equally broken. Code samples were
+  already `overflow-x: auto`, so they scroll inside their own box as intended.
+- **The wizard step rail reads as one row on a phone** (#354) — four fully
+  labelled chips need about 495px, and the row is 320px, so *1 Measure ·
+  2 Processes · 3 Breakdown · 4 Time range* broke onto two lines with the
+  connector lines left dangling between them: four pills stacked two-by-two
+  instead of a progress row. Only the step you are on keeps its label now, the
+  rest are their number (or a tick once done), which is the usual phone
+  stepper and fits one line with nothing to scroll. The rail went from 70px to
+  35px with it.
+- **The wizard's close button is no longer a box** (#354) — a 44px bordered
+  square holding one small glyph. Same treatment as Help and Eddard: the box
+  goes, the 44px tap target stays.
+- **The dashboard builder fits a phone** (#354) — it runs full-bleed, and its
+  shell kept a 28px desktop inset: 56px of a 390px screen. That pushed the
+  Eddard button off the title row **by 14px**, so it sat alone on a second
+  line, and left the card grid narrower than every other screen. 16px there
+  now, matching `.nx-main` everywhere else — the topbar went from 108px to
+  53px and the whole view gained 27px of width.
+- **The dashboard builder's head is a tidy block on a phone** (#354) — it
+  wrapped into four ragged rows: *Library* alone, the title, then five controls
+  at three different heights (a 31px "Editing" pill, a 36px *Add card*, 48px
+  buttons) breaking two-and-two and stopping **170px short** of the right edge.
+  That hole was the odd gap on the side. The title now takes its own row and
+  the actions pair two to a row at equal widths, so every row ends flush; a
+  lone third action (the view-mode set is Present / Export / Edit) grows to the
+  full width instead of sitting in a corner, and all of them reach 44px. The
+  "Editing" pill goes: it only appears while editing, which is exactly when the
+  primary button reads *Done*. *Library* becomes a plain crumb like the
+  wizard's, so its row reads as a header line rather than one button marooned
+  in 254px of space. Scoped with `:not(.rl-head)` — the Report definitions list
+  reuses the same class for a different set of controls.
+- **The profile menu was off the side of the screen** (#372) — "all pages on
+  profile are gone". Profile, Appearance, What's New, Feedback, Keyboard
+  shortcuts, Help, Switch user and **Sign out** were all rendered, opened and
+  clickable — drawn at `left: -176px`, almost entirely outside a 390px
+  viewport. The sidebar's user row opens an `<el-menu anchor="right end"
+  popover>`: in the 240px desktop sidebar the card lands beside the row, but in
+  the full-width bottom sheet there is no "beside", so the browser resolved the
+  anchor off the left edge. Being unable to sign out was the serious half. The
+  card now spans the sheet, scrolls if it is long, and its rows are 44px. The
+  two inset properties need `!important` — the elements library writes the
+  anchor result as an *inline* style, which no stylesheet rule can outrank.
+- **Text fields no longer zoom the page in on a phone** (#369) — "search button
+  breaks page design (it zooms everything out)". Safari zooms in when a focused
+  field's font is under 16px and **does not zoom back out** when the keyboard
+  closes, leaving the layout at twice its size and scrolled sideways. Measured
+  under the threshold: the workitems search at **12.5px**, `.nx-input` at 13px
+  on `/appearance` and on the Generali flatpickr date fields, and
+  `.profile-input` at 14px across six fields on `/profile`. All raised to 16px
+  on coarse pointers, at the shared component rather than per field. The
+  workitems search needed its own rule at matching specificity — the filter
+  row sets `font-size` at (0,2,0), which outranks the shared `.nx-input`.
+- **The strip above the page is no longer stuck in dark mode** (#370) — "the
+  top part is stuck in darkmode". Two theme-dependent things live outside the
+  stylesheet: the `theme-color` meta, which was one hardcoded `#0f172a`, and
+  the inline `background-color`/`color-scheme` the pre-paint scripts put on
+  `<html>` to prevent a flash of the wrong colour. **Both were written once,
+  before paint, and never updated** — so switching to light mode left `<html>`
+  painted navy while the body went light, and with `viewport-fit=cover` the
+  html canvas is exactly what shows through the safe areas, i.e. the strip
+  behind the status bar. An inline style also beats any stylesheet rule, so
+  this was not fixable in CSS. All three now follow `html.dark`, which is the
+  one thing every theme path already agrees on — pre-paint, the sidebar
+  toggle, the Appearance panel, and a `system` theme following the OS — rather
+  than re-deriving the theme or keying off `prefers-color-scheme`, which would
+  get anyone whose chosen theme differs from their OS exactly backwards.
+- **The workitems overview spends far less of a phone on chrome** (#362, #364)
+  — every filter had its own full-width row and the three action buttons broke
+  2 + 1, so the first workitem started **809px down an 844px screen**: under
+  the tab bar, with nothing to see until you scrolled. Search now takes a row,
+  the process picker and the stage filter share the next, and *Advanced /
+  Save view / Reset* sit together. The "Process" eyebrow goes — it labels a
+  picker whose own button already reads "All Processes". *Export CSV /
+  Import / Prepared documents* become one horizontally scrolling toolbar,
+  since their labels cannot fit three across 355px without truncating.
+  Measured: filter block **399px → 179px**, actions **106px → 48px**, first
+  row **809px → 532px**.
+- **The workitem stage indicator gets its own line** (#363) — each row is a
+  card on a phone and every cell is one flex line spread by `space-between`.
+  The Workitem cell carries two values, the id *and* the stage indicator, so
+  the label, the id, the four ticks and the stage name all shared one 355px
+  line — `WORKITEM 18995 - - - Validation`, with the pair crushed into 131px
+  against the right edge. The indicator now has the line under the id to
+  itself (318px), and the ticks are 4px rather than 3px, which is the
+  difference between reading as progress and reading as a hairline.
+- **Fixed: the bulk-action bar overlapped the tab bar again** (#354) — it
+  cleared `56px`, written when the tab bar was that tall. The bar has been
+  **64px** since, so selecting rows put the actions 8px under the navigation.
+  It now uses `--nx-tabbar-h`, which exists so the bar's height is stated in
+  one place.
+- **Fixed: a comment could fail the flatpickr load-order guard** — the
+  flatpickr load-order guard decided what was a comment by checking whether a
+  line *starts* with `/*`, `*` or `//`. This codebase indents the continuation
+  lines of a `/* … */` block as plain prose, so a sentence in a comment that
+  mentioned flatpickr and happened to end in a comma was read as a selector
+  list and failed the build. Comments are now removed as blocks before the
+  scan. Verified the guard still fails on a real unprefixed
+  `.flatpickr-day.selected` rule, so it is no weaker — just no longer tripped
+  by explaining in a comment which fields flatpickr renders.
+- **One card-table row now reads as one item** (#366, #367) — "no clear space
+  between the workitems". Every Generali list stacks its rows into cards on a
+  phone, and in dark mode the card's own border and the dividers *between its
+  cells* were both `#334155`. A Generali document has nine cells, so it drew
+  nine identical lines and nothing marked where one document ended and the
+  next began. The hexes were hardcoded, which is why a separate dark-mode
+  block had to exist and how the two colours drifted into agreement. Tokens
+  now, from one source for both themes: the edge is `--nx-border-strong`, the
+  inner dividers `--nx-divider`, and the gap between cards (1rem) is wider
+  than any gap inside one. Measured in dark mode: edge `rgb(100,116,139)`
+  against dividers `rgb(51,65,85)`; in light, `rgb(148,163,184)` against
+  `rgb(226,232,240)`.
+- **Filter grids are two columns on a phone** (#367) — twelve templates (eight
+  Generali, three admin, the tenant page) build their filter row as
+  `grid-cols-1 sm:grid-cols-2 lg:grid-cols-4`. Tailwind's `sm:` starts at
+  640px, so a phone got **one** column: on Generali Documents that was four
+  label-plus-dropdown blocks stacked **352px** tall. Two columns halves it to
+  167px, and every affected page was re-measured for damage — **zero** clipped
+  controls and no new overflow anywhere.
+- **Eddard is sized for a thumb** (#371) — the panel's geometry was already
+  fixed under #354, so what was left was what you touch inside it. The starter
+  suggestions are the first thing anyone taps on an empty thread and they were
+  **28px** tall with 3px between them, at 11px type; they are now full-width
+  44px rows at 13px. The close button loses its box (the same thing that was
+  wrong on the wizard) and the answer-depth picker goes from 33px to 44px.
+  Every control in the panel now clears 44px.
+- **The tab bar's hidden state is self-correcting** (#373) — "navbar breaks
+  every now and then". The bar hides while a keyboard field holds focus, and
+  that is the one state here you cannot escape: the navigation is gone, so
+  there is nothing left to tap. It relied on a `focusout` arriving for every
+  `focusin`, and a missed one left the bar hidden until a reload. It now
+  derives the class from `document.activeElement`, so any missed event
+  self-corrects on the next one, and re-checks on `pageshow` and on becoming
+  visible again — the two paths where a phone browser is most likely to have
+  skipped something. **This is not a reproduction:** Chromium fires
+  `focusout` when the focused field is removed, hidden, or left behind by a
+  navigation (all three checked), so the report's actual trigger is still
+  unknown. It removes one way it could be true on an engine that cannot be
+  tested here.
+- **Fixed: error pages rocked sideways on a phone** — found while checking the
+  Generali routes, since a mistyped URL is how you meet this page. A 404
+  scrolled 7px horizontally. The decorative `.starfield` / `.nebula` layers
+  are `position: fixed; inset: 0`, so they report whatever width the document
+  has — the symptom, not the cause. The axis is clipped at the root instead:
+  the page is stacked full-bleed gradients with no horizontal content, so
+  there is nothing a reader could lose.
+- **Generali dashboard donut legends read in full on a phone** (#365) —
+  Chart.js draws the legend *inside* the canvas, so a legend on the right took
+  its width out of a 304px chart and left about 150px for labels. They were
+  chopped mid-word: "KORRESPONDENZ S", "ANTRAG / ÄNDERUN". The two doughnuts
+  put their legend underneath on a touch phone, where each label gets the full
+  width, and their boxes grow from Tailwind's `h-48` (192px, sized when the
+  legend sat beside the chart) to 21rem so the last row is not cut off by the
+  card edge. The other four charts keep their layout and height — they are
+  selected by `:has()` on the canvas id, so only the two that moved are
+  affected. **Two labels still truncate**: the longest document types run past
+  40 characters, and Chart.js clips rather than shortens. Tapping the slice
+  still shows the full name.
+- **The reporting topbar drops its app icon on a phone** — it spent 48px on an
+  icon the tab bar below already draws *and highlights*, in a 355px row that
+  also had to hold Help and Eddard. The icon is hidden on a touch phone;
+  **"Reporting BETA" stays** — reporting is not generally available yet, so the
+  chip has to be visible on a phone as much as anywhere, and a chip on its own
+  would label nothing, so the title keeps it company. Measured after: title
+  18–125, chip 136–184, the two 44px actions ending exactly on the content
+  edge at 372, all on one 48px row, and the screen rail comes up 5px.
+- **The profile menu is a panel, not a floating card** — opened from the user
+  row it anchored to that row's bottom edge and extended **412px upwards**, a
+  366px card covering the middle of the sheet's nav list with sheet visible
+  above it and 12px down each side. It now spans the sheet's full width and
+  sits flush on the tab bar with only its top corners rounded, so it reads as
+  a panel that slid up over the list. `top: auto` is what releases it from the
+  anchor's vertical placement.
+- **The profile menu's section works with a thumb** — "Keyboard shortcuts" is
+  hidden on a touch phone: it opens a list of Ctrl/Cmd bindings on a device
+  with no keyboard, the one row in that menu that can only disappoint. The
+  overlay itself stays, still reachable by the `?` shortcut if a hardware
+  keyboard is attached. Then the four pages the menu leads to, which fit a
+  phone but were built for a mouse — **101 controls under 44px between them**:
+  What's New's *Try it* links at **20px** (the smallest control in the app),
+  the accent swatches and password eye at 30px, the segmented pickers at 33px,
+  the *Back to profile* links at 29px, and both pages' primary action —
+  *Save changes*, *Send feedback* — at 40px, which is the worst kind of
+  near-miss because it looks deliberate. Also the sheet's brand link at 38px,
+  on **every page**; it is 129px wide so it never felt hard to hit, which is
+  why a whole sweep missed it. Now: What's New **0**, /profile and /feedback
+  **1** each, /appearance **3**.
+  Two deliberate exceptions, documented in the CSS so nobody "fixes" them:
+  `.profile-photo-input` is the hidden `<input type="file">` behind the
+  avatar's label and measures 1px because it is never tapped directly; and the
+  `role="switch"` toggles keep their 42×24 pill — raising the button would give
+  you a fat, wrong-looking switch, so a transparent `::after` inset by −10px
+  grows the *hit area* to 44px instead. Verified by tapping 18px above the
+  pill, outside it and inside the hit area: it toggles.
+- **Nothing on a phone scrolls sideways any more** — left and right belong to
+  moving between views (#368), so no region inside a page may claim the same
+  gesture. Measured across eight pages, exactly two did: the **reporting screen
+  rail** (756px of content in a 358px box) and the **workitems status tabs**,
+  over by *six pixels*. The rail is a three-column grid now — no scrolling and
+  no ragged wrap, an even 3×2 with every label readable and "Report
+  definitions" wrapping inside its own button rather than truncating. What made
+  the original wrap look broken was six buttons at four different vertical
+  positions with dangling connector lines, not the wrapping. The status tabs
+  missed by six pixels, which is not worth a scrolling strip, so they are
+  tightened and wrap evenly if a future status name pushes them over. A new
+  parametrised test pins the invariant: no element with a draggable
+  `overflow-x` may hold content wider than its box. Clipped overflow is
+  exempt — a finger cannot drag it, so it does not compete.
+  The workitems action toolbar got the same treatment for the same reason,
+  and it exposed a hole in how this was being tested: it **fit at 390px and
+  was draggable by 13px at 375** — an iPhone SE or 8. Every measurement up to
+  this point had been taken at one width. Re-checked at six real iPhone widths
+  (375 through 430) after the change: no page overflows and nothing is
+  draggable at any of them.
+- **The tab bar gets out of the way of the software keyboard** (#354) — the
+  bar is fixed to the bottom of the viewport, so on iOS the keyboard pushed it
+  up and parked four nav slots directly above the keys: every tap meant for a
+  letter risked navigating away mid-sentence. The bar now hides while a field
+  that opens a keyboard holds focus (`html.nx-typing`) and comes straight back
+  on blur. Keyed on the field type, not on a viewport-height guess — a
+  checkbox, a `<select>` or a date picker opens no keyboard and keeps the bar.
+  Viewports also gained `interactive-widget=resizes-content`, so the layout
+  viewport shrinks to the space left above the keyboard instead of the page
+  being scrolled under it. The bar's slots show a `:focus-visible` ring too,
+  for anyone on a phone with a hardware keyboard.
+- **Reporting pages on a phone** (#354) — every one of the five overflowed,
+  `/reporting` by 212px, the worst in the app. The cause was not a
+  desktop-only design but one mistake repeated: a mobile override dropping
+  the `minmax(0, …)` its own desktop rule has. A bare `1fr` track has an
+  automatic minimum, so it grows to its content instead of clamping to the
+  container — on `/reporting` a 507px column inside a 302px shell. Fixed in
+  `.rc-body`, `.reporting-guide-layout`, `.rs-result-main` and
+  `.rs-wizard-grid`, plus `min-width: 0` on the grid/flex children. Two other
+  causes: `main.reporting-admin` shrink-wrapped to its widest table because
+  `margin: 0 auto` cancels `align-items: stretch` in the body's flex column;
+  and `.rc-topbar` / `.rc-screen-head` are single-line flex rows that pushed
+  their buttons past the viewport. All five now measure zero overflow.
+  Touch targets too — reporting has its own `rc-*` / `rs-*` component set, so
+  the shared sizing that fixed Generali and admin left it at 34–37px.
+- **Dashboard 14d/30d/90d switch** (#354) — a regression from the shared
+  touch sizing in this branch: `.nx-segmented` sets a fixed
+  `height: var(--ctl-h)` (~29px) with `overflow: hidden`, so raising only its
+  buttons to 44px clipped them inside a box less than half their height,
+  which read as bad padding and off-centre labels. The container now grows
+  with them and the labels are centred.
+- **Public maintenance page** (#354) — its two buttons were 39px. The page is
+  deliberately self-contained so it can render when the app is locked down,
+  which means it loads none of nexora's stylesheets and the shared sizing
+  could not reach it.
+- **Phone tab bar height** — raised from 56px to 64px, and the figure is now
+  one `--nx-tabbar-h` variable instead of three hand-copied literals (the
+  bar, the body's bottom padding, the bottom sheet's), so changing it cannot
+  leave content hidden underneath the bar.
+- **CSRF failures explain themselves** (#354) — submitting a form whose token
+  no longer matched the session produced Werkzeug's raw 400: a white page
+  reading "The CSRF session token is missing", with no explanation and
+  nothing to click. There was no `CSRFError` handler at all. This is not an
+  edge case — the token is tied to the session, so a login page left open
+  past the 24-hour session lifetime, or one served from a browser cache after
+  its session expired, hits it every time. Now renders a `handlers/` page in
+  the same style as 403/404/500, saying the page expired and offering a
+  **Try again** link that re-GETs the path that was posted to, issuing a
+  fresh token. Enforcement is unchanged: still refused, still 400, and the
+  external API surface still gets JSON rather than a web page. The shared
+  error base gained an overridable primary action so the page can offer
+  "try again" instead of "take me home"; every existing error page is
+  byte-identical.
+- **Admin pages on a phone** (#354) — swept all twelve at 390px. As with
+  Generali, **none overflowed**: the wide tables already scroll inside their
+  own containers, so target size was the whole problem. `.nx-input` rendered
+  41px and `.nx-select` 39px — the shared components every admin search and
+  filter row is built from, now fixed once for every page that uses them —
+  plus admin-logs' own time-range presets (31–33px) and the overview's two
+  standalone quick links (355×21). Deliberately left alone: the links inside
+  the tenant cards on `/admin/tenants` (16–25px). Those are card content, not
+  toolbar controls, and a card listing six members would grow by over 100px
+  if each row were padded to 44 — it would stop being scannable to fix a
+  target you reach deliberately, one at a time.
+- **Generali pages on a phone** (#354) — swept all thirteen at 390px in a
+  real touch viewport. **None of them overflowed**; the layout was already
+  sound. The one problem was repeated on every page: the action buttons
+  rendered 34px tall. That is the shared `.nx-btn--sm`, which appears in 20
+  templates and was the most common too-small control in the app, so it is
+  fixed once in `nexora-ui.css` rather than forty times — along with
+  `.nx-btn`, `.nx-tab`, `.nx-segmented__btn` and `.pagination-link`, which
+  now clear 44px on a touch pointer. Page-specific leftovers: the dashboard's
+  pill-shaped trend chips (28–37px) and the import-status pagination, whose
+  page numbers render as `.nx-btn--sm` and came out 29–32px wide side by
+  side. All thirteen pages now measure zero overflow and zero undersized
+  controls. Pointer-keyed throughout, so nothing changes on a desktop.
+- **Workitems overview on a phone** (#354) — the page scrolled sideways by
+  27px. Three flex rows sized for a desktop could neither shrink nor wrap:
+  the export/import cluster (its shared `.nx-page-head__actions` carries
+  `flex-shrink: 0`, so it hung 8px off each edge), the list header, and the
+  status tab strip. The tab strip now scrolls on its own axis instead of
+  wrapping into a broken half-row, and every tab stays reachable. The
+  floating bulk-action bar sat at `bottom: 12px` — exactly where the new
+  phone tab bar is — so selecting rows hid the actions behind the
+  navigation; it now clears it, under the same touch gate that draws the bar,
+  so a narrow desktop window is unchanged. Touch targets: toolbar controls
+  were 32–33px, status tabs 27px, pagination 30×30 buttons flush against each
+  other, the details chevron 21×9 and row checkboxes 18×18. Toolbar,
+  pagination, tabs and bulk actions now clear 44px; the per-row controls are
+  lifted to 26 and 35px rather than 44, which would have set the height of
+  every row and halved how many fit on screen.
+- **Login and landing pages on a phone** (#354) — `auth.css` had no media
+  queries at all, so the page every user meets before signing in had no
+  small-screen rules. Neither page overflowed, but the controls were around
+  half the size a thumb needs: the shared footer links measured 20px tall,
+  the show-password eye 30px wide (the control most likely to be tapped on a
+  phone, where typing a password blind is hardest) and the theme toggles
+  40px. All now clear the 44px floor Apple and Google both publish, keyed on
+  `pointer: coarse` rather than a width — how big a control must be follows
+  the finger, not the screen, so a narrow desktop window is unchanged. The
+  landing headline was Tailwind's smallest step (`text-4xl`, 36px) and ran to
+  five lines and 198px, about a quarter of the screen, before a reader
+  reached a word about what nexora does; now 28px and 97px. The sydoc mark in
+  the footer drops from 96px to 64px below 480px.
+- **Dashboard fits a phone** (#354) — two layout bugs, both clipping content
+  rather than merely looking cramped. `.nx-main` kept its 40px desktop side
+  gutter at every width, spending 80px of a 375px screen on empty margin and
+  squeezing the content column to 287px; it now drops to 16px below 768px,
+  matching what `_header.css` already did for `.container`. And each KPI tile
+  held 187px of content in a 94px box — the 120px sparkline is
+  `flex-shrink: 0` and sat beside the value — so the number and its delta
+  were cut off; below 480px the sparkline is hidden (the same trend is drawn
+  full width in the charts below) and the tiles tighten up. Content width
+  287 → 340px, tile overflow 93 → 0px. Keyed on width, not on the phone
+  nav's touch gate: these bite any narrow window, a half-screen desktop one
+  included.
+- **Rendered pages are no longer cacheable** (#354) — HTML went out with no
+  `Cache-Control`, no `ETag` and no `Last-Modified` at all, leaving the
+  browser to guess. A nexora pinned to a phone home screen runs in its own
+  standalone context, guesses eagerly, and kept showing the version it was
+  pinned at for days. Worse than the stale version: each asset tag's
+  `?v=<mtime>` buster is baked into the HTML, so a stale page also pinned
+  stale asset URLs — the browser never requested the new CSS, and the
+  year-long `max-age` on `/static` (safe only while the HTML naming it is
+  fresh) kept serving the old file, making a deploy look like it had done
+  nothing. HTML responses now send `Cache-Control: no-store`; versioned
+  static assets keep their long cache. Every page is rendered for one
+  signed-in user, so none of it belonged in a cache anyway — this also stops
+  a back-button press on a shared machine redisplaying the previous user's
+  page after sign-out.
+
 ## [3.2.14] - 2026-09-23
 
 ### Fixed

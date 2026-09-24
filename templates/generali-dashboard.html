@@ -2,7 +2,7 @@
 <html lang="{{ get_locale }}">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
   {% include '_theme_prepaint.html' %}
   <link rel="stylesheet" href="{{ static_v('css/nexora-ui.css') }}">
   <title>{{ _("Generali Dashboard - nexora") }}</title>
@@ -30,6 +30,10 @@
       cursor: pointer;
     }
     .trend-chip:hover { background: var(--nx-alt); }
+    /* The chips are pill-shaped and 28-37px tall, which is a comfortable
+       mouse target and an awkward thumb one. Pointer-keyed like the rest
+       of the #354 work, so the desktop pill keeps its proportions. */
+    @media (pointer: coarse) { .trend-chip { min-height: 44px; } }
     .trend-chip[aria-pressed="true"] {
       background: var(--nx-l-indigo);
       border-color: transparent;
