@@ -1686,6 +1686,41 @@ html.dark .flatpickr-day:hover { background: var(--nx-alt); }
   .rp-today__month::after { content: " ›"; color: var(--nx-text-meta); }
   .rp-today__error { color: var(--nx-danger); font-size: 14px; }
 
+  /* Quick report sheet: slides up from the bottom, big targets, the KPI name
+     large. :not([hidden]) so the display rule can never override the hidden
+     attribute and leave an invisible sheet catching taps. */
+  .rp-quick:not([hidden]) {
+    position: fixed; inset: 0; z-index: var(--z-modal, 61);
+    display: flex; align-items: flex-end; background: rgba(0, 0, 0, 0.45);
+  }
+  .rp-quick__panel {
+    width: 100%; background: var(--nx-card); color: var(--nx-text);
+    border-radius: 20px 20px 0 0; border-top: 1px solid var(--nx-border-strong);
+    padding: 22px 18px calc(18px + var(--nx-sa-bottom, env(safe-area-inset-bottom, 0px)));
+  }
+  .rp-quick__kpi { margin: 0; font-size: 14px; font-weight: 600; color: var(--nx-text-sec); }
+  .rp-quick__title { margin: 2px 0 0; font-size: 21px; font-weight: 700; line-height: 1.25; }
+  .rp-quick__date { margin: 4px 0 0; font-size: 15px; color: var(--nx-text-sec); }
+  .rp-quick__question { margin: 18px 0 10px; font-size: 17px; font-weight: 600; }
+  .rp-quick__choices { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .rp-quick__choice {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+    min-height: 96px; border-radius: 16px; border: 2px solid transparent;
+    font-size: 18px; font-weight: 700; cursor: pointer;
+  }
+  .rp-quick__choice i { font-size: 30px; }
+  .rp-quick__choice--ok   { background: var(--nx-l-green); color: var(--nx-l-green-fg); }
+  .rp-quick__choice--late { background: var(--nx-l-red);   color: var(--nx-l-red-fg); }
+  .rp-quick__choice:focus-visible { border-color: var(--nx-accent); outline: none; }
+  .rp-quick__choice:disabled { opacity: 0.55; }
+  .rp-quick__error { margin: 12px 0 0; font-size: 15px; font-weight: 600; color: var(--nx-danger); }
+  .rp-quick__foot { display: flex; justify-content: space-between; margin-top: 16px; }
+  .rp-quick__link {
+    min-height: 44px; padding: 0 6px; background: none; border: 0;
+    font-size: 16px; font-weight: 600; color: var(--nx-accent); cursor: pointer;
+  }
+  .rp-quick__link:last-child { color: var(--nx-text-sec); }
+
   /* Folded filter blocks (nx_core.js adds the button and the class). */
   .nx-filter.nx-filter--folded { display: none; }
   .nx-filter-toggle {

@@ -95,6 +95,11 @@ when there isn't enough room.
   On the dashboard, the recipient chart grows with its number of bars so every
   bar keeps its name, and doughnut legend names that would wrap end in "…"
   (the tooltip keeps the full name). Desktop pixel-identical.
+- **Reporting a KPI on the phone is one tap.** "Report now" opens a short sheet
+  with the KPI and today's date filled in and two big buttons, On Time and
+  Late; tapping one saves the report. "More options" still opens the full form
+  for another date or several KPIs. The server's own checks (one report per
+  day and KPI, the add deadline) still apply and their message is shown.
 - **Filters are folded away on a phone.** Every list page with a filter
   block (Generali, admin, tenant pages) opens with one "Filters" button
   instead of the fields. The button shows how many filters are set, so

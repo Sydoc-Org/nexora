@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 09:46+0200\n"
+"POT-Creation-Date: 2026-09-24 11:29+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -3076,7 +3076,7 @@ msgstr "Esporta"
 #: templates/generali_additionalservices.html:324
 #: templates/generali_baseservices.html:273 templates/generali_pdqm.html:348
 #: templates/generali_projectmanagement.html:259
-#: templates/generali_reporting.html:330
+#: templates/generali_reporting.html:360
 #: templates/js/_generali_reporting_js.html:37 templates/reporting.html:405
 #: templates/reporting.html:606 templates/reporting_metrics.html:78
 #: templates/reporting_sources.html:88 templates/tenant/page.html:136
@@ -3211,8 +3211,8 @@ msgstr "Testo dell'annotazione"
 #: templates/generali_projectmanagement.html:215
 #: templates/generali_projectmanagement.html:255
 #: templates/generali_projectmanagement.html:280
-#: templates/generali_reporting.html:243 templates/generali_reporting.html:326
-#: templates/generali_reporting.html:351
+#: templates/generali_reporting.html:236 templates/generali_reporting.html:273
+#: templates/generali_reporting.html:356 templates/generali_reporting.html:381
 #: templates/js/_reporting_dashboard_js.html:42 templates/reporting.html:495
 #: templates/reporting.html:592 templates/reporting.html:605
 #: templates/tenant/page.html:135 templates/workitems_overview.html:447
@@ -4787,7 +4787,7 @@ msgstr "Sforzo (ore)"
 #: templates/generali_additionalservices.html:265
 #: templates/generali_baseservices.html:226 templates/generali_pdqm.html:276
 #: templates/generali_projectmanagement.html:219
-#: templates/generali_reporting.html:247
+#: templates/generali_reporting.html:277
 #: templates/js/_generali_reporting_js.html:34
 msgid "Submit"
 msgstr "Invia"
@@ -4799,7 +4799,7 @@ msgstr "Modifica presenze"
 #: templates/generali_additionalservices.html:338
 #: templates/generali_baseservices.html:287 templates/generali_pdqm.html:362
 #: templates/generali_projectmanagement.html:273
-#: templates/generali_reporting.html:344
+#: templates/generali_reporting.html:374
 msgid "Delete record"
 msgstr "Elimina voce"
 
@@ -4807,7 +4807,7 @@ msgstr "Elimina voce"
 #: templates/generali_additionalservices.html:339
 #: templates/generali_baseservices.html:288 templates/generali_pdqm.html:363
 #: templates/generali_projectmanagement.html:274
-#: templates/generali_reporting.html:345
+#: templates/generali_reporting.html:375
 #: templates/js/admin/_user_detail_js.html:267
 msgid "This action cannot be undone."
 msgstr "Questa azione non può essere annullata."
@@ -4819,7 +4819,7 @@ msgstr "Questa azione non può essere annullata."
 #: templates/generali_additionalservices.html:349
 #: templates/generali_baseservices.html:298 templates/generali_pdqm.html:373
 #: templates/generali_projectmanagement.html:284
-#: templates/generali_reporting.html:355
+#: templates/generali_reporting.html:385
 #: templates/js/_generali_additional_services_js.html:125
 #: templates/js/_generali_additional_services_js.html:431
 #: templates/js/_generali_additional_services_js.html:441
@@ -5046,14 +5046,15 @@ msgstr "Totale voci"
 #: templates/generali_monthreport.html:82
 #: templates/generali_monthreport.html:139
 #: templates/generali_reporting.html:135 templates/generali_reporting.html:175
-#: templates/generali_reporting.html:302 templates/generali_reporting.html:303
+#: templates/generali_reporting.html:227 templates/generali_reporting.html:332
+#: templates/generali_reporting.html:333
 #: templates/js/_generali_reporting_js.html:10
 msgid "On Time"
 msgstr "In orario"
 
 #: templates/generali_monthreport.html:89
 #: templates/generali_monthreport.html:142
-#: templates/generali_reporting.html:136
+#: templates/generali_reporting.html:136 templates/generali_reporting.html:230
 #: templates/js/_generali_reporting_js.html:11
 msgid "Late"
 msgstr "In ritardo"
@@ -5159,7 +5160,7 @@ msgid "Daily task completion reporting"
 msgstr "Reporting giornaliero del completamento delle attività"
 
 #: templates/generali_reporting.html:38 templates/generali_reporting.html:39
-#: templates/generali_reporting.html:219
+#: templates/generali_reporting.html:249
 msgid "Add Report"
 msgstr "Aggiungi rapporto"
 
@@ -5205,30 +5206,38 @@ msgstr "KPI 13: Documento smarrito (fisico)"
 msgid "Reported At"
 msgstr "Segnalato alle"
 
+#: templates/generali_reporting.html:224
+msgid "Was it on time today?"
+msgstr "Oggi era in orario?"
+
 #: templates/generali_reporting.html:235
+msgid "More options"
+msgstr "Altre opzioni"
+
+#: templates/generali_reporting.html:265
 msgid "Add Date"
 msgstr "Aggiungi data"
 
-#: templates/generali_reporting.html:290
+#: templates/generali_reporting.html:320
 msgid "Edit Report"
 msgstr "Modifica rapporto"
 
-#: templates/generali_reporting.html:297
+#: templates/generali_reporting.html:327
 #: templates/js/_generali_reporting_js.html:24
 msgid "Report Date"
 msgstr "Data del rapporto"
 
-#: templates/generali_reporting.html:307
+#: templates/generali_reporting.html:337
 #: templates/js/_generali_reporting_js.html:20
 msgid "Email Received"
 msgstr "Email Ricevuta"
 
-#: templates/generali_reporting.html:312 templates/hero.html:226
+#: templates/generali_reporting.html:342 templates/hero.html:226
 #: templates/js/_generali_reporting_js.html:21
 msgid "Delivery"
 msgstr "Consegna"
 
-#: templates/generali_reporting.html:317
+#: templates/generali_reporting.html:347
 #: templates/js/_generali_reporting_js.html:22
 msgid "Latest Delivery"
 msgstr "Ultima consegna"
@@ -6569,8 +6578,8 @@ msgstr "Eliminato"
 msgid "Table or document view"
 msgstr "Vista tabella o documenti"
 
-#: templates/js/_generali_dashboard_js.html:241
-#: templates/js/_generali_dashboard_js.html:331
+#: templates/js/_generali_dashboard_js.html:260
+#: templates/js/_generali_dashboard_js.html:363
 #: templates/workitems_overview.html:336
 msgid "Documents"
 msgstr "Documenti"

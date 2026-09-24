@@ -209,6 +209,36 @@
 
   </main>
 
+  {# Phone quick report (opened by a "Report now" row on the Today board). The
+     full form below asks for a date group, a category dropdown and an on-time
+     toggle -- fine at a desk, fiddly on a phone for the one thing people do
+     there: say whether today's post for this KPI was on time. So: the KPI and
+     today's date are already known, and one of two big buttons saves it.
+     "More options" opens the full form for another date or several KPIs. #}
+  {% if can_add %}
+  <div id="rpQuick" class="rp-quick" role="dialog" aria-modal="true" aria-labelledby="rpQuickTitle" data-testid="generali-reporting-quick" hidden>
+    <div class="rp-quick__panel">
+      <p class="rp-quick__kpi" id="rpQuickKpi"></p>
+      <h3 class="rp-quick__title" id="rpQuickTitle"></h3>
+      <p class="rp-quick__date" id="rpQuickDate"></p>
+      <p class="rp-quick__question">{{ _("Was it on time today?") }}</p>
+      <div class="rp-quick__choices">
+        <button type="button" class="rp-quick__choice rp-quick__choice--ok" data-ontime="true" data-testid="generali-reporting-quick-ontime">
+          <i class="fas fa-circle-check" aria-hidden="true"></i><span>{{ _("On Time") }}</span>
+        </button>
+        <button type="button" class="rp-quick__choice rp-quick__choice--late" data-ontime="false" data-testid="generali-reporting-quick-late">
+          <i class="fas fa-circle-xmark" aria-hidden="true"></i><span>{{ _("Late") }}</span>
+        </button>
+      </div>
+      <p class="rp-quick__error" id="rpQuickError" role="alert" hidden></p>
+      <div class="rp-quick__foot">
+        <button type="button" class="rp-quick__link" id="rpQuickMore" data-testid="generali-reporting-quick-more">{{ _("More options") }}</button>
+        <button type="button" class="rp-quick__link" id="rpQuickCancel" data-testid="generali-reporting-quick-cancel">{{ _("Cancel") }}</button>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
   <!-- Add Report Modal -->
   {% if can_add %}
   <div id="addReportModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4">

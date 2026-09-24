@@ -990,7 +990,7 @@
             if (row.tagName === 'BUTTON') {
                 row.type = 'button';
                 row.setAttribute('aria-label', `${I18N.reportNow}: ${name}`);
-                row.addEventListener('click', () => openModal({ category: cat.value }));
+                row.addEventListener('click', () => openQuick(cat.value, name, kpi));
             }
             list.appendChild(row);
         });
@@ -1014,6 +1014,61 @@
         }
     }
     PHONE.addEventListener('change', loadToday);
+
+    // ----------------------------- phone quick report ----------------------------- //
+    // "Report now" -> a short sheet: the KPI and today's date are already
+    // known, so one of two big buttons saves the report. Same POST as the full
+    // form sends for a single entry; the server still enforces one report per
+    // day and KPI and the add deadline, and its message is shown if it refuses.
+    const quick = document.getElementById('rpQuick');
+    let quickCategory = null;
+    function closeQuick() { if (quick) quick.hidden = true; quickCategory = null; }
+    function openQuick(category, name, kpi) {
+        if (!quick) { openModal({ category }); return; }
+        quickCategory = category;
+        document.getElementById('rpQuickKpi').textContent = kpi;
+        document.getElementById('rpQuickTitle').textContent = name;
+        document.getElementById('rpQuickDate').textContent = formatDate(localDay(new Date()));
+        const err = document.getElementById('rpQuickError');
+        err.hidden = true; err.textContent = '';
+        quick.querySelectorAll('.rp-quick__choice').forEach(b => { b.disabled = false; });
+        quick.hidden = false;
+        quick.querySelector('.rp-quick__choice--ok').focus();
+    }
+    if (quick) {
+        quick.addEventListener('click', e => { if (e.target === quick) closeQuick(); });
+        document.getElementById('rpQuickCancel').addEventListener('click', closeQuick);
+        document.getElementById('rpQuickMore').addEventListener('click', () => {
+            const category = quickCategory;
+            closeQuick();
+            openModal({ category });
+        });
+        document.addEventListener('keydown', e => { if (e.key === 'Escape' && !quick.hidden) closeQuick(); });
+        quick.querySelectorAll('.rp-quick__choice').forEach(btn => btn.addEventListener('click', async () => {
+            if (!quickCategory) return;
+            const buttons = quick.querySelectorAll('.rp-quick__choice');
+            buttons.forEach(b => { b.disabled = true; });
+            const err = document.getElementById('rpQuickError');
+            err.hidden = true;
+            try {
+                const res = await fetch(`${API_PREFIX}api/generali/reporting`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                    body: JSON.stringify({ reportForDate: localDay(new Date()), category: quickCategory,
+                                           ontime: btn.dataset.ontime === 'true' })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!data.success) throw new Error(data.error || I18N.saveFailed);
+                closeQuick();
+                fetchRecords(1);
+                loadToday();
+            } catch (e) {
+                err.textContent = e.message || I18N.saveFailed;
+                err.hidden = false;
+                buttons.forEach(b => { b.disabled = false; });
+            }
+        }));
+    }
 
     // ----------------------------- init ----------------------------- //
     loadOrganizations();
