@@ -216,6 +216,23 @@
         csrfToken: csrfToken
     };
 
+    // ---- flatpickr: the same picker on a phone as on desktop -----------------
+    // By default flatpickr swaps its input for a native <input type="date">
+    // on a mobile user agent. On an iPhone that field ignores nexora's input
+    // styling, shows no "yyyy-mm-dd" hint while empty and formats the date its
+    // own way, so the Generali From/To pair looked unlike every field around
+    // it. disableMobile keeps flatpickr's own input and calendar everywhere.
+    // Set here, once, rather than in ~35 flatpickr() calls: pages load
+    // flatpickr in <head>, before this file runs from <body>; the
+    // DOMContentLoaded pass covers a page that loads it later.
+    function flatpickrDefaults() {
+        if (window.flatpickr && typeof window.flatpickr.setDefaults === 'function') {
+            window.flatpickr.setDefaults({ disableMobile: true });
+        }
+    }
+    flatpickrDefaults();
+    document.addEventListener('DOMContentLoaded', flatpickrDefaults);
+
     // ---- stat-card icons: all or none per row -------------------------------
     // .nx-stat wraps its icon chip under the number when the two do not fit
     // side by side. On a phone that gave a row of KPI cards an extra line in

@@ -107,6 +107,13 @@ when there isn't enough room.
   Generali dashboard on an iPhone SE). Where they fit (larger iPhones,
   full-width cards, desktop) they stay. `static/js/nx_core.js` checks each
   group on load, when a number arrives, and on resize.
+- **Date fields on a phone look like every other field.** flatpickr used to
+  swap each date input for the iPhone's native date field. That field ignored
+  nexora's styling, showed no "yyyy-mm-dd" hint while empty and formatted
+  dates its own way, so the Generali From/To pair looked out of place.
+  `nx_core.js` now sets `disableMobile` once for every flatpickr, so phones
+  get the same input and calendar as desktop. The calendar fits a 320px
+  screen.
 - **The Generali month report could be dragged sideways on every iPhone** —
   11–45px, both engines, reporting section only. Not a grid bug, as it first
   appeared: German compounds "On-Time Rate" into **"Pünktlichkeitsquote"**, one
