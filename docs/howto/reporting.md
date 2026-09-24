@@ -1075,6 +1075,47 @@ Both serialization paths neutralize spreadsheet formula injection (leading
 | `reporting.ai.sql.use` | Receive AI-drafted read-only T-SQL into the SQL editor. Grant alongside `reporting.sql.run`. Admins seeded. |
 | `reporting.ai.explain.use` | Let a result's rows reach the model: gates **auto captions** alone, and — combined with `reporting.sql.run` — the chat agent's `run_sql`/`compute_stats` tools (live-query narration). Grantable; admins seeded (see below). |
 
+### When a `table` source may be granted to a customer profile (#332)
+
+**Rule: only when the underlying object holds that customer's rows and nobody
+else's. Anything multi-tenant stays on the docprocessing/workitems path.**
+
+This is a rule rather than a preference because the two providers do not offer
+the same protection, and the difference is invisible from the permissions grid:
+
+| provider | row scoping |
+|---|---|
+| `docprocessing` | filters through `process.<client>.<name>.view` — a grant narrows *which rows*, not just whether the page opens |
+| `table` | **none.** `_prepare_run()` calls `build_generic_query(rd, baseObject, catalog, …)` with no scope argument at all |
+
+So for a `table` source the `reporting.source.<code>.use` grant is the entire
+gate: all-or-nothing over the whole object. It *is* enforced — `_prepare_run()`
+re-checks `has_permission(source["permission"])` at execution time and raises,
+so a hand-crafted POST to `/api/reporting/run` does not get through either — but
+there is no second line of defence behind it. A wrong grant is the whole breach,
+not the first step of one.
+
+In practice today that is safe, because the billing objects are already
+per-customer: `EM_Invoice` holds only Elektro-Material, `Compass_Invoice` only
+Compass, `PriveraInvoice` only Privera. Granting `Privera User` the
+`privera_invoice` source would expose nothing else. The risk is not the shape of
+the mechanism — it is granting the *wrong* source to a profile and nothing
+catching it.
+
+Two shapes are therefore flagged automatically by `scripts/perm-audit.py`
+(`/nx-perm-audit`), since neither is visible by reading the grid:
+
+- a profile holding `reporting.source.*` **without** `reporting.view` — dormant
+  today, live the moment somebody grants that profile reporting access for an
+  unrelated reason;
+- a profile carrying an `OrganizationCode` that holds a source belonging to a
+  different customer.
+
+The audit does not treat a shared tenant as permission: ISS and Generali sit in
+the `generali` tenant and read each other's sources by design, but Privera,
+Compass and Elektro-Material all sit in *sydoc*, which says they are the
+vendor's customers rather than one another's.
+
 **Scope permissions mirror the dashboard.** Migration
 `0005_seed_reporting_permissions.sql` auto-creates a
 `process.<client>.<process>.view` entry for every existing
@@ -1221,16 +1262,18 @@ Each curated source binds to a **provider**:
   safe to register from the UI.
 
 **Built-in registered sources.** Migration `0011` seeds two `table`-provider
-sources: **Generali — PDQM Report** (`generali_pdqm` over `dbo.PDQMReport`) and
+sources: **Generali — PDQM Report** (`generali_pdqm` over `dbo.QualityCheckEntries`,
+renamed from `dbo.PDQMReport` by GeneraliDB `0005`/NexoraDB `0128`, #220) and
 **Workitems (Octopus)** (`workitems` over `dbo.t_Documents`). A third,
 **Backlog History** (`backlog_history` over `StatisticsDB.dbo.BacklogHistory`
 with a `backlog_total` metric, migrations `0053`–`0056`/`0065`/`0066`/`0068`),
 was **retired by migration `0069`**: the date-anchored **Backlog** measure on
 the docprocessing source (see **`DateAnchor`** below) supersedes it, and the
 collector + table it read stay in place. Migration `0117` adds four more Generali `table` sources over the tenant's fact
-tables: **Attendance** (`generali_attendance`), **Base Services**
-(`generali_baseservices`), **Project Management** (`generali_projects`) and **ISS
-Reporting** (`generali_iss`) — effort hours and KPI filings by category and date,
+tables: **Attendance** (`generali_attendance` over `dbo.AttendanceEntries`),
+**Base Services** (`generali_baseservices` over `dbo.BaseServiceEntries`),
+**Project Management** (`generali_projects` over `dbo.ProjectEntries`) and **ISS
+Reporting** (`generali_iss` over `dbo.IssReports`) — effort hours and KPI filings by category and date,
 the date columns `grainable`; `0118` seeds their measures (effort-hour sums,
 entry counts, ISS reports filed — no on-time sum, `SUM` over a `bit` is invalid
 T-SQL, so break the count down by the `OnTime` dimension). The Simple wizard
@@ -1243,7 +1286,7 @@ values, which both builders bind **before** their WHERE params (`0120` seeds
 three Generali examples). Not combinable with date-anchored metrics. `0119` registers the two objects the tenant pages already read —
 **Documents** over `dbo.v_ReportJobJoinDefinitions` (the ReportJob feed with
 lookup labels joined; measures `Documents` / `Cases`) and **CSV Imports** over
-`dbo.CSVImportLog` — relabels ISS to "Reporting", and moves the Generali block
+`dbo.ImportRuns` (was `dbo.CSVImportLog`) — relabels ISS to "Reporting", and moves the Generali block
 to `SortOrder` 200+ so platform sources lead. `0127` registers two Statistics-DB
 tables the same way: **Bucherer — EasyTax** (`bucherer_easytax` over
 `dbo.Bucherer_EasyTax`, one row per document; *Exported documents* is a
@@ -1256,7 +1299,97 @@ loaded by the `nx-sources/bps/bps_project_report.py` collector; measures `Hours`
 (`mediamarkt_batches` over `SYDOC_Statistik.dbo.MediaMarkt_Batches`, the table behind the
 generated `/t/sydoc/mediamarkt` CRUD page; measures `Pieces scanned` = sum of
 `Pieces`, `Batches` = row count; `ScanDate` grainable, `DocType` K/D/KA and `Visum`
-as dimensions). The wizard's measure step walks
+as dimensions). `0128` registers **Aveniq — Xpert Statistics** (`xpert_stats` over
+`SYDOC_Statistik.dbo.Xpert_Stats`, the daily long-format counts mailed in from the
+Aveniq box and loaded by `nx-sources/xpert/importCSVtoSQL.py`; every measure is a
+conditional `sum` of `Cnt` on `Metric` so subsets never double-count — `Documents`
+= `Total`, `BFH new creditors`, `ZHAW workitems`; `ExportDate` grainable, `Client`
+the natural dimension). `SortOrder` 320. `0130` registers **Elektro-Material —
+Verrechnung** (`em_invoice` over `SYDOC_Statistik.dbo.EM_Invoice`, the table the
+monthly `EM-Statistik<YYYYMM>.xlsx` workbook already reads through Power Query;
+#329). Its measures are that workbook's own pivot, read out of the pivot
+definition rather than guessed: `Documents (Opex + e-mail)`, `Opex scans` and
+`E-mail documents` are conditional counts on `Eingang`, `Order item positions`
+and `Images out` conditional sums of `OrdItmPosCount`/`AnzImagesOut`. **Every**
+measure carries the `Eingang IN ('OPEX Scan Scanner','E_MAIL')` filter, because
+the workbook's total is the sum of its two rows while the table also holds
+`Nexora` and NULL rows -- an unfiltered sum would bill documents the customer was
+never charged for. `ExportEM_dt` is the grainable date, not the `ExportEM`
+nvarchar beside it. The amount, IBAN and creditor columns are deliberately left
+out of `ColumnsJSON`: billing scan volume does not need them, and a column that
+is not in the catalogue cannot be queried. `SortOrder` 330. Shape pinned by
+`tests/unit/test_em_invoice_source.py`. `0131` and `0132` add the next two
+billing sources from the same ticket, **Compass Group — Verrechnung**
+(`compass_invoice` over `dbo.Compass_Invoice`) and **Privera —
+Rechnungseingang** (`privera_invoice` over `dbo.PriveraInvoice`). Each
+customer's workbook turned out to be a different shape, and the differences are
+load-bearing: Compass's pivot has **no** channel split, so its single
+`Documents` measure is unfiltered and bills on `UploadDatetime` (the pivot's
+page filter) rather than the `DocDate` its rows display; Privera publishes three
+pivots, so it gets `Documents total` / `Documents by mail` / `eBill documents`,
+split on `DocSource` rather than the workbook's unreproducible `FileName`
+filter. Verified against the published workbooks: Compass exact in 6 of 8
+months, Privera exact in 5 of 6 figures — the gap is August 2026 mail, where the
+old pivot dropped 5 mail documents that have no `Mandant` while its own total
+counted them, so the measure keeps the honest definition and `Mandant` stays a
+dimension. `SortOrder` 340/350. Both pinned by
+`tests/unit/test_billing_sources.py`, which also asserts no billing source
+exposes amounts, IBANs or the Privera property/owner numbers. `0133` adds **Privera —
+Physische Zustellung** (`privera_nachsendungen`), the **first source outside
+`SYDOC_Statistik`**: its `BaseObject` is the three-part
+`01_Privera_Posteingang.dbo.Reporting_P1_Nachsendungen`. Same engine, same
+server, same login — but the identifier guard in `table_query.py` had to stop
+refusing a name that starts with a digit first (`^[A-Za-z_]…` → `^[A-Za-z0-9_]+$`;
+the character set is unchanged, so nothing can still carry a `]` out of the
+bracket quoting). Two measures, both verified exactly against July and August
+2026: `Forwardings total`, and `Forwardings without TEC`, which is the
+workbook's hand-added "ohne TEC" line — it excludes the `Rechnungen Privera TEC`
+**Nachsendungstyp**, not the TEC *Niederlassung*; the latter is the plausible
+wrong guess and gives a different number. `SortOrder` 360.
+
+The sibling **Posteingang** report (`Reporting_P1_Dokumente` in the same
+database) is **not** registered, and cannot be until the source database
+changes: its `ExportDatetime` is `nvarchar` holding `dd.MM.yyyy HH:mm:ss`, and
+our connection runs `us_english`, so grouping it by month parses `01.02.2021` as
+**2 January** and raises outright on any day past the 12th. It needs a real
+datetime column (the `ExportEM`/`ExportEM_dt` pattern) or a view using
+`TRY_CONVERT(..., 104)`. `0134` adds **Privera — Neuzugänge**
+(`privera_neuzugaenge` over
+`dbo.v_PriveraNeuzugaenge_StatistikNiederlassung_AnzahlDossiers`). The view is
+already aggregated — one row per year/month/Niederlassung carrying three
+counters — so all three measures (`Dossiers`, `Registers`, `Pages`) are plain
+sums and there is **no date grain**: the view has no date column, only a year
+and a month number, which are ordinary numeric dimensions. The workbook's pivot
+carries a fourth data field, "Summe von JahrExport", which is the year dropped
+into the values by accident; it is deliberately not reproduced, and a test
+checks it never is. Verified against the published 2026 workbook: all six closed
+months exact on all three measures (18 of 21 figures), the three misses being
+September, which was one day old when that workbook was refreshed. `SortOrder`
+370.
+
+**This view is broken on INT** — it binds to
+`SYDOC_Statistik1.dbo.PriveraInitialUndNeuzugaenge`, note the stray `1`, so
+selecting from it fails with a 4413 binding error. It works on PROD. The source
+is registered anyway, because the registry rows are data and the workbook it
+replaces runs against PROD; expect the source to error on INT until somebody
+repoints the dev copy of the view.
+
+`0135` adds **Privera — Posteingang** (`privera_posteingang` over
+`01_Privera_Posteingang.dbo.Reporting_P1_Dokumente`), completing the six.
+Its `ExportDatetime` is **nvarchar** holding `dd.MM.yyyy HH:mm:ss`, so it is
+exposed as a **string**, not a date: the connection runs `us_english`, which
+reads `01.02.2021` as 2 January and raises outright on any day past the 12th
+(both measured against PROD). A month is therefore a `contains` filter —
+`.08.2026` renders as `LIKE '%.08.2026%'` and reproduces the published 10,044
+exactly, cell for cell across the Register × Niederlassung grid. That matches
+how the workbook works, one file per month with the month ticked in a filter, so
+nothing is lost against what it replaces. What *is* lost is a month grain, so no
+series over time. The fix belongs in the source database and is one added column
+on that view — `TRY_CONVERT(datetime, ExportDatetime, 104) AS ExportDatetime_dt`
+— after which adding it to `ColumnsJSON` as a grainable date is the whole
+change. Teaching the reporting layer to parse text dates was considered and
+rejected: it would wrap every reference to the column in shared code, for one
+column in one view, and defeat any index over 858k rows. `SortOrder` 380. The wizard's measure step walks
 sources in `SortOrder` and splits a `Tenant — Thing` label at the em dash: one
 uppercase heading per tenant, a `.rs-choice-group-sublabel` per source. The
 tenant's lookup tables carry no measures and are not registered. Each source is gated by its own

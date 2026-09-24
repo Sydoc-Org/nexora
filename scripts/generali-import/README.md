@@ -1,5 +1,32 @@
 # Generali CSV import scripts
 
+> **These scripts are NOT deployed by `deploy.yml`.** The repo holds the master
+> copies; the ones that actually run sit on **prdimpexp01** and are copied there
+> by hand. A schema change that lands on PROD therefore does **not** update the
+> importer, and the two have to be sequenced deliberately.
+>
+> **Order: deploy the migrations first, then copy the script — same window.**
+> Never the other way round. A migration that renames leaves a compatibility
+> view behind, so the *old* script survives a schema that has moved ahead of it;
+> nothing protects the *new* script from a schema that has not moved yet.
+>
+> This is not theoretical. On 2026-09-10 the #220 script was copied to
+> prdimpexp01 a few hours before the migrations merged. The INT leg ran fine
+> against the already-migrated INT database; the PROD leg died on its first
+> statement — `INSERT INTO ImportRuns`, a table PROD did not have yet — and the
+> log stops at `=== Starting run on PRDSQL01 ===` with no `ImportRuns` row to
+> show for it. The day's data landed on INT and not on PROD.
+>
+> It failed safe, which is the one good thing: `csvToSql.ps1` clears
+> `…\generali\import` only after **both** legs succeed, so the CSV was still
+> there and a re-run picked it up. The main `MERGE` keys on `DocumentId`, so
+> re-running is idempotent — the leg that already succeeded just reports
+> updates instead of inserts.
+>
+> The current copy writes `dbo.Documents` (60 columns) plus
+> `dbo.DocumentSapMetadata` (the six SAP fields, one row per document that has
+> any), and logs runs in `dbo.ImportRuns`.
+
 Two scheduled jobs that run on the import host **prdimpexp01**
 (`\\prdimpexp01\d$\sydoc\scripts\generali`):
 
@@ -7,7 +34,7 @@ Two scheduled jobs that run on the import host **prdimpexp01**
    mailbox via Microsoft Graph, decompresses them into `…\generali\import`, and moves each processed
    message to the *Gelöscht* folder. Scheduled by **`Import CSV Mail Attachment.xml`**.
 2. **`csvToSql.ps1`** — MERGEs every CSV in `…\generali\import` into `reportjob` (logging each run in
-   `CSVImportLog`), first on **INTSQL01**, then on **PRDSQL01**. Scheduled by **`Import CSV to DB.xml`**.
+   `ImportRuns`), first on **INTSQL01**, then on **PRDSQL01**. Scheduled by **`Import CSV to DB.xml`**.
 
 ## Layout
 

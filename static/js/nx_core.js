@@ -17,13 +17,39 @@
 
     // ---- API_PREFIX --------------------------------------------------------
     // Canonical idiom used across ~40 inline script shims: PROD serves nexora
-    // under "/nexora/" (PrefixMiddleware), everything else under "/". Compute
+    // under "/nexora/" (PrefixMiddleware), everything else under "/". Decide by
+    // the first PATH segment, never by the hostname: dev-nexora.sydoc.ch contains
+    // "nexora" too and serves at "/" (#338). Compute
     // it once, here, first -- every later `const API_PREFIX = window.API_PREFIX
     // || (...)` copy just picks up this value, and _workitem_detail_panel_js.html
     // already reads window.API_PREFIX directly.
     var API_PREFIX = window.API_PREFIX ||
-        (window.location.href.includes('nexora') ? '/nexora/' : '/');
+        (window.location.pathname.split('/')[1] === 'nexora' ? '/nexora/' : '/');
     window.API_PREFIX = API_PREFIX;
+
+    // ---- expired session: follow a fetch that was bounced to /login ----------
+    // An expired or revoked session answers a page's fetch() with a 302 to
+    // /login; fetch follows it silently and hands back the login page as a
+    // 200 HTML response, which passes every `res.ok` guard and then fails to
+    // parse -- so pages reported "could not load" instead of sending the
+    // user to sign in. Wrap fetch once, here, so every caller (NX.api,
+    // apiSafe, and the raw fetch() calls across templates/js/**) gets it.
+    // The returned promise never settles: the page is navigating away, and
+    // settling it would only flash an error toast on the way out.
+    var LOGIN_PATH = API_PREFIX + 'login';
+    if (window.fetch) {
+        var nativeFetch = window.fetch.bind(window);
+        window.fetch = function () {
+            return nativeFetch.apply(null, arguments).then(function (res) {
+                if (res.redirected && new URL(res.url).pathname === LOGIN_PATH &&
+                        window.location.pathname !== LOGIN_PATH) {
+                    window.location.assign(res.url);
+                    return new Promise(function () {});
+                }
+                return res;
+            });
+        };
+    }
 
     function csrfToken() {
         var meta = document.querySelector('meta[name="csrf-token"]');

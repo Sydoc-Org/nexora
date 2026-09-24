@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-09 16:14+0200\n"
+"POT-Creation-Date: 2026-09-23 10:53+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -14,7 +14,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: nx_lib/octo.py:332
+#: nx_lib/octo.py:358
 msgid "Error fetching activity instance"
 msgstr "Errore durante il recupero dell'istanza di attività"
 
@@ -27,10 +27,108 @@ msgid "Date is outside the allowed entry window"
 msgstr "La data è al di fuori della finestra di inserimento consentita"
 
 #: nx_lib/whats_new.py:29
+msgid "Workitems overview, redesigned as a console"
+msgstr "Panoramica dei workitem, ridisegnata come console"
+
+#: nx_lib/whats_new.py:31
+msgid ""
+"Status filters are tabs with live counts, the list can switch to a "
+"document-card view, the detail panel was redrawn with a clearer stage "
+"stepper and audit timeline, the URL carries only the filters you set, and"
+" a document that cannot be loaded now says so."
+msgstr ""
+"I filtri di stato sono schede con conteggi in tempo reale, l'elenco può "
+"passare a una vista a schede documento, il pannello dei dettagli è stato "
+"ridisegnato con uno stepper delle fasi e una cronologia di audit più "
+"chiari, l'URL contiene solo i filtri impostati e un documento che non può"
+" essere caricato ora lo segnala."
+
+#: nx_lib/whats_new.py:41
+msgid "Report definitions and layouts"
+msgstr "Definizioni e layout dei report"
+
+#: nx_lib/whats_new.py:43
+msgid ""
+"A saved report now remembers how it is laid out. Filters live in the "
+"Simple wizard, dashboard cards carry the Results tab's chart tools, and "
+"whole-report cards read like the Results tab."
+msgstr ""
+"Un report salvato ora ricorda il proprio layout. I filtri vivono nella "
+"procedura guidata Semplice, le schede del dashboard portano gli strumenti"
+" grafici della scheda Risultati e le schede di report completo si leggono"
+" come la scheda Risultati."
+
+#: nx_lib/whats_new.py:52
+msgid "Eddard offers three reports, and explains yours"
+msgstr "Eddard propone tre report e spiega il tuo"
+
+#: nx_lib/whats_new.py:54
+msgid ""
+"Ask a question and Eddard builds three different reports to pick from. On"
+" any open report, \"Ask Eddard about this report\" answers questions "
+"about the numbers you are looking at."
+msgstr ""
+"Poni una domanda ed Eddard costruisce tre report diversi tra cui "
+"scegliere. In ogni report aperto, «Chiedi a Eddard di questo report» "
+"risponde alle domande sui numeri che stai guardando."
+
+#: nx_lib/whats_new.py:63
+msgid "New reporting sources"
+msgstr "Nuove sorgenti di reporting"
+
+#: nx_lib/whats_new.py:65
+msgid ""
+"Privera (Posteingang, Neuzugänge, physische Zustellung, billing), Compass"
+" Group, Elektro-Material, Bucherer, Frigemo, Aveniq Xpert statistics and "
+"Sydoc project hours are available as report sources, each behind its own "
+"permission."
+msgstr ""
+"Privera (Posteingang, Neuzugänge, physische Zustellung, fatturazione), "
+"Compass Group, Elektro-Material, Bucherer, Frigemo, statistiche Aveniq "
+"Xpert e ore di progetto Sydoc sono disponibili come sorgenti di report, "
+"ciascuna dietro la propria autorizzazione."
+
+#: nx_lib/whats_new.py:75
+msgid "Live SQL reaches every reporting database"
+msgstr "Live SQL raggiunge ogni database di reporting"
+
+#: nx_lib/whats_new.py:77
+msgid ""
+"The SQL sandbox names each database it can reach, and a table's Structure"
+" view has a button that queries it directly."
+msgstr ""
+"La sandbox SQL nomina ogni database raggiungibile e la vista Struttura di"
+" una tabella ha un pulsante che la interroga direttamente."
+
+#: nx_lib/whats_new.py:85
+msgid "Permissions grid: pick your columns"
+msgstr "Griglia delle autorizzazioni: scegli le colonne"
+
+#: nx_lib/whats_new.py:87
+msgid ""
+"Show only the profiles you are working on, and see at a glance where a "
+"user-level override differs from the profile."
+msgstr ""
+"Mostra solo i profili su cui stai lavorando e vedi a colpo d'occhio dove "
+"un override a livello utente differisce dal profilo."
+
+#: nx_lib/whats_new.py:95
+msgid "Dark mode fixes"
+msgstr "Correzioni della modalità scura"
+
+#: nx_lib/whats_new.py:97
+msgid ""
+"The date picker is readable in dark mode on every page, and the workitem "
+"stage timeline no longer paints white circles."
+msgstr ""
+"Il selettore di data è leggibile in modalità scura su ogni pagina e la "
+"cronologia delle fasi dei workitem non disegna più cerchi bianchi."
+
+#: nx_lib/whats_new.py:111
 msgid "One grid for every permission"
 msgstr "Una griglia per ogni permesso"
 
-#: nx_lib/whats_new.py:31
+#: nx_lib/whats_new.py:113
 msgid ""
 "Admin > Permissions shows every access profile against every permission; "
 "tick a cell, save, done. Profiles now carry a rank that decides which "
@@ -40,11 +138,11 @@ msgstr ""
 " spunta una cella, salva, fatto. I profili hanno ora un rango che decide "
 "quali profili un admin può assegnare."
 
-#: nx_lib/whats_new.py:40
+#: nx_lib/whats_new.py:122
 msgid "Choose how deeply Eddard thinks"
 msgstr "Scegli quanto a fondo ragiona Eddard"
 
-#: nx_lib/whats_new.py:42
+#: nx_lib/whats_new.py:124
 msgid ""
 "Click into the chat box and pick Quick, Balanced or Deep. Quick answers "
 "straightforward counts fast; Deep gives Eddard more room on hard, multi-"
@@ -55,11 +153,11 @@ msgstr ""
 "Approfondito dà a Eddard più spazio per domande difficili su più fonti. "
 "Visibile solo se il modello configurato lo supporta."
 
-#: nx_lib/whats_new.py:52
+#: nx_lib/whats_new.py:134
 msgid "Faster pages everywhere"
 msgstr "Pagine più veloci ovunque"
 
-#: nx_lib/whats_new.py:54
+#: nx_lib/whats_new.py:136
 msgid ""
 "The reporting registry, the Generali dashboard filters and the static "
 "assets are now cached, and several heavy pages make one database query "
@@ -69,11 +167,11 @@ msgstr ""
 "statici sono ora in cache, e diverse pagine pesanti eseguono una sola "
 "query al database invece di una per riga."
 
-#: nx_lib/whats_new.py:63
+#: nx_lib/whats_new.py:145
 msgid "Generali daily average counts every day"
 msgstr "La media giornaliera Generali conta ogni giorno"
 
-#: nx_lib/whats_new.py:65
+#: nx_lib/whats_new.py:147
 msgid ""
 "The dashboard's daily average now divides by the days in the selected "
 "range, not only by the days that had data, so quiet days no longer "
@@ -83,11 +181,11 @@ msgstr ""
 "dell'intervallo selezionato, non solo per quelli con dati, così i giorni "
 "tranquilli non gonfiano più il valore."
 
-#: nx_lib/whats_new.py:74
+#: nx_lib/whats_new.py:156
 msgid "Amber is the new default accent"
 msgstr "Ambra è il nuovo colore d'accento predefinito"
 
-#: nx_lib/whats_new.py:76
+#: nx_lib/whats_new.py:158
 msgid ""
 "New users and anyone who never picked a colour now see Amber instead of "
 "Indigo. Your own choice in Settings is untouched."
@@ -95,11 +193,11 @@ msgstr ""
 "I nuovi utenti e chi non ha mai scelto un colore ora vedono Ambra invece "
 "di Indaco. La tua scelta nelle Impostazioni resta invariata."
 
-#: nx_lib/whats_new.py:90
+#: nx_lib/whats_new.py:172
 msgid "A denser Dashboard"
 msgstr "Una dashboard più densa"
 
-#: nx_lib/whats_new.py:92
+#: nx_lib/whats_new.py:174
 msgid ""
 "The Dashboard reads like a console now. Each KPI shows how it moved since"
 " yesterday plus a seven-day sparkline, the throughput chart fills the "
@@ -114,11 +212,11 @@ msgstr ""
 "giorni per processo. La colonna «Validazioni recenti» non c'è più — i "
 "workitem si consultano nella pagina Workitems."
 
-#: nx_lib/whats_new.py:104
+#: nx_lib/whats_new.py:186
 msgid "Reporting has a new home screen"
 msgstr "Il reporting ha una nuova schermata iniziale"
 
-#: nx_lib/whats_new.py:106
+#: nx_lib/whats_new.py:188
 msgid ""
 "The reporting page is now a workbench: a Library of every report you can "
 "see, a Results screen that brings back your last result without re-"
@@ -130,11 +228,11 @@ msgstr ""
 "risultato senza rieseguirlo, dashboard, invii pianificati e una barra a "
 "sinistra con ogni fonte dati e il suo tempo di risposta attuale."
 
-#: nx_lib/whats_new.py:117
+#: nx_lib/whats_new.py:199
 msgid "Look inside a data source"
 msgstr "Guarda dentro una fonte dati"
 
-#: nx_lib/whats_new.py:119
+#: nx_lib/whats_new.py:201
 msgid ""
 "Click a card in the Sources rail to see the database behind it: the "
 "tables that source actually reads, their columns and types, and a diagram"
@@ -145,11 +243,11 @@ msgstr ""
 " e un diagramma dei collegamenti. Solo la struttura — nessun dato viene "
 "mostrato."
 
-#: nx_lib/whats_new.py:129
+#: nx_lib/whats_new.py:211
 msgid "Dashboards you can arrange"
 msgstr "Dashboard che puoi organizzare"
 
-#: nx_lib/whats_new.py:131
+#: nx_lib/whats_new.py:213
 msgid ""
 "Adding a card asks everything in one dialog — which saved report, how to "
 "draw it, its title and its size. In edit mode drag a tile anywhere and "
@@ -162,11 +260,11 @@ msgstr ""
 " riquadro «Report intero» mostra un report salvato esattamente come la "
 "libreria."
 
-#: nx_lib/whats_new.py:142
+#: nx_lib/whats_new.py:224
 msgid "Meet Eddard"
 msgstr "Ecco Eddard"
 
-#: nx_lib/whats_new.py:144
+#: nx_lib/whats_new.py:226
 msgid ""
 "The reporting assistant has a name and a face — the little black hole in "
 "the top bar. Ask it a question in plain language and open what it built "
@@ -176,11 +274,11 @@ msgstr ""
 "nella barra in alto. Fagli una domanda in linguaggio naturale e apri nel "
 "builder ciò che ha costruito prima di fidarti del numero."
 
-#: nx_lib/whats_new.py:154
+#: nx_lib/whats_new.py:236
 msgid "Charts in your colours"
 msgstr "Grafici nei tuoi colori"
 
-#: nx_lib/whats_new.py:156
+#: nx_lib/whats_new.py:238
 msgid ""
 "The palette button in the chart toolbar recolours each series and the "
 "title, and can move a series onto its own right-hand axis so a few "
@@ -192,11 +290,11 @@ msgstr ""
 "destro, così qualche centinaio resta leggibile accanto a decine di "
 "migliaia. Le tue scelte vengono salvate con il report."
 
-#: nx_lib/whats_new.py:166
+#: nx_lib/whats_new.py:248
 msgid "Press ? for the shortcuts"
 msgstr "Premi ? per le scorciatoie"
 
-#: nx_lib/whats_new.py:168
+#: nx_lib/whats_new.py:250
 msgid ""
 "A cheatsheet of every keyboard shortcut on the page, one keypress away. "
 "Press ? anywhere outside a text box."
@@ -204,11 +302,11 @@ msgstr ""
 "Un promemoria di tutte le scorciatoie da tastiera della pagina, a un "
 "tasto di distanza. Premi ? fuori da un campo di testo."
 
-#: nx_lib/whats_new.py:176
+#: nx_lib/whats_new.py:258
 msgid "Everything loads quicker"
 msgstr "Tutto si carica più velocemente"
 
-#: nx_lib/whats_new.py:178
+#: nx_lib/whats_new.py:260
 msgid ""
 "Pages are compressed in transit, their scripts are cached between visits,"
 " and the reporting page stopped fetching the same lists eight times per "
@@ -218,11 +316,11 @@ msgstr ""
 "restano in cache tra una visita e l'altra e la pagina di reporting non "
 "recupera più gli stessi elenchi otto volte per caricamento."
 
-#: nx_lib/whats_new.py:187
+#: nx_lib/whats_new.py:269
 msgid "Who can do what, on one page"
 msgstr "Chi può fare cosa, in una pagina"
 
-#: nx_lib/whats_new.py:189
+#: nx_lib/whats_new.py:271
 msgid ""
 "The new permission matrix under Admin shows every access profile against "
 "every permission in a single grid, so a missing grant is something you "
@@ -232,11 +330,11 @@ msgstr ""
 "rispetto a ogni permesso in un'unica griglia: un permesso mancante si "
 "vede invece di doverlo cercare."
 
-#: nx_lib/whats_new.py:204
+#: nx_lib/whats_new.py:286
 msgid "Imports, exports and backlog on one chart"
 msgstr "Importazioni, esportazioni e backlog in un unico grafico"
 
-#: nx_lib/whats_new.py:206
+#: nx_lib/whats_new.py:288
 msgid ""
 "Document Processing gained date-anchored measures: pick documents or "
 "pages imported, exported and the backlog together over time and they all "
@@ -249,11 +347,11 @@ msgstr ""
 "L'origine separata «Backlog History» è stata ritirata: la sostituisce la "
 "nuova misura Backlog."
 
-#: nx_lib/whats_new.py:217
+#: nx_lib/whats_new.py:299
 msgid "The reporting AI panel gets out of your way"
 msgstr "Il pannello IA del reporting non è più d'ostacolo"
 
-#: nx_lib/whats_new.py:219
+#: nx_lib/whats_new.py:301
 msgid ""
 "The chat panel now floats instead of blocking the page: drag it by its "
 "header, keep working behind it, and select or copy any answer or "
@@ -263,11 +361,11 @@ msgstr ""
 "trascina dall'intestazione, il lavoro continua dietro di esso e ogni "
 "risposta o SQL generato si può selezionare e copiare."
 
-#: nx_lib/whats_new.py:228
+#: nx_lib/whats_new.py:310
 msgid "Large workitem searches load faster"
 msgstr "Le ricerche di workitem estese si caricano più rapidamente"
 
-#: nx_lib/whats_new.py:230
+#: nx_lib/whats_new.py:312
 msgid ""
 "Big result sets arrive in two phases, so the first rows show up right "
 "away. Typing a partial id now matches by prefix and the closest hits are "
@@ -277,11 +375,11 @@ msgstr ""
 "compaiono subito. Un ID parziale ora corrisponde per prefisso e i "
 "risultati più vicini vengono elencati per primi."
 
-#: nx_lib/whats_new.py:239
+#: nx_lib/whats_new.py:321
 msgid "Tell us what you think"
 msgstr "Ogni riscontro è benvenuto"
 
-#: nx_lib/whats_new.py:241
+#: nx_lib/whats_new.py:323
 msgid ""
 "The new Feedback page (profile dropdown → Feedback) sends your praise, "
 "gripes and ideas straight to the nexora team."
@@ -289,11 +387,11 @@ msgstr ""
 "La nuova pagina Feedback (menu del profilo → Feedback) invia elogi, "
 "critiche e idee direttamente al team nexora."
 
-#: nx_lib/whats_new.py:249
+#: nx_lib/whats_new.py:331
 msgid "Dark mode, polished"
 msgstr "Modalità scura, perfezionata"
 
-#: nx_lib/whats_new.py:251
+#: nx_lib/whats_new.py:333
 msgid ""
 "The light flash on page loads is gone, checkboxes, menus and tables "
 "follow the theme everywhere, and Appearance adds a \"Fireflies\" page "
@@ -303,11 +401,11 @@ msgstr ""
 "controllo, menu e tabelle seguono il tema in ogni punto e Aspetto "
 "aggiunge lo sfondo pagina «Lucciole»."
 
-#: nx_lib/whats_new.py:266
+#: nx_lib/whats_new.py:348
 msgid "Filters apply instantly"
 msgstr "I filtri si applicano subito"
 
-#: nx_lib/whats_new.py:268
+#: nx_lib/whats_new.py:350
 msgid ""
 "The Apply button is gone from the Generali filter bars — changing any "
 "filter or date reloads the list right away."
@@ -315,11 +413,11 @@ msgstr ""
 "Il pulsante Applica è scomparso dalle barre dei filtri Generali — "
 "modificando un filtro o una data l'elenco si ricarica subito."
 
-#: nx_lib/whats_new.py:276
+#: nx_lib/whats_new.py:358
 msgid "Type to find a user in the filters"
 msgstr "Digita per trovare un utente nei filtri"
 
-#: nx_lib/whats_new.py:278
+#: nx_lib/whats_new.py:360
 msgid ""
 "The user filter on the Generali pages is now a search box: type a few "
 "letters, pick the name, and the list filters instantly."
@@ -327,11 +425,11 @@ msgstr ""
 "Il filtro utente delle pagine Generali è ora un campo di ricerca: digita "
 "qualche lettera, scegli il nome e l'elenco si filtra all'istante."
 
-#: nx_lib/whats_new.py:293
+#: nx_lib/whats_new.py:375
 msgid "Forecast your report trends"
 msgstr "Previsioni per i trend dei tuoi report"
 
-#: nx_lib/whats_new.py:295
+#: nx_lib/whats_new.py:377
 msgid ""
 "Reports charted over a single date breakdown (per week, month, …) gain a "
 "Forecast toggle: the chart extends with a dashed prediction line and a "
@@ -343,11 +441,11 @@ msgstr ""
 "linea di previsione tratteggiata e una banda di confidenza; anche le "
 "esportazioni e le mail pianificate includono la previsione."
 
-#: nx_lib/whats_new.py:305
+#: nx_lib/whats_new.py:387
 msgid "Compare with the prior period"
 msgstr "Confronto con il periodo precedente"
 
-#: nx_lib/whats_new.py:307
+#: nx_lib/whats_new.py:389
 msgid ""
 "Simple-tab reports with a relative date range now show ↑/↓ change chips "
 "and a small trend sparkline against the equivalent prior period — see at "
@@ -358,11 +456,11 @@ msgstr ""
 "rispetto al periodo precedente equivalente — per vedere a colpo d'occhio "
 "se i numeri sono saliti o scesi."
 
-#: nx_lib/whats_new.py:317
+#: nx_lib/whats_new.py:399
 msgid "Backlog over time"
 msgstr "Backlog nel tempo"
 
-#: nx_lib/whats_new.py:319
+#: nx_lib/whats_new.py:401
 msgid ""
 "Reporting has a new Backlog measure — track how the open backlog develops"
 " per client or process, week by week."
@@ -370,11 +468,11 @@ msgstr ""
 "Il reporting ha una nuova misura Backlog — segui settimana per settimana "
 "come si sviluppa il backlog aperto per cliente o processo."
 
-#: nx_lib/whats_new.py:329
+#: nx_lib/whats_new.py:411
 msgid "Chat with the reporting AI"
 msgstr "Chatta con l'IA dei report"
 
-#: nx_lib/whats_new.py:331
+#: nx_lib/whats_new.py:413
 msgid ""
 "The one-shot Ask AI is now a full chat panel on both Reporting tabs — ask"
 " follow-up questions in context, watch live progress while the agent "
@@ -385,11 +483,11 @@ msgstr ""
 " l'avanzamento in tempo reale e continua o riavvia un'esecuzione "
 "interrotta troppo presto."
 
-#: nx_lib/whats_new.py:341
+#: nx_lib/whats_new.py:423
 msgid "Filter several processes at once"
 msgstr "Filtrare più processi contemporaneamente"
 
-#: nx_lib/whats_new.py:343
+#: nx_lib/whats_new.py:425
 msgid ""
 "The process filter on Dashboard and Workitems is now a multi-select — "
 "combine two or three processes in one view."
@@ -397,11 +495,11 @@ msgstr ""
 "Il filtro processi su Dashboard e Workitems è ora a selezione multipla — "
 "combina due o tre processi in un'unica vista."
 
-#: nx_lib/whats_new.py:351
+#: nx_lib/whats_new.py:433
 msgid "Smarter document value search"
 msgstr "Ricerca più intelligente dei valori dei documenti"
 
-#: nx_lib/whats_new.py:353
+#: nx_lib/whats_new.py:435
 msgid ""
 "Search workitems by document value without picking a field first — "
 "matches are found across every field you may see. Each search row now has"
@@ -413,11 +511,11 @@ msgstr ""
 "Ogni riga di ricerca ha ora un operatore (contiene, =, ≠, inizia con, "
 "finisce con) e le righe si combinano con AND/OR."
 
-#: nx_lib/whats_new.py:363
+#: nx_lib/whats_new.py:445
 msgid "Date-range presets"
 msgstr "Intervalli di date predefiniti"
 
-#: nx_lib/whats_new.py:365
+#: nx_lib/whats_new.py:447
 msgid ""
 "Today, Yesterday, This week, Last 7 days, This month — one click in the "
 "Workitems advanced filter instead of typing dates."
@@ -425,11 +523,11 @@ msgstr ""
 "Oggi, Ieri, Questa settimana, Ultimi 7 giorni, Questo mese — un clic nel "
 "filtro avanzato dei workitems invece di digitare le date."
 
-#: nx_lib/whats_new.py:373
+#: nx_lib/whats_new.py:455
 msgid "Filter workitems by stage"
 msgstr "Filtrare i workitems per fase"
 
-#: nx_lib/whats_new.py:375
+#: nx_lib/whats_new.py:457
 msgid ""
 "A new Stage filter (Import, Extraction, Validation, Delivery) narrows the"
 " list to workitems currently in that step."
@@ -437,11 +535,11 @@ msgstr ""
 "Un nuovo filtro Fase (Importazione, Estrazione, Validazione, Consegna) "
 "restringe l'elenco ai workitems attualmente in quel passaggio."
 
-#: nx_lib/whats_new.py:383
+#: nx_lib/whats_new.py:465
 msgid "See deleted workitems"
 msgstr "Vedere i workitems eliminati"
 
-#: nx_lib/whats_new.py:385
+#: nx_lib/whats_new.py:467
 msgid ""
 "The status filter gains a Deleted option — workitems that were deleted, "
 "previously hidden entirely, can now be shown on demand, badged red."
@@ -450,11 +548,11 @@ msgstr ""
 "finora completamente nascosti, possono ora essere mostrati su richiesta, "
 "contrassegnati in rosso."
 
-#: nx_lib/whats_new.py:394
+#: nx_lib/whats_new.py:476
 msgid "Make nexora look your way"
 msgstr "Dai a nexora il tuo stile"
 
-#: nx_lib/whats_new.py:396
+#: nx_lib/whats_new.py:478
 msgid ""
 "The new Appearance page has a live preview and more choices: light, dark "
 "or system theme, custom accent color, font size, corner style, high "
@@ -467,11 +565,11 @@ msgstr ""
 "nelle tabelle, sfondi di pagina e velocità di animazione. Le tue "
 "impostazioni seguono il tuo account su ogni dispositivo."
 
-#: nx_lib/whats_new.py:407
+#: nx_lib/whats_new.py:489
 msgid "API documentation in the app"
 msgstr "Documentazione API nell'app"
 
-#: nx_lib/whats_new.py:409
+#: nx_lib/whats_new.py:491
 msgid ""
 "The external API is now documented on the new API Documentation page — "
 "authentication, endpoints and copyable examples included. Every endpoint "
@@ -483,11 +581,11 @@ msgstr ""
 "anche un gemello di test — stesso indirizzo e stessa struttura, dati "
 "fittizi — per integrare senza toccare la produzione."
 
-#: nx_lib/whats_new.py:419
+#: nx_lib/whats_new.py:501
 msgid "System status at a glance for admins"
 msgstr "Stato del sistema a colpo d'occhio per gli admin"
 
-#: nx_lib/whats_new.py:421
+#: nx_lib/whats_new.py:503
 msgid ""
 "The new Status page shows each component's health, a 30-day uptime strip "
 "and the incident history — checked every few minutes by the outage "
@@ -498,11 +596,11 @@ msgstr ""
 "controllati ogni pochi minuti dal monitor guasti, con un chiaro avviso se"
 " i dati diventano obsoleti."
 
-#: nx_lib/whats_new.py:431
+#: nx_lib/whats_new.py:513
 msgid "Chat, notifications and workitem tags retired"
 msgstr "Chat, notifiche e tag dei workitems ritirati"
 
-#: nx_lib/whats_new.py:433
+#: nx_lib/whats_new.py:515
 msgid ""
 "The chat page, the notification bell, and workitem tags, priority, "
 "assignment and comments have been removed to keep nexora focused on "
@@ -513,11 +611,11 @@ msgstr ""
 "mantenere nexora concentrato sull'elaborazione dei documenti. I dati "
 "esistenti restano conservati."
 
-#: nx_lib/whats_new.py:449
+#: nx_lib/whats_new.py:531
 msgid "Build multi-card dashboards"
 msgstr "Crea dashboard multi-card"
 
-#: nx_lib/whats_new.py:451
+#: nx_lib/whats_new.py:533
 msgid ""
 "Save several reports as one dashboard: combine KPI, chart and table "
 "cards, drag to rearrange, set global filters with per-card overrides, and"
@@ -527,11 +625,11 @@ msgstr ""
 "tabelle, riordinale trascinandole, imposta filtri globali con eccezioni "
 "per card, ed esporta o esplora i dettagli da ogni card."
 
-#: nx_lib/whats_new.py:460
+#: nx_lib/whats_new.py:542
 msgid "Drill through to the documents"
 msgstr "Esplorare fino ai documenti"
 
-#: nx_lib/whats_new.py:462
+#: nx_lib/whats_new.py:544
 msgid ""
 "Click a chart element or result row in Reporting to open the underlying "
 "document rows, with workitem links and export."
@@ -540,11 +638,11 @@ msgstr ""
 "per aprire le righe dei documenti sottostanti, con link ai workitems ed "
 "esportazione."
 
-#: nx_lib/whats_new.py:470
+#: nx_lib/whats_new.py:552
 msgid "Combine measures in one report"
 msgstr "Combinare misure in un report"
 
-#: nx_lib/whats_new.py:472
+#: nx_lib/whats_new.py:554
 msgid ""
 "The guided report builder now takes several measures at once (from the "
 "same source) and has its own process step, with coverage badges showing "
@@ -554,11 +652,11 @@ msgstr ""
 " (dalla stessa fonte) e ha un passaggio dedicato ai processi, con badge "
 "di copertura che mostrano quali processi forniscono ciascun campo."
 
-#: nx_lib/whats_new.py:481
+#: nx_lib/whats_new.py:563
 msgid "Machine-to-machine API"
 msgstr "API machine-to-machine"
 
-#: nx_lib/whats_new.py:483
+#: nx_lib/whats_new.py:565
 msgid ""
 "External clients can fetch KPI numbers — like today's imported and "
 "processed counts — over the new authenticated /api/v1 interface."
@@ -662,7 +760,7 @@ msgstr "Errore del database"
 msgid "Invalid code. Please try again."
 msgstr "Codice non valido. Riprova."
 
-#: nx_lib/views/auth.py:414 nx_lib/views/auth.py:706
+#: nx_lib/views/auth.py:414 nx_lib/views/auth.py:715
 #, python-format
 msgid "Too many failed attempts. Try again in %(minutes)d minute(s)."
 msgstr "Troppi tentativi falliti. Riprova tra %(minutes)d minuto(i)."
@@ -671,91 +769,81 @@ msgstr "Troppi tentativi falliti. Riprova tra %(minutes)d minuto(i)."
 msgid "Invalid code"
 msgstr "Codice non valido"
 
-#: nx_lib/views/auth.py:462 nx_lib/views/auth.py:807
+#: nx_lib/views/auth.py:462 nx_lib/views/auth.py:816
 #: templates/js/_profile_js.html:5
 msgid "Passwords do not match"
 msgstr "Le password non corrispondono"
 
-#: nx_lib/views/auth.py:464 nx_lib/views/auth.py:809
+#: nx_lib/views/auth.py:464 nx_lib/views/auth.py:818
 msgid "All Fields must be filled"
 msgstr "Tutti i campi devono essere compilati"
 
-#: nx_lib/views/auth.py:468 nx_lib/views/auth.py:813
+#: nx_lib/views/auth.py:468 nx_lib/views/auth.py:822
 #: nx_lib/views/profile.py:195
 msgid "New password has to be at least 12 characters long, with no whitespaces"
 msgstr "La nuova password deve contenere almeno 12 caratteri, senza spazi"
 
-#: nx_lib/views/auth.py:492 nx_lib/views/auth.py:834
+#: nx_lib/views/auth.py:492 nx_lib/views/auth.py:843
 msgid "New Password musn't be previously used password"
 msgstr "La nuova password non deve essere una password già utilizzata"
 
-#: nx_lib/views/auth.py:525 nx_lib/views/auth.py:881
+#: nx_lib/views/auth.py:525 nx_lib/views/auth.py:899
 msgid "Something went wrong, please try again"
 msgstr "Qualcosa è andato storto, riprova"
 
-#: nx_lib/views/auth.py:677 nx_lib/views/auth.py:741
+#: nx_lib/views/auth.py:686 nx_lib/views/auth.py:750
 msgid "Invalid credentials"
 msgstr "Credenziali non valide"
 
-#: nx_lib/views/auth.py:745
+#: nx_lib/views/auth.py:754
 msgid "Login temporarily unavailable"
 msgstr "Accesso temporaneamente non disponibile"
 
-#: nx_lib/views/auth.py:866
+#: nx_lib/views/auth.py:884
 msgid "Password set. You can now sign in."
 msgstr "Password impostata. Ora puoi accedere."
 
-#: nx_lib/views/auth.py:868
+#: nx_lib/views/auth.py:886
 msgid "Password changed"
 msgstr "Password modificata"
 
-#: nx_lib/views/auth.py:1041
+#: nx_lib/views/auth.py:1059
 msgid "If that email is registered, a reset link has been sent."
 msgstr ""
 "Se questo indirizzo e-mail è registrato, è stato inviato un link per "
 "reimpostare la password."
 
-#: nx_lib/views/auth.py:1045
+#: nx_lib/views/auth.py:1063
 msgid "Unexpected error occurred"
 msgstr "Si è verificato un errore imprevisto"
 
-#: nx_lib/views/core.py:38 templates/_header.html:321
-#: templates/_small_footer.html:28
-msgid "Terms of Service"
-msgstr "Condizioni di utilizzo"
-
-#: nx_lib/views/core.py:47 templates/_header.html:325
-#: templates/_small_footer.html:32
-msgid "Privacy Policy"
-msgstr "Informativa sulla privacy"
-
-#: nx_lib/views/admin/permissions.py:243 nx_lib/views/admin/permissions.py:561
-#: nx_lib/views/admin/permissions.py:603 nx_lib/views/admin/permissions.py:648
-#: nx_lib/views/admin/permissions.py:687 nx_lib/views/admin/permissions.py:726
-#: nx_lib/views/admin/permissions.py:758 nx_lib/views/dashboard.py:628
+#: nx_lib/views/admin/permissions.py:255 nx_lib/views/admin/permissions.py:573
+#: nx_lib/views/admin/permissions.py:615 nx_lib/views/admin/permissions.py:660
+#: nx_lib/views/admin/permissions.py:699 nx_lib/views/admin/permissions.py:738
+#: nx_lib/views/admin/permissions.py:770 nx_lib/views/dashboard.py:628
 #: nx_lib/views/dashboard.py:716 nx_lib/views/dashboard.py:792
 #: nx_lib/views/dashboard.py:862 nx_lib/views/dashboard.py:919
-#: nx_lib/views/workitems.py:386 nx_lib/views/workitems.py:1119
-#: nx_lib/views/workitems.py:1121 nx_lib/views/workitems.py:1214
-#: nx_lib/views/workitems.py:1325
+#: nx_lib/views/workitems.py:386 nx_lib/views/workitems.py:1122
+#: nx_lib/views/workitems.py:1124 nx_lib/views/workitems.py:1223
+#: nx_lib/views/workitems.py:1338
 msgid "Not authorized"
 msgstr "Non autorizzato"
 
 #: nx_lib/views/admin/logs.py:154 nx_lib/views/admin/organizations.py:214
-#: nx_lib/views/admin/permissions.py:592 nx_lib/views/admin/system.py:148
+#: nx_lib/views/admin/permissions.py:604 nx_lib/views/admin/system.py:148
 #: nx_lib/views/admin/system.py:191 nx_lib/views/admin/system.py:234
 #: nx_lib/views/admin/system.py:254 nx_lib/views/admin/users.py:421
-#: nx_lib/views/admin/users.py:573 nx_lib/views/dashboard.py:705
+#: nx_lib/views/admin/users.py:698 nx_lib/views/dashboard.py:705
 #: nx_lib/views/dashboard.py:781 nx_lib/views/dashboard.py:851
 #: nx_lib/views/dashboard.py:905 nx_lib/views/dashboard.py:967
-#: nx_lib/views/generali/_crud.py:186 nx_lib/views/generali/attendance.py:98
-#: nx_lib/views/generali/documents.py:316
-#: nx_lib/views/generali/documents.py:355
-#: nx_lib/views/generali/documents.py:531
-#: nx_lib/views/generali/documents.py:565
-#: nx_lib/views/generali/importstatus.py:119 nx_lib/views/generali/pdqm.py:102
+#: nx_lib/views/generali/_crud.py:187 nx_lib/views/generali/attendance.py:87
+#: nx_lib/views/generali/documents.py:372
+#: nx_lib/views/generali/documents.py:411
+#: nx_lib/views/generali/documents.py:585
+#: nx_lib/views/generali/documents.py:619
+#: nx_lib/views/generali/importstatus.py:119 nx_lib/views/generali/pdqm.py:91
 #: nx_lib/views/generali/reporting.py:260
-#: nx_lib/views/generali/reporting.py:321 nx_lib/views/workitems.py:1386
+#: nx_lib/views/generali/reporting.py:321 nx_lib/views/workitems.py:1399
 msgid "An unexpected error occurred"
 msgstr "Si è verificato un errore imprevisto"
 
@@ -913,23 +1001,23 @@ msgstr ""
 "L'esportazione di campi, cronologia o immagini richiede di selezionare 10"
 " workitem o meno."
 
-#: nx_lib/views/workitems.py:897
+#: nx_lib/views/workitems.py:900
 msgid "TRUNCATED"
 msgstr "TRONCATO"
 
-#: nx_lib/views/workitems.py:898
+#: nx_lib/views/workitems.py:901
 msgid "exported"
 msgstr "esportati"
 
-#: nx_lib/views/workitems.py:898
+#: nx_lib/views/workitems.py:901
 msgid "matching workitems"
 msgstr "workitem corrispondenti"
 
-#: nx_lib/views/workitems.py:904
+#: nx_lib/views/workitems.py:907
 msgid "EXPORT TIMED OUT"
 msgstr "ESPORTAZIONE SCADUTA"
 
-#: nx_lib/views/workitems.py:905
+#: nx_lib/views/workitems.py:908
 msgid ""
 "no fields or images completed before the time limit; this is not a zero-"
 "result export"
@@ -937,110 +1025,114 @@ msgstr ""
 "nessun campo o immagine è stato completato prima del limite di tempo; non"
 " si tratta di un'esportazione a zero risultati"
 
-#: nx_lib/views/workitems.py:1015 nx_lib/views/workitems.py:1080
+#: nx_lib/views/workitems.py:1018 nx_lib/views/workitems.py:1083
 msgid "No file part in the request."
 msgstr "Nessuna parte di file nella richiesta."
 
-#: nx_lib/views/workitems.py:1022 nx_lib/views/workitems.py:1083
+#: nx_lib/views/workitems.py:1025 nx_lib/views/workitems.py:1086
 msgid "No file selected for uploading."
 msgstr "Nessun file selezionato per il caricamento."
 
-#: nx_lib/views/workitems.py:1026
+#: nx_lib/views/workitems.py:1029
 msgid "No target process selected."
 msgstr "Nessun processo di destinazione selezionato."
 
-#: nx_lib/views/workitems.py:1032
+#: nx_lib/views/workitems.py:1035
 msgid "You do not have permission to import to this process."
 msgstr "Non hai l'autorizzazione per importare in questo processo."
 
-#: nx_lib/views/workitems.py:1047
+#: nx_lib/views/workitems.py:1050
 #, python-brace-format
 msgid "File '{}' successfully imported into {}."
 msgstr "File '{}' importato con successo in {}."
 
-#: nx_lib/views/workitems.py:1052
+#: nx_lib/views/workitems.py:1055
 msgid "An error occurred while saving the file."
 msgstr "Si è verificato un errore durante il salvataggio del file."
 
-#: nx_lib/views/workitems.py:1054
+#: nx_lib/views/workitems.py:1057
 msgid "Invalid file type. Please upload a valid PDF."
 msgstr "Tipo di file non valido. Carica un PDF valido."
 
-#: nx_lib/views/workitems.py:1077 nx_lib/views/workitems.py:1567
+#: nx_lib/views/workitems.py:1080 nx_lib/views/workitems.py:1580
 msgid "This import is only available for the MS02 client."
 msgstr "Questa importazione è disponibile solo per il cliente MS02."
 
-#: nx_lib/views/workitems.py:1087
+#: nx_lib/views/workitems.py:1090
 msgid "Invalid file type. Please upload a valid Excel (.xlsx) file."
 msgstr ""
 "Tipo di file non valido. Si prega di caricare un file Excel valido "
 "(.xlsx)."
 
-#: nx_lib/views/workitems.py:1095
+#: nx_lib/views/workitems.py:1098
 msgid "The Excel file has no usable rows."
 msgstr "Il file Excel non contiene righe utilizzabili."
 
-#: nx_lib/views/workitems.py:1112
+#: nx_lib/views/workitems.py:1115
 msgid "Could not save the prepared documents. Please try again."
 msgstr "Impossibile salvare i documenti preparati. Riprova."
 
-#: nx_lib/views/workitems.py:1189 nx_lib/views/workitems.py:1222
+#: nx_lib/views/workitems.py:1192 nx_lib/views/workitems.py:1231
 msgid "Workitem not found"
 msgstr "Workitem non trovato"
 
-#: nx_lib/views/workitems.py:1193 nx_lib/views/workitems.py:1319
+#: nx_lib/views/workitems.py:1198 nx_lib/views/workitems.py:1239
+msgid "Document could not be loaded"
+msgstr "Impossibile caricare il documento"
+
+#: nx_lib/views/workitems.py:1202 nx_lib/views/workitems.py:1332
 msgid "Internal Server Error"
 msgstr "Errore interno del server"
 
-#: nx_lib/views/workitems.py:1235
+#: nx_lib/views/workitems.py:1248
 msgid "Media index out of bounds"
 msgstr "Indice del media fuori dai limiti"
 
-#: nx_lib/views/workitems.py:1263
+#: nx_lib/views/workitems.py:1276
 msgid "Failed to render PDF page"
 msgstr "Rendering della pagina PDF non riuscito"
 
-#: nx_lib/views/workitems.py:1295
+#: nx_lib/views/workitems.py:1308
 msgid "Failed to process TIFF image"
 msgstr "Elaborazione dell'immagine TIFF non riuscita"
 
-#: nx_lib/views/workitems.py:1384
+#: nx_lib/views/workitems.py:1397
 msgid "Failed to fetch audit history"
 msgstr "Recupero della cronologia di audit non riuscito"
 
-#: nx_lib/views/workitems.py:1449
+#: nx_lib/views/workitems.py:1462
 msgid "This page is only available for the MS02 client."
 msgstr "Questa pagina è disponibile solo per il cliente MS02."
 
-#: nx_lib/views/workitems.py:1573
+#: nx_lib/views/workitems.py:1586
 msgid "Could not clear the prepared documents. Please try again."
 msgstr "Impossibile cancellare i documenti preparati. Riprova."
 
-#: nx_lib/views/workitems.py:1634
+#: nx_lib/views/workitems.py:1647
 msgid "Could not load saved views."
 msgstr "Impossibile caricare le viste salvate."
 
-#: nx_lib/views/workitems.py:1648 nx_lib/views/workitems.py:1651
+#: nx_lib/views/workitems.py:1661 nx_lib/views/workitems.py:1664
 msgid "Invalid view name or filters."
 msgstr "Nome vista o filtri non validi."
 
-#: nx_lib/views/workitems.py:1665 nx_lib/views/workitems.py:1718
+#: nx_lib/views/workitems.py:1678 nx_lib/views/workitems.py:1731
 msgid "View not found."
 msgstr "Vista non trovata."
 
-#: nx_lib/views/workitems.py:1680
+#: nx_lib/views/workitems.py:1693
 msgid "Too many saved views — delete one first."
 msgstr "Troppe viste salvate — eliminane prima una."
 
-#: nx_lib/views/workitems.py:1697
+#: nx_lib/views/workitems.py:1710
 msgid "A view with this name already exists."
 msgstr "Esiste già una vista con questo nome."
 
-#: nx_lib/views/workitems.py:1700
+#: nx_lib/views/workitems.py:1713
 msgid "Could not save the view."
 msgstr "Impossibile salvare la vista."
 
-#: nx_lib/views/workitems.py:1722
+#: nx_lib/views/workitems.py:1735
 msgid "Could not delete the view."
 msgstr "Impossibile eliminare la vista."
 
@@ -1168,55 +1260,55 @@ msgstr "Il logo è troppo grande (max 512 KB)."
 msgid "Branding saved."
 msgstr "Branding salvato."
 
-#: nx_lib/views/admin/permissions.py:132
+#: nx_lib/views/admin/permissions.py:144
 msgid "Invalid payload"
 msgstr "Dati non validi"
 
-#: nx_lib/views/admin/permissions.py:286
+#: nx_lib/views/admin/permissions.py:298
 msgid "Could not fetch users"
 msgstr "Impossibile recuperare gli utenti"
 
-#: nx_lib/views/admin/permissions.py:305
+#: nx_lib/views/admin/permissions.py:317
 msgid "Rank must be a number"
 msgstr "Il rango deve essere un numero"
 
-#: nx_lib/views/admin/permissions.py:308
+#: nx_lib/views/admin/permissions.py:320
 msgid "Name is required"
 msgstr "Il nome è obbligatorio"
 
-#: nx_lib/views/admin/permissions.py:346
+#: nx_lib/views/admin/permissions.py:358
 #, python-format
 msgid "%(n)d user(s) outside %(org)s hold this profile. Move them first."
 msgstr ""
 "%(n)d utente/i al di fuori di %(org)s hanno questo profilo. Spostarli "
 "prima."
 
-#: nx_lib/views/admin/permissions.py:368
+#: nx_lib/views/admin/permissions.py:380
 msgid "Profile saved successfully"
 msgstr "Profilo salvato con successo"
 
-#: nx_lib/views/admin/permissions.py:547
+#: nx_lib/views/admin/permissions.py:559
 msgid "Overrides updated successfully"
 msgstr "Override aggiornati con successo"
 
-#: nx_lib/views/admin/permissions.py:612 nx_lib/views/admin/permissions.py:742
-#: nx_lib/views/admin/permissions.py:788
+#: nx_lib/views/admin/permissions.py:624 nx_lib/views/admin/permissions.py:754
+#: nx_lib/views/admin/permissions.py:800
 msgid "Permission not found"
 msgstr "Autorizzazione non trovata"
 
-#: nx_lib/views/admin/permissions.py:692 nx_lib/views/admin/permissions.py:731
+#: nx_lib/views/admin/permissions.py:704 nx_lib/views/admin/permissions.py:743
 msgid "Code and description are required"
 msgstr "Codice e descrizione sono obbligatori"
 
-#: nx_lib/views/admin/permissions.py:709
+#: nx_lib/views/admin/permissions.py:721
 msgid "Permission created successfully"
 msgstr "Autorizzazione creata con successo"
 
-#: nx_lib/views/admin/permissions.py:744
+#: nx_lib/views/admin/permissions.py:756
 msgid "Permission updated successfully"
 msgstr "Autorizzazione aggiornata con successo"
 
-#: nx_lib/views/admin/permissions.py:781
+#: nx_lib/views/admin/permissions.py:793
 #, python-format
 msgid ""
 "Cannot delete: used in %(p)d profile(s) and %(o)d override(s). Remove all"
@@ -1225,7 +1317,7 @@ msgstr ""
 "Impossibile eliminare: utilizzato in %(p)d profilo/i e %(o)d "
 "sostituzione/i. Rimuovere prima tutte le assegnazioni."
 
-#: nx_lib/views/admin/permissions.py:790
+#: nx_lib/views/admin/permissions.py:802
 msgid "Permission deleted successfully"
 msgstr "Autorizzazione eliminata con successo"
 
@@ -1531,17 +1623,13 @@ msgstr "Utente non trovato."
 msgid "User deleted successfully."
 msgstr "Utente eliminato con successo."
 
-#: nx_lib/views/admin/users.py:618
+#: nx_lib/views/admin/users.py:743
 msgid "Could not fetch logs"
 msgstr "Impossibile recuperare i log"
 
-#: nx_lib/views/admin/users.py:667
+#: nx_lib/views/admin/users.py:792
 msgid "Could not fetch sessions"
 msgstr "Impossibile recuperare le sessioni"
-
-#: nx_lib/views/generali/documents.py:115
-msgid "startDate and endDate are required"
-msgstr "startDate e endDate sono obbligatori."
 
 #: nx_lib/views/reporting/admin_registry.py:45
 #: nx_lib/views/reporting/admin_registry.py:95
@@ -2109,75 +2197,75 @@ msgstr "Aspetto"
 msgid "What's New"
 msgstr "Novità"
 
-#: templates/_header.html:329 templates/feedback.html:34
+#: templates/_header.html:321 templates/feedback.html:34
 #: templates/js/_header_js.html:59
 msgid "Feedback"
 msgstr "Feedback"
 
-#: templates/_header.html:336 templates/_header.html:406
-#: templates/_header.html:409
+#: templates/_header.html:328 templates/_header.html:398
+#: templates/_header.html:401
 msgid "Keyboard shortcuts"
 msgstr "Scorciatoie da tastiera"
 
-#: templates/_header.html:340 templates/_small_footer.html:36
+#: templates/_header.html:332 templates/_small_footer.html:28
 #: templates/reporting.html:86
 msgid "Help"
 msgstr "Aiuto"
 
-#: templates/_header.html:346 templates/_header.html:388
+#: templates/_header.html:338 templates/_header.html:380
 msgid "Switch user"
 msgstr "Cambia utente"
 
-#: templates/_header.html:352 templates/js/_header_js.html:60
+#: templates/_header.html:344 templates/js/_header_js.html:60
 #: templates/profile.html:82
 msgid "Sign out"
 msgstr "Disconnetti"
 
-#: templates/_header.html:369
+#: templates/_header.html:361
 msgid "Command palette"
 msgstr "Tavolozza dei comandi"
 
-#: templates/_header.html:373
+#: templates/_header.html:365
 msgid "Type a command or search..."
 msgstr "Digita un comando o cerca..."
 
-#: templates/_header.html:378
+#: templates/_header.html:370
 msgid "navigate"
 msgstr "naviga"
 
-#: templates/_header.html:379
+#: templates/_header.html:371
 msgid "open"
 msgstr "apri"
 
-#: templates/_header.html:380
+#: templates/_header.html:372
 msgid "close"
 msgstr "chiudi"
 
-#: templates/_header.html:392
+#: templates/_header.html:384
 msgid "Switch to user..."
 msgstr "Passa all'utente ..."
 
-#: templates/_header.html:413 templates/admin/access_control.html:130
+#: templates/_header.html:405 templates/admin/access_control.html:130
 msgid "Global"
 msgstr "Globale"
 
-#: templates/_header.html:415
+#: templates/_header.html:407
 msgid "Open command palette"
 msgstr "Apri la tavolozza dei comandi"
 
-#: templates/_header.html:419
+#: templates/_header.html:411
 msgid "Show this shortcuts overlay"
 msgstr "Mostra questa panoramica scorciatoie"
 
-#: templates/_header.html:423
+#: templates/_header.html:415
 msgid "Close the open dialog or panel"
 msgstr "Chiudi la finestra di dialogo o il pannello aperto"
 
-#: templates/_header.html:428
+#: templates/_header.html:420
 msgid "Document viewer"
 msgstr "Visualizzatore documenti"
 
-#: templates/_header.html:430
+#: templates/_header.html:422
 msgid "Previous / next document page"
 msgstr "Pagina documento precedente / successiva"
 
@@ -2865,6 +2953,7 @@ msgstr ""
 "senza ricostruire il report."
 
 #: templates/_reporting_simple.html:125 templates/admin/_admin_helpers.html:12
+#: templates/generali_monthreport.html:34
 #: templates/generali_monthreport.html:35
 msgid "Back"
 msgstr "Indietro"
@@ -2930,7 +3019,7 @@ msgstr "Esporta"
 
 #: templates/_reporting_simple.html:190 templates/_reporting_simple.html:288
 #: templates/admin/access_control.html:240 templates/admin/maintenance.html:114
-#: templates/admin/permissions.html:101 templates/admin/processes.html:208
+#: templates/admin/permissions.html:119 templates/admin/processes.html:208
 #: templates/admin/processes.html:244
 #: templates/generali_additionalservices.html:324
 #: templates/generali_baseservices.html:273 templates/generali_pdqm.html:348
@@ -3055,7 +3144,7 @@ msgstr "Testo dell'annotazione"
 #: templates/admin/modals/_organizations_modals.html:51
 #: templates/admin/modals/_user_modals.html:13
 #: templates/admin/modals/_user_modals.html:80
-#: templates/admin/organizations.html:98 templates/admin/permissions.html:100
+#: templates/admin/organizations.html:98 templates/admin/permissions.html:118
 #: templates/admin/processes.html:123 templates/admin/processes.html:207
 #: templates/admin/processes.html:243 templates/admin/tenants_manage.html:133
 #: templates/admin/tenants_manage.html:174 templates/admin/user_detail.html:78
@@ -3104,11 +3193,12 @@ msgstr "Query"
 #: templates/api_docs.html:221 templates/api_docs.html:246
 #: templates/api_docs.html:252 templates/api_docs.html:288
 #: templates/api_docs.html:294 templates/api_docs.html:319
-#: templates/api_docs.html:325 templates/api_docs.html:366
-#: templates/api_docs.html:372 templates/api_docs.html:386
-#: templates/api_docs.html:392 templates/api_docs.html:412
-#: templates/api_docs.html:418 templates/api_docs.html:462
-#: templates/api_docs.html:468 templates/reporting.html:463
+#: templates/api_docs.html:325 templates/api_docs.html:362
+#: templates/api_docs.html:367 templates/api_docs.html:390
+#: templates/api_docs.html:396 templates/api_docs.html:410
+#: templates/api_docs.html:416 templates/api_docs.html:436
+#: templates/api_docs.html:442 templates/api_docs.html:486
+#: templates/api_docs.html:492 templates/reporting.html:463
 msgid "Copy"
 msgstr "Copia"
 
@@ -3183,7 +3273,7 @@ msgid "Endpoints"
 msgstr "Endpoint"
 
 #: templates/api_docs.html:120 templates/api_docs.html:139
-#: templates/api_docs.html:458
+#: templates/api_docs.html:482
 msgid "Test sandbox"
 msgstr "Ambiente di test"
 
@@ -3242,19 +3332,20 @@ msgstr ""
 #: templates/api_docs.html:221 templates/api_docs.html:246
 #: templates/api_docs.html:252 templates/api_docs.html:288
 #: templates/api_docs.html:294 templates/api_docs.html:319
-#: templates/api_docs.html:325 templates/api_docs.html:366
-#: templates/api_docs.html:372 templates/api_docs.html:386
-#: templates/api_docs.html:392 templates/api_docs.html:412
-#: templates/api_docs.html:418 templates/api_docs.html:462
-#: templates/api_docs.html:468
+#: templates/api_docs.html:325 templates/api_docs.html:362
+#: templates/api_docs.html:367 templates/api_docs.html:390
+#: templates/api_docs.html:396 templates/api_docs.html:410
+#: templates/api_docs.html:416 templates/api_docs.html:436
+#: templates/api_docs.html:442 templates/api_docs.html:486
+#: templates/api_docs.html:492
 msgid "Copy code"
 msgstr "Copia codice"
 
 #: templates/api_docs.html:154 templates/api_docs.html:220
 #: templates/api_docs.html:251 templates/api_docs.html:293
-#: templates/api_docs.html:324 templates/api_docs.html:371
-#: templates/api_docs.html:391 templates/api_docs.html:417
-#: templates/api_docs.html:467
+#: templates/api_docs.html:324 templates/api_docs.html:366
+#: templates/api_docs.html:395 templates/api_docs.html:415
+#: templates/api_docs.html:441 templates/api_docs.html:491
 msgid "response"
 msgstr "risposta"
 
@@ -3331,7 +3422,7 @@ msgstr "Corpo"
 #: templates/api_docs.html:189 templates/api_docs.html:230
 #: templates/api_docs.html:262 templates/api_docs.html:271
 #: templates/api_docs.html:303 templates/api_docs.html:345
-#: templates/api_docs.html:446
+#: templates/api_docs.html:470
 msgid "Meaning"
 msgstr "Significato"
 
@@ -3414,19 +3505,19 @@ msgstr ""
 "tessera KPI \"Current Backlog\" della dashboard di nexora."
 
 #: templates/api_docs.html:227 templates/api_docs.html:268
-#: templates/api_docs.html:300 templates/api_docs.html:443
+#: templates/api_docs.html:300 templates/api_docs.html:467
 msgid "Response fields"
 msgstr "Campi della risposta"
 
 #: templates/api_docs.html:230 templates/api_docs.html:271
-#: templates/api_docs.html:303 templates/api_docs.html:446
+#: templates/api_docs.html:303 templates/api_docs.html:470
 #: templates/js/_reporting_dashboard_js.html:38
 msgid "Field"
 msgstr "Campo"
 
 #: templates/admin/tenants_manage.html:74 templates/api_docs.html:230
 #: templates/api_docs.html:262 templates/api_docs.html:271
-#: templates/api_docs.html:303 templates/api_docs.html:446
+#: templates/api_docs.html:303 templates/api_docs.html:470
 #: templates/generali_documents.html:228 templates/js/_reporting_viz_js.html:11
 msgid "Type"
 msgstr "Tipo"
@@ -3584,7 +3675,83 @@ msgstr ""
 "Paginazione; per_page accetta solo 40, 100, 200, 500 o 1000 (predefinito "
 "40)"
 
-#: templates/api_docs.html:357
+#: templates/api_docs.html:354
+msgid ""
+"fields — also return each row's indexed document-field values; "
+"fields:invoicenr,kundennr narrows that to the named keys (see below). Any"
+" other value answers 400."
+msgstr ""
+"fields — restituisce anche i valori dei campi documento indicizzati di "
+"ogni riga; fields:invoicenr,kundennr li limita alle chiavi indicate (vedi"
+" sotto). Qualsiasi altro valore risponde 400."
+
+#: templates/api_docs.html:358
+msgid "Field values without one call per row"
+msgstr "I valori dei campi senza una chiamata per riga"
+
+#: templates/api_docs.html:359
+#, python-brace-format
+msgid ""
+"By default a row carries no document data, so reading a page's field "
+"values meant one /workitems/{id} call per row. Add include=fields and "
+"every row gets a fields object instead, resolved once per page."
+msgstr ""
+"Per impostazione predefinita una riga non contiene dati del documento, "
+"quindi leggere i valori dei campi di una pagina richiedeva una chiamata "
+"/workitems/{id} per riga. Con include=fields ogni riga riceve invece un "
+"oggetto fields, risolto una sola volta per pagina."
+
+#: templates/api_docs.html:377
+msgid ""
+"To take only the keys you actually read each cycle, name them inline: "
+"include=fields:invoicenr,kundennr. Keys are case-insensitive and "
+"validated exactly like ?field= — an unknown or sensitive key answers 400 "
+"Unknown field, a key outside your process scope answers 400 Field not "
+"available. An empty list or more than 30 keys is also a 400."
+msgstr ""
+"Per ottenere solo le chiavi che leggete davvero a ogni ciclo, indicatele "
+"direttamente: include=fields:invoicenr,kundennr. Le chiavi non "
+"distinguono maiuscole e minuscole e sono validate esattamente come con "
+"?field= — una chiave sconosciuta o sensibile risponde 400 Unknown field, "
+"una chiave fuori dal vostro ambito di processi risponde 400 Field not "
+"available. Anche un elenco vuoto o più di 30 chiavi rispondono 400."
+
+#: templates/api_docs.html:378
+msgid ""
+"A process scope can be wider than 30 keys, so the cap may sit below your "
+"own published list. It is not a limit on what you can read: to get more "
+"than 30 keys, use a bare include=fields, which returns every key in your "
+"scope in the same single read."
+msgstr ""
+"Un ambito di processi può comprendere più di 30 chiavi, quindi il limite "
+"può risultare inferiore al vostro elenco pubblicato. Non limita ciò che "
+"potete leggere: per più di 30 chiavi usate un semplice include=fields, "
+"che restituisce ogni chiave del vostro ambito nella stessa unica lettura."
+
+#: templates/api_docs.html:379
+msgid ""
+"Naming keys does not make the query cheaper — the values sit in one wide "
+"row either way. What it saves is response size."
+msgstr ""
+"Indicare le chiavi non rende la query più economica — i valori si trovano"
+" comunque in un'unica riga larga. Ciò che si risparmia è la dimensione "
+"della risposta."
+
+#: templates/api_docs.html:380
+#, python-brace-format
+msgid ""
+"Indexed fields only — the same keys /workitems/fields lists. Table values"
+" and document/page information stay on /workitems/{id}. A workitem with "
+"nothing indexed gets an empty fields object, sensitive fields are never "
+"included, and without include the response is exactly what it was before."
+msgstr ""
+"Solo campi indicizzati — le stesse chiavi elencate da /workitems/fields. "
+"I valori delle tabelle e le informazioni su documento/pagina restano su "
+"/workitems/{id}. Un workitem senza valori indicizzati riceve un oggetto "
+"fields vuoto, i campi sensibili non sono mai inclusi e senza include la "
+"risposta è esattamente quella di prima."
+
+#: templates/api_docs.html:381
 msgid ""
 "Every invalid value returns a 400 with a plain-English error — nothing is"
 " silently coerced. Unknown and sensitive field keys answer identically "
@@ -3600,7 +3767,7 @@ msgstr ""
 "rispettano la stessa finestra temporale per processo della ricerca della "
 "pagina Panoramica."
 
-#: templates/api_docs.html:363
+#: templates/api_docs.html:387
 msgid ""
 "The field keys /workitems accepts in ?field= for your key's process "
 "scope, as the server resolves them right now — only fields mapped for at "
@@ -3613,7 +3780,7 @@ msgstr ""
 "meno i campi sensibili. Preferisci recuperare questo elenco invece di "
 "codificare i nomi delle chiavi."
 
-#: templates/api_docs.html:377
+#: templates/api_docs.html:401
 msgid ""
 "Keys are lowercase without separators. On /workitems an unknown key "
 "answers 400 Unknown field, and a real field outside your key's scope "
@@ -3626,7 +3793,7 @@ msgstr ""
 "scope; una lettura di configurazione fallita restituisce 500, mai un "
 "elenco parziale."
 
-#: templates/api_docs.html:383
+#: templates/api_docs.html:407
 msgid ""
 "The count of workitems currently in each stage (Import, Extraction, "
 "Validation, Delivery) for your key's process scope. No parameters; the "
@@ -3637,7 +3804,7 @@ msgstr ""
 "parametro; i numeri corrispondono sempre a una query /workitems filtrata "
 "per fase."
 
-#: templates/api_docs.html:403
+#: templates/api_docs.html:427
 msgid ""
 "datetime is the server-local timestamp the counts were computed at. An "
 "empty process scope returns all zeros; a degraded workitem source answers"
@@ -3650,7 +3817,7 @@ msgstr ""
 "silenziosamente parziali. Nessuna cache: ogni chiamata calcola numeri "
 "aggiornati."
 
-#: templates/api_docs.html:409
+#: templates/api_docs.html:433
 msgid ""
 "The document details the overview row-expand shows for one workitem: "
 "extracted field values and table values. No page images, confidence or "
@@ -3661,7 +3828,7 @@ msgstr ""
 "pagina, confidenza o posizione di origine; i campi sensibili vengono "
 "sempre rimossi."
 
-#: templates/api_docs.html:448
+#: templates/api_docs.html:472
 msgid ""
 "Extracted field name → value, mapped through the same field-name mapping "
 "the overview uses"
@@ -3669,11 +3836,11 @@ msgstr ""
 "Nome del campo estratto → valore, mappato con la stessa mappatura dei "
 "nomi di campo della panoramica"
 
-#: templates/api_docs.html:449
+#: templates/api_docs.html:473
 msgid "Extracted tables: title, columns, and rows of column/value cells"
 msgstr "Tabelle estratte: titolo, colonne e righe di celle colonna/valore"
 
-#: templates/api_docs.html:453
+#: templates/api_docs.html:477
 msgid ""
 "404 with a null detail is returned uniformly for an unknown id, an id "
 "outside your key's scope, and a document the runtime backend can't load "
@@ -3686,7 +3853,7 @@ msgstr ""
 "a un workitem freddo carica in diretta dal servizio di runtime e può "
 "richiedere qualche secondo."
 
-#: templates/api_docs.html:459
+#: templates/api_docs.html:483
 msgid ""
 "Every endpoint above has a /api/test/v1/... twin: same path suffix, same "
 "Bearer-key auth, same response shape — but the numbers are random, not "
@@ -3699,7 +3866,7 @@ msgstr ""
 "nessuna query al backend, quindi è sicuro chiamarlo ripetutamente durante"
 " lo sviluppo di un'integrazione."
 
-#: templates/api_docs.html:474
+#: templates/api_docs.html:498
 msgid ""
 "Use a real (enabled) API key — the same auth errors (401/429) apply. "
 "Available for"
@@ -3707,7 +3874,7 @@ msgstr ""
 "Usa una vera chiave API (abilitata) — si applicano gli stessi errori di "
 "autenticazione (401/429). Disponibile per"
 
-#: templates/api_docs.html:474
+#: templates/api_docs.html:498
 msgid "and"
 msgstr "e"
 
@@ -4008,7 +4175,8 @@ msgid "Replay"
 msgstr "Riproduci"
 
 #: templates/appearance.html:338 templates/dashboard.html:30
-#: templates/generali_documents.html:41 templates/generali_reporting.html:56
+#: templates/generali_documents.html:40 templates/generali_documents.html:41
+#: templates/generali_reporting.html:55 templates/generali_reporting.html:56
 #: templates/js/_header_js.html:30 templates/js/_header_js.html:36
 msgid "Dashboard"
 msgstr "Dashboard"
@@ -4143,7 +4311,7 @@ msgstr ""
 #: templates/generali_baseservices.html:137
 #: templates/generali_baseservices.html:202
 #: templates/generali_baseservices.html:248
-#: templates/generali_monthreport.html:123
+#: templates/generali_monthreport.html:126
 #: templates/generali_projectmanagement.html:190
 #: templates/generali_reporting.html:75 templates/generali_reporting.html:158
 #: templates/js/_reporting_viz_js.html:12
@@ -4238,14 +4406,19 @@ msgstr "Generali Dashboard"
 msgid "Dashboard for Generali Document processing"
 msgstr "Dashboard per l'elaborazione dei documenti Generali"
 
-#: templates/generali-dashboard.html:65 templates/generali_reporting.html:48
+#: templates/generali-dashboard.html:64 templates/generali-dashboard.html:65
+#: templates/generali_reporting.html:47 templates/generali_reporting.html:48
 #: templates/js/_header_js.html:39
 msgid "Document List"
 msgstr "Elenco documenti"
 
-#: templates/generali-dashboard.html:69
+#: templates/generali-dashboard.html:68 templates/generali-dashboard.html:69
+#: templates/generali_additionalservices.html:51
 #: templates/generali_additionalservices.html:52
-#: templates/generali_baseservices.html:52 templates/generali_documents.html:45
+#: templates/generali_baseservices.html:51
+#: templates/generali_baseservices.html:52 templates/generali_documents.html:44
+#: templates/generali_documents.html:45
+#: templates/generali_projectmanagement.html:51
 #: templates/generali_projectmanagement.html:52 templates/js/_header_js.html:42
 #: templates/reporting.html:79
 msgid "Reporting"
@@ -4259,14 +4432,15 @@ msgstr "Da"
 msgid "To"
 msgstr "A"
 
-#: templates/generali-dashboard.html:90
+#: templates/admin/permissions.html:45 templates/generali-dashboard.html:90
 #: templates/generali_additionalservices.html:122
 #: templates/generali_baseservices.html:110
 #: templates/generali_documents.html:208
 #: templates/generali_importstatus.html:73 templates/generali_pdqm.html:130
 #: templates/generali_projectmanagement.html:98
-#: templates/generali_reporting.html:133 templates/prepared_documents.html:151
-#: templates/workitems_overview.html:147
+#: templates/generali_reporting.html:133
+#: templates/js/admin/_permissions_js.html:21
+#: templates/prepared_documents.html:151 templates/workitems_overview.html:147
 msgid "Reset"
 msgstr "Reimposta"
 
@@ -4353,23 +4527,31 @@ msgstr "Generali Servizi aggiuntivi"
 msgid "Daily effort tracking by category"
 msgstr "Monitoraggio giornaliero dello sforzo per categoria"
 
+#: templates/generali_additionalservices.html:38
 #: templates/generali_additionalservices.html:39
 #: templates/generali_additionalservices.html:200
 msgid "Add Attendance"
 msgstr "Aggiungi presenze"
 
+#: templates/generali_additionalservices.html:43
 #: templates/generali_additionalservices.html:44
-#: templates/generali_baseservices.html:44 templates/generali_pdqm.html:44
+#: templates/generali_baseservices.html:43
+#: templates/generali_baseservices.html:44 templates/generali_pdqm.html:43
+#: templates/generali_pdqm.html:44 templates/generali_projectmanagement.html:43
 #: templates/generali_projectmanagement.html:44
-#: templates/generali_reporting.html:44
+#: templates/generali_reporting.html:43 templates/generali_reporting.html:44
 msgid "Export Excel"
 msgstr "Esporta Excel"
 
+#: templates/generali_additionalservices.html:47
 #: templates/generali_additionalservices.html:48
+#: templates/generali_baseservices.html:47
 #: templates/generali_baseservices.html:48
 #: templates/generali_monthreport.html:8 templates/generali_monthreport.html:27
-#: templates/generali_pdqm.html:48 templates/generali_projectmanagement.html:48
-#: templates/generali_reporting.html:52
+#: templates/generali_pdqm.html:47 templates/generali_pdqm.html:48
+#: templates/generali_projectmanagement.html:47
+#: templates/generali_projectmanagement.html:48
+#: templates/generali_reporting.html:51 templates/generali_reporting.html:52
 msgid "Month Report"
 msgstr "Rapporto mensile"
 
@@ -4496,8 +4678,8 @@ msgstr "Registrato alle"
 
 #: templates/admin/access_control.html:92 templates/admin/clients.html:57
 #: templates/admin/maintenance.html:39 templates/admin/organizations.html:34
-#: templates/admin/processes.html:78 templates/admin/sessions.html:34
-#: templates/admin/tenants_manage.html:41
+#: templates/admin/processes.html:78 templates/admin/sessions.html:53
+#: templates/admin/sessions.html:69 templates/admin/tenants_manage.html:41
 #: templates/admin/tenants_manage.html:79
 #: templates/generali_additionalservices.html:167
 #: templates/generali_baseservices.html:141 templates/generali_pdqm.html:165
@@ -4598,19 +4780,23 @@ msgid "This action cannot be undone."
 msgstr "Questa azione non può essere annullata."
 
 #: templates/admin/clients.html:81 templates/admin/maintenance.html:130
-#: templates/admin/organizations.html:53 templates/admin/permissions.html:57
+#: templates/admin/organizations.html:53 templates/admin/permissions.html:74
 #: templates/admin/processes.html:66 templates/admin/processes.html:89
 #: templates/admin/tenants_manage.html:56 templates/admin/user_detail.html:279
 #: templates/generali_additionalservices.html:349
 #: templates/generali_baseservices.html:298 templates/generali_pdqm.html:373
 #: templates/generali_projectmanagement.html:284
 #: templates/generali_reporting.html:341
+#: templates/js/_generali_additional_services_js.html:125
 #: templates/js/_generali_additional_services_js.html:431
 #: templates/js/_generali_additional_services_js.html:441
-#: templates/js/_generali_base_services_js.html:348
-#: templates/js/_generali_base_services_js.html:361
+#: templates/js/_generali_base_services_js.html:104
+#: templates/js/_generali_base_services_js.html:368
+#: templates/js/_generali_base_services_js.html:381
+#: templates/js/_generali_pdqm_js.html:179
 #: templates/js/_generali_pdqm_js.html:569
 #: templates/js/_generali_pdqm_js.html:584
+#: templates/js/_generali_project_management_js.html:57
 #: templates/js/_generali_project_management_js.html:324
 #: templates/js/_generali_project_management_js.html:338
 #: templates/js/_generali_reporting_js.html:40
@@ -4631,9 +4817,11 @@ msgstr "Generali Servizi di base - nexora"
 msgid "Generali Base Services"
 msgstr "Generali Servizi di base"
 
+#: templates/generali_baseservices.html:38
 #: templates/generali_baseservices.html:39
-#: templates/generali_baseservices.html:173 templates/generali_pdqm.html:39
-#: templates/generali_pdqm.html:199
+#: templates/generali_baseservices.html:173 templates/generali_pdqm.html:38
+#: templates/generali_pdqm.html:39 templates/generali_pdqm.html:199
+#: templates/generali_projectmanagement.html:38
 #: templates/generali_projectmanagement.html:39
 #: templates/generali_projectmanagement.html:161
 msgid "Add Entry"
@@ -4796,45 +4984,67 @@ msgstr "Righe CSV"
 msgid "New"
 msgstr "Nuovo"
 
-#: templates/generali_monthreport.html:64
+#: templates/admin/logs.html:108 templates/admin/user_detail.html:232
+#: templates/generali_monthreport.html:44
+#: templates/js/_generali_documents_js.html:270
+#: templates/js/_generali_import_status_js.html:259
+#: templates/js/_workitems_overview_js.html:41
+#: templates/prepared_documents.html:234 templates/tenant/page.html:100
+#: templates/workitems_overview.html:578
+msgid "Previous"
+msgstr "Precedente"
+
+#: templates/admin/logs.html:109 templates/admin/user_detail.html:233
+#: templates/generali_monthreport.html:50
+#: templates/generali_monthreport.html:56
+#: templates/js/_generali_documents_js.html:274
+#: templates/js/_generali_import_status_js.html:274
+#: templates/js/_generali_reporting_js.html:18
+#: templates/js/_workitems_overview_js.html:42
+#: templates/prepared_documents.html:240 templates/tenant/page.html:101
+#: templates/workitems_overview.html:579
+msgid "Next"
+msgstr "Successivo"
+
+#: templates/generali_monthreport.html:67
 msgid "Total Entries"
 msgstr "Totale voci"
 
-#: templates/generali_monthreport.html:73
-#: templates/generali_monthreport.html:130
+#: templates/generali_monthreport.html:76
+#: templates/generali_monthreport.html:133
 #: templates/generali_reporting.html:121 templates/generali_reporting.html:161
 #: templates/generali_reporting.html:288 templates/generali_reporting.html:289
 #: templates/js/_generali_reporting_js.html:10
 msgid "On Time"
 msgstr "In orario"
 
-#: templates/generali_monthreport.html:80
-#: templates/generali_monthreport.html:133
+#: templates/generali_monthreport.html:83
+#: templates/generali_monthreport.html:136
 #: templates/generali_reporting.html:122
 #: templates/js/_generali_reporting_js.html:11
 msgid "Late"
 msgstr "In ritardo"
 
-#: templates/generali_monthreport.html:87
-#: templates/generali_monthreport.html:136
+#: templates/generali_monthreport.html:90
+#: templates/generali_monthreport.html:139
 msgid "On-Time Rate"
 msgstr "Tasso di puntualità"
 
-#: templates/generali_monthreport.html:96
-#: templates/generali_monthreport.html:140
+#: templates/generali_monthreport.html:99
+#: templates/generali_monthreport.html:143
 msgid "Total Quantity"
 msgstr "Quantità totale"
 
-#: templates/generali_monthreport.html:105
-#: templates/generali_monthreport.html:144
+#: templates/generali_monthreport.html:108
+#: templates/generali_monthreport.html:147
 msgid "Total Hours"
 msgstr "Ore totali"
 
-#: templates/generali_monthreport.html:126
+#: templates/generali_monthreport.html:129
 msgid "Entries"
 msgstr "Voci"
 
-#: templates/generali_monthreport.html:174
+#: templates/generali_monthreport.html:177
 msgid "No data for this month."
 msgstr "Nessun dato per questo mese."
 
@@ -4915,7 +5125,8 @@ msgstr "Generali Reporting"
 msgid "Daily task completion reporting"
 msgstr "Reporting giornaliero del completamento delle attività"
 
-#: templates/generali_reporting.html:39 templates/generali_reporting.html:205
+#: templates/generali_reporting.html:38 templates/generali_reporting.html:39
+#: templates/generali_reporting.html:205
 msgid "Add Report"
 msgstr "Aggiungi rapporto"
 
@@ -5112,9 +5323,9 @@ msgid "Login - nexora"
 msgstr "Accesso - nexora"
 
 #: templates/admin/access_control.html:156 templates/admin/logs.html:44
-#: templates/admin/modals/_user_modals.html:32 templates/admin/sessions.html:29
-#: templates/admin/user_detail.html:37 templates/index.html:98
-#: templates/profile.html:137
+#: templates/admin/modals/_user_modals.html:32 templates/admin/sessions.html:49
+#: templates/admin/sessions.html:64 templates/admin/user_detail.html:37
+#: templates/index.html:98 templates/profile.html:137
 msgid "Username"
 msgstr "Nome utente"
 
@@ -5124,7 +5335,8 @@ msgstr "Il tuo nome utente"
 
 #: templates/admin/access_control.html:191
 #: templates/admin/modals/_user_modals.html:71 templates/index.html:109
-#: templates/profile.html:65 templates/set_password.html:106
+#: templates/js/admin/_sessions_js.html:140 templates/profile.html:65
+#: templates/set_password.html:106
 msgid "Password"
 msgstr "Password"
 
@@ -5215,453 +5427,6 @@ msgstr "Conferma la nuova password"
 #: templates/init_reset.html:125 templates/reset_password.html:125
 msgid "Confirm your new password"
 msgstr "Conferma la tua nuova password"
-
-#: templates/legal.html:74
-msgid "Back to nexora"
-msgstr "Torna a nexora"
-
-#: templates/legal.html:78
-msgid "Sydoc AG"
-msgstr "Sydoc AG"
-
-#: templates/legal.html:86
-msgid "Draft — not yet in force."
-msgstr "Bozza – non ancora in vigore."
-
-#: templates/legal.html:87
-msgid ""
-"This page is a skeleton prepared for legal review. The factual sections "
-"describing what the system stores were read from the application itself "
-"and are accurate; the wording, the legal bases, the retention periods and"
-" the contact details still have to be written and approved before this is"
-" published."
-msgstr ""
-"Questa pagina è una struttura predisposta per la revisione legale. Le "
-"sezioni che descrivono ciò che il sistema memorizza sono state lette "
-"direttamente dall'applicazione e sono corrette; formulazione, basi "
-"giuridiche, periodi di conservazione e recapiti devono ancora essere "
-"redatti e approvati prima della pubblicazione."
-
-#: templates/legal.html:92
-msgid "Who is responsible"
-msgstr "Titolare del trattamento"
-
-#: templates/legal.html:93
-msgid ""
-"Sydoc AG is responsible for the account, session and request-log data "
-"described below. For the business documents processed through the "
-"platform, Sydoc acts on behalf of the client organisation whose data it "
-"is, and that organisation decides what happens to it."
-msgstr ""
-"Sydoc AG è responsabile dei dati di account, di sessione e del registro "
-"delle richieste descritti di seguito. Per i documenti aziendali trattati "
-"tramite la piattaforma, Sydoc agisce per conto dell'organizzazione "
-"cliente a cui appartengono i dati, che decide come vengono utilizzati."
-
-#: templates/legal.html:94
-msgid ""
-"To be completed: the full legal entity name, the registered address, and "
-"a named contact or mailbox for data-protection questions. A privacy "
-"notice without a reachable contact does not do its job."
-msgstr ""
-"Da completare: la ragione sociale completa, l'indirizzo della sede e un "
-"contatto nominativo o una casella di posta per le questioni di protezione"
-" dei dati. Un'informativa sulla privacy senza un contatto raggiungibile "
-"non assolve al suo scopo."
-
-#: templates/legal.html:96
-msgid "What nexora stores about you"
-msgstr "Che cosa nexora memorizza su di lei"
-
-#: templates/legal.html:97
-msgid ""
-"The following is read from the application and is factually accurate as "
-"of this release:"
-msgstr ""
-"Quanto segue è stato letto dall'applicazione ed è corretto per questa "
-"versione:"
-
-#: templates/legal.html:99
-msgid ""
-"Account details: name, username, e-mail address, organisation, language "
-"and interface preferences."
-msgstr ""
-"Dati dell'account: nome, nome utente, indirizzo e-mail, organizzazione, "
-"lingua e preferenze dell'interfaccia."
-
-#: templates/legal.html:100
-msgid "Sign-in security: a password hash and, where enabled, a two-factor secret."
-msgstr ""
-"Sicurezza di accesso: un hash della password e, se attivo, un segreto a "
-"due fattori."
-
-#: templates/legal.html:101
-msgid ""
-"Active sessions: a session identifier, your IP address, and the times the"
-" session was created and last used."
-msgstr ""
-"Sessioni attive: un identificativo di sessione, il suo indirizzo IP e gli"
-" orari di creazione e di ultimo utilizzo."
-
-#: templates/legal.html:102
-msgid ""
-"Request log: for each page or API call, the time, the path, the method "
-"and the account that made it."
-msgstr ""
-"Registro delle richieste: per ogni pagina o chiamata API, l'orario, il "
-"percorso, il metodo e l'account che l'ha effettuata."
-
-#: templates/legal.html:103
-msgid ""
-"Business documents and their index fields, on behalf of the organisation "
-"whose data is being processed."
-msgstr ""
-"Documenti aziendali e relativi campi indice, per conto "
-"dell'organizzazione i cui dati sono trattati."
-
-#: templates/legal.html:106
-msgid "Why it is stored"
-msgstr "Perché viene memorizzato"
-
-#: templates/legal.html:107
-msgid ""
-"Account details exist so that access can be granted and so the interface "
-"can be shown in your language. The password hash and the two-factor "
-"secret exist to establish that you are who you say you are. Session "
-"records keep you signed in between requests and let an administrator see "
-"which sessions are currently active. The request log exists so that "
-"faults can be traced and misuse of an account can be detected. Business "
-"documents are processed to deliver the service the client organisation "
-"has contracted for."
-msgstr ""
-"I dati di account servono a concedere l'accesso e a mostrare "
-"l'interfaccia nella sua lingua. L'hash della password e il segreto del "
-"secondo fattore servono ad accertare che lei sia la persona dichiarata. I"
-" record di sessione la mantengono connesso tra le richieste e permettono "
-"all'amministrazione di vedere quali sessioni sono attive. Il registro "
-"delle richieste serve a ricostruire gli errori e a rilevare l'uso "
-"improprio di un account. I documenti aziendali vengono trattati per "
-"erogare il servizio commissionato dall'organizzazione cliente."
-
-#: templates/legal.html:108
-msgid ""
-"To be completed: the legal basis for each of those purposes. Note in "
-"particular that the request log and the IP addresses held against "
-"sessions currently have no stated purpose limit and no retention period, "
-"which is the weakest point in this notice."
-msgstr ""
-"Da completare: la base giuridica per ciascuna di queste finalità. Va "
-"notato in particolare che per il registro delle richieste e per gli "
-"indirizzi IP conservati con le sessioni non sono attualmente definiti né "
-"un vincolo di finalità né un periodo di conservazione: è il punto più "
-"debole di questa informativa."
-
-#: templates/legal.html:110
-msgid "How long it is kept"
-msgstr "Per quanto tempo viene conservato"
-
-#: templates/legal.html:111
-msgid ""
-"Nothing in nexora currently has a defined retention period: session rows,"
-" the request log, document data and closed accounts are all kept "
-"indefinitely."
-msgstr ""
-"Attualmente nessun dato in nexora ha un periodo di conservazione "
-"definito: i record di sessione, il registro delle richieste, i dati dei "
-"documenti e gli account chiusi vengono conservati a tempo indeterminato."
-
-#: templates/legal.html:112
-msgid ""
-"To be completed: a retention period for each category, for the request "
-"log, for document data and for closed accounts. An automatic eight-day "
-"prune of the session table is written but not yet in service; this "
-"section must not claim it until it is."
-msgstr ""
-"Da completare: un periodo di conservazione per ciascuna categoria, per il"
-" registro delle richieste, per i dati dei documenti e per gli account "
-"chiusi. Una cancellazione automatica della tabella delle sessioni dopo "
-"otto giorni è già scritta ma non ancora in funzione; questa sezione non "
-"deve annunciarla prima."
-
-#: templates/legal.html:114
-msgid "Who it is shared with"
-msgstr "A chi vengono comunicati i dati"
-
-#: templates/legal.html:115
-msgid ""
-"nexora runs on Sydoc infrastructure. Outbound mail, including scheduled "
-"report delivery, goes through Microsoft Graph. One client runtime is "
-"hosted on Microsoft Azure."
-msgstr ""
-"nexora funziona sull'infrastruttura di Sydoc. La posta in uscita, "
-"compreso l'invio programmato dei report, passa da Microsoft Graph. Un "
-"ambiente cliente è ospitato su Microsoft Azure."
-
-#: templates/legal.html:116
-msgid ""
-"The reporting assistant sends the structure of the databases it can read,"
-" meaning table and column names and their types, to an external AI "
-"provider in order to translate a question into a query. Result rows are "
-"only sent as well for the small number of accounts that hold both the "
-"data-explanation and the live-query permissions; for everyone else no "
-"business data leaves the platform through the assistant."
-msgstr ""
-"L'assistente di reporting trasmette la struttura dei database che può "
-"leggere, ossia i nomi di tabelle e colonne e i loro tipi, a un fornitore "
-"di IA esterno per tradurre una domanda in una query. Le righe di "
-"risultato vengono trasmesse solo per i pochi account che possiedono sia "
-"l'autorizzazione alla spiegazione dei dati sia quella per le query "
-"dirette; per tutti gli altri nessun dato aziendale lascia la piattaforma "
-"tramite l'assistente."
-
-#: templates/legal.html:117
-msgid ""
-"To be completed: name the AI provider actually configured in production "
-"and the region its data is processed in, name the Azure regions in use, "
-"and confirm a data-processing agreement is in place with each. Also cover"
-" the tunnel used to publish the site."
-msgstr ""
-"Da completare: indicare il fornitore di IA effettivamente configurato in "
-"produzione e la regione in cui i dati vengono trattati, indicare le "
-"regioni Azure utilizzate e confermare che con ciascuno esiste un "
-"contratto di trattamento dei dati. Va coperto anche il tunnel con cui il "
-"sito viene pubblicato."
-
-#: templates/legal.html:119
-msgid "Your rights"
-msgstr "I suoi diritti"
-
-#: templates/legal.html:120
-msgid ""
-"You can ask what is held about you, ask for it to be corrected, ask for "
-"it to be deleted, and object to how it is used. Where the data belongs to"
-" your employer rather than to Sydoc, the request is passed to them, "
-"because they decide."
-msgstr ""
-"Può chiedere quali dati che la riguardano siano conservati, chiederne la "
-"rettifica o la cancellazione e opporsi al loro utilizzo. Se i dati "
-"appartengono al suo datore di lavoro e non a Sydoc, la richiesta viene "
-"inoltrata a quest'ultimo, perché è lui a decidere."
-
-#: templates/legal.html:121
-msgid ""
-"You can also complain to the Federal Data Protection and Information "
-"Commissioner."
-msgstr ""
-"Può inoltre presentare reclamo all'Incaricato federale della protezione "
-"dei dati e della trasparenza."
-
-#: templates/legal.html:122
-msgid ""
-"To be completed: where a request should be sent, how long a response "
-"takes, and how the requester's identity is checked before anything is "
-"disclosed."
-msgstr ""
-"Da completare: a chi indirizzare una richiesta, entro quanto tempo si "
-"risponde e come viene verificata l'identità del richiedente prima di "
-"qualsiasi divulgazione."
-
-#: templates/legal.html:124
-msgid "Scope"
-msgstr "Ambito di applicazione"
-
-#: templates/legal.html:125
-msgid ""
-"nexora is an internal business platform operated by Sydoc AG. It is not a"
-" public service: there is no self-registration, and every account is "
-"created by Sydoc on the instruction of the organisation the account "
-"holder works for."
-msgstr ""
-"nexora è una piattaforma aziendale interna gestita da Sydoc AG. Non è un "
-"servizio pubblico: non esiste l'autoregistrazione e ogni account viene "
-"creato da Sydoc su incarico dell'organizzazione per cui lavora il "
-"titolare."
-
-#: templates/legal.html:126
-msgid ""
-"What an account can see is decided by the permissions attached to it. An "
-"account may only be used by the person it was issued to, and only for "
-"that person's work for their organisation."
-msgstr ""
-"Ciò che un account può vedere è determinato dalle autorizzazioni ad esso "
-"associate. Un account può essere usato solo dalla persona a cui è stato "
-"rilasciato e solo per il lavoro che svolge per la propria organizzazione."
-
-#: templates/legal.html:127
-msgid ""
-"To be completed: which Sydoc legal entity these terms are entered into "
-"with, and whether they sit underneath a master service agreement that "
-"takes precedence."
-msgstr ""
-"Da completare: con quale società Sydoc vengono stipulate queste "
-"condizioni e se sono subordinate a un contratto quadro prevalente."
-
-#: templates/legal.html:129
-msgid "Acceptable use"
-msgstr "Uso consentito"
-
-#: templates/legal.html:130
-msgid ""
-"Accounts are personal. Do not share your password, do not let someone "
-"else use your session, and keep your second factor on a device only you "
-"control. Tell Sydoc as soon as you suspect either has been compromised."
-msgstr ""
-"Gli account sono personali. Non comunichi la sua password, non permetta "
-"ad altri di usare la sua sessione e mantenga il secondo fattore su un "
-"dispositivo che controlla solo lei. Informi Sydoc appena sospetta che uno"
-" dei due sia stato compromesso."
-
-#: templates/legal.html:131
-msgid ""
-"Do not attempt to reach data your permissions do not grant you, and do "
-"not use automated access except through an API key issued to you for that"
-" purpose. Sydoc may suspend an account that is being misused, or at the "
-"instruction of the organisation the account belongs to."
-msgstr ""
-"Non tenti di accedere a dati non coperti dalle sue autorizzazioni e "
-"utilizzi accessi automatizzati solo tramite una chiave API rilasciata a "
-"lei per tale scopo. Sydoc può sospendere un account oggetto di uso "
-"improprio, oppure su istruzione dell'organizzazione a cui appartiene."
-
-#: templates/legal.html:132
-msgid ""
-"To be completed: whether suspension carries notice, and who inside the "
-"client organisation is entitled to request it."
-msgstr ""
-"Da completare: se la sospensione è preceduta da un preavviso e chi, "
-"all'interno dell'organizzazione cliente, è autorizzato a richiederla."
-
-#: templates/legal.html:134
-msgid "Availability"
-msgstr "Disponibilità"
-
-#: templates/legal.html:135
-msgid ""
-"Planned maintenance is announced in the application beforehand and may "
-"prevent sign-in while it runs. A release normally involves a short "
-"restart of well under a minute."
-msgstr ""
-"Le manutenzioni pianificate sono annunciate in anticipo nell'applicazione"
-" e durante il loro svolgimento possono impedire l'accesso. Un rilascio "
-"comporta di norma un breve riavvio di molto meno di un minuto."
-
-#: templates/legal.html:136
-msgid ""
-"Unplanned outages are picked up by automated monitoring and communicated "
-"to the affected organisations. This page does not itself promise any "
-"level of availability."
-msgstr ""
-"I disservizi imprevisti vengono rilevati da un monitoraggio automatico e "
-"comunicati alle organizzazioni interessate. Questa pagina non promette in"
-" sé alcun livello di disponibilità."
-
-#: templates/legal.html:137
-msgid ""
-"To be completed: the hours during which the platform is supported, and "
-"whether an availability commitment exists in the underlying contract. Do "
-"not state a figure here that the contract does not support."
-msgstr ""
-"Da completare: gli orari in cui la piattaforma è presidiata e se nel "
-"contratto di riferimento esiste un impegno di disponibilità. Non indichi "
-"qui alcuna cifra che il contratto non supporti."
-
-#: templates/legal.html:139
-msgid "Confidentiality"
-msgstr "Riservatezza"
-
-#: templates/legal.html:140
-msgid ""
-"The documents and index data visible through nexora belong to the "
-"organisation whose business they concern, not to Sydoc and not to the "
-"account holder. Treat everything you can see as confidential."
-msgstr ""
-"I documenti e i dati di indice visibili tramite nexora appartengono "
-"all'organizzazione la cui attività riguardano, non a Sydoc né al titolare"
-" dell'account. Tratti come riservato tutto ciò che può vedere."
-
-#: templates/legal.html:141
-msgid ""
-"Do not copy, export or forward content beyond what your work requires, "
-"and do not retain it after you no longer need it. These obligations "
-"continue after an account is closed."
-msgstr ""
-"Non copi, esporti o inoltri contenuti oltre quanto il suo lavoro richiede"
-" e non li conservi quando non le servono più. Questi obblighi permangono "
-"anche dopo la chiusura di un account."
-
-#: templates/legal.html:142
-msgid ""
-"To be completed: how this relates to the confidentiality terms in the "
-"master agreement and to individual non-disclosure undertakings."
-msgstr ""
-"Da completare: il rapporto con le clausole di riservatezza del contratto "
-"quadro e con i singoli impegni di non divulgazione."
-
-#: templates/legal.html:144
-msgid "Liability"
-msgstr "Responsabilità"
-
-#: templates/legal.html:145
-msgid ""
-"Sydoc operates nexora with reasonable care and skill. The platform "
-"presents data drawn from other systems, and decisions taken on the basis "
-"of what it displays remain the responsibility of the organisation taking "
-"them."
-msgstr ""
-"Sydoc gestisce nexora con la dovuta diligenza e competenza. La "
-"piattaforma presenta dati provenienti da altri sistemi; le decisioni "
-"assunte sulla base di tale rappresentazione restano di responsabilità "
-"dell'organizzazione che le prende."
-
-#: templates/legal.html:146
-msgid ""
-"To be completed, and by a lawyer: the limitation of liability, any cap, "
-"the treatment of indirect and consequential loss, and how all of that "
-"lines up with the master agreement. Nothing should be written in this "
-"section by anyone else."
-msgstr ""
-"Da completare, e da un giurista: la limitazione di responsabilità, un "
-"eventuale massimale, il trattamento dei danni indiretti e consequenziali "
-"e la coerenza di tutto ciò con il contratto quadro. Questa sezione non "
-"dovrebbe essere redatta da nessun altro."
-
-#: templates/legal.html:148
-msgid "Governing law"
-msgstr "Legge applicabile"
-
-#: templates/legal.html:149
-msgid ""
-"These terms are governed by Swiss law, and the place of jurisdiction is "
-"the registered seat of Sydoc AG."
-msgstr ""
-"Le presenti condizioni sono regolate dal diritto svizzero e il foro "
-"competente è la sede di Sydoc AG."
-
-#: templates/legal.html:150
-msgid ""
-"To be completed: name the city of the registered seat, and confirm that "
-"no client contract assigns jurisdiction elsewhere."
-msgstr ""
-"Da completare: indicare la città della sede e confermare che nessun "
-"contratto con i clienti attribuisca il foro altrove."
-
-#: templates/legal.html:153
-msgid "Changes to this document"
-msgstr "Modifiche al presente documento"
-
-#: templates/legal.html:154
-msgid ""
-"To be completed: how a change to this document is announced, how much "
-"notice a material change gets, and whether continued use counts as "
-"acceptance. Nothing currently announces a change to this page, and the "
-"page shows no date it last changed -- adding one belongs with this "
-"section."
-msgstr ""
-"Da completare: come viene comunicata una modifica di questo documento, "
-"con quale preavviso viene annunciata una modifica sostanziale e se l'uso "
-"continuato equivale ad accettazione. Attualmente una modifica di questa "
-"pagina non viene comunicata e la pagina non mostra alcuna data di ultima "
-"modifica: aggiungerla fa parte di questa sezione."
 
 #: templates/maintenance.html:6
 msgid "Maintenance - nexora"
@@ -5776,23 +5541,6 @@ msgstr "Apri in Workitems"
 msgid "No prepared documents yet. Upload an Excel to get started."
 msgstr "Nessun documento preparato ancora. Carica un file Excel per iniziare."
 
-#: templates/admin/logs.html:108 templates/admin/user_detail.html:232
-#: templates/js/_generali_documents_js.html:274
-#: templates/js/_workitems_overview_js.html:41
-#: templates/prepared_documents.html:234 templates/tenant/page.html:100
-#: templates/workitems_overview.html:578
-msgid "Previous"
-msgstr "Precedente"
-
-#: templates/admin/logs.html:109 templates/admin/user_detail.html:233
-#: templates/js/_generali_documents_js.html:278
-#: templates/js/_generali_reporting_js.html:18
-#: templates/js/_workitems_overview_js.html:42
-#: templates/prepared_documents.html:240 templates/tenant/page.html:101
-#: templates/workitems_overview.html:579
-msgid "Next"
-msgstr "Successivo"
-
 #: templates/prepared_documents.html:251 templates/reporting.html:274
 msgid "Workitem preview"
 msgstr "Anteprima workitem"
@@ -5870,7 +5618,7 @@ msgstr "Il nome utente non può essere modificato."
 msgid "Full name"
 msgstr "Nome completo"
 
-#: templates/admin/permissions.html:31 templates/admin/user_detail.html:80
+#: templates/admin/permissions.html:48 templates/admin/user_detail.html:80
 #: templates/profile.html:157
 msgid "Save changes"
 msgstr "Salva modifiche"
@@ -6164,7 +5912,8 @@ msgstr "Aggiungi metrica"
 msgid "With a metric selected, the Columns above become the grouping."
 msgstr "Con una metrica selezionata, le colonne sopra diventano il raggruppamento."
 
-#: templates/js/_reporting_viz_js.html:22 templates/reporting.html:475
+#: templates/admin/permissions.html:32 templates/js/_reporting_viz_js.html:22
+#: templates/js/admin/_permissions_js.html:20 templates/reporting.html:475
 msgid "Columns"
 msgstr "Colonne"
 
@@ -6520,7 +6269,7 @@ msgstr "Predefinite integrate"
 msgid "Kind"
 msgstr "Tipo"
 
-#: templates/admin/permissions.html:39 templates/admin/user_detail.html:123
+#: templates/admin/permissions.html:56 templates/admin/user_detail.html:123
 #: templates/admin/user_detail.html:155 templates/reporting_sources.html:42
 #: templates/reporting_sources.html:53 templates/reporting_sources.html:67
 msgid "Permission"
@@ -6794,8 +6543,8 @@ msgstr "Eliminato"
 msgid "Table or document view"
 msgstr "Vista tabella o documenti"
 
-#: templates/js/_generali_dashboard_js.html:172
-#: templates/js/_generali_dashboard_js.html:248
+#: templates/js/_generali_dashboard_js.html:231
+#: templates/js/_generali_dashboard_js.html:321
 #: templates/workitems_overview.html:336
 msgid "Documents"
 msgstr "Documenti"
@@ -6804,7 +6553,8 @@ msgstr "Documenti"
 msgid "Last movement"
 msgstr "Ultimo movimento"
 
-#: templates/admin/logs.html:101 templates/js/_generali_reporting_js.html:15
+#: templates/admin/logs.html:101 templates/js/_generali_documents_js.html:135
+#: templates/js/_generali_reporting_js.html:15
 #: templates/workitems_overview.html:354
 msgid "Details"
 msgstr "Dettagli"
@@ -6969,8 +6719,9 @@ msgid "Overrides"
 msgstr "Override"
 
 #: templates/admin/access_control.html:96 templates/admin/logs.html:106
-#: templates/admin/sessions.html:37 templates/admin/user_detail.html:128
-#: templates/admin/user_detail.html:226 templates/js/admin/_sessions_js.html:37
+#: templates/admin/sessions.html:56 templates/admin/sessions.html:72
+#: templates/admin/user_detail.html:128 templates/admin/user_detail.html:226
+#: templates/js/admin/_sessions_js.html:37
 #: templates/js/admin/_user_detail_js.html:443
 #: templates/js/admin/_user_detail_js.html:556
 msgid "Loading..."
@@ -6986,9 +6737,14 @@ msgid "Add Profile"
 msgstr "Aggiungi profilo"
 
 #: templates/admin/access_control.html:121 templates/admin/clients.html:80
-#: templates/admin/organizations.html:49 templates/admin/permissions.html:56
+#: templates/admin/organizations.html:49 templates/admin/permissions.html:73
 #: templates/admin/processes.html:64 templates/admin/processes.html:88
 #: templates/admin/tenants_manage.html:54
+#: templates/js/_generali_additional_services_js.html:124
+#: templates/js/_generali_base_services_js.html:103
+#: templates/js/_generali_pdqm_js.html:178
+#: templates/js/_generali_project_management_js.html:56
+#: templates/js/_generali_reporting_js.html:41
 #: templates/js/_reporting_dashboard_js.html:7
 #: templates/js/_reporting_layouts_js.html:8
 #: templates/js/_reporting_metrics_js.html:48
@@ -6999,11 +6755,11 @@ msgstr "Aggiungi profilo"
 msgid "Edit"
 msgstr "Modifica"
 
-#: templates/admin/access_control.html:128 templates/admin/permissions.html:40
+#: templates/admin/access_control.html:128 templates/admin/permissions.html:57
 msgid "user(s)"
 msgstr "utente/i"
 
-#: templates/admin/access_control.html:132 templates/admin/permissions.html:40
+#: templates/admin/access_control.html:132 templates/admin/permissions.html:57
 msgid "rank"
 msgstr "rango"
 
@@ -7021,7 +6777,7 @@ msgstr "Invia all'utente un link per impostare la propria password"
 msgid "Create"
 msgstr "Crea"
 
-#: templates/admin/access_control.html:221 templates/admin/permissions.html:95
+#: templates/admin/access_control.html:221 templates/admin/permissions.html:113
 msgid "Description"
 msgstr "Descrizione"
 
@@ -7556,20 +7312,20 @@ msgstr "Quale profilo di accesso detiene quale permesso. Spunta, salva, fatto."
 msgid "Filter by code or description…"
 msgstr "Filtra per codice o descrizione…"
 
-#: templates/admin/permissions.html:32
+#: templates/admin/permissions.html:49
 msgid "Add permission"
 msgstr "Aggiungi permesso"
 
-#: templates/admin/permissions.html:83
-#: templates/js/admin/_permissions_js.html:13
+#: templates/admin/permissions.html:101
+#: templates/js/admin/_permissions_js.html:14
 msgid "Add Permission"
 msgstr "Aggiungi permesso"
 
-#: templates/admin/permissions.html:91
+#: templates/admin/permissions.html:109
 msgid "Permission Code"
 msgstr "Codice del permesso"
 
-#: templates/admin/permissions.html:96
+#: templates/admin/permissions.html:114
 msgid "Short description"
 msgstr "Descrizione breve"
 
@@ -7753,19 +7509,35 @@ msgstr "Sessioni attive"
 msgid "Users active within the last 30 minutes"
 msgstr "Utenti attivi negli ultimi 30 minuti"
 
-#: templates/admin/sessions.html:30
+#: templates/admin/sessions.html:45
+msgid "Locked accounts"
+msgstr "Account bloccati"
+
+#: templates/admin/sessions.html:50
+msgid "Stage"
+msgstr "Passaggio"
+
+#: templates/admin/sessions.html:51
+msgid "Failed attempts"
+msgstr "Tentativi falliti"
+
+#: templates/admin/sessions.html:52
+msgid "Locked until"
+msgstr "Bloccato fino al"
+
+#: templates/admin/sessions.html:65
 msgid "User ID"
 msgstr "ID utente"
 
-#: templates/admin/sessions.html:31
+#: templates/admin/sessions.html:66
 msgid "IP Address"
 msgstr "Indirizzo IP"
 
-#: templates/admin/sessions.html:32
+#: templates/admin/sessions.html:67
 msgid "Last seen"
 msgstr "Ultima attività"
 
-#: templates/admin/sessions.html:33
+#: templates/admin/sessions.html:68
 msgid "Logged in"
 msgstr "Connesso"
 
@@ -8500,7 +8272,7 @@ msgid "Sending…"
 msgstr "Invio in corso…"
 
 #: templates/js/_generali_additional_services_js.html:177
-#: templates/js/_generali_base_services_js.html:125
+#: templates/js/_generali_base_services_js.html:145
 #: templates/js/_generali_pdqm_js.html:233
 #: templates/js/_generali_project_management_js.html:103
 #: templates/js/_generali_reporting_js.html:13
@@ -8508,7 +8280,7 @@ msgid "No records found"
 msgstr "Nessun record trovato."
 
 #: templates/js/_generali_additional_services_js.html:178
-#: templates/js/_generali_base_services_js.html:126
+#: templates/js/_generali_base_services_js.html:146
 #: templates/js/_generali_pdqm_js.html:234
 #: templates/js/_generali_project_management_js.html:104
 #: templates/js/_generali_reporting_js.html:14
@@ -8516,17 +8288,17 @@ msgid "Try adjusting your filters or resetting the search."
 msgstr "Prova a modificare i filtri o a reimpostare la ricerca."
 
 #: templates/js/_generali_additional_services_js.html:192
-#: templates/js/_generali_base_services_js.html:139
+#: templates/js/_generali_base_services_js.html:159
 #: templates/js/_generali_pdqm_js.html:249
 #: templates/js/_generali_project_management_js.html:117
-#: templates/js/_generali_reporting_js.html:42
+#: templates/js/_generali_reporting_js.html:43
 msgid "Export failed."
 msgstr "Esportazione fallita."
 
 #: templates/js/_generali_additional_services_js.html:278
 #: templates/js/_generali_additional_services_js.html:363
-#: templates/js/_generali_base_services_js.html:210
-#: templates/js/_generali_base_services_js.html:281
+#: templates/js/_generali_base_services_js.html:230
+#: templates/js/_generali_base_services_js.html:301
 #: templates/js/_generali_pdqm_js.html:389
 #: templates/js/_generali_pdqm_js.html:494
 #: templates/js/_generali_project_management_js.html:187
@@ -8536,8 +8308,8 @@ msgstr "Compila tutti i campi."
 
 #: templates/js/_generali_additional_services_js.html:302
 #: templates/js/_generali_additional_services_js.html:381
-#: templates/js/_generali_base_services_js.html:234
-#: templates/js/_generali_base_services_js.html:299
+#: templates/js/_generali_base_services_js.html:254
+#: templates/js/_generali_base_services_js.html:319
 #: templates/js/_generali_pdqm_js.html:415
 #: templates/js/_generali_pdqm_js.html:518
 #: templates/js/_generali_project_management_js.html:211
@@ -8547,18 +8319,19 @@ msgstr "Errore durante il salvataggio."
 
 #: templates/js/_generali_additional_services_js.html:308
 #: templates/js/_generali_additional_services_js.html:387
-#: templates/js/_generali_base_services_js.html:240
-#: templates/js/_generali_base_services_js.html:305
+#: templates/js/_generali_base_services_js.html:260
+#: templates/js/_generali_base_services_js.html:325
 #: templates/js/_generali_pdqm_js.html:421
 #: templates/js/_generali_pdqm_js.html:524
 #: templates/js/_generali_project_management_js.html:217
 #: templates/js/_generali_project_management_js.html:282
-#: templates/js/admin/_sessions_js.html:138
+#: templates/js/admin/_sessions_js.html:185
+#: templates/js/admin/_sessions_js.html:214
 msgid "Network error."
 msgstr "Errore di rete."
 
 #: templates/js/_generali_additional_services_js.html:423
-#: templates/js/_generali_base_services_js.html:340
+#: templates/js/_generali_base_services_js.html:360
 #: templates/js/_generali_pdqm_js.html:561
 #: templates/js/_generali_project_management_js.html:316
 #: templates/js/_generali_reporting_js.html:39
@@ -8566,10 +8339,10 @@ msgid "Deleting…"
 msgstr "Eliminazione…"
 
 #: templates/js/_generali_additional_services_js.html:436
-#: templates/js/_generali_base_services_js.html:354
+#: templates/js/_generali_base_services_js.html:374
 #: templates/js/_generali_pdqm_js.html:577
 #: templates/js/_generali_project_management_js.html:331
-#: templates/js/_generali_reporting_js.html:41
+#: templates/js/_generali_reporting_js.html:42
 msgid "Error deleting record."
 msgstr "Errore durante l'eliminazione."
 
@@ -8625,11 +8398,7 @@ msgstr "Contenuto e contatto"
 msgid "Quality Control"
 msgstr "Controllo qualità"
 
-#: templates/js/_generali_documents_js.html:190
-msgid "SAP / ALF"
-msgstr "SAP / ALF"
-
-#: templates/js/_generali_documents_js.html:245
+#: templates/js/_generali_documents_js.html:241
 msgid "Could not load details."
 msgstr "Impossibile caricare i dettagli."
 
@@ -10546,42 +10315,54 @@ msgstr ""
 "Sei sicuro di voler eliminare questa organizzazione? Questa azione non "
 "può essere annullata."
 
-#: templates/js/admin/_permissions_js.html:7
+#: templates/js/admin/_permissions_js.html:8
 #, python-brace-format
 msgid "{n} unsaved change(s)"
 msgstr "{n} modifica/modifiche non salvata/e"
 
-#: templates/js/admin/_permissions_js.html:8
+#: templates/js/admin/_permissions_js.html:9
 msgid "Grants saved"
 msgstr "Assegnazioni salvate"
 
-#: templates/js/admin/_permissions_js.html:9
+#: templates/js/admin/_permissions_js.html:10
 msgid "Could not save grants"
 msgstr "Impossibile salvare le assegnazioni"
 
-#: templates/js/admin/_permissions_js.html:10
+#: templates/js/admin/_permissions_js.html:11
 msgid "Requires the .view permission of this object"
 msgstr "Richiede il permesso .view di questo oggetto"
 
-#: templates/js/admin/_permissions_js.html:11
+#: templates/js/admin/_permissions_js.html:12
 msgid "Held by"
 msgstr "Detenuto da"
 
-#: templates/js/admin/_permissions_js.html:12
+#: templates/js/admin/_permissions_js.html:13
 msgid "Nobody holds this permission"
 msgstr "Nessuno detiene questo permesso"
 
-#: templates/js/admin/_permissions_js.html:14
+#: templates/js/admin/_permissions_js.html:15
 msgid "Edit Permission"
 msgstr "Modifica permesso"
 
-#: templates/js/admin/_permissions_js.html:15
+#: templates/js/admin/_permissions_js.html:16
 msgid "Code and description are required."
 msgstr "Codice e descrizione sono obbligatori."
 
-#: templates/js/admin/_permissions_js.html:16
+#: templates/js/admin/_permissions_js.html:17
 msgid "Click again to delete"
 msgstr "Clicca di nuovo per eliminare"
+
+#: templates/js/admin/_permissions_js.html:18
+#, python-brace-format
+msgid "{n} user(s) in {profile} have a personal allow override"
+msgstr ""
+"{n} utente/i in {profile} ha/hanno un'eccezione personale di "
+"autorizzazione"
+
+#: templates/js/admin/_permissions_js.html:19
+#, python-brace-format
+msgid "{n} user(s) in {profile} have a personal deny override"
+msgstr "{n} utente/i in {profile} ha/hanno un'eccezione personale di rifiuto"
 
 #: templates/js/admin/_processes_js.html:93
 msgid "Edit process source"
@@ -10645,11 +10426,35 @@ msgstr "Revoca"
 msgid "Could not load sessions."
 msgstr "Impossibile caricare le sessioni."
 
-#: templates/js/admin/_sessions_js.html:124
+#: templates/js/admin/_sessions_js.html:121
+msgid "No locked accounts."
+msgstr "Nessun account bloccato."
+
+#: templates/js/admin/_sessions_js.html:137
+msgid "unknown user"
+msgstr "utente sconosciuto"
+
+#: templates/js/admin/_sessions_js.html:139
+msgid "Two-factor code"
+msgstr "Codice a due fattori"
+
+#: templates/js/admin/_sessions_js.html:152
+msgid "Unlock"
+msgstr "Sblocca"
+
+#: templates/js/admin/_sessions_js.html:171
+msgid "Unlock the account for"
+msgstr "Sblocca l’account di"
+
+#: templates/js/admin/_sessions_js.html:181
+msgid "Could not unlock the account."
+msgstr "Impossibile sbloccare l’account."
+
+#: templates/js/admin/_sessions_js.html:200
 msgid "Revoke the active session for"
 msgstr "Revoca la sessione attiva per"
 
-#: templates/js/admin/_sessions_js.html:134
+#: templates/js/admin/_sessions_js.html:210
 msgid "Could not revoke session."
 msgstr "Impossibile revocare la sessione."
 
@@ -11601,4 +11406,10 @@ msgstr "A"
 
 #~ msgid "updated"
 #~ msgstr "Aggiornato"
+
+#~ msgid "SAP / ALF"
+#~ msgstr "SAP / ALF"
+
+#~ msgid "startDate and endDate are required"
+#~ msgstr "startDate e endDate sono obbligatori."
 

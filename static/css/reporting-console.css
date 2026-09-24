@@ -24,6 +24,7 @@ html.nx-compact body.reporting-console .rc-shell {
 /* ---------- Top bar ---------- */
 .rc-topbar {
   display: flex;
+  flex-wrap: wrap; /* only wraps when the buttons no longer fit (#381) */
   align-items: center;
   gap: 14px;
   padding-top: 4px;
@@ -271,7 +272,7 @@ html.nx-motion-reduced .src-pulse { animation: none; }
 }
 
 /* ---------- Screen scaffolding ---------- */
-.rc-screen-head { display: flex; align-items: center; gap: 10px; }
+.rc-screen-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .rc-h1 {
   margin: 0;
   font-size: 19px;
@@ -287,11 +288,14 @@ html.nx-motion-reduced .src-pulse { animation: none; }
 }
 .rc-filter-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   margin-top: 12px;
 }
-body.reporting-console .rs-search-wrap { position: relative; flex: 1; display: block; }
+/* 12rem basis: on a phone the sort select and layout toggle wrap under the
+   search box instead of squeezing it down to its icon (#381). */
+body.reporting-console .rs-search-wrap { position: relative; flex: 1 1 12rem; display: block; }
 body.reporting-console .rs-search-wrap > i {
   position: absolute;
   left: 10px;
@@ -1226,6 +1230,14 @@ body.reporting-console .rs-rail-title {
   font-weight: 600;
   color: var(--nx-text-sec);
   white-space: nowrap;
+  /* The base rule in reporting.css gives the title `padding-top: 4px`, which
+     is right for the *vertical* rail it was written for: there the label sits
+     beside a 28px dot and the padding drops it onto the dot's first text line.
+     The Console reuses the same markup laid out horizontally, where the chip
+     centres dot and label against each other -- so the padding pushed the
+     label 4px down inside a centred box, leaving its text sitting ~2.5px below
+     the number's. The number looked centred and the word did not (#336). */
+  padding-top: 0;
 }
 body.reporting-console .rs-rail-step.is-active .rs-rail-title { color: var(--nx-accent); }
 body.reporting-console .rs-rail-line {
@@ -1399,7 +1411,10 @@ body.reporting-console .reporting-share-add .reporting-input {
 
 /* ---------- Responsive ---------- */
 @media (max-width: 900px) {
-  .rc-body { grid-template-columns: 1fr; }
+  /* minmax(0, …), not 1fr: a bare 1fr track never shrinks below its
+     content's min-content, so the rail's nav buttons pushed the whole
+     console ~120px past a phone's right edge (#381). */
+  .rc-body { grid-template-columns: minmax(0, 1fr); }
   .rc-rail { position: static; flex-direction: row; flex-wrap: wrap; }
   .rc-rail-label--sources, .rc-sources { display: none; }
   .rs-result-main { grid-template-columns: 1fr; }

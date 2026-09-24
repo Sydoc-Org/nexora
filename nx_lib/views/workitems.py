@@ -678,10 +678,13 @@ def export_workitems_csv():
                         returndata = get_workitemdata_param(wid, domain)
                         if returndata:
                             workitemdata, document_id = returndata
-                            extensions, urls, fields, _fs, _ts = get_extensions_urls_fields(
-                                workitemdata, document_id, domain
-                            )
-                            detail["fields"] = fields
+                            _doc = get_extensions_urls_fields(workitemdata, document_id, domain)
+                            # None = backend failure. Leave detail["fields"]
+                            # alone rather than writing {} over it, and skip the
+                            # media_data cache write below.
+                            extensions, urls, fields, _fs, _ts = _doc or ([], [], {}, [], [])
+                            if _doc is not None:
+                                detail["fields"] = fields
                             if urls:
                                 cache.set(
                                     _wi_cache_key("media_data", wid, domain),
@@ -1187,6 +1190,12 @@ def api_get_media_info(workitem_id):
         response_data = _load_media_info(workitem_id, domain)
         if response_data is None:
             return jsonify({"error": _("Workitem not found")}), 404
+        if response_data.get("backend_error"):
+            # The workitem exists; the document service would not serve it. 502
+            # rather than 404 or a 200 with media_count=0 -- the latter is what
+            # left the viewer blank and silent. The panel renders its
+            # `couldNotLoadMedia` message for any non-OK response.
+            return jsonify({"error": _("Document could not be loaded")}), 502
         return jsonify(_suppress(response_data))
     except Exception as e:
         print(f"An error occurred in get_media_info: {e}")
@@ -1222,9 +1231,13 @@ def api_get_media_raw(workitem_id, media_index):
                 return Response(_("Workitem not found"), status=404)
 
             workitemdata, document_id = returndata
-            extensions, urls, fields, _fs, _ts = get_extensions_urls_fields(
-                workitemdata, document_id, domain
-            )
+            _doc = get_extensions_urls_fields(workitemdata, document_id, domain)
+            if _doc is None:
+                # Caching {"extensions": [], "urls": []} here made a transient
+                # Octo failure look like a workitem with no media for as long as
+                # the cache lived. Answer 502 and cache nothing.
+                return Response(_("Document could not be loaded"), status=502)
+            extensions, urls, fields, _fs, _ts = _doc
             media_data = {"extensions": extensions, "urls": urls}
             cache.set(_ck, media_data)
 

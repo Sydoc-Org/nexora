@@ -20,6 +20,7 @@ from ._crud import (
     Filter,
     register_crud,
 )
+from ._scope import _generali_category_terms
 
 # ----------------------------- Generali PDQM -------------------------------- #
 
@@ -64,7 +65,7 @@ def api_generali_pdqm_categories():
         cursor = conn.cursor()
         cursor.execute("""
             SELECT DISTINCT ParentCategory, ParentSubCategory, SubCategory
-            FROM [Generali].[dbo].[PDQMMapping]
+            FROM [Generali].[dbo].[QualityCheckCategories]
             ORDER BY ParentCategory, ParentSubCategory, SubCategory
         """)
         rows = cursor.fetchall()
@@ -82,19 +83,7 @@ def api_generali_pdqm_categories():
                 grouped[parent][key].append(sub)
 
         locale = str(get_locale() or "de").split("_")[0]
-        translations = {}
-        if locale != "de":
-            cursor2 = conn.cursor()
-            cursor2.execute(
-                """
-                SELECT OriginalValue, TranslatedValue
-                FROM [Generali].[dbo].[CategoryTranslation] WITH (NOLOCK)
-                WHERE SourceTable = 'PDQMMapping' AND Locale = ?
-            """,
-                [locale],
-            )
-            translations = dict(cursor2.fetchall())
-            cursor2.close()
+        translations = _generali_category_terms(conn, locale)
 
         return jsonify({"success": True, "categories": grouped, "translations": translations})
     except Exception as e:
@@ -138,7 +127,7 @@ def _list_record(r, user_info):
 
 PDQM = CrudTable(
     slug="pdqm",
-    table="[Generali].[dbo].[PDQMReport]",
+    table="[Generali].[dbo].[QualityCheckEntries]",
     user_column="UserID",
     perm_prefix="tenant.generali.pdqm",
     api_base="/api/generali/pdqm",

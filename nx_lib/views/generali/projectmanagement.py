@@ -76,7 +76,7 @@ def _list_record(r, user_info):
 
 PROJECTMANAGEMENT = CrudTable(
     slug="projectmanagement",
-    table="[Generali].[dbo].[ProjectManagement]",
+    table="[Generali].[dbo].[ProjectEntries]",
     user_column="UserID",
     perm_prefix="tenant.generali.projectmanagement",
     api_base="/api/generali/projectmanagement",

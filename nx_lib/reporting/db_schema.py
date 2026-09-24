@@ -65,7 +65,7 @@ ORDER BY fk.name, fkc.constraint_column_id
 """
 
 # What a view reads. A reporting source often points at a view (Generali's
-# dbo.PDQMReport), and the tables behind it are just as "used" as the view --
+# dbo.v_Documents), and the tables behind it are just as "used" as the view --
 # without this a view-backed source draws a single lonely box.
 _VIEW_DEPS_SQL = """
 SELECT vs.name AS from_sch, v.name AS from_tbl, rs.name AS to_sch, ro.name AS to_tbl

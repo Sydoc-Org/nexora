@@ -6,7 +6,323 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Reporting pages fit on a phone again (#381).** `/reporting`, report
+  definitions, the source registry and the guide were up to 160 px wider than
+  an iPhone screen, so buttons were cut off at the right edge and the page
+  scrolled sideways. The single-column layout now shrinks to the screen, and
+  the top bar, the Library heading and the filter row wrap when they run out
+  of room.
+- **Admin page titles are no longer hidden behind the "+ Add …" button on a
+  phone (#382).** Maintenance, Organizations, Processes, Data Connections and
+  Manage Tenants: the button now drops below the title when both don't fit.
+- **No more big empty gap under page titles on narrow screens.** The #382 fix
+  above gave the title block an 18rem flex *basis*. On pages that stack their
+  header as a column below 768px (Workitems, Prepared Documents and every
+  Generali page) a basis is a height, so ~300px of blank space opened up
+  between the title and its buttons. It is a minimum width now, which wraps
+  the admin buttons exactly as before without touching column headers.
+- **Row actions stay on one line on desktop (#383, #384).** On
+  `/admin/organizations`, "Delete" dropped to a second line under "Edit" and
+  "Branding". On `/reporting/metrics`, "Edit" and "Delete" were stacked on
+  top of each other. Both now sit side by side, and the metrics pair gets a
+  small gap.
+
+The two phone fixes change nothing on a desktop screen: they only kick in
+when there isn't enough room.
+
+## [3.2.14] - 2026-09-23
+
+### Fixed
+
+- **"Failed logins today" on `/admin` counts only real failures.** The 2FA
+  page sends the code by itself once 6 digits are typed. People who also
+  pressed Enter or clicked "Verify" sent it a second time. That second send
+  carried an old security token and got a 400. The user was already signed
+  in and never noticed, but each one counted as a failed login (all five on
+  PROD on 2026-09-23 were this). The page now sends the code only once, and
+  the tile counts only 401 (wrong password or code) and 429 (tried while
+  locked), not every error.
+- **A password reset now unlocks the account.** After five wrong passwords
+  the account is locked for 15 minutes, and the login checks the lock
+  *before* it looks at the password. The reset never cleared the lock, so
+  someone who reset their password to get back in was still refused, even
+  with the new password. The reset now clears the password lock. The 2FA
+  lock stays: a reset link in your mailbox says nothing about your
+  authenticator app.
+- **A password reset that changes nothing now says so.** It used to write by
+  email address and show "Password changed" even when no row was written. It
+  now writes by user id, checks that exactly one row changed, and shows the
+  error page otherwise. The reset link stays usable.
+- **An expired session sends you to the login page instead of "could not
+  load".** When your session had run out, a page's background requests got
+  bounced to `/login`. The browser followed that quietly and handed the page
+  the login screen as if it were a good answer, so admin pages showed a
+  server error. `static/js/nx_core.js` now spots a request that ended on the
+  login page and takes you there.
+
+### Changed
+- **Written down: when a `table` reporting source may be granted to a customer
+  profile** (#332) — only when the underlying object holds that customer's rows
+  and nobody else's. The `table` provider applies **no row scoping** (unlike
+  `docprocessing`, which filters through `process.<client>.<name>.view`), so the
+  source permission is the entire gate. It is enforced at execution, but there
+  is no second line of defence behind it, and none of that is visible from the
+  permissions grid. `docs/howto/reporting.md` carries the rule and the two
+  anomalies `scripts/perm-audit.py` already flags; `docs/design/permissions.md`
+  points at it from the source-permission family.
+
+## [3.2.13] - 2026-09-23
+
+### Fixed
+
+- **The "Locked accounts" panel is always visible, and says when it is empty.**
+  It was hidden whenever nobody was locked, on the theory that an empty table
+  teaches people to scroll past it. That was the wrong call: on a quiet system
+  you could not tell *"nobody is locked"* from *"the feature never deployed"*,
+  and the panel was hunted for twice before anyone said so. A support tool you
+  cannot find is worse than one you learn to ignore — and the whole point of
+  this panel is that a lockout is otherwise invisible. It now renders either
+  way and shows "No locked accounts." when there is nobody in it.
+
+## [3.2.11] - 2026-09-22
+
+### Changed
+
+- **POE moves from Basisleistungen to Zusatzleistungen (Generali) on
+  2026-10-01 — by date, not by deploy.** Generali book POE hours under
+  Additional Services from 1 October.
+  In **Zusatzleistungen** POE is a parent category with no subcategory
+  (migration `GeneraliDB/0016`), the same shape as the existing `PDQM` and
+  `Weitere Tätigkeiten`, so the page already renders an em-dash in the
+  subcategory dropdown and disables it. No `CategoryTerms` row: the page falls
+  back to the German term on a miss, and "POE" is the same string in all four
+  locales.
+  In **Basisleistungen** the cut-over is decided by `POE_CUTOVER` in
+  `nx_lib/views/generali/baseservices.py` against the server's local date,
+  **not** by choosing a release day. Both kinds of timing mistake cost real
+  work — ship early and nobody can book their September hours, ship late and
+  nobody can book their October ones — so the release can go out whenever it
+  suits and the list flips itself on the right morning. POE becomes
+  filter-only rather than disappearing: every hour booked up to 30 September is
+  still in `BaseServiceEntries` and still counts in the month report, and
+  without the filter option those rows could not be selected in the UI at all.
+
+### Fixed
+
+- **80 icon-only controls across nine Generali pages had no accessible name.**
+  Their labels are written as `<span class="hidden sm:inline">`, and Tailwind's
+  `sm:` starts at 640px, so on any narrow viewport the span is `display: none`
+  and the button is icon-only with nothing to announce it — VoiceOver read
+  "Add Entry", "Export Excel", "Month Report" and "Back" as just "button". The
+  per-row edit and delete actions were worse: icon-only at **every** width, so
+  unnamed on a desktop too. All now carry an `aria-label` reusing the label's
+  existing msgid, so there is no new translation work, plus the three
+  pagination chevrons on the month report and import status. The documents
+  list's detail toggle had an `aria-label` but a hardcoded English one; it is
+  translated now.
+
+## [3.2.10] - 2026-09-22
+
 ### Added
+
+- **Admins can see who is locked out, and unlock them in one click.** A
+  "Locked accounts" panel on `/admin/sessions` lists every account whose
+  lockout is live right now — who, which step (password or two-factor), how
+  many failed attempts, and until when — with an Unlock button per row. Hidden
+  entirely when nobody is locked, which is almost always.
+  Until now `dbo.LoginLockout` was read and written only by
+  `nx_lib/views/auth.py`. Nothing surfaced it anywhere, so unsticking a
+  locked-out colleague meant a hand-written `DELETE` against the production
+  database — and the lockout is invisible from every other screen: the person
+  is told "too many attempts" and support is told nothing at all. It also
+  outlives a password reset, because the reset path never clears the counter,
+  so the obvious fix leaves them locked and their new password is not even
+  compared.
+  Unlocking clears **both** keys: the password step locks under the bare
+  userid and the two-factor step under `2fa:<userid>`, independently. Expired
+  rows are not listed — `auth.py` only deletes a row on a successful login, so
+  the table keeps rows for people who can already log in fine.
+
+## [3.2.9] - 2026-09-15
+
+### Added
+- **External API: `?include=fields:<key>,<key>`** (#356) — the inline
+  key list added in #341's follow-up narrows the projection to the keys a
+  client actually reads, instead of every key mapped for its process scope.
+  Keys are case-insensitive and validated with the **same grammar `field=`
+  uses**: unknown and sensitive answer identically (`400 Unknown field`, no
+  sensitivity-existence oracle), a real-but-unmapped key names the scope
+  problem, and an empty list, more than 30 keys, or a key list beside another
+  include token all `400` — a typo fails loudly instead of looking like a
+  permanently empty field. Bare `include=fields` is unchanged. This saves
+  response size, **not** query cost: the values sit in one wide statistik row
+  either way. Mirrored on `/api/test/v1/workitems`.
+
+## [3.2.8] - 2026-09-15
+
+### Added
+- **External API: `/api/v1/workitems?include=fields`** (#341) — the list
+  endpoint can now return each row's indexed document-field values inline
+  (`"fields": {"invoicenr": "INV-2026-00123", ...}`), resolved **once per
+  page** from the same columnar statistik tables the doc-field filter reads.
+  A polling client previously needed one `/workitems/<id>` call per row —
+  900+ per refresh, well past the `60/minute` limit. Indexed fields only
+  (tables and document/media info stay on the detail endpoint); the
+  projection is scoped to the key's own processes, sensitive keys never
+  enter the select list, and MS02 rows return no fields rather than
+  unconstrained ones while `engine_ms02_docfields_pg` is unset. Opt-in: the
+  default response shape is unchanged. Mirrored on
+  `/api/test/v1/workitems`.
+
+## [3.2.7] - 2026-09-15
+
+### Fixed
+- **Generali dashboard: chart hover and tooltips** — three Chart.js defaults
+  nobody had overridden on this page. The Recipient and Entry-channel bar
+  charts kept `nearest` + `intersect`, so a tooltip only appeared with the
+  cursor exactly on the bar; on the horizontal one that is the worst case,
+  because the whole row reads as the target and most of it is the label and
+  the empty track. Both now use index mode. Every tooltip was the stock black
+  box with white text and no border — a near-black panel on a dark card with
+  no edge between them, which is what made the hover look broken rather than
+  merely plain; they now take the card, text and border tokens, set as a
+  Chart.js *default* rather than per chart because each chart passes its own
+  `plugins.legend` and that object would replace the whole key. And the two
+  doughnuts drew their slice separators in a literal `#fff`, a white web over
+  a dark chart — the same fault as the workitem stepper circles (#326). All
+  the colours are scriptable, so they follow the light/dark toggle instead of
+  freezing at whatever theme was active when the chart was built. The
+  doughnuts deliberately keep `nearest`: the slice under the cursor is already
+  the right answer, and index mode would light up every slice at once.
+
+## [3.2.6] - 2026-09-14
+
+### Fixed
+- **The Generali dashboard shows the last 30 days instead of nothing when a
+  date is missing** — `/api/generali/stats` answered a missing `startDate` or
+  `endDate` with a 400, and the page rendered that as a dead screen: every KPI
+  blank, no chart, no explanation. The easiest way in was simply clearing a
+  date field, which the inputs allow. Both bounds are now filled in by
+  `resolve_date_window` — a missing end becomes *now* (not 23:59:59: the day is
+  still running, and padding it reports hours that have not happened as a quiet
+  stretch), a missing start counts back 30 days from whichever end applies. A
+  bound the caller *did* supply is never second-guessed, so an explicit range
+  still means exactly what it says. The response now also carries the window it
+  used (`range`), and the page fills an empty picker from it — charts covering a
+  month while the date field sits blank leave the reader no way to tell what is
+  on screen. The 400 was itself a fix for an unhandled 500; this replaces it
+  with the useful answer.
+
+## [3.2.5] - 2026-09-14
+
+### Added
+- **Hosted dev and staging environments** (#338) — `dev-nexora.sydoc.ch` (deploys on
+  every non-`main` branch push, `ENVIRONMENT=INT`, INT databases) and
+  `staging-nexora.sydoc.ch` (deploys on merge to `main` and nightly at 01:30,
+  `ENVIRONMENT=STAGING`, `nexora_STAGING`/`Generali_STAGING` re-created from PROD every
+  night by the SQL Agent job in `ops/staging-refresh.sql`). Both are extra endpoints on
+  the existing SYAPP01 ngrok agent. New: `.github/workflows/deploy-env.yml` (reusable
+  deploy), `ops/setup-env.ps1` (one-shot host setup), `scripts/make-staging-env.py`.
+  `scripts/env-sync.py` now manages `INT.env` and `STAGING.env` in their SYAPP01 folders;
+  `DB_GENERALI` is declared in every env example.
+- **The permission audit now catches two reporting-source mistakes** (#332) —
+  `scripts/perm-audit.py` (`/nx-perm-audit`) gained two checks, both at profile
+  grain because that is what somebody actually clicks:
+  - **Dormant reporting-source grants** — a profile holding a
+    `reporting.source.*` without `reporting.view`. It does nothing today, which
+    is exactly what makes it worth flagging: it is invisible in use and goes
+    live the moment anyone grants that profile reporting access for an
+    unrelated reason. Finds the one real case on PROD — `Sydoc User` holding
+    the MediaMarkt source — and nothing else.
+  - **Reporting sources of another customer** — a customer profile holding a
+    source belonging to a different customer. The `table` provider applies no
+    row scoping, so the source permission is the entire gate. Empty today; it
+    is a tripwire for the first time somebody lets a customer see their own
+    figures.
+
+  Ownership is read off the source label's prefix (`Privera — Posteingang`),
+  the only place it is written down — nothing in `dbo.ReportingSources`
+  records an organisation. A source whose customer has no `Organizations` row
+  (Bucherer, Frigemo, Aveniq, MediaMarkt) reports *unknown* and never raises a
+  finding. Sharing a tenant excuses a grant only outside the vendor's own
+  tenant: ISS and Generali read each other's sources by design, but Privera,
+  Compass and Elektro-Material all sit in `sydoc`, which says they are the
+  vendor's customers and not one another's.
+- **Privera Posteingang reporting source — the last of the six** (#329) —
+  migration `0135` registers
+  `01_Privera_Posteingang.dbo.Reporting_P1_Dokumente`. Its `ExportDatetime` is
+  text (`dd.MM.yyyy HH:mm:ss`) and the connection runs `us_english`, which
+  reads `01.02.2021` as 2 January and errors outright past the 12th, so the
+  column is exposed as a **string** and a month is a `contains` filter
+  (`.08.2026`). That reproduces the published 10,044 for August exactly, cell
+  for cell across the Register × Niederlassung grid, and matches how the
+  workbook itself works — one file per month. The cost is no month grain, so no
+  series over time; recovering it is one added column on that view
+  (`TRY_CONVERT(datetime, ExportDatetime, 104)`), after which it becomes a
+  grainable date with no other change.
+- **Privera Neuzugänge reporting source** (#329) — migration `0134` registers
+  `dbo.v_PriveraNeuzugaenge_StatistikNiederlassung_AnzahlDossiers`, the view
+  behind the Initialscanning workbook. The view is already aggregated per
+  month and branch, so all three measures — Dossiers, Registers, Pages — are
+  plain sums, and year and month stay numeric dimensions because there is no
+  date column to group by. Verified against the published 2026 workbook: all
+  six closed months exact on all three measures, the only differences being
+  September, which was one day old when that workbook was refreshed. The
+  workbook's fourth data field, a summed `JahrExport`, is an accident and is
+  deliberately not reproduced. Note the view is **broken on INT** (it binds to
+  a stray `SYDOC_Statistik1`) and works on PROD, so the source errors on INT
+  until the dev copy is repointed.
+- **Privera physische Zustellung reporting source, and cross-database sources**
+  (#329) — migration `0133` registers
+  `01_Privera_Posteingang.dbo.Reporting_P1_Nachsendungen`, the first source
+  outside `SYDOC_Statistik`. Same server and login; what had to change is the
+  identifier guard in `nx_lib/reporting/table_query.py`, which refused any name
+  starting with a digit and so could not express `01_Privera_Posteingang` at
+  all. The allowed character set is unchanged — letters, digits and underscore
+  — so no name can still carry a `]` out of the bracket quoting; only the
+  leading-digit rule moved. Two measures, both exact against the published July
+  and August 2026 workbooks: forwardings total, and the workbook's hand-added
+  "ohne TEC" line, which excludes the `Rechnungen Privera TEC` forwarding type
+  — not the TEC branch, which is the plausible wrong guess and gives a
+  different figure.
+- **Compass Group and Privera billing reporting sources** (#329) — migrations
+  `0131` and `0132`, following `0130`, register
+  `SYDOC_Statistik.dbo.Compass_Invoice` and `dbo.PriveraInvoice`: the tables
+  the monthly `CompassGroupVerrechnung<YYYYMM>.xlsx` and
+  `Privera-Invoice-Mandant-<YYYY>-<Monat>.xlsx` workbooks already read. Each
+  customer's pivot is a different shape and the differences matter. Compass
+  bills one unfiltered document count on the **upload** date, not the document
+  date its pivot rows display — documents uploaded in one month carry document
+  dates spread over years. Privera publishes three figures (total, mail,
+  eBill), split on `DocSource` instead of the workbook's list of ticked file
+  names. Verified against the published workbooks: Compass exact in six of
+  eight months (off by one document in the other two), Privera exact in five of
+  six figures — the exception is August 2026 mail, where the old pivot dropped
+  5 mail documents that have no `Mandant` while its own total counted them, so
+  the measure keeps the honest definition and `Mandant` stays a dimension for
+  anyone who wants the old behaviour. No billing source exposes amounts, IBANs,
+  creditor names or Privera's property and owner numbers.
+- **Elektro-Material — Verrechnung reporting source** (#329) — migration
+  `0130` registers `SYDOC_Statistik.dbo.EM_Invoice`, the table the monthly
+  `EM-Statistik<YYYYMM>.xlsx` workbook on the R: drive already reads, so the
+  billing figures stop depending on somebody refreshing a 140 MB spreadsheet and
+  ticking the right export timestamps out of a filter list. Five measures, taken
+  from that workbook's own pivot definition: documents (Opex + e-mail), Opex
+  scans, e-mail documents, order item positions and images out. Checked against
+  six published months — Opex scans and order positions reproduce exactly in
+  four of them, worst deviation 1.06%, and every difference is negative because
+  re-running a past month returns fewer rows than the workbook captured at the
+  time. Every measure filters to the two billed intake channels, since the table
+  also holds `Nexora` and NULL rows the workbook never counted; the amount, IBAN
+  and creditor columns are left out of the catalogue because billing scan volume
+  does not need them.
+- **Aveniq — Xpert Statistics reporting source** — migration `0128` registers
+  `SYDOC_Statistik.dbo.Xpert_Stats` (daily DPSI counts pushed by mail from the
+  Aveniq box, see `nx-sources/xpert/`) as a `table` source with three measures:
+  Documents, BFH new creditors, ZHAW workitems. Gated by
+  `reporting.source.xpert_stats.use`.
 - **Eddard builds three different reports** (#272) — the reporting
   assistant's waiting animation now cycles through three report layouts
   instead of replaying one: the KPI card (bars + trend line, tossed in from
@@ -16,6 +332,12 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   a long wait keeps changing. The live preview of the agent's real numbers
   (#212) now writes into whichever layout is on screen. Design:
   `docs/design/eddard_animation_variety/`.
+- **Permissions grid: column picker + override badges** (#275) — a "Columns"
+  control on `/admin/permissions` shows/hides and reorders profile columns
+  (per-viewer, `localStorage`); a small badge on each cell now counts users
+  of that profile with a personal allow/deny override on that permission
+  (`dbo.UserPermissionOverride`), instead of only showing through the
+  per-permission holders panel.
 - **Workitems overview: console redesign (part 2)** — the inline detail panel
   (shared with the reporting drill drawer and prepared_documents' preview
   modal) restyled to match part 1 (#299). Stage stepper redrawn as accent
@@ -78,7 +400,252 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Query) become optional **panel tiles**, so a definition owns the whole result
   and nothing bleeds in beside it; the editor preview re-runs on every change.
 
+### Changed
+- **PROD deploys on a `v*` tag push, not on merge to `main`** (#338); `main` now
+  deploys staging. The deploy steps moved from `deploy.yml` into the reusable
+  `deploy-env.yml`; deploys no longer stop the ngrok service (one agent fronts three
+  sites). `STAGING` is prod-shaped: `IS_PROD` covers it (CSP, `/nexora` prefix,
+  filesystem sessions, `/dev/*` lockout).
+- **Generali tenant DB: translations pivoted, scaffolding removed**
+  (#220, phases 5-6) — `dbo.CategoryTranslations` stored a `SourceTable`
+  column holding *table names as data*, one row per (term, locale). It is now
+  `dbo.CategoryTerms(NameDe, NameEn, NameFr, NameIt)`, one row per term:
+  162 rows become 53, and the two near-identical translation queries in
+  `attendance.py` / `pdqm.py` collapse to one `_generali_category_terms()`
+  helper. The endpoint response shape is unchanged. Migration `0015` also
+  trims a stray trailing space in `QualityCheckCategories` that had been
+  invisible to every SQL comparison (`=`, `GROUP BY` and `DISTINCT` all ignore
+  trailing spaces) and would have cost five subcategories their translation
+  once terms were deduplicated. The 11 compatibility views phases 2-3 left
+  behind are dropped; `dbo.v_Documents` is now the database's only view.
+  Schema, naming rulebook and the traps met on the way:
+  `docs/design/generali-tenant-db.md`.
+  The effort-table merge and per-locale lookup names were **not** done, and
+  the plan records why: the CRUD deduplication they were meant to pay for
+  already shipped in `_crud.py`, merging would collapse four separate
+  `reporting.source.*.use` grants into one, and the lookup columns would be
+  ~250 empty cells awaiting translations nobody has written.
+- **Generali tenant DB: real indexes and deterministic constraint names**
+  (#220, phase 1) — `dbo.ReportJob` (2.68M rows) carried exactly one index,
+  the clustered PK on the surrogate `RecordID`, so every access path was a
+  full table scan. Two migrations, no application code:
+  `UQ_ReportJob_DOC_ID` (unique, filtered `IS NOT NULL`) on the key the daily
+  CSV `MERGE` matches on, and `IX_ReportJob_DOC_SCANDATUM` covering the lookup
+  FKs the documents dashboard groups by. Measured on INT: a 500-row importer
+  batch 3,169 → 2,435 ms, dashboard KPI 250 → 25 ms, trend 303 → 46 ms,
+  doctype breakdown 279 → 58 ms, document detail 290 → 7 ms. The 22
+  compiler-named primary keys, 14 column-named foreign keys and 5 auto-named
+  defaults were renamed to `PK_<Table>` / `FK_<Table>_<Referenced>[_<Role>]` /
+  `DF_<Table>_<Column>` — the hash suffixes differed between INT and PROD and
+  churned `sql/GeneraliDB/` on every re-sync.
+- **Generali tenant DB: English table names** (#220, phase 2) — the 13 German
+  lookup tables and the effort/import cluster are renamed to English,
+  PascalCase, plural: `Sprache`→`Languages`, `Waehrung`→`Currencies`,
+  `Nachkontrolle`→`PostChecks`, `DokumentenTyp`→`DocumentTypes`,
+  `Attendance`→`AttendanceEntries`, `PDQMReport`→`QualityCheckEntries`,
+  `CSVImportLog`→`ImportRuns` and the rest, with lookup `ID`/`Value` becoming
+  `Id`/`Name`, `ReportingISS.category`→`IssReports.Category` and
+  `Min/MaxScanDatum`→`Min/MaxScannedAt`. `v_ReportJobJoinDefinitions` is
+  rebuilt on the new names and keeps its old output columns, so the pages need
+  no template change; the nine tables the app names directly keep a
+  compatibility view under the old name for the deploy window (`deploy.yml`
+  migrates PROD before stopping the app pool), to be dropped in phase 6. All
+  **seven** Generali reporting sources were repointed (`ReportingSources`
+  stores object and column names as data) and `QualityCheckCategories` — the
+  one table in the database with no primary key at all — got one.
+- **Generali tenant DB: `ReportJob` becomes `Documents`** (#220, phase 3) — the
+  2.68M-row fact table and 61 of its 79 columns lose the `DOC_` prefix and the
+  German: `DOC_SCHADEN_NR`→`ClaimNo`, `DOC_SCANDATUM`→`ScannedAt`,
+  `DOC_POLICEN_NR`→`PolicyNo`, `DOC_NK1`/`DOC_NK2`→`PostCheck1Id`/`PostCheck2Id`,
+  `CASE_ID`→`ScanCaseId`, `DOC_CASE_ID`→`CaseId`, and so on. A new
+  `dbo.v_Documents` is the canonical read view (lookups resolved, English
+  names); `v_ReportJobJoinDefinitions` and `dbo.ReportJob` survive as
+  compatibility views for the deploy window and come down in phase 6. The
+  **document detail panel now reads in English** — `ClaimNo`, `PolicyNo`,
+  `ScannedAt` instead of `SCHADEN_NR`, `POLICEN_NR`, `SCANDATUM`. The
+  `generali_documents` reporting source, its three measures and any saved
+  report definition were migrated with it. The 18 columns phase 4 is about to
+  drop or move (five provably empty, two empty-string, the 11-column `DOC_SAP*`
+  block) keep their old names rather than being renamed on the way to the bin.
+  Four string columns became `AmountText`/`QuantityText`/`PendingText`/
+  `VoucherDateText`, reserving the plain names for the typed columns phase 4
+  adds beside them.
+- **Generali tenant DB: real types, dead weight gone** (#220, phase 4) —
+  `Documents` gains `Amount decimal(18,2)`, `Quantity decimal(18,3)`,
+  `VoucherDate date` and `IsPending bit` as **computed** columns over the
+  original strings, so they can never drift from the source the way a
+  backfilled column would; every original string column stays. 17 columns are
+  dropped (four with 0 non-null rows out of 2.68M, two holding only empty
+  strings, five `DOC_SAP*` never written) and the six populated `DOC_SAP*`
+  columns move to a 1:1 `dbo.DocumentSapMetadata`. Two of the plan's rules were
+  wrong against the real data and were corrected: `Quantity` had to be
+  `decimal` (its "unconvertible" values are `0.102`, `0.469` — and
+  `TRY_CONVERT(int, '')` returns **0**, so the planned rule would have written
+  2,297 fabricated zeros), and `DOC_BETRAG` turns out not to be money at all —
+  9,183 of its 9,531 values are the literal `CH04`, an IBAN prefix, and only
+  207 are numbers. **Deploy order matters:** the CSV importer on prdimpexp01 is
+  copied there by hand, not by `deploy.yml`, and phase 4 removes columns its
+  old copy still writes — see `scripts/generali-import/README.md`.
+
 ### Fixed
+- **Fireflies no longer drift across the New-report wizard** (#336) — the
+  animated backdrop is held behind the page by promoting `<main>`, and
+  Reporting is the one page whose content is not all inside `<main>`: the
+  Console shell wraps the top bar, the source rail and the whole Simple
+  wizard. So the dots painted *over* the wizard's own text, which is
+  distracting and at times unreadable. The shell now takes `position:
+  relative` and deliberately **no** `z-index` — enough to paint above the
+  dots, while leaving the fixed panels inside it (the Eddard chat panel) free
+  to escape to the root as before. Dropping the dots to `z-index: -1` instead
+  looks like the obvious fix and deletes the effect outright: html and body
+  both carry the page background, so a negative layer paints underneath it.
+- **Reporting wizard: the step labels sat below their numbers** (#336) — the
+  rail chips (`1 Measure`, `2 Processes`, …) centre the numbered dot and its
+  label against each other, but `.rs-rail-title` still carried the
+  `padding-top: 4px` written for the original *vertical* rail, where it drops
+  the label onto a 28px dot's first text line. Laid out horizontally that
+  padding pushed the label down inside a centred box, leaving its text about
+  2.5px below the number's — the number looked centred and the word did not.
+- **Reporting wizard: the hint under each question was louder than the answers**
+  (#336) — `.reporting-simple-hint` had no rule at all, so "Pick one or more…"
+  and its siblings inherited 16px body text in the primary colour and the
+  global `p` reset's zero margin: bigger than the chips they explain and
+  touching the last row of them. Now 13px, secondary colour, set off below the
+  answers.
+- **Reporting wizard: Continue now takes you to the next question** — the four
+  steps stack inside one card rather than replacing each other, so revealing
+  the next one rendered it below the fold and left the scroll position alone.
+  Continue read as doing nothing. It now scrolls the opened step into view with
+  90px of headroom, only when the step was actually hidden (so re-rendering an
+  open step never yanks the page), and honours `prefers-reduced-motion`.
+- **Reporting wizard: the questions and their answers had no room** — the group
+  caption sat **2px** above the chips it labels, so a cluster read as one
+  undifferentiated blob; it now has 18px above and 10px below, steps carry real
+  padding and a hairline between them, and the answer chips gained a hover
+  state and a focus ring. The step headings also drop the uppercase tracked
+  caption treatment they took in the console redesign: they are the only
+  headings here that are sentences addressed to the reader, and caption styling
+  made a question scan as furniture. Sentence case, 15px, primary text colour;
+  the Library section headers that share the class keep the caption look.
+- **Reporting: the date range field, the calendar and the chart hover** — four
+  bugs the owner hit in one sitting. The wizard's range field was **read-only**:
+  every other picker in the app passes `allowInput: true`, this one did not, so
+  you could click a range out but never type one. Its calendar was positioned
+  against `<body>` with page coordinates and opened far below the field on a
+  wizard page that scrolls thousands of pixels — it is now anchored to the input
+  itself. The **selected range rendered light grey in dark mode**: section 11 of
+  `nexora-ui.css` styled single dates but never `.inRange`, and fixing it needs
+  all three of the band, the box-shadow flatpickr uses to fill the seams between
+  cells, and flatpickr's own higher-specificity `.today.inRange` rule — which is
+  why today's date stayed a white block in the middle of a selected range. And
+  the **chart only responded when the cursor was exactly on a data point**;
+  bar and line charts now use index mode, so pointing anywhere in the plot
+  reports that bucket. Pie and doughnut keep the old behaviour, where the slice
+  under the cursor is already the right answer. Chart tooltips also take the
+  theme's card, text and border tokens instead of Chart.js's stock black box.
+- **`--nx-on-accent` was referenced but never defined** — found while fixing the
+  above. `nexora-ui.css` used `var(--nx-on-accent, #fff)` for the
+  permission-override badge, and nothing ever declared the token, so it always
+  fell back to white. Every light-mode accent is a saturated mid-dark where that
+  reads, but every dark-mode accent is a light pastel where it does not. Now
+  declared per theme, which fixes the badge and the selected calendar day
+  together.
+- **The billing sources were invisible to Global Admin** (#329) — migration
+  `0136` grants the six sources from `0130`–`0135` to that profile. They
+  deployed correctly, but `0130`–`0135` create each permission and grant it to
+  nobody; Enterprise Admin still picked them up because it holds *every*
+  permission (136 of 136 on PROD), while Global Admin carries a hand-picked
+  subset and had none of them — nor xpert_stats, bucherer_easytax, frigemo,
+  bps_projects or most generali sources. Granted as a migration rather than in
+  the admin UI, because the dormant grant on #332 is what a hand-made one looks
+  like six months later. No customer-facing profile is touched — none of them
+  holds `reporting.view` at all.
+- **env-sync's ACTION NEEDED no longer cries wolf** (#313) — the headline
+  alarm fired on 11 keys absent from `env/PROD.env` on the server, and all 11
+  were false positives: each has a code default identical to the value
+  `env/PROD.env.example` ships, so its absence changes nothing. An alarm that
+  is wrong every time trains people to skim it, and it already cost something
+  — during #297 those keys were written up as real drift and the note had to
+  be retracted, while the actual fault sat in the quiet bucket. The script now
+  reads the repo's own `os.environ.get` / `os.getenv` defaults with `ast` and
+  splits the finding three ways: no default in code stays **actionable** and
+  sets the exit code (the `SUPPORT_MAIL`/#166 case it was built for); a default
+  equal to the example is reported quietly; a default that *contradicts* the
+  example is its own warning, because the server then runs on a value the repo
+  does not advertise. Defaults that point at another key (`MS02_STATS_DB_PORT`
+  inherits `MS02_DB_PORT`) resolve against the server file first, so setting
+  the base key on PROD gives the right answer rather than the source literal.
+  A key is only treated as defaulted when *every* read site supplies one, so
+  the scan can never silence a key that some call path still needs. Today's
+  run is exit 0 with all 11 in the quiet bucket.
+- **Workitem stage timeline no longer paints white circles in dark mode**
+  (#326) — the stepper inside an expanded workitem row had `background: #fff`
+  written into three surfaces with no dark counterpart: the not-yet-started
+  stage circles, the running stage's circle, and the two buttons above the
+  document column. The running stage was the worst of them, because its icon
+  is `fa-circle-check` — a filled disc with the tick knocked *out* — so the
+  white showed through the tick and the whole node read as a bright bullseye,
+  the loudest thing on an otherwise dark row. All four now take
+  `var(--nx-card)`, and the pending stage label takes `var(--nx-text-meta)`
+  instead of a hardcoded `#c2c7cf` that sat at roughly 1.6:1 on white. Light
+  mode is unchanged (`--nx-card` is `#ffffff` there). The document page
+  surfaces keep their literal white on purpose — a scan is paper in both
+  themes — and a unit test pins which surfaces are tokenised and which are
+  deliberately not. The stylesheet is shared, so the generali pages,
+  `prepared_documents.html` and `reporting.html` get the fix too.
+- **Workitems page loaded no rows** — the filter serialiser from #317 kept its defaults table in a `const` declared *after* the first fetch inside the same DOMContentLoaded handler, so the initial `/api/workitems` call died in the temporal dead zone (`Cannot access 'FILTER_DEFAULTS' before initialization`) and the table showed skeletons forever. The table now lives inside `buildFilterParams()`; an unfiltered page also no longer leaves a bare `?` in the address bar. A unit test pins the declaration's position.
+- **A document nexora cannot load now says so, instead of showing an empty
+  panel** (#321). When Octo refused to serve a document, the fetch returned the
+  same empty result as a document that genuinely has no pages — so the workitem
+  detail panel rendered as though there were nothing to show, with no message,
+  and the empty answer was written into the cache. A transient failure therefore
+  looked permanent: reloading kept showing the blank panel until the cache
+  expired. The fetch now reports failure distinctly, failures are never cached,
+  and the route answers 502 so the panel shows its existing "could not load
+  media" message. The log line also carries the document id, domain and status
+  code, so the next person has something to correlate against DPS. The cause
+  of the refusals is still unknown and is tracked in #321 — the process service
+  hands out a DocumentID the document service then rejects, and nexora cannot
+  see why. This change only stops nexora misreporting it as "no documents". It
+  affected roughly 7-21 document opens a day.
+- **A failed request-log import no longer deletes the hour it could not save.**
+  `ops/cleanup/csvLogs_toDB.ps1` drains `var/logs/user/<hour>/nexora_logs.csv`
+  into `dbo.Logs`; its `Remove-Item -Recurse -Force` ran unconditionally after
+  the insert loop, with no `try`/`catch`, no `$ErrorActionPreference` and no
+  output at all — so a row that failed to insert, or a connection dropped
+  halfway, still ended with that hour's audit trail deleted and no signal that
+  anything had gone wrong. Each folder is now one transaction: it commits and is
+  deleted, or it rolls back and the folder is kept for the next run. It reports
+  per folder and exits non-zero if any were held back, so the Task Scheduler
+  history shows the failure. It also stops importing the hour the web process is
+  still appending to, which used to race it, and opens one SQL connection for
+  the whole run instead of one per row — roughly 8,000 connect/disconnect cycles
+  a day against PRDSQL01.
+- **Reporting builder no longer overflows its own toolbar** (#298) — the
+  Advanced tab sized itself to the *viewport* while living inside two
+  sidebars (app nav + console rail), so `.reporting-main` was ~959px on a
+  1497px screen and its `max-width: 1100px` rules never fired. The middle
+  track collapsed to ~279px while the toolbar's saved-report and action
+  clusters (`flex-shrink: 0`, ~750px of controls) spilled rightwards across
+  the wells — burying the **Columns** heading, **Share**/**Schedule** and
+  **+ Add filter**, and clipping the empty state. Both clusters may now wrap
+  and shrink at any width, and a container query on `#rpPaneAdvanced` drops
+  the wells into a full-width row below the results whenever the builder's
+  own box is under 1180px (one column under 700px). SQL / Ask-Eddard mode
+  (`.reporting-main--single`) is untouched.
+- **The workitems URL is no longer a wall of empty parameters** (#269). The
+  filter serialiser appended every form field regardless of value and always
+  set `page`, so an unfiltered page came out as
+  `?prcfW=all&search=&stage=&status=&startDate=&endDate=&doccomb=and&docfield=&docop=contains&docvalue=&perPage=40&page=1`
+  — twelve parameters, seven of them empty strings and four of them defaults.
+  It now carries only what differs from the server's own defaults, so an
+  unfiltered page is just `/workitems` and a search is `/workitems?search=…`.
+  Nothing changes server-side: every one of these was already read with a
+  default (`request.args.get('search', '')`, `prcfW` → `all`, `perPage` → 40,
+  `page` → 1), so older bookmarks that spell the empties out keep working.
+  Doc-field filters are dropped a whole row at a time, never field by field —
+  the server pairs them positionally with `getlist()`, so removing one empty
+  member of a row would have paired the wrong field with the wrong value.
 - **Tenant sidebar no longer offers pages that 403** — a mounted `custom`
   tenant page (the sydoc/MS02 **Dashboard** and **Workitems** links) was gated
   on `tenant.<code>.view` alone, so a user without the target route's own
@@ -520,6 +1087,8 @@ exora\Prune Sessions"
   serves renamed codes for the deploy window and answers 403 — deploy off-hours.
 
 ### Removed
+- The `pull_request` trigger on `deploy.yml` — every branch push runs the fast test
+  tier and its check shows on the PR (#338).
 
 - **`/admin/permission_matrix`** and the Permissions tab on Access Control (both folded into the grid).
 - **Profile-level DENY** (446 semantically empty rows), **the ten

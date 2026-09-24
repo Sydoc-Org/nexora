@@ -351,9 +351,33 @@ Authorization: Bearer &lt;api key&gt;</code></pre>
                 <tr><td class="apidocs-td"><code>process</code></td><td>{{ _("Comma-joined subset of your key's process scope (default: all of it)") }}</td></tr>
                 <tr><td class="apidocs-td"><code>field</code> / <code>value</code> / <code>op</code> / <code>comb</code></td><td>{{ _("Repeated document-field filter pairs (max 10); field keys are lowercase without separators (invoicenr, esrreference, …) — fetch the live list from /workitems/fields; op: contains (default), ncontains, eq, neq, startswith, endswith; comb joins a pair to the previous ones with and (default) / or") }}</td></tr>
                 <tr><td class="apidocs-td"><code>page</code> / <code>per_page</code></td><td>{{ _("Paging; per_page accepts only 40, 100, 200, 500 or 1000 (default 40)") }}</td></tr>
+                <tr><td class="apidocs-td"><code>include</code></td><td>{{ _("fields — also return each row's indexed document-field values; fields:invoicenr,kundennr narrows that to the named keys (see below). Any other value answers 400.") }}</td></tr>
               </tbody>
             </table>
           </div>
+          <h2 class="apidocs-h2">{{ _("Field values without one call per row") }}</h2>
+          <p class="apidocs-p">{{ _("By default a row carries no document data, so reading a page's field values meant one /workitems/{id} call per row. Add include=fields and every row gets a fields object instead, resolved once per page.") }}</p>
+          <div class="apidocs-code">
+            <span class="apidocs-code-label">curl</span>
+            <button class="apidocs-copy" title="{{ _('Copy') }}" aria-label="{{ _('Copy code') }}"><i class="far fa-copy"></i></button>
+            <pre><code class="language-bash">curl -H "Authorization: Bearer &lt;api key&gt;"     "https://nexora.sydoc.ch/nexora/api/v1/workitems?status=Ready&amp;include=fields"</code></pre>
+          </div>
+          <div class="apidocs-code">
+            <span class="apidocs-code-label">{{ _("response") }} 200</span>
+            <button class="apidocs-copy" title="{{ _('Copy') }}" aria-label="{{ _('Copy code') }}"><i class="far fa-copy"></i></button>
+            <pre><code class="language-json">{
+  "id": 78214,
+  "status": "Ready",
+  "stage": "Validation",
+  "modified_at": "2026-08-04 10:02:11",
+  "import_datetime": "2026-08-04 09:12:31",
+  "fields": { "invoicenr": "INV-2026-00123", "kundennr": "44201" }
+}</code></pre>
+          </div>
+          <p class="apidocs-p mt-2">{{ _("To take only the keys you actually read each cycle, name them inline: include=fields:invoicenr,kundennr. Keys are case-insensitive and validated exactly like ?field= — an unknown or sensitive key answers 400 Unknown field, a key outside your process scope answers 400 Field not available. An empty list or more than 30 keys is also a 400.") }}</p>
+          <p class="apidocs-p mt-2">{{ _("A process scope can be wider than 30 keys, so the cap may sit below your own published list. It is not a limit on what you can read: to get more than 30 keys, use a bare include=fields, which returns every key in your scope in the same single read.") }}</p>
+          <p class="apidocs-p mt-2">{{ _("Naming keys does not make the query cheaper — the values sit in one wide row either way. What it saves is response size.") }}</p>
+          <p class="apidocs-p mt-2">{{ _("Indexed fields only — the same keys /workitems/fields lists. Table values and document/page information stay on /workitems/{id}. A workitem with nothing indexed gets an empty fields object, sensitive fields are never included, and without include the response is exactly what it was before.") }}</p>
           <p class="apidocs-p mt-2">{{ _("Every invalid value returns a 400 with a plain-English error — nothing is silently coerced. Unknown and sensitive field keys answer identically (400 Unknown field). import_datetime is filled where the process is mapped in the statistics DB and null otherwise. Doc-field matches honour the same per-process time window as the overview page's search.") }}</p>
         </section>
 

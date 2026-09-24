@@ -38,6 +38,13 @@
   --nx-accent-hover:  #4338ca;   /* indigo-700 */
   --nx-accent-soft:   rgba(79,70,229,0.12);
   --nx-accent-tint:   #eef2ff;   /* indigo-50 */
+  /* Text drawn ON an accent fill. Every light-mode accent (#4f46e5, #7c3aed,
+     #059669, #d97706, #e11d48, #0284c7) is a saturated mid-dark, so white
+     reads; every dark-mode accent is a light pastel, so it does not -- see the
+     dark block. Referenced as var(--nx-on-accent, #fff) since #1033 but never
+     actually defined until now, which is why a selected day and the
+     permission-override badge both showed white on pale violet in dark mode. */
+  --nx-on-accent:     #ffffff;
   --nx-violet:        #7c3aed;   /* violet-600 */
   --nx-brand-grad:    linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
 
@@ -117,6 +124,9 @@ html.dark {
   --nx-accent-hover:  #a5b4fc;
   --nx-accent-soft:   rgba(129,140,248,0.20);
   --nx-accent-tint:   #312e81;
+  /* Dark-mode accents are light pastels (#818cf8, #a78bfa, #34d399, #fbbf24,
+     #fb7185, #38bdf8), so the label on top has to be dark, not white. */
+  --nx-on-accent:     #0f172a;
   --nx-violet:        #a78bfa;
   --nx-brand-grad:    linear-gradient(135deg, #818cf8 0%, #a78bfa 100%);
 
@@ -247,12 +257,20 @@ body.nx-app .nx-main {
    with a hair-thin accent keyline under the title block. */
 .nx-page-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 24px;
 }
-.nx-page-head__main { min-width: 0; }
+/* The 18rem minimum is what makes the actions drop below the title once the
+   two no longer fit side by side. Without wrapping, min-width: 0 let the
+   title shrink under the non-shrinking "+ Add …" button on a phone (#382).
+   On any desktop width 18rem + the actions fit, so nothing moves there.
+   A min-width, not a flex-basis: several pages turn this header into a
+   column on narrow screens (workitems_overview.css, the phone view), and
+   there a basis is a HEIGHT -- 18rem put a ~300px gap under every title. */
+.nx-page-head__main { flex: 1 1 0; min-width: min(100%, 18rem); }
 .nx-title {
   font-size: 24px;
   font-weight: 600;
@@ -908,11 +926,31 @@ html[data-bg="grid"] body.admin-page {
 /* Fireflies backdrop — dots are spawned into #fireflyField (in _header.html,
    present on every page) by _header_js.html, driven by the data-bg pref
    set here. Sits behind everything: main content is promoted to its own
-   stacking context so cards/text always paint above the dots. */
+   stacking context so cards/text always paint above the dots.
+
+   The dots cannot simply take `z-index: -1` instead: html and body both
+   carry the page background, so a negative layer paints *under* that
+   background and the dots vanish entirely. Promoting the content is the
+   only direction that works. */
 body.nx-app main,
 body.admin-page main {
   position: relative;
   z-index: 1;
+}
+/* Reporting is the one page whose content is not all inside <main>: the
+   Console shell wraps the top bar, the source rail and the whole Simple
+   wizard, and only the Advanced pane sits in <main>. Everything outside it
+   was therefore unpositioned and the dots drifted over the wizard's own
+   text (#336).
+
+   `position: relative` with **no z-index** on purpose. It is enough to win
+   — the shell follows #fireflyField in tree order, and equal-level
+   positioned boxes paint in that order — while leaving z-index `auto`,
+   so no stacking context is created and the fixed panels inside the shell
+   (#rpChatPanel at var(--z-modal), for one) still escape to the root and
+   stay above the sidebar. Give this a z-index and you trap them. */
+body.nx-app .reporting-shell {
+  position: relative;
 }
 .firefly-field {
   position: fixed;
@@ -1030,6 +1068,13 @@ body.admin-page main {
 .perms-grid .perm-delete.is-armed { color: var(--nx-danger, #c0392b); }
 .perm-holders { list-style: none; padding: 0; margin: 0; font-size: 13px; }
 .perm-holders li { padding: 4px 0; border-bottom: 1px solid var(--nx-border); }
+.perm-override-badge { display: inline-block; margin-left: 2px; padding: 0 4px; border-radius: 8px; font-size: 10px; line-height: 15px; background: var(--nx-accent); color: var(--nx-on-accent, #fff); cursor: help; }
+.perm-override-badge.perm-override-deny { background: var(--nx-danger, #c0392b); }
+.perms-columns-panel { position: absolute; right: 0; top: 100%; margin-top: 4px; z-index: 10; width: 240px; padding: 10px; }
+.perms-columns-list { max-height: 260px; overflow: auto; display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; }
+.perms-columns-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 2px 0; font-size: 13px; }
+.perms-columns-row label { display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.perms-col-move { display: flex; gap: 0; flex: none; }
 .nx-btn:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
 
 /* ============================================================
@@ -1065,6 +1110,32 @@ body.admin-page main {
    generali_pdqm, generali_additionalservices, generali_reporting,
    reporting, workitems_overview, admin/maintenance.
    ============================================================ */
+/* --- static positioning (the reporting wizard's range field) -------------
+   flatpickr's default is to append the calendar to <body> and place it with
+   page coordinates. On the wizard -- one very long scrolling page -- that
+   opened the calendar well below the field it belongs to, so that picker
+   passes `static: true` and flatpickr wraps the input instead.
+
+   The wrapper defaults to inline-block, which would collapse a field meant to
+   fill its row, so it is forced back to a block. The z-index keeps the open
+   calendar above what follows it; without it the explanatory text and the
+   "Date field" row paint over the days. */
+html .flatpickr-wrapper {
+  display: block;
+  width: 100%;
+  position: relative;
+}
+html .flatpickr-calendar.static {
+  z-index: 60;
+}
+html .flatpickr-calendar.static.open {
+  /* 100% is the wrapper, which is the input plus its own 6px vertical margin,
+     so this already clears the focus ring; +2px is the visible gap. Measured
+     in layout pixels rather than from a screenshot -- the preview pane scales
+     the page, so getBoundingClientRect() lies about this by ~20px. */
+  top: calc(100% + 2px);
+}
+
 html .flatpickr-calendar {
   font-family: 'Inter', sans-serif;
   border: none;
@@ -1089,6 +1160,54 @@ html .flatpickr-day.endRange {
 }
 html .flatpickr-day:hover { background: var(--nx-accent-tint, #eef2ff); }
 html .flatpickr-day.today { border-color: var(--nx-accent); }
+
+/* --- Range mode ---------------------------------------------------------
+   The band between the two ends is `.inRange`, which section 11 never
+   covered because the pickers it was written for pick a single date. The
+   reporting wizard picks a range, and flatpickr paints that band with a
+   hardcoded #e6e6e6 -- so it showed as a bright grey slab across a dark
+   calendar.
+
+   Three pieces have to move together, which is why this is not a one-liner:
+   flatpickr fills the *gaps between cells* with a box-shadow
+   (`-5px 0 0 #e6e6e6, 5px 0 0 #e6e6e6`) rather than letting the cells touch.
+   Override the background alone and the cells go dark while the seams stay
+   grey -- which looks worse than leaving it. */
+/* The extra selectors are not padding. flatpickr ships
+   `.flatpickr-day.today.inRange` and the prev/next-month variants as their own
+   three-class rules, which outrank a two-class override -- so today's date sat
+   in the middle of a selected range still painted #e6e6e6, with this rule's
+   light text on top of it and unreadable. Matching its selector shape puts
+   these one point ahead. */
+html .flatpickr-day.inRange,
+html .flatpickr-day.today.inRange,
+html .flatpickr-day.prevMonthDay.inRange,
+html .flatpickr-day.nextMonthDay.inRange {
+  background: var(--nx-accent-tint);
+  border-color: var(--nx-accent-tint);
+  color: var(--nx-text);
+  box-shadow: -5px 0 0 var(--nx-accent-tint), 5px 0 0 var(--nx-accent-tint);
+}
+html .flatpickr-day.inRange:hover {
+  background: var(--nx-accent-soft);
+  border-color: var(--nx-accent-soft);
+  box-shadow: -5px 0 0 var(--nx-accent-soft), 5px 0 0 var(--nx-accent-soft);
+}
+/* The two ends sit on the accent, so their label needs the contrasting
+   colour -- inheriting --nx-text puts dark text on a dark pill in dark mode. */
+html .flatpickr-day.selected,
+html .flatpickr-day.startRange,
+html .flatpickr-day.endRange { color: var(--nx-on-accent); }
+/* flatpickr bleeds the *grey* into the seam beside each end as well. Repaint
+   those two with the accent instead of letting the default show through. */
+html .flatpickr-day.startRange.startRange,
+html .flatpickr-day.endRange.endRange {
+  box-shadow: none;
+}
+html .flatpickr-day.selected.startRange + .endRange:not(:nth-child(7n+1)),
+html .flatpickr-day.startRange.startRange + .endRange:not(:nth-child(7n+1)) {
+  box-shadow: -10px 0 0 var(--nx-accent);
+}
 
 /* Month header, year spinner and the month dropdown. */
 html .flatpickr-months .flatpickr-month,

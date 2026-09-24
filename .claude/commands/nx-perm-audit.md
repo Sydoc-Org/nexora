@@ -1,5 +1,5 @@
 ---
-description: Audit the live nexora permission grants for anomalies (a customer seeing another org's processes or tenant pages, profile/org mismatches, customers with admin codes, override noise, dead codes). Read-only, PROD by default.
+description: Audit the live nexora permission grants for anomalies (a customer seeing another org's processes or tenant pages, profile/org mismatches, customers with admin codes, dormant or cross-customer reporting-source grants, override noise, dead codes). Read-only, PROD by default.
 argument-hint: "[PROD|INT]"
 ---
 
@@ -10,6 +10,8 @@ Run the read-only permission audit and explain what it found. Environment: `$1`,
    - **Cross-organization grants** — a customer user effectively sees another customer's processes or another tenant's pages. Staff (org `SYDC`, profiles `Enterprise Admin`/`Global Admin`) are exempt. This is the finding the audit exists for.
    - **Profile does not match organization** — the profile was built for another org (a Privera user on `issUser`). Usually the same root cause as a cross-org line.
    - **Customers holding admin codes** — any `admin.*` on a non-staff user.
+   - **Dormant reporting-source grants** — a profile holding a `reporting.source.*` but not `reporting.view`. It does nothing today, which is what makes it worth flagging: nobody notices it, and it all goes live the moment somebody grants that profile reporting access for an unrelated reason (#332).
+   - **Reporting sources of another customer** — a customer profile holding a source that belongs to a different customer. The `table` provider applies no row scoping, so the source permission is the whole gate. Ownership is read off the source label's prefix (`Privera — Posteingang`), so a source whose customer has no `Organizations` row reports nothing — unknown, not safe.
    - **Override noise** — per-user overrides that change nothing. Cleanup candidates, not risks.
    - **Housekeeping** — users without a valid profile, empty profiles, codes nobody holds, codes the codebase never references, profile-level deny rows (no effect; #238 drops them).
 3. **Group by root cause** (same org, same profile) instead of repeating per user. Where PROD and INT differ (per-process `process.<client>.<name>.view` codes on INT since #238's `0087`, legacy families on PROD), say so.

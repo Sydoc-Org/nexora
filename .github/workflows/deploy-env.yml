@@ -1,0 +1,309 @@
+name: Deploy (reusable)
+# Called by deploy.yml three times (dev / staging / prod) -- #338. Every step
+# below used to live inline in deploy.yml's single PROD deploy job.
+on:
+  workflow_call:
+    inputs:
+      env_name:
+        description: "ENVIRONMENT value the target runs with: INT | STAGING | PROD"
+        required: true
+        type: string
+      deploy_dir:
+        description: 'Folder on SYAPP01 the mirror lands in, e.g. D:\sydoc\nexora-dev'
+        required: true
+        type: string
+      app_pool:
+        description: "IIS app pool serving that folder"
+        required: true
+        type: string
+      register_tasks:
+        description: "Register the Windows scheduled tasks (PROD only)"
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify env files
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $deployDir = "${{ inputs.deploy_dir }}"
+          $envName = "${{ inputs.env_name }}"
+          if (-not (Test-Path $deployDir)) {
+            throw "Deploy folder $deployDir does not exist -- run ops/setup-env.ps1 on SYAPP01 first (#338)."
+          }
+          # The root-level .env stays put -- it is the env-selector that sets
+          # ENVIRONMENT so the loader picks the right secrets file.
+          $envFile = "$deployDir\.env"
+          if (-not (Test-Path $envFile)) {
+            throw "Aborting deploy: $envFile not found."
+          }
+          $envLine = Get-Content $envFile | Where-Object { $_ -match '^\s*ENVIRONMENT\s*=' } | Select-Object -First 1
+          if ($envLine -notmatch "^\s*ENVIRONMENT\s*=\s*`"?$envName`"?\s*$") {
+            throw "Aborting deploy: $envFile must contain 'ENVIRONMENT=$envName'. Found: '$envLine'"
+          }
+          Write-Host "Verified: $envFile has ENVIRONMENT=$envName"
+          $secretsFile = "$deployDir\env\$envName.env"
+          if (-not (Test-Path $secretsFile)) {
+            throw "Aborting deploy: $secretsFile does not exist. Push it with scripts/env-sync.py --push $envName.env (gitignored; deploys never copy it)."
+          }
+          Write-Host "Verified: $secretsFile exists"
+
+      # MUST stay ahead of "Apply DB migrations". Migrations commit to
+      # the production database; every step after them either finishes the
+      # deploy or strands PROD with its schema ahead of its code. That is what
+      # happened on 2026-08-27 (#228): this preflight failed *after* 0070-0081
+      # had applied, the code sync was skipped, and the tables 0075 renamed took
+      # the running app down until synonyms were added by hand. Anything that
+      # can abort a deploy belongs in front of the migration step.
+      - name: Preflight IIS host (HttpPlatformHandler + waitress)
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          # web.config hands the site to IIS's HttpPlatformHandler, which runs
+          # waitress from the prod interpreter. Both are host installs (not in
+          # git); a missing one would 500 the whole site the moment robocopy
+          # lands, so fail here while the old app is still serving.
+          # Setup: docs/howto/iis.md.
+          Import-Module WebAdministration
+          if (-not (Get-WebGlobalModule | Where-Object Name -eq 'httpPlatformHandler')) {
+            throw "IIS module 'httpPlatformHandler' is not installed on SYAPP01 -- install HttpPlatformHandler v1.2 x64 (docs/howto/iis.md) before deploying."
+          }
+          D:\sydoc\tools\py\python.exe -c "import waitress, importlib.metadata as md; print('waitress', md.version('waitress'))"
+          if ($LASTEXITCODE -ne 0) {
+            throw "waitress is not importable from D:\sydoc\tools\py -- the 'pip install -r requirements.txt' step above should have installed it."
+          }
+
+      # db-migrate.py checksums raw file bytes; the persistent runner can carry
+      # CRLF .sql from before *.sql got `text eol=lf`, which makes an
+      # already-applied migration look "edited" and aborts the migrate step.
+      # Re-normalise to LF first (same reason as the .py step in the test job).
+      - name: Normalize SQL line endings to LF
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+          Get-ChildItem -Path sql -Recurse -Include *.sql | ForEach-Object {
+            $text = [System.IO.File]::ReadAllText($_.FullName, $utf8NoBom)
+            $normalized = $text -replace "`r`n", "`n"
+            if ($normalized -ne $text) {
+              [System.IO.File]::WriteAllText($_.FullName, $normalized, $utf8NoBom)
+              Write-Host "  fixed: $($_.FullName)"
+            }
+          }
+
+      - name: Apply DB migrations (${{ inputs.env_name }})
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          # Runs BEFORE the app pool stop so a failed migration leaves the
+          # existing app serving old code on old schema -- nothing breaks.
+          # The runner reads env/<ENV>.env from CWD; the real file lives at the
+          # deploy target (gitignored), so copy it into the workspace's env/
+          # temporarily.
+          $envSrc = "${{ inputs.deploy_dir }}\env\${{ inputs.env_name }}.env"
+          $envDst = "${{ github.workspace }}\env\${{ inputs.env_name }}.env"
+          Copy-Item $envSrc $envDst -Force
+          # The runner service inherits the System PATH from when it was last
+          # started. If SqlCmd was added after that, shutil.which("sqlcmd") in
+          # db-migrate.py returns None until the runner service is restarted.
+          # Prepend the well-known install dir defensively (db-migrate.py also
+          # has an in-Python fallback for the same reason).
+          $env:PATH = "C:\Program Files\SqlCmd;$env:PATH"
+          try {
+            D:\sydoc\tools\py\python.exe scripts/db-migrate.py --env ${{ inputs.env_name }} --yes
+          } finally {
+            Remove-Item $envDst -Force -ErrorAction SilentlyContinue
+          }
+
+      - name: Stop app pool
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Import-Module WebAdministration
+
+          $pool = "${{ inputs.app_pool }}"
+          Write-Host "App pool '$pool' initial state: $((Get-WebAppPoolState -Name $pool).Value)"
+
+          # Wait out any in-flight transition so we don't hit 0x80070425
+          $deadline = (Get-Date).AddSeconds(60)
+          while ((Get-WebAppPoolState -Name $pool).Value -in @('Starting','Stopping')) {
+            if ((Get-Date) -gt $deadline) {
+              throw "App pool '$pool' stuck in transition: $((Get-WebAppPoolState -Name $pool).Value)"
+            }
+            Start-Sleep -Seconds 2
+          }
+
+          if ((Get-WebAppPoolState -Name $pool).Value -eq 'Started') {
+            Stop-WebAppPool -Name $pool
+          }
+
+          # Block until w3wp.exe has actually exited and handles are released
+          $deadline = (Get-Date).AddSeconds(120)
+          while ((Get-WebAppPoolState -Name $pool).Value -ne 'Stopped') {
+            if ((Get-Date) -gt $deadline) {
+              throw "App pool '$pool' did not stop within 120s (state: $((Get-WebAppPoolState -Name $pool).Value))"
+            }
+            Start-Sleep -Seconds 2
+          }
+          Write-Host "App pool '$pool' is Stopped."
+
+          # The ngrok agent is shared by dev, staging and prod (#338) and is never
+          # stopped here: a stopped app pool already answers 503 mid-mirror.
+
+      - name: Sync to deploy folder
+        shell: powershell
+        run: |
+          robocopy "${{ github.workspace }}" "${{ inputs.deploy_dir }}" /MIR /R:3 /W:2 `
+            /XD .git .github .claude .claude-flow .gitnexus .playwright-mcp .superpowers .swarm .vscode .idea __pycache__ var bin session logs uploads screenshots backups scripts sql tests test-results docs tools `
+            /XF *.env *.env.example ngrok.yaml .gitignore .claudeignore .mcp.json AGENTS.md CLAUDE.md nx.ps1 babel.cfg messages.pot requirements.txt requirements-dev.txt requirements-confluence.txt README.md pyproject.toml .editorconfig .gitattributes .gitlint .pre-commit-config.yaml .python-version bootstrap.ps1 CHANGELOG.md CONTRIBUTING.md LICENSE uv.lock
+          if ($LASTEXITCODE -ge 8) { exit $LASTEXITCODE }
+          # /XF excludes *.env.example from being copied AND from being purged,
+          # so any *.env.example already on SYAPP01 from earlier deploys would
+          # stay forever. Sweep them: prod only needs PROD.env in env/.
+          Remove-Item "${{ inputs.deploy_dir }}\env\*.env.example" -Force -ErrorAction SilentlyContinue
+          # Same reasoning for dev-only root files added to /XF after they had
+          # already been deployed by an earlier run -- one-time orphan sweep.
+          foreach ($f in '.editorconfig','.gitattributes','.gitlint','.pre-commit-config.yaml','.python-version','bootstrap.ps1','CHANGELOG.md','CONTRIBUTING.md','LICENSE','uv.lock') {
+            Remove-Item "${{ inputs.deploy_dir }}\$f" -Force -ErrorAction SilentlyContinue
+          }
+          # The reporting user guide is runtime content: nx_lib/views/reporting.py
+          # reads it and serves it at /reporting/guide. docs/ stays excluded from
+          # the mirror above (and /XD dirs are never purged), so copy just this
+          # one file explicitly.
+          robocopy "${{ github.workspace }}\docs\howto" "${{ inputs.deploy_dir }}\docs\howto" reporting-guide.md /R:3 /W:2
+          if ($LASTEXITCODE -ge 8) { exit $LASTEXITCODE }
+          # Sweep dev-only var/ subdirs left behind by older Flask startups
+          # (nx_lib/config.py used to mkdir them unconditionally). Only delete
+          # if empty so we never touch user data.
+          foreach ($d in 'screenshots','backups','test-results') {
+            $p = "${{ inputs.deploy_dir }}\var\$d"
+            if ((Test-Path $p) -and ((Get-ChildItem -LiteralPath $p -Force -ErrorAction SilentlyContinue).Count -eq 0)) {
+              Remove-Item -LiteralPath $p -Force
+            }
+          }
+          # Build stamp: the footer otherwise shows the source version only, so a
+          # deploy that silently failed to land looks identical to one that did.
+          # Written AFTER robocopy because /MIR purges anything not in git.
+          # ASCII only -- `shell: powershell` is 5.1, whose default file encoding
+          # is ANSI, and a mojibake separator would land in every page footer.
+          $sha = "${{ github.sha }}".Substring(0, 7)
+          $built = (Get-Date).ToUniversalTime().ToString('yyyy-MM-dd')
+          # dev/staging name the ref too: the footer is how you tell what runs there.
+          $stamp = if ("${{ inputs.env_name }}" -eq "PROD") { "$sha, $built" } else { "$sha (${{ github.ref_name }}), $built" }
+          Set-Content -Path "${{ inputs.deploy_dir }}\nx_lib\_build.py" -Encoding ASCII `
+            -Value "BUILD_STAMP = `"$stamp`""
+          exit 0
+
+      # web.config is tracked with PROD values (ENVIRONMENT, PYTHONPATH, stdout log
+      # path under D:\sydoc\nexora) and guarded by tests/unit/test_iis_hosting.py.
+      # The mirror copies it into every folder, so rewrite those three values for
+      # the non-prod hosts here. String replace, not XML: keeps the comments.
+      - name: Patch web.config for this environment
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $dir = "${{ inputs.deploy_dir }}"
+          if ($dir -ieq 'D:\sydoc\nexora') { Write-Host 'PROD folder: tracked web.config used as-is'; exit 0 }
+          $p = Join-Path $dir 'web.config'
+          $xml = [System.IO.File]::ReadAllText($p)
+          $xml = $xml.Replace('name="ENVIRONMENT" value="PROD"', 'name="ENVIRONMENT" value="${{ inputs.env_name }}"')
+          $xml = $xml.Replace('D:\sydoc\nexora', $dir)
+          [System.IO.File]::WriteAllText($p, $xml, [System.Text.UTF8Encoding]::new($false))
+          Select-String -Path $p -Pattern 'ENVIRONMENT|PYTHONPATH|stdoutLogFile' | ForEach-Object { $_.Line.Trim() }
+
+      - name: Start app pool
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Import-Module WebAdministration
+
+          $pool = "${{ inputs.app_pool }}"
+          # Defensive: don't issue Start while in a transition
+          $deadline = (Get-Date).AddSeconds(60)
+          while ((Get-WebAppPoolState -Name $pool).Value -in @('Starting','Stopping')) {
+            if ((Get-Date) -gt $deadline) {
+              throw "App pool '$pool' stuck in transition: $((Get-WebAppPoolState -Name $pool).Value)"
+            }
+            Start-Sleep -Seconds 2
+          }
+
+          if ((Get-WebAppPoolState -Name $pool).Value -eq 'Stopped') {
+            Start-WebAppPool -Name $pool
+          }
+
+          $deadline = (Get-Date).AddSeconds(60)
+          while ((Get-WebAppPoolState -Name $pool).Value -ne 'Started') {
+            if ((Get-Date) -gt $deadline) {
+              throw "App pool '$pool' did not start within 60s (state: $((Get-WebAppPoolState -Name $pool).Value))"
+            }
+            Start-Sleep -Seconds 2
+          }
+          Write-Host "App pool '$pool' is Started."
+
+
+      # Scheduled maintenance jobs. Robocopy mirrors the task XMLs but Windows
+      # does not read them off disk -- a task only exists once it is registered,
+      # so before this step every definition needed a human to remember to
+      # import it. #227 shipped the prune that way and it ran zero times: the
+      # XML sat in D:\sydoc\nexora\ops\cleanup for twelve hours while
+      # dbo.ActiveSessions kept growing. The outage monitor had the same latent
+      # gap -- registered today, but a rebuilt SYAPP01 would have lost it
+      # silently, and nobody notices a monitor that stopped watching.
+      #
+      # Runs LAST, after the pool and tunnels are up, because registering a task
+      # has nothing to do with serving requests: a failure here must be loud
+      # without holding the site down. It throws rather than warns, since a
+      # silently unregistered task is the bug being closed.
+      #
+      # /f overwrites an existing task, which makes the step idempotent -- and
+      # also means a task an admin deliberately disabled comes back on the next
+      # deploy. That is the intended direction (the repo is the source of truth
+      # for what should be scheduled); to stop a job for good, remove its XML.
+      - name: Register scheduled tasks
+        if: inputs.register_tasks
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $tasks = @(
+            @{ Name = '\sydoc\nexora\Outage Monitor'
+               Xml  = 'D:\sydoc\nexora\ops\outage-monitor-task.xml' },
+            @{ Name = '\sydoc\nexora\Prune Sessions'
+               Xml  = 'D:\sydoc\nexora\ops\cleanup\prune-active-sessions-task.xml' },
+            @{ Name = '\sydoc\nexora\Prune Request Log'
+               Xml  = 'D:\sydoc\nexora\ops\cleanup\prune-request-log-task.xml' }
+          )
+
+          $failed = @()
+          foreach ($t in $tasks) {
+            if (-not (Test-Path -LiteralPath $t.Xml)) {
+              $failed += "$($t.Name): definition not found at $($t.Xml)"
+              continue
+            }
+            # schtasks is a native exe: check $LASTEXITCODE, not $?. Do not
+            # redirect its stderr -- in PS 5.1 that turns output into
+            # NativeCommandError records even on a zero exit.
+            schtasks /create /xml $t.Xml /tn $t.Name /f
+            if ($LASTEXITCODE -ne 0) {
+              $failed += "$($t.Name): schtasks /create exited $LASTEXITCODE"
+              continue
+            }
+            # Registering and being registered are different claims; verify.
+            schtasks /query /tn $t.Name /fo LIST | Out-Null
+            if ($LASTEXITCODE -ne 0) {
+              $failed += "$($t.Name): created but /query exited $LASTEXITCODE"
+              continue
+            }
+            Write-Host "Registered scheduled task: $($t.Name)"
+          }
+
+          if ($failed.Count -gt 0) {
+            throw ("scheduled task registration failed -- " + ($failed -join '; '))
+          }
+          Write-Host "All $($tasks.Count) scheduled task(s) registered."

@@ -14,10 +14,10 @@ Nexora is a Flask web application (Python 3, WSGI) deployed on Windows/IIS, whic
 
 ## Environment & running
 
-- `ENVIRONMENT` (`INT` or `PROD`) selects the env file; `nx_lib/config.py` loads `env/{ENVIRONMENT}.env`. Sanitised templates: `env/*.env.example`.
+- `ENVIRONMENT` (`INT`, `STAGING`, `PROD`, or `TEST` for pytest) selects the env file; `nx_lib/config.py` loads `env/{ENVIRONMENT}.env`. Sanitised templates: `env/*.env.example`.
 - **Local dev:** `.venv` via `uv venv && uv sync` (or `bootstrap.ps1`), `ENVIRONMENT=INT`, `.venv\Scripts\python.exe nx_main.py`. WSGI handler is `nx_main.app`. `requirements*.txt` are generated from `uv.lock` for the IIS deploy path — never install from them locally. Full setup: `CONTRIBUTING.md`.
 - **Production:** IIS + HttpPlatformHandler → `waitress` (32 threads). `web.config` is the whole hosting contract — it starts waitress, sets `ENVIRONMENT=PROD` / `PYTHONPATH`, trusts `X-Forwarded-For`, logs stdout to `var/logs/system/waitress-stdout*`. Note `path="*"`: **waitress serves `/static`, not IIS**. See `docs/howto/iis.md`. (`wfastcgi` retired in v3.2.3.)
-- **Public tunnel** (SYAPP01 only): ngrok today (`docs/howto/ngrok.md`), Cloudflare Tunnel prepared, cutover pending (`docs/howto/cloudflare-tunnel.md`).
+- **Hosted envs (SYAPP01):** `dev-nexora.sydoc.ch` (any branch push, `INT`, INT DBs) · `staging-nexora.sydoc.ch` (`main` + 01:30 nightly, `STAGING`, nightly PROD-copy DBs `nexora_STAGING`/`Generali_STAGING` on PRDSQL01) · `nexora.sydoc.ch` (`v*` tag, `PROD`). One ngrok agent fronts all three (`docs/howto/ngrok.md`); host setup `ops/setup-env.ps1`; DB refresh `ops/staging-refresh.sql`. Cloudflare Tunnel is parked (`docs/howto/cloudflare-tunnel.md`). `IS_PROD` is true for `STAGING` too.
 
 ## Databases
 
@@ -25,10 +25,10 @@ SQLAlchemy engines with pyodbc, defined in `nx_lib/db.py`. Credentials come from
 
 | engine | what |
 |---|---|
-| `engineNexoraDB` | the app's own DB — users, permissions, session metadata, config |
-| `engineOctoDB` | Octo runtime DB on `DB_SERVER_PRD` |
-| `engineStatisticsDB` | stats DB on `DB_SERVER_PRD` |
-| `engineGeneraliDB` | tenant DB for Generali-branded pages |
+| `engine_nexora_db` | the app's own DB — users, permissions, session metadata, config |
+| `engine_octo_db` | Octo runtime DB on `DB_SERVER_PRD` |
+| `engine_statistics_db` | stats DB on `DB_SERVER_PRD` |
+| `engine_generali_db` | tenant DB for Generali-branded pages — schema, naming rulebook and gotchas: `docs/design/generali-tenant-db.md` |
 | `engine_statistics_ro` | read-only login for the reporting SQL sandbox (`DB_REPORTING_RO_*`; 503 until set) |
 | `engine_octo_ro` | read-only login for the sandbox's Octo target (`DB_REPORTING_OCTO_RO_*`; 503 until set) |
 | `engine_generali_ro` | read-only login for the sandbox's Generali target (`DB_REPORTING_GENERALI_RO_*`; 503 until set) |
@@ -47,16 +47,16 @@ SQLAlchemy engines with pyodbc, defined in `nx_lib/db.py`. Credentials come from
 - New change → new file `sql/_migrations/<Db>/NNNN_short_description.sql`, `GO`-separated, ideally idempotent.
 - `scripts/db-migrate.py` applies pending migrations and records them in `dbo.SchemaMigrations`; `sql/sync-from-db.py` re-dumps INT read-only.
 - The `sql-migrate-int` + `sql-sync-check` pre-commit hooks auto-apply to INT and block the commit on drift. Escape hatch: `SQL_SYNC_SKIP=1 git commit`.
-- Pushing to `main` makes `deploy.yml` apply pending migrations to PROD **before** the app pool stops.
+- Merging to `main` applies pending migrations to **STAGING**; pushing a `v*` tag applies them to **PROD** — both **before** the app pool stops. STAGING is rebuilt from PROD nightly, so it rehearses every pending migration each night.
 - Migrations are immutable once applied — to undo one, add another.
 
 **Full walkthrough, flag reference, recipes, troubleshooting: `docs/howto/db-migrations.md`.**
 
 ## Deploy artifacts
 
-`deploy.yml` mirrors the repo to `D:\sydoc\nexora` with `robocopy /MIR` after stopping the app pool. Runtime needs only `nx_main.py`, `nx_lib/`, `templates/`, `static/`, `translations/`, `web.config`.
+`deploy-env.yml` (reusable, called per environment by `deploy.yml`) mirrors the repo to the target folder (`D:\sydoc\nexora`, `-staging`, `-dev`) with `robocopy /MIR` after stopping that folder's app pool. Runtime needs only `nx_main.py`, `nx_lib/`, `templates/`, `static/`, `translations/`, `web.config`.
 
-**Rule:** committing a new top-level file or directory the running app does **not** need? Add it to the robocopy exclude list in `deploy.yml` — `/XF` for files, `/XD` for directories. `/MIR` would otherwise sync it into prod.
+**Rule:** committing a new top-level file or directory the running app does **not** need? Add it to the robocopy exclude list in `deploy-env.yml` — `/XF` for files, `/XD` for directories. `/MIR` would otherwise sync it into prod.
 
 ## Keeping docs in sync
 
@@ -68,10 +68,11 @@ Documentation is part of the change, not a follow-up. Add, rename, or remove a C
 - **Confluence:** `docs/howto/*`, `docs/design/*`, `README.md`, `CONTRIBUTING.md`, `CHANGELOG.md` auto-publish on push to `main`. Never edit those pages in Confluence — the sync overwrites them.
 
 **The footer is how you tell what PROD is running** — `nexora v{{ nexora_version }}`
-plus the deploy's build stamp (short SHA + UTC date, written by `deploy.yml`).
-Every merge to `main` deploys, but the version only moves when someone cuts a
-release, so between releases the **build stamp** is what identifies the running
-code, not the version. If you need PROD to *name* a new release, bump
+plus the deploy's build stamp (short SHA + UTC date, written by `deploy-env.yml`;
+dev/staging also show the ref). Every merge to `main` deploys **staging**; PROD
+moves only when someone pushes a `v*` tag, so the tag is both the release and the
+PROD deploy, and the **build stamp** is what identifies the running code on each
+host. To cut a release, bump
 `nx_lib/version.py` + `pyproject.toml`, run `uv lock` (all three must agree or
 `tests/unit/test_version.py` fails), fold `[Unreleased]` into a dated section,
 merge, then tag. **Recipe: `CONTRIBUTING.md` → "Releases".**
@@ -88,7 +89,7 @@ One line each; **the full detail lives in `docs/design/architecture-conventions.
 - **Logging** — every non-static request appended as a CSV row under `var/logs/user/`; app logger writes `var/logs/system/app.log`.
 - **Outage detection** — `ops/outage_monitor.py` on Task Scheduler, pure logic in `nx_lib/outage.py`. See `docs/howto/outage-monitor.md`.
 - **Routing** — routes in `nx_lib/views/`, either a single module or a package (`generali/`, `admin/`) of submodules re-exported from `__init__.py`; templates flat under `templates/` plus `admin/`, `handlers/`, `js/`, `jd/`, `nexora_logo/`. Page `foo.html` pairs with `templates/js/_foo_js.html`.
-- **Static JS partials (#191)** — 14 of the 49 `templates/js/_*_js.html` partials are shims now (up from 8): inline `<script nonce>` holds only Jinja-rendered data, behaviour lives in `static/js/<name>.js` loaded via `static_v()`. Translated strings must stay in the shim and be read off `window`; a `.js` file has no `url_for()` — build URLs with the `API_PREFIX` idiom. `static/js/nx_core.js` loads first, before any other script, on every page (`templates/_header.html`) and defines `window.NX` (`esc`/`api`/`apiSafe`/`toast`/`formatDate`/`formatDateTime`/`formatHours`) plus the canonical `window.API_PREFIX` — new JS should use these instead of reimplementing them.
+- **Static JS partials (#191)** — 14 of the 49 `templates/js/_*_js.html` partials are shims now (up from 8): inline `<script nonce>` holds only Jinja-rendered data, behaviour lives in `static/js/<name>.js` loaded via `static_v()`. Translated strings must stay in the shim and be read off `window`; a `.js` file has no `url_for()` — build URLs with the `API_PREFIX` idiom. `static/js/nx_core.js` loads first, before any other script, on every page (`templates/_header.html`) and defines `window.NX` (`esc`/`api`/`apiSafe`/`toast`/`formatDate`/`formatDateTime`/`formatHours`) plus the canonical `window.API_PREFIX`, and wraps `window.fetch` so a request bounced to `/login` (expired session) navigates there — new JS should use these instead of reimplementing them.
 - **Error pages** — `templates/handlers/*.html`; raise `PermissionDenied` for a 403 from inside a route.
 - **Rate limiting** — `flask_limiter` configured globally; apply `@limiter.limit(...)` per route.
 - **File uploads** — `secure_filename` + `magic` MIME sniffing; never trust the client content type.
@@ -120,7 +121,7 @@ Mark strings `{{ _('...') }}` in templates, `_('...')` / `gettext(...)` in Pytho
 
 `env/{INT,PROD,STAGING,TEST}.env` hold live credentials (DB, Graph, Octo, Flask secret key). They are **gitignored** and live only on dev and prod machines. Never paste their contents into chats, issues, or external tools; never add secret values to code or commit messages.
 
-Because they are gitignored, `deploy.yml` never copies them — **adding a key to `env/PROD.env.example` does nothing on the server until someone hand-edits `\\syapp01\d$\sydoc\nexora\env\PROD.env`**, and forgetting is silent. Run `scripts/env-sync.py` by hand once per deploy that touched an env key; it diffs the committed `.example` against the local and SYAPP01 copies and prints copy-pasteable lines for anything missing. Only a *missing* key is actionable — differing values are expected (dev ≠ PROD).
+Because they are gitignored, `deploy.yml` never copies them — **adding a key to `env/PROD.env.example` does nothing on the server until someone hand-edits `\\syapp01\d$\sydoc\nexora\env\PROD.env`**, and forgetting is silent. Run `scripts/env-sync.py` by hand once per deploy that touched an env key; it diffs the committed `.example` against the local and SYAPP01 copies and prints copy-pasteable lines for anything missing. Only a missing key that the code does **not** already default is actionable; a key whose code default matches the example is reported quietly, and differing values are expected (dev ≠ PROD).
 
 ## Working with Claude Code
 

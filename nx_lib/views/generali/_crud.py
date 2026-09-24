@@ -1,7 +1,8 @@
 """Descriptor-driven factory for the repeated Generali per-table endpoints.
 
-Five Generali tables (Attendance, BaseServices, ProjectManagement, PDQMReport,
-reportingiss) grew near-identical copies of the same eight endpoint families:
+Five Generali tables (AttendanceEntries, BaseServiceEntries, ProjectEntries,
+QualityCheckEntries, IssReports) grew near-identical copies of the same eight
+endpoint families:
 ``monthreport``, ``api_org_users``, ``api_organizations``, ``api_filter_users``,
 ``api_list`` and ``api_add`` / ``api_edit`` / ``api_delete``. This module holds
 one implementation of each, generated from a :class:`CrudTable` descriptor that

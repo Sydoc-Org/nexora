@@ -47,9 +47,24 @@ def load_media_info(
         return None
 
     workitemdata, document_id = returndata
-    extensions, urls, fields, field_sources, table_sources = get_extensions_urls_fields(
-        workitemdata, document_id, domain, with_tables=True
-    )
+    doc = get_extensions_urls_fields(workitemdata, document_id, domain, with_tables=True)
+    if doc is None:
+        # Backend failure, not an empty document. Returning the usual shape here
+        # would cache media_count=0 under the media_info key and leave the
+        # viewer permanently blank for this workitem, with nothing shown to the
+        # user. Flagged instead so the route can answer with an error status --
+        # the detail panel already renders `couldNotLoadMedia` for a non-OK
+        # response -- and deliberately NOT cached, so the next open retries.
+        return {
+            "workitem_id": workitem_id,
+            "backend_error": True,
+            "media_count": 0,
+            "fields": {},
+            "field_sources": [],
+            "table_sources": [],
+        }
+
+    extensions, urls, fields, field_sources, table_sources = doc
 
     media_count = len(urls) if urls else 0
 

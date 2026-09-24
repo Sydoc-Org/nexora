@@ -178,6 +178,7 @@ English `error` string — nothing is silently coerced or ignored):
 | `process` | comma-joined subset of the key's `ProcessList` (default: all of it) |
 | `field` / `value` / `op` / `comb` | repeated doc-field filter pairs, see below |
 | `page` / `per_page` | paging; `per_page` accepts only `40`, `100`, `200`, `500`, `1000` (default `40`) |
+| `include` | `fields` — also return each row's indexed doc-field values; `fields:invoicenr,kundennr` narrows that to the named keys (see below); anything else `400`s |
 
 Doc-field filters repeat in parallel: each `field`+`value` pair may carry an
 `op` (`contains` default, `ncontains`, `eq`, `neq`, `startswith`,
@@ -207,6 +208,77 @@ partial page; a failing doc-field resolution instead fails **closed** to
 zero matching rows (same guard as the overview), and a failed load of the
 sensitive-field list also answers `500` on both workitem endpoints — this
 surface never degrades to serving unfiltered data. Not cached.
+
+### `?include=fields` — field values without the N+1
+
+By default a row carries no document data, so reading the field values of a
+page meant one `/workitems/<id>` call per row — 900+ calls per refresh for a
+polling client, well past the `60/minute` limit. `include=fields` adds a
+`fields` object to every row instead, resolved **once per page**:
+
+    curl -H "Authorization: Bearer <key>"         "https://nexora.sydoc.ch/nexora/api/v1/workitems?status=Ready&include=fields"
+
+    {
+      "count": 1,
+      "page": 1,
+      "per_page": 40,
+      "total_pages": 1,
+      "workitems": [
+        {
+          "id": 78214,
+          "status": "Ready",
+          "stage": "Validation",
+          "modified_at": "2026-08-04 10:02:11",
+          "import_datetime": "2026-08-04 09:12:31",
+          "fields": { "invoicenr": "INV-2026-00123", "kundennr": "44201" }
+        }
+      ]
+    }
+
+#### Asking for specific keys
+
+`include=fields` returns every key mapped for your process scope. To take only
+what you actually read each cycle, name the keys inline:
+
+    curl -H "Authorization: Bearer <key>"         "https://nexora.sydoc.ch/nexora/api/v1/workitems?include=fields:invoicenr,kundennr"
+
+    "fields": { "invoicenr": "INV-2026-00123", "kundennr": "44201" }
+
+The keys are case-insensitive and validated with the **same grammar `field=`
+uses**, so you do not have to learn two: an unknown key and a sensitive one
+both answer `400 {"error": "Unknown field '<key>'"}` (identical on purpose —
+no sensitivity-existence oracle), and a real key mapped for none of your
+processes answers `400 {"error": "Field '<key>' is not available for your
+process scope"}`. An empty list, more than **30** keys, or a key list next to
+any other include token is also a `400`. A typo therefore fails loudly instead
+of looking like a field that is always empty.
+
+A process scope wider than 30 keys is possible, so the cap can sit below your
+own published list. It is not a limit on what you can read: if you want more
+than 30 keys, use a bare `include=fields`, which returns every key in your
+scope in the same single read.
+
+**This does not make the query cheaper.** The values sit in one wide row, so
+`fields:invoicenr` and a bare `fields` are the same single read per process per
+page — what you save is response size and the work of ignoring keys you did not
+want.
+
+- **Indexed fields only.** These are the same field keys
+  `GET /api/v1/workitems/fields` lists — the values held in the statistics
+  index, keyed exactly as you would write them in a `field=` filter. Table
+  values and the document/page information stay on `/workitems/<id>`; there
+  is no `include=tables`.
+- **Empty is normal.** A workitem with nothing indexed yet (or whose values
+  are all blank) gets `"fields": {}` — never a missing key.
+- **Scoped and redacted by construction.** Only columns mapped for your own
+  key's processes are read, and sensitive field keys never enter the query at
+  all — the same rule the `field=` filter enforces.
+- **Opt-in.** Without `include`, the response is byte-for-byte what it was
+  before, so existing integrations are untouched.
+- The projection costs one extra query per process per page, so a larger
+  `per_page` is now the cheap way to read a lot of rows. A failure there
+  returns `500 {"error": "Workitems backend unavailable"}` like any other
+  backing-source failure — never a page with silently missing values.
 
 ## GET /api/v1/workitems/fields
 

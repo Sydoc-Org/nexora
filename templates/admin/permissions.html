@@ -28,6 +28,23 @@
             <input id="permsFilter" class="nx-input" style="max-width:360px" placeholder="{{ _('Filter by code or description…') }}" data-testid="admin-perms-filter">
             <span class="nx-meta" id="permsDirty" data-testid="admin-perms-dirty"></span>
             <span style="flex:1"></span>
+            <div class="perms-columns-picker" style="position:relative">
+                <button id="permsColumnsBtn" type="button" class="nx-btn nx-btn--secondary" data-testid="admin-perms-columns-btn"><i class="fas fa-table-columns"></i> {{ _('Columns') }}</button>
+                <div id="permsColumnsPanel" class="nx-card perms-columns-panel" hidden data-testid="admin-perms-columns-panel">
+                    <div class="perms-columns-list" id="permsColumnsList">
+                    {% for p in profiles %}
+                        <div class="perms-columns-row" data-access-id="{{ p.AccessID }}" data-testid="admin-perms-columns-row-{{ p.AccessID }}">
+                            <label><input type="checkbox" class="perms-col-toggle" data-access-id="{{ p.AccessID }}" checked data-testid="admin-perms-columns-toggle-{{ p.AccessID }}"> {{ p.Name }}</label>
+                            <span class="perms-col-move">
+                                <button type="button" class="nx-btn nx-btn--ghost nx-btn--sm perms-col-up" data-testid="admin-perms-columns-up-{{ p.AccessID }}"><i class="fas fa-arrow-up"></i></button>
+                                <button type="button" class="nx-btn nx-btn--ghost nx-btn--sm perms-col-down" data-testid="admin-perms-columns-down-{{ p.AccessID }}"><i class="fas fa-arrow-down"></i></button>
+                            </span>
+                        </div>
+                    {% endfor %}
+                    </div>
+                    <button type="button" id="permsColumnsReset" class="nx-btn nx-btn--ghost nx-btn--sm" data-testid="admin-perms-columns-reset">{{ _('Reset') }}</button>
+                </div>
+            </div>
             {% if can_edit %}<button id="permsSave" type="button" class="nx-btn nx-btn--primary" disabled data-testid="admin-perms-save">{{ _('Save changes') }}</button>{% endif %}
             {% if can_edit_catalog %}<button id="permsAdd" type="button" class="nx-btn nx-btn--secondary" data-testid="admin-perms-add">{{ _('Add permission') }}</button>{% endif %}
         </div>
@@ -37,7 +54,7 @@
             <table class="nx-table perms-grid" id="permsGrid" data-testid="admin-perms-grid">
                 <thead style="position:sticky;top:0;z-index:2;background:var(--nx-card)">
                     <tr><th>{{ _('Permission') }}</th>
-                    {% for p in profiles %}<th class="align-center" title="{{ p.UserCount }} {{ _('user(s)') }}"><div class="nx-mono">{{ p.Name }}</div><div class="nx-meta">{{ _('rank') }} {{ p.Rank }} · {{ p.UserCount }}</div></th>{% endfor %}</tr>
+                    {% for p in profiles %}<th class="align-center" data-access-id="{{ p.AccessID }}" title="{{ p.UserCount }} {{ _('user(s)') }}"><div class="nx-mono">{{ p.Name }}</div><div class="nx-meta">{{ _('rank') }} {{ p.Rank }} · {{ p.UserCount }}</div></th>{% endfor %}</tr>
                 </thead>
                 <tbody>
                 {% for g in groups %}
@@ -59,9 +76,10 @@
                                 {% endif %}
                             </td>
                             {% for p in profiles %}
-                            <td class="align-center" data-profile="{{ p.Name }}" data-code="{{ perm.Code }}">
+                            <td class="align-center" data-profile="{{ p.Name }}" data-code="{{ perm.Code }}" data-access-id="{{ p.AccessID }}">
                                 <input type="checkbox" data-access-id="{{ p.AccessID }}" data-perm-id="{{ perm.PermissionID }}"
                                        {% if not can_edit %}disabled{% endif %} data-testid="admin-perms-cell-{{ p.AccessID }}-{{ perm.PermissionID }}">
+                                <sup class="perm-override-badge" hidden data-testid="admin-perms-override-{{ p.AccessID }}-{{ perm.PermissionID }}"></sup>
                             </td>
                             {% endfor %}
                         </tr>

@@ -26,7 +26,17 @@ Eight endpoints in v1:
   client only) -- superseding issue #195's dedicated
   /invoice/import_datetime endpoint, which never shipped. Source/client
   codes are internal routing and never appear in responses (owner
-  decision 2026-08-17).
+  decision 2026-08-17). ?include=fields (issue #341) additionally projects
+  the INDEXED doc-field values into each row -- resolved once per page from
+  the same columnar statistik tables the doc-field FILTER reads, so a
+  polling client no longer needs one /workitems/<id> call per row.
+  ?include=fields:invoicenr,kundennr (issue #356) narrows that projection to
+  the named keys, validated with the SAME grammar ?field= uses; it does not
+  reduce DB work (one wide row either way), only response size. Opt-in:
+  without it the response shape is unchanged. Indexed fields only -- table
+  values and Octo document/media info stay on the detail endpoint -- and the
+  projection is scoped to the key's own processes with sensitive keys never
+  entering the select list.
 - GET /api/v1/workitems/fields -- DISCOVERY for the query endpoint: the
   field keys /workitems accepts in ?field= for THIS key's process scope
   (mapping_config field keys mapped for >=1 of the key's processes,
@@ -74,6 +84,7 @@ from werkzeug.datastructures import MultiDict
 
 from ..api_auth import require_api_key
 from ..clients import workitem_clients
+from ..db import engine_ms02_docfields_pg, engine_statistics_db
 from ..extensions import limiter
 from ..workitem_sources import (
     get_domain_for_workitem,
@@ -81,6 +92,7 @@ from ..workitem_sources import (
     total_backlog_count,
 )
 from ..workitems.fields import DOCFIELD_OPS
+from ..workitems.query import fetch_docfield_values
 from ..workitems.sensitivity import (
     _norm_field_token,
     get_search_columns_for_processes,
@@ -224,6 +236,68 @@ def api_v1_undelivered():
 WORKITEM_API_STATUSES = ("Ready", "In Progress", "Done")
 # Mirrors the overview's perPage whitelist -- validated as strings like ?days=.
 WORKITEM_API_PER_PAGE = ("40", "100", "200", "500", "1000")
+
+# ?include= tokens accepted by /workitems (issue #341). Opt-in only: without
+# it the response shape is byte-for-byte what it was before.
+WORKITEM_API_INCLUDE = ("fields",)
+
+# Cap on an inline `include=fields:<key>,<key>` selection (issue #356) --
+# bounds the machine surface like WORKITEM_API_MAX_DOCFIELD_PAIRS does for
+# the filter. A caller wanting more than this wants the whole set anyway.
+WORKITEM_API_MAX_INCLUDE_KEYS = 30
+
+
+def _parse_include_or_400():
+    """(error, want_fields, requested_keys) for ?include=.
+
+    ``fields`` alone means every mapped, non-sensitive key (the #341
+    behaviour). ``fields:invoicenr,kundennr`` narrows the projection to those
+    keys (#356) -- returned lowercased, or None when no list was given.
+
+    The comma separates include TOKENS, so a key list is only accepted on a
+    lone ``fields`` token; everything after the first ``:`` is the list.
+    Unknown tokens 400 rather than being ignored, so a typo'd include never
+    silently returns no fields. The keys themselves are validated by the
+    caller, which alone knows the key's scoped/sensitive sets."""
+    raw = (request.args.get("include") or "").strip()
+    if not raw:
+        return None, False, None
+    head, sep, tail = raw.partition(":")
+    tokens = [t.strip().lower() for t in head.split(",") if t.strip()]
+    if any(t not in WORKITEM_API_INCLUDE for t in tokens):
+        return "include must be one of: " + ", ".join(WORKITEM_API_INCLUDE), False, None
+    want_fields = "fields" in tokens
+    if not sep:
+        return None, want_fields, None
+    if tokens != ["fields"]:
+        return "a field-key list is only valid as include=fields:<key>,<key>", False, None
+    keys = [k.strip().lower() for k in tail.split(",") if k.strip()]
+    if not keys:
+        return "include=fields: must name at least one field key", False, None
+    if len(keys) > WORKITEM_API_MAX_INCLUDE_KEYS:
+        return (
+            f"at most {WORKITEM_API_MAX_INCLUDE_KEYS} field keys per include",
+            False,
+            None,
+        )
+    return None, want_fields, keys
+
+
+def _include_keys_or_400(requested_keys, scoped_columns, blocked_keys):
+    """Validate an inline include key list against the caller's scope, with
+    the SAME grammar ?field= uses (a caller should not have to learn two):
+    unknown and sensitive answer identically (no sensitivity-existence
+    oracle), a real-but-unmapped key names the scope problem. Returns
+    (error, allow_set)."""
+    valid_columns = get_valid_search_columns()
+    for key in requested_keys:
+        if key not in valid_columns or key in blocked_keys:
+            return f"Unknown field '{key}'", None
+        if key not in scoped_columns:
+            return f"Field '{key}' is not available for your process scope", None
+    return None, set(requested_keys)
+
+
 _DOCFIELD_COMBS = ("and", "or")
 # Each doc-field pair fans out into per-mapping-row StatisticsDB subqueries;
 # the UI has a practical handful, so bound the machine surface too instead of
@@ -358,20 +432,25 @@ def _fmt_dt(value):
     return value.strftime("%Y-%m-%d %H:%M:%S") if value else None
 
 
-def _serialize_workitem_row(row, import_map):
+def _serialize_workitem_row(row, import_map, field_map=None):
     wid = row["workitemid"]
     # import_datetime only for default-client rows: an MS02 id can collide
     # with a default stat row (compound identity), so a bare-id lookup would
     # stamp another client's date onto it. The client code itself stays
     # internal -- not part of the response (owner decision 2026-08-17).
     import_dt = import_map.get(str(wid)) if row.get("client") == "default" else None
-    return {
+    out = {
         "id": wid,
         "status": row.get("status"),
         "stage": row.get("current_stage"),
         "modified_at": _fmt_dt(row.get("modifiedat")),
         "import_datetime": _fmt_dt(import_dt),
     }
+    if field_map is not None:
+        # Compound identity: an MS02 id can collide with a default one, so the
+        # projection is keyed (client, id) -- never by bare id.
+        out["fields"] = field_map.get((row.get("client"), wid), {})
+    return out
 
 
 @limiter.limit("60 per minute")
@@ -383,13 +462,26 @@ def api_v1_workitems():
     blocked_keys = get_sensitive_field_keys()
     if blocked_keys is None:
         return jsonify({"error": "Workitems backend unavailable"}), 500
+    err, want_fields, include_keys = _parse_include_or_400()
+    if err:
+        return jsonify({"error": err}), 400
     scoped_columns: set | frozenset = frozenset()
-    if request.args.getlist("field"):
-        # Only resolved when field pairs are present (one extra PK-range read);
-        # None = lookup failure -> fail closed like the sensitive set above.
+    if request.args.getlist("field") or want_fields:
+        # Only resolved when field pairs or ?include=fields are present (one
+        # extra PK-range read); None = lookup failure -> fail closed like the
+        # sensitive set above. For the projection this set IS the allow-list:
+        # only columns mapped for the key's own processes are ever selected.
         scoped_columns = get_search_columns_for_processes(g.api_client["processes"])
         if scoped_columns is None:
             return jsonify({"error": "Workitems backend unavailable"}), 500
+    # The projection's allow-set: the caller's explicit include list (#356) if
+    # it named one, else every mapped, non-sensitive key (#341). Validated
+    # BEFORE any backend work so a typo'd key costs nothing.
+    projected_keys = {k for k in scoped_columns if k not in blocked_keys}
+    if include_keys is not None:
+        err, projected_keys = _include_keys_or_400(include_keys, scoped_columns, blocked_keys)
+        if err:
+            return jsonify({"error": err}), 400
     err, args = _parse_workitems_query(
         g.api_client["processes"],
         validate_fields=True,
@@ -419,6 +511,21 @@ def api_v1_workitems():
             raise RuntimeError(f"degraded sources: {data['degradedSources']}")
         default_ids = [r["workitemid"] for r in data["workitems"] if r.get("client") == "default"]
         import_map = resolve_import_datetimes(default_ids, processes, strict=True)
+        field_map = None
+        if want_fields:
+            # Redaction by construction: the sensitive keys never enter the
+            # projection, so nothing has to be stripped afterwards.
+            ids_by_client: dict[str, list] = {}
+            for r in data["workitems"]:
+                ids_by_client.setdefault(r.get("client"), []).append(r["workitemid"])
+            field_map = fetch_docfield_values(
+                ids_by_client,
+                processes,
+                projected_keys,
+                engine_statistics_db=engine_statistics_db,
+                engine_ms02_docfields_pg=engine_ms02_docfields_pg,
+                logger=current_app.logger,
+            )
     except Exception as e:
         current_app.logger.error(f"external api workitems query failed: {e}")
         return jsonify({"error": "Workitems backend unavailable"}), 500
@@ -429,7 +536,9 @@ def api_v1_workitems():
             "page": pagination["currentPage"],
             "per_page": pagination["perPage"],
             "total_pages": pagination["totalPages"],
-            "workitems": [_serialize_workitem_row(r, import_map) for r in data["workitems"]],
+            "workitems": [
+                _serialize_workitem_row(r, import_map, field_map) for r in data["workitems"]
+            ],
         }
     )
 
@@ -613,6 +722,15 @@ def api_test_v1_undelivered():
     )
 
 
+def _fake_field_value(key):
+    """A plausible sandbox value for a doc-field key: invoice-shaped for the
+    obvious ones, otherwise a bare number -- enough for an integrator to see
+    the shape without a backend read."""
+    if "nr" in key and "kunde" not in key:
+        return f"INV-{date.today().year}-{random.randint(10000, 99999)}"
+    return str(random.randint(10000, 99999))
+
+
 @limiter.limit("60 per minute")
 @require_api_key
 def api_test_v1_workitems():
@@ -620,6 +738,9 @@ def api_test_v1_workitems():
     # whitelist (the sandbox stays zero-backend-query -- any field name is
     # accepted here); random rows in the real shape.
     err, args = _parse_workitems_query(g.api_client["processes"], validate_fields=False)
+    if err:
+        return jsonify({"error": err}), 400
+    err, want_fields, include_keys = _parse_include_or_400()
     if err:
         return jsonify({"error": err}), 400
     per_page = int(args.get("perPage"))
@@ -639,6 +760,18 @@ def api_test_v1_workitems():
                 "import_datetime": imported.strftime("%Y-%m-%d %H:%M:%S"),
             }
         )
+        if want_fields:
+            # Sandbox twin of the real projection (#341/#356): plausible values
+            # in the real shape, still zero backend queries -- so the key list
+            # is echoed as given rather than checked against a live mapping.
+            # Every few rows carry nothing, mirroring "no indexed values for
+            # this workitem".
+            if random.random() < 0.2:
+                rows[-1]["fields"] = {}
+            elif include_keys:
+                rows[-1]["fields"] = {k: _fake_field_value(k) for k in include_keys}
+            else:
+                rows[-1]["fields"] = {k: _fake_field_value(k) for k in ("invoicenr", "kundennr")}
     return jsonify(
         {
             "count": count,

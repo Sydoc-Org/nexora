@@ -58,9 +58,9 @@ class _FakeStatsCursor:
         normalized = " ".join(sql.split())
         if "as TotalDocs" in normalized:
             self._result = [self._kpi_row]
-        elif "GROUP BY CAST(DOC_SCANDATUM AS DATE)" in normalized:
+        elif "GROUP BY CAST(ScannedAt AS DATE)" in normalized:
             self._result = list(self._trend_rows)
-        elif "MAX(CAST(DOC_SCANDATUM AS DATE))" in normalized:
+        elif "MAX(CAST(ScannedAt AS DATE))" in normalized:
             self._result = [(self._latest_day,)] if self._latest_day else []
         else:
             self._result = []

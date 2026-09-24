@@ -105,4 +105,95 @@
                       : `<div class="nx-meta" style="margin-top:8px">${NX.esc(S.i18n.nobody)}</div>`);
   });
   applyGates();
+
+  // ---- override badges (#275): per (profile, permission) count of users
+  // with a personal allow/deny override, shown as a small badge on the cell
+  // instead of only via the "click the row to see holders" panel. ----
+  const profileNames = {};
+  grid.querySelectorAll('thead th[data-access-id]').forEach(th => { profileNames[th.dataset.accessId] = th.querySelector('.nx-mono')?.textContent || ''; });
+  const overrideCounts = {};  // "a:p" -> {A: n, D: n}
+  (S.overrides || []).forEach(([a, p, effect, n]) => {
+    const k = `${a}:${p}`;
+    (overrideCounts[k] || (overrideCounts[k] = {}))[effect] = n;
+  });
+  Object.entries(overrideCounts).forEach(([k, counts]) => {
+    const [a, p] = k.split(':');
+    const badge = grid.querySelector(`sup.perm-override-badge[data-testid="admin-perms-override-${a}-${p}"]`);
+    if (!badge) return;
+    const allow = counts.A || 0, deny = counts.D || 0;
+    const n = allow + deny;
+    if (!n) return;
+    badge.textContent = n;
+    badge.hidden = false;
+    badge.classList.toggle('perm-override-deny', deny > 0 && allow === 0);
+    const profile = profileNames[a] || a;
+    const parts = [];
+    if (allow) parts.push(S.i18n.overrideAllow.replace('{n}', allow).replace('{profile}', profile));
+    if (deny) parts.push(S.i18n.overrideDeny.replace('{n}', deny).replace('{profile}', profile));
+    badge.title = parts.join(' · ');
+  });
+
+  // ---- column picker: show/hide + reorder profile columns (#275) ----
+  const LS_KEY = 'nx.permsGrid.columns';
+  const allIds = [...grid.querySelectorAll('thead th[data-access-id]')].map(th => th.dataset.accessId);
+  const columnsPanel = document.getElementById('permsColumnsPanel');
+  const columnsList = document.getElementById('permsColumnsList');
+  const columnsBtn = document.getElementById('permsColumnsBtn');
+
+  function loadColumnState() {
+    let stored = null;
+    try { stored = JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch (e) { /* ponytail: corrupt/blocked storage falls back to defaults */ }
+    const known = new Set(allIds);
+    let order = (stored && Array.isArray(stored.order) ? stored.order.filter(id => known.has(id)) : []);
+    allIds.forEach(id => { if (!order.includes(id)) order.push(id); });  // new profiles appended at the end
+    const hidden = new Set((stored && Array.isArray(stored.hidden) ? stored.hidden : []).filter(id => known.has(id)));
+    return { order, hidden };
+  }
+  function saveColumnState(state) {
+    try { localStorage.setItem(LS_KEY, JSON.stringify({ order: state.order, hidden: [...state.hidden] })); } catch (e) { /* ponytail: quota/blocked storage, state just won't persist */ }
+  }
+  function applyColumnState(state) {
+    grid.querySelectorAll('thead tr, tbody tr.perm-row').forEach(row => {
+      const cells = {};
+      row.querySelectorAll(':scope > th[data-access-id], :scope > td[data-access-id]').forEach(cell => { cells[cell.dataset.accessId] = cell; });
+      state.order.forEach(id => { if (cells[id]) row.appendChild(cells[id]); });
+    });
+    grid.querySelectorAll('th[data-access-id], td[data-access-id]').forEach(cell => { cell.hidden = state.hidden.has(cell.dataset.accessId); });
+    state.order.forEach(id => {
+      const row = columnsList.querySelector(`.perms-columns-row[data-access-id="${id}"]`);
+      if (row) columnsList.appendChild(row);
+    });
+    columnsList.querySelectorAll('.perms-col-toggle').forEach(cb => { cb.checked = !state.hidden.has(cb.dataset.accessId); });
+  }
+
+  let colState = loadColumnState();
+  applyColumnState(colState);
+
+  columnsBtn?.addEventListener('click', () => { columnsPanel.hidden = !columnsPanel.hidden; });
+  document.addEventListener('click', e => {
+    if (!columnsPanel || columnsPanel.hidden) return;
+    if (!columnsPanel.contains(e.target) && e.target !== columnsBtn && !columnsBtn.contains(e.target)) columnsPanel.hidden = true;
+  });
+  columnsList?.addEventListener('change', e => {
+    const cb = e.target.closest('.perms-col-toggle'); if (!cb) return;
+    const id = cb.dataset.accessId;
+    cb.checked ? colState.hidden.delete(id) : colState.hidden.add(id);
+    applyColumnState(colState); saveColumnState(colState);
+  });
+  columnsList?.addEventListener('click', e => {
+    const row = e.target.closest('.perms-columns-row'); if (!row) return;
+    const id = row.dataset.accessId;
+    const i = colState.order.indexOf(id);
+    if (e.target.closest('.perms-col-up') && i > 0) {
+      [colState.order[i - 1], colState.order[i]] = [colState.order[i], colState.order[i - 1]];
+    } else if (e.target.closest('.perms-col-down') && i < colState.order.length - 1) {
+      [colState.order[i + 1], colState.order[i]] = [colState.order[i], colState.order[i + 1]];
+    } else return;
+    applyColumnState(colState); saveColumnState(colState);
+  });
+  document.getElementById('permsColumnsReset')?.addEventListener('click', () => {
+    try { localStorage.removeItem(LS_KEY); } catch (e) { /* ponytail: nothing to clear */ }
+    colState = { order: [...allIds], hidden: new Set() };
+    applyColumnState(colState);
+  });
 })();

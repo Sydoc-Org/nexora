@@ -112,8 +112,84 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', fetchActiveSessions);
-        setInterval(fetchActiveSessions, 30000);
+        // ---- Locked accounts ----
+        // Always rendered, including when empty. It was hidden-when-empty at
+        // first; the owner then went looking for it twice on a quiet system
+        // and could not tell "nobody is locked" from "it never deployed".
+        // Saying "no locked accounts" costs one row and answers that.
+        const LOCKED_EMPTY = `<tr><td colspan="5" class="admin-empty">` +
+            `<i class="fas fa-circle-check"></i> &nbsp; {{ _("No locked accounts.") }}</td></tr>`;
+
+        async function fetchLockedAccounts() {
+            const wrap = document.getElementById('locked-accounts-wrap');
+            const body = document.getElementById('locked-accounts-body');
+            if (!wrap || !body) return;
+            try {
+                const res = await fetch(`${API_PREFIX}api/admin/locked_accounts`);
+                const data = await res.json();
+                const rows = (data && data.locked) || [];
+                if (!rows.length) { body.innerHTML = LOCKED_EMPTY; return; }
+                body.innerHTML = rows.map(r => {
+                    // A row whose user was deleted still locks the key; show the
+                    // raw id rather than dropping it silently.
+                    const who = r.username
+                        ? `${escapeHtml(r.username)}${r.fullname ? ' <span class="nx-c-meta">(' + escapeHtml(r.fullname) + ')</span>' : ''}`
+                        : `<span class="nx-c-meta">{{ _("unknown user") }} #${escapeHtml(String(r.userID || '?'))}</span>`;
+                    const stage = r.stage === '2fa'
+                        ? '{{ _("Two-factor code") }}'
+                        : '{{ _("Password") }}';
+                    return `<tr>
+                        <td>${who}</td>
+                        <td>${stage}</td>
+                        <td>${escapeHtml(String(r.failed_count ?? '—'))}</td>
+                        <td>${r.locked_until ? window.NX.formatDateTime(r.locked_until) : '—'}</td>
+                        <td style="text-align:right">
+                          <button type="button" class="nx-btn nx-btn--sm nx-btn--secondary js-unlock"
+                                  data-user-id="${escapeHtml(String(r.userID || ''))}"
+                                  data-username="${escapeHtml(r.username || '')}"
+                                  data-testid="admin-unlock-${escapeHtml(String(r.userID || ''))}"
+                                  ${r.userID ? '' : 'disabled'}>
+                            <i class="fas fa-unlock"></i> {{ _("Unlock") }}
+                          </button>
+                        </td>
+                      </tr>`;
+                }).join('');
+            } catch {
+                // A failed poll must not blank a panel that is telling the
+                // truth; leave whatever is on screen. On the very first load
+                // that means the server-rendered spinner stays, which is the
+                // honest state -- we do not know yet.
+            }
+        }
+
+        document.addEventListener('click', async (e) => {
+            const btn = e.target.closest('.js-unlock');
+            if (!btn) return;
+            const userId = btn.getAttribute('data-user-id');
+            const username = btn.getAttribute('data-username');
+            if (!userId) return;
+            if (!confirm(`{{ _("Unlock the account for") }} "${username}"?`)) return;
+            btn.disabled = true;
+            try {
+                const res = await fetch(`${API_PREFIX}admin/users/${encodeURIComponent(userId)}/unlock`, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrfToken }
+                });
+                if (res.ok) {
+                    fetchLockedAccounts();
+                } else {
+                    alert('{{ _("Could not unlock the account.") }}');
+                    btn.disabled = false;
+                }
+            } catch {
+                alert('{{ _("Network error.") }}');
+                btn.disabled = false;
+            }
+        });
+
+        function refreshSessionsPage() { fetchActiveSessions(); fetchLockedAccounts(); }
+        document.addEventListener('DOMContentLoaded', refreshSessionsPage);
+        setInterval(refreshSessionsPage, 30000);
 
         document.addEventListener('click', async (e) => {
             const btn = e.target.closest('.revoke-session-btn');

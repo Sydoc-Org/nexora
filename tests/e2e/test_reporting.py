@@ -474,10 +474,6 @@ ADV_FC_STUB_METRICS = {
 
 
 @pytest.mark.flaky_e2e
-@pytest.mark.skip(
-    reason="#285: .reporting-wells intercepts clicks on the forecast toggle -- "
-    "real CSS layering bug, reproduces 100% (not flaky), needs frontend investigation"
-)
 def test_advanced_forecast_toggle_and_grid_rows(nexora_server, page):
     """Task 7: the Advanced results toolbar's Forecast checkbox appears only
     once the definition is forecast-eligible (single grained date column +
@@ -552,3 +548,39 @@ def test_advanced_forecast_toggle_and_grid_rows(nexora_server, page):
     rows = page.get_by_test_id("rp-forecast-row")
     expect(rows).to_have_count(3)
     expect(rows.first).to_contain_text("Forecast")
+
+
+@pytest.mark.flaky_e2e
+def test_reporting_toolbar_never_overflows_its_column(nexora_server, page):
+    """#298 -- the builder must fit its own box, not the viewport.
+
+    The saved-report and action clusters used to be flex-shrink: 0, so at any
+    width where .reporting-main was narrower than ~1350px they overflowed the
+    middle track and painted over the right-hand wells (hiding the "Columns"
+    heading, Share/Schedule and "+ Add filter"). Checked at three widths that
+    all produce a narrow *container* while the viewport looks roomy.
+    """
+    _login(page, nexora_server)
+    for width in (1800, 1400, 1200):
+        page.set_viewport_size({"width": width, "height": 800})
+        page.wait_for_timeout(150)
+        overflow = page.evaluate(
+            "() => { const t = document.querySelector('.reporting-toolbar');"
+            " return t.scrollWidth - t.clientWidth; }"
+        )
+        assert overflow == 0, f"toolbar overflows by {overflow}px at {width}px"
+
+        # No cluster may extend past the results column it lives in.
+        assert page.evaluate(
+            "() => { const r = document.querySelector('.reporting-results')"
+            ".getBoundingClientRect();"
+            " return ['.reporting-saved', '.reporting-actions'].every(s =>"
+            " document.querySelector(s).getBoundingClientRect().right"
+            " <= r.right + 1); }"
+        ), f"a toolbar cluster spills out of the results column at {width}px"
+
+        # Every well heading keeps a box of its own (none buried/collapsed).
+        assert page.evaluate(
+            "() => [...document.querySelectorAll('.reporting-well h4')]"
+            ".every(h => h.getBoundingClientRect().height > 0)"
+        ), f"a well heading has no box at {width}px"

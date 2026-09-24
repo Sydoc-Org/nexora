@@ -11,7 +11,12 @@ import re
 
 from .semantic import build_aggregate_sql
 
-_IDENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+# A leading digit is allowed because real databases have names like
+# `01_Privera_Posteingang` (#329). This only relaxes *where* a digit may
+# appear, never which characters are permitted: the set is still letters,
+# digits and underscore, so a name can carry no `]` to close the bracket
+# quoting in _quote_ident() early, and no whitespace, quote or semicolon.
+_IDENT = re.compile(r"^[A-Za-z0-9_]+$")
 
 _OP_SYMBOLS = {"eq": "=", "ne": "<>", "gt": ">", "gte": ">=", "lt": "<", "lte": "<="}
 

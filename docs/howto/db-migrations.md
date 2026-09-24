@@ -171,17 +171,28 @@ git commit --no-verify
 
 (Don't leave `SQL_SYNC_SKIP` set in your shell — unset it after the commit.)
 
-### 4. Push to main → PROD gets it automatically
+### 4. Merge to main → STAGING gets it; tag → PROD gets it
 
-When the change lands on `main`, the deploy workflow
-(`.github/workflows/deploy.yml`) runs **`python scripts/db-migrate.py --env PROD
---yes`** as a dedicated step, **before** it stops the IIS app pool. So:
+Every deploy (`.github/workflows/deploy-env.yml`, called per environment by
+`deploy.yml`) runs **`python scripts/db-migrate.py --env <ENV> --yes`** as a
+dedicated step, **before** it stops the IIS app pool. A merge to `main` migrates
+the **STAGING** databases; a `v*` tag push migrates **PROD** (#338). So:
 
 - Migration succeeds → deploy proceeds, code is mirrored, app pool restarts on
   the new schema.
 - Migration **fails** → the deploy **aborts** and the running app keeps serving
   the old code on the old schema. Nothing breaks; you fix the migration and push
   again.
+
+**STAGING databases.** `nexora_STAGING` and `Generali_STAGING` live on the PROD SQL
+server and are re-created from PROD every night at 01:00 by the SQL Agent job
+`nexora - staging refresh` (`ops/staging-refresh.sql`: COPY_ONLY backup → RESTORE
+WITH REPLACE, recovery SIMPLE). The restored copy carries PROD's
+`dbo.SchemaMigrations`, so at 01:30 `deploy.yml`'s schedule redeploys `main` to
+staging and re-applies every migration `main` has beyond PROD. That is a nightly
+rehearsal on real data: a migration that is not idempotent, or that PROD's data
+cannot take, fails on staging first. PROD schema moves only when a release is
+tagged. Vendor databases (Octo, Statistics, MS02) are shared read-only with PROD.
 
 For an **ad-hoc PROD migration** from your dev box (e.g. a hotfix outside the
 deploy pipeline):
@@ -383,7 +394,7 @@ python scripts/db-migrate.py --env INT
 # 3. commit — pre-commit hook re-applies to INT + verifies the per-object dump
 git add sql/_migrations/<Db>/NNNN_desc.sql sql/<Db>/
 git commit -m "feat(db): ..."
-# 4. push to main — deploy.yml applies pending migrations to PROD before the app pool stops
+# 4. merge to main — deploy applies pending migrations to STAGING; a v* tag does the same to PROD
 ```
 
 ## See also

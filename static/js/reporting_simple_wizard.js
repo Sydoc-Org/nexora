@@ -824,6 +824,34 @@
     }) || null;
   }
 
+  // Reveal a wizard step and bring it into view.
+  //
+  // The steps stack in one long card instead of replacing each other, so
+  // unhiding one renders it below the fold and leaves the scroll position
+  // alone -- Continue reads as doing nothing at all. 90px of headroom keeps
+  // the question clear of the sticky wizard header rather than pinning it to
+  // the very top edge.
+  //
+  // Only scrolls when the step was actually hidden: re-rendering an already
+  // open step (every keystroke in a filter, say) must not yank the page.
+  var PREFERS_REDUCED_MOTION = !!(window.matchMedia &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+  function revealStep(el) {
+    if (!el) return;
+    var wasHidden = el.hidden;
+    el.hidden = false;
+    if (!wasHidden) return;
+    // rAF once so the step's entrance animation has laid out before measuring.
+    requestAnimationFrame(function () {
+      var top = el.getBoundingClientRect().top + window.pageYOffset - 90;
+      window.scrollTo({
+        top: top < 0 ? 0 : top,
+        behavior: PREFERS_REDUCED_MOTION ? 'auto' : 'smooth'
+      });
+    });
+  }
+
   function renderScopeStep() {
     var w = RS.state.wiz;
     var procs = w.source.processes || [];
@@ -831,7 +859,7 @@
     var pf = processFieldFor(w.source);
     if (!procs.length && !pf) { step.hidden = true; renderBreakdownStep(); return; }
     if (!procs.length && pf) { renderFieldScopeStep(step, pf); return; }
-    step.hidden = false;
+    revealStep(step);
     RS.el('rsStepBreakdown').hidden = true;
     RS.el('rsStepTime').hidden = true;
     RS.el('rsWizardRun').hidden = true;
@@ -860,7 +888,7 @@
 
   async function renderFieldScopeStep(step, pf) {
     var w = RS.state.wiz;
-    step.hidden = false;
+    revealStep(step);
     RS.el('rsStepBreakdown').hidden = true;
     RS.el('rsStepTime').hidden = true;
     RS.el('rsWizardRun').hidden = true;
@@ -908,7 +936,7 @@
   }
 
   function renderBreakdownStep() {
-    RS.el('rsStepBreakdown').hidden = false;
+    revealStep(RS.el('rsStepBreakdown'));
     RS.el('rsStepTime').hidden = true;
     RS.el('rsWizardRun').hidden = true;
     var w = RS.state.wiz;
@@ -1128,6 +1156,17 @@
     if (!RS.state.wiz._fp && window.flatpickr) {
       RS.state.wiz._fp = flatpickr(RS.el('rsTimeRange'), {
         mode: 'range', dateFormat: 'Y-m-d',
+        // allowInput: every other picker in the app passes it (10 of them);
+        // this one did not, so flatpickr marked the field readonly and you
+        // could not type a range -- only click one out.
+        allowInput: true,
+        // static: render the calendar inside a wrapper next to the input
+        // instead of absolutely positioned against <body>. The wizard is one
+        // very long scrolling page, and the body-positioned calendar opened
+        // well below the field it belongs to. Static anchors it to the input,
+        // so there is no page-coordinate arithmetic left to get wrong. Safe
+        // here: nothing between this input and <html> clips overflow.
+        static: true,
         onChange: function (picked) {
           if (picked.length === 2) {
             RS.state.wiz.range = [isoDate(picked[0]), isoDate(picked[1])];
@@ -1231,7 +1270,7 @@
   }
 
   function renderTimeStep() {
-    RS.el('rsStepTime').hidden = false;
+    revealStep(RS.el('rsStepTime'));
     renderWizFilters();
     RS.el('rsWizardRun').hidden = false;
     RS.el('rsTimeCustom').hidden = !Array.isArray(RS.state.wiz.range);

@@ -747,6 +747,125 @@ def test_set_new_password_mismatch_then_retry_with_same_token_succeeds(client):
         conn.close()
 
 
+def test_set_new_password_clears_login_lockout_then_new_password_logs_in(client):
+    """A reset is how a locked-out user gets unstuck. login() checks
+    dbo.LoginLockout before it compares the password, so a reset that left
+    the counter in place refused the brand-new password for the rest of the
+    window. The 2FA counter ("2fa:<id>") must survive: a mailed link proves
+    nothing about the TOTP device."""
+    from nx_lib.db import engine_nexora_db
+    from nx_lib.extensions import s
+
+    email = "admin@test.local"
+    new_password = "UnlockedByReset1!"
+    token = s.dumps(email, salt="password-reset-salt")
+    _clear_reset_token_marker(client, token)
+
+    conn = engine_nexora_db.raw_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT password, userid, username FROM Users WHERE Email = ?", email)
+    original_hash, userid, username = cursor.fetchone()
+    for key in (str(userid), f"2fa:{userid}"):
+        cursor.execute("DELETE FROM dbo.LoginLockout WHERE userid = ?", key)
+        cursor.execute(
+            "INSERT INTO dbo.LoginLockout (userid, failed_count, locked_until) "
+            "VALUES (?, 5, DATEADD(minute, 15, GETUTCDATE()))",
+            key,
+        )
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    try:
+        assert client.get(f"/reset_password/{token}").status_code == 200
+        resp = client.post(
+            "/set_new_password",
+            data={"new-password": new_password, "confirm-password": new_password},
+        )
+        assert b"password changed" in resp.data.lower()
+
+        conn = engine_nexora_db.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT userid FROM dbo.LoginLockout WHERE userid IN (?, ?)",
+            (str(userid), f"2fa:{userid}"),
+        )
+        remaining = {r[0] for r in cursor.fetchall()}
+        cursor.close()
+        conn.close()
+        assert remaining == {f"2fa:{userid}"}
+
+        login_resp = client.post(
+            "/login",
+            data={"username": username, "password": new_password},
+            follow_redirects=False,
+        )
+        assert login_resp.status_code == 302, login_resp.data[:300]
+    finally:
+        conn = engine_nexora_db.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE Users SET password = ? WHERE Email = ?", (original_hash, email))
+        cursor.execute(
+            "DELETE FROM dbo.LoginLockout WHERE userid IN (?, ?)", (str(userid), f"2fa:{userid}")
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+
+def test_set_new_password_update_matching_no_row_is_not_reported_as_success(client, monkeypatch):
+    """The reset used to UPDATE ... WHERE email = ? and report "Password
+    changed" whatever it matched. If the write lands on no row the user must
+    see the failure page, and the token must stay unspent."""
+    from nx_lib.views import auth
+
+    email = "admin@test.local"
+    real_raw_connection = auth.engine_nexora_db.raw_connection
+
+    class _NoRowCursor:
+        def __init__(self, inner):
+            self._inner = inner
+            self._zero = False
+
+        def execute(self, sql, *args):
+            self._zero = sql.lstrip().upper().startswith("UPDATE USERS")
+            if self._zero:
+                return self
+            return self._inner.execute(sql, *args)
+
+        @property
+        def rowcount(self):
+            return 0 if self._zero else self._inner.rowcount
+
+        def __getattr__(self, name):
+            return getattr(self._inner, name)
+
+    class _Conn:
+        def __init__(self):
+            self._inner = real_raw_connection()
+
+        def cursor(self):
+            return _NoRowCursor(self._inner.cursor())
+
+        def __getattr__(self, name):
+            return getattr(self._inner, name)
+
+    monkeypatch.setattr(auth.engine_nexora_db, "raw_connection", lambda: _Conn())
+    key = auth._reset_token_cache_key("test-update-no-row-token")
+    with client.session_transaction() as sess:
+        sess["email_for_password_reset"] = email
+        sess["password_reset_token_key"] = key
+
+    resp = client.post(
+        "/set_new_password",
+        data={"new-password": "NeverWritten1!", "confirm-password": "NeverWritten1!"},
+    )
+    assert b"password changed" not in resp.data.lower()
+    assert b"something went wrong" in resp.data.lower()
+    with client.application.app_context():
+        assert not auth.cache.get(key)
+
+
 def test_set_new_password_missing_token_key_rejected(client):
     """Phase-10 finding fix: a session carrying the "may set a new password"
     capability but missing password_reset_token_key (e.g. seeded directly,
@@ -907,3 +1026,23 @@ def test_ui_pref_prepaint_is_shared_not_duplicated():
     assert "_ui_prefs_prepaint.html" in twofa
     assert "applyCustomAccent" not in header, "header still holds its own copy"
     assert "applyCustomAccent" not in twofa, "2FA page inlined a copy"
+
+
+def test_dev_login_blocks_proxied_request_even_from_loopback(client):
+    """Hosted dev (#338): IIS is the socket peer, so remote_addr is 127.0.0.1 for
+    every public request. A forwarded request must still be refused."""
+    resp = client.get(
+        "/dev/login/admin@test.local",
+        headers={"X-Forwarded-For": "203.0.113.7"},
+        environ_overrides={"REMOTE_ADDR": "127.0.0.1"},
+    )
+    assert resp.status_code == 404
+
+
+def test_dev_login_blocks_public_hostname_even_from_loopback(client):
+    resp = client.get(
+        "/dev/login/admin@test.local",
+        base_url="https://dev-nexora.sydoc.ch",
+        environ_overrides={"REMOTE_ADDR": "127.0.0.1"},
+    )
+    assert resp.status_code == 404
