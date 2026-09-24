@@ -55,6 +55,11 @@ every `.nx-filter` page folds its filters behind one button on a touch phone. **
 `gh run rerun 35968313374` (replays the last phone-branch deploy, `42635bf`). **Keep:** merge
 it into `feat/354-phone-tabbar`. Ideas 3-5 (one-tap with time, start page, "not delivered")
 wait on the owner's survey + the boss — see the memory note on Generali post reporting.
+Follow-ups on the same branch: `56555bc3` + `1a35c849` — readable boxes (Today rows two-line, card
+labels brighter, form KPI dropdown full-width) and dashboard charts (recipient chart grows per bar,
+doughnut legends ellipsised via `Chart.overrides.doughnut`). **Open:** the owner says "Report now"
+does nothing on their phone; not reproducible in WebKit/Chromium by tap (form opens, submit saves) —
+asked for device/browser and what exactly happens. Dev runs `1a35c84`.
 
 **GitHub housekeeping:** closed #329 (six billing sources live), trimmed #332 to its MediaMarkt
 question, closed #388–#394 by hand (the branch never merges, so "Closes" lines don't fire).
