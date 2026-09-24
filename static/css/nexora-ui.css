@@ -969,6 +969,29 @@ html[data-fontscale="lg"] body { zoom: 1.1; }
 html[data-fontscale="sm"] #nexora-sidebar { zoom: 1.1111; }
 html[data-fontscale="lg"] #nexora-sidebar { zoom: 0.9091; }
 
+/* ...but never on a touch phone. The setting follows the account onto the
+   phone, and WebKit (every iPhone browser) does not scale position:fixed
+   boxes with body's zoom the same way as the page: at "sm" the report sheet,
+   the Undo bar and the tab bar came out ~11% wider than the screen, and taps
+   landed beside the buttons they aimed at (Edit/Delete "did nothing"). The
+   phone has its own text size setting, so nexora's is left to the desktop. */
+@media (max-width: 768px) and (pointer: coarse) {
+  html[data-fontscale] body,
+  html[data-fontscale] #nexora-sidebar { zoom: 1; }
+
+  /* Small links the phone sweep (scripts/phone-sweep.py) measured under the
+     44px tap minimum: the Generali pages' brand mark and data-transfer links,
+     the footer links, the organizations table's links and edit button, the
+     reporting sort box. Height only; how they look does not change. */
+  .brand-bar .brand-mark,
+  .transmissions .transmission > a,
+  .nx-footer-links a,
+  tr[id^="org-"] > td > a,
+  tr[id^="org-"] .edit-organization-btn { display: inline-flex; align-items: center; min-height: 44px; }
+  tr[id^="org-"] .edit-organization-btn { min-width: 44px; justify-content: center; }
+  select#rsSort { min-height: 44px; }
+}
+
 /* High contrast: stronger borders + darker secondary text */
 html.nx-contrast {
   --nx-border: #cbd5e1; --nx-border-strong: #94a3b8; --nx-divider: #e2e8f0;
@@ -1705,11 +1728,11 @@ html.dark .flatpickr-day:hover { background: var(--nx-alt); }
   .rp-quick__question { margin: 18px 0 10px; font-size: 17px; font-weight: 600; }
   .rp-quick__choices { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .rp-quick__choice {
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
-    min-height: 96px; border-radius: 16px; border: 2px solid transparent;
-    font-size: 18px; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    min-height: 60px; padding: 0 10px; border-radius: 14px; border: 2px solid transparent;
+    font-size: 17px; font-weight: 700; cursor: pointer;
   }
-  .rp-quick__choice i { font-size: 30px; }
+  .rp-quick__choice i { font-size: 22px; }
   .rp-quick__choice--ok   { background: var(--nx-l-green); color: var(--nx-l-green-fg); }
   .rp-quick__choice--late { background: var(--nx-l-red);   color: var(--nx-l-red-fg); }
   .rp-quick__choice:focus-visible { border-color: var(--nx-accent); outline: none; }
@@ -1724,7 +1747,7 @@ html.dark .flatpickr-day:hover { background: var(--nx-alt); }
 
   /* "+ Another report" on the KPIs that may be reported several times a day. */
   .rp-kpi__more {
-    min-height: 40px; padding: 0 14px;
+    min-height: 44px; padding: 0 14px;
     border-radius: 999px; border: 1px dashed var(--nx-accent); background: none;
     font-size: 15px; font-weight: 600; color: var(--nx-accent); cursor: pointer;
   }

@@ -229,7 +229,10 @@
 
         tbody._recordMap = recordMap;
 
-        if (canEdit || canDelete) {
+        // Once per tbody: this runs on every page load of the table, and a
+        // listener per render stacked up (one tap opened the modal N times).
+        if ((canEdit || canDelete) && !tbody._actionsWired) {
+            tbody._actionsWired = true;
             tbody.addEventListener('click', e => {
                 if (canEdit) {
                     const editBtn = e.target.closest('.edit-record-btn');

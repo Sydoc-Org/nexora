@@ -115,6 +115,15 @@ when there isn't enough room.
 - **`/install` — "Nexora on your phone"** (user menu): how to put nexora on
   the home screen on iPhone and Android, with a QR code of this host's
   sign-in page.
+- **Phone: the small/large text setting no longer applies on a touch phone.**
+  It is CSS `zoom` on `body`, and WebKit did not scale fixed boxes with it: at
+  "small" the report sheet, the Undo bar and the tab bar came out ~11% wider
+  than the screen and taps landed beside Edit/Delete. The phone's own text
+  size setting still works. Desktop unchanged.
+- **Phone: smaller On Time / Late buttons** in the report sheet, 44px tap
+  targets for the Generali page links, footer links, organizations table and
+  reporting sort box; the reporting table no longer adds a new click listener
+  on every reload.
 - **Filters are folded away on a phone.** Every list page with a filter
   block (Generali, admin, tenant pages) opens with one "Filters" button
   instead of the fields. The button shows how many filters are set, so
