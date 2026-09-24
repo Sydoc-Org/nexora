@@ -17,6 +17,10 @@
     <li>Geschäftsdokumente, ihre Indexfelder und Einträge wie Meldungen oder Stunden, im Auftrag der Organisation, deren Daten es sind.</li>
 </ul>
 
+<h2>Besonders schützenswerte Daten</h2>
+<p>Die Geschäftsdokumente, die über nexora bearbeitet werden, können besonders schützenswerte Personendaten enthalten, bei Versicherungen zum Beispiel Gesundheitsangaben in Anträgen, Gesundheitsfragen oder Arztunterlagen. Sydoc bearbeitet diese Daten ausschliesslich im Auftrag der Organisation, der sie gehören, und nur zu dem Zweck, für den diese Organisation sie Sydoc anvertraut hat. Sie werden nicht für andere Zwecke verwendet. Zugriff hat nur, wer dafür eine Berechtigung hat. Die Personen, die in diesen Dokumenten vorkommen, informiert die jeweilige Organisation als Verantwortliche selbst.</p>
+<div class="legal-gap">Noch zu bestätigen: wo diese Dokumente gespeichert sind (Land) und welche zusätzlichen Schutzmassnahmen gelten.</div>
+
 <h2>Wozu diese Daten dienen</h2>
 <p>Kontodaten dienen dazu, Ihnen Zugang zu geben und nexora in Ihrer Sprache anzuzeigen. Passwort-Hash und Zwei-Faktor-Geheimnis stellen sicher, dass wirklich Sie sich anmelden. Sitzungsdaten halten Sie zwischen zwei Aufrufen angemeldet und zeigen einer Administratorin, welche Sitzungen aktiv sind. Das Zugriffsprotokoll dient der Fehlersuche und dem Erkennen von Missbrauch eines Kontos. Geschäftsdokumente werden bearbeitet, um die Dienstleistung zu erbringen, die Ihre Organisation bei Sydoc bezogen hat.</p>
 
@@ -24,19 +28,25 @@
 <ul>
     <li>Zugriffsprotokoll: 180 Tage, danach wird es automatisch gelöscht.</li>
     <li>Sitzungsdaten mit IP-Adresse: 8 Tage, danach werden sie automatisch gelöscht.</li>
-    <li>Konten: so lange, bis Ihre Organisation die Löschung beantragt. Konten werden nicht automatisch gelöscht, weil Ihre Organisation sie verwaltet und sie Teil der Verrechnung sind.</li>
+    <li>Konten: so lange, bis Ihre Organisation die Löschung beantragt. Konten werden heute nicht automatisch gelöscht, weil Ihre Organisation sie verwaltet und sie Teil der Verrechnung sind.</li>
     <li>Geschäftsdokumente und Einträge: gemäss dem Vertrag zwischen Sydoc und Ihrer Organisation.</li>
 </ul>
 <div class="legal-gap">Noch zu bestätigen: wie lange Geschäftsdokumente und Einträge aufbewahrt werden, sofern der Vertrag mit der Organisation dazu nichts regelt.</div>
+<div class="legal-gap">Noch zu entscheiden: Konten von Personen, die ihre Organisation verlassen haben, werden deaktiviert und nach einer festen Frist (zum Beispiel 12 Monaten) gelöscht oder anonymisiert; für die Verrechnung bleibt nur der Verrechnungsnachweis. Diese Regel ist noch nicht umgesetzt.</div>
 
 <h2>Wer die Daten erhält</h2>
 <ul>
     <li>Microsoft: Teile von nexora laufen auf Microsoft Azure in der Region Schweiz, und E-Mails, zum Beispiel geplante Berichte, werden über Microsoft 365 versandt.</li>
-    <li>ngrok, Inc. (USA): nexora ist über einen Dienst von ngrok aus dem Internet erreichbar. Der Datenverkehr läuft dabei über Server von ngrok, auch ausserhalb der Schweiz. Mit ngrok besteht ein Vertrag.</li>
+    <li>ngrok, Inc. (USA): nexora ist über einen Dienst von ngrok aus dem Internet erreichbar. Der Datenverkehr läuft dabei über Server von ngrok, auch in den USA. Mit ngrok besteht ein Vertrag.</li>
+    <li>Beim Laden der Seiten holt Ihr Browser Schriften bei Google Fonts (Google, USA) und Programmteile bei cdnjs (Cloudflare, USA) und jsDelivr ab. Dabei erhalten diese Anbieter Ihre IP-Adresse.</li>
     <li>Der Berichts-Assistent sendet die Struktur der Datenbanken, die er lesen darf, also Tabellen- und Spaltennamen, an einen KI-Anbieter, um eine Frage in eine Abfrage zu übersetzen. Datenzeilen werden nur bei den wenigen Konten mitgesendet, die dafür eine besondere Berechtigung haben.</li>
 </ul>
 <div class="legal-gap">Noch zu bestätigen: welcher KI-Anbieter auf der Produktion eingesetzt wird, in welchem Land er die Daten bearbeitet und ob ein Vertrag zur Auftragsbearbeitung besteht.</div>
+<div class="legal-gap">Noch zu bestätigen: Daten gehen in die USA (ngrok, Google Fonts, cdnjs/Cloudflare, jsDelivr und allenfalls der KI-Anbieter). Für jede dieser Bekanntgaben ist anzugeben, worauf sie sich stützt, zum Beispiel auf die Zertifizierung des Anbieters nach dem Swiss-U.S. Data Privacy Framework oder auf Standardvertragsklauseln.</div>
 <p>Nutzen künftig Personen aus der EU nexora, gelten für sie zusätzlich die Rechte nach der Datenschutz-Grundverordnung; die Einzelheiten regelt die Vereinbarung zur Auftragsbearbeitung mit der jeweiligen Organisation.</p>
+
+<h2>Cookies und Speicher im Browser</h2>
+<p>nexora setzt ein einziges Cookie: das Anmelde-Cookie, das Sie zwischen zwei Aufrufen angemeldet hält. Es ist für den Betrieb nötig, für Skripte nicht lesbar und läuft spätestens nach 24 Stunden ab. Zusätzlich speichert Ihr Browser Ihre Einstellungen, zum Beispiel Hell- oder Dunkelmodus, ob die Seitenleiste angeheftet ist oder welcher Reiter zuletzt offen war. Diese Einstellungen verlassen Ihren Browser nicht. nexora verwendet keine Cookies zur Werbung oder zur Auswertung Ihres Verhaltens.</p>
 
 <h2>Ihre Rechte</h2>
 <p>Sie können Auskunft darüber verlangen, welche Daten über Sie bearbeitet werden, und verlangen, dass sie berichtigt oder gelöscht werden. Schreiben Sie dazu an <a href="mailto:privacy@sydoc.ch">privacy@sydoc.ch</a>. Wir beantworten Auskunftsbegehren innert 30 Tagen und prüfen vorher Ihre Identität, bevor wir Daten herausgeben. Gehören die Daten Ihrer Organisation, leiten wir die Anfrage an sie weiter, weil sie darüber entscheidet.</p>

@@ -59,6 +59,29 @@ they can be published.
 > 7. Management review and sign-off → then remove the draft banner
 >    (`test_both_pages_carry_the_draft_notice` pins it) and merge.
 >
+> **Review findings, same day (in the text now, marked open where undecided):**
+>
+> 8. **Sensitive data** — Generali documents include health data
+>    ("Gesundheitsfragen", "Arztunterlagen"), which the revDSG treats as
+>    particularly sensitive. The privacy page now has a section for it; *where*
+>    the documents are stored (country) and the extra safeguards are open.
+> 9. **Disclosure abroad** — to the USA via ngrok, and via the browser to
+>    Google Fonts, cdnjs (Cloudflare) and jsDelivr on every page load, plus the
+>    AI provider if it is abroad. The page must name the safeguard for each
+>    (Swiss-U.S. Data Privacy Framework certification or standard contractual
+>    clauses). Self-hosting the fonts and scripts would remove three of them.
+> 10. **Jurisdiction** — Baar has no court; the text now says Zug (seat Baar
+>     ZG), to be confirmed by a legal professional.
+> 11. **Accounts never deleted** — conflicts with keeping data only as long as
+>     needed. Proposed on the page as "to be decided": deactivate, then delete
+>     or anonymise after e.g. 12 months, keep only the billing record. Needs a
+>     decision **and** engineering work (no such job exists).
+> 12. **Cookies** — one necessary sign-in cookie (HttpOnly, 24 h on PROD) and
+>     settings in the browser's local storage; now described. No banner needed.
+> 13. **The Terms are never accepted by a user** — they bind only through the
+>     client contract, so the contracts should say that the nexora terms of use
+>     are part of them.
+>
 > The questions below are the original list, kept for the reasoning behind
 > each one.
 

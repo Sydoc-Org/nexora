@@ -128,3 +128,35 @@ def test_draft_pages_are_off_on_prod(client, monkeypatch):
     body = client.get("/login").get_data(as_text=True)
     assert 'data-testid="footer-terms"' not in body
     assert 'data-testid="footer-privacy"' not in body
+
+
+def test_privacy_covers_sensitive_data_transfers_abroad_and_cookies(client):
+    """The gaps found in review (2026-09-24): health data in insurance
+    documents, disclosure to the USA (ngrok, the font/script CDNs), and the
+    sign-in cookie -- in both language versions."""
+    de = client.get("/privacy?lang=de").get_data(as_text=True)
+    en = client.get("/privacy?lang=en").get_data(as_text=True)
+    for needle in (
+        "Besonders schützenswerte",
+        "Gesundheitsangaben",
+        "USA",
+        "Google Fonts",
+        "Cookies und Speicher im Browser",
+        "Data Privacy Framework",
+    ):
+        assert needle in de, needle
+    for needle in (
+        "Sensitive data",
+        "health information",
+        "USA",
+        "Google Fonts",
+        "Cookies and browser storage",
+        "Data Privacy Framework",
+    ):
+        assert needle in en, needle
+
+
+def test_terms_name_the_court_of_the_seat(client):
+    """Baar has no court of its own; jurisdiction is Zug."""
+    assert "Gerichtsstand ist Zug" in client.get("/terms?lang=de").get_data(as_text=True)
+    assert "jurisdiction is Zug" in client.get("/terms?lang=en").get_data(as_text=True)
