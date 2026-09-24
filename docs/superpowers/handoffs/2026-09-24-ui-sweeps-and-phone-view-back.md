@@ -47,6 +47,15 @@ item in it is resolved except the eye-toggle question (see Next steps).
 | `c849f7e7` | owner request: Generali Documents had cards inside a same-looking box -- in card mode `.nx-table-wrap` drops its frame (`_header.css`) |
 | `071358b9` | owner request: Generali From/To looked "weird" on a phone — flatpickr swapped them for iOS native date fields. `nx_core.js` sets `flatpickr.setDefaults({ disableMobile: true })` once; same input + calendar as desktop (fits 320px) |
 
+**Test branch `feat/phone-post-focus` (dev runs it, `d953175e`)** — cut from the phone branch
+after the owner said Generali/ISS users have no phone access yet and asked for a reversible
+test: Generali Reporting opens with a "Today" board (per KPI on time / late / both / not
+reported yet, "Report now" opens the form with the KPI preset, month on-time rate) and
+every `.nx-filter` page folds its filters behind one button on a touch phone. **Undo on dev:**
+`gh run rerun 35968313374` (replays the last phone-branch deploy, `42635bf`). **Keep:** merge
+it into `feat/354-phone-tabbar`. Ideas 3-5 (one-tap with time, start page, "not delivered")
+wait on the owner's survey + the boss — see the memory note on Generali post reporting.
+
 **GitHub housekeeping:** closed #329 (six billing sources live), trimmed #332 to its MediaMarkt
 question, closed #388–#394 by hand (the branch never merges, so "Closes" lines don't fire).
 Deleted merged branches locally and on origin. New long-lived branch `docs/issue-screenshots`
