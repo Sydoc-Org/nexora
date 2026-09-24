@@ -49,7 +49,13 @@
     // filled in by generali_reporting.js. Jinja's newstyle gettext always
     // %-formats, so the literal percent sign has to be written %%.
     monthLine: {{ _("This month: {pct}%% on time · {ontime} of {total} reports")|tojson }},
-    monthNone: {{ _("No reports this month yet")|tojson }}
+    monthNone: {{ _("No reports this month yet")|tojson }},
+    anotherReport: {{ _("Another report")|tojson }},
+    thisWeek: {{ _("This week")|tojson }},
+    // Monday to Friday, two letters each
+    weekdays: [{{ _("Mo")|tojson }}, {{ _("Tu")|tojson }}, {{ _("We")|tojson }}, {{ _("Th")|tojson }}, {{ _("Fr")|tojson }}],
+    reported: {{ _("Saved")|tojson }},
+    undone: {{ _("Undone. The report was removed.")|tojson }}
   };
 </script>
 <script src="{{ static_v('js/generali_reporting.js') }}"></script>

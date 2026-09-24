@@ -39,6 +39,9 @@
 
     // Details (archive/stray) disabled — these categories now behave like export_post/export_post_scan (on-time/late only)
     const ARCHIVE_CATS = []; // was: ['provision_archive', 'stray_document_digital', 'stray_document_physical']
+    // The categories the add endpoint allows several times per day (its
+    // `multi_allowed`); every other KPI is once per person and day.
+    const MULTI_PER_DAY = ['provision_archive', 'stray_document_digital', 'stray_document_physical'];
 
     function ontimeBadge(ontime) {
         if (ontime) {
@@ -986,7 +989,22 @@
                     <span class="rp-kpi__name">${NX.esc(name)}</span>
                     <span class="rp-kpi__sub">${NX.esc(kpi)}${meta ? ' · ' + NX.esc(meta) : ''}</span>
                 </span>
-                <span class="rp-kpi__status">${NX.esc(state === 'open' && openBtn ? I18N.reportNow : statusText)}</span>`;
+                <span class="rp-kpi__actions">
+                    <span class="rp-kpi__status">${NX.esc(state === 'open' && openBtn ? I18N.reportNow : statusText)}</span>
+                </span>`;
+            // KPI 3/12/13 may be reported several times a day (the server's
+            // duplicate check skips them); once one exists the row is no longer
+            // a button, so offer the next one explicitly.
+            if (state !== 'open' && openBtn && MULTI_PER_DAY.includes(cat.value)) {
+                const more = document.createElement('button');
+                more.type = 'button';
+                more.className = 'rp-kpi__more';
+                more.textContent = '+ ' + I18N.anotherReport;
+                more.setAttribute('aria-label', `${I18N.anotherReport}: ${name}`);
+                more.setAttribute('data-testid', `generali-reporting-today-more-${cat.value}`);
+                more.addEventListener('click', () => openQuick(cat.value, name, kpi));
+                row.querySelector('.rp-kpi__actions').appendChild(more);
+            }
             if (row.tagName === 'BUTTON') {
                 row.type = 'button';
                 row.setAttribute('aria-label', `${I18N.reportNow}: ${name}`);
@@ -994,6 +1012,8 @@
             }
             list.appendChild(row);
         });
+
+        loadWeek(now);
 
         // This month's on-time rate from two counts on the same API, so it
         // needs no new endpoint: all reports this month, and the on-time ones.
@@ -1015,11 +1035,85 @@
     }
     PHONE.addEventListener('change', loadToday);
 
+    // ----------------------------- phone "This week" strip ----------------------------- //
+    // Monday to Friday of this week, one row per KPI, one dot per day: green
+    // on time, red late, amber both, grey ring not reported. A missing or late
+    // day shows at a glance. One call to the same list API with all=true.
+    async function loadWeek(now) {
+        const box = document.getElementById('rpWeek');
+        if (!box) return;
+        const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7));
+        const days = [0, 1, 2, 3, 4].map(i => new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i));
+        const today = localDay(now);
+        let records;
+        try {
+            const p = new URLSearchParams({ startDate: localDay(monday), endDate: today, all: 'true' });
+            records = (await countRecords(p)).records || [];
+        } catch (e) {
+            box.hidden = true;
+            return;
+        }
+        const dayOf = r => (r.reportForDate || '').split('T')[0];
+        const head = days.map((d, i) =>
+            `<th scope="col"${localDay(d) === today ? ' class="is-today"' : ''}>${NX.esc(I18N.weekdays[i])}</th>`).join('');
+        const body = ALL_CATEGORIES.map(cat => {
+            const [kpi, name] = splitKpi(cat.label);
+            const cells = days.map(d => {
+                const key = localDay(d);
+                if (key > today) return '<td><span class="rp-dot rp-dot--future" aria-hidden="true"></span></td>';
+                const recs = records.filter(r => r.category === cat.value && dayOf(r) === key);
+                const late = recs.filter(r => !r.ontime).length;
+                const st = !recs.length ? 'none' : late === 0 ? 'ok' : late === recs.length ? 'late' : 'mixed';
+                const label = { none: I18N.notReportedYet, ok: I18N.onTime, late: I18N.late, mixed: I18N.mixed }[st];
+                return `<td><span class="rp-dot rp-dot--${st}" role="img" aria-label="${NX.esc(name)}, ${NX.esc(formatDate(key))}: ${NX.esc(label)}"></span></td>`;
+            }).join('');
+            return `<tr><th scope="row" title="${NX.esc(name)}">${NX.esc(kpi)}</th>${cells}</tr>`;
+        }).join('');
+        box.innerHTML = `<h3 class="rp-week__title">${NX.esc(I18N.thisWeek)}</h3>
+            <table class="rp-week__grid" data-testid="generali-reporting-week"><thead><tr><th></th>${head}</tr></thead><tbody>${body}</tbody></table>`;
+        box.hidden = false;
+    }
+
     // ----------------------------- phone quick report ----------------------------- //
     // "Report now" -> a short sheet: the KPI and today's date are already
     // known, so one of two big buttons saves the report. Same POST as the full
     // form sends for a single entry; the server still enforces one report per
     // day and KPI and the add deadline, and its message is shown if it refuses.
+    // "Saved · Undo" for ten seconds after a one-tap report, so a wrong tap is
+    // easy to take back. The server only lets the reporter undo their own
+    // report, within 10 minutes (UNDO_WINDOW_SECONDS in reporting.py).
+    let undoTimer = null;
+    function showUndo(done) {
+        const bar = document.getElementById('rpUndo');
+        if (!bar) return;
+        clearTimeout(undoTimer);
+        const text = bar.querySelector('.rp-undo__text');
+        const btn = bar.querySelector('.rp-undo__btn');
+        text.textContent = `${I18N.reported}: ${done.name} · ${done.ontime ? I18N.onTime : I18N.late}`;
+        btn.hidden = !done.id;
+        btn.disabled = false;
+        btn.onclick = async () => {
+            btn.disabled = true;
+            clearTimeout(undoTimer);
+            try {
+                const res = await fetch(`${API_PREFIX}api/generali/reporting/${done.id}/undo`, {
+                    method: 'POST', headers: { 'X-CSRFToken': csrfToken }
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!data.success) throw new Error(data.error || I18N.saveFailed);
+                text.textContent = I18N.undone;
+                fetchRecords(1);
+                loadToday();
+            } catch (e) {
+                text.textContent = e.message || I18N.saveFailed;
+            }
+            btn.hidden = true;
+            undoTimer = setTimeout(() => { bar.hidden = true; }, 4000);
+        };
+        bar.hidden = false;
+        undoTimer = setTimeout(() => { bar.hidden = true; }, 10000);
+    }
+
     const quick = document.getElementById('rpQuick');
     let quickCategory = null;
     function closeQuick() { if (quick) quick.hidden = true; quickCategory = null; }
@@ -1059,9 +1153,12 @@
                 });
                 const data = await res.json().catch(() => ({}));
                 if (!data.success) throw new Error(data.error || I18N.saveFailed);
+                const done = { id: data.id, name: document.getElementById('rpQuickTitle').textContent,
+                               ontime: btn.dataset.ontime === 'true' };
                 closeQuick();
                 fetchRecords(1);
                 loadToday();
+                showUndo(done);
             } catch (e) {
                 err.textContent = e.message || I18N.saveFailed;
                 err.hidden = false;

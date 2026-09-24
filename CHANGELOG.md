@@ -100,6 +100,21 @@ when there isn't enough room.
   Late; tapping one saves the report. "More options" still opens the full form
   for another date or several KPIs. The server's own checks (one report per
   day and KPI, the add deadline) still apply and their message is shown.
+- **Undo after a one-tap report.** For ten seconds a "Saved · Undo" bar shows
+  what was just reported. New `POST /api/generali/reporting/<id>/undo`
+  (`tenant.generali.reporting.add`): only the caller's own report, only within
+  10 minutes (`UNDO_WINDOW_SECONDS`) — not a back door to deleting other
+  people's reports. The add endpoint now also returns the new report's `id`.
+- **"+ Another report"** on the Today rows of KPI 3, 12 and 13, which may be
+  reported several times a day.
+- **"This week" on the phone's Today board:** Monday to Friday, one dot per
+  KPI and day (on time, late, both, not reported).
+- **Phone start page by role.** Right after signing in on a touch phone,
+  someone who can add post reports lands on Generali Reporting instead of the
+  dashboard. Desktop start page unchanged.
+- **`/install` — "Nexora on your phone"** (user menu): how to put nexora on
+  the home screen on iPhone and Android, with a QR code of this host's
+  sign-in page.
 - **Filters are folded away on a phone.** Every list page with a filter
   block (Generali, admin, tenant pages) opens with one "Filters" button
   instead of the fields. The button shows how many filters are set, so

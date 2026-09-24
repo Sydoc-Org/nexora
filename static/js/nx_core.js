@@ -287,6 +287,27 @@
         foldFilters();
     }
 
+    // ---- phone start page by role --------------------------------------------
+    // Right after signing in on a touch phone, someone who reports post
+    // (window.NX_PHONE_START, set in _header.html) goes straight to Reporting
+    // instead of the desktop start page. Only on the first page after the
+    // sign-in (the referrer is the login or 2FA page), so the dashboard link
+    // in the menu still works. Desktop keeps startpage_redirect_to().
+    function phoneStart() {
+        var url = window.NX_PHONE_START;
+        if (!url || !window.matchMedia(PHONE_MQ).matches) return;
+        var ref;
+        try { ref = new URL(document.referrer).pathname; } catch (e) { return; }
+        if (!/\/(login|verify_2fa|init_2FA)$/.test(ref)) return;
+        if (window.location.pathname === new URL(url, window.location.href).pathname) return;
+        window.location.replace(url);
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', phoneStart);
+    } else {
+        phoneStart();
+    }
+
     // ---- stat-card icons: all or none per row -------------------------------
     // .nx-stat wraps its icon chip under the number when the two do not fit
     // side by side. On a phone that gave a row of KPI cards an extra line in

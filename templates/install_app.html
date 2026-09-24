@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="{{ get_locale }}">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
+    {% include '_theme_prepaint.html' %}
+    <link rel="stylesheet" href="{{ static_v('css/nexora-ui.css') }}">
+    <title>{{ _('Nexora on your phone - nexora') }}</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.0" integrity="sha384-AIH1kL7JmmReCxSwiSyaRNwzSFO7h4Ir4F/PO28EKezqFza1LwIMgEPLd83KwmZ4" crossorigin="anonymous"></script>
+    <style type="text/tailwindcss">
+        @custom-variant dark (&:where(.dark, .dark *));
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindplus/elements@1.0.22" integrity="sha384-E7dy6eN+cKffMM/2+QF5MMP1q8KS0AT4IlmT4v3mG2mNZ7ISeLRPdlHrlWJK/8yx" crossorigin="anonymous" type="module"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous">
+    <link rel="stylesheet" href="{{ static_v('css/admin-tokens.css') }}">
+    <link rel="stylesheet" href="{{ static_v('css/profile.css') }}">
+    <link rel="icon" type="image/x-icon" href="{{ static_v('images/favicon.ico') }}">
+</head>
+
+<body class="admin-page">
+
+    {% set active_page = 'install_app' %} {% include '_header.html' %}
+
+    {# How to put nexora on a phone's home screen. Written for people who do
+       not install apps often: one short step per line, the words the phone
+       itself shows in quotes. The QR code opens the sign-in page of this same
+       host, so someone at their computer can move to the phone in one scan. #}
+    <main class="install-page">
+        <h1 class="profile-title">{{ _("Nexora on your phone") }}</h1>
+        <p class="profile-lede">{{ _("Nexora works in your phone's browser. Put it on your home screen and it opens like an app. Nothing to download from a store.") }}</p>
+
+        <section class="nx-card install-card install-card--qr" data-testid="install-qr">
+            <img src="data:image/png;base64,{{ qr_code }}" alt="{{ _('QR code for the nexora sign-in page') }}" class="install-qr" width="180" height="180">
+            <div>
+                <h2 class="install-card__title">{{ _("1. Open nexora on your phone") }}</h2>
+                <p>{{ _("Point your phone's camera at this code and tap the link that appears.") }}</p>
+                <p class="install-url nx-mono">{{ login_url }}</p>
+            </div>
+        </section>
+
+        <div class="install-grid">
+            <section class="nx-card install-card" data-testid="install-iphone">
+                <h2 class="install-card__title"><i class="fab fa-apple" aria-hidden="true"></i> {{ _("2. iPhone (Safari)") }}</h2>
+                <ol class="install-steps">
+                    <li>{{ _("Open nexora in Safari.") }}</li>
+                    <li>{{ _("Tap the Share button (the square with the arrow pointing up).") }}</li>
+                    <li>{{ _('Scroll down and tap "Add to Home Screen".') }}</li>
+                    <li>{{ _('Tap "Add".') }}</li>
+                </ol>
+            </section>
+            <section class="nx-card install-card" data-testid="install-android">
+                <h2 class="install-card__title"><i class="fab fa-android" aria-hidden="true"></i> {{ _("2. Android (Chrome)") }}</h2>
+                <ol class="install-steps">
+                    <li>{{ _("Open nexora in Chrome.") }}</li>
+                    <li>{{ _("Tap the menu (the three dots, top right).") }}</li>
+                    <li>{{ _('Tap "Add to home screen" or "Install app".') }}</li>
+                    <li>{{ _('Tap "Install".') }}</li>
+                </ol>
+            </section>
+        </div>
+
+        <section class="nx-card install-card">
+            <h2 class="install-card__title">{{ _("3. Sign in") }}</h2>
+            <p>{{ _("Tap the nexora icon on your home screen and sign in as on your computer, with your password and your 2FA code.") }}</p>
+        </section>
+    </main>
+
+</body>
+
+</html>

@@ -1659,7 +1659,8 @@ html.dark .flatpickr-day:hover { background: var(--nx-alt); }
   .rp-kpi__text { grid-area: text; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
   .rp-kpi__name { font-size: 17px; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
   .rp-kpi__sub { font-size: 14px; color: var(--nx-text-sec); line-height: 1.35; overflow-wrap: anywhere; }
-  .rp-kpi__status { grid-area: status; justify-self: start; font-size: 15px; font-weight: 700; padding: 7px 14px; border-radius: 999px; white-space: nowrap; }
+  .rp-kpi__actions { grid-area: status; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .rp-kpi__status { justify-self: start; font-size: 15px; font-weight: 700; padding: 7px 14px; border-radius: 999px; white-space: nowrap; }
 
   /* The report form's category row: the KPI dropdown shared one line with the
      on-time button and the remove button and showed "KPI 1: Deliv". On a
@@ -1720,6 +1721,41 @@ html.dark .flatpickr-day:hover { background: var(--nx-alt); }
     font-size: 16px; font-weight: 600; color: var(--nx-accent); cursor: pointer;
   }
   .rp-quick__link:last-child { color: var(--nx-text-sec); }
+
+  /* "+ Another report" on the KPIs that may be reported several times a day. */
+  .rp-kpi__more {
+    min-height: 40px; padding: 0 14px;
+    border-radius: 999px; border: 1px dashed var(--nx-accent); background: none;
+    font-size: 15px; font-weight: 600; color: var(--nx-accent); cursor: pointer;
+  }
+
+  /* "This week": KPI rows x Mon-Fri dots. */
+  .rp-week { margin-top: 12px; padding: 12px 14px; border-radius: 12px; background: var(--nx-sunken); }
+  .rp-week__title { margin: 0 0 8px; font-size: 16px; font-weight: 700; color: var(--nx-text); }
+  .rp-week__grid { width: 100%; border-collapse: collapse; }
+  .rp-week__grid th, .rp-week__grid td { padding: 5px 2px; text-align: center; }
+  .rp-week__grid thead th { font-size: 14px; font-weight: 600; color: var(--nx-text-sec); }
+  .rp-week__grid thead th.is-today { color: var(--nx-accent); font-weight: 700; }
+  .rp-week__grid tbody th { text-align: left; font-size: 14px; font-weight: 600; color: var(--nx-text); white-space: nowrap; }
+  .rp-dot { display: inline-block; width: 18px; height: 18px; border-radius: 50%; vertical-align: middle; }
+  .rp-dot--ok     { background: var(--nx-l-green-fg); }
+  .rp-dot--late   { background: var(--nx-l-red-fg); }
+  .rp-dot--mixed  { background: var(--nx-l-amber-fg); }
+  .rp-dot--none   { border: 2px solid var(--nx-text-meta); }
+  .rp-dot--future { border: 2px dotted var(--nx-border-strong); }
+
+  /* "Saved · Undo" bar above the tab bar after a one-tap report. */
+  .rp-undo:not([hidden]) {
+    position: fixed; left: 12px; right: 12px; z-index: var(--z-modal, 61);
+    bottom: calc(76px + var(--nx-sa-bottom, env(safe-area-inset-bottom, 0px)));
+    display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px;
+    background: var(--nx-text); color: var(--nx-card); box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+  }
+  .rp-undo__text { flex: 1; font-size: 16px; font-weight: 600; line-height: 1.3; }
+  .rp-undo__btn {
+    min-height: 44px; padding: 0 16px; border-radius: 10px; border: 0; cursor: pointer;
+    background: var(--nx-accent); color: var(--nx-on-accent); font-size: 16px; font-weight: 700;
+  }
 
   /* Folded filter blocks (nx_core.js adds the button and the class). */
   .nx-filter.nx-filter--folded { display: none; }

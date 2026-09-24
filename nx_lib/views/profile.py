@@ -1,11 +1,13 @@
 """Profile, password change, language switch, feedback."""
 
+import base64
 import io
 import os
 import re
 from html import escape
 
 import bcrypt
+import qrcode
 from flask import (
     abort,
     current_app,
@@ -280,6 +282,24 @@ def appearance():
         return render_template("500.html")
 
 
+def install_app():
+    """How to put nexora on a phone's home screen, with a QR code of the
+    sign-in page so someone at a computer can open it on their phone. The code
+    points at the login page of whichever host served this page (dev, staging
+    or PROD, with the /nexora prefix where it applies)."""
+    if "username" not in session:
+        return redirect(url_for("login"))
+    login_url = url_for("login", _external=True)
+    buffered = io.BytesIO()
+    qrcode.make(login_url, border=2).save(buffered, format="PNG")
+    return render_template(
+        "install_app.html",
+        login_url=login_url,
+        qr_code=base64.b64encode(buffered.getvalue()).decode("ascii"),
+        page_visibility=page_visibility(),
+    )
+
+
 def whats_new():
     """Curated per-release notes, filtered to what this user can actually use.
     Opening the page stamps the seen-marker, clearing the header badge."""
@@ -428,6 +448,7 @@ def register_routes(app):
     )
     app.add_url_rule("/appearance", endpoint="appearance", view_func=appearance)
     app.add_url_rule("/whats_new", endpoint="whats_new", view_func=whats_new)
+    app.add_url_rule("/install", endpoint="install_app", view_func=install_app)
     app.add_url_rule(
         "/profile/ui_prefs",
         endpoint="set_ui_prefs",

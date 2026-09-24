@@ -242,6 +242,7 @@ def api_generali_reporting_add():
                 (ReportForDate, ReportTimeStamp, ReportByUserID, OnTime, Category
                  --,EmailReceivedTimeStamp, DeliveryTimeStamp, LatestDeliveryTimeStamp, MailRoomRequestTimeStamp
                        )
+            OUTPUT INSERTED.ID
             VALUES (?, GETDATE(), ?, ?, ?)
         """,
             [
@@ -252,11 +253,63 @@ def api_generali_reporting_add():
                 #   ,email_received, delivery, latest_delivery, mailroom_request
             ],
         )
+        # The new id comes back so the phone quick-report can offer "Undo".
+        new_row = cursor.fetchone()
         conn.commit()
 
-        return jsonify({"success": True})
+        return jsonify({"success": True, "id": new_row[0] if new_row else None})
     except Exception as e:
         current_app.logger.error(f"Generali Reporting Add Error: {e}")
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
+    finally:
+        if conn:
+            conn.close()
+
+
+# Undo window for a report someone has just made (phone quick-report). Only
+# the caller's OWN report, only within this many seconds of making it: this is
+# "I tapped the wrong button", not a delete right -- ISS users hold
+# reporting.add but no delete permission, and that stays so.
+UNDO_WINDOW_SECONDS = 600
+
+
+@require_permission("tenant.generali.reporting.add")
+def api_generali_reporting_undo(record_id):
+    conn = None
+    try:
+        from . import engine_generali_db
+
+        user_id = session.get("userid")
+        conn = engine_generali_db.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT ReportByUserID, DATEDIFF(second, ReportTimeStamp, GETDATE()) "
+            "FROM [dbo].[IssReports] WHERE ID = ?",
+            [record_id],
+        )
+        row = cursor.fetchone()
+        if not row:
+            return jsonify({"success": False, "error": _("Report not found.")}), 404
+        owner, age = row
+        if str(owner) != str(user_id):
+            return jsonify(
+                {"success": False, "error": _("You can only undo your own report.")}
+            ), 403
+        if age is None or age > UNDO_WINDOW_SECONDS:
+            return jsonify(
+                {
+                    "success": False,
+                    "error": _("Too late to undo. Ask your supervisor to correct it."),
+                }
+            ), 409
+        cursor.execute(
+            "DELETE FROM [dbo].[IssReports] WHERE ID = ? AND ReportByUserID = ?",
+            [record_id, user_id],
+        )
+        conn.commit()
+        return jsonify({"success": True})
+    except Exception as e:
+        current_app.logger.error(f"Generali Reporting Undo Error: {e}")
         return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
@@ -339,5 +392,11 @@ def register_routes(app):
         endpoint="api_generali_reporting_edit",
         view_func=api_generali_reporting_edit,
         methods=["PUT"],
+    )
+    app.add_url_rule(
+        "/api/generali/reporting/<int:record_id>/undo",
+        endpoint="api_generali_reporting_undo",
+        view_func=api_generali_reporting_undo,
+        methods=["POST"],
     )
     register_crud(app, REPORTING)

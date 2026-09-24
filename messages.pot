@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 11:29+0200\n"
+"POT-Creation-Date: 2026-09-24 15:36+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -541,7 +541,7 @@ msgstr ""
 #: templates/generali_projectmanagement.html:123
 #: templates/generali_projectmanagement.html:185
 #: templates/generali_projectmanagement.html:236
-#: templates/generali_reporting.html:166
+#: templates/generali_reporting.html:167
 msgid "Date"
 msgstr ""
 
@@ -627,7 +627,7 @@ msgid "All Fields must be filled"
 msgstr ""
 
 #: nx_lib/views/auth.py:468 nx_lib/views/auth.py:822
-#: nx_lib/views/profile.py:195
+#: nx_lib/views/profile.py:197
 msgid "New password has to be at least 12 characters long, with no whitespaces"
 msgstr ""
 
@@ -688,8 +688,9 @@ msgstr ""
 #: nx_lib/views/generali/documents.py:585
 #: nx_lib/views/generali/documents.py:619
 #: nx_lib/views/generali/importstatus.py:119 nx_lib/views/generali/pdqm.py:91
-#: nx_lib/views/generali/reporting.py:260
-#: nx_lib/views/generali/reporting.py:321 nx_lib/views/workitems.py:1399
+#: nx_lib/views/generali/reporting.py:263
+#: nx_lib/views/generali/reporting.py:313
+#: nx_lib/views/generali/reporting.py:374 nx_lib/views/workitems.py:1399
 msgid "An unexpected error occurred"
 msgstr ""
 
@@ -702,92 +703,92 @@ msgstr ""
 msgid "Other"
 msgstr ""
 
-#: nx_lib/views/profile.py:79
+#: nx_lib/views/profile.py:81
 msgid "Email Adress is not valid"
 msgstr ""
 
-#: nx_lib/views/profile.py:86
+#: nx_lib/views/profile.py:88
 msgid "Email Adress is already in use"
 msgstr ""
 
-#: nx_lib/views/profile.py:107 nx_lib/views/profile.py:132
+#: nx_lib/views/profile.py:109 nx_lib/views/profile.py:134
 msgid "Invalid file format. Please upload a valid image."
 msgstr ""
 
-#: nx_lib/views/profile.py:136
+#: nx_lib/views/profile.py:138
 msgid "Profile updated successfully!"
 msgstr ""
 
-#: nx_lib/views/profile.py:141
+#: nx_lib/views/profile.py:143
 msgid "Unexpected error"
 msgstr ""
 
-#: nx_lib/views/profile.py:188
+#: nx_lib/views/profile.py:190
 msgid "New passwords do not match"
 msgstr ""
 
-#: nx_lib/views/profile.py:191
+#: nx_lib/views/profile.py:193
 msgid "All fields must be filled"
 msgstr ""
 
-#: nx_lib/views/profile.py:205 nx_lib/views/profile.py:235
-#: nx_lib/views/profile.py:248 nx_lib/views/profile.py:261
+#: nx_lib/views/profile.py:207 nx_lib/views/profile.py:237
+#: nx_lib/views/profile.py:250 nx_lib/views/profile.py:263
 msgid "Unexpected Error"
 msgstr ""
 
-#: nx_lib/views/profile.py:228
+#: nx_lib/views/profile.py:230
 msgid "Password updated successfully!"
 msgstr ""
 
-#: nx_lib/views/profile.py:230
+#: nx_lib/views/profile.py:232
 msgid "Current password is incorrect"
 msgstr ""
 
-#: nx_lib/views/profile.py:257
+#: nx_lib/views/profile.py:259
 msgid "Language changed successfully!"
 msgstr ""
 
-#: nx_lib/views/profile.py:345
+#: nx_lib/views/profile.py:365
 msgid "Unauthorized"
 msgstr ""
 
-#: nx_lib/views/profile.py:352
+#: nx_lib/views/profile.py:372
 msgid "Please choose a category."
 msgstr ""
 
-#: nx_lib/views/profile.py:354 templates/js/_feedback_js.html:149
+#: nx_lib/views/profile.py:374 templates/js/_feedback_js.html:149
 msgid "Please describe the problem or idea."
 msgstr ""
 
-#: nx_lib/views/profile.py:356
+#: nx_lib/views/profile.py:376
 msgid "Message is too long."
 msgstr ""
 
-#: nx_lib/views/profile.py:369 templates/js/_feedback_js.html:84
+#: nx_lib/views/profile.py:389 templates/js/_feedback_js.html:84
 msgid "Screenshot must be a PNG or JPEG image."
 msgstr ""
 
-#: nx_lib/views/profile.py:372 templates/js/_feedback_js.html:89
+#: nx_lib/views/profile.py:392 templates/js/_feedback_js.html:89
 msgid "Screenshot is too large (max 5 MB)."
 msgstr ""
 
-#: nx_lib/views/profile.py:379
+#: nx_lib/views/profile.py:399
 msgid "Feedback is not configured on this environment."
 msgstr ""
 
-#: nx_lib/views/profile.py:381 templates/feedback.html:60
+#: nx_lib/views/profile.py:401 templates/feedback.html:60
 msgid "Bug"
 msgstr ""
 
-#: nx_lib/views/profile.py:381 templates/feedback.html:63
+#: nx_lib/views/profile.py:401 templates/feedback.html:63
 msgid "Idea"
 msgstr ""
 
-#: nx_lib/views/profile.py:381 templates/feedback.html:66
+#: nx_lib/views/profile.py:401 templates/feedback.html:66
 msgid "Question"
 msgstr ""
 
-#: nx_lib/views/profile.py:404 templates/js/_feedback_js.html:169
+#: nx_lib/views/profile.py:424 templates/js/_feedback_js.html:169
 #: templates/js/_feedback_js.html:175
 msgid "Could not send feedback. Please try again later."
 msgstr ""
@@ -1427,6 +1428,18 @@ msgstr ""
 msgid "Could not fetch sessions"
 msgstr ""
 
+#: nx_lib/views/generali/reporting.py:292
+msgid "Report not found."
+msgstr ""
+
+#: nx_lib/views/generali/reporting.py:296
+msgid "You can only undo your own report."
+msgstr ""
+
+#: nx_lib/views/generali/reporting.py:302
+msgid "Too late to undo. Ask your supervisor to correct it."
+msgstr ""
+
 #: nx_lib/views/reporting/admin_registry.py:45
 #: nx_lib/views/reporting/admin_registry.py:95
 msgid "Invalid body"
@@ -1872,87 +1885,87 @@ msgstr ""
 msgid "Hide filters"
 msgstr ""
 
-#: templates/_header.html:49
+#: templates/_header.html:53
 msgid "Open navigation"
 msgstr ""
 
-#: templates/_header.html:84 templates/_header.html:152
+#: templates/_header.html:88 templates/_header.html:156
 #: templates/admin/tenants.html:149
 msgid "Tenants"
 msgstr ""
 
-#: templates/_header.html:98 templates/js/_header_js.html:17
+#: templates/_header.html:102 templates/js/_header_js.html:17
 #: templates/js/_header_js.html:18 templates/js/_header_js.html:19
 #: templates/js/_header_js.html:20 templates/js/_header_js.html:21
 msgid "Admin"
 msgstr ""
 
-#: templates/_header.html:105 templates/_header.html:159
+#: templates/_header.html:109 templates/_header.html:163
 msgid "Overview"
 msgstr ""
 
-#: templates/_header.html:110 templates/admin/access_control.html:19
+#: templates/_header.html:114 templates/admin/access_control.html:19
 #: templates/admin/admin_overview.html:75 templates/js/_header_js.html:18
 msgid "Access Control"
 msgstr ""
 
-#: templates/_header.html:115 templates/admin/admin_overview.html:85
+#: templates/_header.html:119 templates/admin/admin_overview.html:85
 #: templates/admin/permissions.html:21 templates/admin/user_detail.html:88
 msgid "Permissions"
 msgstr ""
 
-#: templates/_header.html:120
+#: templates/_header.html:124
 msgid "Sessions"
 msgstr ""
 
-#: templates/_header.html:125
+#: templates/_header.html:129
 msgid "Logs"
 msgstr ""
 
-#: templates/_header.html:131 templates/admin/logs.html:66
+#: templates/_header.html:135 templates/admin/logs.html:66
 #: templates/admin/logs.html:99 templates/admin/tenants_manage.html:78
 #: templates/admin/user_detail.html:222 templates/api_docs.html:206
 #: templates/appearance.html:369 templates/generali_importstatus.html:50
 #: templates/generali_importstatus.html:106
-#: templates/generali_reporting.html:130 templates/workitems_overview.html:352
+#: templates/generali_reporting.html:131 templates/workitems_overview.html:352
 msgid "Status"
 msgstr ""
 
-#: templates/_header.html:138
+#: templates/_header.html:142
 msgid "Maintenance"
 msgstr ""
 
-#: templates/_header.html:165
+#: templates/_header.html:169
 msgid "Manage"
 msgstr ""
 
-#: templates/_header.html:171 templates/admin/admin_overview.html:95
+#: templates/_header.html:175 templates/admin/admin_overview.html:95
 #: templates/admin/organizations.html:19 templates/admin/tenants_manage.html:38
 #: templates/js/_header_js.html:19
 msgid "Organizations"
 msgstr ""
 
-#: templates/_header.html:177 templates/admin/clients.html:19
+#: templates/_header.html:181 templates/admin/clients.html:19
 msgid "Data Connections"
 msgstr ""
 
-#: templates/_header.html:184 templates/admin/processes.html:19
+#: templates/_header.html:188 templates/admin/processes.html:19
 msgid "Process Configurations"
 msgstr ""
 
-#: templates/_header.html:198
+#: templates/_header.html:202
 msgid "Development"
 msgstr ""
 
-#: templates/_header.html:205 templates/api_docs.html:93
+#: templates/_header.html:209 templates/api_docs.html:93
 msgid "API Documentation"
 msgstr ""
 
-#: templates/_header.html:219 templates/dashboard.html:32
+#: templates/_header.html:223 templates/dashboard.html:32
 msgid "Global Dashboard"
 msgstr ""
 
-#: templates/_header.html:219 templates/appearance.html:338
+#: templates/_header.html:223 templates/appearance.html:338
 #: templates/dashboard.html:30 templates/generali_documents.html:40
 #: templates/generali_documents.html:41 templates/generali_reporting.html:55
 #: templates/generali_reporting.html:56 templates/js/_header_js.html:30
@@ -1960,11 +1973,11 @@ msgstr ""
 msgid "Dashboard"
 msgstr ""
 
-#: templates/_header.html:220
+#: templates/_header.html:224
 msgid "Global Reporting"
 msgstr ""
 
-#: templates/_header.html:220 templates/generali-dashboard.html:72
+#: templates/_header.html:224 templates/generali-dashboard.html:72
 #: templates/generali-dashboard.html:73
 #: templates/generali_additionalservices.html:51
 #: templates/generali_additionalservices.html:52
@@ -1977,130 +1990,134 @@ msgstr ""
 msgid "Reporting"
 msgstr ""
 
-#: templates/_header.html:221 templates/workitems_overview.html:66
+#: templates/_header.html:225 templates/workitems_overview.html:66
 msgid "Global Workitems"
 msgstr ""
 
-#: templates/_header.html:221 templates/workitems_overview.html:64
+#: templates/_header.html:225 templates/workitems_overview.html:64
 #: templates/workitems_overview.html:320
 msgid "Workitems"
 msgstr ""
 
-#: templates/_header.html:330 templates/_header.html:332
+#: templates/_header.html:334 templates/_header.html:336
 #: templates/appearance.html:302 templates/appearance.html:307
 #: templates/js/_header_js.html:13
 msgid "Keep sidebar open"
 msgstr ""
 
-#: templates/_header.html:345 templates/_header.html:347
+#: templates/_header.html:349 templates/_header.html:351
 msgid "Reload"
 msgstr ""
 
-#: templates/_header.html:351 templates/js/_header_js.html:56
+#: templates/_header.html:355 templates/js/_header_js.html:56
 msgid "Toggle dark mode"
 msgstr ""
 
-#: templates/_header.html:353
+#: templates/_header.html:357
 msgid "Dark Mode"
 msgstr ""
 
-#: templates/_header.html:361 templates/profile.html:44
+#: templates/_header.html:365 templates/profile.html:44
 #: templates/profile.html:123
 msgid "Profile Picture"
 msgstr ""
 
-#: templates/_header.html:371
+#: templates/_header.html:375
 msgid "Your profile"
 msgstr ""
 
-#: templates/_header.html:375 templates/appearance.html:34
+#: templates/_header.html:379 templates/appearance.html:34
 #: templates/js/_header_js.html:57 templates/profile.html:75
 #: templates/profile.html:317
 msgid "Appearance"
 msgstr ""
 
-#: templates/_header.html:379 templates/js/_header_js.html:58
+#: templates/_header.html:383 templates/install_app.html:31
+msgid "Nexora on your phone"
+msgstr ""
+
+#: templates/_header.html:387 templates/js/_header_js.html:58
 #: templates/whats_new.html:95
 msgid "What's New"
 msgstr ""
 
-#: templates/_header.html:384 templates/feedback.html:34
+#: templates/_header.html:392 templates/feedback.html:34
 #: templates/js/_header_js.html:59
 msgid "Feedback"
 msgstr ""
 
-#: templates/_header.html:391 templates/_header.html:566
-#: templates/_header.html:569
+#: templates/_header.html:399 templates/_header.html:574
+#: templates/_header.html:577
 msgid "Keyboard shortcuts"
 msgstr ""
 
-#: templates/_header.html:395 templates/_small_footer.html:28
+#: templates/_header.html:403 templates/_small_footer.html:28
 #: templates/reporting.html:86
 msgid "Help"
 msgstr ""
 
-#: templates/_header.html:401 templates/_header.html:548
+#: templates/_header.html:409 templates/_header.html:556
 msgid "Switch user"
 msgstr ""
 
-#: templates/_header.html:407 templates/js/_header_js.html:60
+#: templates/_header.html:415 templates/js/_header_js.html:60
 #: templates/profile.html:82
 msgid "Sign out"
 msgstr ""
 
-#: templates/_header.html:458
+#: templates/_header.html:466
 msgid "Main navigation"
 msgstr ""
 
-#: templates/_header.html:523
+#: templates/_header.html:531
 msgid "More"
 msgstr ""
 
-#: templates/_header.html:529
+#: templates/_header.html:537
 msgid "Command palette"
 msgstr ""
 
-#: templates/_header.html:533
+#: templates/_header.html:541
 msgid "Type a command or search..."
 msgstr ""
 
-#: templates/_header.html:538
+#: templates/_header.html:546
 msgid "navigate"
 msgstr ""
 
-#: templates/_header.html:539
+#: templates/_header.html:547
 msgid "open"
 msgstr ""
 
-#: templates/_header.html:540
+#: templates/_header.html:548
 msgid "close"
 msgstr ""
 
-#: templates/_header.html:552
+#: templates/_header.html:560
 msgid "Switch to user..."
 msgstr ""
 
-#: templates/_header.html:573 templates/admin/access_control.html:130
+#: templates/_header.html:581 templates/admin/access_control.html:130
 msgid "Global"
 msgstr ""
 
-#: templates/_header.html:575
+#: templates/_header.html:583
 msgid "Open command palette"
 msgstr ""
 
-#: templates/_header.html:579
+#: templates/_header.html:587
 msgid "Show this shortcuts overlay"
 msgstr ""
 
-#: templates/_header.html:583
+#: templates/_header.html:591
 msgid "Close the open dialog or panel"
 msgstr ""
 
-#: templates/_header.html:588
+#: templates/_header.html:596
 msgid "Document viewer"
 msgstr ""
 
-#: templates/_header.html:590
+#: templates/_header.html:598
 msgid "Previous / next document page"
 msgstr ""
 
@@ -2641,6 +2658,7 @@ msgid "So far"
 msgstr ""
 
 #: templates/_reporting_simple.html:168 templates/appearance.html:37
+#: templates/js/_generali_reporting_js.html:57
 #: templates/js/_reporting_js.html:65
 #: templates/js/_reporting_metrics_js.html:135
 #: templates/js/_reporting_sources_js.html:102
@@ -2686,7 +2704,7 @@ msgstr ""
 #: templates/generali_additionalservices.html:324
 #: templates/generali_baseservices.html:273 templates/generali_pdqm.html:348
 #: templates/generali_projectmanagement.html:259
-#: templates/generali_reporting.html:360
+#: templates/generali_reporting.html:367
 #: templates/js/_generali_reporting_js.html:37 templates/reporting.html:405
 #: templates/reporting.html:606 templates/reporting_metrics.html:78
 #: templates/reporting_sources.html:88 templates/tenant/page.html:136
@@ -2821,8 +2839,8 @@ msgstr ""
 #: templates/generali_projectmanagement.html:215
 #: templates/generali_projectmanagement.html:255
 #: templates/generali_projectmanagement.html:280
-#: templates/generali_reporting.html:236 templates/generali_reporting.html:273
-#: templates/generali_reporting.html:356 templates/generali_reporting.html:381
+#: templates/generali_reporting.html:237 templates/generali_reporting.html:280
+#: templates/generali_reporting.html:363 templates/generali_reporting.html:388
 #: templates/js/_reporting_dashboard_js.html:42 templates/reporting.html:495
 #: templates/reporting.html:592 templates/reporting.html:605
 #: templates/tenant/page.html:135 templates/workitems_overview.html:447
@@ -3815,7 +3833,7 @@ msgstr ""
 #: templates/generali_baseservices.html:248
 #: templates/generali_monthreport.html:132
 #: templates/generali_projectmanagement.html:190
-#: templates/generali_reporting.html:89 templates/generali_reporting.html:172
+#: templates/generali_reporting.html:90 templates/generali_reporting.html:173
 #: templates/js/_reporting_viz_js.html:12
 msgid "Category"
 msgstr ""
@@ -3924,7 +3942,7 @@ msgstr ""
 #: templates/generali_documents.html:208
 #: templates/generali_importstatus.html:73 templates/generali_pdqm.html:130
 #: templates/generali_projectmanagement.html:98
-#: templates/generali_reporting.html:147
+#: templates/generali_reporting.html:148
 #: templates/js/admin/_permissions_js.html:21
 #: templates/prepared_documents.html:151 templates/workitems_overview.html:147
 msgid "Reset"
@@ -4046,7 +4064,7 @@ msgstr ""
 #: templates/generali_documents.html:166
 #: templates/generali_importstatus.html:40 templates/generali_pdqm.html:57
 #: templates/generali_projectmanagement.html:61
-#: templates/generali_reporting.html:79 templates/workitems_overview.html:173
+#: templates/generali_reporting.html:80 templates/workitems_overview.html:173
 msgid "From Date"
 msgstr ""
 
@@ -4055,7 +4073,7 @@ msgstr ""
 #: templates/generali_documents.html:171
 #: templates/generali_importstatus.html:45 templates/generali_pdqm.html:62
 #: templates/generali_projectmanagement.html:66
-#: templates/generali_reporting.html:84 templates/workitems_overview.html:179
+#: templates/generali_reporting.html:85 templates/workitems_overview.html:179
 msgid "To Date"
 msgstr ""
 
@@ -4077,7 +4095,7 @@ msgstr ""
 #: templates/generali_documents.html:139
 #: templates/generali_importstatus.html:54 templates/generali_pdqm.html:71
 #: templates/generali_pdqm.html:83 templates/generali_pdqm.html:95
-#: templates/generali_reporting.html:134
+#: templates/generali_reporting.html:135
 #: templates/js/_generali_additional_services_js.html:72
 #: templates/js/_generali_additional_services_js.html:214
 #: templates/js/_generali_pdqm_js.html:71
@@ -4111,14 +4129,14 @@ msgstr ""
 #: templates/generali_additionalservices.html:95
 #: templates/generali_baseservices.html:83 templates/generali_pdqm.html:103
 #: templates/generali_projectmanagement.html:71
-#: templates/generali_reporting.html:106
+#: templates/generali_reporting.html:107
 msgid "Organization"
 msgstr ""
 
 #: templates/generali_additionalservices.html:99
 #: templates/generali_baseservices.html:87 templates/generali_pdqm.html:107
 #: templates/generali_projectmanagement.html:75
-#: templates/generali_reporting.html:110
+#: templates/generali_reporting.html:111
 msgid "All Organizations"
 msgstr ""
 
@@ -4133,14 +4151,14 @@ msgstr ""
 #: templates/generali_projectmanagement.html:83
 #: templates/generali_projectmanagement.html:124
 #: templates/generali_projectmanagement.html:172
-#: templates/generali_reporting.html:118 templates/generali_reporting.html:169
+#: templates/generali_reporting.html:119 templates/generali_reporting.html:170
 msgid "User"
 msgstr ""
 
 #: templates/generali_additionalservices.html:113
 #: templates/generali_baseservices.html:101 templates/generali_pdqm.html:121
 #: templates/generali_projectmanagement.html:89
-#: templates/generali_reporting.html:124
+#: templates/generali_reporting.html:125
 msgid "All Users"
 msgstr ""
 
@@ -4170,7 +4188,7 @@ msgstr ""
 #: templates/generali_additionalservices.html:167
 #: templates/generali_baseservices.html:141 templates/generali_pdqm.html:165
 #: templates/generali_projectmanagement.html:129
-#: templates/generali_reporting.html:182 templates/tenant/page.html:91
+#: templates/generali_reporting.html:183 templates/tenant/page.html:91
 msgid "Actions"
 msgstr ""
 
@@ -4179,7 +4197,7 @@ msgstr ""
 #: templates/generali_documents.html:279
 #: templates/generali_importstatus.html:124 templates/generali_pdqm.html:183
 #: templates/generali_projectmanagement.html:146
-#: templates/generali_reporting.html:201 templates/workitems_overview.html:392
+#: templates/generali_reporting.html:202 templates/workitems_overview.html:392
 msgid "Showing"
 msgstr ""
 
@@ -4188,7 +4206,7 @@ msgstr ""
 #: templates/generali_documents.html:281
 #: templates/generali_importstatus.html:126 templates/generali_pdqm.html:185
 #: templates/generali_projectmanagement.html:148
-#: templates/generali_reporting.html:203 templates/js/admin/_logs_js.html:106
+#: templates/generali_reporting.html:204 templates/js/admin/_logs_js.html:106
 #: templates/js/admin/_user_detail_js.html:623
 #: templates/workitems_overview.html:394
 msgid "of"
@@ -4199,7 +4217,7 @@ msgstr ""
 #: templates/generali_documents.html:283
 #: templates/generali_importstatus.html:128 templates/generali_pdqm.html:187
 #: templates/generali_projectmanagement.html:150
-#: templates/generali_reporting.html:205 templates/workitems_overview.html:396
+#: templates/generali_reporting.html:206 templates/workitems_overview.html:396
 msgid "results"
 msgstr ""
 
@@ -4240,7 +4258,7 @@ msgstr ""
 #: templates/generali_additionalservices.html:265
 #: templates/generali_baseservices.html:226 templates/generali_pdqm.html:276
 #: templates/generali_projectmanagement.html:219
-#: templates/generali_reporting.html:277
+#: templates/generali_reporting.html:284
 #: templates/js/_generali_reporting_js.html:34
 msgid "Submit"
 msgstr ""
@@ -4252,7 +4270,7 @@ msgstr ""
 #: templates/generali_additionalservices.html:338
 #: templates/generali_baseservices.html:287 templates/generali_pdqm.html:362
 #: templates/generali_projectmanagement.html:273
-#: templates/generali_reporting.html:374
+#: templates/generali_reporting.html:381
 msgid "Delete record"
 msgstr ""
 
@@ -4260,7 +4278,7 @@ msgstr ""
 #: templates/generali_additionalservices.html:339
 #: templates/generali_baseservices.html:288 templates/generali_pdqm.html:363
 #: templates/generali_projectmanagement.html:274
-#: templates/generali_reporting.html:375
+#: templates/generali_reporting.html:382
 #: templates/js/admin/_user_detail_js.html:267
 msgid "This action cannot be undone."
 msgstr ""
@@ -4272,7 +4290,7 @@ msgstr ""
 #: templates/generali_additionalservices.html:349
 #: templates/generali_baseservices.html:298 templates/generali_pdqm.html:373
 #: templates/generali_projectmanagement.html:284
-#: templates/generali_reporting.html:385
+#: templates/generali_reporting.html:392
 #: templates/js/_generali_additional_services_js.html:125
 #: templates/js/_generali_additional_services_js.html:431
 #: templates/js/_generali_additional_services_js.html:441
@@ -4498,16 +4516,16 @@ msgstr ""
 
 #: templates/generali_monthreport.html:82
 #: templates/generali_monthreport.html:139
-#: templates/generali_reporting.html:135 templates/generali_reporting.html:175
-#: templates/generali_reporting.html:227 templates/generali_reporting.html:332
-#: templates/generali_reporting.html:333
+#: templates/generali_reporting.html:136 templates/generali_reporting.html:176
+#: templates/generali_reporting.html:228 templates/generali_reporting.html:339
+#: templates/generali_reporting.html:340
 #: templates/js/_generali_reporting_js.html:10
 msgid "On Time"
 msgstr ""
 
 #: templates/generali_monthreport.html:89
 #: templates/generali_monthreport.html:142
-#: templates/generali_reporting.html:136 templates/generali_reporting.html:230
+#: templates/generali_reporting.html:137 templates/generali_reporting.html:231
 #: templates/js/_generali_reporting_js.html:11
 msgid "Late"
 msgstr ""
@@ -4613,7 +4631,7 @@ msgid "Daily task completion reporting"
 msgstr ""
 
 #: templates/generali_reporting.html:38 templates/generali_reporting.html:39
-#: templates/generali_reporting.html:249
+#: templates/generali_reporting.html:256
 msgid "Add Report"
 msgstr ""
 
@@ -4626,71 +4644,75 @@ msgstr ""
 msgid "Today"
 msgstr ""
 
-#: templates/generali_reporting.html:93
+#: templates/generali_reporting.html:94
 msgid "All Categories"
 msgstr ""
 
-#: templates/generali_reporting.html:94
+#: templates/generali_reporting.html:95
 #: templates/js/_generali_reporting_js.html:5
 msgid "KPI 1: Delivery physical post"
 msgstr ""
 
-#: templates/generali_reporting.html:95
+#: templates/generali_reporting.html:96
 #: templates/js/_generali_reporting_js.html:6
 msgid "KPI 2: Delivery physical post with scanning"
 msgstr ""
 
-#: templates/generali_reporting.html:96
+#: templates/generali_reporting.html:97
 #: templates/js/_generali_reporting_js.html:7
 msgid "KPI 3: Provision of Archival Records"
 msgstr ""
 
-#: templates/generali_reporting.html:97
+#: templates/generali_reporting.html:98
 #: templates/js/_generali_reporting_js.html:8
 msgid "KPI 12: Stray document (digital)"
 msgstr ""
 
-#: templates/generali_reporting.html:98
+#: templates/generali_reporting.html:99
 #: templates/js/_generali_reporting_js.html:9
 msgid "KPI 13: Stray document (physical)"
 msgstr ""
 
-#: templates/generali_reporting.html:178
+#: templates/generali_reporting.html:179
 msgid "Reported At"
 msgstr ""
 
-#: templates/generali_reporting.html:224
+#: templates/generali_reporting.html:225
 msgid "Was it on time today?"
 msgstr ""
 
-#: templates/generali_reporting.html:235
+#: templates/generali_reporting.html:236
 msgid "More options"
 msgstr ""
 
-#: templates/generali_reporting.html:265
+#: templates/generali_reporting.html:245
+msgid "Undo"
+msgstr ""
+
+#: templates/generali_reporting.html:272
 msgid "Add Date"
 msgstr ""
 
-#: templates/generali_reporting.html:320
+#: templates/generali_reporting.html:327
 msgid "Edit Report"
 msgstr ""
 
-#: templates/generali_reporting.html:327
+#: templates/generali_reporting.html:334
 #: templates/js/_generali_reporting_js.html:24
 msgid "Report Date"
 msgstr ""
 
-#: templates/generali_reporting.html:337
+#: templates/generali_reporting.html:344
 #: templates/js/_generali_reporting_js.html:20
 msgid "Email Received"
 msgstr ""
 
-#: templates/generali_reporting.html:342 templates/hero.html:226
+#: templates/generali_reporting.html:349 templates/hero.html:226
 #: templates/js/_generali_reporting_js.html:21
 msgid "Delivery"
 msgstr ""
 
-#: templates/generali_reporting.html:347
+#: templates/generali_reporting.html:354
 #: templates/js/_generali_reporting_js.html:22
 msgid "Latest Delivery"
 msgstr ""
@@ -4913,6 +4935,78 @@ msgstr ""
 
 #: templates/init_reset.html:125 templates/reset_password.html:125
 msgid "Confirm your new password"
+msgstr ""
+
+#: templates/install_app.html:9
+msgid "Nexora on your phone - nexora"
+msgstr ""
+
+#: templates/install_app.html:32
+msgid ""
+"Nexora works in your phone's browser. Put it on your home screen and it "
+"opens like an app. Nothing to download from a store."
+msgstr ""
+
+#: templates/install_app.html:35
+msgid "QR code for the nexora sign-in page"
+msgstr ""
+
+#: templates/install_app.html:37
+msgid "1. Open nexora on your phone"
+msgstr ""
+
+#: templates/install_app.html:38
+msgid "Point your phone's camera at this code and tap the link that appears."
+msgstr ""
+
+#: templates/install_app.html:45
+msgid "2. iPhone (Safari)"
+msgstr ""
+
+#: templates/install_app.html:47
+msgid "Open nexora in Safari."
+msgstr ""
+
+#: templates/install_app.html:48
+msgid "Tap the Share button (the square with the arrow pointing up)."
+msgstr ""
+
+#: templates/install_app.html:49
+msgid "Scroll down and tap \"Add to Home Screen\"."
+msgstr ""
+
+#: templates/install_app.html:50
+msgid "Tap \"Add\"."
+msgstr ""
+
+#: templates/install_app.html:54
+msgid "2. Android (Chrome)"
+msgstr ""
+
+#: templates/install_app.html:56
+msgid "Open nexora in Chrome."
+msgstr ""
+
+#: templates/install_app.html:57
+msgid "Tap the menu (the three dots, top right)."
+msgstr ""
+
+#: templates/install_app.html:58
+msgid "Tap \"Add to home screen\" or \"Install app\"."
+msgstr ""
+
+#: templates/install_app.html:59
+msgid "Tap \"Install\"."
+msgstr ""
+
+#: templates/install_app.html:65
+msgid "3. Sign in"
+msgstr ""
+
+#: templates/install_app.html:66
+msgid ""
+"Tap the nexora icon on your home screen and sign in as on your computer, "
+"with your password and your 2FA code."
 msgstr ""
 
 #: templates/maintenance.html:6
@@ -5903,6 +5997,7 @@ msgstr ""
 msgid "Yesterday"
 msgstr ""
 
+#: templates/js/_generali_reporting_js.html:54
 #: templates/js/_reporting_dashboard_js.html:26
 #: templates/js/_reporting_drill_js.html:27 templates/js/_reporting_js.html:8
 #: templates/js/_reporting_simple_js.html:66
@@ -7862,6 +7957,34 @@ msgstr ""
 
 #: templates/js/_generali_reporting_js.html:52
 msgid "No reports this month yet"
+msgstr ""
+
+#: templates/js/_generali_reporting_js.html:53
+msgid "Another report"
+msgstr ""
+
+#: templates/js/_generali_reporting_js.html:56
+msgid "Mo"
+msgstr ""
+
+#: templates/js/_generali_reporting_js.html:56
+msgid "Tu"
+msgstr ""
+
+#: templates/js/_generali_reporting_js.html:56
+msgid "We"
+msgstr ""
+
+#: templates/js/_generali_reporting_js.html:56
+msgid "Th"
+msgstr ""
+
+#: templates/js/_generali_reporting_js.html:56
+msgid "Fr"
+msgstr ""
+
+#: templates/js/_generali_reporting_js.html:58
+msgid "Undone. The report was removed."
 msgstr ""
 
 #: templates/js/_header_js.html:10

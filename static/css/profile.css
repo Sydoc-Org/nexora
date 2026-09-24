@@ -924,3 +924,16 @@ body.admin-page main {
      never tapped directly, and giving it a tap target would put an invisible
      44px control over the page. */
 }
+
+/* ---- /install: nexora on your phone ------------------------------------- */
+.install-page { max-width: 880px; }
+.install-card { padding: 20px 22px; margin-top: 16px; font-size: 15px; line-height: 1.55; color: var(--nx-text); }
+.install-card p { margin: 6px 0 0; }
+.install-card__title { margin: 0; font-size: 17px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.install-card--qr { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+.install-qr { width: 180px; height: 180px; border-radius: 10px; background: #fff; image-rendering: pixelated; }
+.install-url { font-size: 13px; color: var(--nx-text-sec); overflow-wrap: anywhere; }
+.install-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.install-grid .install-card { margin-top: 16px; }
+.install-steps { margin: 10px 0 0; padding-left: 22px; list-style: decimal; }
+.install-steps li { margin: 4px 0; }

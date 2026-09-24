@@ -69,6 +69,7 @@
         <span class="rp-today__date" id="rpTodayDate"></span>
       </div>
       <div class="rp-today__list" id="rpTodayList" data-testid="generali-reporting-today-list"></div>
+      <div class="rp-week" id="rpWeek" hidden></div>
       <a class="rp-today__month" id="rpTodayMonth" href="{{ url_for('generali_reporting_monthreport') }}" data-testid="generali-reporting-today-month" hidden></a>
     </section>
 
@@ -236,6 +237,12 @@
         <button type="button" class="rp-quick__link" id="rpQuickCancel" data-testid="generali-reporting-quick-cancel">{{ _("Cancel") }}</button>
       </div>
     </div>
+  </div>
+
+  {# Phone only: shown for ten seconds after a one-tap report. #}
+  <div id="rpUndo" class="rp-undo" role="status" data-testid="generali-reporting-undo" hidden>
+    <span class="rp-undo__text"></span>
+    <button type="button" class="rp-undo__btn" data-testid="generali-reporting-undo-btn">{{ _("Undo") }}</button>
   </div>
   {% endif %}
 
