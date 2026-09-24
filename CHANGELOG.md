@@ -6,6 +6,17 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **Legal draft: gaps found in review are now covered** (#260). The privacy
+  policy gains a section on sensitive data (health data in insurance
+  documents), names every disclosure to the USA (ngrok, and the Google Fonts,
+  cdnjs and jsDelivr files every page loads) with the safeguard still to be
+  confirmed, describes the single sign-in cookie and the settings kept in the
+  browser, and proposes a deletion rule for accounts of people who have left.
+  The terms name Zug as the place of jurisdiction (Baar has no court). Still a
+  draft, still hidden on PROD.
+
 ### Added
 
 - **Terms of Service and Privacy Policy pages** at `/terms` and `/privacy`
