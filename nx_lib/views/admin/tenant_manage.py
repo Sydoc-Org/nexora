@@ -721,6 +721,55 @@ def api_admin_tenant_page_delete(tenantcode, pagekey):
             conn.close()
 
 
+@require_permission("admin.tenants.edit")
+def api_admin_tenant_pages_reorder(tenantcode):
+    """Persist the order a tenant's pages appear in for its members.
+
+    The payload is the full list of page keys in their new order; SortOrder is
+    rewritten as 10, 20, 30 ... so a later single-page move has room to land
+    between two neighbours without renumbering everything again.
+
+    Keys are checked against the tenant's own rows before anything is written:
+    a key from another tenant (or a made-up one) fails the whole request rather
+    than silently reordering a subset.
+    """
+    data = request.get_json() or {}
+    order = data.get("order")
+    if not isinstance(order, list) or not all(isinstance(k, str) for k in order):
+        return _error([_("Order must be a list of page keys.")])
+
+    conn = None
+    cursor = None
+    try:
+        conn = engine_nexora_db.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT PageKey FROM TenantPages WHERE TenantCode = ?", (tenantcode,))
+        known = {r[0] for r in cursor.fetchall()}
+        if not known:
+            return _error([_("Tenant not found.")], 404)
+        if set(order) != known:
+            return _error([_("The page list does not match this tenant's pages.")])
+
+        for position, key in enumerate(order, start=1):
+            cursor.execute(
+                "UPDATE TenantPages SET SortOrder = ? WHERE TenantCode = ? AND PageKey = ?",
+                (position * 10, tenantcode, key),
+            )
+        conn.commit()
+        invalidate_tenant_config()
+        return jsonify({"success": True, "message": _("Page order saved.")})
+    except Exception as e:
+        current_app.logger.error(f"Error reordering pages of tenant {tenantcode}: {e}")
+        if conn:
+            conn.rollback()
+        return _error([_("Could not save the page order.")], 500)
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
 def register_routes(app):
     app.add_url_rule(
         "/admin/tenants/manage",
@@ -749,6 +798,12 @@ def register_routes(app):
         endpoint="api_admin_tenants_delete",
         view_func=api_admin_tenants_delete,
         methods=["DELETE"],
+    )
+    app.add_url_rule(
+        "/admin/tenants/<tenantcode>/pages/reorder",
+        endpoint="api_admin_tenant_pages_reorder",
+        view_func=api_admin_tenant_pages_reorder,
+        methods=["POST"],
     )
     app.add_url_rule(
         "/admin/tenants/<tenantcode>/pages/add",

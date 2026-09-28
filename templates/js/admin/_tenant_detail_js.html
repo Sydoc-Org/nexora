@@ -171,6 +171,96 @@
             });
         }
 
+        // ---- Member preview ------------------------------------------------------
+        // The preview is driven entirely off the table rows, so it follows a
+        // status toggle or a reorder without needing its own copy of the data.
+        const pagesTable = document.querySelector('[data-testid="tenant-pages-table"]');
+        const previewSide = document.getElementById('previewSide');
+        if (pagesTable && previewSide) {
+            const previewKey = document.getElementById('previewKey');
+            const previewLabel = document.getElementById('previewLabel');
+            const previewIcon = document.getElementById('previewIcon');
+            const previewDraft = document.getElementById('previewDraft');
+            const previewDashboard = document.getElementById('previewDashboard');
+            const previewTable = document.getElementById('previewTable');
+
+            function select(key) {
+                const row = pagesTable.querySelector(`tr[data-page-key="${CSS.escape(key)}"]`);
+                if (!row) return;
+                pagesTable.querySelectorAll('tr[data-page-key]').forEach(r =>
+                    r.classList.toggle('adm-row--on', r === row));
+                previewSide.querySelectorAll('[data-preview-key]').forEach(el =>
+                    el.classList.toggle('adm-window__item--on', el.dataset.previewKey === key));
+
+                previewKey.textContent = key;
+                previewLabel.textContent = row.dataset.pageLabel;
+                previewIcon.className = `fas ${row.dataset.pageIcon}`;
+                const isDraft = row.dataset.pageStatus !== 'active';
+                previewDraft.hidden = !isDraft;
+                const dashboard = row.dataset.pageKind === 'dashboard';
+                previewDashboard.hidden = !dashboard;
+                previewTable.hidden = dashboard;
+            }
+
+            pagesTable.addEventListener('click', (e) => {
+                if (e.target.closest('button, a, input, label')) return;
+                const row = e.target.closest('tr[data-page-key]');
+                if (row) select(row.dataset.pageKey);
+            });
+            previewSide.addEventListener('click', (e) => {
+                const item = e.target.closest('[data-preview-key]');
+                if (item) select(item.dataset.previewKey);
+            });
+
+            // Open on the first active page, else the first row -- the preview
+            // should never start blank when the tenant has pages.
+            const first = pagesTable.querySelector('tr[data-page-status="active"]')
+                       || pagesTable.querySelector('tr[data-page-key]');
+            if (first) select(first.dataset.pageKey);
+        }
+
+        // ---- Reorder ---------------------------------------------------------------
+        const reorderBtn = document.getElementById('reorderBtn');
+        if (reorderBtn && pagesTable) {
+            const tbody = pagesTable.querySelector('tbody');
+            let reordering = false;
+
+            function currentOrder() {
+                return Array.from(tbody.querySelectorAll('tr[data-page-key]'))
+                    .map(r => r.dataset.pageKey);
+            }
+
+            reorderBtn.addEventListener('click', async () => {
+                reordering = !reordering;
+                document.body.classList.toggle('is-reordering', reordering);
+                reorderBtn.classList.toggle('nx-btn--primary', reordering);
+                reorderBtn.classList.toggle('nx-btn--secondary', !reordering);
+                if (reordering) return;
+                // Leaving reorder mode is the save: one request, not one per nudge.
+                const url = `${API_PREFIX}admin/tenants/${encodeURIComponent(TENANT_CODE)}/pages/reorder`;
+                if (await send(url, 'POST', { order: currentOrder() })) reload();
+            });
+
+            tbody.addEventListener('click', (e) => {
+                const btn = e.target.closest('.move-page-btn');
+                if (!btn) return;
+                const row = btn.closest('tr');
+                const sibling = btn.dataset.dir === 'up'
+                    ? row.previousElementSibling : row.nextElementSibling;
+                if (!sibling || !sibling.dataset.pageKey) return;
+                if (btn.dataset.dir === 'up') tbody.insertBefore(row, sibling);
+                else tbody.insertBefore(sibling, row);
+                // Mirror the move into the preview sidebar straight away.
+                const key = row.dataset.pageKey;
+                const item = previewSide?.querySelector(`[data-preview-key="${CSS.escape(key)}"]`);
+                const sibItem = previewSide?.querySelector(`[data-preview-key="${CSS.escape(sibling.dataset.pageKey)}"]`);
+                if (item && sibItem) {
+                    if (btn.dataset.dir === 'up') previewSide.insertBefore(item, sibItem);
+                    else previewSide.insertBefore(sibItem, item);
+                }
+            });
+        }
+
         document.addEventListener('click', async (e) => {
             const toggle = e.target.closest('.toggle-page-btn');
             if (toggle && !toggle.disabled) {

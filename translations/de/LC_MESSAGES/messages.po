@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-28 14:09+0200\n"
+"POT-Creation-Date: 2026-09-28 15:12+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -1584,6 +1584,7 @@ msgstr ""
 #: nx_lib/views/admin/tenant_manage.py:569
 #: nx_lib/views/admin/tenant_manage.py:610
 #: nx_lib/views/admin/tenant_manage.py:643
+#: nx_lib/views/admin/tenant_manage.py:749
 msgid "Tenant not found."
 msgstr "Tenant nicht gefunden."
 
@@ -1624,6 +1625,22 @@ msgstr "Seite aktualisiert."
 #: nx_lib/views/admin/tenant_manage.py:713
 msgid "Page removed."
 msgstr "Seite entfernt."
+
+#: nx_lib/views/admin/tenant_manage.py:739
+msgid "Order must be a list of page keys."
+msgstr "Die Reihenfolge muss eine Liste von Seitenschlüsseln sein."
+
+#: nx_lib/views/admin/tenant_manage.py:751
+msgid "The page list does not match this tenant's pages."
+msgstr "Die Seitenliste stimmt nicht mit den Seiten dieses Tenants überein."
+
+#: nx_lib/views/admin/tenant_manage.py:760
+msgid "Page order saved."
+msgstr "Seitenreihenfolge gespeichert."
+
+#: nx_lib/views/admin/tenant_manage.py:765
+msgid "Could not save the page order."
+msgstr "Die Seitenreihenfolge konnte nicht gespeichert werden."
 
 #: nx_lib/views/admin/users.py:46
 #, python-format
@@ -2173,7 +2190,7 @@ msgstr "Protokolle"
 
 #: templates/_header.html:90 templates/admin/admin_overview.html:195
 #: templates/admin/logs.html:66 templates/admin/logs.html:99
-#: templates/admin/tenant_detail.html:145
+#: templates/admin/tenant_detail.html:146
 #: templates/admin/tenants_manage.html:93 templates/admin/user_detail.html:222
 #: templates/api_docs.html:189 templates/appearance.html:369
 #: templates/generali_importstatus.html:50
@@ -2215,7 +2232,7 @@ msgstr "API-Dokumentation"
 msgid "Global Dashboard"
 msgstr "Globales Dashboard"
 
-#: templates/_header.html:158 templates/admin/tenant_detail.html:216
+#: templates/_header.html:158 templates/admin/tenant_detail.html:243
 msgid "Global Reporting"
 msgstr "Globales Reporting"
 
@@ -2307,7 +2324,7 @@ msgstr "Zu Benutzer wechseln ..."
 
 #: templates/_header.html:400 templates/admin/access_control.html:130
 #: templates/admin/organization_detail.html:132
-#: templates/admin/tenant_detail.html:251
+#: templates/admin/tenant_detail.html:308
 msgid "Global"
 msgstr "Global"
 
@@ -2851,7 +2868,7 @@ msgstr "Vollständige Anleitung"
 #: templates/admin/_process_sheets.html:16
 #: templates/admin/_process_sheets.html:93
 #: templates/admin/_tenant_sheet.html:15 templates/admin/logs.html:141
-#: templates/admin/tenant_detail.html:287
+#: templates/admin/tenant_detail.html:344
 #: templates/js/_reporting_drill_js.html:16
 #: templates/prepared_documents.html:253 templates/prepared_documents.html:265
 #: templates/reporting.html:149 templates/reporting.html:182
@@ -3222,7 +3239,7 @@ msgstr "Anmerkungstext"
 #: templates/admin/organization_detail.html:372
 #: templates/admin/permissions.html:118 templates/admin/processes.html:123
 #: templates/admin/processes.html:207 templates/admin/processes.html:243
-#: templates/admin/tenant_detail.html:331 templates/admin/user_detail.html:78
+#: templates/admin/tenant_detail.html:388 templates/admin/user_detail.html:78
 #: templates/admin/user_detail.html:276
 #: templates/generali_additionalservices.html:261
 #: templates/generali_additionalservices.html:320
@@ -3589,7 +3606,7 @@ msgstr "Antwortfelder"
 msgid "Field"
 msgstr "Feld"
 
-#: templates/admin/tenant_detail.html:144 templates/api_docs.html:230
+#: templates/admin/tenant_detail.html:145 templates/api_docs.html:230
 #: templates/api_docs.html:262 templates/api_docs.html:271
 #: templates/api_docs.html:303 templates/api_docs.html:470
 #: templates/generali_documents.html:228 templates/js/_reporting_viz_js.html:11
@@ -5990,7 +6007,7 @@ msgstr "Ausführen"
 msgid "Save as"
 msgstr "Speichern unter"
 
-#: templates/admin/tenant_detail.html:143 templates/reporting.html:420
+#: templates/admin/tenant_detail.html:144 templates/reporting.html:420
 msgid "Target"
 msgstr "Ziel"
 
@@ -6311,7 +6328,7 @@ msgstr "Registrierte Metriken"
 msgid "Code"
 msgstr "Code"
 
-#: templates/admin/tenant_detail.html:305 templates/reporting_metrics.html:41
+#: templates/admin/tenant_detail.html:362 templates/reporting_metrics.html:41
 #: templates/reporting_metrics.html:54 templates/reporting_sources.html:41
 #: templates/reporting_sources.html:52 templates/reporting_sources.html:66
 msgid "Label"
@@ -6350,7 +6367,7 @@ msgstr "Italienische Bezeichnung"
 msgid "Condition (JSON)"
 msgstr "Bedingung (JSON)"
 
-#: templates/admin/tenant_detail.html:318 templates/reporting_metrics.html:74
+#: templates/admin/tenant_detail.html:375 templates/reporting_metrics.html:74
 #: templates/reporting_sources.html:76
 msgid "Sort order"
 msgstr "Sortierreihenfolge"
@@ -6793,8 +6810,9 @@ msgstr ""
 "Alle Workitems, die den aktuellen Filtern entsprechen, werden exportiert "
 "(nicht nur die aktuelle Seite)."
 
-#: templates/admin/tenant_detail.html:62 templates/admin/tenants.html:187
-#: templates/admin/tenants_manage.html:92 templates/workitems_overview.html:567
+#: templates/admin/tenant_detail.html:62 templates/admin/tenant_detail.html:129
+#: templates/admin/tenants.html:187 templates/admin/tenants_manage.html:92
+#: templates/workitems_overview.html:567
 msgid "Pages"
 msgstr "Seiten"
 
@@ -6865,7 +6883,7 @@ msgstr "Ein Umgebungsschlüssel-Präfix wie MS02 — niemals ein Geheimwert."
 #: templates/admin/_client_sheet.html:86 templates/admin/_tenant_sheet.html:35
 #: templates/admin/clients.html:55 templates/admin/clients.html:172
 #: templates/admin/maintenance.html:38 templates/admin/maintenance.html:95
-#: templates/admin/tenant_detail.html:32 templates/admin/tenant_detail.html:169
+#: templates/admin/tenant_detail.html:32 templates/admin/tenant_detail.html:175
 #: templates/admin/tenants.html:174 templates/admin/tenants_manage.html:40
 #: templates/admin/tenants_manage.html:134
 #: templates/admin/tenants_manage.html:187
@@ -6954,7 +6972,9 @@ msgstr "Prozessname"
 
 #: templates/admin/_process_sheets.html:43
 msgid "Two parts separated by a single dot, and unique for this client."
-msgstr "Zwei Teile, getrennt durch genau einen Punkt, und eindeutig für diesen Client."
+msgstr ""
+"Zwei Teile, getrennt durch genau einen Punkt, und eindeutig für diesen "
+"Client."
 
 #: templates/admin/_process_sheets.html:46
 msgid "Table name"
@@ -6984,7 +7004,9 @@ msgstr "Typ der Id-Spalte"
 msgid ""
 "Join condition, time filters and the extra condition are SQL fragments "
 "and stay migration-only."
-msgstr "Join-Bedingung, Zeitfilter und die Zusatzbedingung sind SQL-Fragmente und bleiben migrationsgebunden."
+msgstr ""
+"Join-Bedingung, Zeitfilter und die Zusatzbedingung sind SQL-Fragmente und"
+" bleiben migrationsgebunden."
 
 #: templates/admin/_process_sheets.html:79
 msgid "Save process source"
@@ -7065,7 +7087,7 @@ msgstr "Benutzer und Zugriffsprofile"
 #: templates/admin/organization_detail.html:64
 #: templates/admin/organization_detail.html:116
 #: templates/admin/organizations.html:61 templates/admin/tenant_detail.html:76
-#: templates/admin/tenant_detail.html:240 templates/admin/tenants.html:128
+#: templates/admin/tenant_detail.html:297 templates/admin/tenants.html:128
 #: templates/admin/tenants_manage.html:90
 msgid "Users"
 msgstr "Benutzer"
@@ -7668,12 +7690,11 @@ msgstr "Branding"
 
 #: templates/admin/organization_detail.html:87
 #: templates/admin/organization_detail.html:114
-#: templates/admin/tenant_detail.html:238 templates/admin/user_detail.html:49
+#: templates/admin/tenant_detail.html:295 templates/admin/user_detail.html:49
 msgid "Access profile"
 msgstr "Zugriffsprofil"
 
 #: templates/admin/organization_detail.html:88
-#, python-format
 msgid "Last sign-in"
 msgstr "Letzte Anmeldung"
 
@@ -7686,7 +7707,7 @@ msgid "No users in this organization."
 msgstr "Keine Benutzer in dieser Organisation."
 
 #: templates/admin/organization_detail.html:115
-#: templates/admin/tenant_detail.html:239
+#: templates/admin/tenant_detail.html:296
 msgid "Scope"
 msgstr "Geltungsbereich"
 
@@ -7710,13 +7731,17 @@ msgstr "In Zugriffskontrolle verwalten"
 msgid ""
 "The process configuration could not be loaded, so this tab cannot be "
 "shown."
-msgstr "Die Prozesskonfiguration konnte nicht geladen werden, daher kann dieser Tab nicht angezeigt werden."
+msgstr ""
+"Die Prozesskonfiguration konnte nicht geladen werden, daher kann dieser "
+"Tab nicht angezeigt werden."
 
 #: templates/admin/organization_detail.html:192
 msgid ""
 "This organization has no process sources, so it reaches no data "
 "connection."
-msgstr "Diese Organisation hat keine Prozessquellen und erreicht daher keine Datenverbindung."
+msgstr ""
+"Diese Organisation hat keine Prozessquellen und erreicht daher keine "
+"Datenverbindung."
 
 #: templates/admin/organization_detail.html:197
 msgid "Process sources"
@@ -7727,7 +7752,10 @@ msgid ""
 "A process name is two parts separated by a single dot, for example "
 "privera.02_Posteingang. Adding one also creates its process view "
 "permission, granted to nobody."
-msgstr "Ein Prozessname besteht aus zwei Teilen, getrennt durch genau einen Punkt, zum Beispiel privera.02_Posteingang. Beim Anlegen wird zugleich seine Prozess-Ansichtsberechtigung erstellt, die niemandem gewährt ist."
+msgstr ""
+"Ein Prozessname besteht aus zwei Teilen, getrennt durch genau einen "
+"Punkt, zum Beispiel privera.02_Posteingang. Beim Anlegen wird zugleich "
+"seine Prozess-Ansichtsberechtigung erstellt, die niemandem gewährt ist."
 
 #: templates/admin/organization_detail.html:214
 msgid "client"
@@ -8280,46 +8308,54 @@ msgstr ""
 "Dieser Tenant hat noch keine Organisationen. Seine Mitglieder können erst"
 " ermittelt werden, wenn eine zugewiesen ist."
 
-#: templates/admin/tenant_detail.html:129
-#: templates/admin/tenants_manage.html:73
-msgid "Mounted pages"
-msgstr "Eingebundene Seiten"
+#: templates/admin/tenant_detail.html:130
+msgid "Order here is the order members see"
+msgstr "Die Reihenfolge hier ist die Reihenfolge, die Mitglieder sehen"
 
-#: templates/admin/tenant_detail.html:133
-#: templates/admin/tenant_detail.html:284
-#: templates/admin/tenant_detail.html:332
+#: templates/admin/tenant_detail.html:134
+#: templates/admin/tenant_detail.html:341
+#: templates/admin/tenant_detail.html:389
 msgid "Mount page"
 msgstr "Seite einbinden"
 
-#: templates/admin/tenant_detail.html:142
-#: templates/admin/tenant_detail.html:293
+#: templates/admin/tenant_detail.html:143
+#: templates/admin/tenant_detail.html:350
 #: templates/js/_generali_reporting_js.html:17
 #: templates/js/admin/_logs_js.html:106
 #: templates/js/admin/_user_detail_js.html:623
 msgid "Page"
 msgstr "Seite"
 
-#: templates/admin/tenant_detail.html:161
+#: templates/admin/tenant_detail.html:167
 msgid "entity"
 msgstr "Entität"
 
-#: templates/admin/tenant_detail.html:167
+#: templates/admin/tenant_detail.html:173
+#: templates/admin/tenant_detail.html:250
 msgid "Draft"
 msgstr "Entwurf"
 
-#: templates/admin/tenant_detail.html:179
+#: templates/admin/tenant_detail.html:187
+msgid "Move up"
+msgstr "Nach oben"
+
+#: templates/admin/tenant_detail.html:189
+msgid "Move down"
+msgstr "Nach unten"
+
+#: templates/admin/tenant_detail.html:193
 msgid "Unmount"
 msgstr "Entfernen"
 
-#: templates/admin/tenant_detail.html:182
+#: templates/admin/tenant_detail.html:196
 msgid "Generated from a migration"
 msgstr "Aus einer Migration generiert"
 
-#: templates/admin/tenant_detail.html:188
+#: templates/admin/tenant_detail.html:202
 msgid "No pages mounted yet."
 msgstr "Noch keine Seiten eingebunden."
 
-#: templates/admin/tenant_detail.html:192
+#: templates/admin/tenant_detail.html:206
 msgid ""
 "Generated list and crud pages come from migrations and can only be "
 "activated or deactivated here."
@@ -8327,16 +8363,20 @@ msgstr ""
 "Generierte list- und crud-Seiten stammen aus Migrationen und können hier "
 "nur aktiviert oder deaktiviert werden."
 
-#: templates/admin/tenant_detail.html:196
-#: templates/admin/tenant_detail.html:198
+#: templates/admin/tenant_detail.html:211
+#: templates/admin/tenant_detail.html:213
 msgid "Member preview"
 msgstr "Mitglieder-Vorschau"
 
-#: templates/admin/tenant_detail.html:213
+#: templates/admin/tenant_detail.html:218
+msgid "Reorder"
+msgstr "Neu anordnen"
+
+#: templates/admin/tenant_detail.html:240
 msgid "No active pages"
 msgstr "Keine aktiven Seiten"
 
-#: templates/admin/tenant_detail.html:227
+#: templates/admin/tenant_detail.html:284
 msgid ""
 "Draft pages are hidden from members; only active ones appear in the "
 "tenant sidebar."
@@ -8344,7 +8384,7 @@ msgstr ""
 "Entwurfsseiten sind für Mitglieder unsichtbar; nur aktive erscheinen in "
 "der Tenant-Seitenleiste."
 
-#: templates/admin/tenant_detail.html:262
+#: templates/admin/tenant_detail.html:319
 #, python-format
 msgid ""
 "No access profile holds tenant.%(code)s.view, so nobody can open this "
@@ -8353,35 +8393,35 @@ msgstr ""
 "Kein Zugriffsprofil besitzt tenant.%(code)s.view, daher kann niemand die "
 "Seiten dieses Tenants öffnen."
 
-#: templates/admin/tenant_detail.html:266
+#: templates/admin/tenant_detail.html:323
 msgid "Access is read-only here."
 msgstr "Der Zugriff ist hier schreibgeschützt."
 
-#: templates/admin/tenant_detail.html:267
+#: templates/admin/tenant_detail.html:324
 msgid "Manage in Permissions"
 msgstr "In Berechtigungen verwalten"
 
-#: templates/admin/tenant_detail.html:283 templates/tenant/page.html:8
+#: templates/admin/tenant_detail.html:340 templates/tenant/page.html:8
 msgid "Tenant page"
 msgstr "Tenant-Seite"
 
-#: templates/admin/tenant_detail.html:295
+#: templates/admin/tenant_detail.html:352
 msgid "Choose a page…"
 msgstr "Seite auswählen…"
 
-#: templates/admin/tenant_detail.html:300
+#: templates/admin/tenant_detail.html:357
 msgid "Key"
 msgstr "Schlüssel"
 
-#: templates/admin/tenant_detail.html:310
+#: templates/admin/tenant_detail.html:367
 msgid "Icon"
 msgstr "Symbol"
 
-#: templates/admin/tenant_detail.html:323
+#: templates/admin/tenant_detail.html:380
 msgid "Active page marker (optional)"
 msgstr "Aktiv-Markierung (optional)"
 
-#: templates/admin/tenant_detail.html:326
+#: templates/admin/tenant_detail.html:383
 msgid ""
 "New pages start as drafts and stay hidden from members until you activate"
 " them."
@@ -8554,6 +8594,10 @@ msgstr "Tenant-Benutzer"
 #, python-format
 msgid "across %(n)s organizations"
 msgstr "in %(n)s Organisationen"
+
+#: templates/admin/tenants_manage.html:73
+msgid "Mounted pages"
+msgstr "Eingebundene Seiten"
 
 #: templates/admin/tenants_manage.html:75
 #, python-format
@@ -10948,7 +10992,9 @@ msgstr "Organisation bearbeiten"
 #: templates/js/admin/_organization_detail_js.html:113
 #: templates/js/admin/_organizations_js.html:149
 msgid "Delete this organization? Its process sources become unassigned."
-msgstr "Diese Organisation löschen? Ihre Prozessquellen werden nicht mehr zugeordnet."
+msgstr ""
+"Diese Organisation löschen? Ihre Prozessquellen werden nicht mehr "
+"zugeordnet."
 
 #: templates/js/admin/_organization_detail_js.html:135
 #: templates/js/admin/_tenants_manage_js.html:207
@@ -10977,7 +11023,9 @@ msgstr "Diese Feldzuordnung löschen?"
 msgid ""
 "Members of this organization will see the tenant's pages instead of the "
 "global navigation."
-msgstr "Mitglieder dieser Organisation sehen die Seiten des Tenants statt der globalen Navigation."
+msgstr ""
+"Mitglieder dieser Organisation sehen die Seiten des Tenants statt der "
+"globalen Navigation."
 
 #: templates/js/admin/_organization_detail_js.html:379
 msgid "Members of this organization will see the global navigation again."
@@ -11124,7 +11172,7 @@ msgstr ""
 "Diesen Tenant und seine Seitenbeschreibungen löschen? Organisationen "
 "müssen zuerst verschoben werden."
 
-#: templates/js/admin/_tenant_detail_js.html:183
+#: templates/js/admin/_tenant_detail_js.html:273
 msgid "Remove this page from the tenant?"
 msgstr "Diese Seite aus dem Tenant entfernen?"
 

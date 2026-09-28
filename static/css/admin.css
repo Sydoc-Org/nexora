@@ -560,3 +560,101 @@ body.nx-app label.ml-toggle input[type="checkbox"] { opacity: 0; width: 0; heigh
   .adm-brand { grid-template-columns: minmax(0, 1fr); gap: 24px; }
   .adm-brand .adm-preview { max-width: 380px; }
 }
+
+/* — Member preview: selected page mock --------------------------- */
+.adm-window__brandtile { width: 18px; height: 18px; flex: none; border-radius: 5px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; background: var(--nx-brand-grad); color: var(--nx-on-accent, #fff); }
+.adm-window__item--pick { cursor: pointer; }
+.adm-window__item--pick:hover { background: var(--adm-hover); }
+.adm-window__item--on { background: var(--nx-accent-tint); color: var(--nx-l-indigo-fg); font-weight: 600; }
+.adm-window__item--on i { color: var(--nx-l-indigo-fg); }
+
+.adm-window__title { display: flex; align-items: center; gap: 8px; font-size: var(--fs-control); font-weight: 600; color: var(--nx-text); margin-bottom: 12px; }
+.adm-window__title i { color: var(--nx-accent); font-size: 12px; }
+
+.adm-window__tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+.adm-window__tile { border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 7px); padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; }
+.adm-window__tile b { font-family: var(--nx-mono); font-variant-numeric: tabular-nums; font-size: 15px; font-weight: 600; color: var(--nx-text); letter-spacing: -0.4px; }
+
+/* Bars are decorative: fixed heights, no data behind them. */
+.adm-window__chart { display: flex; align-items: flex-end; gap: 5px; height: 86px; border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 7px); padding: 8px; }
+.adm-window__chart span { flex: 1 1 0; background: var(--nx-sunken); border-radius: 2px 2px 0 0; }
+.adm-window__chart span:nth-child(7) { background: var(--nx-accent); opacity: 0.85; }
+
+.adm-window__rowhead, .adm-window__row { display: grid; grid-template-columns: 1.4fr 1fr 0.8fr; gap: 10px; align-items: center; }
+.adm-window__rowhead { padding-bottom: 7px; border-bottom: 1px solid var(--nx-border); }
+.adm-window__row { padding: 9px 0; border-bottom: 1px solid var(--nx-divider); }
+.adm-window__skel--tiny { height: 7px; width: 60%; }
+
+/* Row selection in the pages table. */
+.adm-table tbody tr.adm-row--pick { cursor: pointer; }
+.adm-table tbody tr.adm-row--pick:hover { background: var(--adm-hover); }
+.adm-table tbody tr.adm-row--on { background: var(--nx-accent-tint); }
+
+/* Reorder mode: arrows appear per row while it is on. */
+.adm-reorder { display: none; gap: 2px; }
+.is-reordering .adm-reorder { display: inline-flex; }
+.is-reordering .adm-row--pick { cursor: default; }
+
+/* ============================================================
+   FLATTEN THE REMAINING ADMIN BOXES
+   The tenancy pages were rewritten onto .adm-*; the rest of the
+   admin area still renders the shared nx-filter / nx-table-wrap /
+   page_header card chrome. Rather than rewrite seven templates,
+   restyle those three constructs to the same flat language.
+
+   Scoped to body.nx-admin, NOT to admin.css as a whole: the
+   generated tenant pages (templates/tenant/page.html) also load
+   this file and are member-facing, so they must keep their cards.
+   ============================================================ */
+
+/* Filter bar: the controls are the content; the box around them was chrome. */
+body.nx-admin .nx-filter {
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--nx-border);
+  border-radius: 0;
+  padding: 0 0 16px;
+  margin-bottom: 18px;
+}
+
+/* Table: no surrounding card, header rule instead of a filled head row. */
+body.nx-admin .nx-table-wrap {
+  background: none;
+  border: none;
+  border-radius: 0;
+  overflow: visible;
+}
+body.nx-admin .nx-table thead th {
+  background: none;
+  font-size: var(--fs-eyebrow);
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  padding: 0 12px 8px 0;
+  border-bottom: 1px solid var(--nx-border);
+}
+body.nx-admin .nx-table tbody td {
+  padding: 11px 12px 11px 0;
+  border-bottom: 1px solid var(--nx-divider);
+}
+body.nx-admin .nx-table thead th:last-child,
+body.nx-admin .nx-table tbody td:last-child { padding-right: 0; }
+/* The card used to close the last row; without it the list needs its own rule. */
+body.nx-admin .nx-table tbody tr:last-child td { border-bottom: 1px solid var(--nx-divider); }
+body.nx-admin .nx-table tbody tr:hover { background: var(--adm-hover); }
+
+/* Page header from the _admin_helpers macro, brought to .adm-head's proportions. */
+body.nx-admin .nx-page-head { align-items: center; margin-bottom: 22px; }
+body.nx-admin .nx-page-icon {
+  width: 44px; height: 44px;
+  border-radius: calc(var(--nx-radius-scale, 1) * 12px);
+  background: var(--nx-brand-grad);
+  color: var(--nx-on-accent, #fff);
+  font-size: 18px;
+  box-shadow: 0 8px 20px -6px var(--nx-accent-soft);
+}
+body.nx-admin .nx-title { font-size: 24px; font-weight: 600; letter-spacing: -0.5px; line-height: 1.2; }
+body.nx-admin .nx-subtitle { font-size: var(--fs-meta); color: var(--nx-text-meta); margin-top: 2px; }
+
+/* Standalone cards that only wrap a list (status groups, the access-control
+   side panel) lose their border; ones that are genuinely a panel keep it. */
+body.nx-admin .nx-card--flat { background: none; border: none; border-radius: 0; padding: 0; }

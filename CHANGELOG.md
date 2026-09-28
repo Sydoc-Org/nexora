@@ -8,6 +8,26 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **The tenant member preview now previews the page, and pages can be
+  reordered.** The Pages tab's preview was a generic grey skeleton; it now
+  shows the selected page — the tenant's brand in the preview sidebar, the page
+  key in the window's address bar, and either a dashboard mock (KPI tiles and a
+  chart) or a table mock depending on the page. Selecting a row or a preview
+  sidebar entry drives both. **Reorder** puts up/down arrows on each row and,
+  on leaving reorder mode, writes `TenantPages.SortOrder` as 10, 20, 30 … so a
+  later single move has room to land between two neighbours. The new endpoint
+  rejects a key list that does not exactly match the tenant's own pages rather
+  than reordering a subset.
+
+- **The rest of the admin area loses its boxes.** Access Control, Permissions,
+  Sessions, Logs, User detail, Data Connections and Process Configurations
+  still rendered the old card chrome — a bordered filter box and a bordered
+  table card. The three shared constructs behind that (`nx-filter`,
+  `nx-table-wrap`, the `page_header` macro) are now flattened to the same
+  language as the redesigned pages. Scoped to a new `body.nx-admin` class
+  rather than to `admin.css` as a whole, because the generated tenant pages
+  load that stylesheet too and are member-facing.
+
 - **Organizations list and organization detail complete the tenancy redesign.**
   The Organizations list gains tenant tabs (All, one per tenant, No tenant),
   search, per-organization user counts, the data connection it actually reaches

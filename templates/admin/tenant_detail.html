@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="{{ static_v('css/admin.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous" />
 </head>
-<body class="nx-app">
+<body class="nx-app nx-admin">
     {% set active_page = 'admin_tenants_manage' %}
     {% include '_header.html' %}
 
@@ -126,7 +126,8 @@
             <div class="adm-pages">
                 <div class="adm-pages__main">
                     <div class="adm-sec" style="margin-top:0">
-                        <h3 class="adm-sec__title">{{ _('Mounted pages') }}</h3>
+                        <h3 class="adm-sec__title">{{ _('Pages') }}</h3>
+                        <span class="adm-sec__sub">{{ _('Order here is the order members see') }}</span>
                         {% if can_edit %}
                         <div class="adm-sec__actions">
                             <button type="button" class="nx-btn nx-btn--primary nx-btn--sm" id="mountPageBtn" data-testid="tenant-mount-page">
@@ -148,7 +149,12 @@
                         </thead>
                         <tbody>
                             {% for p in pages %}
-                            <tr data-page-key="{{ p.PageKey }}" data-testid="tenant-page-row-{{ p.PageKey }}">
+                            <tr class="adm-row--pick" data-page-key="{{ p.PageKey }}"
+                                data-page-label="{{ p.layout.label or p.PageKey }}"
+                                data-page-icon="{{ p.layout.icon or 'fa-arrow-up-right-from-square' }}"
+                                data-page-status="{{ p.Status }}"
+                                data-page-kind="{{ 'dashboard' if 'dashboard' in (p.layout.endpoint or '') ~ p.PageKey or 'report' in (p.layout.endpoint or '') ~ p.PageKey else 'table' }}"
+                                data-testid="tenant-page-row-{{ p.PageKey }}">
                                 <td>
                                     <span class="adm-name">
                                         <span class="adm-name__tile"><i class="fas {{ p.layout.icon or 'fa-arrow-up-right-from-square' }}"></i></span>
@@ -174,6 +180,14 @@
                                 </td>
                                 {% if can_edit %}
                                 <td class="align-right">
+                                    {# Reorder arrows apply to every page, generated ones
+                                       included: order is presentation, not schema. #}
+                                    <span class="adm-reorder">
+                                        <button type="button" class="adm-iconbtn move-page-btn" data-dir="up"
+                                                title="{{ _('Move up') }}" data-testid="tenant-page-up-{{ p.PageKey }}"><i class="fas fa-chevron-up"></i></button>
+                                        <button type="button" class="adm-iconbtn move-page-btn" data-dir="down"
+                                                title="{{ _('Move down') }}" data-testid="tenant-page-down-{{ p.PageKey }}"><i class="fas fa-chevron-down"></i></button>
+                                    </span>
                                     {% if p.PageType == 'custom' %}
                                     <button type="button" class="adm-iconbtn adm-iconbtn--danger delete-page-btn"
                                             data-page="{{ p.PageKey }}" title="{{ _('Unmount') }}"
@@ -192,20 +206,33 @@
                     <p class="adm-field__hint">{{ _('Generated list and crud pages come from migrations and can only be activated or deactivated here.') }}</p>
                 </div>
 
-                {# Member preview: what the tenant's sidebar looks like to its users. #}
+                {# Member preview: the sidebar a member sees plus a mock of the
+                   selected page. A row or a sidebar entry drives both. #}
                 <aside class="adm-preview" aria-label="{{ _('Member preview') }}">
                     <div class="adm-sec" style="margin-top:0">
                         <h3 class="adm-sec__title">{{ _('Member preview') }}</h3>
+                        {% if can_edit and pages %}
+                        <div class="adm-sec__actions">
+                            <button type="button" class="nx-btn nx-btn--secondary nx-btn--sm" id="reorderBtn"
+                                    data-testid="tenant-reorder">
+                                <i class="fas fa-arrow-down-up-across-line"></i> {{ _('Reorder') }}
+                            </button>
+                        </div>
+                        {% endif %}
                     </div>
                     <div class="adm-window">
                         <div class="adm-window__bar">
                             <span class="adm-window__dot"></span><span class="adm-window__dot"></span><span class="adm-window__dot"></span>
-                            <span class="adm-window__url">nexora / {{ tenant.TenantCode }}</span>
+                            <span class="adm-window__url">nexora / {{ tenant.TenantCode }} / <span id="previewKey"></span></span>
                         </div>
                         <div class="adm-window__body">
-                            <div class="adm-window__side">
+                            <div class="adm-window__side" id="previewSide">
+                                <div class="adm-window__brand">
+                                    <span class="adm-window__brandtile">{{ tenant.DisplayName[:1]|upper }}</span>
+                                    <span>{{ tenant.DisplayName }}</span>
+                                </div>
                                 {% for p in pages if p.Status == 'active' %}
-                                <div class="adm-window__item">
+                                <div class="adm-window__item adm-window__item--pick" data-preview-key="{{ p.PageKey }}">
                                     <i class="fas {{ p.layout.icon or 'fa-arrow-up-right-from-square' }}"></i>
                                     <span>{{ p.layout.label or p.PageKey }}</span>
                                 </div>
@@ -217,10 +244,40 @@
                                 </div>
                             </div>
                             <div class="adm-window__canvas">
-                                <div class="adm-window__skel adm-window__skel--wide"></div>
-                                <div class="adm-window__skel"></div>
-                                <div class="adm-window__skel"></div>
-                                <div class="adm-window__skel adm-window__skel--short"></div>
+                                <div class="adm-window__title">
+                                    <i class="fas fa-gauge" id="previewIcon"></i>
+                                    <span id="previewLabel"></span>
+                                    <span class="adm-pill" id="previewDraft" hidden>{{ _('Draft') }}</span>
+                                </div>
+
+                                {# Dashboard-ish pages get tiles and a chart; the rest a table. #}
+                                <div id="previewDashboard">
+                                    <div class="adm-window__tiles">
+                                        <div class="adm-window__tile"><span class="adm-window__skel adm-window__skel--tiny"></span><b>128</b></div>
+                                        <div class="adm-window__tile"><span class="adm-window__skel adm-window__skel--tiny"></span><b>37</b></div>
+                                        <div class="adm-window__tile"><span class="adm-window__skel adm-window__skel--tiny"></span><b>4.2d</b></div>
+                                    </div>
+                                    <div class="adm-window__chart" aria-hidden="true">
+                                        {% for h in [52, 74, 61, 88, 45, 70, 96, 58, 80, 66] %}
+                                        <span style="height:{{ h }}%"></span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+
+                                <div id="previewTable" hidden>
+                                    <div class="adm-window__rowhead">
+                                        <span class="adm-window__skel adm-window__skel--tiny"></span>
+                                        <span class="adm-window__skel adm-window__skel--tiny"></span>
+                                        <span class="adm-window__skel adm-window__skel--tiny"></span>
+                                    </div>
+                                    {% for _i in range(5) %}
+                                    <div class="adm-window__row">
+                                        <span class="adm-window__skel"></span>
+                                        <span class="adm-window__skel"></span>
+                                        <span class="adm-window__skel"></span>
+                                    </div>
+                                    {% endfor %}
+                                </div>
                             </div>
                         </div>
                     </div>
