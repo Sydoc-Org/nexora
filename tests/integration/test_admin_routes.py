@@ -106,7 +106,10 @@ def test_failed_logins_tile_counts_wrong_credentials_not_stale_forms(admin_clien
     logs_sql = next(q for q in sent if "FROM Logs" in q)
     assert "HttpResponseCode IN ('401', '429')" in logs_sql
     assert ">= 400" not in logs_sql
-    assert re.search(rb"Failed logins today</div>\s*<div[^>]*>\s*7\b", resp.data)
+    # Anchored on the testid, not on the surrounding tags: the tenancy
+    # redesign moved this tile from a <div> card to the <p> KPI strip, and the
+    # point of the assertion is the number, not the element it sits in.
+    assert re.search(rb'data-testid="admin-overview-kpi-failed-logins"[^>]*>\s*7\b', resp.data)
 
 
 @pytest.fixture()
