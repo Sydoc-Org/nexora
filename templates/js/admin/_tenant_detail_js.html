@@ -57,10 +57,9 @@
             return api;
         }
         const tenantSheet = sheet('tenant');
-        const pageSheet = sheet('page');
         document.addEventListener('keydown', (e) => {
             if (e.key !== 'Escape') return;
-            tenantSheet?.close(); pageSheet?.close(); closeConfirm();
+            tenantSheet?.close(); closePageForm(); closeConfirm();
         });
 
         // ---- Tabs ------------------------------------------------------------
@@ -146,7 +145,10 @@
         });
 
         // ---- Pages --------------------------------------------------------------
+        // The mount form sits inline above the table rather than in a sheet, so
+        // opening it must not scroll the table it edits out of view.
         const pageForm = document.getElementById('pageForm');
+        function closePageForm() { pageForm?.classList.add('hidden'); }
         if (pageForm) {
             const iconInput = document.getElementById('icon');
             const iconPreview = document.getElementById('iconPreview')?.querySelector('i');
@@ -159,7 +161,25 @@
             document.getElementById('mountPageBtn')?.addEventListener('click', () => {
                 pageForm.reset();
                 if (iconPreview) iconPreview.className = 'fas fa-arrow-up-right-from-square';
-                pageSheet.open();
+                pageForm.classList.remove('hidden');
+                pageForm.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                document.getElementById('endpoint')?.focus();
+            });
+            document.getElementById('pageFormClose')?.addEventListener('click', closePageForm);
+            document.getElementById('pageFormCancel')?.addEventListener('click', closePageForm);
+
+            // The key and label are derived from the chosen endpoint, so the
+            // common case is pick-one-thing-and-save.
+            const keyInput = document.getElementById('PageKey');
+            const labelInput = document.getElementById('label');
+            document.getElementById('endpoint')?.addEventListener('change', (e) => {
+                const ep = e.target.value;
+                if (!ep) return;
+                if (!keyInput.value) keyInput.value = ep.replace(/_view$/, '').replace(/[^a-z0-9_.-]/g, '_');
+                if (!labelInput.value) {
+                    labelInput.value = ep.replace(/_view$/, '').replace(/[_-]+/g, ' ')
+                        .replace(/\b\w/g, (c) => c.toUpperCase());
+                }
             });
 
             pageForm.addEventListener('submit', async (event) => {
@@ -167,22 +187,19 @@
                 const data = Object.fromEntries(new FormData(pageForm).entries());
                 delete data.csrf_token;
                 const url = `${API_PREFIX}admin/tenants/${encodeURIComponent(TENANT_CODE)}/pages/add`;
-                if (await send(url, 'POST', data)) { pageSheet.close(); reload(); }
+                if (await send(url, 'POST', data)) { closePageForm(); reload(); }
             });
         }
 
         // ---- Member preview ------------------------------------------------------
-        // The preview is driven entirely off the table rows, so it follows a
-        // status toggle or a reorder without needing its own copy of the data.
+        // Every page has its own view rendered server-side from its entity and
+        // field descriptors; selecting a row only unhides one. Nothing about a
+        // page's shape is reconstructed in JS.
         const pagesTable = document.querySelector('[data-testid="tenant-pages-table"]');
         const previewSide = document.getElementById('previewSide');
         if (pagesTable && previewSide) {
             const previewKey = document.getElementById('previewKey');
-            const previewLabel = document.getElementById('previewLabel');
-            const previewIcon = document.getElementById('previewIcon');
-            const previewDraft = document.getElementById('previewDraft');
-            const previewDashboard = document.getElementById('previewDashboard');
-            const previewTable = document.getElementById('previewTable');
+            const views = document.querySelectorAll('[data-preview-view]');
 
             function select(key) {
                 const row = pagesTable.querySelector(`tr[data-page-key="${CSS.escape(key)}"]`);
@@ -191,15 +208,8 @@
                     r.classList.toggle('adm-row--on', r === row));
                 previewSide.querySelectorAll('[data-preview-key]').forEach(el =>
                     el.classList.toggle('adm-window__item--on', el.dataset.previewKey === key));
-
+                views.forEach(v => { v.hidden = v.dataset.previewView !== key; });
                 previewKey.textContent = key;
-                previewLabel.textContent = row.dataset.pageLabel;
-                previewIcon.className = `fas ${row.dataset.pageIcon}`;
-                const isDraft = row.dataset.pageStatus !== 'active';
-                previewDraft.hidden = !isDraft;
-                const dashboard = row.dataset.pageKind === 'dashboard';
-                previewDashboard.hidden = !dashboard;
-                previewTable.hidden = dashboard;
             }
 
             pagesTable.addEventListener('click', (e) => {

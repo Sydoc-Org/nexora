@@ -448,7 +448,7 @@ body.nx-app label.ml-toggle input[type="checkbox"] { opacity: 0; width: 0; heigh
 .adm-field__label { display: block; font-size: var(--fs-eyebrow); font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: var(--nx-text-meta); margin-bottom: 5px; }
 .adm-field__hint { font-size: var(--fs-meta); color: var(--nx-text-meta); margin: 5px 0 0; }
 .adm-field__err { display: block; font-size: var(--fs-meta); color: var(--nx-danger); margin-top: 4px; }
-.adm-field .nx-input:invalid, .adm-field .nx-input.is-error { border-color: var(--nx-danger); }
+.adm-field .nx-input:user-invalid, .adm-field .nx-input.is-error { border-color: var(--nx-danger); }
 
 /* Organization checklist inside the tenant sheet. */
 .adm-checklist { max-height: 260px; overflow-y: auto; border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 8px); padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; }
@@ -491,9 +491,9 @@ body.nx-app label.ml-toggle input[type="checkbox"] { opacity: 0; width: 0; heigh
 .adm-warn { display: flex; align-items: center; gap: 10px; padding: 11px 16px; font-size: 13px; background: var(--nx-l-amber); color: var(--nx-l-amber-fg); border-radius: calc(var(--nx-radius-scale, 1) * 8px); }
 
 /* Pages tab: table on the left, member preview pinned to the right. */
-.adm-pages { display: grid; grid-template-columns: minmax(0, 1fr) 440px; gap: 32px; align-items: start; }
+.adm-pages { display: grid; grid-template-columns: minmax(0, 1fr) 520px; gap: 28px; align-items: start; }
 .adm-pages__main { min-width: 0; }
-.adm-preview { min-width: 0; }
+.adm-preview { min-width: 0; position: sticky; top: 16px; }
 
 /* Mini browser window -- the point is "this is what a member sees", so it is
    deliberately chrome-first rather than a bare list. */
@@ -501,7 +501,7 @@ body.nx-app label.ml-toggle input[type="checkbox"] { opacity: 0; width: 0; heigh
 .adm-window__bar { display: flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px; background: var(--nx-alt); border-bottom: 1px solid var(--nx-border); }
 .adm-window__dot { width: 7px; height: 7px; border-radius: 50%; background: var(--nx-border-strong); flex: none; }
 .adm-window__url { margin-left: 10px; font-family: var(--nx-mono); font-size: var(--fs-eyebrow); color: var(--nx-text-meta); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.adm-window__body { display: grid; grid-template-columns: 148px minmax(0, 1fr); min-height: 230px; }
+.adm-window__body { display: grid; grid-template-columns: 136px minmax(0, 1fr); min-height: 230px; }
 .adm-window__side { border-right: 1px solid var(--nx-border); padding: 10px 8px; display: flex; flex-direction: column; gap: 2px; background: var(--nx-alt); }
 .adm-window__item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: calc(var(--nx-radius-scale, 1) * 6px); font-size: var(--fs-micro); color: var(--nx-text); }
 .adm-window__item i { width: 13px; font-size: 10px; color: var(--nx-accent); flex: none; }
@@ -515,7 +515,7 @@ body.nx-app label.ml-toggle input[type="checkbox"] { opacity: 0; width: 0; heigh
 
 @media (max-width: 1180px) {
   .adm-pages { grid-template-columns: minmax(0, 1fr); gap: 24px; }
-  .adm-preview { max-width: 440px; }
+  .adm-preview { max-width: 520px; position: static; }
 }
 
 /* .hidden is a single-class utility declared at the top of this file, so any
@@ -571,12 +571,13 @@ body.nx-app label.ml-toggle input[type="checkbox"] { opacity: 0; width: 0; heigh
 .adm-window__title { display: flex; align-items: center; gap: 8px; font-size: var(--fs-control); font-weight: 600; color: var(--nx-text); margin-bottom: 12px; }
 .adm-window__title i { color: var(--nx-accent); font-size: 12px; }
 
-.adm-window__tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
-.adm-window__tile { border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 7px); padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; }
+.adm-window__tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+.adm-window__tiles--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.adm-window__tile { border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 7px); padding: 7px 9px; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
 .adm-window__tile b { font-family: var(--nx-mono); font-variant-numeric: tabular-nums; font-size: 15px; font-weight: 600; color: var(--nx-text); letter-spacing: -0.4px; }
 
 /* Bars are decorative: fixed heights, no data behind them. */
-.adm-window__chart { display: flex; align-items: flex-end; gap: 5px; height: 86px; border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 7px); padding: 8px; }
+.adm-window__chart { display: flex; align-items: flex-end; gap: 5px; height: 74px; border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 7px); padding: 8px; }
 .adm-window__chart span { flex: 1 1 0; background: var(--nx-sunken); border-radius: 2px 2px 0 0; }
 .adm-window__chart span:nth-child(7) { background: var(--nx-accent); opacity: 0.85; }
 
@@ -658,3 +659,80 @@ body.nx-admin .nx-subtitle { font-size: var(--fs-meta); color: var(--nx-text-met
 /* Standalone cards that only wrap a list (status groups, the access-control
    side panel) lose their border; ones that are genuinely a panel keep it. */
 body.nx-admin .nx-card--flat { background: none; border: none; border-radius: 0; padding: 0; }
+
+
+/* — Inline editor panel ---------------------------------------- */
+/* A side sheet is right for a form that owns the screen; mounting a page is a
+   six-field edit to the table directly below it, so it opens in the flow
+   instead. Same field primitives as the sheets -- only the frame differs. */
+.adm-inline { border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 10px); background: var(--nx-card); margin: 0 0 18px; box-shadow: 0 8px 24px -16px rgba(16, 24, 40, 0.22); }
+.adm-inline.hidden { display: none; }
+.adm-inline__head { display: flex; align-items: flex-start; gap: 12px; padding: 13px 18px; border-bottom: 1px solid var(--nx-border); background: var(--nx-alt); border-radius: calc(var(--nx-radius-scale, 1) * 10px) calc(var(--nx-radius-scale, 1) * 10px) 0 0; }
+.adm-inline__kicker { font-size: var(--fs-eyebrow); font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: var(--nx-text-meta); }
+.adm-inline__title { font-size: var(--fs-title); font-weight: 600; margin: 2px 0 0; color: var(--nx-text); }
+.adm-inline__head .adm-iconbtn { margin-left: auto; }
+.adm-inline__body { padding: 16px 18px; }
+.adm-inline__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; }
+.adm-inline__foot { display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--nx-border); }
+.adm-inline__note { margin: 0 auto 0 0; max-width: 46ch; }
+
+@media (max-width: 640px) {
+  .adm-inline__foot { flex-wrap: wrap; }
+  .adm-inline__note { margin-bottom: 4px; }
+}
+
+/* — Member preview: the page body ------------------------------ */
+/* One view per mounted page, rendered server-side; the JS only unhides one.
+   Numeric-ish cells print a sample value, everything else stays a grey bar --
+   inventing words for a text column would read as live data. */
+.adm-window__view { display: flex; flex-direction: column; gap: 10px; }
+.adm-window__head { display: flex; align-items: center; gap: 7px; }
+.adm-window__head > i { color: var(--nx-accent); font-size: 12px; flex: none; }
+.adm-window__headmain { min-width: 0; display: flex; flex-direction: column; margin-right: auto; }
+.adm-window__headmain b { font-size: var(--fs-control); font-weight: 600; color: var(--nx-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adm-window__headmain em { font-style: normal; font-size: var(--fs-eyebrow); color: var(--nx-text-meta); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adm-window__btn { display: inline-flex; align-items: center; gap: 4px; flex: none; font-size: var(--fs-eyebrow); font-weight: 600; padding: 3px 8px; border-radius: calc(var(--nx-radius-scale, 1) * 6px); border: 1px solid var(--nx-border); color: var(--nx-text-sec); background: var(--nx-card); white-space: nowrap; }
+.adm-window__btn i { font-size: 8px; }
+.adm-window__btn--primary { background: var(--nx-accent); border-color: transparent; color: var(--nx-on-accent, #fff); }
+
+.adm-window__filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 8px; padding: 8px 9px; border-radius: calc(var(--nx-radius-scale, 1) * 7px); background: var(--nx-alt); border: 1px solid var(--nx-border); }
+.adm-window__filter { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.adm-window__flabel { font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--nx-text-meta); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adm-window__fbox { height: 15px; border-radius: 4px; border: 1px solid var(--nx-border); background: var(--nx-card); display: flex; align-items: center; padding: 0 5px; }
+.adm-window__fbox i { font-size: 7px; color: var(--nx-text-meta); }
+
+.adm-window__grid { border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 7px); overflow: hidden; }
+.adm-window__gridhead, .adm-window__gridrow { display: flex; align-items: center; gap: 8px; padding: 0 9px; }
+.adm-window__gridhead { height: 22px; background: var(--nx-alt); border-bottom: 1px solid var(--nx-border); }
+.adm-window__gridhead > span { font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--nx-text-meta); }
+.adm-window__gridrow { height: 26px; border-bottom: 1px solid var(--nx-divider); }
+.adm-window__gridrow:last-of-type { border-bottom: 0; }
+.adm-window__gridhead > span, .adm-window__gridrow > span { flex: 1 1 0; min-width: 0; display: flex; align-items: center; gap: 5px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.adm-window__gridhead > span:first-child, .adm-window__gridrow > span:first-child { flex: 0 0 46px; }
+.adm-window__gridhead > span.adm-window__rowacts, .adm-window__gridrow > span.adm-window__rowacts { flex: 0 0 30px; justify-content: flex-end; gap: 6px; }
+.adm-window__rowacts i { font-size: 8px; color: var(--nx-text-meta); }
+.adm-window__val { font-style: normal; font-family: var(--nx-mono); font-size: 9px; font-variant-numeric: tabular-nums; color: var(--nx-text-sec); }
+.adm-window__val--num { width: 100%; text-align: right; }
+.adm-window__cpill { height: 10px; width: 46px; border-radius: var(--nx-radius-pill); background: var(--nx-accent-tint); }
+.adm-window__avatar { width: 12px; height: 12px; flex: none; border-radius: 50%; background: var(--nx-brand-grad); opacity: 0.55; }
+.adm-window__gridfoot { display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 9px; background: var(--nx-alt); border-top: 1px solid var(--nx-border); }
+.adm-window__gridfoot .adm-window__btn:first-of-type { margin-left: auto; }
+.adm-window__src { display: flex; align-items: center; gap: 5px; margin: 0; font-size: var(--fs-eyebrow); color: var(--nx-text-meta); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adm-window__src i { font-size: 8px; }
+
+/* Mounted endpoints: we do not own their markup, so the view says so. */
+.adm-window__note { display: flex; flex-direction: column; align-items: center; gap: 5px; text-align: center; padding: 26px 18px; border: 1px dashed var(--nx-border-strong); border-radius: calc(var(--nx-radius-scale, 1) * 7px); color: var(--nx-text-meta); }
+.adm-window__note i { font-size: 15px; color: var(--nx-border-strong); }
+.adm-window__note b { font-size: var(--fs-control); color: var(--nx-text); }
+.adm-window__note .nx-mono { font-size: var(--fs-eyebrow); }
+.adm-window__note p { margin: 4px 0 0; font-size: var(--fs-eyebrow); max-width: 30ch; }
+
+/* Shape sketches for mounted endpoints (dashboard / report / cards / list). */
+.adm-window__toolbar { display: flex; align-items: center; gap: 6px; }
+.adm-window__fbox--grow { flex: 1 1 auto; }
+.adm-window__cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.adm-window__card { display: flex; flex-direction: column; gap: 5px; padding: 10px; border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 7px); min-width: 0; }
+.adm-window__card i { font-size: 12px; color: var(--nx-accent); }
+/* A row of sketch blocks inside a grid has no header, so it needs its own
+   top border back. */
+.adm-window__grid > .adm-window__gridrow:first-child { border-top: 0; }

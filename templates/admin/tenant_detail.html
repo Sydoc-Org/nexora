@@ -137,6 +137,68 @@
                         {% endif %}
                     </div>
 
+                    {% if can_edit %}
+                    {# Mounting a page is a small, page-local edit, so the form
+                       lives in the flow right above the table it changes --
+                       a full-height side sheet for six fields left most of the
+                       viewport empty (and hid the table you were editing). #}
+                    <form id="pageForm" class="adm-inline hidden" data-testid="tenant-page-form">
+                        <div class="adm-inline__head">
+                            <div>
+                                <div class="adm-inline__kicker">{{ _('Tenant page') }}</div>
+                                <h4 class="adm-inline__title">{{ _('Mount page') }}</h4>
+                            </div>
+                            <button type="button" class="adm-iconbtn" id="pageFormClose"
+                                    aria-label="{{ _('Close') }}" data-testid="tenant-page-form-close"><i class="fas fa-xmark"></i></button>
+                        </div>
+                        <div class="adm-inline__body">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <div class="adm-inline__grid">
+                                <div class="adm-field adm-field--full">
+                                    <label class="adm-field__label" for="endpoint">{{ _('Page') }}</label>
+                                    <select id="endpoint" name="endpoint" class="nx-select" required data-testid="tenant-page-endpoint">
+                                        <option value="">{{ _('Choose a page…') }}</option>
+                                        {% for ep in endpoints %}<option value="{{ ep }}">{{ ep }}</option>{% endfor %}
+                                    </select>
+                                </div>
+                                <div class="adm-field">
+                                    <label class="adm-field__label" for="PageKey">{{ _('Key') }}</label>
+                                    <input type="text" id="PageKey" name="PageKey" class="nx-input nx-mono"
+                                           pattern="[a-z0-9_.\-]{1,100}" required data-testid="tenant-page-key">
+                                </div>
+                                <div class="adm-field">
+                                    <label class="adm-field__label" for="label">{{ _('Label') }}</label>
+                                    <input type="text" id="label" name="label" class="nx-input" maxlength="100" required
+                                           data-testid="tenant-page-label">
+                                </div>
+                                <div class="adm-field">
+                                    <label class="adm-field__label" for="icon">{{ _('Icon') }}</label>
+                                    <div style="display:flex;align-items:center;gap:8px">
+                                        <input type="text" id="icon" name="icon" class="nx-input nx-mono" placeholder="fa-chart-line"
+                                               pattern="fa-[a-z0-9\-]{1,40}" data-testid="tenant-page-icon">
+                                        <span class="adm-name__tile" id="iconPreview"><i class="fas fa-arrow-up-right-from-square"></i></span>
+                                    </div>
+                                </div>
+                                <div class="adm-field">
+                                    <label class="adm-field__label" for="SortOrder">{{ _('Sort order') }}</label>
+                                    <input type="number" id="SortOrder" name="SortOrder" class="nx-input" value="100"
+                                           data-testid="tenant-page-sort">
+                                </div>
+                                <div class="adm-field adm-field--full">
+                                    <label class="adm-field__label" for="active">{{ _('Active page marker (optional)') }}</label>
+                                    <input type="text" id="active" name="active" class="nx-input nx-mono"
+                                           pattern="[A-Za-z0-9_\-]{0,60}" data-testid="tenant-page-active">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="adm-inline__foot">
+                            <p class="adm-field__hint adm-inline__note">{{ _('New pages start as drafts and stay hidden from members until you activate them.') }}</p>
+                            <button type="button" class="nx-btn nx-btn--secondary nx-btn--sm" id="pageFormCancel" data-testid="tenant-page-form-cancel">{{ _('Cancel') }}</button>
+                            <button type="submit" class="nx-btn nx-btn--primary nx-btn--sm" data-testid="tenant-page-form-save">{{ _('Mount page') }}</button>
+                        </div>
+                    </form>
+                    {% endif %}
+
                     <table class="adm-table" data-testid="tenant-pages-table">
                         <thead>
                             <tr>
@@ -150,10 +212,7 @@
                         <tbody>
                             {% for p in pages %}
                             <tr class="adm-row--pick" data-page-key="{{ p.PageKey }}"
-                                data-page-label="{{ p.layout.label or p.PageKey }}"
-                                data-page-icon="{{ p.layout.icon or 'fa-arrow-up-right-from-square' }}"
                                 data-page-status="{{ p.Status }}"
-                                data-page-kind="{{ 'dashboard' if 'dashboard' in (p.layout.endpoint or '') ~ p.PageKey or 'report' in (p.layout.endpoint or '') ~ p.PageKey else 'table' }}"
                                 data-testid="tenant-page-row-{{ p.PageKey }}">
                                 <td>
                                     <span class="adm-name">
@@ -207,7 +266,11 @@
                 </div>
 
                 {# Member preview: the sidebar a member sees plus a mock of the
-                   selected page. A row or a sidebar entry drives both. #}
+                   selected page. A row or a sidebar entry drives both. Each
+                   page renders its own view server-side from the same entity
+                   and field descriptors the real page uses, so the columns,
+                   the filter row and the buttons are the member's, not a
+                   generic placeholder. #}
                 <aside class="adm-preview" aria-label="{{ _('Member preview') }}">
                     <div class="adm-sec" style="margin-top:0">
                         <h3 class="adm-sec__title">{{ _('Member preview') }}</h3>
@@ -244,44 +307,179 @@
                                 </div>
                             </div>
                             <div class="adm-window__canvas">
-                                <div class="adm-window__title">
-                                    <i class="fas fa-gauge" id="previewIcon"></i>
-                                    <span id="previewLabel"></span>
-                                    <span class="adm-pill" id="previewDraft" hidden>{{ _('Draft') }}</span>
-                                </div>
-
-                                {# Dashboard-ish pages get tiles and a chart; the rest a table. #}
-                                <div id="previewDashboard">
-                                    <div class="adm-window__tiles">
-                                        <div class="adm-window__tile"><span class="adm-window__skel adm-window__skel--tiny"></span><b>128</b></div>
-                                        <div class="adm-window__tile"><span class="adm-window__skel adm-window__skel--tiny"></span><b>37</b></div>
-                                        <div class="adm-window__tile"><span class="adm-window__skel adm-window__skel--tiny"></span><b>4.2d</b></div>
-                                    </div>
-                                    <div class="adm-window__chart" aria-hidden="true">
-                                        {% for h in [52, 74, 61, 88, 45, 70, 96, 58, 80, 66] %}
-                                        <span style="height:{{ h }}%"></span>
+                                {% for p in pages %}
+                                {% set pv = p.preview %}
+                                <div class="adm-window__view" data-preview-view="{{ p.PageKey }}" hidden>
+                                    <div class="adm-window__head">
+                                        <i class="fas {{ p.layout.icon or 'fa-arrow-up-right-from-square' }}"></i>
+                                        <span class="adm-window__headmain">
+                                            <b>{{ pv.title }}</b>
+                                            {% if pv.subtitle %}<em>{{ pv.subtitle }}</em>{% endif %}
+                                        </span>
+                                        {% if p.Status != 'active' %}<span class="adm-pill">{{ _('Draft') }}</span>{% endif %}
+                                        {% for a in pv.actions %}
+                                        <span class="adm-window__btn {{ 'adm-window__btn--primary' if a.primary else '' }}">
+                                            <i class="fas {{ a.icon }}"></i>{{ a.label }}
+                                        </span>
                                         {% endfor %}
                                     </div>
-                                </div>
 
-                                <div id="previewTable" hidden>
-                                    <div class="adm-window__rowhead">
-                                        <span class="adm-window__skel adm-window__skel--tiny"></span>
-                                        <span class="adm-window__skel adm-window__skel--tiny"></span>
-                                        <span class="adm-window__skel adm-window__skel--tiny"></span>
+                                    {% if pv.kind == 'custom' or not pv.columns %}
+                                    {# A mounted endpoint renders its own screen. We cannot
+                                       know its markup, only which family it belongs to, so
+                                       the body is a shape sketch and the footer carries the
+                                       one fact that is real: where the entry points. #}
+                                    {% if pv.shape == 'dashboard' %}
+                                    <div class="adm-window__tiles adm-window__tiles--4">
+                                        {% for v in ['128', '37', '4.2d', '92%'] %}
+                                        <div class="adm-window__tile">
+                                            <span class="adm-window__skel adm-window__skel--tiny"></span><b>{{ v }}</b>
+                                        </div>
+                                        {% endfor %}
                                     </div>
-                                    {% for _i in range(5) %}
-                                    <div class="adm-window__row">
-                                        <span class="adm-window__skel"></span>
-                                        <span class="adm-window__skel"></span>
-                                        <span class="adm-window__skel"></span>
+                                    <div class="adm-window__chart" aria-hidden="true">
+                                        {% for hgt in [52, 74, 61, 88, 45, 70, 96, 58, 80, 66] %}
+                                        <span style="height:{{ hgt }}%"></span>
+                                        {% endfor %}
                                     </div>
-                                    {% endfor %}
+                                    <div class="adm-window__grid">
+                                        {% for w in [86, 62, 74] %}
+                                        <div class="adm-window__gridrow">
+                                            <span><span class="adm-window__avatar"></span></span>
+                                            <span><span class="adm-window__skel" style="width:{{ w }}%"></span></span>
+                                            <span><span class="adm-window__cpill"></span></span>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+
+                                    {% elif pv.shape == 'report' %}
+                                    <div class="adm-window__filters">
+                                        {% for _f in range(2) %}
+                                        <span class="adm-window__filter">
+                                            <span class="adm-window__skel adm-window__skel--tiny"></span>
+                                            <span class="adm-window__fbox"><i class="fas fa-calendar"></i></span>
+                                        </span>
+                                        {% endfor %}
+                                    </div>
+                                    <div class="adm-window__chart" aria-hidden="true">
+                                        {% for hgt in [38, 56, 44, 72, 90, 64, 52, 78] %}
+                                        <span style="height:{{ hgt }}%"></span>
+                                        {% endfor %}
+                                    </div>
+                                    <div class="adm-window__grid">
+                                        <div class="adm-window__gridhead">
+                                            <span><span class="adm-window__skel adm-window__skel--tiny"></span></span>
+                                            <span><span class="adm-window__skel adm-window__skel--tiny"></span></span>
+                                            <span><span class="adm-window__skel adm-window__skel--tiny"></span></span>
+                                        </div>
+                                        {% for v in ['1 204', '318', '96'] %}
+                                        <div class="adm-window__gridrow">
+                                            <span><span class="adm-window__skel" style="width:78%"></span></span>
+                                            <span><span class="adm-window__cpill"></span></span>
+                                            <span><em class="adm-window__val adm-window__val--num">{{ v }}</em></span>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+
+                                    {% elif pv.shape == 'cards' %}
+                                    <div class="adm-window__cards">
+                                        {% for icon in ['fa-cube', 'fa-diagram-project', 'fa-gears', 'fa-folder-open'] %}
+                                        <div class="adm-window__card">
+                                            <i class="fas {{ icon }}"></i>
+                                            <span class="adm-window__skel" style="width:70%"></span>
+                                            <span class="adm-window__skel adm-window__skel--tiny" style="width:90%"></span>
+                                            <span class="adm-window__skel adm-window__skel--tiny" style="width:55%"></span>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+
+                                    {% else %}
+                                    <div class="adm-window__toolbar">
+                                        <span class="adm-window__fbox adm-window__fbox--grow"><i class="fas fa-search"></i></span>
+                                        <span class="adm-window__cpill"></span>
+                                        <span class="adm-window__cpill"></span>
+                                    </div>
+                                    <div class="adm-window__grid">
+                                        <div class="adm-window__gridhead">
+                                            {% for _c in range(4) %}<span><span class="adm-window__skel adm-window__skel--tiny"></span></span>{% endfor %}
+                                        </div>
+                                        {% for w in [86, 64, 74, 58] %}
+                                        <div class="adm-window__gridrow">
+                                            <span><em class="adm-window__val">{{ ['10241', '10238', '10231', '10225'][loop.index0] }}</em></span>
+                                            <span><span class="adm-window__skel" style="width:{{ w }}%"></span></span>
+                                            <span><span class="adm-window__cpill"></span></span>
+                                            <span><em class="adm-window__val adm-window__val--num">{{ ['12.03.2026', '09.03.2026', '27.02.2026', '21.02.2026'][loop.index0] }}</em></span>
+                                        </div>
+                                        {% endfor %}
+                                        <div class="adm-window__gridfoot">
+                                            <span class="adm-window__skel" style="width:84px"></span>
+                                            <span class="adm-window__btn">{{ _('Previous') }}</span>
+                                            <span class="adm-window__btn">{{ _('Next') }}</span>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+
+                                    <p class="adm-window__src">
+                                        <i class="fas fa-arrow-up-right-from-square"></i>
+                                        <span class="nx-mono">{{ pv.path or pv.endpoint or p.PageKey }}</span>
+                                        &middot; {{ _('sketch of an existing nexora page') }}
+                                    </p>
+                                    {% else %}
+                                    <div class="adm-window__filters">
+                                        {% for f in pv.filters %}
+                                        <span class="adm-window__filter">
+                                            <span class="adm-window__flabel">{{ f }}</span>
+                                            <span class="adm-window__fbox"><i class="fas fa-search"></i></span>
+                                        </span>
+                                        {% endfor %}
+                                    </div>
+                                    <div class="adm-window__grid">
+                                        <div class="adm-window__gridhead">
+                                            {% for c in pv.columns %}<span>{{ c }}</span>{% endfor %}
+                                            {% if pv.row_actions %}<span class="adm-window__rowacts"></span>{% endif %}
+                                        </div>
+                                        {% for row in pv.rows %}
+                                        <div class="adm-window__gridrow">
+                                            {% for cell in row %}
+                                            <span>
+                                                {%- if cell.kind in ('mono', 'num') -%}
+                                                <em class="adm-window__val {{ 'adm-window__val--num' if cell.kind == 'num' else '' }}">{{ cell.value }}</em>
+                                                {%- elif cell.kind == 'pill' -%}
+                                                <span class="adm-window__cpill"></span>
+                                                {%- elif cell.kind == 'person' -%}
+                                                <span class="adm-window__avatar"></span><span class="adm-window__skel" style="width:52%"></span>
+                                                {%- else -%}
+                                                <span class="adm-window__skel" style="width:{{ cell.width }}%"></span>
+                                                {%- endif -%}
+                                            </span>
+                                            {% endfor %}
+                                            {% if pv.row_actions %}
+                                            <span class="adm-window__rowacts"><i class="fas fa-pen"></i><i class="fas fa-trash-can"></i></span>
+                                            {% endif %}
+                                        </div>
+                                        {% endfor %}
+                                        <div class="adm-window__gridfoot">
+                                            <span class="adm-window__skel" style="width:84px"></span>
+                                            <span class="adm-window__btn">{{ _('Previous') }}</span>
+                                            <span class="adm-window__btn">{{ _('Next') }}</span>
+                                        </div>
+                                    </div>
+                                    <p class="adm-window__src">
+                                        <i class="fas fa-database"></i><span class="nx-mono">{{ pv.source }}</span>
+                                        {%- if pv.extra_columns %} &middot; {{ ngettext('%(num)d more column', '%(num)d more columns', pv.extra_columns) }}{% endif %}
+                                    </p>
+                                    {% endif %}
                                 </div>
+                                {% else %}
+                                <div class="adm-window__note">
+                                    <i class="fas fa-layer-group"></i>
+                                    <b>{{ _('No pages mounted yet.') }}</b>
+                                </div>
+                                {% endfor %}
                             </div>
                         </div>
                     </div>
-                    <p class="adm-field__hint">{{ _('Draft pages are hidden from members; only active ones appear in the tenant sidebar.') }}</p>
+                    <p class="adm-field__hint">{{ _('Layout preview with sample values, not live data. Draft pages are hidden from members; only active ones appear in the tenant sidebar.') }}</p>
                 </aside>
             </div>
         </section>
@@ -329,68 +527,6 @@
     {% with organizations = all_organizations %}
         {% include 'admin/_tenant_sheet.html' %}
     {% endwith %}
-
-    {# ---- Mount page sheet -------------------------------------------------- #}
-    {% if can_edit %}
-    <div id="pageSheetBack" class="adm-sheet-back hidden"></div>
-    <aside id="pageSheet" class="adm-sheet hidden" role="dialog" aria-modal="true" aria-labelledby="pageSheetTitle">
-        <form id="pageForm" data-testid="tenant-page-sheet-form" style="display:contents">
-            <div class="adm-sheet__head">
-                <div>
-                    <div class="adm-sheet__kicker">{{ _('Tenant page') }}</div>
-                    <h2 class="adm-sheet__title" id="pageSheetTitle">{{ _('Mount page') }}</h2>
-                </div>
-                <button type="button" class="nx-btn nx-btn--ghost nx-btn--sm adm-sheet__close" id="pageSheetClose"
-                        aria-label="{{ _('Close') }}" data-testid="tenant-page-sheet-close"><i class="fas fa-xmark"></i></button>
-            </div>
-            <div class="adm-sheet__body">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                <div class="adm-sheet__grid">
-                    <div class="adm-field adm-field--full">
-                        <label class="adm-field__label" for="endpoint">{{ _('Page') }}</label>
-                        <select id="endpoint" name="endpoint" class="nx-select" required data-testid="tenant-page-endpoint">
-                            <option value="">{{ _('Choose a page…') }}</option>
-                            {% for ep in endpoints %}<option value="{{ ep }}">{{ ep }}</option>{% endfor %}
-                        </select>
-                    </div>
-                    <div class="adm-field">
-                        <label class="adm-field__label" for="PageKey">{{ _('Key') }}</label>
-                        <input type="text" id="PageKey" name="PageKey" class="nx-input nx-mono"
-                               pattern="[a-z0-9_.\-]{1,100}" required data-testid="tenant-page-key">
-                    </div>
-                    <div class="adm-field">
-                        <label class="adm-field__label" for="label">{{ _('Label') }}</label>
-                        <input type="text" id="label" name="label" class="nx-input" maxlength="100" required
-                               data-testid="tenant-page-label">
-                    </div>
-                    <div class="adm-field">
-                        <label class="adm-field__label" for="icon">{{ _('Icon') }}</label>
-                        <div style="display:flex;align-items:center;gap:8px">
-                            <input type="text" id="icon" name="icon" class="nx-input nx-mono" placeholder="fa-chart-line"
-                                   pattern="fa-[a-z0-9\-]{1,40}" data-testid="tenant-page-icon">
-                            <span class="adm-name__tile" id="iconPreview"><i class="fas fa-arrow-up-right-from-square"></i></span>
-                        </div>
-                    </div>
-                    <div class="adm-field">
-                        <label class="adm-field__label" for="SortOrder">{{ _('Sort order') }}</label>
-                        <input type="number" id="SortOrder" name="SortOrder" class="nx-input" value="100"
-                               data-testid="tenant-page-sort">
-                    </div>
-                    <div class="adm-field adm-field--full">
-                        <label class="adm-field__label" for="active">{{ _('Active page marker (optional)') }}</label>
-                        <input type="text" id="active" name="active" class="nx-input nx-mono"
-                               pattern="[A-Za-z0-9_\-]{0,60}" data-testid="tenant-page-active">
-                        <p class="adm-field__hint">{{ _('New pages start as drafts and stay hidden from members until you activate them.') }}</p>
-                    </div>
-                </div>
-            </div>
-            <div class="adm-sheet__foot">
-                <button type="button" class="nx-btn nx-btn--secondary" id="pageSheetCancel" data-testid="tenant-page-sheet-cancel">{{ _('Cancel') }}</button>
-                <button type="submit" class="nx-btn nx-btn--primary" data-testid="tenant-page-sheet-save">{{ _('Mount page') }}</button>
-            </div>
-        </form>
-    </aside>
-    {% endif %}
 
     {% include 'admin/_confirm_dialog.html' %}
     {% include 'js/admin/_tenant_detail_js.html' %}

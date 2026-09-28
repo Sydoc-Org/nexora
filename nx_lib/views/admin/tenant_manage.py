@@ -22,6 +22,7 @@ import json
 import re
 
 from flask import current_app, jsonify, render_template, request, session, url_for
+from flask_babel import get_locale
 from flask_babel import gettext as _
 from werkzeug.routing import BuildError
 
@@ -29,7 +30,12 @@ from ... import clients as clients_registry
 from ... import mapping_config
 from ...db import engine_nexora_db
 from ...security import has_permission, page_visibility, require_permission
-from ...tenant.registry import invalidate_tenant_config, provision_tenant_permissions
+from ...tenant.registry import (
+    entity_for,
+    fields_for,
+    invalidate_tenant_config,
+    provision_tenant_permissions,
+)
 
 _TENANT_CODE_RE = re.compile(r"^[a-z0-9_]{2,50}$")
 _ORG_CODE_RE = re.compile(r"^[A-Za-z0-9]{1,5}$")
@@ -379,6 +385,146 @@ def admin_tenants_manage_view():
             conn.close()
 
 
+# ----------------------------------------------------------- page preview --
+
+# Sample cells for the member preview. They are synthetic on purpose: the
+# preview answers "what shape of page do members get" -- the columns, the
+# filter row, the Add/Export buttons -- and reading three example rows out of
+# a tenant's source table would cross an engine and a permission boundary for
+# decoration. Only the *structure* is real.
+_PREVIEW_VALUES = {
+    "identifier": ("10241", "10238", "10231", "10225"),
+    "date": ("12.03.2026", "09.03.2026", "27.02.2026", "21.02.2026"),
+    "money": ("1248.00", "310.50", "4902.15", "87.90"),
+    "count": ("12", "3", "48", "7"),
+}
+# Widths for the text placeholders, so the mock reads like prose rather than a
+# grid of identical grey bars.
+_PREVIEW_WIDTHS = (86, 64, 74, 58)
+# Mirrors templates/tenant/page.html: these roles get a text filter input.
+_FILTERABLE_ROLES = ("identifier", "text", "category")
+
+
+def _preview_cell(role, row, col=0):
+    """One mock cell. Numeric-ish roles print a value, the rest stay grey --
+    inventing plausible *words* for a text column would read as live data.
+    The value series is rotated per column so two identifier columns do not
+    print the same four numbers side by side."""
+    values = _PREVIEW_VALUES.get(role)
+    if values:
+        value = values[(row + col) % len(values)]
+        return {"kind": "num" if role in ("money", "count") else "mono", "value": value}
+    if role in ("category", "flag"):
+        return {"kind": "pill"}
+    if role == "person":
+        return {"kind": "person"}
+    return {"kind": "bar", "width": _PREVIEW_WIDTHS[row]}
+
+
+def _label_of(labels, lang, fallback):
+    return labels.get(lang) or labels.get("en") or fallback
+
+
+# A ``custom`` page mounts an existing nexora endpoint. We cannot render its
+# markup here, but we do know roughly what shape of screen each family is, and
+# a dashed "unknown" box for the 13 of 14 pages that are mounts would be a
+# worse preview than the one it replaced. First keyword wins, so the order is
+# the priority order: "import-status" is a list, not a status dashboard.
+_SHAPE_KEYWORDS = (
+    ("dashboard", ("dashboard", "overview", "home", "start")),
+    ("report", ("report", "statistic", "analytic", "pdqm", "kpi", "chart")),
+    ("list", ("workitem", "document", "list", "prepared", "import", "status", "search", "job")),
+    ("cards", ("service", "management", "project", "setting", "profile", "admin")),
+)
+
+
+def _custom_shape(page_key, endpoint):
+    hay = f"{page_key} {endpoint}".lower()
+    for shape, words in _SHAPE_KEYWORDS:
+        if any(w in hay for w in words):
+            return shape
+    return "list"
+
+
+def _endpoint_path(endpoint):
+    """The URL the sidebar entry points at -- real information, unlike the
+    mock body next to it, so it is worth showing."""
+    if not endpoint:
+        return None
+    try:
+        return url_for(endpoint)
+    except (BuildError, ValueError):
+        return None
+
+
+def _page_preview(tenantcode, page, can_edit):
+    """The member-preview spec for one mounted page.
+
+    ``custom`` pages point at an arbitrary endpoint whose markup we cannot
+    know, so they preview as the frame only. Generated ``list``/``crud`` pages
+    do have a descriptor, and the preview is built from the same entity and
+    field rows the real page renders from -- same columns, same filter row,
+    same actions -- so what the admin sees here is what a member gets.
+    """
+    layout = page.get("layout") or {}
+    label = layout.get("label") or page["PageKey"]
+    spec = {
+        "kind": page["PageType"],
+        "title": label,
+        "subtitle": None,
+        "endpoint": layout.get("endpoint") or "",
+        "shape": None,
+        "path": None,
+        "source": None,
+        "actions": [],
+        "filters": [],
+        "columns": [],
+        "extra_columns": 0,
+        "rows": [],
+        "row_actions": False,
+    }
+    if page["PageType"] == "custom" or not page.get("EntityKey"):
+        spec["shape"] = _custom_shape(page["PageKey"], spec["endpoint"])
+        spec["path"] = _endpoint_path(spec["endpoint"])
+        return spec
+
+    lang = str(get_locale() or "en")
+    entity = entity_for(tenantcode, page["EntityKey"])
+    if entity is None:
+        return spec
+    fields = [f for f in fields_for(tenantcode, page["EntityKey"]) if f.visible]
+    spec["subtitle"] = _label_of(entity.labels, lang, entity.key)
+    spec["source"] = entity.source_object
+
+    is_crud = page["PageType"] == "crud"
+    if is_crud and can_edit:
+        spec["actions"].append({"label": _("Add"), "icon": "fa-plus", "primary": True})
+    spec["actions"].append({"label": _("Export"), "icon": "fa-file-export", "primary": False})
+
+    # The id column is always filterable, then the text-ish fields, then the
+    # first date field as a from/to pair -- the exact set the real page builds.
+    filters = [entity.id_column]
+    filters += [
+        _label_of(f.labels, lang, f.column) for f in fields if f.semantic_role in _FILTERABLE_ROLES
+    ]
+    first_date = next((f for f in fields if f.semantic_role == "date"), None)
+    if first_date:
+        date_label = _label_of(first_date.labels, lang, first_date.column)
+        filters += [f"{date_label} ({_('from')})", f"{date_label} ({_('to')})"]
+    spec["filters"] = filters[:4]
+
+    shown = fields[:3]
+    spec["extra_columns"] = max(0, len(fields) - len(shown))
+    spec["columns"] = [entity.id_column] + [_label_of(f.labels, lang, f.column) for f in shown]
+    spec["rows"] = [
+        [_preview_cell("identifier", r)]
+        + [_preview_cell(f.semantic_role, r, c) for c, f in enumerate(shown, start=1)]
+        for r in range(4)
+    ]
+    spec["row_actions"] = is_crud and can_edit
+    return spec
+
+
 @require_permission("admin.tenants.view")
 def admin_tenant_detail_view(tenantcode):
     """One tenant: its organizations, its mounted pages, and who can open it.
@@ -418,11 +564,13 @@ def admin_tenant_detail_view(tenantcode):
             "FROM TenantPages WHERE TenantCode = ? ORDER BY SortOrder, PageKey",
             (tenantcode,),
         )
+        can_edit = has_permission("admin.tenants.edit")
         for p in pages:
             try:
                 p["layout"] = json.loads(p["LayoutJSON"]) if p["LayoutJSON"] else {}
             except ValueError:
                 p["layout"] = {}
+            p["preview"] = _page_preview(tenantcode, p, can_edit)
 
         users_by_org = {
             r["organizationCode"]: r["n"]
@@ -481,7 +629,7 @@ def admin_tenant_detail_view(tenantcode):
             pages=pages,
             viewers=viewers,
             endpoints=mountable_endpoints(current_app.url_map),
-            can_edit=has_permission("admin.tenants.edit"),
+            can_edit=can_edit,
             logged_in_user=session.get("username"),
             userid=session.get("userid"),
             page_visibility=page_visibility(),

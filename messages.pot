@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-28 15:12+0200\n"
+"POT-Creation-Date: 2026-09-28 15:42+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1040,12 +1040,12 @@ msgstr ""
 #: nx_lib/views/admin/organizations.py:408
 #: nx_lib/views/admin/organizations.py:589 nx_lib/views/admin/processes.py:456
 #: nx_lib/views/admin/processes.py:519 nx_lib/views/admin/processes.py:615
-#: nx_lib/views/admin/processes.py:644 nx_lib/views/admin/tenant_manage.py:541
-#: nx_lib/views/admin/tenant_manage.py:576
-#: nx_lib/views/admin/tenant_manage.py:614
-#: nx_lib/views/admin/tenant_manage.py:661
-#: nx_lib/views/admin/tenant_manage.py:691
-#: nx_lib/views/admin/tenant_manage.py:716 nx_lib/views/admin/users.py:248
+#: nx_lib/views/admin/processes.py:644 nx_lib/views/admin/tenant_manage.py:689
+#: nx_lib/views/admin/tenant_manage.py:724
+#: nx_lib/views/admin/tenant_manage.py:762
+#: nx_lib/views/admin/tenant_manage.py:809
+#: nx_lib/views/admin/tenant_manage.py:839
+#: nx_lib/views/admin/tenant_manage.py:864 nx_lib/views/admin/users.py:248
 #: nx_lib/views/admin/users.py:495
 msgid "An error occurred."
 msgstr ""
@@ -1275,155 +1275,174 @@ msgstr ""
 msgid "Unknown environment."
 msgstr ""
 
-#: nx_lib/views/admin/tenant_manage.py:73
+#: nx_lib/views/admin/tenant_manage.py:79
 msgid "Tenant code must be 2-50 lowercase letters, digits or underscores."
 msgstr ""
 
-#: nx_lib/views/admin/tenant_manage.py:76
+#: nx_lib/views/admin/tenant_manage.py:82
 msgid "Display name is required (max. 100 characters)."
 msgstr ""
 
-#: nx_lib/views/admin/tenant_manage.py:81
+#: nx_lib/views/admin/tenant_manage.py:87
 msgid "Organizations must be a list of organization codes."
 msgstr ""
 
-#: nx_lib/views/admin/tenant_manage.py:91
+#: nx_lib/views/admin/tenant_manage.py:97
 msgid "Page key must be 1-100 lowercase letters, digits, '.', '_' or '-'."
 msgstr ""
 
-#: nx_lib/views/admin/tenant_manage.py:94
-#: nx_lib/views/admin/tenant_manage.py:635
+#: nx_lib/views/admin/tenant_manage.py:100
+#: nx_lib/views/admin/tenant_manage.py:783
 msgid "Endpoint is not a mountable page."
 msgstr ""
 
-#: nx_lib/views/admin/tenant_manage.py:97
+#: nx_lib/views/admin/tenant_manage.py:103
 msgid "Label is required (max. 100 characters)."
 msgstr ""
 
-#: nx_lib/views/admin/tenant_manage.py:100
+#: nx_lib/views/admin/tenant_manage.py:106
 msgid "Icon must be a Font Awesome class like fa-chart-line."
 msgstr ""
 
-#: nx_lib/views/admin/tenant_manage.py:103
+#: nx_lib/views/admin/tenant_manage.py:109
 msgid "Active marker may only contain letters, digits, '_' or '-'."
 msgstr ""
 
-#: nx_lib/views/admin/tenant_manage.py:107
+#: nx_lib/views/admin/tenant_manage.py:113
 msgid "Sort order must be a number."
 msgstr ""
 
-#: nx_lib/views/admin/tenant_manage.py:244
+#: nx_lib/views/admin/tenant_manage.py:250
 #, python-format
 msgid "%(n)d organization(s) are not in a tenant"
 msgstr ""
 
-#: nx_lib/views/admin/tenant_manage.py:248
+#: nx_lib/views/admin/tenant_manage.py:254
 msgid "Assign"
 msgstr ""
 
-#: nx_lib/views/admin/tenant_manage.py:257
+#: nx_lib/views/admin/tenant_manage.py:263
 #, python-format
 msgid "Nobody holds tenant.%(code)s.view"
 msgstr ""
 
-#: nx_lib/views/admin/tenant_manage.py:259
+#: nx_lib/views/admin/tenant_manage.py:265
 #, python-format
 msgid "%(n)d page(s) are mounted but no user can open them"
 msgstr ""
 
-#: nx_lib/views/admin/tenant_manage.py:261
+#: nx_lib/views/admin/tenant_manage.py:267
 msgid "Grant access"
 msgstr ""
 
-#: nx_lib/views/admin/tenant_manage.py:269
+#: nx_lib/views/admin/tenant_manage.py:275
 #, python-format
 msgid "%(name)s has no organizations"
 msgstr ""
 
-#: nx_lib/views/admin/tenant_manage.py:270
+#: nx_lib/views/admin/tenant_manage.py:276
 msgid "Its members cannot be resolved until one is assigned"
 msgstr ""
 
-#: nx_lib/views/admin/tenant_manage.py:271
+#: nx_lib/views/admin/tenant_manage.py:277
 #: templates/admin/tenant_detail.html:118
 msgid "Add organizations"
 msgstr ""
 
-#: nx_lib/views/admin/tenant_manage.py:517
+#: nx_lib/views/admin/tenant_manage.py:501 templates/reporting.html:522
+#: templates/tenant/page.html:43
+msgid "Add"
+msgstr ""
+
+#: nx_lib/views/admin/tenant_manage.py:502 templates/_reporting_simple.html:187
+#: templates/js/_reporting_dashboard_js.html:10 templates/reporting.html:415
+#: templates/tenant/page.html:43
+msgid "Export"
+msgstr ""
+
+#: nx_lib/views/admin/tenant_manage.py:513 templates/tenant/page.html:77
+msgid "from"
+msgstr ""
+
+#: nx_lib/views/admin/tenant_manage.py:513 templates/tenant/page.html:81
+msgid "to"
+msgstr ""
+
+#: nx_lib/views/admin/tenant_manage.py:665
 msgid "Tenant already exists."
 msgstr ""
 
-#: nx_lib/views/admin/tenant_manage.py:520
-#: nx_lib/views/admin/tenant_manage.py:563
+#: nx_lib/views/admin/tenant_manage.py:668
+#: nx_lib/views/admin/tenant_manage.py:711
 #, python-format
 msgid "%(n)d organization code(s) do not exist."
 msgstr ""
 
-#: nx_lib/views/admin/tenant_manage.py:533
+#: nx_lib/views/admin/tenant_manage.py:681
 #, python-format
 msgid ""
 "Tenant created. Users of its organizations see it right away; grant "
 "tenant.%(code)s.view under Access Control to let other staff in."
 msgstr ""
 
-#: nx_lib/views/admin/tenant_manage.py:569
-#: nx_lib/views/admin/tenant_manage.py:610
-#: nx_lib/views/admin/tenant_manage.py:643
-#: nx_lib/views/admin/tenant_manage.py:749
+#: nx_lib/views/admin/tenant_manage.py:717
+#: nx_lib/views/admin/tenant_manage.py:758
+#: nx_lib/views/admin/tenant_manage.py:791
+#: nx_lib/views/admin/tenant_manage.py:897
 msgid "Tenant not found."
 msgstr ""
 
-#: nx_lib/views/admin/tenant_manage.py:573
+#: nx_lib/views/admin/tenant_manage.py:721
 msgid "Tenant updated."
 msgstr ""
 
-#: nx_lib/views/admin/tenant_manage.py:599
+#: nx_lib/views/admin/tenant_manage.py:747
 #, python-format
 msgid "%(n)d organization(s) still belong to this tenant. Move them first."
 msgstr ""
 
-#: nx_lib/views/admin/tenant_manage.py:611
+#: nx_lib/views/admin/tenant_manage.py:759
 msgid "Tenant deleted."
 msgstr ""
 
-#: nx_lib/views/admin/tenant_manage.py:656
+#: nx_lib/views/admin/tenant_manage.py:804
 msgid "Page added."
 msgstr ""
 
-#: nx_lib/views/admin/tenant_manage.py:659
+#: nx_lib/views/admin/tenant_manage.py:807
 msgid "A page with this key already exists."
 msgstr ""
 
-#: nx_lib/views/admin/tenant_manage.py:674
+#: nx_lib/views/admin/tenant_manage.py:822
 msgid "Status must be 'active' or 'draft'."
 msgstr ""
 
-#: nx_lib/views/admin/tenant_manage.py:687
-#: nx_lib/views/admin/tenant_manage.py:712
+#: nx_lib/views/admin/tenant_manage.py:835
+#: nx_lib/views/admin/tenant_manage.py:860
 msgid "Page not found."
 msgstr ""
 
-#: nx_lib/views/admin/tenant_manage.py:688
+#: nx_lib/views/admin/tenant_manage.py:836
 msgid "Page updated."
 msgstr ""
 
-#: nx_lib/views/admin/tenant_manage.py:713
+#: nx_lib/views/admin/tenant_manage.py:861
 msgid "Page removed."
 msgstr ""
 
-#: nx_lib/views/admin/tenant_manage.py:739
+#: nx_lib/views/admin/tenant_manage.py:887
 msgid "Order must be a list of page keys."
 msgstr ""
 
-#: nx_lib/views/admin/tenant_manage.py:751
+#: nx_lib/views/admin/tenant_manage.py:899
 msgid "The page list does not match this tenant's pages."
 msgstr ""
 
-#: nx_lib/views/admin/tenant_manage.py:760
+#: nx_lib/views/admin/tenant_manage.py:908
 msgid "Page order saved."
 msgstr ""
 
-#: nx_lib/views/admin/tenant_manage.py:765
+#: nx_lib/views/admin/tenant_manage.py:913
 msgid "Could not save the page order."
 msgstr ""
 
@@ -1955,7 +1974,7 @@ msgstr ""
 
 #: templates/_header.html:90 templates/admin/admin_overview.html:195
 #: templates/admin/logs.html:66 templates/admin/logs.html:99
-#: templates/admin/tenant_detail.html:146
+#: templates/admin/tenant_detail.html:208
 #: templates/admin/tenants_manage.html:93 templates/admin/user_detail.html:222
 #: templates/api_docs.html:189 templates/appearance.html:369
 #: templates/generali_importstatus.html:50
@@ -1997,7 +2016,7 @@ msgstr ""
 msgid "Global Dashboard"
 msgstr ""
 
-#: templates/_header.html:158 templates/admin/tenant_detail.html:243
+#: templates/_header.html:158 templates/admin/tenant_detail.html:306
 msgid "Global Reporting"
 msgstr ""
 
@@ -2089,7 +2108,7 @@ msgstr ""
 
 #: templates/_header.html:400 templates/admin/access_control.html:130
 #: templates/admin/organization_detail.html:132
-#: templates/admin/tenant_detail.html:308
+#: templates/admin/tenant_detail.html:506
 msgid "Global"
 msgstr ""
 
@@ -2467,7 +2486,7 @@ msgstr ""
 #: templates/admin/_process_sheets.html:16
 #: templates/admin/_process_sheets.html:93
 #: templates/admin/_tenant_sheet.html:15 templates/admin/logs.html:141
-#: templates/admin/tenant_detail.html:344
+#: templates/admin/tenant_detail.html:152
 #: templates/js/_reporting_drill_js.html:16
 #: templates/prepared_documents.html:253 templates/prepared_documents.html:265
 #: templates/reporting.html:149 templates/reporting.html:182
@@ -2686,12 +2705,6 @@ msgstr ""
 msgid "Excel"
 msgstr ""
 
-#: templates/_reporting_simple.html:187
-#: templates/js/_reporting_dashboard_js.html:10 templates/reporting.html:415
-#: templates/tenant/page.html:43
-msgid "Export"
-msgstr ""
-
 #: templates/_reporting_simple.html:190 templates/_reporting_simple.html:288
 #: templates/admin/access_control.html:240 templates/admin/maintenance.html:114
 #: templates/admin/permissions.html:119 templates/admin/processes.html:208
@@ -2828,7 +2841,7 @@ msgstr ""
 #: templates/admin/organization_detail.html:372
 #: templates/admin/permissions.html:118 templates/admin/processes.html:123
 #: templates/admin/processes.html:207 templates/admin/processes.html:243
-#: templates/admin/tenant_detail.html:388 templates/admin/user_detail.html:78
+#: templates/admin/tenant_detail.html:196 templates/admin/user_detail.html:78
 #: templates/admin/user_detail.html:276
 #: templates/generali_additionalservices.html:261
 #: templates/generali_additionalservices.html:320
@@ -3160,7 +3173,7 @@ msgstr ""
 msgid "Field"
 msgstr ""
 
-#: templates/admin/tenant_detail.html:145 templates/api_docs.html:230
+#: templates/admin/tenant_detail.html:207 templates/api_docs.html:230
 #: templates/api_docs.html:262 templates/api_docs.html:271
 #: templates/api_docs.html:303 templates/api_docs.html:470
 #: templates/generali_documents.html:228 templates/js/_reporting_viz_js.html:11
@@ -4519,7 +4532,8 @@ msgstr ""
 msgid "New"
 msgstr ""
 
-#: templates/admin/logs.html:108 templates/admin/user_detail.html:232
+#: templates/admin/logs.html:108 templates/admin/tenant_detail.html:416
+#: templates/admin/tenant_detail.html:463 templates/admin/user_detail.html:232
 #: templates/generali_monthreport.html:44
 #: templates/js/_generali_documents_js.html:270
 #: templates/js/_generali_import_status_js.html:259
@@ -4529,7 +4543,8 @@ msgstr ""
 msgid "Previous"
 msgstr ""
 
-#: templates/admin/logs.html:109 templates/admin/user_detail.html:233
+#: templates/admin/logs.html:109 templates/admin/tenant_detail.html:417
+#: templates/admin/tenant_detail.html:464 templates/admin/user_detail.html:233
 #: templates/generali_monthreport.html:50
 #: templates/generali_monthreport.html:56
 #: templates/js/_generali_documents_js.html:274
@@ -5408,7 +5423,7 @@ msgstr ""
 msgid "Save as"
 msgstr ""
 
-#: templates/admin/tenant_detail.html:144 templates/reporting.html:420
+#: templates/admin/tenant_detail.html:206 templates/reporting.html:420
 msgid "Target"
 msgstr ""
 
@@ -5511,10 +5526,6 @@ msgstr ""
 
 #: templates/reporting.html:521
 msgid "Can edit"
-msgstr ""
-
-#: templates/reporting.html:522 templates/tenant/page.html:43
-msgid "Add"
 msgstr ""
 
 #: templates/reporting.html:532
@@ -5715,7 +5726,7 @@ msgstr ""
 msgid "Code"
 msgstr ""
 
-#: templates/admin/tenant_detail.html:362 templates/reporting_metrics.html:41
+#: templates/admin/tenant_detail.html:170 templates/reporting_metrics.html:41
 #: templates/reporting_metrics.html:54 templates/reporting_sources.html:41
 #: templates/reporting_sources.html:52 templates/reporting_sources.html:66
 msgid "Label"
@@ -5754,7 +5765,7 @@ msgstr ""
 msgid "Condition (JSON)"
 msgstr ""
 
-#: templates/admin/tenant_detail.html:375 templates/reporting_metrics.html:74
+#: templates/admin/tenant_detail.html:183 templates/reporting_metrics.html:74
 #: templates/reporting_sources.html:76
 msgid "Sort order"
 msgstr ""
@@ -6249,7 +6260,7 @@ msgstr ""
 #: templates/admin/_client_sheet.html:86 templates/admin/_tenant_sheet.html:35
 #: templates/admin/clients.html:55 templates/admin/clients.html:172
 #: templates/admin/maintenance.html:38 templates/admin/maintenance.html:95
-#: templates/admin/tenant_detail.html:32 templates/admin/tenant_detail.html:175
+#: templates/admin/tenant_detail.html:32 templates/admin/tenant_detail.html:234
 #: templates/admin/tenants.html:174 templates/admin/tenants_manage.html:40
 #: templates/admin/tenants_manage.html:134
 #: templates/admin/tenants_manage.html:187
@@ -6443,7 +6454,7 @@ msgstr ""
 #: templates/admin/organization_detail.html:64
 #: templates/admin/organization_detail.html:116
 #: templates/admin/organizations.html:61 templates/admin/tenant_detail.html:76
-#: templates/admin/tenant_detail.html:297 templates/admin/tenants.html:128
+#: templates/admin/tenant_detail.html:495 templates/admin/tenants.html:128
 #: templates/admin/tenants_manage.html:90
 msgid "Users"
 msgstr ""
@@ -7020,7 +7031,7 @@ msgstr ""
 
 #: templates/admin/organization_detail.html:87
 #: templates/admin/organization_detail.html:114
-#: templates/admin/tenant_detail.html:295 templates/admin/user_detail.html:49
+#: templates/admin/tenant_detail.html:493 templates/admin/user_detail.html:49
 msgid "Access profile"
 msgstr ""
 
@@ -7037,7 +7048,7 @@ msgid "No users in this organization."
 msgstr ""
 
 #: templates/admin/organization_detail.html:115
-#: templates/admin/tenant_detail.html:296
+#: templates/admin/tenant_detail.html:494
 msgid "Scope"
 msgstr ""
 
@@ -7582,7 +7593,7 @@ msgid "%(n)s organizations"
 msgstr ""
 
 #: templates/admin/tenant_detail.html:46
-#: templates/js/admin/_tenant_detail_js.html:113
+#: templates/js/admin/_tenant_detail_js.html:112
 #: templates/js/admin/_tenants_manage_js.html:152
 msgid "Edit tenant"
 msgstr ""
@@ -7602,112 +7613,124 @@ msgid "Order here is the order members see"
 msgstr ""
 
 #: templates/admin/tenant_detail.html:134
-#: templates/admin/tenant_detail.html:341
-#: templates/admin/tenant_detail.html:389
+#: templates/admin/tenant_detail.html:149
+#: templates/admin/tenant_detail.html:197
 msgid "Mount page"
 msgstr ""
 
-#: templates/admin/tenant_detail.html:143
-#: templates/admin/tenant_detail.html:350
+#: templates/admin/tenant_detail.html:148 templates/tenant/page.html:8
+msgid "Tenant page"
+msgstr ""
+
+#: templates/admin/tenant_detail.html:158
+#: templates/admin/tenant_detail.html:205
 #: templates/js/_generali_reporting_js.html:17
 #: templates/js/admin/_logs_js.html:106
 #: templates/js/admin/_user_detail_js.html:623
 msgid "Page"
 msgstr ""
 
-#: templates/admin/tenant_detail.html:167
+#: templates/admin/tenant_detail.html:160
+msgid "Choose a page…"
+msgstr ""
+
+#: templates/admin/tenant_detail.html:165
+msgid "Key"
+msgstr ""
+
+#: templates/admin/tenant_detail.html:175
+msgid "Icon"
+msgstr ""
+
+#: templates/admin/tenant_detail.html:188
+msgid "Active page marker (optional)"
+msgstr ""
+
+#: templates/admin/tenant_detail.html:195
+msgid ""
+"New pages start as drafts and stay hidden from members until you activate"
+" them."
+msgstr ""
+
+#: templates/admin/tenant_detail.html:226
 msgid "entity"
 msgstr ""
 
-#: templates/admin/tenant_detail.html:173
-#: templates/admin/tenant_detail.html:250
+#: templates/admin/tenant_detail.html:232
+#: templates/admin/tenant_detail.html:319
 msgid "Draft"
 msgstr ""
 
-#: templates/admin/tenant_detail.html:187
+#: templates/admin/tenant_detail.html:246
 msgid "Move up"
 msgstr ""
 
-#: templates/admin/tenant_detail.html:189
+#: templates/admin/tenant_detail.html:248
 msgid "Move down"
 msgstr ""
 
-#: templates/admin/tenant_detail.html:193
+#: templates/admin/tenant_detail.html:252
 msgid "Unmount"
 msgstr ""
 
-#: templates/admin/tenant_detail.html:196
+#: templates/admin/tenant_detail.html:255
 msgid "Generated from a migration"
 msgstr ""
 
-#: templates/admin/tenant_detail.html:202
+#: templates/admin/tenant_detail.html:261
+#: templates/admin/tenant_detail.html:476
 msgid "No pages mounted yet."
 msgstr ""
 
-#: templates/admin/tenant_detail.html:206
+#: templates/admin/tenant_detail.html:265
 msgid ""
 "Generated list and crud pages come from migrations and can only be "
 "activated or deactivated here."
 msgstr ""
 
-#: templates/admin/tenant_detail.html:211
-#: templates/admin/tenant_detail.html:213
+#: templates/admin/tenant_detail.html:274
+#: templates/admin/tenant_detail.html:276
 msgid "Member preview"
 msgstr ""
 
-#: templates/admin/tenant_detail.html:218
+#: templates/admin/tenant_detail.html:281
 msgid "Reorder"
 msgstr ""
 
-#: templates/admin/tenant_detail.html:240
+#: templates/admin/tenant_detail.html:303
 msgid "No active pages"
 msgstr ""
 
-#: templates/admin/tenant_detail.html:284
-msgid ""
-"Draft pages are hidden from members; only active ones appear in the "
-"tenant sidebar."
+#: templates/admin/tenant_detail.html:425
+msgid "sketch of an existing nexora page"
 msgstr ""
 
-#: templates/admin/tenant_detail.html:319
+#: templates/admin/tenant_detail.html:469
+#, python-format
+msgid "%(num)d more column"
+msgid_plural "%(num)d more columns"
+msgstr[0] ""
+msgstr[1] ""
+
+#: templates/admin/tenant_detail.html:482
+msgid ""
+"Layout preview with sample values, not live data. Draft pages are hidden "
+"from members; only active ones appear in the tenant sidebar."
+msgstr ""
+
+#: templates/admin/tenant_detail.html:517
 #, python-format
 msgid ""
 "No access profile holds tenant.%(code)s.view, so nobody can open this "
 "tenant’s pages."
 msgstr ""
 
-#: templates/admin/tenant_detail.html:323
+#: templates/admin/tenant_detail.html:521
 msgid "Access is read-only here."
 msgstr ""
 
-#: templates/admin/tenant_detail.html:324
+#: templates/admin/tenant_detail.html:522
 msgid "Manage in Permissions"
-msgstr ""
-
-#: templates/admin/tenant_detail.html:340 templates/tenant/page.html:8
-msgid "Tenant page"
-msgstr ""
-
-#: templates/admin/tenant_detail.html:352
-msgid "Choose a page…"
-msgstr ""
-
-#: templates/admin/tenant_detail.html:357
-msgid "Key"
-msgstr ""
-
-#: templates/admin/tenant_detail.html:367
-msgid "Icon"
-msgstr ""
-
-#: templates/admin/tenant_detail.html:380
-msgid "Active page marker (optional)"
-msgstr ""
-
-#: templates/admin/tenant_detail.html:383
-msgid ""
-"New pages start as drafts and stay hidden from members until you activate"
-" them."
 msgstr ""
 
 #: templates/admin/tenants.html:8
@@ -10346,13 +10369,13 @@ msgstr ""
 msgid "Could not revoke session."
 msgstr ""
 
-#: templates/js/admin/_tenant_detail_js.html:141
+#: templates/js/admin/_tenant_detail_js.html:140
 msgid ""
 "Delete this tenant and its page descriptors? Organizations must be moved "
 "out first."
 msgstr ""
 
-#: templates/js/admin/_tenant_detail_js.html:273
+#: templates/js/admin/_tenant_detail_js.html:283
 msgid "Remove this page from the tenant?"
 msgstr ""
 
@@ -10501,13 +10524,5 @@ msgstr ""
 msgid ""
 "The tenant configuration could not be loaded. Try again shortly; if this "
 "persists, contact an administrator."
-msgstr ""
-
-#: templates/tenant/page.html:77
-msgid "from"
-msgstr ""
-
-#: templates/tenant/page.html:81
-msgid "to"
 msgstr ""
 

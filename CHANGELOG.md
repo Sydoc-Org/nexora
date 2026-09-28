@@ -8,6 +8,24 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **The tenant page preview is now per page, and Mount page opens inline.**
+  Every mounted page renders its own preview instead of one generic mock.
+  Generated `list`/`crud` pages are built from the same `TenantEntities` /
+  `TenantFields` descriptors the member-facing page renders from, so the
+  preview carries the page's real column labels, its real filter row (id
+  column, the text-ish fields, the first date field as a from/to pair), its
+  Add/Export buttons and the source table it reads — only the cell *values*
+  are synthetic, and the caption says so. A page that mounts an existing
+  nexora endpoint has no descriptor to read, so it previews as one of four
+  shape sketches (dashboard, report, cards, list) chosen from the endpoint,
+  plus the URL the sidebar entry actually points at.
+
+  **Mount page** moved out of the side sheet into an inline panel above the
+  table it edits: a six-field form left most of a full-height sheet empty and
+  hid the table you were changing. Choosing an endpoint now fills the key and
+  label for you. Empty required fields no longer paint themselves red before
+  they have been touched (`:invalid` → `:user-invalid`).
+
 - **The tenant member preview now previews the page, and pages can be
   reordered.** The Pages tab's preview was a generic grey skeleton; it now
   shows the selected page — the tenant's brand in the preview sidebar, the page
