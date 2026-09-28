@@ -8,6 +8,30 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **Manage tenants is now one page, and every tenant has a detail view.**
+  Tenants Overview and Manage Tenants merge into **Manage tenants**: tabs
+  (All / Active / Inactive) with a search over tenants, organizations and
+  codes, a KPI strip, and one row per tenant showing its organizations, user
+  count, **data connection**, active-vs-total pages and status. A **Needs
+  attention** list names the things that are actually wrong — organizations in
+  no tenant, a tenant nobody holds `tenant.<code>.view` for, a tenant with no
+  organizations — each with a link to where it gets fixed.
+
+  Clicking a row opens the new tenant detail page
+  (`/admin/tenants/detail/<code>`) with **Organizations · Pages · Access**
+  tabs; the tab lives in the URL hash, so a reload comes back to it. Pages
+  moved here from the inline panel and gained a Draft/Active switch and a
+  **member preview** — a mini window showing the sidebar a member of that
+  tenant actually sees. Access lists the profiles holding the tenant's view
+  permission and warns when none do.
+
+  **Data Connections** (`dbo.Clients`) now also appear on Manage tenants, each
+  row showing which organizations use it — derived from their process sources
+  — and whether the runtime actually loaded it. Centred modals are replaced by
+  right-hand **side sheets** for the tenant, page-mount and connection forms.
+  The standalone Data Connections and Process Configurations pages are
+  unchanged and still reachable; the sidebar is cleaned up in a later step.
+
 - **Admin Overview rebuilt to the tenancy redesign.** The 2×2 launcher-card
   grid is replaced by a KPI strip (active sessions, failed logins, users,
   database health) over two columns of link rows — **Tenancy** and **Access &

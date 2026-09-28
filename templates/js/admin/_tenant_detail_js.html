@@ -1,0 +1,189 @@
+    <script nonce="{{ csp_nonce() }}">
+        // Tenant detail: organizations / pages / access tabs, page mounting and
+        // the tenant sheet shared with Manage tenants.
+        const API_PREFIX = window.API_PREFIX;
+        const showNotification = window.NX.toast;
+        const forbidden = `{{ _("You do not have permission to perform this action.") }}`;
+        const TENANT_CODE = {{ tenant.TenantCode|tojson }};
+        const reload = () => window.location.reload();
+
+        async function send(url, method, body) {
+            try {
+                const response = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                    body: body === undefined ? undefined : JSON.stringify(body)
+                });
+                if (response.status === 403) { showNotification(forbidden, 'error'); return false; }
+                const result = await response.json();
+                if (response.ok) { showNotification(result.message || `{{ _("Success") }}`); return true; }
+                showNotification(`{{ _("Error:") }} ${result.message}`, 'error');
+                return false;
+            } catch (error) {
+                console.error('request failed:', error);
+                showNotification(`{{ _("An unexpected network error occurred.") }}`, 'error');
+                return false;
+            }
+        }
+
+        // ---- Confirm dialog -------------------------------------------------
+        const confirmEl = document.getElementById('admConfirm');
+        const confirmBody = document.getElementById('admConfirmBody');
+        let confirmCallback = null;
+        function askConfirm(message, onConfirm) {
+            confirmBody.textContent = message;
+            confirmCallback = onConfirm;
+            confirmEl.classList.remove('hidden');
+        }
+        function closeConfirm() { confirmEl.classList.add('hidden'); confirmCallback = null; }
+        document.getElementById('admConfirmOk').addEventListener('click', () => {
+            const cb = confirmCallback; closeConfirm(); if (cb) cb();
+        });
+        document.getElementById('admConfirmCancel').addEventListener('click', closeConfirm);
+        confirmEl.addEventListener('click', (e) => { if (e.target === confirmEl) closeConfirm(); });
+
+        // ---- Side sheets ----------------------------------------------------
+        function sheet(name) {
+            const panel = document.getElementById(`${name}Sheet`);
+            const back = document.getElementById(`${name}SheetBack`);
+            if (!panel || !back) return null;
+            const api = {
+                open() { panel.classList.remove('hidden'); back.classList.remove('hidden'); },
+                close() { panel.classList.add('hidden'); back.classList.add('hidden'); },
+            };
+            back.addEventListener('click', api.close);
+            document.getElementById(`${name}SheetClose`)?.addEventListener('click', api.close);
+            document.getElementById(`${name}SheetCancel`)?.addEventListener('click', api.close);
+            return api;
+        }
+        const tenantSheet = sheet('tenant');
+        const pageSheet = sheet('page');
+        document.addEventListener('keydown', (e) => {
+            if (e.key !== 'Escape') return;
+            tenantSheet?.close(); pageSheet?.close(); closeConfirm();
+        });
+
+        // ---- Tabs ------------------------------------------------------------
+        // The tab lives in the hash so a reload -- and every write below triggers
+        // one -- comes back to the tab you were on.
+        const TABS = ['organizations', 'pages', 'access'];
+        function showTab(name) {
+            if (!TABS.includes(name)) name = TABS[0];
+            document.querySelectorAll('[data-nx-tab]').forEach(t =>
+                t.classList.toggle('adm-tab--active', t.dataset.nxTab === name));
+            document.querySelectorAll('[data-nx-panel]').forEach(p =>
+                p.classList.toggle('hidden', p.dataset.nxPanel !== name));
+        }
+        document.querySelectorAll('[data-nx-tab]').forEach(tab => {
+            tab.addEventListener('click', () => {
+                history.replaceState(null, '', `#${tab.dataset.nxTab}`);
+                showTab(tab.dataset.nxTab);
+            });
+        });
+        showTab((window.location.hash || '').replace('#', ''));
+
+        // ---- Tenant sheet ------------------------------------------------------
+        const tenantForm = document.getElementById('tenantForm');
+        if (tenantForm) {
+            const tenantSheetTitle = document.getElementById('tenantSheetTitle');
+            const tenantOriginalCode = document.getElementById('tenantOriginalCode');
+            const tenantCodeInput = document.getElementById('TenantCode');
+            const orgFilter = document.getElementById('tenantOrgFilter');
+
+            function setOrganizations(selected, ownCode) {
+                tenantForm.querySelectorAll('input[name="organizations"]').forEach(cb => {
+                    cb.checked = selected.includes(cb.value);
+                    const elsewhere = cb.dataset.currentTenant && cb.dataset.currentTenant !== ownCode;
+                    const hint = cb.closest('label').querySelector('.adm-check__moves');
+                    hint.classList.toggle('hidden', !elsewhere);
+                    if (elsewhere) hint.querySelector('.adm-check__moves-name').textContent = cb.dataset.currentTenant;
+                });
+            }
+
+            orgFilter?.addEventListener('input', () => {
+                const q = orgFilter.value.trim().toLowerCase();
+                tenantForm.querySelectorAll('[data-org-search]').forEach(label => {
+                    label.classList.toggle('hidden', q && !label.dataset.orgSearch.includes(q));
+                });
+            });
+
+            function openEdit(btn) {
+                const t = JSON.parse(btn.dataset.tenant);
+                tenantForm.reset();
+                tenantSheetTitle.textContent = `{{ _("Edit tenant") }}`;
+                tenantOriginalCode.value = t.TenantCode;
+                tenantCodeInput.value = t.TenantCode;
+                tenantCodeInput.disabled = true;
+                document.getElementById('DisplayName').value = t.DisplayName || '';
+                document.getElementById('IsActive').checked = !!t.IsActive;
+                setOrganizations(t.organizations || [], t.TenantCode);
+                tenantSheet.open();
+            }
+            document.getElementById('editTenantBtn')?.addEventListener('click', (e) => openEdit(e.currentTarget));
+            document.getElementById('addOrgsBtn')?.addEventListener('click', (e) => openEdit(e.currentTarget));
+
+            tenantForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const data = {
+                    TenantCode: tenantCodeInput.value,
+                    DisplayName: document.getElementById('DisplayName').value,
+                    IsActive: document.getElementById('IsActive').checked,
+                    organizations: Array.from(
+                        tenantForm.querySelectorAll('input[name="organizations"]:checked')).map(cb => cb.value),
+                };
+                const url = `${API_PREFIX}admin/tenants/edit/${encodeURIComponent(tenantOriginalCode.value)}`;
+                if (await send(url, 'POST', data)) { tenantSheet.close(); reload(); }
+            });
+        }
+
+        document.getElementById('deleteTenantBtn')?.addEventListener('click', (e) => {
+            const code = e.currentTarget.dataset.tenant;
+            askConfirm(`{{ _("Delete this tenant and its page descriptors? Organizations must be moved out first.") }}`, async () => {
+                if (await send(`${API_PREFIX}admin/tenants/delete/${encodeURIComponent(code)}`, 'DELETE')) {
+                    window.location.href = `${API_PREFIX}admin/tenants/manage`;
+                }
+            });
+        });
+
+        // ---- Pages --------------------------------------------------------------
+        const pageForm = document.getElementById('pageForm');
+        if (pageForm) {
+            const iconInput = document.getElementById('icon');
+            const iconPreview = document.getElementById('iconPreview')?.querySelector('i');
+            iconInput?.addEventListener('input', () => {
+                if (!iconPreview) return;
+                const v = iconInput.value.trim();
+                iconPreview.className = `fas ${/^fa-[a-z0-9-]{1,40}$/.test(v) ? v : 'fa-arrow-up-right-from-square'}`;
+            });
+
+            document.getElementById('mountPageBtn')?.addEventListener('click', () => {
+                pageForm.reset();
+                if (iconPreview) iconPreview.className = 'fas fa-arrow-up-right-from-square';
+                pageSheet.open();
+            });
+
+            pageForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const data = Object.fromEntries(new FormData(pageForm).entries());
+                delete data.csrf_token;
+                const url = `${API_PREFIX}admin/tenants/${encodeURIComponent(TENANT_CODE)}/pages/add`;
+                if (await send(url, 'POST', data)) { pageSheet.close(); reload(); }
+            });
+        }
+
+        document.addEventListener('click', async (e) => {
+            const toggle = e.target.closest('.toggle-page-btn');
+            if (toggle && !toggle.disabled) {
+                const url = `${API_PREFIX}admin/tenants/${encodeURIComponent(TENANT_CODE)}/pages/${encodeURIComponent(toggle.dataset.page)}/status`;
+                if (await send(url, 'POST', { Status: toggle.dataset.next })) reload();
+                return;
+            }
+            const del = e.target.closest('.delete-page-btn');
+            if (del) {
+                askConfirm(`{{ _("Remove this page from the tenant?") }}`, async () => {
+                    const url = `${API_PREFIX}admin/tenants/${encodeURIComponent(TENANT_CODE)}/pages/${encodeURIComponent(del.dataset.page)}`;
+                    if (await send(url, 'DELETE')) reload();
+                });
+            }
+        });
+    </script>

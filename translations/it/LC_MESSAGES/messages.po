@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-28 11:25+0200\n"
+"POT-Creation-Date: 2026-09-28 12:50+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -1204,12 +1204,12 @@ msgstr "Cliente aggiornato con successo."
 #: nx_lib/views/admin/organizations.py:187
 #: nx_lib/views/admin/organizations.py:368 nx_lib/views/admin/processes.py:456
 #: nx_lib/views/admin/processes.py:519 nx_lib/views/admin/processes.py:615
-#: nx_lib/views/admin/processes.py:644 nx_lib/views/admin/tenant_manage.py:261
-#: nx_lib/views/admin/tenant_manage.py:296
-#: nx_lib/views/admin/tenant_manage.py:334
-#: nx_lib/views/admin/tenant_manage.py:381
-#: nx_lib/views/admin/tenant_manage.py:411
-#: nx_lib/views/admin/tenant_manage.py:436 nx_lib/views/admin/users.py:248
+#: nx_lib/views/admin/processes.py:644 nx_lib/views/admin/tenant_manage.py:541
+#: nx_lib/views/admin/tenant_manage.py:576
+#: nx_lib/views/admin/tenant_manage.py:614
+#: nx_lib/views/admin/tenant_manage.py:661
+#: nx_lib/views/admin/tenant_manage.py:691
+#: nx_lib/views/admin/tenant_manage.py:716 nx_lib/views/admin/users.py:248
 #: nx_lib/views/admin/users.py:495
 msgid "An error occurred."
 msgstr "Si è verificato un errore."
@@ -1468,58 +1468,95 @@ msgstr "Mappatura del campo eliminata con successo."
 msgid "Unknown environment."
 msgstr "Ambiente sconosciuto."
 
-#: nx_lib/views/admin/tenant_manage.py:71
+#: nx_lib/views/admin/tenant_manage.py:73
 msgid "Tenant code must be 2-50 lowercase letters, digits or underscores."
 msgstr ""
 "Il codice tenant deve essere di 2-50 lettere minuscole, cifre o trattini "
 "bassi."
 
-#: nx_lib/views/admin/tenant_manage.py:74
+#: nx_lib/views/admin/tenant_manage.py:76
 msgid "Display name is required (max. 100 characters)."
 msgstr "Il nome visualizzato è obbligatorio (max. 100 caratteri)."
 
-#: nx_lib/views/admin/tenant_manage.py:79
+#: nx_lib/views/admin/tenant_manage.py:81
 msgid "Organizations must be a list of organization codes."
 msgstr "Le organizzazioni devono essere un elenco di codici organizzazione."
 
-#: nx_lib/views/admin/tenant_manage.py:89
+#: nx_lib/views/admin/tenant_manage.py:91
 msgid "Page key must be 1-100 lowercase letters, digits, '.', '_' or '-'."
 msgstr ""
 "La chiave della pagina deve essere di 1-100 lettere minuscole, cifre, "
 "'.', '_' o '-'."
 
-#: nx_lib/views/admin/tenant_manage.py:92
-#: nx_lib/views/admin/tenant_manage.py:355
+#: nx_lib/views/admin/tenant_manage.py:94
+#: nx_lib/views/admin/tenant_manage.py:635
 msgid "Endpoint is not a mountable page."
 msgstr "L’endpoint non è una pagina montabile."
 
-#: nx_lib/views/admin/tenant_manage.py:95
+#: nx_lib/views/admin/tenant_manage.py:97
 msgid "Label is required (max. 100 characters)."
 msgstr "L’etichetta è obbligatoria (max. 100 caratteri)."
 
-#: nx_lib/views/admin/tenant_manage.py:98
+#: nx_lib/views/admin/tenant_manage.py:100
 msgid "Icon must be a Font Awesome class like fa-chart-line."
 msgstr "L’icona deve essere una classe Font Awesome come fa-chart-line."
 
-#: nx_lib/views/admin/tenant_manage.py:101
+#: nx_lib/views/admin/tenant_manage.py:103
 msgid "Active marker may only contain letters, digits, '_' or '-'."
 msgstr "Il marcatore attivo può contenere solo lettere, cifre, '_' o '-'."
 
-#: nx_lib/views/admin/tenant_manage.py:105
+#: nx_lib/views/admin/tenant_manage.py:107
 msgid "Sort order must be a number."
 msgstr "L’ordinamento deve essere un numero."
 
-#: nx_lib/views/admin/tenant_manage.py:237
+#: nx_lib/views/admin/tenant_manage.py:244
+#, python-format
+msgid "%(n)d organization(s) are not in a tenant"
+msgstr "%(n)d organizzazione/i senza tenant"
+
+#: nx_lib/views/admin/tenant_manage.py:248
+msgid "Assign"
+msgstr "Assegna"
+
+#: nx_lib/views/admin/tenant_manage.py:257
+#, python-format
+msgid "Nobody holds tenant.%(code)s.view"
+msgstr "Nessuno possiede tenant.%(code)s.view"
+
+#: nx_lib/views/admin/tenant_manage.py:259
+#, python-format
+msgid "%(n)d page(s) are mounted but no user can open them"
+msgstr "%(n)d pagina/e sono montate ma nessuno può aprirle"
+
+#: nx_lib/views/admin/tenant_manage.py:261
+msgid "Grant access"
+msgstr "Concedi accesso"
+
+#: nx_lib/views/admin/tenant_manage.py:269
+#, python-format
+msgid "%(name)s has no organizations"
+msgstr "%(name)s non ha organizzazioni"
+
+#: nx_lib/views/admin/tenant_manage.py:270
+msgid "Its members cannot be resolved until one is assigned"
+msgstr "I suoi membri non possono essere determinati finché non ne viene assegnata una"
+
+#: nx_lib/views/admin/tenant_manage.py:271
+#: templates/admin/tenant_detail.html:118
+msgid "Add organizations"
+msgstr "Aggiungi organizzazioni"
+
+#: nx_lib/views/admin/tenant_manage.py:517
 msgid "Tenant already exists."
 msgstr "Il tenant esiste già."
 
-#: nx_lib/views/admin/tenant_manage.py:240
-#: nx_lib/views/admin/tenant_manage.py:283
+#: nx_lib/views/admin/tenant_manage.py:520
+#: nx_lib/views/admin/tenant_manage.py:563
 #, python-format
 msgid "%(n)d organization code(s) do not exist."
 msgstr "%(n)d codice/i organizzazione non esistono."
 
-#: nx_lib/views/admin/tenant_manage.py:253
+#: nx_lib/views/admin/tenant_manage.py:533
 #, python-format
 msgid ""
 "Tenant created. Users of its organizations see it right away; grant "
@@ -1529,49 +1566,49 @@ msgstr ""
 "concedere tenant.%(code)s.view nel Controllo accessi per ammettere altri "
 "collaboratori."
 
-#: nx_lib/views/admin/tenant_manage.py:289
-#: nx_lib/views/admin/tenant_manage.py:330
-#: nx_lib/views/admin/tenant_manage.py:363
+#: nx_lib/views/admin/tenant_manage.py:569
+#: nx_lib/views/admin/tenant_manage.py:610
+#: nx_lib/views/admin/tenant_manage.py:643
 msgid "Tenant not found."
 msgstr "Tenant non trovato."
 
-#: nx_lib/views/admin/tenant_manage.py:293
+#: nx_lib/views/admin/tenant_manage.py:573
 msgid "Tenant updated."
 msgstr "Tenant aggiornato."
 
-#: nx_lib/views/admin/tenant_manage.py:319
+#: nx_lib/views/admin/tenant_manage.py:599
 #, python-format
 msgid "%(n)d organization(s) still belong to this tenant. Move them first."
 msgstr ""
 "%(n)d organizzazione/i appartengono ancora a questo tenant. Spostarle "
 "prima."
 
-#: nx_lib/views/admin/tenant_manage.py:331
+#: nx_lib/views/admin/tenant_manage.py:611
 msgid "Tenant deleted."
 msgstr "Tenant eliminato."
 
-#: nx_lib/views/admin/tenant_manage.py:376
+#: nx_lib/views/admin/tenant_manage.py:656
 msgid "Page added."
 msgstr "Pagina aggiunta."
 
-#: nx_lib/views/admin/tenant_manage.py:379
+#: nx_lib/views/admin/tenant_manage.py:659
 msgid "A page with this key already exists."
 msgstr "Esiste già una pagina con questa chiave."
 
-#: nx_lib/views/admin/tenant_manage.py:394
+#: nx_lib/views/admin/tenant_manage.py:674
 msgid "Status must be 'active' or 'draft'."
 msgstr "Lo stato deve essere 'active' o 'draft'."
 
-#: nx_lib/views/admin/tenant_manage.py:407
-#: nx_lib/views/admin/tenant_manage.py:432
+#: nx_lib/views/admin/tenant_manage.py:687
+#: nx_lib/views/admin/tenant_manage.py:712
 msgid "Page not found."
 msgstr "Pagina non trovata."
 
-#: nx_lib/views/admin/tenant_manage.py:408
+#: nx_lib/views/admin/tenant_manage.py:688
 msgid "Page updated."
 msgstr "Pagina aggiornata."
 
-#: nx_lib/views/admin/tenant_manage.py:433
+#: nx_lib/views/admin/tenant_manage.py:713
 msgid "Page removed."
 msgstr "Pagina rimossa."
 
@@ -2120,7 +2157,8 @@ msgstr "Registri"
 
 #: templates/_header.html:90 templates/admin/admin_overview.html:195
 #: templates/admin/logs.html:66 templates/admin/logs.html:99
-#: templates/admin/tenants_manage.html:78 templates/admin/user_detail.html:222
+#: templates/admin/tenant_detail.html:145
+#: templates/admin/tenants_manage.html:93 templates/admin/user_detail.html:222
 #: templates/api_docs.html:189 templates/appearance.html:369
 #: templates/generali_importstatus.html:50
 #: templates/generali_importstatus.html:106
@@ -2133,7 +2171,7 @@ msgid "Maintenance"
 msgstr "Manutenzione"
 
 #: templates/_header.html:111 templates/admin/admin_overview.html:92
-#: templates/admin/tenants.html:149
+#: templates/admin/tenants.html:149 templates/admin/tenants_manage.html:58
 msgid "Tenants"
 msgstr "Tenants"
 
@@ -2142,8 +2180,9 @@ msgid "Manage"
 msgstr "Gestisci"
 
 #: templates/_header.html:130 templates/admin/admin_overview.html:107
-#: templates/admin/organizations.html:19 templates/admin/tenants_manage.html:38
-#: templates/js/_header_js.html:19
+#: templates/admin/organizations.html:19 templates/admin/tenant_detail.html:59
+#: templates/admin/tenants_manage.html:63
+#: templates/admin/tenants_manage.html:89 templates/js/_header_js.html:19
 msgid "Organizations"
 msgstr "Organizzazioni"
 
@@ -2169,7 +2208,7 @@ msgstr "Documentazione API"
 msgid "Global Dashboard"
 msgstr "Dashboard globale"
 
-#: templates/_header.html:172
+#: templates/_header.html:172 templates/admin/tenant_detail.html:216
 msgid "Global Reporting"
 msgstr "Reporting globale"
 
@@ -2260,6 +2299,7 @@ msgid "Switch to user..."
 msgstr "Passa all'utente ..."
 
 #: templates/_header.html:414 templates/admin/access_control.html:130
+#: templates/admin/tenant_detail.html:251
 msgid "Global"
 msgstr "Globale"
 
@@ -2797,7 +2837,9 @@ msgstr ""
 msgid "Full guide"
 msgstr "Guida completa"
 
-#: templates/_reporting_help.html:74 templates/admin/logs.html:141
+#: templates/_reporting_help.html:74 templates/admin/_tenant_sheet.html:15
+#: templates/admin/logs.html:141 templates/admin/tenant_detail.html:287
+#: templates/admin/tenants_manage.html:247
 #: templates/js/_reporting_drill_js.html:16
 #: templates/prepared_documents.html:253 templates/prepared_documents.html:265
 #: templates/reporting.html:149 templates/reporting.html:182
@@ -3150,7 +3192,9 @@ msgstr "Cos'è successo qui? (ad es. «guasto alla posta»)"
 msgid "Annotation text"
 msgstr "Testo dell'annotazione"
 
-#: templates/_reporting_simple.html:287 templates/admin/access_control.html:195
+#: templates/_reporting_simple.html:287 templates/admin/_confirm_dialog.html:8
+#: templates/admin/_tenant_sheet.html:57
+#: templates/admin/access_control.html:195
 #: templates/admin/access_control.html:239 templates/admin/clients.html:101
 #: templates/admin/clients.html:176 templates/admin/maintenance.html:113
 #: templates/admin/maintenance.html:129
@@ -3160,8 +3204,8 @@ msgstr "Testo dell'annotazione"
 #: templates/admin/modals/_user_modals.html:80
 #: templates/admin/organizations.html:98 templates/admin/permissions.html:118
 #: templates/admin/processes.html:123 templates/admin/processes.html:207
-#: templates/admin/processes.html:243 templates/admin/tenants_manage.html:133
-#: templates/admin/tenants_manage.html:174 templates/admin/user_detail.html:78
+#: templates/admin/processes.html:243 templates/admin/tenant_detail.html:331
+#: templates/admin/tenants_manage.html:326 templates/admin/user_detail.html:78
 #: templates/admin/user_detail.html:276
 #: templates/generali_additionalservices.html:261
 #: templates/generali_additionalservices.html:320
@@ -3529,7 +3573,7 @@ msgstr "Campi della risposta"
 msgid "Field"
 msgstr "Campo"
 
-#: templates/admin/tenants_manage.html:74 templates/api_docs.html:230
+#: templates/admin/tenant_detail.html:144 templates/api_docs.html:230
 #: templates/api_docs.html:262 templates/api_docs.html:271
 #: templates/api_docs.html:303 templates/api_docs.html:470
 #: templates/generali_documents.html:228 templates/js/_reporting_viz_js.html:11
@@ -4598,6 +4642,7 @@ msgstr "Categoria principale"
 #: templates/admin/access_control.html:52
 #: templates/admin/access_control.html:61 templates/admin/logs.html:52
 #: templates/admin/logs.html:68 templates/admin/logs.html:76
+#: templates/admin/tenants_manage.html:37
 #: templates/generali_additionalservices.html:75
 #: templates/generali_additionalservices.html:87
 #: templates/generali_baseservices.html:75
@@ -4634,7 +4679,8 @@ msgstr "Sottocategoria"
 #: templates/admin/access_control.html:225 templates/admin/logs.html:74
 #: templates/admin/modals/_user_modals.html:61
 #: templates/admin/processes.html:60 templates/admin/processes.html:160
-#: templates/admin/processes.html:169 templates/admin/user_detail.html:65
+#: templates/admin/processes.html:169 templates/admin/tenant_detail.html:75
+#: templates/admin/user_detail.html:65
 #: templates/generali_additionalservices.html:95
 #: templates/generali_baseservices.html:83 templates/generali_pdqm.html:103
 #: templates/generali_projectmanagement.html:71
@@ -4692,8 +4738,7 @@ msgstr "Registrato alle"
 #: templates/admin/access_control.html:92 templates/admin/clients.html:57
 #: templates/admin/maintenance.html:39 templates/admin/organizations.html:34
 #: templates/admin/processes.html:78 templates/admin/sessions.html:53
-#: templates/admin/sessions.html:69 templates/admin/tenants_manage.html:41
-#: templates/admin/tenants_manage.html:79
+#: templates/admin/sessions.html:69
 #: templates/generali_additionalservices.html:167
 #: templates/generali_baseservices.html:141 templates/generali_pdqm.html:165
 #: templates/generali_projectmanagement.html:129
@@ -4795,7 +4840,8 @@ msgstr "Questa azione non può essere annullata."
 #: templates/admin/clients.html:81 templates/admin/maintenance.html:130
 #: templates/admin/organizations.html:53 templates/admin/permissions.html:74
 #: templates/admin/processes.html:66 templates/admin/processes.html:89
-#: templates/admin/tenants_manage.html:56 templates/admin/user_detail.html:279
+#: templates/admin/tenant_detail.html:50
+#: templates/admin/tenants_manage.html:220 templates/admin/user_detail.html:279
 #: templates/generali_additionalservices.html:349
 #: templates/generali_baseservices.html:298 templates/generali_pdqm.html:373
 #: templates/generali_projectmanagement.html:284
@@ -4949,7 +4995,8 @@ msgstr "Importazioni CSV nel database dei documenti"
 #: templates/js/admin/_organizations_js.html:101
 #: templates/js/admin/_organizations_js.html:155
 #: templates/js/admin/_processes_js.html:152
-#: templates/js/admin/_tenants_manage_js.html:76
+#: templates/js/admin/_tenant_detail_js.html:19
+#: templates/js/admin/_tenants_manage_js.html:20
 #: templates/js/admin/_user_management_js.html:120
 #: templates/js/admin/_user_management_js.html:170
 msgid "Success"
@@ -5522,12 +5569,12 @@ msgstr "Raccolto"
 msgid "Any"
 msgstr "Qualsiasi"
 
-#: templates/admin/clients.html:65 templates/admin/tenants_manage.html:51
+#: templates/admin/clients.html:65 templates/admin/tenants_manage.html:200
 #: templates/prepared_documents.html:94 templates/prepared_documents.html:109
 msgid "Yes"
 msgstr "Sì"
 
-#: templates/admin/clients.html:65 templates/admin/tenants_manage.html:51
+#: templates/admin/clients.html:65 templates/admin/tenants_manage.html:200
 #: templates/prepared_documents.html:95 templates/prepared_documents.html:110
 msgid "No"
 msgstr "No"
@@ -5540,7 +5587,12 @@ msgstr "Preparato"
 msgid "Group by"
 msgstr "Raggruppa per"
 
-#: templates/admin/user_detail.html:156 templates/prepared_documents.html:123
+#: templates/admin/tenant_detail.html:96 templates/admin/tenant_detail.html:104
+#: templates/admin/tenants_manage.html:279
+#: templates/admin/tenants_manage.html:286
+#: templates/admin/tenants_manage.html:294
+#: templates/admin/tenants_manage.html:301 templates/admin/user_detail.html:156
+#: templates/prepared_documents.html:123
 msgid "None"
 msgstr "Nessuno"
 
@@ -5840,6 +5892,7 @@ msgstr ""
 msgid "Source"
 msgstr "Origine"
 
+#: templates/admin/tenant_detail.html:79
 #: templates/js/_reporting_dashboard_js.html:19
 #: templates/js/_reporting_simple_js.html:62
 #: templates/js/_reporting_simple_js.html:152 templates/reporting.html:364
@@ -5908,7 +5961,7 @@ msgstr "Esegui"
 msgid "Save as"
 msgstr "Salva come"
 
-#: templates/admin/tenants_manage.html:76 templates/reporting.html:420
+#: templates/admin/tenant_detail.html:143 templates/reporting.html:420
 msgid "Target"
 msgstr "Destinazione"
 
@@ -5958,7 +6011,7 @@ msgstr "Colonne"
 msgid "Filters"
 msgstr "Filtri"
 
-#: templates/admin/tenants_manage.html:77 templates/reporting.html:478
+#: templates/reporting.html:478
 msgid "Sort"
 msgstr "Ordinamento"
 
@@ -6018,8 +6071,7 @@ msgstr "Cerca persone per nome o e-mail…"
 msgid "Can edit"
 msgstr "Può modificare"
 
-#: templates/admin/tenants_manage.html:116 templates/reporting.html:522
-#: templates/tenant/page.html:43
+#: templates/reporting.html:522 templates/tenant/page.html:43
 msgid "Add"
 msgstr "Aggiungi"
 
@@ -6221,15 +6273,15 @@ msgstr ""
 msgid "Registered metrics"
 msgstr "Metriche registrate"
 
-#: templates/admin/clients.html:51 templates/admin/organizations.html:31
-#: templates/admin/tenants_manage.html:36 templates/reporting_metrics.html:41
+#: templates/admin/_tenant_sheet.html:27 templates/admin/clients.html:51
+#: templates/admin/organizations.html:31
+#: templates/admin/tenants_manage.html:182 templates/reporting_metrics.html:41
 #: templates/reporting_metrics.html:52 templates/reporting_sources.html:41
 #: templates/reporting_sources.html:52 templates/reporting_sources.html:63
 msgid "Code"
 msgstr "Codice"
 
-#: templates/admin/tenants_manage.html:75
-#: templates/admin/tenants_manage.html:111 templates/reporting_metrics.html:41
+#: templates/admin/tenant_detail.html:305 templates/reporting_metrics.html:41
 #: templates/reporting_metrics.html:54 templates/reporting_sources.html:41
 #: templates/reporting_sources.html:52 templates/reporting_sources.html:66
 msgid "Label"
@@ -6268,7 +6320,8 @@ msgstr "Etichetta italiana"
 msgid "Condition (JSON)"
 msgstr "Condizione (JSON)"
 
-#: templates/reporting_metrics.html:74 templates/reporting_sources.html:76
+#: templates/admin/tenant_detail.html:318 templates/reporting_metrics.html:74
+#: templates/reporting_sources.html:76
 msgid "Sort order"
 msgstr "Ordinamento"
 
@@ -6707,10 +6760,75 @@ msgstr ""
 "Tutti i workitem corrispondenti ai filtri attuali verranno esportati (non"
 " solo la pagina corrente)."
 
-#: templates/admin/tenants.html:187 templates/admin/tenants_manage.html:39
-#: templates/admin/tenants_manage.html:55 templates/workitems_overview.html:567
+#: templates/admin/tenant_detail.html:62 templates/admin/tenants.html:187
+#: templates/admin/tenants_manage.html:92 templates/workitems_overview.html:567
 msgid "Pages"
 msgstr "Pagine"
+
+#: templates/admin/_confirm_dialog.html:5
+msgid "Please confirm"
+msgstr "Confermare"
+
+#: templates/admin/_confirm_dialog.html:9 templates/admin/clients.html:102
+#: templates/admin/modals/_organizations_modals.html:16
+#: templates/admin/modals/_user_modals.html:16
+#: templates/admin/processes.html:124
+msgid "Confirm"
+msgstr "Conferma"
+
+#: templates/admin/_tenant_sheet.html:11
+#: templates/admin/modals/_organizations_modals.html:39
+#: templates/admin/organizations.html:33 templates/admin/tenants_manage.html:88
+msgid "Tenant"
+msgstr "Tenant"
+
+#: templates/admin/_tenant_sheet.html:12 templates/admin/tenants_manage.html:28
+#: templates/js/admin/_tenants_manage_js.html:142
+msgid "New tenant"
+msgstr "Nuovo tenant"
+
+#: templates/admin/_tenant_sheet.html:22 templates/admin/clients.html:52
+#: templates/admin/tenants_manage.html:183
+#: templates/admin/tenants_manage.html:259
+msgid "Display name"
+msgstr "Nome visualizzato"
+
+#: templates/admin/_tenant_sheet.html:30
+msgid "2-50 lowercase letters, digits or underscores. Cannot be changed later."
+msgstr "2-50 lettere minuscole, cifre o trattini bassi. Non modificabile in seguito."
+
+#: templates/admin/_tenant_sheet.html:35 templates/admin/clients.html:55
+#: templates/admin/clients.html:172 templates/admin/maintenance.html:38
+#: templates/admin/maintenance.html:95 templates/admin/tenant_detail.html:32
+#: templates/admin/tenant_detail.html:169 templates/admin/tenants.html:174
+#: templates/admin/tenants_manage.html:40
+#: templates/admin/tenants_manage.html:134
+#: templates/admin/tenants_manage.html:187
+#: templates/admin/tenants_manage.html:319
+msgid "Active"
+msgstr "Attivo"
+
+#: templates/admin/_tenant_sheet.html:39
+msgid "Organizations in this tenant"
+msgstr "Organizzazioni in questo tenant"
+
+#: templates/admin/_tenant_sheet.html:41
+msgid "Filter organizations…"
+msgstr "Filtra organizzazioni…"
+
+#: templates/admin/_tenant_sheet.html:48
+msgid "moves from"
+msgstr "si sposta da"
+
+#: templates/admin/_tenant_sheet.html:52
+msgid "Ticking an organization that belongs to another tenant moves it here."
+msgstr ""
+"Selezionando un’organizzazione che appartiene a un altro tenant, viene "
+"spostata qui."
+
+#: templates/admin/_tenant_sheet.html:58
+msgid "Save tenant"
+msgstr "Salva tenant"
 
 #: templates/admin/access_control.html:8
 msgid "Access Control - nexora"
@@ -6721,7 +6839,9 @@ msgid "Users and access profiles"
 msgstr "Utenti e profili di accesso"
 
 #: templates/admin/access_control.html:29
-#: templates/admin/admin_overview.html:62 templates/admin/tenants.html:128
+#: templates/admin/admin_overview.html:62 templates/admin/tenant_detail.html:76
+#: templates/admin/tenant_detail.html:240 templates/admin/tenants.html:128
+#: templates/admin/tenants_manage.html:90
 msgid "Users"
 msgstr "Utenti"
 
@@ -6777,7 +6897,7 @@ msgstr "Aggiungi profilo"
 #: templates/admin/access_control.html:121 templates/admin/clients.html:80
 #: templates/admin/organizations.html:49 templates/admin/permissions.html:73
 #: templates/admin/processes.html:64 templates/admin/processes.html:88
-#: templates/admin/tenants_manage.html:54
+#: templates/admin/tenants_manage.html:215
 #: templates/js/_generali_additional_services_js.html:124
 #: templates/js/_generali_base_services_js.html:103
 #: templates/js/_generali_pdqm_js.html:178
@@ -6850,7 +6970,6 @@ msgid "Administration"
 msgstr "Amministrazione"
 
 #: templates/admin/admin_overview.html:32
-
 msgid "Restart environment"
 msgstr "Ambiente di riavvio"
 
@@ -6880,7 +6999,6 @@ msgid "in %(n)s organizations"
 msgstr "in %(n)s organizzazioni"
 
 #: templates/admin/admin_overview.html:64
-
 msgid "across the portal"
 msgstr "in tutto il portale"
 
@@ -6889,7 +7007,6 @@ msgid "Database health"
 msgstr "Stato del database"
 
 #: templates/admin/admin_overview.html:84
-
 msgid "Tenancy"
 msgstr "Gestione tenant"
 
@@ -6898,7 +7015,6 @@ msgid "Who the customers are and where their data lives"
 msgstr "Chi sono i clienti e dove risiedono i loro dati"
 
 #: templates/admin/admin_overview.html:93
-
 msgid "Organizations, pages and access per tenant"
 msgstr "Organizzazioni, pagine e accessi per tenant"
 
@@ -6912,6 +7028,7 @@ msgid "Users, profiles, data connection and branding"
 msgstr "Utenti, profili, connessione dati e branding"
 
 #: templates/admin/admin_overview.html:111
+#: templates/admin/tenants_manage.html:65
 #, python-format
 msgid "%(n)s not in a tenant"
 msgstr "%(n)s senza tenant"
@@ -6926,17 +7043,14 @@ msgid "%(n)s not loaded"
 msgstr "%(n)s non caricato"
 
 #: templates/admin/admin_overview.html:137
-
 msgid "Field mappings per process"
 msgstr "Mappature dei campi per processo"
 
 #: templates/admin/admin_overview.html:147
-
 msgid "Access & monitoring"
 msgstr "Accessi e monitoraggio"
 
 #: templates/admin/admin_overview.html:148
-
 msgid "Who can do what, and what happened"
 msgstr "Chi può fare cosa e cosa è successo"
 
@@ -6945,12 +7059,12 @@ msgid "Users, permissions and access profiles"
 msgstr "Utenti, permessi e profili d'accesso"
 
 #: templates/admin/admin_overview.html:157
+#: templates/admin/tenant_detail.html:38
 #, python-format
 msgid "%(n)s users"
 msgstr "%(n)s utenti"
 
 #: templates/admin/admin_overview.html:165
-
 msgid "Every profile against every permission"
 msgstr "Ogni profilo per ogni permesso"
 
@@ -7018,7 +7132,9 @@ msgstr ""
 "Dove risiedono i dati di un tenant: DB, dialetto SQL e dominio Octo per "
 "codice client -- non l’organizzazione stessa (vedi Organizzazioni)"
 
-#: templates/admin/clients.html:22
+#: templates/admin/clients.html:22 templates/admin/tenants_manage.html:173
+#: templates/admin/tenants_manage.html:244
+#: templates/js/admin/_tenants_manage_js.html:195
 msgid "Add connection"
 msgstr "Aggiungi connessione"
 
@@ -7056,31 +7172,24 @@ msgstr ""
 msgid "Search clients..."
 msgstr "Cerca clienti..."
 
-#: templates/admin/clients.html:52 templates/admin/tenants_manage.html:37
-msgid "Display name"
-msgstr "Nome visualizzato"
-
 #: templates/admin/clients.html:53 templates/admin/clients.html:123
-#: templates/admin/tenants.html:67
+#: templates/admin/tenants.html:67 templates/admin/tenants_manage.html:184
+#: templates/admin/tenants_manage.html:264
 msgid "Dialect"
 msgstr "Dialetto"
 
 #: templates/admin/clients.html:54 templates/admin/tenants.html:68
+#: templates/admin/tenants_manage.html:185
 msgid "Runtime engine"
 msgstr "Motore di runtime"
 
-#: templates/admin/clients.html:55 templates/admin/clients.html:172
-#: templates/admin/maintenance.html:38 templates/admin/maintenance.html:95
-#: templates/admin/tenants.html:174 templates/admin/tenants_manage.html:40
-#: templates/admin/tenants_manage.html:157
-msgid "Active"
-msgstr "Attivo"
-
 #: templates/admin/clients.html:56 templates/admin/tenants.html:69
+#: templates/admin/tenants_manage.html:188
 msgid "Runtime state"
 msgstr "Stato runtime"
 
 #: templates/admin/clients.html:71 templates/admin/tenants.html:72
+#: templates/admin/tenants_manage.html:203
 msgid "Loaded"
 msgstr "Caricato"
 
@@ -7099,19 +7208,13 @@ msgstr ""
 "finché il problema non è risolto e l'app pool riciclato."
 
 #: templates/admin/clients.html:74 templates/admin/tenants.html:74
+#: templates/admin/tenants_manage.html:207
 msgid "Configured, not loaded"
 msgstr "Configurato, non caricato"
 
 #: templates/admin/clients.html:96
 msgid "Delete Client"
 msgstr "Elimina cliente"
-
-#: templates/admin/clients.html:102
-#: templates/admin/modals/_organizations_modals.html:16
-#: templates/admin/modals/_user_modals.html:16
-#: templates/admin/processes.html:124 templates/admin/tenants_manage.html:134
-msgid "Confirm"
-msgstr "Conferma"
 
 #: templates/admin/clients.html:109 templates/js/admin/_clients_js.html:42
 msgid "Add a new Client"
@@ -7121,7 +7224,7 @@ msgstr "Aggiungi un nuovo cliente"
 msgid "Client Code"
 msgstr "Codice cliente"
 
-#: templates/admin/clients.html:119 templates/admin/tenants_manage.html:152
+#: templates/admin/clients.html:119
 msgid "Display Name"
 msgstr "Nome visualizzato"
 
@@ -7334,11 +7437,6 @@ msgstr "Aggiungi organizzazione"
 #: templates/admin/organizations.html:26
 msgid "Search organizations..."
 msgstr "Cerca organizzazioni..."
-
-#: templates/admin/modals/_organizations_modals.html:39
-#: templates/admin/organizations.html:33
-msgid "Tenant"
-msgstr "Tenant"
 
 #: templates/admin/organizations.html:51 templates/admin/organizations.html:65
 msgid "Branding"
@@ -7813,6 +7911,165 @@ msgstr "In corso"
 msgid "No incidents recorded."
 msgstr "Nessun incidente registrato."
 
+#: templates/admin/tenant_detail.html:19
+msgid "Breadcrumb"
+msgstr "Percorso di navigazione"
+
+#: templates/admin/tenant_detail.html:20 templates/admin/tenants_manage.html:22
+msgid "Manage tenants"
+msgstr "Gestisci tenant"
+
+#: templates/admin/tenant_detail.html:32 templates/admin/tenants.html:174
+#: templates/admin/tenants_manage.html:43
+#: templates/admin/tenants_manage.html:134
+msgid "Inactive"
+msgstr "Inattivo"
+
+#: templates/admin/tenant_detail.html:37
+#, python-format
+msgid "%(n)s organizations"
+msgstr "%(n)s organizzazioni"
+
+#: templates/admin/tenant_detail.html:46
+#: templates/js/admin/_tenant_detail_js.html:113
+#: templates/js/admin/_tenants_manage_js.html:152
+msgid "Edit tenant"
+msgstr "Modifica tenant"
+
+#: templates/admin/tenant_detail.html:65
+msgid "Access"
+msgstr "Accesso"
+
+#: templates/admin/tenant_detail.html:77 templates/admin/tenants.html:132
+msgid "Access profiles"
+msgstr "Profili di accesso"
+
+#: templates/admin/tenant_detail.html:78 templates/admin/tenants.html:136
+#: templates/admin/tenants_manage.html:91
+#: templates/admin/tenants_manage.html:243
+msgid "Data connection"
+msgstr "Connessione dati"
+
+#: templates/admin/tenant_detail.html:102
+#, python-format
+msgid "not loaded"
+msgstr "non caricato"
+
+#: templates/admin/tenant_detail.html:114
+msgid ""
+"This tenant has no organizations yet. Its members cannot be resolved "
+"until one is assigned."
+msgstr "Questo tenant non ha ancora organizzazioni. I suoi membri non possono essere determinati finché non ne viene assegnata una."
+
+#: templates/admin/tenant_detail.html:129
+#: templates/admin/tenants_manage.html:73
+msgid "Mounted pages"
+msgstr "Pagine montate"
+
+#: templates/admin/tenant_detail.html:133
+#: templates/admin/tenant_detail.html:284
+#: templates/admin/tenant_detail.html:332
+msgid "Mount page"
+msgstr "Monta pagina"
+
+#: templates/admin/tenant_detail.html:142
+#: templates/admin/tenant_detail.html:293
+#: templates/js/_generali_reporting_js.html:17
+#: templates/js/admin/_logs_js.html:106
+#: templates/js/admin/_user_detail_js.html:623
+msgid "Page"
+msgstr "Pagina"
+
+#: templates/admin/tenant_detail.html:161
+msgid "entity"
+msgstr "entità"
+
+#: templates/admin/tenant_detail.html:167
+msgid "Draft"
+msgstr "Bozza"
+
+#: templates/admin/tenant_detail.html:179
+msgid "Unmount"
+msgstr "Smonta"
+
+#: templates/admin/tenant_detail.html:182
+msgid "Generated from a migration"
+msgstr "Generato da una migrazione"
+
+#: templates/admin/tenant_detail.html:188
+msgid "No pages mounted yet."
+msgstr "Nessuna pagina ancora montata."
+
+#: templates/admin/tenant_detail.html:192
+msgid ""
+"Generated list and crud pages come from migrations and can only be "
+"activated or deactivated here."
+msgstr "Le pagine list e crud generate provengono da migrazioni e qui possono solo essere attivate o disattivate."
+
+#: templates/admin/tenant_detail.html:196
+#: templates/admin/tenant_detail.html:198
+msgid "Member preview"
+msgstr "Anteprima membro"
+
+#: templates/admin/tenant_detail.html:213
+msgid "No active pages"
+msgstr "Nessuna pagina attiva"
+
+#: templates/admin/tenant_detail.html:227
+msgid ""
+"Draft pages are hidden from members; only active ones appear in the "
+"tenant sidebar."
+msgstr "Le pagine in bozza sono nascoste ai membri; solo quelle attive compaiono nella barra laterale del tenant."
+
+#: templates/admin/tenant_detail.html:238 templates/admin/user_detail.html:49
+msgid "Access profile"
+msgstr "Profilo d'accesso"
+
+#: templates/admin/tenant_detail.html:239
+msgid "Scope"
+msgstr "Ambito"
+
+#: templates/admin/tenant_detail.html:262
+#, python-format
+msgid ""
+"No access profile holds tenant.%(code)s.view, so nobody can open this "
+"tenant’s pages."
+msgstr "Nessun profilo di accesso possiede tenant.%(code)s.view, quindi nessuno può aprire le pagine di questo tenant."
+
+#: templates/admin/tenant_detail.html:266
+msgid "Access is read-only here."
+msgstr "L'accesso qui è di sola lettura."
+
+#: templates/admin/tenant_detail.html:267
+msgid "Manage in Permissions"
+msgstr "Gestisci in Permessi"
+
+#: templates/admin/tenant_detail.html:283 templates/tenant/page.html:8
+msgid "Tenant page"
+msgstr "Pagina tenant"
+
+#: templates/admin/tenant_detail.html:295
+msgid "Choose a page…"
+msgstr "Scegli una pagina…"
+
+#: templates/admin/tenant_detail.html:300
+msgid "Key"
+msgstr "Chiave"
+
+#: templates/admin/tenant_detail.html:310
+msgid "Icon"
+msgstr "Icona"
+
+#: templates/admin/tenant_detail.html:323
+msgid "Active page marker (optional)"
+msgstr "Marcatore pagina attiva (facoltativo)"
+
+#: templates/admin/tenant_detail.html:326
+msgid ""
+"New pages start as drafts and stay hidden from members until you activate"
+" them."
+msgstr "Le nuove pagine iniziano come bozza e restano nascoste ai membri finché non le attivi."
+
 #: templates/admin/tenants.html:8
 msgid "Tenants - nexora"
 msgstr "Tenants - nexora"
@@ -7861,15 +8118,7 @@ msgstr "Nessuna configurazione di processo assegnata"
 msgid "Open Process Configurations"
 msgstr "Apri Configurazioni di processo"
 
-#: templates/admin/tenants.html:132
-msgid "Access profiles"
-msgstr "Profili di accesso"
-
-#: templates/admin/tenants.html:136
-msgid "Data connection"
-msgstr "Connessione dati"
-
-#: templates/admin/tenants.html:137
+#: templates/admin/tenants.html:137 templates/admin/tenants_manage.html:127
 msgid "No data connection"
 msgstr "Nessuna connessione dati"
 
@@ -7901,10 +8150,6 @@ msgstr ""
 #: templates/admin/tenants.html:162
 msgid "Search tenant, organization, user, profile, connection or process..."
 msgstr "Cerca tenant, organizzazione, utente, profilo, connessione o processo..."
-
-#: templates/admin/tenants.html:174
-msgid "Inactive"
-msgstr "Inattivo"
 
 #: templates/admin/tenants.html:175
 #, python-format
@@ -7962,121 +8207,139 @@ msgid "Not bound to an organization -- assignable to any user."
 msgstr "Non vincolati a un’organizzazione -- assegnabili a qualsiasi utente."
 
 #: templates/admin/tenants_manage.html:8
-msgid "Manage Tenants - nexora"
+msgid "Manage tenants - nexora"
 msgstr "Gestisci tenant - nexora"
 
-#: templates/admin/tenants_manage.html:19
-msgid "Manage Tenants"
-msgstr "Gestisci tenant"
-
-#: templates/admin/tenants_manage.html:20
+#: templates/admin/tenants_manage.html:23
 msgid ""
-"Create tenants, decide which organizations belong to them and mount their"
-" pages"
-msgstr ""
-"Creare tenant, decidere quali organizzazioni ne fanno parte e montare le "
-"loro pagine"
+"A tenant groups organizations. Its members see the tenant's pages instead"
+" of the global navigation."
+msgstr "Un tenant raggruppa organizzazioni. I suoi membri vedono le pagine del tenant invece della navigazione globale."
 
-#: templates/admin/tenants_manage.html:22
-msgid "Add tenant"
-msgstr "Aggiungi tenant"
+#: templates/admin/tenants_manage.html:49
+msgid "Search tenants, organizations, users…"
+msgstr "Cerca tenant, organizzazioni, utenti…"
 
-#: templates/admin/tenants_manage.html:28
-msgid ""
-"A tenant groups organizations; its users see the tenant's pages instead "
-"of the global navigation. Mounted pages point at existing nexora pages. "
-"Generated list/crud pages and their entities come from migrations and are"
-" shown read-only here."
-msgstr ""
-"Un tenant raggruppa organizzazioni; i suoi utenti vedono le pagine del "
-"tenant invece della navigazione globale. Le pagine montate puntano a "
-"pagine nexora esistenti. Le pagine list/crud generate e le loro entità "
-"provengono da migrazioni e qui sono in sola lettura."
+#: templates/admin/tenants_manage.html:60
+#, python-format
+msgid "%(n)s active"
+msgstr "%(n)s attivi"
 
-#: templates/admin/tenants_manage.html:31
-msgid "Search tenants..."
-msgstr "Cerca tenant..."
+#: templates/admin/tenants_manage.html:68
+msgid "Tenant users"
+msgstr "Utenti del tenant"
 
-#: templates/admin/tenants_manage.html:61
+#: templates/admin/tenants_manage.html:70
+#, python-format
+msgid "across %(n)s organizations"
+msgstr "in %(n)s organizzazioni"
+
+#: templates/admin/tenants_manage.html:75
+#, python-format
+msgid "%(n)s in draft"
+msgstr "%(n)s in bozza"
+
+#: templates/admin/tenants_manage.html:81
+msgid "All tenants"
+msgstr "Tutti i tenant"
+
+#: templates/admin/tenants_manage.html:82
+msgid "Click a row to open organizations, pages and access"
+msgstr "Clicca su una riga per aprire organizzazioni, pagine e accessi"
+
+#: templates/admin/tenants_manage.html:117
+msgid "No organization yet"
+msgstr "Nessuna organizzazione ancora"
+
+#: templates/admin/tenants_manage.html:123
+msgid "loaded"
+msgstr "caricato"
+
+#: templates/admin/tenants_manage.html:125
+msgid "configured, not loaded"
+msgstr "configurato, non caricato"
+
+#: templates/admin/tenants_manage.html:142
+msgid "No tenant matches your search."
+msgstr "Nessun tenant corrisponde alla ricerca."
+
+#: templates/admin/tenants_manage.html:144
 msgid "No tenants yet."
 msgstr "Ancora nessun tenant."
 
-#: templates/admin/tenants_manage.html:70
-msgid "Pages of"
-msgstr "Pagine di"
+#: templates/admin/tenants_manage.html:150
+#, python-format
+msgid "Needs attention"
+msgstr "Richiede attenzione"
 
-#: templates/admin/tenants_manage.html:73
-msgid "Key"
-msgstr "Chiave"
+#: templates/admin/tenants_manage.html:168
+msgid "Data connections"
+msgstr "Connessioni dati"
 
-#: templates/admin/tenants_manage.html:86
-msgid "entity"
-msgstr "entità"
+#: templates/admin/tenants_manage.html:169
+msgid ""
+"A new or changed connection applies after the app pool recycles; its "
+"credentials live in the environment file, never here."
+msgstr "Una connessione nuova o modificata si applica solo dopo il riciclo dell'app pool; le sue credenziali risiedono nel file di ambiente, mai qui."
 
-#: templates/admin/tenants_manage.html:91
-msgid "Set draft"
-msgstr "Imposta come bozza"
+#: templates/admin/tenants_manage.html:186
+msgid "Used by"
+msgstr "Usato da"
 
-#: templates/admin/tenants_manage.html:91
-msgid "Activate"
-msgstr "Attiva"
+#: templates/admin/tenants_manage.html:206
+msgid ""
+"The row exists in dbo.Clients but the runtime did not build an engine for"
+" it — usually its environment keys are missing. Add them and recycle the "
+"app pool."
+msgstr "La riga esiste in dbo.Clients ma il runtime non ha creato un motore per essa — di solito mancano le sue chiavi di ambiente. Aggiungile e ricicla l'app pool."
 
-#: templates/admin/tenants_manage.html:92
-#: templates/js/_reporting_dashboard_js.html:53
-#: templates/js/_reporting_js.html:83
-msgid "Remove"
-msgstr "Rimuovi"
+#: templates/admin/tenants_manage.html:227
+msgid "No data connections configured."
+msgstr "Nessuna connessione dati configurata."
 
-#: templates/admin/tenants_manage.html:97
-msgid "No pages yet."
-msgstr "Ancora nessuna pagina."
+#: templates/admin/tenants_manage.html:254
+msgid "Client code"
+msgstr "Codice client"
 
-#: templates/admin/tenants_manage.html:104
-msgid "Mount an existing page"
-msgstr "Monta una pagina esistente"
+#: templates/admin/tenants_manage.html:271
+msgid "Runtime engine key"
+msgstr "Chiave motore di runtime"
 
-#: templates/admin/tenants_manage.html:106
-msgid "key, e.g. dashboard"
-msgstr "chiave, ad es. dashboard"
+#: templates/admin/tenants_manage.html:277
+msgid "Stats engine key"
+msgstr "Chiave motore statistiche"
 
-#: templates/admin/tenants_manage.html:108
-msgid "Page..."
-msgstr "Pagina..."
+#: templates/admin/tenants_manage.html:284
+msgid "Stats dialect"
+msgstr "Dialetto statistiche"
 
-#: templates/admin/tenants_manage.html:113
-msgid "active_page (optional)"
-msgstr "active_page (facoltativo)"
+#: templates/admin/tenants_manage.html:292
+msgid "Doc-field engine key"
+msgstr "Chiave motore campi documento"
 
-#: templates/admin/tenants_manage.html:130
-msgid "Please confirm"
-msgstr "Confermare"
+#: templates/admin/tenants_manage.html:299
+msgid "Doc-field dialect"
+msgstr "Dialetto campi documento"
 
-#: templates/admin/tenants_manage.html:141
-#: templates/js/admin/_tenants_manage_js.html:46
-msgid "Add a new Tenant"
-msgstr "Aggiungi un nuovo tenant"
+#: templates/admin/tenants_manage.html:307
+msgid "Octo domain"
+msgstr "Dominio Octo"
 
-#: templates/admin/tenants_manage.html:148
-msgid "Tenant Code"
-msgstr "Codice tenant"
+#: templates/admin/tenants_manage.html:311
+msgid "Secret ref"
+msgstr "Riferimento segreto"
 
-#: templates/admin/tenants_manage.html:160
-msgid "Organizations in this tenant"
-msgstr "Organizzazioni in questo tenant"
+#: templates/admin/tenants_manage.html:314
+msgid "An environment-key prefix such as MS02 — never a secret value."
+msgstr "Un prefisso di chiave di ambiente come MS02 — mai un valore segreto."
 
-#: templates/admin/tenants_manage.html:166
-msgid "currently in"
-msgstr "attualmente in"
+#: templates/admin/tenants_manage.html:321
+msgid "A new or changed connection applies only after the app pool recycles."
+msgstr "Una connessione nuova o modificata si applica solo dopo il riciclo dell'app pool."
 
-#: templates/admin/tenants_manage.html:170
-msgid "Ticking an organization that belongs to another tenant moves it here."
-msgstr ""
-"Selezionando un’organizzazione che appartiene a un altro tenant, viene "
-"spostata qui."
-
-#: templates/admin/tenants_manage.html:175
-msgid "Save Tenant"
-msgstr "Salva tenant"
+#: templates/admin/tenants_manage.html:327
+msgid "Save connection"
+msgstr "Salva connessione"
 
 #: templates/admin/user_detail.html:8
 msgid "User detail"
@@ -8085,10 +8348,6 @@ msgstr "Dettagli utente"
 #: templates/admin/user_detail.html:22
 msgid "No profile"
 msgstr "Nessun profilo"
-
-#: templates/admin/user_detail.html:49
-msgid "Access profile"
-msgstr "Profilo d'accesso"
 
 #: templates/admin/user_detail.html:57
 msgid "current, not assignable"
@@ -8489,12 +8748,6 @@ msgstr "Nessuna importazione trovata"
 #: templates/js/_generali_reporting_js.html:16
 msgid "Prev"
 msgstr "Prec."
-
-#: templates/js/_generali_reporting_js.html:17
-#: templates/js/admin/_logs_js.html:106
-#: templates/js/admin/_user_detail_js.html:623
-msgid "Page"
-msgstr "Pagina"
 
 #: templates/js/_generali_reporting_js.html:19
 msgid "Select category…"
@@ -8958,6 +9211,11 @@ msgstr ""
 #: templates/js/_reporting_dashboard_js.html:52
 msgid "Duplicate"
 msgstr "Duplica"
+
+#: templates/js/_reporting_dashboard_js.html:53
+#: templates/js/_reporting_js.html:83
+msgid "Remove"
+msgstr "Rimuovi"
 
 #: templates/js/_reporting_dashboard_js.html:54
 msgid "Add a card"
@@ -10018,7 +10276,8 @@ msgstr "{start}-{end} di {total}"
 #: templates/js/admin/_organizations_js.html:162
 #: templates/js/admin/_organizations_js.html:319
 #: templates/js/admin/_processes_js.html:162
-#: templates/js/admin/_tenants_manage_js.html:81
+#: templates/js/admin/_tenant_detail_js.html:24
+#: templates/js/admin/_tenants_manage_js.html:25
 #: templates/js/admin/_user_management_js.html:127
 #: templates/js/admin/_user_management_js.html:177
 msgid "An unexpected network error occurred."
@@ -10269,7 +10528,8 @@ msgstr "Non hai i permessi per creare utenti."
 #: templates/js/admin/_organizations_js.html:158
 #: templates/js/admin/_organizations_js.html:315
 #: templates/js/admin/_processes_js.html:158
-#: templates/js/admin/_tenants_manage_js.html:77
+#: templates/js/admin/_tenant_detail_js.html:20
+#: templates/js/admin/_tenants_manage_js.html:21
 #: templates/js/admin/_user_management_js.html:123
 #: templates/js/admin/_user_management_js.html:173
 msgid "Error:"
@@ -10283,8 +10543,8 @@ msgstr "Modifica cliente"
 #: templates/js/admin/_organizations_js.html:94
 #: templates/js/admin/_organizations_js.html:299
 #: templates/js/admin/_processes_js.html:145
-#: templates/js/admin/_tenants_manage_js.html:100
-#: templates/js/admin/_tenants_manage_js.html:124
+#: templates/js/admin/_tenant_detail_js.html:6
+#: templates/js/admin/_tenants_manage_js.html:7
 #: templates/js/admin/_user_management_js.html:113
 msgid "You do not have permission to perform this action."
 msgstr "Non hai l'autorizzazione per eseguire questa azione."
@@ -10542,11 +10802,7 @@ msgstr "Revoca la sessione attiva per"
 msgid "Could not revoke session."
 msgstr "Impossibile revocare la sessione."
 
-#: templates/js/admin/_tenants_manage_js.html:56
-msgid "Edit Tenant"
-msgstr "Modifica tenant"
-
-#: templates/js/admin/_tenants_manage_js.html:141
+#: templates/js/admin/_tenant_detail_js.html:141
 msgid ""
 "Delete this tenant and its page descriptors? Organizations must be moved "
 "out first."
@@ -10554,9 +10810,19 @@ msgstr ""
 "Eliminare questo tenant e i suoi descrittori di pagina? Le organizzazioni"
 " devono prima essere spostate."
 
-#: templates/js/admin/_tenants_manage_js.html:156
+#: templates/js/admin/_tenant_detail_js.html:183
 msgid "Remove this page from the tenant?"
 msgstr "Rimuovere questa pagina dal tenant?"
+
+#: templates/js/admin/_tenants_manage_js.html:207
+msgid "Edit connection"
+msgstr "Modifica connessione"
+
+#: templates/js/admin/_tenants_manage_js.html:232
+msgid ""
+"Delete this data connection? Process sources that point at it stop "
+"resolving."
+msgstr "Eliminare questa connessione dati? Le origini di processo che la referenziano smetteranno di risolversi."
 
 #: templates/js/admin/_user_detail_js.html:53
 msgid "User saved."
@@ -10686,10 +10952,6 @@ msgid "Are you sure you want to delete this user? This action cannot be undone."
 msgstr ""
 "Sei sicuro di voler eliminare questo utente? Questa azione non può essere"
 " annullata."
-
-#: templates/tenant/page.html:8
-msgid "Tenant page"
-msgstr "Pagina tenant"
 
 #: templates/tenant/page.html:23
 msgid "Tenant page unavailable"
@@ -11529,4 +11791,58 @@ msgstr "A"
 
 #~ msgid "Access &amp; monitoring"
 #~ msgstr ""
+
+#~ msgid ""
+#~ "Create tenants, decide which organizations "
+#~ "belong to them and mount their "
+#~ "pages"
+#~ msgstr ""
+#~ "Creare tenant, decidere quali organizzazioni"
+#~ " ne fanno parte e montare le "
+#~ "loro pagine"
+
+#~ msgid "Add tenant"
+#~ msgstr "Aggiungi tenant"
+
+#~ msgid ""
+#~ "A tenant groups organizations; its users"
+#~ " see the tenant's pages instead of"
+#~ " the global navigation. Mounted pages "
+#~ "point at existing nexora pages. "
+#~ "Generated list/crud pages and their "
+#~ "entities come from migrations and are"
+#~ " shown read-only here."
+#~ msgstr ""
+#~ "Un tenant raggruppa organizzazioni; i "
+#~ "suoi utenti vedono le pagine del "
+#~ "tenant invece della navigazione globale. "
+#~ "Le pagine montate puntano a pagine "
+#~ "nexora esistenti. Le pagine list/crud "
+#~ "generate e le loro entità provengono "
+#~ "da migrazioni e qui sono in sola"
+#~ " lettura."
+
+#~ msgid "Search tenants..."
+#~ msgstr "Cerca tenant..."
+
+#~ msgid "Pages of"
+#~ msgstr "Pagine di"
+
+#~ msgid "Activate"
+#~ msgstr "Attiva"
+
+#~ msgid "Mount an existing page"
+#~ msgstr "Monta una pagina esistente"
+
+#~ msgid "key, e.g. dashboard"
+#~ msgstr "chiave, ad es. dashboard"
+
+#~ msgid "Page..."
+#~ msgstr "Pagina..."
+
+#~ msgid "Tenant Code"
+#~ msgstr "Codice tenant"
+
+#~ msgid "currently in"
+#~ msgstr "attualmente in"
 

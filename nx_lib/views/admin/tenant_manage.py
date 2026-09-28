@@ -25,6 +25,8 @@ from flask import current_app, jsonify, render_template, request, session, url_f
 from flask_babel import gettext as _
 from werkzeug.routing import BuildError
 
+from ... import clients as clients_registry
+from ... import mapping_config
 from ...db import engine_nexora_db
 from ...security import has_permission, page_visibility, require_permission
 from ...tenant.registry import invalidate_tenant_config, provision_tenant_permissions
@@ -166,6 +168,113 @@ def _set_memberships(cursor, code, org_codes):
 # -------------------------------------------------------------------- page --
 
 
+def _tenant_client_codes(organizations):
+    """{organization code: [client code, ...]} from the process-source registry.
+
+    A tenant has no data connection of its own -- it inherits whatever its
+    organizations' process sources point at, which is why this is derived
+    rather than stored. Returns {} when the registry failed to load, so the
+    column degrades to "no data connection" instead of raising.
+    """
+    reg = mapping_config.registry()
+    if reg is None:
+        return {}
+    by_org: dict[str, list[str]] = {}
+    for src in reg.sources.values():
+        if not src.organization:
+            continue
+        codes = by_org.setdefault(src.organization, [])
+        if src.client not in codes:
+            codes.append(src.client)
+    return {org: sorted(codes) for org, codes in by_org.items()}
+
+
+def _connection_state(codes):
+    """(label, state) for the Data connection cell.
+
+    "Configured" is the dbo.Clients row; "loaded" is whether the runtime
+    registry actually holds it. The two disagree whenever a client's env keys
+    are missing, and that gap is the whole point of the column.
+    """
+    if not codes:
+        return None, "none"
+    loaded = [c for c in codes if c in clients_registry.CLIENTS]
+    missing = [c for c in codes if c not in clients_registry.CLIENTS]
+    if missing:
+        return ", ".join(missing), "unloaded"
+    return ", ".join(loaded), "loaded"
+
+
+def _client_rows(cursor, clients_by_org, organizations):
+    """dbo.Clients for the Data connections section, each row told which
+    organizations actually use it (derived from their process sources) and
+    whether the runtime loaded it."""
+    try:
+        rows = _rows(
+            cursor,
+            "SELECT ClientCode, DisplayName, Dialect, RuntimeEngineKey, StatsEngineKey, "
+            "StatsDialect, DocfieldsEngineKey, DocfieldsDialect, OctoDomain, SecretRef, "
+            "IsActive FROM dbo.Clients ORDER BY ClientCode",
+        )
+    except Exception as e:  # dbo.Clients absent (TEST): the section renders empty
+        current_app.logger.warning(f"dbo.Clients unavailable for Manage tenants: {e}")
+        return []
+    names = {o["organizationcode"]: o["organization"] for o in organizations}
+    for c in rows:
+        c["loaded"] = c["ClientCode"] in clients_registry.CLIENTS
+        c["used_by"] = sorted(
+            names.get(org, org) for org, codes in clients_by_org.items() if c["ClientCode"] in codes
+        )
+    return rows
+
+
+def _tenant_issues(tenants, orphan_orgs):
+    """The Needs-attention list: each issue is one row with its own fix link.
+
+    Three checks, all derived from data already on the page -- an organization
+    belonging to no tenant, a tenant nobody can actually open (no profile holds
+    ``tenant.<code>.view``), and a tenant with no organizations at all.
+    """
+    issues = []
+    if orphan_orgs:
+        issues.append(
+            {
+                "icon": "fa-building",
+                "text": _(
+                    "%(n)d organization(s) are not in a tenant",
+                    n=len(orphan_orgs),
+                ),
+                "detail": ", ".join(o["organization"] for o in orphan_orgs),
+                "action": _("Assign"),
+                "href": url_for("admin_organizations_view"),
+            }
+        )
+    for t in tenants:
+        if not t["viewer_profiles"]:
+            issues.append(
+                {
+                    "icon": "fa-key",
+                    "text": _("Nobody holds tenant.%(code)s.view", code=t["TenantCode"]),
+                    "detail": _(
+                        "%(n)d page(s) are mounted but no user can open them", n=len(t["pages"])
+                    ),
+                    "action": _("Grant access"),
+                    "href": url_for("admin_permissions"),
+                }
+            )
+        if not t["organizations"]:
+            issues.append(
+                {
+                    "icon": "fa-city",
+                    "text": _("%(name)s has no organizations", name=t["DisplayName"]),
+                    "detail": _("Its members cannot be resolved until one is assigned"),
+                    "action": _("Add organizations"),
+                    "href": url_for("admin_tenants_manage_view"),
+                }
+            )
+    return issues
+
+
 @require_permission("admin.tenants.view")
 def admin_tenants_manage_view():
     conn = None
@@ -191,15 +300,186 @@ def admin_tenants_manage_view():
                 p["layout"] = json.loads(p["LayoutJSON"]) if p["LayoutJSON"] else {}
             except ValueError:
                 p["layout"] = {}
+        # Users per organization, and which profiles hold each tenant's view
+        # permission -- both feed the merged page's columns and its issue list.
+        users_by_org = {
+            r["organizationCode"]: r["n"]
+            for r in _rows(
+                cursor,
+                "SELECT organizationCode, COUNT(*) AS n FROM Users "
+                "WHERE organizationCode IS NOT NULL GROUP BY organizationCode",
+            )
+        }
+        viewers_by_tenant: dict[str, list[str]] = {}
+        for r in _rows(
+            cursor,
+            "SELECT p.Code, ap.Name FROM AccessProfilePermission app "
+            "JOIN Permission p ON p.PermissionID = app.PermissionID "
+            "JOIN AccessProfile ap ON ap.AccessID = app.AccessID "
+            "WHERE p.Code LIKE 'tenant.%.view'",
+        ):
+            viewers_by_tenant.setdefault(r["Code"].split(".")[1], []).append(r["Name"])
+
+        clients_by_org = _tenant_client_codes(organizations)
+
         for t in tenants:
-            t["organizations"] = [o for o in organizations if o["TenantCode"] == t["TenantCode"]]
-            t["pages"] = [p for p in pages if p["TenantCode"] == t["TenantCode"]]
+            code = t["TenantCode"]
+            t["organizations"] = [o for o in organizations if o["TenantCode"] == code]
+            t["pages"] = [p for p in pages if p["TenantCode"] == code]
             t["IsActive"] = bool(t["IsActive"])
+            t["user_count"] = sum(
+                users_by_org.get(o["organizationcode"], 0) for o in t["organizations"]
+            )
+            t["viewer_profiles"] = viewers_by_tenant.get(code, [])
+            t["pages_active"] = sum(1 for p in t["pages"] if p["Status"] == "active")
+            codes = sorted(
+                {
+                    c
+                    for o in t["organizations"]
+                    for c in clients_by_org.get(o["organizationcode"], [])
+                }
+            )
+            t["connection"], t["connection_state"] = _connection_state(codes)
+
+        orphan_orgs = [o for o in organizations if not o["TenantCode"]]
 
         return render_template(
             "admin/tenants_manage.html",
             tenants=tenants,
             organizations=organizations,
+            orphan_orgs=orphan_orgs,
+            issues=_tenant_issues(tenants, orphan_orgs),
+            kpis={
+                "tenants": len(tenants),
+                "tenants_active": sum(1 for t in tenants if t["IsActive"]),
+                "organizations": len(organizations),
+                "orphan_orgs": len(orphan_orgs),
+                "users": sum(t["user_count"] for t in tenants),
+                "orgs_in_tenants": sum(len(t["organizations"]) for t in tenants),
+                "pages": len(pages),
+                "pages_draft": sum(1 for p in pages if p["Status"] != "active"),
+            },
+            clients=_client_rows(cursor, clients_by_org, organizations),
+            engine_keys=clients_registry._ENGINE_KEYS,
+            endpoints=mountable_endpoints(current_app.url_map),
+            can_edit=has_permission("admin.tenants.edit"),
+            can_edit_clients=has_permission("admin.clients.edit"),
+            show_clients=has_permission("admin.clients.view"),
+            logged_in_user=session.get("username"),
+            userid=session.get("userid"),
+            page_visibility=page_visibility(),
+        )
+    except Exception as e:
+        current_app.logger.error(f"Failed to render tenant management: {e}")
+        return render_template("handlers/500.html"), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+@require_permission("admin.tenants.view")
+def admin_tenant_detail_view(tenantcode):
+    """One tenant: its organizations, its mounted pages, and who can open it.
+
+    Routed rather than a panel (``/admin/tenants/detail/<code>``) so the tab is
+    part of the URL and survives a reload, and so Manage tenants can link
+    straight at a tenant's Access tab from its issue list.
+    """
+    conn = None
+    cursor = None
+    try:
+        conn = engine_nexora_db.raw_connection()
+        cursor = conn.cursor()
+        tenant = _rows(
+            cursor,
+            "SELECT TenantCode, DisplayName, IsActive FROM Tenants WHERE TenantCode = ?",
+            (tenantcode,),
+        )
+        if not tenant:
+            return render_template("handlers/404.html"), 404
+        tenant = tenant[0]
+        tenant["IsActive"] = bool(tenant["IsActive"])
+
+        organizations = _rows(
+            cursor,
+            "SELECT organizationcode, organization, TenantCode FROM organizations "
+            "WHERE TenantCode = ? ORDER BY organization",
+            (tenantcode,),
+        )
+        all_organizations = _rows(
+            cursor,
+            "SELECT organizationcode, organization, TenantCode FROM organizations ORDER BY organization",
+        )
+        pages = _rows(
+            cursor,
+            "SELECT TenantCode, PageKey, PageType, EntityKey, LayoutJSON, SortOrder, Status "
+            "FROM TenantPages WHERE TenantCode = ? ORDER BY SortOrder, PageKey",
+            (tenantcode,),
+        )
+        for p in pages:
+            try:
+                p["layout"] = json.loads(p["LayoutJSON"]) if p["LayoutJSON"] else {}
+            except ValueError:
+                p["layout"] = {}
+
+        users_by_org = {
+            r["organizationCode"]: r["n"]
+            for r in _rows(
+                cursor,
+                "SELECT organizationCode, COUNT(*) AS n FROM Users "
+                "WHERE organizationCode IS NOT NULL GROUP BY organizationCode",
+            )
+        }
+        profiles_by_org: dict[str, list[str]] = {}
+        for r in _rows(
+            cursor, "SELECT AccessID, Name, OrganizationCode FROM AccessProfile ORDER BY Name"
+        ):
+            if r["OrganizationCode"]:
+                profiles_by_org.setdefault(r["OrganizationCode"], []).append(r["Name"])
+
+        # Who can actually open this tenant: profiles holding tenant.<code>.view,
+        # with how many users sit on each. An empty list is the Access tab's warning.
+        viewers = _rows(
+            cursor,
+            "SELECT ap.Name, ap.OrganizationCode, "
+            "(SELECT COUNT(*) FROM Users u WHERE u.accessid = ap.AccessID) AS user_count "
+            "FROM AccessProfilePermission app "
+            "JOIN Permission p ON p.PermissionID = app.PermissionID "
+            "JOIN AccessProfile ap ON ap.AccessID = app.AccessID "
+            "WHERE p.Code = ? ORDER BY ap.Name",
+            (f"tenant.{tenantcode}.view",),
+        )
+
+        clients_by_org = _tenant_client_codes(all_organizations)
+        reg = mapping_config.registry()
+        processes_by_org: dict[str, int] = {}
+        if reg is not None:
+            for src in reg.sources.values():
+                if src.organization:
+                    processes_by_org[src.organization] = (
+                        processes_by_org.get(src.organization, 0) + 1
+                    )
+
+        for o in organizations:
+            code = o["organizationcode"]
+            o["user_count"] = users_by_org.get(code, 0)
+            o["profiles"] = profiles_by_org.get(code, [])
+            o["process_count"] = processes_by_org.get(code, 0)
+            o["connection"], o["connection_state"] = _connection_state(clients_by_org.get(code, []))
+
+        tenant["organizations"] = organizations
+        tenant["pages"] = pages
+        tenant["user_count"] = sum(o["user_count"] for o in organizations)
+
+        return render_template(
+            "admin/tenant_detail.html",
+            tenant=tenant,
+            organizations=organizations,
+            all_organizations=all_organizations,
+            pages=pages,
+            viewers=viewers,
             endpoints=mountable_endpoints(current_app.url_map),
             can_edit=has_permission("admin.tenants.edit"),
             logged_in_user=session.get("username"),
@@ -207,7 +487,7 @@ def admin_tenants_manage_view():
             page_visibility=page_visibility(),
         )
     except Exception as e:
-        current_app.logger.error(f"Failed to render tenant management: {e}")
+        current_app.logger.error(f"Failed to render tenant detail for {tenantcode}: {e}")
         return render_template("handlers/500.html"), 500
     finally:
         if cursor:
@@ -446,6 +726,11 @@ def register_routes(app):
         "/admin/tenants/manage",
         endpoint="admin_tenants_manage_view",
         view_func=admin_tenants_manage_view,
+    )
+    app.add_url_rule(
+        "/admin/tenants/detail/<tenantcode>",
+        endpoint="admin_tenant_detail_view",
+        view_func=admin_tenant_detail_view,
     )
     app.add_url_rule(
         "/admin/tenants/add",

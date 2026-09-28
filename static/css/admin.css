@@ -410,3 +410,118 @@ body.nx-app label.ml-toggle input[type="checkbox"] { opacity: 0; width: 0; heigh
   .adm-tabs { flex-wrap: wrap; gap: 14px; }
   .adm-tabs__search { margin-left: 0; width: 100%; }
 }
+
+/* — Empty states ----------------------------------------------- */
+.adm-empty { padding: 28px 0; text-align: center; font-size: var(--fs-control); color: var(--nx-text-meta); }
+
+/* — Icon buttons (table row actions) --------------------------- */
+.adm-iconbtn { appearance: none; border: none; background: transparent; width: 26px; height: 26px; border-radius: calc(var(--nx-radius-scale, 1) * 6px); color: var(--nx-text-meta); font-size: 11px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+.adm-iconbtn:hover { background: var(--nx-sunken); color: var(--nx-text); }
+.adm-iconbtn--danger:hover { background: var(--nx-l-red); color: var(--nx-danger); }
+
+/* — Needs attention -------------------------------------------- */
+.adm-issues { border-top: 1px solid var(--nx-border); }
+.adm-issue { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--nx-divider); font-size: var(--fs-control); }
+.adm-issue__icon { width: 26px; flex: none; color: var(--nx-text-meta); font-size: 12px; text-align: center; }
+.adm-issue__text { color: var(--nx-text); font-weight: 500; }
+.adm-issue__detail { color: var(--nx-text-meta); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adm-issue__action { margin-left: auto; flex: none; color: var(--nx-accent); text-decoration: none; font-weight: 600; }
+.adm-issue__action:hover { text-decoration: underline; }
+
+/* — Side sheets (replace the centred modals) -------------------- */
+/* The backdrop owns the open state; both it and the panel are hidden
+   together so a stray class on one cannot leave the page unclickable. */
+.adm-sheet-back { position: fixed; inset: 0; background: rgba(17, 24, 39, 0.28); z-index: var(--z-popover, 100); }
+.adm-sheet { position: fixed; top: 0; right: 0; bottom: 0; width: var(--adm-sheet-w); max-width: 100vw; background: var(--nx-card); box-shadow: -12px 0 32px rgba(16, 24, 40, 0.12); z-index: var(--z-top, 200); display: flex; flex-direction: column; animation: admSheetIn calc(var(--nx-anim-speed, 1) * 220ms) var(--nx-ease); }
+@keyframes admSheetIn { from { transform: translateX(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .adm-sheet { animation: none; } }
+.adm-sheet__head { display: flex; align-items: flex-start; gap: 12px; padding: 18px 24px 14px; border-bottom: 1px solid var(--nx-border); }
+.adm-sheet__kicker { font-size: var(--fs-eyebrow); font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: var(--nx-text-meta); }
+.adm-sheet__title { font-size: 17px; font-weight: 600; margin: 2px 0 0; color: var(--nx-text); }
+.adm-sheet__close { margin-left: auto; }
+.adm-sheet__body { flex: 1; overflow-y: auto; padding: 20px 24px; }
+.adm-sheet__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.adm-sheet__grid--full { grid-template-columns: minmax(0, 1fr); }
+.adm-sheet__foot { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 24px; border-top: 1px solid var(--nx-border); }
+.adm-field { min-width: 0; }
+.adm-field--full { grid-column: 1 / -1; }
+.adm-field__label { display: block; font-size: var(--fs-eyebrow); font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: var(--nx-text-meta); margin-bottom: 5px; }
+.adm-field__hint { font-size: var(--fs-meta); color: var(--nx-text-meta); margin: 5px 0 0; }
+.adm-field__err { display: block; font-size: var(--fs-meta); color: var(--nx-danger); margin-top: 4px; }
+.adm-field .nx-input:invalid, .adm-field .nx-input.is-error { border-color: var(--nx-danger); }
+
+/* Organization checklist inside the tenant sheet. */
+.adm-checklist { max-height: 260px; overflow-y: auto; border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 8px); padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; }
+.adm-check { display: flex; align-items: center; gap: 8px; font-size: var(--fs-control); padding: 4px 2px; border-radius: 5px; }
+.adm-check:hover { background: var(--adm-hover); }
+.adm-check__code { font-family: var(--nx-mono); font-size: var(--fs-eyebrow); color: var(--nx-text-meta); }
+.adm-check__moves { margin-left: auto; font-size: var(--fs-eyebrow); font-weight: 600; padding: 1px 7px; border-radius: var(--nx-radius-pill); background: var(--nx-l-amber); color: var(--nx-l-amber-fg); }
+
+/* — Confirm dialog --------------------------------------------- */
+.adm-confirm { position: fixed; inset: 0; z-index: var(--z-top, 200); display: flex; align-items: center; justify-content: center; background: rgba(17, 24, 39, 0.28); }
+.adm-confirm__card { width: 420px; max-width: calc(100vw - 32px); background: var(--nx-card); border-radius: calc(var(--nx-radius-scale, 1) * 12px); box-shadow: 0 24px 48px rgba(16, 24, 40, 0.2); padding: 22px 24px 18px; }
+.adm-confirm__title { font-size: 16px; font-weight: 600; margin: 0; color: var(--nx-text); }
+.adm-confirm__body { font-size: var(--fs-control); color: var(--nx-text-sec); margin: 8px 0 0; }
+.adm-confirm__foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+
+@media (max-width: 560px) {
+  .adm-sheet { width: 100vw; }
+  .adm-sheet__grid { grid-template-columns: minmax(0, 1fr); }
+  .adm-issue { flex-wrap: wrap; }
+  .adm-issue__detail { width: 100%; padding-left: 38px; }
+}
+
+/* — Tenant detail ---------------------------------------------- */
+
+/* Outline danger: Delete sits next to Edit in the page header, where a solid
+   red fill would out-shout the primary action it is standing beside. */
+.nx-btn--danger-outline { background: transparent; border: 1px solid var(--nx-l-red-fg); color: var(--nx-danger); }
+.nx-btn--danger-outline:hover { background: var(--nx-l-red); }
+
+/* Draft|Active switch: the "on" half is green rather than accent, so it reads
+   as a state and not as the selected tab. */
+.adm-seg__btn--on { background: var(--nx-l-green); color: var(--nx-l-green-fg); }
+.adm-seg__btn[disabled] { cursor: default; }
+.adm-seg__btn:not([disabled]):hover { background: var(--nx-sunken); }
+.adm-seg__btn--active:not([disabled]):hover { background: var(--nx-l-indigo); }
+
+.adm-blank { border: 1px dashed var(--nx-border-strong); border-radius: calc(var(--nx-radius-scale, 1) * 10px); padding: 30px 24px; text-align: center; }
+.adm-blank__text { font-size: var(--fs-control); color: var(--nx-text-sec); margin: 0 0 14px; }
+
+.adm-warn { display: flex; align-items: center; gap: 10px; padding: 11px 16px; font-size: 13px; background: var(--nx-l-amber); color: var(--nx-l-amber-fg); border-radius: calc(var(--nx-radius-scale, 1) * 8px); }
+
+/* Pages tab: table on the left, member preview pinned to the right. */
+.adm-pages { display: grid; grid-template-columns: minmax(0, 1fr) 440px; gap: 32px; align-items: start; }
+.adm-pages__main { min-width: 0; }
+.adm-preview { min-width: 0; }
+
+/* Mini browser window -- the point is "this is what a member sees", so it is
+   deliberately chrome-first rather than a bare list. */
+.adm-window { border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 10px); overflow: hidden; background: var(--nx-card); box-shadow: 0 8px 24px -12px rgba(16, 24, 40, 0.18); }
+.adm-window__bar { display: flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px; background: var(--nx-alt); border-bottom: 1px solid var(--nx-border); }
+.adm-window__dot { width: 7px; height: 7px; border-radius: 50%; background: var(--nx-border-strong); flex: none; }
+.adm-window__url { margin-left: 10px; font-family: var(--nx-mono); font-size: var(--fs-eyebrow); color: var(--nx-text-meta); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adm-window__body { display: grid; grid-template-columns: 148px minmax(0, 1fr); min-height: 230px; }
+.adm-window__side { border-right: 1px solid var(--nx-border); padding: 10px 8px; display: flex; flex-direction: column; gap: 2px; background: var(--nx-alt); }
+.adm-window__item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: calc(var(--nx-radius-scale, 1) * 6px); font-size: var(--fs-micro); color: var(--nx-text); }
+.adm-window__item i { width: 13px; font-size: 10px; color: var(--nx-accent); flex: none; }
+.adm-window__item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adm-window__item--muted { color: var(--nx-text-meta); margin-top: auto; }
+.adm-window__item--muted i { color: var(--nx-text-meta); }
+.adm-window__canvas { padding: 14px; display: flex; flex-direction: column; gap: 9px; }
+.adm-window__skel { height: 11px; border-radius: 4px; background: var(--nx-sunken); }
+.adm-window__skel--wide { height: 34px; }
+.adm-window__skel--short { width: 55%; }
+
+@media (max-width: 1180px) {
+  .adm-pages { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .adm-preview { max-width: 440px; }
+}
+
+/* .hidden is a single-class utility declared at the top of this file, so any
+   later single-class rule that sets `display` (the sheets, the backdrop, the
+   confirm dialog) silently outranks it and the element renders open. Raise the
+   specificity rather than reaching for !important. */
+.adm-sheet.hidden,
+.adm-sheet-back.hidden,
+.adm-confirm.hidden { display: none; }
