@@ -8,6 +8,36 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **Organizations list and organization detail complete the tenancy redesign.**
+  The Organizations list gains tenant tabs (All, one per tenant, No tenant),
+  search, per-organization user counts, the data connection it actually reaches
+  and a branding summary. Each row opens the new organization detail page
+  (`/admin/organizations/detail/<code>`) with **Users · Access profiles · Data
+  & processes · Branding · Tenant** tabs.
+
+  The detail page absorbs two things that used to live elsewhere: the branding
+  panel (now with a live "what members see" preview and Save disabled until
+  something actually changed), and this organization's slice of **Process
+  Configurations** — its connection cards, process sources and field mappings,
+  with add/edit/delete through side sheets. The Tenant tab moves an
+  organization between tenants with an explicit warning about what its members
+  will see.
+
+  **Sidebar:** the Tenants group is now just **Manage** and **Organizations**.
+  Overview merged into Manage tenants, and Data Connections / Process
+  Configurations moved onto the pages that own them. Their routes still answer,
+  so existing deep links keep working.
+
+- **Fixed: the admin sidebar clipped instead of scrolling.** `.sidebar-nav` had
+  `flex: 1` and `overflow-y: auto` but no `min-height: 0`, and a flex item will
+  not shrink below its content — so a long nav (admin, with the Tenants group
+  open) ran past the viewport with no way to reach the bottom entries.
+
+- **Fixed: "1 organization" and "1 field" showed a button label in de/fr/it.**
+  The singular form of both plural catalog entries held the *Add organization*
+  / *Add field* text instead of the count, so any count of exactly one rendered
+  as a button label. All three locales corrected.
+
 - **Manage tenants is now one page, and every tenant has a detail view.**
   Tenants Overview and Manage Tenants merge into **Manage tenants**: tabs
   (All / Active / Inactive) with a search over tenants, organizations and

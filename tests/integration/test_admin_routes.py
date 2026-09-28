@@ -3036,18 +3036,20 @@ def test_branding_save_unknown_org_is_404(admin_client, admin_all_perms, monkeyp
     assert resp.status_code == 404
 
 
-def test_organizations_page_shows_branding_panel_with_perm(
+def test_organization_detail_shows_branding_panel_with_perm(
     admin_client, admin_all_perms, monkeypatch
 ):
     # can_edit_branding is resolved through views.admin.organizations' own
     # has_permission binding, which admin_all_perms (nx_lib.security) doesn't cover.
+    # The panel moved from the list to the organization detail view with the
+    # tenancy redesign; the gate it asserts is unchanged.
     monkeypatch.setattr("nx_lib.views.admin.organizations.has_permission", lambda code: True)
-    resp = admin_client.get("/admin/organizations")
+    resp = admin_client.get("/admin/organizations/detail/TEST")
     assert resp.status_code == 200
     assert b'data-testid="admin-org-branding-panel"' in resp.data
 
 
-def test_organizations_page_hides_branding_panel_without_perm(admin_client, monkeypatch):
+def test_organization_detail_hides_branding_panel_without_perm(admin_client, monkeypatch):
     """A viewer who only holds admin.organizations.view must not see the
     controls at all -- a 403 toast after the click is the bug, not the gate."""
     monkeypatch.setattr(
@@ -3057,7 +3059,7 @@ def test_organizations_page_hides_branding_panel_without_perm(admin_client, monk
         "nx_lib.views.admin.organizations.has_permission",
         lambda code: code == "admin.organizations.view",
     )
-    resp = admin_client.get("/admin/organizations")
+    resp = admin_client.get("/admin/organizations/detail/TEST")
     assert resp.status_code == 200
     assert b'data-testid="admin-org-branding-panel"' not in resp.data
     assert b"admin-org-branding-TEST" not in resp.data

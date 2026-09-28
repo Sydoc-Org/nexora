@@ -1,0 +1,128 @@
+{# Process-source and field-mapping side sheets for the Organization detail view.
+   Expects `org`, `client_codes` and `can_edit_processes`. The free-form SQL
+   fragment columns (JoinCondition, TimeFilter, SuggestionTimeFilter,
+   ExtraCondition) are absent on purpose: they are migration-only, because the
+   query builders interpolate them. #}
+{% if can_edit_processes %}
+<div id="sourceSheetBack" class="adm-sheet-back hidden"></div>
+<aside id="sourceSheet" class="adm-sheet hidden" role="dialog" aria-modal="true" aria-labelledby="sourceSheetTitle">
+    <form id="sourceForm" data-testid="org-source-sheet-form" style="display:contents">
+        <div class="adm-sheet__head">
+            <div>
+                <div class="adm-sheet__kicker">{{ _('Process source') }}</div>
+                <h2 class="adm-sheet__title" id="sourceSheetTitle">{{ _('Add process source') }}</h2>
+            </div>
+            <button type="button" class="nx-btn nx-btn--ghost nx-btn--sm adm-sheet__close" id="sourceSheetClose"
+                    aria-label="{{ _('Close') }}" data-testid="org-source-sheet-close"><i class="fas fa-xmark"></i></button>
+        </div>
+        <div class="adm-sheet__body">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <input type="hidden" id="sourceOriginalClient">
+            <input type="hidden" id="sourceOriginalProcess">
+            <div class="adm-sheet__grid">
+                <div class="adm-field">
+                    <label class="adm-field__label" for="ClientCode">{{ _('Client code') }}</label>
+                    <select id="ClientCode" class="nx-select" required data-testid="org-source-client">
+                        {% for c in client_codes %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="adm-field">
+                    <label class="adm-field__label" for="OrganizationCode">{{ _('Organization') }}</label>
+                    <select id="OrganizationCode" class="nx-select" data-testid="org-source-org">
+                        <option value="">{{ _('Unassigned') }}</option>
+                        <option value="{{ org.organizationcode }}" selected>{{ org.organization }}</option>
+                    </select>
+                </div>
+                <div class="adm-field adm-field--full">
+                    <label class="adm-field__label" for="ProcessName">{{ _('Process name') }}</label>
+                    <input type="text" id="ProcessName" class="nx-input nx-mono" required
+                           pattern="[A-Za-z0-9_\-]{1,49}\.[A-Za-z0-9_\-]{1,50}"
+                           placeholder="customer.process" data-testid="org-source-process">
+                    {# No literal angle brackets in a translatable string: Jinja's i18n
+                       extension returns Markup, so <customer> would render as a tag. #}
+                    <p class="adm-field__hint">{{ _('Two parts separated by a single dot, and unique for this client.') }}</p>
+                </div>
+                <div class="adm-field">
+                    <label class="adm-field__label" for="TableName">{{ _('Table name') }}</label>
+                    <input type="text" id="TableName" class="nx-input nx-mono" required data-testid="org-source-table">
+                </div>
+                <div class="adm-field">
+                    <label class="adm-field__label" for="TableAlias">{{ _('Table alias') }}</label>
+                    <input type="text" id="TableAlias" class="nx-input nx-mono" maxlength="10" data-testid="org-source-alias">
+                </div>
+                <div class="adm-field">
+                    <label class="adm-field__label" for="ExportColumn">{{ _('Export column') }}</label>
+                    <input type="text" id="ExportColumn" class="nx-input nx-mono" data-testid="org-source-export">
+                </div>
+                <div class="adm-field">
+                    <label class="adm-field__label" for="ImportColumn">{{ _('Import column') }}</label>
+                    <input type="text" id="ImportColumn" class="nx-input nx-mono" data-testid="org-source-import">
+                </div>
+                <div class="adm-field">
+                    <label class="adm-field__label" for="WorkitemColumn">{{ _('Workitem column') }}</label>
+                    <input type="text" id="WorkitemColumn" class="nx-input nx-mono" data-testid="org-source-workitem">
+                </div>
+                <div class="adm-field">
+                    <label class="adm-field__label" for="IdColumnType">{{ _('Id column type') }}</label>
+                    <input type="text" id="IdColumnType" class="nx-input nx-mono" data-testid="org-source-idtype">
+                </div>
+                <div class="adm-field adm-field--full">
+                    <p class="adm-field__hint">
+                        <i class="fas fa-lock"></i>
+                        {{ _('Join condition, time filters and the extra condition are SQL fragments and stay migration-only.') }}
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="adm-sheet__foot">
+            <button type="button" class="nx-btn nx-btn--secondary" id="sourceSheetCancel" data-testid="org-source-sheet-cancel">{{ _('Cancel') }}</button>
+            <button type="submit" class="nx-btn nx-btn--primary" data-testid="org-source-sheet-save">{{ _('Save process source') }}</button>
+        </div>
+    </form>
+</aside>
+
+<div id="fieldSheetBack" class="adm-sheet-back hidden"></div>
+<aside id="fieldSheet" class="adm-sheet hidden" role="dialog" aria-modal="true" aria-labelledby="fieldSheetTitle">
+    <form id="fieldForm" data-testid="org-field-sheet-form" style="display:contents">
+        <div class="adm-sheet__head">
+            <div>
+                <div class="adm-sheet__kicker">{{ _('Field mapping') }}</div>
+                <h2 class="adm-sheet__title" id="fieldSheetTitle">{{ _('Add field mapping') }}</h2>
+            </div>
+            <button type="button" class="nx-btn nx-btn--ghost nx-btn--sm adm-sheet__close" id="fieldSheetClose"
+                    aria-label="{{ _('Close') }}" data-testid="org-field-sheet-close"><i class="fas fa-xmark"></i></button>
+        </div>
+        <div class="adm-sheet__body">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <input type="hidden" id="fieldOriginalKey">
+            <div class="adm-sheet__grid">
+                <div class="adm-field">
+                    <label class="adm-field__label" for="fieldClientCode">{{ _('Client code') }}</label>
+                    <input type="text" id="fieldClientCode" class="nx-input nx-mono" readonly data-testid="org-field-client">
+                </div>
+                <div class="adm-field">
+                    <label class="adm-field__label" for="fieldProcessName">{{ _('Process name') }}</label>
+                    <input type="text" id="fieldProcessName" class="nx-input nx-mono" readonly data-testid="org-field-process">
+                </div>
+                <div class="adm-field">
+                    <label class="adm-field__label" for="FieldKey">{{ _('Field key') }}</label>
+                    <input type="text" id="FieldKey" class="nx-input nx-mono" required
+                           pattern="[A-Za-z0-9_.\-]{1,100}" data-testid="org-field-key">
+                </div>
+                <div class="adm-field">
+                    <label class="adm-field__label" for="ColumnName">{{ _('Column name') }}</label>
+                    <input type="text" id="ColumnName" class="nx-input nx-mono" required data-testid="org-field-column">
+                </div>
+                <div class="adm-field adm-field--full">
+                    <label class="adm-field__label" for="ColumnType">{{ _('Column type') }}</label>
+                    <input type="text" id="ColumnType" class="nx-input nx-mono" data-testid="org-field-column-type">
+                </div>
+            </div>
+        </div>
+        <div class="adm-sheet__foot">
+            <button type="button" class="nx-btn nx-btn--secondary" id="fieldSheetCancel" data-testid="org-field-sheet-cancel">{{ _('Cancel') }}</button>
+            <button type="submit" class="nx-btn nx-btn--primary" data-testid="org-field-sheet-save">{{ _('Save field mapping') }}</button>
+        </div>
+    </form>
+</aside>
+{% endif %}

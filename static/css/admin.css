@@ -525,3 +525,38 @@ body.nx-app label.ml-toggle input[type="checkbox"] { opacity: 0; width: 0; heigh
 .adm-sheet.hidden,
 .adm-sheet-back.hidden,
 .adm-confirm.hidden { display: none; }
+
+/* — Organization detail ---------------------------------------- */
+.adm-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.adm-card { border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 10px); padding: 16px 18px; background: var(--nx-card); margin-bottom: 16px; }
+.adm-card__head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.adm-card__action { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+.adm-facts { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; font-size: var(--fs-control); }
+.adm-facts dt { color: var(--nx-text-meta); }
+.adm-facts dd { margin: 0; color: var(--nx-text); }
+
+/* Field mappings nest inside a process-source card; the outer card already
+   draws the border, so the inner table drops its own top rule. */
+.adm-table--inner { margin-top: 4px; }
+.adm-table--inner th { border-bottom-color: var(--nx-divider); }
+.adm-table--inner td { font-size: var(--fs-control); }
+
+/* Branding: form left, live preview right. */
+.adm-brand { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 32px; align-items: start; }
+.adm-brand__form { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.adm-brand__colour { display: flex; align-items: center; gap: 8px; }
+.adm-brand__swatch { width: 38px; height: 33px; padding: 0; border: 1px solid var(--nx-border-strong); border-radius: calc(var(--nx-radius-scale, 1) * 7px); background: none; cursor: pointer; flex: none; }
+.adm-brand__actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 6px; border-top: 1px solid var(--nx-border); margin-top: 4px; }
+.adm-window__brand { display: flex; align-items: center; gap: 8px; padding: 4px 8px 10px; font-size: var(--fs-control); font-weight: 600; color: var(--nx-text); border-bottom: 1px solid var(--nx-border); margin-bottom: 6px; }
+.adm-window__brand img { max-height: 20px; max-width: 80px; }
+
+/* Tenant tab: one radio row per tenant. */
+.adm-radios { display: flex; flex-direction: column; border-top: 1px solid var(--nx-border); }
+.adm-radio { display: flex; align-items: center; gap: 12px; padding: 12px 8px; border-bottom: 1px solid var(--nx-divider); cursor: pointer; }
+.adm-radio:hover { background: var(--adm-hover); }
+.adm-radio__main { display: flex; flex-direction: column; min-width: 0; }
+
+@media (max-width: 1080px) {
+  .adm-brand { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .adm-brand .adm-preview { max-width: 380px; }
+}
