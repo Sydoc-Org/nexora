@@ -78,6 +78,18 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 The two phone fixes change nothing on a desktop screen: they only kick in
 when there isn't enough room.
 
+### Removed
+
+- **The repo no longer ships a Claude Code status line.**
+  `.claude/helpers/statusline.cjs` was invoked via `node`, which is not
+  installed on the dev machines, so every render failed silently and the status
+  line was simply blank — it had never worked for anyone without a Node
+  runtime. It is deleted, along with the `statusLine` block in
+  `.claude/settings.json`; the status line now lives in user-global config
+  (`~/.claude/statusline.py` + `~/.claude/settings.json`), where it applies to
+  every repo instead of this one. **If yours went blank, that is why** — set it
+  up globally, see `docs/howto/claude-workflow.md`.
+
 ## [3.2.14] - 2026-09-23
 
 ### Fixed
