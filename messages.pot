@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 11:39+0200\n"
+"POT-Creation-Date: 2026-09-28 11:25+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -663,12 +663,12 @@ msgstr ""
 msgid "Unexpected error occurred"
 msgstr ""
 
-#: nx_lib/views/core.py:57 templates/_header.html:337
+#: nx_lib/views/core.py:65 templates/_header.html:337
 #: templates/_small_footer.html:28
 msgid "Terms of Service"
 msgstr ""
 
-#: nx_lib/views/core.py:68 templates/_header.html:341
+#: nx_lib/views/core.py:77 templates/_header.html:341
 #: templates/_small_footer.html:32
 msgid "Privacy Policy"
 msgstr ""
@@ -1884,27 +1884,28 @@ msgid "Overview"
 msgstr ""
 
 #: templates/_header.html:69 templates/admin/access_control.html:19
-#: templates/admin/admin_overview.html:75 templates/js/_header_js.html:18
+#: templates/admin/admin_overview.html:154 templates/js/_header_js.html:18
 msgid "Access Control"
 msgstr ""
 
-#: templates/_header.html:74 templates/admin/admin_overview.html:85
+#: templates/_header.html:74 templates/admin/admin_overview.html:164
 #: templates/admin/permissions.html:21 templates/admin/user_detail.html:88
 msgid "Permissions"
 msgstr ""
 
-#: templates/_header.html:79
+#: templates/_header.html:79 templates/admin/admin_overview.html:174
 msgid "Sessions"
 msgstr ""
 
-#: templates/_header.html:84
+#: templates/_header.html:84 templates/admin/admin_overview.html:184
 msgid "Logs"
 msgstr ""
 
-#: templates/_header.html:90 templates/admin/logs.html:66
-#: templates/admin/logs.html:99 templates/admin/tenants_manage.html:78
-#: templates/admin/user_detail.html:222 templates/api_docs.html:189
-#: templates/appearance.html:369 templates/generali_importstatus.html:50
+#: templates/_header.html:90 templates/admin/admin_overview.html:195
+#: templates/admin/logs.html:66 templates/admin/logs.html:99
+#: templates/admin/tenants_manage.html:78 templates/admin/user_detail.html:222
+#: templates/api_docs.html:189 templates/appearance.html:369
+#: templates/generali_importstatus.html:50
 #: templates/generali_importstatus.html:106
 #: templates/generali_reporting.html:116 templates/workitems_overview.html:352
 msgid "Status"
@@ -1914,7 +1915,8 @@ msgstr ""
 msgid "Maintenance"
 msgstr ""
 
-#: templates/_header.html:111 templates/admin/tenants.html:149
+#: templates/_header.html:111 templates/admin/admin_overview.html:92
+#: templates/admin/tenants.html:149
 msgid "Tenants"
 msgstr ""
 
@@ -1922,17 +1924,19 @@ msgstr ""
 msgid "Manage"
 msgstr ""
 
-#: templates/_header.html:130 templates/admin/admin_overview.html:95
+#: templates/_header.html:130 templates/admin/admin_overview.html:107
 #: templates/admin/organizations.html:19 templates/admin/tenants_manage.html:38
 #: templates/js/_header_js.html:19
 msgid "Organizations"
 msgstr ""
 
-#: templates/_header.html:136 templates/admin/clients.html:19
+#: templates/_header.html:136 templates/admin/admin_overview.html:120
+#: templates/admin/clients.html:19
 msgid "Data Connections"
 msgstr ""
 
-#: templates/_header.html:143 templates/admin/processes.html:19
+#: templates/_header.html:143 templates/admin/admin_overview.html:136
+#: templates/admin/processes.html:19
 msgid "Process Configurations"
 msgstr ""
 
@@ -2910,7 +2914,7 @@ msgstr ""
 msgid "Base URLs"
 msgstr ""
 
-#: templates/api_docs.html:136
+#: templates/admin/admin_overview.html:24 templates/api_docs.html:136
 msgid "Environment"
 msgstr ""
 
@@ -3463,8 +3467,7 @@ msgstr ""
 msgid "Aurora"
 msgstr ""
 
-#: templates/admin/admin_overview.html:88 templates/appearance.html:121
-#: templates/reporting.html:427
+#: templates/appearance.html:121 templates/reporting.html:427
 msgid "Grid"
 msgstr ""
 
@@ -4874,19 +4877,19 @@ msgstr ""
 msgid "Confirm your new password"
 msgstr ""
 
-#: templates/legal.html:76
+#: templates/legal.html:78
 msgid "Back to nexora"
 msgstr ""
 
-#: templates/legal.html:80
+#: templates/legal.html:82
 msgid "Sydoc AG"
 msgstr ""
 
-#: templates/legal.html:88
+#: templates/legal.html:90
 msgid "Draft — not yet in force."
 msgstr ""
 
-#: templates/legal.html:89
+#: templates/legal.html:91
 msgid ""
 "The facts on this page were confirmed by Sydoc management and read from "
 "the application itself. The text still has to be reviewed and approved "
@@ -6111,7 +6114,8 @@ msgstr ""
 msgid "Users and access profiles"
 msgstr ""
 
-#: templates/admin/access_control.html:29 templates/admin/tenants.html:128
+#: templates/admin/access_control.html:29
+#: templates/admin/admin_overview.html:62 templates/admin/tenants.html:128
 msgid "Users"
 msgstr ""
 
@@ -6231,124 +6235,154 @@ msgstr ""
 msgid "Admin Overview - nexora"
 msgstr ""
 
-#: templates/admin/admin_overview.html:19
+#: templates/admin/admin_overview.html:22
 msgid "Administration"
 msgstr ""
 
-#: templates/admin/admin_overview.html:20
-msgid "Users, organizations, sessions and logs."
+#: templates/admin/admin_overview.html:32
+msgid "Restart environment"
 msgstr ""
 
-#: templates/admin/admin_overview.html:33
+#: templates/admin/admin_overview.html:43
 msgid "Restart nexora"
 msgstr ""
 
-#: templates/admin/admin_overview.html:35
-msgid "Current env:"
-msgstr ""
-
-#: templates/admin/admin_overview.html:42
+#: templates/admin/admin_overview.html:52
 msgid "Active sessions"
 msgstr ""
 
-#: templates/admin/admin_overview.html:46
+#: templates/admin/admin_overview.html:54
 msgid "Currently signed in"
 msgstr ""
 
-#: templates/admin/admin_overview.html:50
+#: templates/admin/admin_overview.html:57
 msgid "Failed logins today"
 msgstr ""
 
-#: templates/admin/admin_overview.html:54
+#: templates/admin/admin_overview.html:59
 msgid "Since midnight"
 msgstr ""
 
-#: templates/admin/admin_overview.html:58
+#: templates/admin/admin_overview.html:64
+#, python-format
+msgid "in %(n)s organizations"
+msgstr ""
+
+#: templates/admin/admin_overview.html:64
+msgid "across the portal"
+msgstr ""
+
+#: templates/admin/admin_overview.html:67
 msgid "Database health"
 msgstr ""
 
-#: templates/admin/admin_overview.html:79
-msgid "users"
+#: templates/admin/admin_overview.html:84
+msgid "Tenancy"
 msgstr ""
 
-#: templates/admin/admin_overview.html:80
-msgid "Users, permissions and access profiles"
+#: templates/admin/admin_overview.html:85
+msgid "Who the customers are and where their data lives"
 msgstr ""
 
-#: templates/admin/admin_overview.html:89
-msgid "edit"
+#: templates/admin/admin_overview.html:93
+msgid "Organizations, pages and access per tenant"
 msgstr ""
 
-#: templates/admin/admin_overview.html:90
-msgid "Every profile against every permission. Tick, save, done."
-msgstr ""
-
-#: templates/admin/admin_overview.html:99
-msgid "organizations"
-msgstr ""
-
-#: templates/admin/admin_overview.html:100
-msgid "Organizations and their codes"
-msgstr ""
-
-#: templates/admin/admin_overview.html:105
-msgid "Session Monitor"
+#: templates/admin/admin_overview.html:97
+#, python-format
+msgid "%(n)s needs attention"
 msgstr ""
 
 #: templates/admin/admin_overview.html:108
-msgid "Live"
+msgid "Users, profiles, data connection and branding"
 msgstr ""
 
-#: templates/admin/admin_overview.html:109
-msgid "users online now"
+#: templates/admin/admin_overview.html:111
+#, python-format
+msgid "%(n)s not in a tenant"
 msgstr ""
 
-#: templates/admin/admin_overview.html:110
-msgid "Users active in the last 30 minutes"
+#: templates/admin/admin_overview.html:121
+msgid "Client databases and runtime engines"
 msgstr ""
 
-#: templates/admin/admin_overview.html:115 templates/js/_header_js.html:21
-msgid "System Logs"
-msgstr ""
-
-#: templates/admin/admin_overview.html:118
-#: templates/js/_workitem_detail_panel_js.html:13
-msgid "Audit"
-msgstr ""
-
-#: templates/admin/admin_overview.html:119
-msgid "activity &amp; events"
-msgstr ""
-
-#: templates/admin/admin_overview.html:120
-msgid "Filter by user, date, method or status"
-msgstr ""
-
-#: templates/admin/admin_overview.html:126
-msgid "Resources"
-msgstr ""
-
-#: templates/admin/admin_overview.html:131
-msgid "Nexora documentation"
+#: templates/admin/admin_overview.html:125
+#, python-format
+msgid "%(n)s not loaded"
 msgstr ""
 
 #: templates/admin/admin_overview.html:137
-msgid "ngrok hosting"
+msgid "Field mappings per process"
 msgstr ""
 
-#: templates/admin/admin_overview.html:151
-msgid "Restart the dev server now? The page will reload once it is back."
+#: templates/admin/admin_overview.html:147
+msgid "Access & monitoring"
 msgstr ""
 
-#: templates/admin/admin_overview.html:152
-msgid "Restart and switch environment to"
-msgstr ""
-
-#: templates/admin/admin_overview.html:152
-msgid "The page will reload once it is back."
+#: templates/admin/admin_overview.html:148
+msgid "Who can do what, and what happened"
 msgstr ""
 
 #: templates/admin/admin_overview.html:155
+msgid "Users, permissions and access profiles"
+msgstr ""
+
+#: templates/admin/admin_overview.html:157
+#, python-format
+msgid "%(n)s users"
+msgstr ""
+
+#: templates/admin/admin_overview.html:165
+msgid "Every profile against every permission"
+msgstr ""
+
+#: templates/admin/admin_overview.html:175
+msgid "Users active in the last 30 minutes"
+msgstr ""
+
+#: templates/admin/admin_overview.html:177
+#, python-format
+msgid "%(n)s live"
+msgstr ""
+
+#: templates/admin/admin_overview.html:185
+msgid "Filter by user, date, method or status"
+msgstr ""
+
+#: templates/admin/admin_overview.html:196
+msgid "Component health and 30-day uptime"
+msgstr ""
+
+#: templates/admin/admin_overview.html:199
+#, python-format
+msgid "%(n)s degraded"
+msgstr ""
+
+#: templates/admin/admin_overview.html:210
+msgid "Resources"
+msgstr ""
+
+#: templates/admin/admin_overview.html:213
+msgid "Nexora documentation"
+msgstr ""
+
+#: templates/admin/admin_overview.html:218
+msgid "ngrok hosting"
+msgstr ""
+
+#: templates/admin/admin_overview.html:245
+msgid "Restart the dev server now? The page will reload once it is back."
+msgstr ""
+
+#: templates/admin/admin_overview.html:246
+msgid "Restart and switch environment to"
+msgstr ""
+
+#: templates/admin/admin_overview.html:246
+msgid "The page will reload once it is back."
+msgstr ""
+
+#: templates/admin/admin_overview.html:249
 msgid "Restarting..."
 msgstr ""
 
@@ -7830,6 +7864,10 @@ msgstr ""
 msgid "Admin Overview"
 msgstr ""
 
+#: templates/js/_header_js.html:21
+msgid "System Logs"
+msgstr ""
+
 #: templates/js/_header_js.html:24 templates/js/_header_js.html:27
 msgid "Admin action"
 msgstr ""
@@ -9262,6 +9300,10 @@ msgstr ""
 
 #: templates/js/_workitem_detail_panel_js.html:12
 msgid "Document fields restricted"
+msgstr ""
+
+#: templates/js/_workitem_detail_panel_js.html:13
+msgid "Audit"
 msgstr ""
 
 #: templates/js/_workitem_detail_panel_js.html:14

@@ -8,6 +8,23 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **Admin Overview rebuilt to the tenancy redesign.** The 2×2 launcher-card
+  grid is replaced by a KPI strip (active sessions, failed logins, users,
+  database health) over two columns of link rows — **Tenancy** and **Access &
+  monitoring** — each row carrying a live count, so the page says what needs
+  attention instead of only where to click. New metas: tenants without an
+  organization, organizations not in a tenant, data connections configured but
+  **not loaded** by the runtime, and degraded status components. Every count is
+  individually guarded: on an environment mid-migration the row loses its meta
+  rather than the page 500-ing. First slice of the admin tenancy redesign —
+  brief and prototypes in `docs/design/design_handoff_admin_tenants/`.
+
+  The shared `.adm-*` primitives it introduces in `static/css/admin.css` (page
+  header, KPI strip, tabs, tables, link groups, status pills, segmented
+  control) are written against the existing `--nx-*` tokens rather than the
+  handoff's literal hex values, so the redesign follows the accent preference
+  and dark mode for free.
+
 - **Legal draft: gaps found in review are now covered** (#260). The privacy
   policy gains a section on sensitive data (health data in insurance
   documents), names every disclosure to the USA (ngrok, and the Google Fonts,
