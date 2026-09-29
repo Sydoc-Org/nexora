@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-29 08:51+0200\n"
+"POT-Creation-Date: 2026-09-29 09:10+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -3363,11 +3363,12 @@ msgstr "Abfrage"
 #: templates/api_docs.html:252 templates/api_docs.html:288
 #: templates/api_docs.html:294 templates/api_docs.html:319
 #: templates/api_docs.html:325 templates/api_docs.html:362
-#: templates/api_docs.html:367 templates/api_docs.html:390
-#: templates/api_docs.html:396 templates/api_docs.html:410
-#: templates/api_docs.html:416 templates/api_docs.html:436
-#: templates/api_docs.html:442 templates/api_docs.html:486
-#: templates/api_docs.html:492 templates/reporting.html:463
+#: templates/api_docs.html:367 templates/api_docs.html:385
+#: templates/api_docs.html:390 templates/api_docs.html:424
+#: templates/api_docs.html:430 templates/api_docs.html:444
+#: templates/api_docs.html:450 templates/api_docs.html:470
+#: templates/api_docs.html:476 templates/api_docs.html:520
+#: templates/api_docs.html:526 templates/reporting.html:463
 msgid "Copy"
 msgstr "Kopieren"
 
@@ -3443,7 +3444,7 @@ msgid "Endpoints"
 msgstr "Endpunkte"
 
 #: templates/api_docs.html:120 templates/api_docs.html:139
-#: templates/api_docs.html:482
+#: templates/api_docs.html:516
 msgid "Test sandbox"
 msgstr "Test-Sandbox"
 
@@ -3503,19 +3504,21 @@ msgstr ""
 #: templates/api_docs.html:252 templates/api_docs.html:288
 #: templates/api_docs.html:294 templates/api_docs.html:319
 #: templates/api_docs.html:325 templates/api_docs.html:362
-#: templates/api_docs.html:367 templates/api_docs.html:390
-#: templates/api_docs.html:396 templates/api_docs.html:410
-#: templates/api_docs.html:416 templates/api_docs.html:436
-#: templates/api_docs.html:442 templates/api_docs.html:486
-#: templates/api_docs.html:492
+#: templates/api_docs.html:367 templates/api_docs.html:385
+#: templates/api_docs.html:390 templates/api_docs.html:424
+#: templates/api_docs.html:430 templates/api_docs.html:444
+#: templates/api_docs.html:450 templates/api_docs.html:470
+#: templates/api_docs.html:476 templates/api_docs.html:520
+#: templates/api_docs.html:526
 msgid "Copy code"
 msgstr "Code kopieren"
 
 #: templates/api_docs.html:154 templates/api_docs.html:220
 #: templates/api_docs.html:251 templates/api_docs.html:293
 #: templates/api_docs.html:324 templates/api_docs.html:366
-#: templates/api_docs.html:395 templates/api_docs.html:415
-#: templates/api_docs.html:441 templates/api_docs.html:491
+#: templates/api_docs.html:389 templates/api_docs.html:429
+#: templates/api_docs.html:449 templates/api_docs.html:475
+#: templates/api_docs.html:525
 msgid "response"
 msgstr "Antwort"
 
@@ -3592,7 +3595,7 @@ msgstr "Body"
 #: templates/api_docs.html:189 templates/api_docs.html:230
 #: templates/api_docs.html:262 templates/api_docs.html:271
 #: templates/api_docs.html:303 templates/api_docs.html:345
-#: templates/api_docs.html:470
+#: templates/api_docs.html:504
 msgid "Meaning"
 msgstr "Bedeutung"
 
@@ -3673,19 +3676,19 @@ msgstr ""
 "Zahl wie die \"Current Backlog\"-KPI-Kachel des nexora-Dashboards."
 
 #: templates/api_docs.html:227 templates/api_docs.html:268
-#: templates/api_docs.html:300 templates/api_docs.html:467
+#: templates/api_docs.html:300 templates/api_docs.html:501
 msgid "Response fields"
 msgstr "Antwortfelder"
 
 #: templates/api_docs.html:230 templates/api_docs.html:271
-#: templates/api_docs.html:303 templates/api_docs.html:470
+#: templates/api_docs.html:303 templates/api_docs.html:504
 #: templates/js/_reporting_dashboard_js.html:38
 msgid "Field"
 msgstr "Feld"
 
 #: templates/admin/tenant_detail.html:208 templates/api_docs.html:230
 #: templates/api_docs.html:262 templates/api_docs.html:271
-#: templates/api_docs.html:303 templates/api_docs.html:470
+#: templates/api_docs.html:303 templates/api_docs.html:504
 #: templates/generali_documents.html:228 templates/js/_reporting_viz_js.html:11
 msgid "Type"
 msgstr "Typ"
@@ -3843,12 +3846,15 @@ msgstr ""
 #: templates/api_docs.html:354
 msgid ""
 "fields — also return each row's indexed document-field values; "
-"fields:invoicenr,kundennr narrows that to the named keys (see below). Any"
-" other value answers 400."
+"fields:invoicenr,kundennr narrows that to the named keys (see below). "
+"tables — also return each row's extracted table values (see below); "
+"fields,tables combines both. Any other value answers 400."
 msgstr ""
 "fields — gibt zusätzlich die indexierten Dokumentfeld-Werte jeder Zeile "
 "zurück; fields:invoicenr,kundennr beschränkt das auf die genannten "
-"Schlüssel (siehe unten). Jeder andere Wert ergibt 400."
+"Schlüssel (siehe unten). tables — gibt zusätzlich die extrahierten "
+"Tabellenwerte jeder Zeile zurück (siehe unten); fields,tables kombiniert "
+"beides. Jeder andere Wert ergibt 400."
 
 #: templates/api_docs.html:358
 msgid "Field values without one call per row"
@@ -3906,17 +3912,71 @@ msgstr ""
 #, python-brace-format
 msgid ""
 "Indexed fields only — the same keys /workitems/fields lists. Table values"
-" and document/page information stay on /workitems/{id}. A workitem with "
-"nothing indexed gets an empty fields object, sensitive fields are never "
-"included, and without include the response is exactly what it was before."
+" have their own include (next section); document/page information stays "
+"on /workitems/{id}. A workitem with nothing indexed gets an empty fields "
+"object, sensitive fields are never included, and without include the "
+"response is exactly what it was before."
 msgstr ""
 "Nur indexierte Felder — dieselben Schlüssel, die /workitems/fields "
-"auflistet. Tabellenwerte und Dokument-/Seiteninformationen bleiben auf "
-"/workitems/{id}. Ein Workitem ohne Indexwerte erhält ein leeres fields-"
-"Objekt, sensible Felder sind nie enthalten, und ohne include ist die "
-"Antwort exakt wie bisher."
+"auflistet. Tabellenwerte haben ihr eigenes include (nächster Abschnitt); "
+"Dokument-/Seiteninformationen bleiben auf /workitems/{id}. Ein Workitem "
+"ohne Indexwerte erhält ein leeres fields-Objekt, sensible Felder sind nie"
+" enthalten, und ohne include ist die Antwort exakt wie bisher."
 
 #: templates/api_docs.html:381
+msgid "Table values without one call per row"
+msgstr "Tabellenwerte ohne einen Aufruf pro Zeile"
+
+#: templates/api_docs.html:382
+#, python-brace-format
+msgid ""
+"The same idea for the extracted table values (line items, VAT rows, order"
+" references): add include=tables and every row gets a tables list in "
+"exactly the shape /workitems/{id} returns, resolved once per page. "
+"include=fields,tables returns both."
+msgstr ""
+"Dasselbe Prinzip für die extrahierten Tabellenwerte (Positionen, MwSt-"
+"Zeilen, Bestellreferenzen): Mit include=tables erhält jede Zeile eine "
+"tables-Liste in genau der Form, die /workitems/{id} zurückgibt, einmal "
+"pro Seite aufgelöst. include=fields,tables liefert beides."
+
+#: templates/api_docs.html:413
+msgid ""
+"Same data as the detail call, reduced by the same rules: cells without a "
+"value are skipped, rows and tables left empty by that are dropped, and "
+"for a batch document the leaf documents' tables are returned. columns "
+"lists the columns that carry a value in at least one row. A workitem "
+"whose documents hold no populated table gets an empty tables list; "
+"columns matching a sensitive field are removed; include=tables:… (a key "
+"list) is a 400; without include the response is exactly what it was "
+"before."
+msgstr ""
+"Dieselben Daten wie der Detailaufruf, nach denselben Regeln reduziert: "
+"Zellen ohne Wert werden übersprungen, dadurch leere Zeilen und Tabellen "
+"entfallen, und bei einem Batch-Dokument werden die Tabellen der "
+"Blattdokumente zurückgegeben. columns listet die Spalten, die in "
+"mindestens einer Zeile einen Wert tragen. Ein Workitem, dessen Dokumente "
+"keine befüllte Tabelle enthalten, erhält eine leere tables-Liste; "
+"Spalten, die einem sensiblen Feld entsprechen, werden entfernt; "
+"include=tables:… (eine Schlüsselliste) ergibt 400; ohne include ist die "
+"Antwort exakt wie bisher."
+
+#: templates/api_docs.html:414
+msgid ""
+"It is a heavy call by nature: one read per client storage per page with "
+"no per-row work, so a large per_page is fine, but a 1000-row page of a "
+"client with long line-item tables can take 10 to 25 seconds. A 40-row "
+"page is well under a second. A failure answers 500 for the whole page, "
+"never a page with silently missing tables."
+msgstr ""
+"Es ist naturgemäss ein schwerer Aufruf: ein Lesevorgang pro "
+"Kundenspeicher und Seite ohne Arbeit pro Zeile, ein grosses per_page ist "
+"also unproblematisch, aber eine Seite mit 1000 Zeilen eines Kunden mit "
+"langen Positionstabellen kann 10 bis 25 Sekunden dauern. Eine Seite mit "
+"40 Zeilen liegt deutlich unter einer Sekunde. Ein Fehler ergibt 500 für "
+"die ganze Seite, nie eine Seite mit stillschweigend fehlenden Tabellen."
+
+#: templates/api_docs.html:415
 msgid ""
 "Every invalid value returns a 400 with a plain-English error — nothing is"
 " silently coerced. Unknown and sensitive field keys answer identically "
@@ -3931,7 +3991,7 @@ msgstr ""
 "ist, sonst null. Dokumentfeld-Treffer unterliegen demselben Zeitfenster "
 "pro Prozess wie die Suche der Übersichtsseite."
 
-#: templates/api_docs.html:387
+#: templates/api_docs.html:421
 msgid ""
 "The field keys /workitems accepts in ?field= for your key's process "
 "scope, as the server resolves them right now — only fields mapped for at "
@@ -3944,7 +4004,7 @@ msgstr ""
 "sensible Felder. Rufen Sie diese Liste bevorzugt ab, statt Schlüsselnamen"
 " fest zu verdrahten."
 
-#: templates/api_docs.html:401
+#: templates/api_docs.html:435
 msgid ""
 "Keys are lowercase without separators. On /workitems an unknown key "
 "answers 400 Unknown field, and a real field outside your key's scope "
@@ -3957,7 +4017,7 @@ msgstr ""
 "process scope; ein fehlgeschlagenes Laden der Konfiguration liefert 500, "
 "nie eine unvollständige Liste."
 
-#: templates/api_docs.html:407
+#: templates/api_docs.html:441
 msgid ""
 "The count of workitems currently in each stage (Import, Extraction, "
 "Validation, Delivery) for your key's process scope. No parameters; the "
@@ -3968,7 +4028,7 @@ msgstr ""
 "Schlüssels. Keine Parameter; die Zahlen entsprechen immer einer nach "
 "Stufe gefilterten /workitems-Abfrage."
 
-#: templates/api_docs.html:427
+#: templates/api_docs.html:461
 msgid ""
 "datetime is the server-local timestamp the counts were computed at. An "
 "empty process scope returns all zeros; a degraded workitem source answers"
@@ -3981,7 +4041,7 @@ msgstr ""
 "unvollständiger Zahlen. Kein Caching: jeder Aufruf berechnet frische "
 "Zahlen."
 
-#: templates/api_docs.html:433
+#: templates/api_docs.html:467
 msgid ""
 "The document details the overview row-expand shows for one workitem: "
 "extracted field values and table values. No page images, confidence or "
@@ -3991,7 +4051,7 @@ msgstr ""
 " extrahierte Feldwerte und Tabellenwerte. Keine Seitenbilder, Konfidenzen"
 " oder Fundstellen; sensible Felder werden immer entfernt."
 
-#: templates/api_docs.html:472
+#: templates/api_docs.html:506
 msgid ""
 "Extracted field name → value, mapped through the same field-name mapping "
 "the overview uses"
@@ -3999,11 +4059,11 @@ msgstr ""
 "Extrahierter Feldname → Wert, abgebildet über dieselbe Feldnamen-"
 "Zuordnung wie in der Übersicht"
 
-#: templates/api_docs.html:473
+#: templates/api_docs.html:507
 msgid "Extracted tables: title, columns, and rows of column/value cells"
 msgstr "Extrahierte Tabellen: Titel, Spalten und Zeilen aus Spalte/Wert-Zellen"
 
-#: templates/api_docs.html:477
+#: templates/api_docs.html:511
 msgid ""
 "404 with a null detail is returned uniformly for an unknown id, an id "
 "outside your key's scope, and a document the runtime backend can't load "
@@ -4016,7 +4076,7 @@ msgstr ""
 "kaltes Workitem lädt live vom Laufzeitdienst und kann einige Sekunden "
 "dauern."
 
-#: templates/api_docs.html:483
+#: templates/api_docs.html:517
 msgid ""
 "Every endpoint above has a /api/test/v1/... twin: same path suffix, same "
 "Bearer-key auth, same response shape — but the numbers are random, not "
@@ -4029,7 +4089,7 @@ msgstr ""
 "Backend-Abfragen statt, daher lässt es sich beim Aufbau einer Integration"
 " beliebig oft aufrufen."
 
-#: templates/api_docs.html:498
+#: templates/api_docs.html:532
 msgid ""
 "Use a real (enabled) API key — the same auth errors (401/429) apply. "
 "Available for"
@@ -4037,7 +4097,7 @@ msgstr ""
 "Verwenden Sie einen echten (aktivierten) API-Schlüssel — dieselben Auth-"
 "Fehler (401/429) gelten. Verfügbar für"
 
-#: templates/api_docs.html:498
+#: templates/api_docs.html:532
 msgid "and"
 msgstr "und"
 
@@ -11927,6 +11987,9 @@ msgstr ""
 #~ msgid "startDate and endDate are required"
 #~ msgstr "startDate und endDate sind erforderlich."
 
+#~ msgid "Process Configurations"
+#~ msgstr "Prozesskonfigurationen"
+
 #~ msgid "Users, organizations, sessions and logs."
 #~ msgstr "Benutzer, Organisationen, Sitzungen und Protokolle."
 
@@ -11938,9 +12001,6 @@ msgstr ""
 
 #~ msgid "edit"
 #~ msgstr "bearbeiten"
-
-#~ msgid "organizations"
-#~ msgstr "Organisationen"
 
 #~ msgid "Organizations and their codes"
 #~ msgstr "Organisationen und ihre Codes"
@@ -11956,102 +12016,6 @@ msgstr ""
 
 #~ msgid "activity &amp; events"
 #~ msgstr "Aktivität & Ereignisse"
-
-#~ msgid "Access &amp; monitoring"
-#~ msgstr ""
-
-#~ msgid ""
-#~ "Create tenants, decide which organizations "
-#~ "belong to them and mount their "
-#~ "pages"
-#~ msgstr ""
-#~ "Tenants anlegen, ihre Organisationen festlegen"
-#~ " und ihre Seiten einhängen"
-
-#~ msgid "Add tenant"
-#~ msgstr "Tenant hinzufügen"
-
-#~ msgid ""
-#~ "A tenant groups organizations; its users"
-#~ " see the tenant's pages instead of"
-#~ " the global navigation. Mounted pages "
-#~ "point at existing nexora pages. "
-#~ "Generated list/crud pages and their "
-#~ "entities come from migrations and are"
-#~ " shown read-only here."
-#~ msgstr ""
-#~ "Ein Tenant gruppiert Organisationen; seine "
-#~ "Benutzer sehen die Seiten des Tenants"
-#~ " statt der globalen Navigation. Eingehängte"
-#~ " Seiten verweisen auf bestehende nexora-"
-#~ "Seiten. Generierte list/crud-Seiten und "
-#~ "ihre Entitäten stammen aus Migrationen "
-#~ "und werden hier nur angezeigt."
-
-#~ msgid "Search tenants..."
-#~ msgstr "Tenants durchsuchen..."
-
-#~ msgid "Pages of"
-#~ msgstr "Seiten von"
-
-#~ msgid "Activate"
-#~ msgstr "Aktivieren"
-
-#~ msgid "Mount an existing page"
-#~ msgstr "Bestehende Seite einhängen"
-
-#~ msgid "key, e.g. dashboard"
-#~ msgstr "Schlüssel, z. B. dashboard"
-
-#~ msgid "Page..."
-#~ msgstr "Seite..."
-
-#~ msgid "Tenant Code"
-#~ msgstr "Tenant-Code"
-
-#~ msgid "currently in"
-#~ msgstr "derzeit in"
-
-#~ msgid ""
-#~ "Applies to this customer organization "
-#~ "and everyone in it. Leave a field"
-#~ " empty to fall back to nexora "
-#~ "branding."
-#~ msgstr ""
-#~ "Gilt für diese Kundenorganisation und "
-#~ "alle ihre Mitglieder. Lassen Sie ein "
-#~ "Feld leer, um auf das nexora-"
-#~ "Branding zurückzufallen."
-
-#~ msgid "Logo preview"
-#~ msgstr "Logo-Vorschau"
-
-#~ msgid "You do not have permission to delete this Organization."
-#~ msgstr "Sie haben keine Berechtigung, diese Organisation zu löschen."
-
-#~ msgid ""
-#~ "Are you sure you want to delete"
-#~ " this Organization? This action cannot "
-#~ "be undone."
-#~ msgstr ""
-#~ "Sind Sie sicher, dass Sie diese "
-#~ "Organisation löschen möchten? Diese Aktion "
-#~ "kann nicht rückgängig gemacht werden."
-
-#~ msgid "Data Connections"
-#~ msgstr "Datenverbindungen"
-
-#~ msgid "Client databases and runtime engines"
-#~ msgstr "Client-Datenbanken und Runtime-Engines"
-
-#~ msgid "%(n)s not loaded"
-#~ msgstr "%(n)s nicht geladen"
-
-#~ msgid "Process Configurations"
-#~ msgstr "Prozesskonfigurationen"
-
-#~ msgid "Field mappings per process"
-#~ msgstr "Feldzuordnungen pro Prozess"
 
 #~ msgid "Data Connections - nexora"
 #~ msgstr "Datenverbindungen - nexora"
@@ -12135,35 +12099,25 @@ msgstr ""
 #~ msgid "Add a new Client"
 #~ msgstr "Neuen Client hinzufügen"
 
-#~ msgid "Client Code"
-#~ msgstr "Client-Code"
-
 #~ msgid "Display Name"
 #~ msgstr "Anzeigename"
-
-#~ msgid "Runtime Engine Key"
-#~ msgstr "Runtime-Engine-Schlüssel"
-
-#~ msgid "Stats Engine Key (optional)"
-#~ msgstr "Statistik-Engine-Schlüssel (optional)"
-
-#~ msgid "Stats Dialect (optional)"
-#~ msgstr "Statistik-Dialekt (optional)"
-
-#~ msgid "Doc-field Engine Key (optional)"
-#~ msgstr "Dokumentfeld-Engine-Schlüssel (optional)"
-
-#~ msgid "Doc-field Dialect (optional)"
-#~ msgstr "Dokumentfeld-Dialekt (optional)"
-
-#~ msgid "Octo Domain (optional)"
-#~ msgstr "Octo-Domäne (optional)"
 
 #~ msgid "Secret Ref (env-key prefix, optional)"
 #~ msgstr "Secret-Ref (Env-Key-Präfix, optional)"
 
-#~ msgid "Save Client"
-#~ msgstr "Client speichern"
+#~ msgid ""
+#~ "Applies to this customer organization "
+#~ "and everyone in it. Leave a field"
+#~ " empty to fall back to nexora "
+#~ "branding."
+#~ msgstr ""
+#~ "Gilt für diese Kundenorganisation und "
+#~ "alle ihre Mitglieder. Lassen Sie ein "
+#~ "Feld leer, um auf das nexora-"
+#~ "Branding zurückzufallen."
+
+#~ msgid "Logo preview"
+#~ msgstr "Logo-Vorschau"
 
 #~ msgid "Process Configurations - nexora"
 #~ msgstr "Prozesskonfigurationen - nexora"
@@ -12252,9 +12206,6 @@ msgstr ""
 #~ msgid "Select a client..."
 #~ msgstr "Client auswählen..."
 
-#~ msgid "Process Name"
-#~ msgstr "Prozessname"
-
 #~ msgid ""
 #~ "Exactly <customer>.<process> -- two parts "
 #~ "separated by a single dot, e.g. "
@@ -12264,55 +12215,23 @@ msgstr ""
 #~ "einen einzelnen Punkt getrennte Teile, "
 #~ "z. B. acme.01_Invoice."
 
-#~ msgid "Table Name"
-#~ msgstr "Tabellenname"
-
 #~ msgid "Table Alias (optional)"
 #~ msgstr "Tabellenalias (optional)"
 
 #~ msgid "Export Column (optional)"
 #~ msgstr "Exportspalte (optional)"
 
-#~ msgid "Import Column (optional)"
-#~ msgstr "Importspalte (optional)"
-
-#~ msgid "Workitem Column (optional)"
-#~ msgstr "Workitem-Spalte (optional)"
-
 #~ msgid "Id Column Type (optional)"
 #~ msgstr "Id-Spaltentyp (optional)"
 
-#~ msgid ""
-#~ "Join condition, time filters and extra"
-#~ " condition are free-form SQL and "
-#~ "are not editable here -- change "
-#~ "them with a migration."
-#~ msgstr ""
-#~ "Join-Bedingung, Zeitfilter und Zusatzbedingung"
-#~ " sind freies SQL und hier nicht "
-#~ "editierbar -- ändern Sie sie über "
-#~ "eine Migration."
-
-#~ msgid "Add a field mapping"
-#~ msgstr "Feldzuordnung hinzufügen"
-
 #~ msgid "Field Key"
 #~ msgstr "Feldschlüssel"
-
-#~ msgid "Column Name"
-#~ msgstr "Spaltenname"
 
 #~ msgid "Column Type (optional)"
 #~ msgstr "Spaltentyp (optional)"
 
 #~ msgid "Tenants - nexora"
 #~ msgstr "Tenants - nexora"
-
-#~ msgid "No users"
-#~ msgstr "Keine Benutzer"
-
-#~ msgid "No profile bound to this organization"
-#~ msgstr "Kein Profil an diese Organisation gebunden"
 
 #~ msgid "Global profiles in use:"
 #~ msgstr "Verwendete globale Profile:"
@@ -12322,11 +12241,6 @@ msgstr ""
 
 #~ msgid "Client %(code)s is missing"
 #~ msgstr "Client %(code)s fehlt"
-
-#~ msgid "%(num)d field"
-#~ msgid_plural "%(num)d fields"
-#~ msgstr[0] "%(num)d Feld"
-#~ msgstr[1] "%(num)d Felder"
 
 #~ msgid "Requires admin.processes.view"
 #~ msgstr "Benötigt admin.processes.view"
@@ -12374,11 +12288,6 @@ msgstr ""
 #~ "Tenant, Organisation, Benutzer, Profil, "
 #~ "Verbindung oder Prozess suchen..."
 
-#~ msgid "%(num)d organization"
-#~ msgid_plural "%(num)d organizations"
-#~ msgstr[0] "%(num)d Organisation"
-#~ msgstr[1] "%(num)d Organisationen"
-
 #~ msgid "Permission that grants access to this tenant's pages"
 #~ msgstr "Berechtigung, die Zugriff auf die Seiten dieses Tenants gewährt"
 
@@ -12391,9 +12300,6 @@ msgstr ""
 #~ " Tenant -- auf der Seite "
 #~ "Organisationen zuweisen."
 
-#~ msgid "No pages"
-#~ msgstr "Keine Seiten"
-
 #~ msgid ""
 #~ "No tenants yet. A tenant groups "
 #~ "organizations; today tenants are created "
@@ -12402,12 +12308,6 @@ msgstr ""
 #~ "Noch keine Tenants. Ein Tenant gruppiert"
 #~ " Organisationen; heute werden Tenants per"
 #~ " Migration angelegt."
-
-#~ msgid "Organizations not in a tenant"
-#~ msgstr "Organisationen ohne Tenant"
-
-#~ msgid "Shared across organizations"
-#~ msgstr "Organisationsübergreifend"
 
 #~ msgid "Data connections no organization rides"
 #~ msgstr "Datenverbindungen, die keine Organisation nutzt"
@@ -12420,6 +12320,55 @@ msgstr ""
 
 #~ msgid "Not bound to an organization -- assignable to any user."
 #~ msgstr "Nicht an eine Organisation gebunden -- jedem Benutzer zuweisbar."
+
+#~ msgid ""
+#~ "Create tenants, decide which organizations "
+#~ "belong to them and mount their "
+#~ "pages"
+#~ msgstr ""
+#~ "Tenants anlegen, ihre Organisationen festlegen"
+#~ " und ihre Seiten einhängen"
+
+#~ msgid "Add tenant"
+#~ msgstr "Tenant hinzufügen"
+
+#~ msgid ""
+#~ "A tenant groups organizations; its users"
+#~ " see the tenant's pages instead of"
+#~ " the global navigation. Mounted pages "
+#~ "point at existing nexora pages. "
+#~ "Generated list/crud pages and their "
+#~ "entities come from migrations and are"
+#~ " shown read-only here."
+#~ msgstr ""
+#~ "Ein Tenant gruppiert Organisationen; seine "
+#~ "Benutzer sehen die Seiten des Tenants"
+#~ " statt der globalen Navigation. Eingehängte"
+#~ " Seiten verweisen auf bestehende nexora-"
+#~ "Seiten. Generierte list/crud-Seiten und "
+#~ "ihre Entitäten stammen aus Migrationen "
+#~ "und werden hier nur angezeigt."
+
+#~ msgid "Search tenants..."
+#~ msgstr "Tenants durchsuchen..."
+
+#~ msgid "Pages of"
+#~ msgstr "Seiten von"
+
+#~ msgid "Activate"
+#~ msgstr "Aktivieren"
+
+#~ msgid "key, e.g. dashboard"
+#~ msgstr "Schlüssel, z. B. dashboard"
+
+#~ msgid "Page..."
+#~ msgstr "Seite..."
+
+#~ msgid "Tenant Code"
+#~ msgstr "Tenant-Code"
+
+#~ msgid "currently in"
+#~ msgstr "derzeit in"
 
 #~ msgid "Edit Client"
 #~ msgstr "Client bearbeiten"
@@ -12434,6 +12383,18 @@ msgstr ""
 #~ msgstr ""
 #~ "Sind Sie sicher, dass Sie diesen "
 #~ "Client löschen möchten? Diese Aktion "
+#~ "kann nicht rückgängig gemacht werden."
+
+#~ msgid "You do not have permission to delete this Organization."
+#~ msgstr "Sie haben keine Berechtigung, diese Organisation zu löschen."
+
+#~ msgid ""
+#~ "Are you sure you want to delete"
+#~ " this Organization? This action cannot "
+#~ "be undone."
+#~ msgstr ""
+#~ "Sind Sie sicher, dass Sie diese "
+#~ "Organisation löschen möchten? Diese Aktion "
 #~ "kann nicht rückgängig gemacht werden."
 
 #~ msgid ""

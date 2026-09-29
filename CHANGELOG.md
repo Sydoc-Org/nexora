@@ -189,6 +189,20 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **`GET /api/v1/workitems?include=tables`** (#398): each row can now carry
+  its extracted table values (line items, VAT rows, order references) in
+  the same shape `/workitems/<id>` returns, resolved once per page like
+  `include=fields`; `include=fields,tables` returns both. The values are read
+  set-based from the client's **document storage database** -- Octo keeps
+  each client's documents in a separate database named after its
+  `t_DocumentStorages` row on the runtime server, and the table values sit
+  there as one plain-XML media item per document (`nx_lib/workitems/tables.py`
+  parses it with the detail endpoint's rules, `nx_lib/document_storage.py`
+  opens the storages by name) -- so there is no per-row Octo call and no
+  page-size cap. Sensitive columns are stripped with the detail endpoint's
+  rule; any storage failure 500s the whole page. `nx --doctor` gains a
+  "Document storages" section that verifies every storage the runtime lists
+  can be opened. Sandbox twin and `docs/howto/external-api.md` updated.
 - **Terms of Service and Privacy Policy pages** at `/terms` and `/privacy`
   (#260), public on purpose (a privacy notice readable only after signing in
   cannot inform the decision to sign in), linked under **Help** in the profile

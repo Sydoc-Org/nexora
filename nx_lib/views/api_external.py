@@ -33,10 +33,14 @@ Eight endpoints in v1:
   ?include=fields:invoicenr,kundennr (issue #356) narrows that projection to
   the named keys, validated with the SAME grammar ?field= uses; it does not
   reduce DB work (one wide row either way), only response size. Opt-in:
-  without it the response shape is unchanged. Indexed fields only -- table
-  values and Octo document/media info stay on the detail endpoint -- and the
-  projection is scoped to the key's own processes with sensitive keys never
-  entering the select list.
+  without it the response shape is unchanged. The projection is scoped to
+  the key's own processes with sensitive keys never entering the select
+  list. ?include=tables (issue #398) likewise projects each row's extracted
+  TABLE values (the detail endpoint's `tables` shape) -- read set-based from
+  the client's document-storage database (nx_lib/document_storage.py), one
+  query per storage per page, never one Octo call per row; sensitive
+  columns are stripped with the detail endpoint's token rule. Octo
+  document/media info stays on the detail endpoint.
 - GET /api/v1/workitems/fields -- DISCOVERY for the query endpoint: the
   field keys /workitems accepts in ?field= for THIS key's process scope
   (mapping_config field keys mapped for >=1 of the key's processes,
@@ -85,6 +89,7 @@ from werkzeug.datastructures import MultiDict
 from ..api_auth import require_api_key
 from ..clients import workitem_clients
 from ..db import engine_ms02_docfields_pg, engine_statistics_db
+from ..document_storage import fetch_workitem_tables
 from ..extensions import limiter
 from ..workitem_sources import (
     get_domain_for_workitem,
@@ -237,9 +242,9 @@ WORKITEM_API_STATUSES = ("Ready", "In Progress", "Done")
 # Mirrors the overview's perPage whitelist -- validated as strings like ?days=.
 WORKITEM_API_PER_PAGE = ("40", "100", "200", "500", "1000")
 
-# ?include= tokens accepted by /workitems (issue #341). Opt-in only: without
-# it the response shape is byte-for-byte what it was before.
-WORKITEM_API_INCLUDE = ("fields",)
+# ?include= tokens accepted by /workitems (issues #341, #398). Opt-in only:
+# without it the response shape is byte-for-byte what it was before.
+WORKITEM_API_INCLUDE = ("fields", "tables")
 
 # Cap on an inline `include=fields:<key>,<key>` selection (issue #356) --
 # bounds the machine surface like WORKITEM_API_MAX_DOCFIELD_PAIRS does for
@@ -248,39 +253,49 @@ WORKITEM_API_MAX_INCLUDE_KEYS = 30
 
 
 def _parse_include_or_400():
-    """(error, want_fields, requested_keys) for ?include=.
+    """(error, want_fields, requested_keys, want_tables) for ?include=.
 
     ``fields`` alone means every mapped, non-sensitive key (the #341
     behaviour). ``fields:invoicenr,kundennr`` narrows the projection to those
     keys (#356) -- returned lowercased, or None when no list was given.
+    ``tables`` (#398) adds each row's extracted table values; ``fields,tables``
+    combines both.
 
     The comma separates include TOKENS, so a key list is only accepted on a
-    lone ``fields`` token; everything after the first ``:`` is the list.
-    Unknown tokens 400 rather than being ignored, so a typo'd include never
-    silently returns no fields. The keys themselves are validated by the
-    caller, which alone knows the key's scoped/sensitive sets."""
+    lone ``fields`` token; everything after the first ``:`` is the list
+    (``tables:<anything>`` is therefore a 400 too). Unknown tokens 400 rather
+    than being ignored, so a typo'd include never silently returns no
+    fields. The keys themselves are validated by the caller, which alone
+    knows the key's scoped/sensitive sets."""
     raw = (request.args.get("include") or "").strip()
     if not raw:
-        return None, False, None
+        return None, False, None, False
     head, sep, tail = raw.partition(":")
     tokens = [t.strip().lower() for t in head.split(",") if t.strip()]
     if any(t not in WORKITEM_API_INCLUDE for t in tokens):
-        return "include must be one of: " + ", ".join(WORKITEM_API_INCLUDE), False, None
+        return "include must be one of: " + ", ".join(WORKITEM_API_INCLUDE), False, None, False
     want_fields = "fields" in tokens
+    want_tables = "tables" in tokens
     if not sep:
-        return None, want_fields, None
+        return None, want_fields, None, want_tables
     if tokens != ["fields"]:
-        return "a field-key list is only valid as include=fields:<key>,<key>", False, None
+        return (
+            "a field-key list is only valid as include=fields:<key>,<key>",
+            False,
+            None,
+            False,
+        )
     keys = [k.strip().lower() for k in tail.split(",") if k.strip()]
     if not keys:
-        return "include=fields: must name at least one field key", False, None
+        return "include=fields: must name at least one field key", False, None, False
     if len(keys) > WORKITEM_API_MAX_INCLUDE_KEYS:
         return (
             f"at most {WORKITEM_API_MAX_INCLUDE_KEYS} field keys per include",
             False,
             None,
+            False,
         )
-    return None, want_fields, keys
+    return None, want_fields, keys, False
 
 
 def _include_keys_or_400(requested_keys, scoped_columns, blocked_keys):
@@ -432,7 +447,7 @@ def _fmt_dt(value):
     return value.strftime("%Y-%m-%d %H:%M:%S") if value else None
 
 
-def _serialize_workitem_row(row, import_map, field_map=None):
+def _serialize_workitem_row(row, import_map, field_map=None, table_map=None):
     wid = row["workitemid"]
     # import_datetime only for default-client rows: an MS02 id can collide
     # with a default stat row (compound identity), so a bare-id lookup would
@@ -450,6 +465,8 @@ def _serialize_workitem_row(row, import_map, field_map=None):
         # Compound identity: an MS02 id can collide with a default one, so the
         # projection is keyed (client, id) -- never by bare id.
         out["fields"] = field_map.get((row.get("client"), wid), {})
+    if table_map is not None:
+        out["tables"] = table_map.get((row.get("client"), wid), [])
     return out
 
 
@@ -462,9 +479,16 @@ def api_v1_workitems():
     blocked_keys = get_sensitive_field_keys()
     if blocked_keys is None:
         return jsonify({"error": "Workitems backend unavailable"}), 500
-    err, want_fields, include_keys = _parse_include_or_400()
+    err, want_fields, include_keys, want_tables = _parse_include_or_400()
     if err:
         return jsonify({"error": err}), 400
+    blocked_tokens = None
+    if want_tables:
+        # The table projection strips columns by the detail endpoint's name-token
+        # rule; resolved up front and failing CLOSED like the key set above.
+        blocked_tokens = get_sensitive_field_tokens()
+        if blocked_tokens is None:
+            return jsonify({"error": "Workitems backend unavailable"}), 500
     scoped_columns: set | frozenset = frozenset()
     if request.args.getlist("field") or want_fields:
         # Only resolved when field pairs or ?include=fields are present (one
@@ -512,12 +536,22 @@ def api_v1_workitems():
         default_ids = [r["workitemid"] for r in data["workitems"] if r.get("client") == "default"]
         import_map = resolve_import_datetimes(default_ids, processes, strict=True)
         field_map = None
+        table_map = None
+        ids_by_client: dict[str, list] = {}
+        for r in data["workitems"]:
+            ids_by_client.setdefault(r.get("client"), []).append(r["workitemid"])
+        if want_tables:
+            # One set-based read per client storage for the whole page (#398);
+            # a storage failure raises and 500s the page like any other source.
+            table_map = {
+                key: _strip_sensitive_table_columns(tables, blocked_tokens)
+                for key, tables in fetch_workitem_tables(
+                    ids_by_client, logger=current_app.logger
+                ).items()
+            }
         if want_fields:
             # Redaction by construction: the sensitive keys never enter the
             # projection, so nothing has to be stripped afterwards.
-            ids_by_client: dict[str, list] = {}
-            for r in data["workitems"]:
-                ids_by_client.setdefault(r.get("client"), []).append(r["workitemid"])
             field_map = fetch_docfield_values(
                 ids_by_client,
                 processes,
@@ -537,7 +571,8 @@ def api_v1_workitems():
             "per_page": pagination["perPage"],
             "total_pages": pagination["totalPages"],
             "workitems": [
-                _serialize_workitem_row(r, import_map, field_map) for r in data["workitems"]
+                _serialize_workitem_row(r, import_map, field_map, table_map)
+                for r in data["workitems"]
             ],
         }
     )
@@ -592,26 +627,40 @@ def api_v1_stages():
     )
 
 
-def _api_tables(table_sources, blocked_tokens):
-    """Reduce the detail panel's table_sources to plain value tables for the
-    external API: locations/confidence dropped, and any column whose
-    normalized name matches a sensitive doc-field token removed --
-    strip_sensitive_from_detail only covers fields/field_sources (no in-app
-    surface renders tables to unauthorized callers; the API's fixed
-    no-sensitive policy has to cover them itself)."""
+def _strip_sensitive_table_columns(tables, blocked_tokens):
+    """Drop every column whose normalized name matches a sensitive doc-field
+    token from API-shaped tables (``{title, columns, rows: [[{column,
+    value}]]}``) -- strip_sensitive_from_detail only covers
+    fields/field_sources (no in-app surface renders tables to unauthorized
+    callers; the API's fixed no-sensitive policy has to cover them itself).
+    Shared by the detail endpoint and the ?include=tables projection."""
     out = []
-    for t in table_sources or []:
+    for t in tables or []:
         cols = [c for c in (t.get("columns") or []) if _norm_field_token(c) not in blocked_tokens]
         rows = [
-            [
-                {"column": c.get("col"), "value": c.get("value")}
-                for c in row
-                if _norm_field_token(c.get("col")) not in blocked_tokens
-            ]
+            [c for c in row if _norm_field_token(c.get("column")) not in blocked_tokens]
             for row in (t.get("rows") or [])
         ]
         out.append({"title": t.get("title"), "columns": cols, "rows": rows})
     return out
+
+
+def _api_tables(table_sources, blocked_tokens):
+    """Reduce the detail panel's table_sources to plain value tables for the
+    external API: locations/confidence dropped, then sensitive columns
+    removed (_strip_sensitive_table_columns)."""
+    plain = [
+        {
+            "title": t.get("title"),
+            "columns": t.get("columns") or [],
+            "rows": [
+                [{"column": c.get("col"), "value": c.get("value")} for c in row]
+                for row in (t.get("rows") or [])
+            ],
+        }
+        for t in table_sources or []
+    ]
+    return _strip_sensitive_table_columns(plain, blocked_tokens)
 
 
 @limiter.limit("60 per minute")
@@ -722,6 +771,22 @@ def api_test_v1_undelivered():
     )
 
 
+def _fake_table():
+    """A plausible sandbox line-item table in the real ``tables`` shape."""
+    columns = ["Description", "Quantity", "Amount"]
+    rows = []
+    for _i in range(random.randint(1, 3)):
+        qty = random.randint(1, 12)
+        rows.append(
+            [
+                {"column": "Description", "value": random.choice(("Widget", "Service", "Fee"))},
+                {"column": "Quantity", "value": str(qty)},
+                {"column": "Amount", "value": f"{qty * random.randint(5, 400)}.00"},
+            ]
+        )
+    return {"title": "LineItems", "columns": columns, "rows": rows}
+
+
 def _fake_field_value(key):
     """A plausible sandbox value for a doc-field key: invoice-shaped for the
     obvious ones, otherwise a bare number -- enough for an integrator to see
@@ -740,7 +805,7 @@ def api_test_v1_workitems():
     err, args = _parse_workitems_query(g.api_client["processes"], validate_fields=False)
     if err:
         return jsonify({"error": err}), 400
-    err, want_fields, include_keys = _parse_include_or_400()
+    err, want_fields, include_keys, want_tables = _parse_include_or_400()
     if err:
         return jsonify({"error": err}), 400
     per_page = int(args.get("perPage"))
@@ -772,6 +837,10 @@ def api_test_v1_workitems():
                 rows[-1]["fields"] = {k: _fake_field_value(k) for k in include_keys}
             else:
                 rows[-1]["fields"] = {k: _fake_field_value(k) for k in ("invoicenr", "kundennr")}
+        if want_tables:
+            # Sandbox twin of the table projection (#398): the real shape, zero
+            # backend reads; some rows carry no table at all.
+            rows[-1]["tables"] = [] if random.random() < 0.2 else [_fake_table()]
     return jsonify(
         {
             "count": count,
