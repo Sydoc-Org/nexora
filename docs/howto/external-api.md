@@ -178,7 +178,7 @@ English `error` string — nothing is silently coerced or ignored):
 | `process` | comma-joined subset of the key's `ProcessList` (default: all of it) |
 | `field` / `value` / `op` / `comb` | repeated doc-field filter pairs, see below |
 | `page` / `per_page` | paging; `per_page` accepts only `40`, `100`, `200`, `500`, `1000` (default `40`) |
-| `include` | `fields` — also return each row's indexed doc-field values; `fields:invoicenr,kundennr` narrows that to the named keys (see below); anything else `400`s |
+| `include` | `fields` — also return each row's indexed doc-field values; `fields:invoicenr,kundennr` narrows that to the named keys (see below); `tables` — also return each row's extracted table values (see below); `fields,tables` combines both; anything else `400`s |
 
 Doc-field filters repeat in parallel: each `field`+`value` pair may carry an
 `op` (`contains` default, `ncontains`, `eq`, `neq`, `startswith`,
@@ -266,8 +266,8 @@ want.
 - **Indexed fields only.** These are the same field keys
   `GET /api/v1/workitems/fields` lists — the values held in the statistics
   index, keyed exactly as you would write them in a `field=` filter. Table
-  values and the document/page information stay on `/workitems/<id>`; there
-  is no `include=tables`.
+  values have their own include (`include=tables`, next section); the
+  document/page information stays on `/workitems/<id>`.
 - **Empty is normal.** A workitem with nothing indexed yet (or whose values
   are all blank) gets `"fields": {}` — never a missing key.
 - **Scoped and redacted by construction.** Only columns mapped for your own
@@ -279,6 +279,70 @@ want.
   `per_page` is now the cheap way to read a lot of rows. A failure there
   returns `500 {"error": "Workitems backend unavailable"}` like any other
   backing-source failure — never a page with silently missing values.
+
+### `?include=tables` — table values without the N+1
+
+The same idea for the extracted **table** values (line items, VAT rows,
+order references): `include=tables` adds a `tables` list to every row, in
+exactly the shape `/workitems/<id>` returns, resolved **once per page**.
+`include=fields,tables` returns both.
+
+    curl -H "Authorization: Bearer <key>" \
+        "https://nexora.sydoc.ch/nexora/api/v1/workitems?status=Ready&include=tables"
+
+    {
+      "count": 1,
+      "page": 1,
+      "per_page": 40,
+      "total_pages": 1,
+      "workitems": [
+        {
+          "id": 78214,
+          "status": "Ready",
+          "stage": "Validation",
+          "modified_at": "2026-08-04 10:02:11",
+          "import_datetime": "2026-08-04 09:12:31",
+          "tables": [
+            {
+              "title": "TabVat",
+              "columns": ["TabNetAmount", "TabVatAmount", "TabVatRate", "TabVatCode"],
+              "rows": [
+                [
+                  {"column": "TabNetAmount", "value": "195.20"},
+                  {"column": "TabVatAmount", "value": "5.08"},
+                  {"column": "TabVatRate", "value": "2.6"},
+                  {"column": "TabVatCode", "value": "Z2_2024"}
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    }
+
+- **Same data as the detail call.** The values are read straight from the
+  client's document storage — the database Octo keeps the documents in —
+  rather than through the document service, and reduced by the same rules
+  the detail endpoint applies: cells without a value are skipped, rows and
+  tables left empty by that are dropped, and for a container document
+  (a batch) the leaf documents' tables are returned, not the container's.
+  `columns` lists the columns that carry a value in at least one row.
+- **Empty is normal.** A workitem whose documents hold no populated table
+  gets `"tables": []` — never a missing key.
+- **Redacted.** Columns whose name matches a sensitive doc-field are
+  removed, from `columns` and from every row, exactly as on
+  `/workitems/<id>`.
+- **No key list.** `include=tables:<anything>` is a `400`; the key list
+  belongs to `fields` only.
+- **Opt-in.** Without it the response is byte-for-byte unchanged.
+- **Cost.** One read per client storage per page, no per-row work, so a
+  large `per_page` is fine. It is a heavy call by nature: a 1000-row page
+  of a client with long line-item tables (Elektromaterial's order items,
+  measured at up to 115 MB of stored XML) takes on the order of **10 to 25
+  seconds**; a 40-row page well under a second, and a 1000-row page of a
+  client without line items a few seconds. A failure returns
+  `500 {"error": "Workitems backend unavailable"}` for the whole page,
+  never a page with silently missing tables.
 
 ## GET /api/v1/workitems/fields
 

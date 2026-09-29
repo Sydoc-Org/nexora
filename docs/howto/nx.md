@@ -170,6 +170,10 @@ layer the app depends on:
   compile state
 - **Databases** — pings all four engines (NexoraDB, OctoDB, StatisticsDB,
   GeneraliDB) and checks the ODBC driver
+- **Document storages** — every Octo document storage the runtime lists
+  (`t_DocumentStorages`) opens as a database of that name on the runtime
+  server; `/api/v1/workitems?include=tables` reads table values from there
+  (#398). Skipped when the OctoDB ping failed.
 - **Migrations** — pending schema migrations for the current env
 - **Schema dump** — drift between the per-object SQL files and INT
 - **Tooling** — `sqlcmd`, `mssql-scripter`, `git`, `pybabel`, `powershell` on PATH
