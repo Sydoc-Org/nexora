@@ -10,6 +10,9 @@
         idColumn: {{ entity.id_column|tojson }},
         entityKind: {{ entity.kind|tojson }},
         canEdit: {{ (can_edit and page.page_type == 'crud')|tojson }},
+        // Counter column offered as max+1 in the add sheet, or null. Set in
+        // page.html's hardcoded per-page hint map -- see the comment there.
+        sequenceColumn: {{ (sequence_column if is_crud and can_edit else None)|tojson }},
         fields: [
             {% for f in fields if f.column != entity.id_column %}
             {
@@ -30,6 +33,9 @@
             delete: {{ _("Delete")|tojson }},
             openInWorkitems: {{ _("Open in Workitems")|tojson }},
             pageInfo: {{ _("{start}-{end} of {total}")|tojson }},
+            recordCount: {{ _("{total} records")|tojson }},
+            lastUsed: {{ _("Last used: {value}")|tojson }},
+            noneYet: {{ _("No entry yet")|tojson }},
             genericError: {{ _("An unexpected network error occurred.")|tojson }}
         }
     };

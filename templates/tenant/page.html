@@ -6,7 +6,10 @@
     {% include '_theme_prepaint.html' %}
     <link rel="stylesheet" href="{{ static_v('css/nexora-ui.css') }}">
     <title>{{ (tenant.display_name ~ ' - ' ~ page.key) if tenant and page else _("Tenant page") }} - nexora</title>
+    {# admin.css carries the side-sheet + field primitives (.adm-sheet, .adm-field)
+       this page reuses; tenant-page.css is the slim layout on top of them. #}
     <link rel="stylesheet" href="{{ static_v('css/admin.css') }}">
+    <link rel="stylesheet" href="{{ static_v('css/tenant-page.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous" />
 </head>
 <body class="nx-app">
@@ -20,13 +23,20 @@
            None -- a load error is never cached). Explicit unavailable state,
            never an empty-looking page (mirrors api_admin_processes_list's
            mapping_config_available contract). #}
-        {{ a.page_header(title=_('Tenant page unavailable'), icon='fa-triangle-exclamation') }}
-        <div class="nx-card nx-bg-lred" style="margin:-8px 0 16px;padding:12px 16px" data-testid="tenant-page-unavailable">
-            <strong class="nx-c-danger"><i class="fas fa-triangle-exclamation"></i>
-                {{ _("This tenant page is temporarily unavailable") }}</strong>
-            <p class="nx-c-sec" style="font-size:0.85rem;margin:4px 0 0">
-                {{ _("The tenant configuration could not be loaded. Try again shortly; if this persists, contact an administrator.") }}
-            </p>
+        <div class="nx-page-head nx-rise">
+            <div class="nx-page-head__main">
+                <div class="nx-page-head__title">
+                    <span class="nx-page-icon"><i class="fas fa-triangle-exclamation"></i></span>
+                    <div>
+                        <h1 class="nx-title">{{ _('Tenant page unavailable') }}</h1>
+                        <p class="tp-head__meta">{{ tenant_code }} · {{ page_key }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="nx-flash nx-flash--error" data-testid="tenant-page-unavailable">
+            <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+            <span>{{ _("The tenant configuration could not be loaded. Try again shortly; if this persists, contact an administrator.") }}</span>
         </div>
         {% else %}
         {# Derived once, not repeated per row: the filter row (Step 1) is text
@@ -40,104 +50,180 @@
         {% set date_filter_fields = fields|selectattr('semantic_role', 'equalto', 'date')|list %}
         {% set first_date_field = date_filter_fields[0] if date_filter_fields else None %}
         {% set is_crud = page.page_type == 'crud' %}
-        {% set page_actions = ([{'label': _('Add'), 'icon': 'fa-plus', 'onclick': 'openTenantAddModal()', 'variant': 'primary', 'testid': 'tenant-add'}] if (is_crud and can_edit) else []) + [{'label': _('Export'), 'icon': 'fa-file-export', 'onclick': 'exportTenantRecords()', 'variant': 'secondary', 'testid': 'tenant-export'}] %}
+        {% set entity_label = (entity.labels.get(current_lang) or entity.labels.get('en') or entity.key) %}
+        {% set person_field = (fields|selectattr('semantic_role', 'equalto', 'person')|list|first) %}
 
-        {{ a.page_header(
-            title=tenant.display_name,
-            subtitle=(entity.labels.get(current_lang) or entity.labels.get('en')) if entity else None,
-            actions=page_actions,
-            icon='fa-table'
-        ) }}
+        {# ---- page-specific write-form hints -------------------------------
+           Hardcoded on purpose, keyed by tenant/page/column. dbo.TenantFields
+           carries no option list and no "this column is a counter" flag, so
+           the two MediaMarkt specifics the operators asked for live here
+           rather than in the registry. Both are read by the loop below and by
+           js/_tenant_page_js.html -- one place to edit, and the generic path
+           (no entry for a page) is unchanged. Lift them into TenantFields the
+           day a second page needs them. #}
+        {% set field_choices = {
+             'sydoc/mediamarkt/DocType': ['K', 'D', 'KA']
+           } %}
+        {% set sequence_columns = { 'sydoc/mediamarkt': 'BatchNo' } %}
+        {% set sequence_column = sequence_columns.get(tenant_code ~ '/' ~ page_key) %}
 
-        {# The id column is always filterable (mirrors _order_by's own
-           id_column fallback in queries.py -- sortable, so filterable too;
-           task-9 brief parity gap: /workitems' id-prefix search had no
-           tenant-page equivalent) -- shown unconditionally, unlike the
-           descriptor-driven field filters below. #}
-        <div class="nx-filter mb-6" data-testid="tenant-filter-bar">
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div>
-                    <label for="tenant-filter-{{ entity.id_column }}" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ entity.id_column }}</label>
-                    <div class="nx-input-icon">
-                        <i class="fas fa-search"></i>
-                        <input type="text" id="tenant-filter-{{ entity.id_column }}" class="nx-input tenant-filter-input" data-filter="filter_{{ entity.id_column }}" data-testid="tenant-filter-{{ entity.id_column }}">
+        <div class="nx-page-head nx-rise">
+            <div class="nx-page-head__main">
+                <div class="nx-page-head__title">
+                    <span class="nx-page-icon"><i class="fas fa-table"></i></span>
+                    <div>
+                        <h1 class="nx-title">{{ entity_label }}</h1>
+                        {# One meta line, not a subtitle paragraph: tenant, then the
+                           live record count the list call fills in. #}
+                        <p class="tp-head__meta">{{ tenant.display_name }} · <span id="tenant-head-count" data-testid="tenant-head-count">—</span></p>
                     </div>
                 </div>
-                {% for f in text_filter_fields %}
-                <div>
-                    <label for="tenant-filter-{{ f.column }}" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ f.labels.get(current_lang) or f.labels.get('en') or f.column }}</label>
-                    <div class="nx-input-icon">
-                        <i class="fas fa-search"></i>
-                        <input type="text" id="tenant-filter-{{ f.column }}" class="nx-input tenant-filter-input" data-filter="filter_{{ f.column }}" data-testid="tenant-filter-{{ f.column }}">
-                    </div>
-                </div>
-                {% endfor %}
-                {% if first_date_field %}
-                <div>
-                    <label for="tenant-filter-{{ first_date_field.column }}-from" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ first_date_field.labels.get(current_lang) or first_date_field.labels.get('en') or first_date_field.column }} ({{ _('from') }})</label>
-                    <input type="date" id="tenant-filter-{{ first_date_field.column }}-from" class="nx-input tenant-filter-input" data-filter="filter_{{ first_date_field.column }}_from" data-testid="tenant-filter-{{ first_date_field.column }}-from">
-                </div>
-                <div>
-                    <label for="tenant-filter-{{ first_date_field.column }}-to" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ first_date_field.labels.get(current_lang) or first_date_field.labels.get('en') or first_date_field.column }} ({{ _('to') }})</label>
-                    <input type="date" id="tenant-filter-{{ first_date_field.column }}-to" class="nx-input tenant-filter-input" data-filter="filter_{{ first_date_field.column }}_to" data-testid="tenant-filter-{{ first_date_field.column }}-to">
-                </div>
+            </div>
+            <div class="nx-page-head__actions">
+                {% if is_crud and can_edit %}
+                <button type="button" class="nx-btn nx-btn--primary" id="tenant-add-btn" data-testid="tenant-add">
+                    <i class="fas fa-plus" aria-hidden="true"></i> {{ _('Add') }}
+                </button>
                 {% endif %}
+                <button type="button" class="nx-btn nx-btn--secondary" id="tenant-export-btn" data-testid="tenant-export">
+                    <i class="fas fa-download" aria-hidden="true"></i> {{ _('Export') }}
+                </button>
             </div>
         </div>
 
+        {# Filters sit directly on the page above a hairline (slim FilterRow),
+           never in a bordered panel. The id column is always filterable
+           (mirrors _order_by's own id_column fallback in queries.py --
+           sortable, so filterable too) -- shown unconditionally, unlike the
+           descriptor-driven field filters below. #}
+        <div class="tp-filters" data-testid="tenant-filter-bar">
+            <div class="tp-filter">
+                <label class="tp-filter__label" for="tenant-filter-{{ entity.id_column }}">{{ entity.id_column }}</label>
+                <div class="nx-input-icon">
+                    <i class="fas fa-magnifying-glass"></i>
+                    <input type="text" id="tenant-filter-{{ entity.id_column }}" class="nx-input tenant-filter-input" data-filter="filter_{{ entity.id_column }}" data-testid="tenant-filter-{{ entity.id_column }}">
+                </div>
+            </div>
+            {% for f in text_filter_fields %}
+            <div class="tp-filter">
+                <label class="tp-filter__label" for="tenant-filter-{{ f.column }}">{{ f.labels.get(current_lang) or f.labels.get('en') or f.column }}</label>
+                <div class="nx-input-icon">
+                    <i class="fas fa-magnifying-glass"></i>
+                    <input type="text" id="tenant-filter-{{ f.column }}" class="nx-input tenant-filter-input" data-filter="filter_{{ f.column }}" data-testid="tenant-filter-{{ f.column }}">
+                </div>
+            </div>
+            {% endfor %}
+            {% if first_date_field %}
+            <div class="tp-filter tp-filter--range">
+                <label class="tp-filter__label" for="tenant-filter-{{ first_date_field.column }}-from">{{ first_date_field.labels.get(current_lang) or first_date_field.labels.get('en') or first_date_field.column }}</label>
+                <div class="tp-range">
+                    <input type="date" id="tenant-filter-{{ first_date_field.column }}-from" class="nx-input tenant-filter-input" aria-label="{{ _('from') }}" data-filter="filter_{{ first_date_field.column }}_from" data-testid="tenant-filter-{{ first_date_field.column }}-from">
+                    <span class="tp-range__sep" aria-hidden="true">–</span>
+                    <input type="date" id="tenant-filter-{{ first_date_field.column }}-to" class="nx-input tenant-filter-input" aria-label="{{ _('to') }}" data-filter="filter_{{ first_date_field.column }}_to" data-testid="tenant-filter-{{ first_date_field.column }}-to">
+                </div>
+            </div>
+            {% endif %}
+            <button type="button" class="nx-btn nx-btn--ghost nx-btn--sm tp-filters__reset hidden" id="tenant-filter-reset" data-testid="tenant-filter-reset">
+                <i class="fas fa-xmark" aria-hidden="true"></i> {{ _('Reset') }}
+            </button>
+        </div>
+
         <div id="tenant-page-root" data-testid="tenant-page-root" data-tenant="{{ tenant_code }}" data-page="{{ page_key }}" data-entity="{{ entity.key }}">
-            <div class="nx-table-wrap">
-                <table class="nx-table">
-                    {{ a.table_header(header_columns + ([{'label': _('Actions'), 'align': 'right', 'width': '160px'}] if (is_crud and can_edit) else [])) }}
-                    <tbody id="tenant-page-tbody" data-testid="tenant-page-tbody">
-                        {# Rows are loaded client-side (static/js/tenant_pages.js, Task 5) --
-                           this table only needs to render the field headers server-side. #}
-                    </tbody>
-                </table>
-                <div style="padding:12px 16px;border-top:1px solid var(--nx-border);display:flex;align-items:center;justify-content:space-between" id="tenant-page-pagination">
-                    <span style="font-size:13px;color:var(--nx-text-sec)" id="tenant-page-info" data-testid="tenant-page-info">{{ _('Loading…') }}</span>
-                    <div style="display:flex;gap:8px">
-                        <button type="button" id="tenant-page-prev" class="nx-btn nx-btn--secondary" disabled data-testid="tenant-page-prev">{{ _('Previous') }}</button>
-                        <button type="button" id="tenant-page-next" class="nx-btn nx-btn--secondary" disabled data-testid="tenant-page-next">{{ _('Next') }}</button>
-                    </div>
+            {# No wrapper card: the header rule and the row dividers do the framing. #}
+            <table class="nx-table tp-table">
+                {{ a.table_header(header_columns + ([{'label': _('Actions'), 'align': 'right', 'width': '120px'}] if (is_crud and can_edit) else [])) }}
+                <tbody id="tenant-page-tbody" data-testid="tenant-page-tbody">
+                    {# Rows are loaded client-side (static/js/tenant_pages.js, Task 5) --
+                       this table only needs to render the field headers server-side. #}
+                </tbody>
+            </table>
+            <div class="tp-pagination" id="tenant-page-pagination">
+                <span class="tp-pagination__info" id="tenant-page-info" data-testid="tenant-page-info">{{ _('Loading…') }}</span>
+                <div class="tp-pagination__nav">
+                    <button type="button" id="tenant-page-prev" class="nx-btn nx-btn--secondary nx-btn--sm" disabled data-testid="tenant-page-prev">
+                        <i class="fas fa-chevron-left" aria-hidden="true"></i> {{ _('Previous') }}
+                    </button>
+                    <button type="button" id="tenant-page-next" class="nx-btn nx-btn--secondary nx-btn--sm" disabled data-testid="tenant-page-next">
+                        {{ _('Next') }} <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                    </button>
                 </div>
             </div>
         </div>
 
         {% if is_crud and can_edit %}
-        {# Single Add/Edit modal, mirrors admin/clients.html's clientModal --
-           form inputs are rendered once, server-side, one per writable field
-           (visible, non-id -- the exact set _writable_columns/_validate_values
-           accept), typed by SemanticRole; static/js/tenant_pages.js only
-           opens/prefills/submits it. #}
-        <div id="tenantRecordModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden opacity-0 transition-opacity duration-300 ease-in-out" data-testid="tenant-record-modal">
-            <div class="modal-content nx-card w-full max-w-md transform scale-95 transition-transform duration-300 ease-in-out">
-                <h3 id="tenantRecordModalTitle" class="nx-section mb-4">{{ _('Add record') }}</h3>
-                <form id="tenantRecordForm" data-testid="tenant-record-form">
+        {# Add/Edit side sheet -- the same .adm-sheet the redesigned admin pages
+           use (templates/admin/_client_sheet.html): it slides in from the right
+           over a light scrim, so the table stays readable behind it. Form inputs
+           are rendered once, server-side, one per writable field (visible,
+           non-id -- the exact set _writable_columns/_validate_values accept),
+           typed by SemanticRole; static/js/tenant_pages.js only opens, prefills
+           and submits it. #}
+        <div id="recordSheetBack" class="adm-sheet-back hidden"></div>
+        <aside id="recordSheet" class="adm-sheet hidden" role="dialog" aria-modal="true"
+               aria-labelledby="recordSheetTitle" data-testid="tenant-record-sheet">
+            <form id="tenantRecordForm" data-testid="tenant-record-form" style="display:contents">
+                <div class="adm-sheet__head">
+                    <div>
+                        <div class="adm-sheet__kicker">{{ entity_label }}</div>
+                        <h2 class="adm-sheet__title" id="recordSheetTitle">{{ _('Add record') }}</h2>
+                    </div>
+                    <button type="button" class="nx-btn nx-btn--ghost nx-btn--sm adm-sheet__close" id="recordSheetClose"
+                            aria-label="{{ _('Close') }}" data-testid="tenant-record-close"><i class="fas fa-xmark"></i></button>
+                </div>
+                <div class="adm-sheet__body">
                     <input type="hidden" id="tenantRecordId" value="">
-                    <div class="space-y-4">
+                    <div class="adm-sheet__grid">
                         {% for f in fields if f.column != entity.id_column and f.semantic_role != 'person' %}
-                        <div>
-                            <label for="tenant-field-{{ f.column }}" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ f.labels.get(current_lang) or f.labels.get('en') or f.column }}</label>
-                            {% if f.semantic_role == 'flag' %}
-                            <input type="checkbox" id="tenant-field-{{ f.column }}" data-column="{{ f.column }}" class="mt-0.5 h-4 w-4 rounded border-gray-300 text-[var(--nx-accent)] focus:ring-[var(--nx-accent)] cursor-pointer tenant-record-field" data-testid="tenant-record-field-{{ f.column }}">
+                        {% set choices = field_choices.get(tenant_code ~ '/' ~ page_key ~ '/' ~ f.column) %}
+                        {% set label = f.labels.get(current_lang) or f.labels.get('en') or f.column %}
+                        {% if f.semantic_role == 'flag' %}
+                        <div class="adm-field adm-field--full">
+                            <label class="adm-check">
+                                <input type="checkbox" id="tenant-field-{{ f.column }}" data-column="{{ f.column }}"
+                                       class="tenant-record-field" data-testid="tenant-record-field-{{ f.column }}">
+                                {{ label }}
+                            </label>
+                        </div>
+                        {% else %}
+                        <div class="adm-field{% if f.semantic_role == 'text' %} adm-field--full{% endif %}">
+                            <label class="adm-field__label" for="tenant-field-{{ f.column }}">{{ label }}</label>
+                            {% if choices %}
+                            <select id="tenant-field-{{ f.column }}" data-column="{{ f.column }}" class="nx-select tenant-record-field" data-testid="tenant-record-field-{{ f.column }}">
+                                <option value="">{{ _('Not set') }}</option>
+                                {% for choice in choices %}
+                                <option value="{{ choice }}">{{ choice }}</option>
+                                {% endfor %}
+                            </select>
                             {% elif f.semantic_role == 'date' %}
                             <input type="date" id="tenant-field-{{ f.column }}" data-column="{{ f.column }}" class="nx-input tenant-record-field" data-testid="tenant-record-field-{{ f.column }}">
                             {% elif f.semantic_role in ('money', 'count') %}
-                            <input type="number" step="{{ 'any' if f.semantic_role == 'money' else '1' }}" id="tenant-field-{{ f.column }}" data-column="{{ f.column }}" class="nx-input tenant-record-field" data-testid="tenant-record-field-{{ f.column }}">
+                            <input type="number" step="{{ 'any' if f.semantic_role == 'money' else '1' }}" id="tenant-field-{{ f.column }}" data-column="{{ f.column }}" class="nx-input nx-mono tenant-record-field" data-testid="tenant-record-field-{{ f.column }}">
+                            {% elif f.column == sequence_column %}
+                            {# Counter column: prefilled with max+1 and editable, so a
+                               scanner that skipped or reused a number can still be
+                               recorded verbatim. The hint carries the last value used. #}
+                            <input type="text" inputmode="numeric" id="tenant-field-{{ f.column }}" data-column="{{ f.column }}" data-sequence="1" class="nx-input nx-mono tenant-record-field" data-testid="tenant-record-field-{{ f.column }}">
+                            <p class="adm-field__hint" id="tenant-field-{{ f.column }}-hint" data-testid="tenant-record-hint-{{ f.column }}"></p>
                             {% else %}
                             <input type="text" id="tenant-field-{{ f.column }}" data-column="{{ f.column }}" class="nx-input tenant-record-field" data-testid="tenant-record-field-{{ f.column }}">
                             {% endif %}
                         </div>
+                        {% endif %}
                         {% endfor %}
                     </div>
-                    <div class="flex justify-end mt-6 gap-2">
-                        <button type="button" id="tenantRecordCancelBtn" class="nx-btn nx-btn--secondary" data-testid="tenant-record-cancel">{{ _('Cancel') }}</button>
-                        <button type="submit" class="nx-btn nx-btn--primary" data-testid="tenant-record-save">{{ _('Save') }}</button>
-                    </div>
-                </form>
-            </div>
-        </div>
+                    {% if person_field %}
+                    <p class="adm-field__hint tp-sheet__note">
+                        <i class="fas fa-circle-info" aria-hidden="true"></i>
+                        {{ _('%(field)s is set from the signed-in user on save.', field=(person_field.labels.get(current_lang) or person_field.labels.get('en') or person_field.column)) }}
+                    </p>
+                    {% endif %}
+                </div>
+                <div class="adm-sheet__foot">
+                    <button type="button" class="nx-btn nx-btn--secondary" id="recordSheetCancel" data-testid="tenant-record-cancel">{{ _('Cancel') }}</button>
+                    <button type="submit" class="nx-btn nx-btn--primary" data-testid="tenant-record-save">{{ _('Save') }}</button>
+                </div>
+            </form>
+        </aside>
         {% endif %}
 
         {% include 'js/_tenant_page_js.html' %}

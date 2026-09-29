@@ -304,7 +304,7 @@ def test_tenant_page_renders_pagination_and_export_controls(user_client, monkeyp
     assert b'data-testid="tenant-page-prev"' in resp.data
     assert b'data-testid="tenant-page-next"' in resp.data
     assert b'data-testid="tenant-page-info"' in resp.data
-    assert b'data-testid="admin-helpers-page-action-tenant-export"' in resp.data
+    assert b'data-testid="tenant-export"' in resp.data
 
 
 def test_tenant_page_renders_crud_affordances_when_can_edit(user_client, monkeypatch):
@@ -320,8 +320,8 @@ def test_tenant_page_renders_crud_affordances_when_can_edit(user_client, monkeyp
     resp = user_client.get(f"/t/{TENANT_CODE}/dossiers")
 
     assert resp.status_code == 200
-    assert b'data-testid="admin-helpers-page-action-tenant-add"' in resp.data
-    assert b'data-testid="tenant-record-modal"' in resp.data
+    assert b'data-testid="tenant-add"' in resp.data
+    assert b'data-testid="tenant-record-sheet"' in resp.data
     assert b'data-testid="tenant-record-field-Status"' in resp.data
 
 
@@ -338,12 +338,12 @@ def test_tenant_page_hides_crud_affordances_for_list_page_type(user_client, monk
     resp = user_client.get(f"/t/{TENANT_CODE}/dossiers")
 
     assert resp.status_code == 200
-    assert b'data-testid="admin-helpers-page-action-tenant-add"' not in resp.data
-    assert b'data-testid="tenant-record-modal"' not in resp.data
+    assert b'data-testid="tenant-add"' not in resp.data
+    assert b'data-testid="tenant-record-sheet"' not in resp.data
 
 
 def test_tenant_page_hides_crud_affordances_without_edit_permission(user_client, monkeypatch):
-    # View allowed, edit denied -- can_edit is False so the Add button/modal
+    # View allowed, edit denied -- can_edit is False so the Add button/sheet
     # must not render even though the page itself is a crud page.
     monkeypatch.setattr(tv, "has_permission", lambda code: code.endswith(".view"))
     _stub_registry(
@@ -357,10 +357,10 @@ def test_tenant_page_hides_crud_affordances_without_edit_permission(user_client,
     resp = user_client.get(f"/t/{TENANT_CODE}/dossiers")
 
     assert resp.status_code == 200
-    assert b'data-testid="admin-helpers-page-action-tenant-add"' not in resp.data
-    assert b'data-testid="tenant-record-modal"' not in resp.data
+    assert b'data-testid="tenant-add"' not in resp.data
+    assert b'data-testid="tenant-record-sheet"' not in resp.data
     # Export stays available to any viewer, regardless of edit rights.
-    assert b'data-testid="admin-helpers-page-action-tenant-export"' in resp.data
+    assert b'data-testid="tenant-export"' in resp.data
 
 
 def test_custom_page_redirects_to_layout_endpoint(user_client, monkeypatch):
@@ -641,6 +641,118 @@ def test_api_write_delete_success(user_client, monkeypatch):
     assert sql.startswith("DELETE FROM")
     assert params == [42]  # _coerce_record_id: "42" -> int 42
     assert engine.conn.committed is True
+
+
+# ---------------------------------------------------------- api_next_value --
+
+
+def test_api_next_value_403_without_edit_permission(user_client, monkeypatch):
+    # View allowed, edit denied: the next number is a write-form hint, so it
+    # rides the edit gate, not the view one.
+    monkeypatch.setattr(tv, "has_permission", lambda code: code.endswith(".view"))
+    _stub_registry(
+        monkeypatch,
+        tenant=_tenant(),
+        pages=[_page(page_type="crud")],
+        entity=_entity(),
+        fields=[_field(column="BatchNo", semantic_role="identifier")],
+    )
+
+    resp = user_client.get(f"/api/t/{TENANT_CODE}/dossiers/next/BatchNo")
+
+    assert resp.status_code == 403
+
+
+def test_api_next_value_returns_last_and_next(user_client, monkeypatch):
+    monkeypatch.setattr(tv, "has_permission", lambda code: True)
+    _stub_registry(
+        monkeypatch,
+        tenant=_tenant(),
+        pages=[_page(page_type="crud")],
+        entity=_entity(),
+        fields=[_field(column="BatchNo", semantic_role="identifier")],
+    )
+    cursor = _FakeCursor(count=42077)
+    monkeypatch.setitem(CLIENTS, TENANT_CODE, _client_with_engine(_FakeEngine(cursor)))
+
+    resp = user_client.get(f"/api/t/{TENANT_CODE}/dossiers/next/BatchNo")
+
+    assert resp.status_code == 200
+    assert resp.get_json() == {
+        "success": True,
+        "column": "BatchNo",
+        "last": 42077,
+        "next": 42078,
+    }
+    sql, _params = cursor.executed[0]
+    assert sql == "SELECT MAX([BatchNo]) FROM dbo.Dossiers"
+
+
+def test_api_next_value_starts_at_one_on_an_empty_table(user_client, monkeypatch):
+    monkeypatch.setattr(tv, "has_permission", lambda code: True)
+    _stub_registry(
+        monkeypatch,
+        tenant=_tenant(),
+        pages=[_page(page_type="crud")],
+        entity=_entity(),
+        fields=[_field(column="BatchNo", semantic_role="identifier")],
+    )
+    cursor = _FakeCursor(count=None)  # MAX() over no rows is NULL
+    monkeypatch.setitem(CLIENTS, TENANT_CODE, _client_with_engine(_FakeEngine(cursor)))
+
+    resp = user_client.get(f"/api/t/{TENANT_CODE}/dossiers/next/BatchNo")
+
+    assert resp.status_code == 200
+    assert resp.get_json()["last"] is None
+    assert resp.get_json()["next"] == 1
+
+
+def test_api_next_value_404_for_an_unknown_column(user_client, monkeypatch):
+    monkeypatch.setattr(tv, "has_permission", lambda code: True)
+    _stub_registry(
+        monkeypatch,
+        tenant=_tenant(),
+        pages=[_page(page_type="crud")],
+        entity=_entity(),
+        fields=[_field(column="BatchNo", semantic_role="identifier")],
+    )
+
+    resp = user_client.get(f"/api/t/{TENANT_CODE}/dossiers/next/Nope")
+
+    assert resp.status_code == 404
+
+
+def test_api_next_value_404_for_a_non_counter_role(user_client, monkeypatch):
+    # Only identifier/count columns are countable -- a text column never
+    # reaches the query builder.
+    monkeypatch.setattr(tv, "has_permission", lambda code: True)
+    _stub_registry(
+        monkeypatch,
+        tenant=_tenant(),
+        pages=[_page(page_type="crud")],
+        entity=_entity(),
+        fields=[_field(column="Remarks", semantic_role="text")],
+    )
+
+    resp = user_client.get(f"/api/t/{TENANT_CODE}/dossiers/next/Remarks")
+
+    assert resp.status_code == 404
+
+
+def test_api_next_value_404_for_documents_entity(user_client, monkeypatch):
+    # require_entries=True: a documents box has no insert form to prefill.
+    monkeypatch.setattr(tv, "has_permission", lambda code: True)
+    _stub_registry(
+        monkeypatch,
+        tenant=_tenant(),
+        pages=[_page(page_type="crud")],
+        entity=_entity(kind="documents"),
+        fields=[_field(column="BatchNo", semantic_role="identifier")],
+    )
+
+    resp = user_client.get(f"/api/t/{TENANT_CODE}/dossiers/next/BatchNo")
+
+    assert resp.status_code == 404
 
 
 # -------------------------------------------------------------- api_export --
