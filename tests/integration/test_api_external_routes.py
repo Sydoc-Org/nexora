@@ -2051,7 +2051,7 @@ def test_workitems_unknown_include_token_returns_400(client, monkeypatch, url):
     _patch_field_whitelist(monkeypatch)
     try:
         resp = client.get(
-            url, headers={"Authorization": f"Bearer {raw}"}, query_string={"include": "tables"}
+            url, headers={"Authorization": f"Bearer {raw}"}, query_string={"include": "media"}
         )
         assert resp.status_code == 400
         assert "include" in resp.get_json()["error"]
@@ -2265,7 +2265,8 @@ def test_include_fields_key_outside_process_scope_names_the_scope(client, monkey
     [
         ("fields:", "at least one field key"),
         ("fields:,,", "at least one field key"),
-        ("tables:invoicenr", "include must be one of"),
+        ("tables:invoicenr", "only valid as include=fields"),
+        ("fields,tables:invoicenr", "only valid as include=fields"),
         ("fields," + "fields:invoicenr", "only valid as include=fields"),
         ("fields:" + ",".join(f"k{i}" for i in range(31)), "at most 30 field keys"),
     ],
@@ -2311,3 +2312,214 @@ def test_test_workitems_include_fields_echoes_the_requested_keys(client):
         assert saw_values, "sandbox never produced a populated fields object"
     finally:
         _delete_key(key_hash)
+
+
+# ------------------- /api/v1/workitems?include=tables (#398) ---------------- #
+
+
+def _tables_for(client_code, wid):
+    return [
+        {
+            "title": "LineItems",
+            "columns": ["Amount", "PID"],
+            "rows": [
+                [
+                    {"column": "Amount", "value": f"{client_code}-{wid}"},
+                    {"column": "PID", "value": "756.1234"},
+                ]
+            ],
+        }
+    ]
+
+
+def test_workitems_include_tables_projects_per_page_and_strips_sensitive_columns(
+    client, monkeypatch
+):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+    seen = {}
+
+    def _fake_fetch(ids_by_client, logger=None):
+        seen["ids_by_client"] = ids_by_client
+        return {("default", 1216): _tables_for("default", 1216)}
+
+    monkeypatch.setattr(ax, "_get_workitems_data", lambda args, scope=None: _fields_page())
+    monkeypatch.setattr(ax, "resolve_import_datetimes", lambda ids, p, strict=False: {})
+    monkeypatch.setattr(ax, "fetch_workitem_tables", _fake_fetch)
+    monkeypatch.setattr(ax, "get_sensitive_field_tokens", lambda: {"personid", "pid"})
+    _patch_field_whitelist(monkeypatch)
+    try:
+        resp = client.get(
+            WORKITEMS_URL,
+            headers={"Authorization": f"Bearer {raw}"},
+            query_string={"include": "tables"},
+        )
+        assert resp.status_code == 200
+        body = resp.get_json()
+        # One storage read for the whole page -- not one per row.
+        assert seen["ids_by_client"] == {"default": [1216], "ms02": [1216]}
+        # The sensitive PID column is gone from columns AND cells.
+        assert body["workitems"][0]["tables"] == [
+            {
+                "title": "LineItems",
+                "columns": ["Amount"],
+                "rows": [[{"column": "Amount", "value": "default-1216"}]],
+            }
+        ]
+        # Colliding MS02 row: empty, not the default row's tables.
+        assert body["workitems"][1]["tables"] == []
+        # tables alone does not add fields.
+        assert "fields" not in body["workitems"][0]
+    finally:
+        _delete_key(key_hash)
+
+
+def test_workitems_include_fields_and_tables_combine(client, monkeypatch):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+    monkeypatch.setattr(ax, "_get_workitems_data", lambda args, scope=None: _fields_page())
+    monkeypatch.setattr(ax, "resolve_import_datetimes", lambda ids, p, strict=False: {})
+    monkeypatch.setattr(
+        ax,
+        "fetch_docfield_values",
+        lambda ids, p, keys, **kw: {("default", 1216): {"invoicenr": "INV-1"}},
+    )
+    monkeypatch.setattr(
+        ax,
+        "fetch_workitem_tables",
+        lambda ids, logger=None: {("ms02", 1216): _tables_for("ms02", 1216)},
+    )
+    monkeypatch.setattr(ax, "get_sensitive_field_tokens", lambda: set())
+    _patch_field_whitelist(monkeypatch)
+    try:
+        resp = client.get(
+            WORKITEMS_URL,
+            headers={"Authorization": f"Bearer {raw}"},
+            query_string={"include": "fields,tables"},
+        )
+        assert resp.status_code == 200
+        rows = resp.get_json()["workitems"]
+        assert rows[0]["fields"] == {"invoicenr": "INV-1"}
+        assert rows[0]["tables"] == []
+        assert rows[1]["fields"] == {}
+        assert rows[1]["tables"][0]["rows"][0][0] == {"column": "Amount", "value": "ms02-1216"}
+    finally:
+        _delete_key(key_hash)
+
+
+def test_workitems_without_include_tables_makes_no_storage_read(client, monkeypatch):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+
+    def _must_not_be_called(*a, **kw):
+        raise AssertionError("fetch_workitem_tables must not run without ?include=tables")
+
+    monkeypatch.setattr(ax, "_get_workitems_data", lambda args, scope=None: _fields_page())
+    monkeypatch.setattr(ax, "resolve_import_datetimes", lambda ids, p, strict=False: {})
+    monkeypatch.setattr(ax, "fetch_workitem_tables", _must_not_be_called)
+    monkeypatch.setattr(ax, "fetch_docfield_values", lambda *a, **kw: {})
+    _patch_field_whitelist(monkeypatch)
+    try:
+        resp = client.get(
+            WORKITEMS_URL,
+            headers={"Authorization": f"Bearer {raw}"},
+            query_string={"include": "fields"},
+        )
+        assert resp.status_code == 200
+        for row in resp.get_json()["workitems"]:
+            assert "tables" not in row
+    finally:
+        _delete_key(key_hash)
+
+
+def test_workitems_include_tables_fails_closed_500(client, monkeypatch):
+    """Sensitive-token lookup failure (before any backend work) and a storage
+    read failure both 500 the whole page -- never a page with silently
+    missing or unredacted tables."""
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+
+    def _must_not_be_called(*a, **kw):
+        raise AssertionError("no backend work when the sensitive set is unresolved")
+
+    monkeypatch.setattr(ax, "_get_workitems_data", _must_not_be_called)
+    monkeypatch.setattr(ax, "get_sensitive_field_tokens", lambda: None)
+    _patch_field_whitelist(monkeypatch)
+    try:
+        resp = client.get(
+            WORKITEMS_URL,
+            headers={"Authorization": f"Bearer {raw}"},
+            query_string={"include": "tables"},
+        )
+        assert resp.status_code == 500
+        assert resp.get_json() == {"error": "Workitems backend unavailable"}
+
+        def _storage_down(ids, logger=None):
+            raise RuntimeError("Cannot open database 'EM_Storage'")
+
+        monkeypatch.setattr(ax, "_get_workitems_data", lambda args, scope=None: _fields_page())
+        monkeypatch.setattr(ax, "resolve_import_datetimes", lambda ids, p, strict=False: {})
+        monkeypatch.setattr(ax, "get_sensitive_field_tokens", lambda: set())
+        monkeypatch.setattr(ax, "fetch_workitem_tables", _storage_down)
+        resp = client.get(
+            WORKITEMS_URL,
+            headers={"Authorization": f"Bearer {raw}"},
+            query_string={"include": "tables"},
+        )
+        assert resp.status_code == 500
+        assert resp.get_json() == {"error": "Workitems backend unavailable"}
+    finally:
+        _delete_key(key_hash)
+
+
+def test_test_workitems_include_tables_mirrors_the_real_shape(client):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+    try:
+        resp = client.get(
+            "/api/test/v1/workitems",
+            headers={"Authorization": f"Bearer {raw}"},
+            query_string={"include": "fields,tables"},
+        )
+        assert resp.status_code == 200
+        for row in resp.get_json()["workitems"]:
+            assert isinstance(row["fields"], dict)
+            assert isinstance(row["tables"], list)
+            for table in row["tables"]:
+                assert set(table) == {"title", "columns", "rows"}
+                for cells in table["rows"]:
+                    assert [c["column"] for c in cells] == table["columns"]
+                    assert all(set(c) == {"column", "value"} for c in cells)
+    finally:
+        _delete_key(key_hash)
+
+
+def test_strip_sensitive_table_columns_and_api_tables_agree():
+    """The detail endpoint's reducer and the ?include=tables projection share
+    one redaction rule, so a column stripped on one surface is stripped on
+    the other."""
+    blocked = {"pid"}
+    detail_shape = [
+        {
+            "title": "T",
+            "columns": ["Amount", "PID"],
+            "rows": [
+                [
+                    {"col": "Amount", "value": "1", "confidence": 0.9, "locations": []},
+                    {"col": "PID", "value": "756"},
+                ]
+            ],
+        }
+    ]
+    api_shape = [
+        {
+            "title": "T",
+            "columns": ["Amount", "PID"],
+            "rows": [[{"column": "Amount", "value": "1"}, {"column": "PID", "value": "756"}]],
+        }
+    ]
+    expected = [
+        {"title": "T", "columns": ["Amount"], "rows": [[{"column": "Amount", "value": "1"}]]}
+    ]
+    assert ax._api_tables(detail_shape, blocked) == expected
+    assert ax._strip_sensitive_table_columns(api_shape, blocked) == expected

@@ -2,9 +2,9 @@
 
 Reports the status of every layer the running app depends on: Python and
 its third-party packages, the .env files, filesystem dirs, all four SQL
-Server engines, the migrations table, schema drift, on-PATH tooling, git
-hooks, port 8000, and the external services nexora talks to (Microsoft
-Graph, Octopus).
+Server engines, the Octo document-storage databases (#398), the migrations
+table, schema drift, on-PATH tooling, git hooks, port 8000, and the
+external services nexora talks to (Microsoft Graph, Octopus).
 
 Invoked via the nx CLI:
     nx --doctor                  full check (incl. external services)
@@ -384,6 +384,69 @@ def _check_databases() -> list[CheckResult]:
             )
     except Exception as exc:
         results.append(CheckResult("ODBC driver", "fail", str(exc)))
+    return results
+
+
+def _check_document_storages(octo_ok: bool = True) -> list[CheckResult]:
+    """Every document storage the default runtime lists must open by name
+    (issue #398): ``/api/v1/workitems?include=tables`` reads table values
+    from ``<storage name>`` as a database on the runtime server -- a
+    convention, not config -- so a storage that cannot be opened here would
+    500 that endpoint for every workitem stored in it. Skipped when the
+    OctoDB ping already failed (nothing to learn, and no ODBC timeouts)."""
+    if not octo_ok:
+        return [CheckResult("Document storages", "skip", "skipped (OctoDB unreachable)")]
+    try:
+        from .document_storage import list_storages, storage_engine_for
+        from .workitems.tables import DEFAULT_STORAGE_NAME
+    except Exception as exc:
+        return [
+            CheckResult(
+                "Document storages",
+                "fail",
+                f"cannot import nx_lib.document_storage: {exc}",
+            )
+        ]
+    try:
+        names = list_storages("default")
+    except Exception as exc:
+        return [
+            CheckResult(
+                "Document storages",
+                "fail",
+                f"t_DocumentStorages unreadable: {str(exc).splitlines()[0][:120]}",
+                hint="OctoDB unreachable? See the Databases section above.",
+            )
+        ]
+    results: list[CheckResult] = []
+    for name in names:
+        if name == DEFAULT_STORAGE_NAME:
+            results.append(CheckResult(name, "ok", "the runtime database itself"))
+            continue
+        try:
+            conn = storage_engine_for("default", name).raw_connection()
+            try:
+                cur = conn.cursor()
+                cur.execute("SELECT COUNT(*) FROM t_Documents")
+                count = cur.fetchone()[0]
+                cur.close()
+            finally:
+                conn.close()
+            results.append(CheckResult(name, "ok", f"{count} documents"))
+        except Exception as exc:
+            results.append(
+                CheckResult(
+                    name,
+                    "fail",
+                    str(exc).splitlines()[0][:120],
+                    hint=(
+                        f"?include=tables needs a database named '{name}' on DB_SERVER_PRD, "
+                        "readable by DB_UID (storage name = database name)."
+                    ),
+                )
+            )
+    if not results:
+        results.append(CheckResult("Document storages", "warn", "the runtime lists no storages"))
     return results
 
 
@@ -788,12 +851,15 @@ def run(fast: bool = False, fix: bool = False) -> int:
         sys.stdout.write(f"  {C_DIM}(fast: externals + drift skipped){C_OFF}")
     sys.stdout.write("\n")
 
+    db_results = _check_databases()
+    octo_ok = any(r.name == "OctoDB" and r.status == "ok" for r in db_results)
     sections: list[tuple[str, list[CheckResult]]] = [
         ("Python", _check_python()),
         ("Packages", _check_packages()),
         ("Environment", _check_env()),
         ("Filesystem", _check_filesystem()),
-        ("Databases", _check_databases()),
+        ("Databases", db_results),
+        ("Document storages", _check_document_storages(octo_ok)),
         ("Migrations", _check_migrations()),
         ("Permissions", _check_permissions()),
     ]
