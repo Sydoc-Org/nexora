@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="{{ get_locale }}">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  {% include '_theme_prepaint.html' %}
+  <link rel="stylesheet" href="{{ static_v('css/nexora-ui.css') }}">
+  <title>{{ _("Sydoc Finance - nexora") }}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous" />
+  <link rel="stylesheet" href="{{ static_v('css/finance.css') }}">
+  <link rel="icon" type="image/x-icon" href="{{ static_v('images/favicon.ico') }}">
+</head>
+
+<body class="nx-app">
+  {% set active_page = 'finance' %} {% include '_header.html' %}
+
+  {# One section shell per client; static from the server, filled by finance.js
+     from /api/finance/section/<key> so a broken source shows its error in
+     place while the others render (#408). #}
+  {% macro section_shell(s) -%}
+  <section class="nx-fin-section nx-fin-section--{{ s.group }}" id="fin-{{ s.key }}" data-key="{{ s.key }}"
+           data-testid="finance-section-{{ s.key }}" aria-busy="true">
+    <div class="nx-fin-section__head">
+      <span class="nx-fin-section__tile" aria-hidden="true">{{ s.client[:2] }}</span>
+      <div>
+        <h3 class="nx-fin-section__title">{{ s.client }}{% if s.title %} <span class="nx-fin-section__sub">· {{ s.title }}</span>{% endif %}</h3>
+        <p class="nx-fin-section__meta" data-role="meta">{{ _("Loading…") }}</p>
+      </div>
+      <span class="nx-fin-section__spacer"></span>
+      <span class="nx-fin-section__state" data-role="state"></span>
+    </div>
+    <div data-role="body">
+      <div class="nx-fin-skel" aria-hidden="true">
+        <div class="nx-fin-skel__tile skeleton-shimmer"></div>
+        <div class="nx-fin-skel__tile skeleton-shimmer"></div>
+        <div class="nx-fin-skel__tile skeleton-shimmer"></div>
+      </div>
+    </div>
+  </section>
+  {%- endmacro %}
+
+  <main class="nx-main">
+    <div class="nx-fin-head nx-rise">
+      <span class="nx-page-icon"><i class="fas fa-file-invoice-dollar"></i></span>
+      <div>
+        <h1 class="nx-title" data-testid="finance-title">{{ _("Sydoc Finance") }}</h1>
+        <p class="nx-fin-head__meta">{{ _("Monthly accounting figures per client, read from the same sources and measures as Reporting.") }}</p>
+      </div>
+      <div class="nx-fin-head__right">
+        <a class="nx-btn nx-btn--secondary nx-btn--sm" href="{{ url_for('api_finance_export', month=month) }}"
+           data-testid="finance-export-csv">
+          <i class="fas fa-file-csv" aria-hidden="true"></i> {{ _("CSV") }}
+        </a>
+        <button type="button" class="nx-btn nx-btn--secondary nx-btn--sm" id="fin-print" data-testid="finance-print">
+          <i class="fas fa-print" aria-hidden="true"></i> {{ _("Print") }}
+        </button>
+      </div>
+    </div>
+
+    <div class="nx-fin-filter nx-rise-2">
+      <label class="nx-eyebrow" for="fin-month">{{ _("Month") }}</label>
+      <div class="nx-fin-month" data-testid="finance-month">
+        <a class="nx-fin-month__nav" href="{{ url_for('finance', month=prev_month) }}"
+           aria-label="{{ _('Previous month') }}" data-testid="finance-month-prev"><i class="fas fa-chevron-left" aria-hidden="true"></i></a>
+        <select class="nx-fin-month__select" id="fin-month" name="month" data-testid="finance-month-select">
+          {% for m in months %}
+          <option value="{{ m.value }}"{% if m.value == month %} selected{% endif %}>{{ m.label }}</option>
+          {% endfor %}
+        </select>
+        {% if next_month %}
+        <a class="nx-fin-month__nav" href="{{ url_for('finance', month=next_month) }}"
+           aria-label="{{ _('Next month') }}" data-testid="finance-month-next"><i class="fas fa-chevron-right" aria-hidden="true"></i></a>
+        {% else %}
+        <span class="nx-fin-month__nav" aria-disabled="true" aria-label="{{ _('Next month') }}"><i class="fas fa-chevron-right" aria-hidden="true"></i></span>
+        {% endif %}
+      </div>
+      <span class="nx-fin-filter__hint">
+        {% if is_current_month %}{{ _("This month is still running; the figures grow until it closes.") }}
+        {% else %}{{ _("Each figure is compared with the month before.") }}{% endif %}
+      </span>
+      <span class="nx-fin-filter__spacer"></span>
+      <span class="nx-fin-status" id="fin-status" role="status" data-testid="finance-status">
+        <span class="nx-live-dot"></span><span id="fin-status-text">{{ _("Loading…") }}</span>
+      </span>
+    </div>
+
+    <h2 class="nx-fin-group nx-rise-3">{{ _("Internal customers") }}</h2>
+    {% for s in internal_sections %}{{ section_shell(s) }}{% endfor %}
+
+    <h2 class="nx-fin-group nx-rise-3">{{ _("External clients") }}</h2>
+    {% for s in external_sections %}{{ section_shell(s) }}{% endfor %}
+
+    <h2 class="nx-fin-group nx-rise-3">{{ _("Sydoc services") }}</h2>
+    {% for s in service_sections %}{{ section_shell(s) }}{% endfor %}
+  </main>
+
+  {% include 'js/_finance_js.html' %}
+</body>
+
+</html>

@@ -140,6 +140,7 @@ def create_app():
         auth,
         core,
         dashboard,
+        finance,
         generali,
         profile,
         reporting,
@@ -153,6 +154,7 @@ def create_app():
     admin.register_routes(app)
     dashboard.register_routes(app)
     reporting.register_routes(app)
+    finance.register_routes(app)  # /finance monthly accounting report (#408)
     workitems.register_routes(app)
     generali.register_routes(app)
     tenant.register_routes(app)  # /t/<tenant_code>/<page_key> generated tenant pages

@@ -1,0 +1,36 @@
+{# #191 shim: only Jinja-rendered data and translated strings live here.
+   Behaviour is in static/js/finance.js, which has no url_for() and no
+   gettext -- it reads both off window.
+
+   Placeholders are {name}, NOT gettext's own %(name)s: Jinja's _() runs
+   `rv % variables` on every call, so a msgid carrying %(n)s with no keyword
+   argument raises KeyError before it ever reaches the browser. finance.js
+   substitutes them itself (fmt()). #}
+<script nonce="{{ csp_nonce() }}">
+  window.NX_FINANCE = {
+    month: {{ month|tojson }},
+    monthLabel: {{ month_label|tojson }},
+    sections: {{ (internal_sections + external_sections + service_sections)|map(attribute='key')|list|tojson }},
+    strings: {
+      loading:        {{ _("Loading…") | tojson }},
+      loaded:         {{ _("{done} of {total} sections loaded") | tojson }},
+      allLoaded:      {{ _("All {total} sections loaded") | tojson }},
+      someFailed:     {{ _("{failed} of {total} sections could not be read") | tojson }},
+      loadFailed:     {{ _("Could not load this section") | tojson }},
+      retry:          {{ _("Retry") | tojson }},
+      live:           {{ _("live figures") | tojson }},
+      empty:          {{ _("Nothing recorded in {month}") | tojson }},
+      vsPrev:         {{ _("vs. previous month") | tojson }},
+      unchanged:      {{ _("unchanged") | tojson }},
+      isNew:          {{ _("new") | tojson }},
+      per:            {{ _("per {dim}") | tojson }},
+      rows:           {{ _("{n} rows") | tojson }},
+      share:          {{ _("Share") | tojson }},
+      total:          {{ _("Total") | tojson }},
+      blank:          {{ _("(blank)") | tojson }},
+      showAll:        {{ _("Show all {n} rows") | tojson }},
+      showFewer:      {{ _("Show fewer") | tojson }}
+    }
+  };
+</script>
+<script src="{{ static_v('js/finance.js') }}" nonce="{{ csp_nonce() }}" defer></script>

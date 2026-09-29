@@ -101,6 +101,8 @@ One line each; **the full detail lives in `docs/design/architecture-conventions.
 
 **Reporting** is the largest subsystem — Simple/Advanced tabs, report builder, provider-agnostic AI assistant, sharing, DB-backed source registry, scheduled email delivery. Architecture: `docs/howto/reporting.md` + `docs/design/reporting-ai-assistant.md`. `docs/howto/reporting-guide.md` is the **end-user** guide: any user-visible reporting change must update it **and** the in-app tips panel (`templates/_reporting_help.html`) in the same commit — the `reporting-help-sync` pre-commit hook reminds you.
 
+**Sydoc Finance** (`/finance`, `finance.view`, #408) is the monthly accounting report over the registered billing sources: `nx_lib/finance.py` holds the per-client section spec and builds its SQL with the reporting `table` provider, so its figures are Reporting's measures by construction. Adding a client is one `Section` entry there; the code is internal-only (no row scoping). `docs/howto/finance.md`.
+
 
 ## Testing & browser automation
 
