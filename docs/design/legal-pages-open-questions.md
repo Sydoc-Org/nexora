@@ -16,9 +16,9 @@ they can be published.
 > settled the placement in a chat. The pages now carry real text, German
 > (authoritative, written in German) and English (courtesy), in
 > `templates/legal/{privacy,terms}_{de,en}.html`; the page picks German for a
-> German UI and English otherwise, with a `?lang=de|en` switch. Branch
-> `feat/260-legal-content` (cut from `feat/260-legal-pages`, main merged in).
-> **Not merged, not pushed** — pushing any branch takes over the dev host.
+> German UI and English otherwise, with a `?lang=de|en` switch. **On `main`**
+> since 2026-09-24, live on dev and staging and switched off on PROD by
+> `LEGAL_PAGES_LIVE` (`nx_lib/config.py`) until management signs it off.
 >
 > **Decided:**
 >
@@ -81,6 +81,65 @@ they can be published.
 > 13. **The Terms are never accepted by a user** — they bind only through the
 >     client contract, so the contracts should say that the nexora terms of use
 >     are part of them.
+>
+> **Second review, 2026-09-29 — the page against the code** (branch
+> `fix/260-legal-review`; "Stand" moved to 29.09.2026):
+>
+> 14. **Request log described too narrowly.** Each row also carries the IP
+>     address, the session id and the query parameters — including free-text
+>     searches, which in the Generali document search can be a name or a
+>     policy number. Fixed both ways: `search`, `q` and `docvalue` are now
+>     logged as `[redacted]` (`LOG_REDACTED_ARGS`, `nx_lib/hooks.py`), and the
+>     page lists what a row does hold.
+> 15. **"Deleted after 180 days" held for `dbo.Logs` only.** The CSVs under
+>     `var/logs/user/` were removed only by `csvLogs_toDB.ps1`, which has no
+>     task definition and runs on PROD only — dev and staging never drained
+>     them. The request hook now deletes hour folders past the retention on
+>     every environment. **Still to check on SYAPP01:** that a hand-made task
+>     runs `csvLogs_toDB.ps1`, or `dbo.Logs` (the admin log viewer) is empty.
+> 16. **Session files had no scheduled cleanup.** `cleanup_expired_sessionFiles.ps1`
+>     now has `cleanup-session-files-task.xml`, registered by the deploy.
+> 17. **Tailwind (cdn.tailwindcss.com, USA) was not named** although the
+>     sign-in, error and legal pages load it. Named now; building the CSS
+>     locally would remove it (and it is a development-only CDN anyway).
+> 18. **Inventory gaps:** profile picture, last sign-in, the failed-attempt
+>     lock and feedback mail to support were stored but not listed. Listed now;
+>     how long feedback mail is kept is marked open.
+> 19. **Cookie:** also set for signed-out visitors (it carries the CSRF token),
+>     not only to keep someone signed in. **Two-factor sign-in** is mandatory,
+>     not "where enabled". Both corrected.
+> 20. **`<html lang="">` on every page** — 47 templates used `get_locale`,
+>     which the template context does not have. Now `current_lang`, pinned by
+>     `tests/unit/test_template_html_lang.py`.
+> 21. The draft pages now carry `noindex`, since dev and staging are public.
+>
+> **Answers, 2026-09-29** (G. Ruoss), now in the text:
+>
+> - Business documents are stored on **Sydoc's own servers in Switzerland**.
+>   Safeguards stated from the code: permission plus mandatory 2FA, and
+>   sensitive-marked fields only for an extra permission.
+> - Feedback mail is **deleted once the request is dealt with**.
+> - **No rule** for accounts of people who left — the "to be decided" proposal
+>   is gone; the page keeps "until the organisation asks".
+> - AI provider: **Anthropic, Claude (Sonnet)**, used only by the reporting
+>   assistant. The page says what goes there (question and schema; rows only
+>   for `reporting.ai.explain.use`), and the assistant's own log
+>   (`dbo.ReportingAiAudit`, never pruned) is now in the inventory.
+> - US transfers: checked on the providers' own pages that day — **Google,
+>   Cloudflare and ngrok are Swiss-U.S. DPF certified**; Anthropic is not (its
+>   DPA carries SCCs with a Swiss addendum); jsDelivr relies on SCCs per its
+>   privacy policy; **nothing found for Tailwind Labs**.
+>
+> **Tailwind closed the same day:** every page now loads Tailwind from
+> jsDelivr (already covered by SCCs), so Tailwind Labs is no recipient; the
+> host is out of the CSP too.
+>
+> **Still open before PROD:** document retention where the contract is silent
+> ("ka"; proposed: contract term, then delete or return within 30 days); how
+> long the assistant log is kept (proposed: 180 days, needs a prune job); that
+> Sydoc has concluded Anthropic's DPA (check the company API account accepted
+> the Commercial Terms — the DPA is part of them); jurisdiction Zug (legal);
+> `privacy@sydoc.ch` (IT); management sign-off.
 >
 > The questions below are the original list, kept for the reasoning behind
 > each one.

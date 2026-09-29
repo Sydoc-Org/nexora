@@ -104,7 +104,9 @@ IS_PROD = os.environ.get("ENVIRONMENT") in ("PROD", "STAGING")
 # They are live on dev and staging so they can be reviewed there, and off on
 # PROD -- routes 404, menu and footer links hidden -- until the text is
 # approved. Keyed on ENVIRONMENT itself, not IS_PROD, which is true on
-# STAGING too. Going live = delete this switch and its three uses.
+# STAGING too. Going live = delete this switch and its four uses
+# (the gate in views/core.py, the context in hooks.py, the header and footer
+# links), and the draft banner and noindex meta in templates/legal.html.
 LEGAL_PAGES_LIVE = os.environ.get("ENVIRONMENT") != "PROD"
 
 # --- Runtime paths -----------------------------------------------------------
@@ -240,8 +242,10 @@ MS02_DOCFIELDS_DB_PWD = os.environ.get("MS02_DOCFIELDS_DB_PWD", MS02_DB_PWD)
 MS02_DOCFIELDS_DB_PORT = os.environ.get("MS02_DOCFIELDS_DB_PORT", MS02_DB_PORT)
 
 # Every third-party script/stylesheet the templates load, by exact CDN path.
+# cdn.tailwindcss.com (Tailwind Labs' v3 play CDN) is deliberately absent: every
+# page loads Tailwind from jsDelivr, and the privacy notice has no transfer
+# basis for Tailwind Labs (#260).
 CDN_SCRIPTS = [
-    "https://cdn.tailwindcss.com",
     "https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.0",
     "https://cdn.jsdelivr.net/npm/@tailwindplus/elements@1.0.22",
     "https://cdn.jsdelivr.net/npm/@tailwindplus/elements@1.0.22/",
@@ -298,8 +302,5 @@ CSP = {
     ],
     "connect-src": [
         "'self'",
-        # tailwind's browser build fetches nothing, but keep the play CDN
-        # here: it XHRs its own plugin manifests when ?plugins= is used.
-        "https://cdn.tailwindcss.com",
     ],
 }

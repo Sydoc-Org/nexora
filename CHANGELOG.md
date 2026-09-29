@@ -288,6 +288,49 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **Legal draft checked against the code, and the code brought in line (#260).**
+  The privacy page promised things the system did not do and left out things
+  it does:
+  - **Search terms no longer land in the request log.** `search`, `q` and
+    `docvalue` are written as `[redacted]` (`LOG_REDACTED_ARGS` in
+    `nx_lib/hooks.py`) — a Generali document search can be a name or a policy
+    number. The page now also says a log row holds the IP address, the session
+    id and the query parameters.
+  - **"Deleted after 180 days" now holds for the CSV files too.** Only
+    `dbo.Logs` was pruned; `var/logs/user/` was emptied only by the PROD-only,
+    unscheduled `csvLogs_toDB.ps1`, so dev and staging kept every hour. The
+    request hook deletes hour folders past `REQUEST_LOG_RETENTION` whenever it
+    opens a new one.
+  - **Session files are cleaned on a schedule.** `cleanup_expired_sessionFiles.ps1`
+    gets `ops/cleanup/cleanup-session-files-task.xml` (daily 03:15), registered
+    by the deploy, and now reports and exits non-zero on a failed delete.
+  - **The page names Tailwind** (cdn.tailwindcss.com, USA), loaded by the
+    sign-in, error and legal pages, and lists the profile picture, last sign-in,
+    failed-attempt lock and feedback mail. The cookie is described as set for
+    signed-out visitors too, and two-factor sign-in as mandatory. "Stand"
+    29.09.2026; the draft pages carry `noindex`.
+  - **Answers of 29.09. filled in:** documents on Sydoc's own servers in
+    Switzerland, feedback mail deleted once dealt with, Anthropic Claude as
+    the AI provider (and the assistant's log in the inventory), and the basis
+    for each US transfer — Swiss-U.S. DPF for Google, Cloudflare and ngrok,
+    SCCs for Anthropic and jsDelivr. Paragraph spacing and list bullets
+    restored (the Tailwind preflight removed them).
+  - **Tailwind Labs is no longer a recipient.** The 10 standalone pages
+    (start, login, 2FA, the four password pages, error and legal pages)
+    loaded Tailwind v3 from `cdn.tailwindcss.com`, for which no transfer basis
+    exists; they now load the same v4 build from jsDelivr as the rest of the
+    app, with a small v3-compatibility block (default border colour, and the
+    theme icons, which v4's layered `.hidden` lost to Font Awesome's
+    `display`). Compared before/after in light and dark: identical apart from
+    the privacy text itself. `cdn.tailwindcss.com` is gone from the CSP
+    (`script-src` and `connect-src`), pinned by `test_csp_cdn_allowlist.py`.
+  - **`<html lang="">` on every page.** 47 templates used `get_locale`, which the
+    template context does not have; they use `current_lang` now. That exposed
+    `current_lang` itself as `"None"` whenever no supported language was known
+    (e.g. a browser set to Spanish), which also reached the PDQM and
+    additional-services category requests as `?locale=None`; it falls back to
+    `en`.
+
 - **The Frigemo reporting source runs on PROD again (#402).** Every report on
   *Frigemo — Documents* failed with "Bericht konnte nicht ausgeführt werden":
   migration `0127` had registered it over `dbo.Frigemo`, a table that only
