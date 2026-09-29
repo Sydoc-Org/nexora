@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-29 07:28+0200\n"
+"POT-Creation-Date: 2026-09-29 08:15+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -838,10 +838,10 @@ msgstr "Nutzungsbedingungen"
 msgid "Privacy Policy"
 msgstr "Datenschutzerklärung"
 
-#: nx_lib/views/admin/permissions.py:255 nx_lib/views/admin/permissions.py:573
-#: nx_lib/views/admin/permissions.py:615 nx_lib/views/admin/permissions.py:660
-#: nx_lib/views/admin/permissions.py:699 nx_lib/views/admin/permissions.py:738
-#: nx_lib/views/admin/permissions.py:770 nx_lib/views/dashboard.py:628
+#: nx_lib/views/admin/permissions.py:372 nx_lib/views/admin/permissions.py:690
+#: nx_lib/views/admin/permissions.py:732 nx_lib/views/admin/permissions.py:777
+#: nx_lib/views/admin/permissions.py:816 nx_lib/views/admin/permissions.py:855
+#: nx_lib/views/admin/permissions.py:887 nx_lib/views/dashboard.py:628
 #: nx_lib/views/dashboard.py:716 nx_lib/views/dashboard.py:792
 #: nx_lib/views/dashboard.py:862 nx_lib/views/dashboard.py:919
 #: nx_lib/views/workitems.py:386 nx_lib/views/workitems.py:1122
@@ -851,7 +851,7 @@ msgid "Not authorized"
 msgstr "Nicht autorisiert"
 
 #: nx_lib/views/admin/logs.py:154 nx_lib/views/admin/organizations.py:435
-#: nx_lib/views/admin/permissions.py:604 nx_lib/views/admin/system.py:148
+#: nx_lib/views/admin/permissions.py:721 nx_lib/views/admin/system.py:148
 #: nx_lib/views/admin/system.py:191 nx_lib/views/admin/system.py:234
 #: nx_lib/views/admin/system.py:254 nx_lib/views/admin/users.py:421
 #: nx_lib/views/admin/users.py:698 nx_lib/views/dashboard.py:705
@@ -1285,55 +1285,121 @@ msgstr "Das Logo ist zu gross (max. 512 KB)."
 msgid "Branding saved."
 msgstr "Branding gespeichert."
 
+#: nx_lib/views/admin/permissions.py:138
+msgid "Open and read. Without it the rest of the object is unreachable."
+msgstr ""
+"Öffnen und lesen. Ohne diese Berechtigung ist der Rest des Objekts nicht "
+"erreichbar."
+
+#: nx_lib/views/admin/permissions.py:139
+msgid "Create new records."
+msgstr "Neue Datensätze anlegen."
+
+#: nx_lib/views/admin/permissions.py:140
+msgid "Change existing records."
+msgstr "Bestehende Datensätze ändern."
+
+#: nx_lib/views/admin/permissions.py:141
+msgid "Remove records permanently."
+msgstr "Datensätze dauerhaft entfernen."
+
+#: nx_lib/views/admin/permissions.py:142
+msgid "Use a feature someone else configured."
+msgstr "Eine Funktion nutzen, die jemand anderes eingerichtet hat."
+
+#: nx_lib/views/admin/permissions.py:143
+msgid "Execute something on demand."
+msgstr "Etwas bei Bedarf ausführen."
+
 #: nx_lib/views/admin/permissions.py:144
+msgid "Bring data in from outside nexora."
+msgstr "Daten von ausserhalb nexora hereinholen."
+
+#: nx_lib/views/admin/permissions.py:145
+msgid "Take data out, as a file or a download."
+msgstr "Daten herausgeben, als Datei oder Download."
+
+#: nx_lib/views/admin/permissions.py:146
+msgid "Set something to run on a timer."
+msgstr "Etwas zeitgesteuert ausführen lassen."
+
+#: nx_lib/views/admin/permissions.py:147
+msgid "Administer the object itself, not its records."
+msgstr "Das Objekt selbst verwalten, nicht seine Datensätze."
+
+#: nx_lib/views/admin/permissions.py:148
+msgid "Skip a restriction that applies to everyone else."
+msgstr "Eine Einschränkung übergehen, die für alle anderen gilt."
+
+#: nx_lib/views/admin/permissions.py:149
+msgid "Restart a running service."
+msgstr "Einen laufenden Dienst neu starten."
+
+#: nx_lib/views/admin/permissions.py:153
+msgid "Own records only."
+msgstr "Nur eigene Datensätze."
+
+#: nx_lib/views/admin/permissions.py:154
+msgid "Every record of the holder's own organization."
+msgstr "Alle Datensätze der eigenen Organisation."
+
+#: nx_lib/views/admin/permissions.py:155
+msgid "Every record, in every organization."
+msgstr "Alle Datensätze, in allen Organisationen."
+
+#: nx_lib/views/admin/permissions.py:156
+msgid "Also after the deadline has passed."
+msgstr "Auch nach Ablauf der Frist."
+
+#: nx_lib/views/admin/permissions.py:261
 msgid "Invalid payload"
 msgstr "Ungültige Daten"
 
-#: nx_lib/views/admin/permissions.py:298
+#: nx_lib/views/admin/permissions.py:415
 msgid "Could not fetch users"
 msgstr "Benutzer konnten nicht abgerufen werden"
 
-#: nx_lib/views/admin/permissions.py:317
+#: nx_lib/views/admin/permissions.py:434
 msgid "Rank must be a number"
 msgstr "Der Rang muss eine Zahl sein"
 
-#: nx_lib/views/admin/permissions.py:320
+#: nx_lib/views/admin/permissions.py:437
 msgid "Name is required"
 msgstr "Name ist erforderlich"
 
-#: nx_lib/views/admin/permissions.py:358
+#: nx_lib/views/admin/permissions.py:475
 #, python-format
 msgid "%(n)d user(s) outside %(org)s hold this profile. Move them first."
 msgstr ""
 "%(n)d Benutzer ausserhalb von %(org)s haben dieses Profil. Zuerst "
 "verschieben."
 
-#: nx_lib/views/admin/permissions.py:380
+#: nx_lib/views/admin/permissions.py:497
 msgid "Profile saved successfully"
 msgstr "Profil erfolgreich gespeichert"
 
-#: nx_lib/views/admin/permissions.py:559
+#: nx_lib/views/admin/permissions.py:676
 msgid "Overrides updated successfully"
 msgstr "Überschreibungen erfolgreich aktualisiert"
 
-#: nx_lib/views/admin/permissions.py:624 nx_lib/views/admin/permissions.py:754
-#: nx_lib/views/admin/permissions.py:800
+#: nx_lib/views/admin/permissions.py:741 nx_lib/views/admin/permissions.py:871
+#: nx_lib/views/admin/permissions.py:917
 msgid "Permission not found"
 msgstr "Berechtigung nicht gefunden"
 
-#: nx_lib/views/admin/permissions.py:704 nx_lib/views/admin/permissions.py:743
+#: nx_lib/views/admin/permissions.py:821 nx_lib/views/admin/permissions.py:860
 msgid "Code and description are required"
 msgstr "Code und Beschreibung sind erforderlich"
 
-#: nx_lib/views/admin/permissions.py:721
+#: nx_lib/views/admin/permissions.py:838
 msgid "Permission created successfully"
 msgstr "Berechtigung erfolgreich erstellt"
 
-#: nx_lib/views/admin/permissions.py:756
+#: nx_lib/views/admin/permissions.py:873
 msgid "Permission updated successfully"
 msgstr "Berechtigung erfolgreich aktualisiert"
 
-#: nx_lib/views/admin/permissions.py:793
+#: nx_lib/views/admin/permissions.py:910
 #, python-format
 msgid ""
 "Cannot delete: used in %(p)d profile(s) and %(o)d override(s). Remove all"
@@ -1342,7 +1408,7 @@ msgstr ""
 "Kann nicht gelöscht werden: Wird in %(p)d Profil(en) und %(o)d "
 "Override(s) verwendet. Bitte zuerst alle Zuweisungen entfernen."
 
-#: nx_lib/views/admin/permissions.py:802
+#: nx_lib/views/admin/permissions.py:919
 msgid "Permission deleted successfully"
 msgstr "Berechtigung erfolgreich gelöscht"
 
@@ -2190,11 +2256,13 @@ msgid "Overview"
 msgstr "Übersicht"
 
 #: templates/_header.html:69 templates/admin/access_control.html:19
-#: templates/admin/admin_overview.html:127 templates/js/_header_js.html:18
+#: templates/admin/admin_overview.html:127
+#: templates/admin/permission_detail.html:19 templates/js/_header_js.html:18
 msgid "Access Control"
 msgstr "Zugriffskontrolle"
 
 #: templates/_header.html:74 templates/admin/admin_overview.html:137
+#: templates/admin/permission_detail.html:21
 #: templates/admin/permissions.html:21 templates/admin/user_detail.html:88
 msgid "Permissions"
 msgstr "Berechtigungen"
@@ -7159,7 +7227,9 @@ msgstr "Bearbeiten"
 msgid "user(s)"
 msgstr "Benutzer"
 
-#: templates/admin/access_control.html:132 templates/admin/permissions.html:57
+#: templates/admin/access_control.html:132
+#: templates/admin/permission_detail.html:240
+#: templates/admin/permissions.html:57
 msgid "rank"
 msgstr "Rang"
 
@@ -7378,7 +7448,7 @@ msgstr "Gespeicherte Filter"
 msgid "Save current"
 msgstr "Aktuellen speichern"
 
-#: templates/admin/logs.html:50
+#: templates/admin/logs.html:50 templates/admin/permission_detail.html:120
 msgid "Method"
 msgstr "Methode"
 
@@ -7513,6 +7583,7 @@ msgid "Delete banner"
 msgstr "Banner löschen"
 
 #: templates/admin/organization_detail.html:19
+#: templates/admin/permission_detail.html:18
 #: templates/admin/tenant_detail.html:20
 msgid "Breadcrumb"
 msgstr "Brotkrümelnavigation"
@@ -7729,6 +7800,170 @@ msgstr "Keine Organisation entspricht Ihrer Suche."
 msgid "No organizations yet."
 msgstr "Noch keine Organisationen."
 
+#: templates/admin/permission_detail.html:36
+#, python-format
+msgid "%(num)d profile holds it"
+msgid_plural "%(num)d profiles hold it"
+msgstr[0] "%(num)d Profil hat sie"
+msgstr[1] "%(num)d Profile haben sie"
+
+#: templates/admin/permission_detail.html:39
+msgid "Nobody holds it"
+msgstr "Niemand hat sie"
+
+#: templates/admin/permission_detail.html:47
+msgid ""
+"This code guards no route and is checked nowhere in the app. It is either"
+" a leftover or a code the app has not caught up with yet — granting it "
+"changes nothing today."
+msgstr ""
+"Dieser Code schützt keine Route und wird nirgends in der Anwendung "
+"geprüft. Entweder ein Überbleibsel oder ein Code, den die Anwendung noch "
+"nicht nutzt — ihn zu vergeben ändert heute nichts."
+
+#: templates/admin/permission_detail.html:56
+msgid "What the code says"
+msgstr "Was der Code aussagt"
+
+#: templates/admin/permission_detail.html:57
+msgid "Read straight off the grammar"
+msgstr "Direkt aus der Grammatik gelesen"
+
+#: templates/admin/permission_detail.html:61
+msgctxt "permission grammar"
+msgid "Area"
+msgstr "Bereich"
+
+#: templates/admin/permission_detail.html:66
+msgctxt "permission grammar"
+msgid "Object"
+msgstr "Objekt"
+
+#: templates/admin/permission_detail.html:71
+msgctxt "permission grammar"
+msgid "Action"
+msgstr "Aktion"
+
+#: templates/admin/permission_detail.html:76
+msgctxt "permission grammar"
+msgid "Scope"
+msgstr "Geltungsbereich"
+
+#: templates/admin/permission_detail.html:77
+msgid "own"
+msgstr "eigene"
+
+#: templates/admin/permission_detail.html:85
+msgid "The admin grid greys this out until the holder also has"
+msgstr "Das Admin-Raster blendet dies aus, bis der Inhaber zusätzlich hat"
+
+#: templates/admin/permission_detail.html:87
+msgid "or"
+msgstr "oder"
+
+#: templates/admin/permission_detail.html:89
+msgid "That is a UI convention only — the server checks every code on its own."
+msgstr ""
+"Das ist nur eine Konvention der Oberfläche — der Server prüft jeden Code "
+"für sich."
+
+#: templates/admin/permission_detail.html:97
+msgid "What it unlocks"
+msgstr "Was sie freischaltet"
+
+#: templates/admin/permission_detail.html:98
+msgid "Routes that refuse without it"
+msgstr "Routen, die ohne sie abweisen"
+
+#: templates/admin/permission_detail.html:121
+msgid "Route"
+msgstr "Route"
+
+#: templates/admin/permission_detail.html:122
+msgid "Endpoint"
+msgstr "Endpunkt"
+
+#: templates/admin/permission_detail.html:134
+msgid "opens for any of:"
+msgstr "öffnet sich bei einer von:"
+
+#: templates/admin/permission_detail.html:148
+msgid ""
+"No route is guarded by this code. It is checked inside a page instead — "
+"see below."
+msgstr ""
+"Keine Route wird von diesem Code geschützt. Er wird stattdessen innerhalb"
+" einer Seite geprüft — siehe unten."
+
+#: templates/admin/permission_detail.html:155
+msgid "Where it shows in the interface"
+msgstr "Wo sie in der Oberfläche erscheint"
+
+#: templates/admin/permission_detail.html:156
+#: templates/admin/permission_detail.html:179
+#, python-format
+msgid "%(num)d place"
+msgid_plural "%(num)d places"
+msgstr[0] "%(num)d Stelle"
+msgstr[1] "%(num)d Stellen"
+
+#: templates/admin/permission_detail.html:161
+msgid "Template"
+msgstr "Vorlage"
+
+#: templates/admin/permission_detail.html:162
+msgid "Rendered only when the holder has it"
+msgstr "Wird nur gerendert, wenn der Inhaber sie hat"
+
+#: templates/admin/permission_detail.html:178
+msgid "Where it is checked in code"
+msgstr "Wo sie im Code geprüft wird"
+
+#: templates/admin/permission_detail.html:196
+msgid "The rest of this object"
+msgstr "Der Rest dieses Objekts"
+
+#: templates/admin/permission_detail.html:217
+msgid "What the holder sees"
+msgstr "Was der Inhaber sieht"
+
+#: templates/admin/permission_detail.html:220
+msgid "Screenshot of the page this permission opens"
+msgstr "Bildschirmfoto der Seite, die diese Berechtigung öffnet"
+
+#: templates/admin/permission_detail.html:228
+msgid "Who holds it"
+msgstr "Wer sie hat"
+
+#: templates/admin/permission_detail.html:229
+msgid "Profile grants"
+msgstr "Profilzuweisungen"
+
+#: templates/admin/permission_detail.html:253
+msgid "Per-user overrides"
+msgstr "Benutzerspezifische Ausnahmen"
+
+#: templates/admin/permission_detail.html:254
+msgid "The only place a deny exists"
+msgstr "Der einzige Ort, an dem ein Verbot existiert"
+
+#: templates/admin/permission_detail.html:269
+#: templates/js/admin/_user_detail_js.html:396
+msgid "Denied"
+msgstr "Verweigert"
+
+#: templates/admin/permission_detail.html:271
+msgid "Allowed"
+msgstr "Erlaubt"
+
+#: templates/admin/permission_detail.html:279
+msgid "None. Everyone who holds this gets it from their profile."
+msgstr "Keine. Alle, die sie haben, bekommen sie über ihr Profil."
+
+#: templates/admin/permission_detail.html:283
+msgid "Change grants in the permissions grid"
+msgstr "Zuweisungen im Berechtigungsraster ändern"
+
 #: templates/admin/permissions.html:8
 msgid "Permissions - nexora"
 msgstr "Berechtigungen - nexora"
@@ -7746,6 +7981,10 @@ msgstr "Nach Code oder Beschreibung filtern…"
 #: templates/admin/permissions.html:49
 msgid "Add permission"
 msgstr "Berechtigung hinzufügen"
+
+#: templates/admin/permissions.html:69
+msgid "What this permission does"
+msgstr "Was diese Berechtigung bewirkt"
 
 #: templates/admin/permissions.html:101
 #: templates/js/admin/_permissions_js.html:14
@@ -10820,10 +11059,6 @@ msgstr "Override · Verweigern"
 #: templates/js/admin/_user_detail_js.html:338
 msgid "Profile · Deny"
 msgstr "Profil · Verweigern"
-
-#: templates/js/admin/_user_detail_js.html:396
-msgid "Denied"
-msgstr "Verweigert"
 
 #: templates/js/admin/_user_detail_js.html:460
 #: templates/js/admin/_user_detail_js.html:499

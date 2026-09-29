@@ -795,3 +795,45 @@ body.nx-admin #locked-accounts-wrap {
   box-shadow: none;
   padding: 0 0 18px;
 }
+
+
+/* — Permission detail ------------------------------------------ */
+/* The grid answers "who holds this"; this page answers "what does holding it
+   do", and everything on the left of it is derived from the route map and the
+   source tree rather than from the hand-written Description. */
+.perm-detail { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 32px; align-items: start; }
+.perm-detail__main { min-width: 0; }
+.perm-detail__side { min-width: 0; }
+.perm-detail__code { font-size: 20px; letter-spacing: -0.2px; word-break: break-all; }
+
+@media (max-width: 1100px) {
+  .perm-detail { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .perm-detail__side { max-width: 420px; }
+}
+
+/* Grammar breakdown: one row per segment, the vocabulary spelled out next to
+   it so a reader need not hold docs/design/permissions.md in their head. */
+.perm-parts { border-top: 1px solid var(--nx-border); }
+.perm-part { display: flex; align-items: baseline; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--nx-divider); font-size: var(--fs-control); }
+.perm-part__key { flex: 0 0 76px; font-size: var(--fs-eyebrow); font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: var(--nx-text-meta); }
+.perm-part__val { flex: 0 0 auto; font-weight: 600; color: var(--nx-text); }
+.perm-part__help { color: var(--nx-text-sec); min-width: 0; }
+
+.perm-pages { display: flex; flex-direction: column; margin-bottom: 8px; }
+
+.perm-method { font-family: var(--nx-mono); font-size: var(--fs-eyebrow); }
+.perm-method--get { background: var(--nx-l-green); color: var(--nx-l-green-fg); }
+.perm-method--post { background: var(--nx-l-amber); color: var(--nx-l-amber-fg); }
+.perm-method--delete { background: var(--nx-l-red); color: var(--nx-danger); }
+
+.perm-snippet { font-family: var(--nx-mono); font-size: 11.5px; color: var(--nx-text-sec); background: var(--nx-sunken); border-radius: 4px; padding: 2px 6px; display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
+
+/* The captured page, when scripts/capture-permission-shots.py has one. */
+.perm-shot { margin: 0 0 4px; border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 10px); overflow: hidden; background: var(--nx-card); }
+.perm-shot img { display: block; width: 100%; height: auto; }
+.perm-shot figcaption { padding: 7px 10px; font-size: var(--fs-eyebrow); color: var(--nx-text-meta); border-top: 1px solid var(--nx-border); background: var(--nx-alt); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* The grid's permission code becomes the way into this page. */
+.perms-grid .perm-code a { color: inherit; text-decoration: none; }
+.perms-grid .perm-code a:hover { color: var(--nx-accent); text-decoration: underline; }
+.adm-pill--danger { background: var(--nx-l-red); color: var(--nx-danger); }

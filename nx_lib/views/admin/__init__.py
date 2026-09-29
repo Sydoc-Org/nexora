@@ -88,6 +88,7 @@ from .organizations import (
 from .overview import admin_dashboard
 from .permissions import (
     admin_access_control,
+    admin_permission_detail_view,
     admin_permissions_page,
     api_admin_permission_add,
     api_admin_permission_delete,
@@ -208,6 +209,7 @@ __all__ = [
     "admin_maintenance_view",
     "admin_organization_detail_view",
     "admin_organizations_view",
+    "admin_permission_detail_view",
     "admin_permissions_page",
     "admin_recent_logs",
     "admin_revoke_all_sessions",

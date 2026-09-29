@@ -66,7 +66,7 @@
                             data-search="{{ ((perm.Code ~ ' ' ~ (perm.Description or ''))|lower) }}"
                             data-gate="{{ perm.gate or '' }}">
                             <td style="padding-left:{{ 48 if o.label else 24 }}px">
-                                <div class="nx-mono perm-code">{{ perm.Code }}</div>
+                                <div class="nx-mono perm-code"><a href="{{ url_for('admin_permission_detail_view', code=perm.Code) }}" title="{{ _('What this permission does') }}" data-testid="admin-perms-detail-{{ perm.PermissionID }}">{{ perm.Code }}</a></div>
                                 <div class="nx-meta">{{ perm.Description }}</div>
                                 {% if can_edit_catalog %}
                                 <div class="perm-actions">
