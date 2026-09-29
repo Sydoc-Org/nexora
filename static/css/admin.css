@@ -826,7 +826,14 @@ body.nx-admin #locked-accounts-wrap {
 .perm-method--post { background: var(--nx-l-amber); color: var(--nx-l-amber-fg); }
 .perm-method--delete { background: var(--nx-l-red); color: var(--nx-danger); }
 
-.perm-snippet { font-family: var(--nx-mono); font-size: 11.5px; color: var(--nx-text-sec); background: var(--nx-sunken); border-radius: 4px; padding: 2px 6px; display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
+/* A guarding line can be arbitrarily long (_header.html chains five
+   page_visibility flags in one `if`). In an auto-layout table the snippet cell
+   has no width to shrink against, so the column grew until the table pushed
+   out of its grid track and over the aside. Fixing the layout gives the cell a
+   width, and the ellipsis something to clip to. */
+.perm-usages { table-layout: fixed; }
+.perm-usages th, .perm-usages td { overflow: hidden; }
+.perm-snippet { font-family: var(--nx-mono); font-size: 11.5px; color: var(--nx-text-sec); background: var(--nx-sunken); border-radius: 4px; padding: 2px 6px; display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* The captured page, when scripts/capture-permission-shots.py has one. */
 .perm-shot { margin: 0 0 4px; border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 10px); overflow: hidden; background: var(--nx-card); }

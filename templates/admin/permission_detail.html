@@ -155,7 +155,7 @@
                     <h3 class="adm-sec__title">{{ _('Where it shows in the interface') }}</h3>
                     <span class="adm-sec__sub">{{ ngettext('%(num)d place', '%(num)d places', facts.ui_usages|length) }}</span>
                 </div>
-                <table class="adm-table" data-testid="perm-detail-usages">
+                <table class="adm-table perm-usages" data-testid="perm-detail-usages">
                     <thead>
                         <tr>
                             <th style="width:300px">{{ _('Template') }}</th>
@@ -166,7 +166,7 @@
                         {% for u in facts.ui_usages %}
                         <tr>
                             <td><span class="nx-mono" style="font-size:11.5px">{{ u.file }}:{{ u.line }}</span></td>
-                            <td><code class="perm-snippet">{{ u.snippet }}</code></td>
+                            <td><code class="perm-snippet" title="{{ u.snippet }}">{{ u.snippet }}</code></td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -178,12 +178,13 @@
                     <h3 class="adm-sec__title">{{ _('Where it is checked in code') }}</h3>
                     <span class="adm-sec__sub">{{ ngettext('%(num)d place', '%(num)d places', facts.code_usages|length) }}</span>
                 </div>
-                <table class="adm-table" data-testid="perm-detail-code-usages">
+                <table class="adm-table perm-usages" data-testid="perm-detail-code-usages">
+                    <colgroup><col style="width:300px"><col></colgroup>
                     <tbody>
                         {% for u in facts.code_usages %}
                         <tr>
-                            <td style="width:300px"><span class="nx-mono" style="font-size:11.5px">{{ u.file }}:{{ u.line }}</span></td>
-                            <td><code class="perm-snippet">{{ u.snippet }}</code></td>
+                            <td><span class="nx-mono" style="font-size:11.5px">{{ u.file }}:{{ u.line }}</span></td>
+                            <td><code class="perm-snippet" title="{{ u.snippet }}">{{ u.snippet }}</code></td>
                         </tr>
                         {% endfor %}
                     </tbody>
