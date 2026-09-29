@@ -189,6 +189,28 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **`nx --doctor` checks every reporting source's own table or view** (#329).
+  The rail's status dot only proves a database answers, so a source over a
+  missing table stayed green while every report on it failed. The new
+  *Reporting sources* section runs `SELECT TOP 0 <configured columns>` for each
+  enabled `table` source on its engine — which also catches a configured
+  column the table does not have — and again through the read-only login the
+  SQL tab and the AI assistant use. On INT it finds two real problems, both in
+  the databases rather than in nexora:
+  - **Privera — Neuzugänge fails everywhere**: its view
+    `v_PriveraNeuzugaenge_StatistikNiederlassung_AnzahlDossiers` reads from
+    `SYDOC_Statistik1`, a database that does not exist (a restore leftover
+    already noted in `0134`); the table is in `SYDOC_Statistik`.
+  - **Privera — Physische Zustellung and Posteingang fail only in the SQL tab
+    and the AI assistant**: the read-only login has no access to
+    `01_Privera_Posteingang`. They work in the report builder, which is the
+    "only sometimes" symptom.
+  Neither database is managed by nexora's migrations, so both fixes are SQL
+  for whoever administers the server (column-level grant, so the owner,
+  property and recipient columns stay unreadable). Runs on SYAPP01 against PROD
+  with `ENVIRONMENT=PROD python -m nx_lib.cli doctor --fast` — see
+  `docs/howto/nx.md`.
+
 - **`GET /api/v1/workitems?include=tables`** (#398): each row can now carry
   its extracted table values (line items, VAT rows, order references) in
   the same shape `/workitems/<id>` returns, resolved once per page like
