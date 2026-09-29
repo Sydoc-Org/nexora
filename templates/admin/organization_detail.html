@@ -17,7 +17,7 @@
 
         {# ---- Breadcrumbs -------------------------------------------------- #}
         <nav class="adm-crumbs nx-rise" aria-label="{{ _('Breadcrumb') }}">
-            <a href="{{ url_for('admin_organizations_view') }}">{{ _('Organizations') }}</a>
+            <a href="{{ url_for('admin_organizations_view') }}" data-testid="admin-org-detail-back">{{ _('Organizations') }}</a>
             {% if org.tenant_code %}
             <i class="fas fa-chevron-right adm-crumbs__sep"></i>
             <a href="{{ url_for('admin_tenant_detail_view', tenantcode=org.tenant_code) }}">{{ org.tenant_name or org.tenant_code }}</a>
