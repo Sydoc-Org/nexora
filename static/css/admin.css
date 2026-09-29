@@ -665,15 +665,18 @@ body.nx-admin .nx-card--flat { background: none; border: none; border-radius: 0;
 /* A side sheet is right for a form that owns the screen; mounting a page is a
    six-field edit to the table directly below it, so it opens in the flow
    instead. Same field primitives as the sheets -- only the frame differs. */
-.adm-inline { border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 10px); background: var(--nx-card); margin: 0 0 18px; box-shadow: 0 8px 24px -16px rgba(16, 24, 40, 0.22); }
+/* No card: hairline rules above and below, the same language the filter bars
+   and tables were flattened to. The form is part of the page, not a dialog
+   that happens to be parked in it. */
+.adm-inline { border-top: 1px solid var(--nx-border); border-bottom: 1px solid var(--nx-border); margin: 0 0 18px; padding: 14px 0 0; }
 .adm-inline.hidden { display: none; }
-.adm-inline__head { display: flex; align-items: flex-start; gap: 12px; padding: 13px 18px; border-bottom: 1px solid var(--nx-border); background: var(--nx-alt); border-radius: calc(var(--nx-radius-scale, 1) * 10px) calc(var(--nx-radius-scale, 1) * 10px) 0 0; }
+.adm-inline__head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
 .adm-inline__kicker { font-size: var(--fs-eyebrow); font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: var(--nx-text-meta); }
 .adm-inline__title { font-size: var(--fs-title); font-weight: 600; margin: 2px 0 0; color: var(--nx-text); }
 .adm-inline__head .adm-iconbtn { margin-left: auto; }
-.adm-inline__body { padding: 16px 18px; }
+.adm-inline__body { padding: 0; }
 .adm-inline__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; }
-.adm-inline__foot { display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--nx-border); }
+.adm-inline__foot { display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding: 14px 0; margin-top: 16px; border-top: 1px solid var(--nx-divider); }
 .adm-inline__note { margin: 0 auto 0 0; max-width: 46ch; }
 
 @media (max-width: 640px) {
@@ -736,3 +739,59 @@ body.nx-admin .nx-card--flat { background: none; border: none; border-radius: 0;
 /* A row of sketch blocks inside a grid has no header, so it needs its own
    top border back. */
 .adm-window__grid > .adm-window__gridrow:first-child { border-top: 0; }
+
+/* The pending-page preview stacks its sketch like a real view; `hidden` alone
+   would lose to the flex display, same trap as the sheets. */
+.adm-window__shape { display: flex; flex-direction: column; gap: 10px; }
+.adm-window__shape[hidden] { display: none; }
+
+
+/* — Status and Sessions: the last boxed panels ------------------ */
+/* These were left as cards while the rest of the admin area was flattened,
+   on the theory that an incident page reads better in panels. It does not --
+   it reads as a different product. The state signal the hero card carried is
+   kept, and moved onto the rule and the text: an outage still shouts, it just
+   does so without a border around it. */
+body.nx-admin .status-hero {
+  background: none;
+  border: 0;
+  border-left: 3px solid var(--nx-border-strong);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 4px 0 18px 16px;
+  margin-bottom: 18px;
+}
+body.nx-admin .status-hero--operational { border-left-color: var(--nx-l-green-fg); }
+body.nx-admin .status-hero--degraded    { border-left-color: var(--nx-l-amber-fg); }
+body.nx-admin .status-hero--outage      { border-left-color: var(--nx-danger); }
+body.nx-admin .status-hero--maintenance { border-left-color: var(--nx-l-indigo-fg); }
+
+/* Incident and component lists: rules between rows, no card around them. */
+body.nx-admin .status-open-list,
+body.nx-admin .status-components {
+  background: none;
+  border: 0;
+  border-top: 1px solid var(--nx-border);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+}
+body.nx-admin .status-components { padding-bottom: 8px; }
+
+body.nx-admin .admin-empty {
+  background: none;
+  border: 0;
+  border-top: 1px solid var(--nx-border);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* Sessions: the locked-accounts block is a list, not a panel. */
+body.nx-admin #locked-accounts-wrap {
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--nx-border);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0 0 18px;
+}

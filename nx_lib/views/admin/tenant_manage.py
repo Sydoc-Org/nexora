@@ -431,10 +431,14 @@ def _label_of(labels, lang, fallback):
 # worse preview than the one it replaced. First keyword wins, so the order is
 # the priority order: "import-status" is a list, not a status dashboard.
 _SHAPE_KEYWORDS = (
-    ("dashboard", ("dashboard", "overview", "home", "start")),
-    ("report", ("report", "statistic", "analytic", "pdqm", "kpi", "chart")),
+    # Unambiguous names first. The soft dashboard words come last on purpose:
+    # "overview" appears in workitems_overview, which is a list, not a
+    # dashboard, so it must not outrank "workitem".
+    ("dashboard", ("dashboard",)),
     ("list", ("workitem", "document", "list", "prepared", "import", "status", "search", "job")),
+    ("report", ("report", "statistic", "analytic", "pdqm", "kpi", "chart")),
     ("cards", ("service", "management", "project", "setting", "profile", "admin")),
+    ("dashboard", ("overview", "home", "start")),
 )
 
 
@@ -621,6 +625,14 @@ def admin_tenant_detail_view(tenantcode):
         tenant["pages"] = pages
         tenant["user_count"] = sum(o["user_count"] for o in organizations)
 
+        # Which sketch the mount form should show while you pick an endpoint,
+        # resolved here rather than in JS so the live preview and the mounted
+        # page it becomes cannot disagree about the shape.
+        endpoints = mountable_endpoints(current_app.url_map)
+        endpoint_shapes = {
+            ep: {"shape": _custom_shape("", ep), "path": _endpoint_path(ep)} for ep in endpoints
+        }
+
         return render_template(
             "admin/tenant_detail.html",
             tenant=tenant,
@@ -628,7 +640,8 @@ def admin_tenant_detail_view(tenantcode):
             all_organizations=all_organizations,
             pages=pages,
             viewers=viewers,
-            endpoints=mountable_endpoints(current_app.url_map),
+            endpoints=endpoints,
+            endpoint_shapes=endpoint_shapes,
             can_edit=can_edit,
             logged_in_user=session.get("username"),
             userid=session.get("userid"),

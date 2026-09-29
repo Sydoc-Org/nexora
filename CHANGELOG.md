@@ -8,6 +8,20 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **Mount page previews what you are about to mount, and stops being a box.**
+  Picking an endpoint now repaints the member preview next to the form with
+  the page you would get — its shape sketch, the label and icon you typed, a
+  Draft pill (new pages start hidden from members) and the URL the sidebar
+  entry will point at. Key and label keep following the endpoint until you
+  type your own, then they stop. The panel itself lost its card and sits
+  between two hairlines like the filter bars and tables around it.
+
+- **Status and Sessions lose their last panels.** The status hero, the open
+  incident list, the component list and the Sessions locked-accounts block were
+  the last `.nx-card` chrome left in the admin area. The hero keeps its state
+  signal — the colour moves onto the rule and the icon — so an outage still
+  reads at a glance without a border around it.
+
 - **The tenant page preview is now per page, and Mount page opens inline.**
   Every mounted page renders its own preview instead of one generic mock.
   Generated `list`/`crud` pages are built from the same `TenantEntities` /

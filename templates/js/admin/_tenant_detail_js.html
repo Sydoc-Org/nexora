@@ -5,7 +5,15 @@
         const showNotification = window.NX.toast;
         const forbidden = `{{ _("You do not have permission to perform this action.") }}`;
         const TENANT_CODE = {{ tenant.TenantCode|tojson }};
+        // Shape + resolved URL per mountable endpoint, so the live preview of
+        // the page you are mounting agrees with the page it becomes.
+        const ENDPOINT_SHAPES = {{ (endpoint_shapes or {})|tojson }};
         const reload = () => window.location.reload();
+
+        // Assigned by the preview block further down; the mount form calls them.
+        let showPendingPreview = () => {};
+        let updatePendingPreview = () => {};
+        let restorePreview = () => {};
 
         async function send(url, method, body) {
             try {
@@ -148,7 +156,10 @@
         // The mount form sits inline above the table rather than in a sheet, so
         // opening it must not scroll the table it edits out of view.
         const pageForm = document.getElementById('pageForm');
-        function closePageForm() { pageForm?.classList.add('hidden'); }
+        function closePageForm() {
+            pageForm?.classList.add('hidden');
+            restorePreview();
+        }
         if (pageForm) {
             const iconInput = document.getElementById('icon');
             const iconPreview = document.getElementById('iconPreview')?.querySelector('i');
@@ -164,6 +175,7 @@
                 pageForm.classList.remove('hidden');
                 pageForm.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
                 document.getElementById('endpoint')?.focus();
+                showPendingPreview();
             });
             document.getElementById('pageFormClose')?.addEventListener('click', closePageForm);
             document.getElementById('pageFormCancel')?.addEventListener('click', closePageForm);
@@ -172,14 +184,33 @@
             // common case is pick-one-thing-and-save.
             const keyInput = document.getElementById('PageKey');
             const labelInput = document.getElementById('label');
-            document.getElementById('endpoint')?.addEventListener('change', (e) => {
+            const endpointSel = document.getElementById('endpoint');
+            // Autofill follows the endpoint until you type in the field
+            // yourself -- picking a second endpoint should not leave the first
+            // one's name behind, but it must never clobber your own wording.
+            [keyInput, labelInput].forEach(el => el.addEventListener('input', () => {
+                delete el.dataset.auto;
+            }));
+            endpointSel?.addEventListener('change', (e) => {
                 const ep = e.target.value;
                 if (!ep) return;
-                if (!keyInput.value) keyInput.value = ep.replace(/_view$/, '').replace(/[^a-z0-9_.-]/g, '_');
-                if (!labelInput.value) {
+                if (!keyInput.value || keyInput.dataset.auto) {
+                    keyInput.value = ep.replace(/_view$/, '').replace(/[^a-z0-9_.-]/g, '_');
+                    keyInput.dataset.auto = '1';
+                }
+                if (!labelInput.value || labelInput.dataset.auto) {
                     labelInput.value = ep.replace(/_view$/, '').replace(/[_-]+/g, ' ')
                         .replace(/\b\w/g, (c) => c.toUpperCase());
+                    labelInput.dataset.auto = '1';
                 }
+            });
+            // Anything that changes what the mounted page will look like
+            // repaints the preview next to the form.
+            pageForm.addEventListener('input', () => {
+                if (!pageForm.classList.contains('hidden')) updatePendingPreview();
+            });
+            pageForm.addEventListener('change', () => {
+                if (!pageForm.classList.contains('hidden')) updatePendingPreview();
             });
 
             pageForm.addEventListener('submit', async (event) => {
@@ -200,16 +231,60 @@
         if (pagesTable && previewSide) {
             const previewKey = document.getElementById('previewKey');
             const views = document.querySelectorAll('[data-preview-view]');
+            let currentKey = null;
+
+            function showView(key) {
+                views.forEach(v => { v.hidden = v.dataset.previewView !== key; });
+            }
 
             function select(key) {
                 const row = pagesTable.querySelector(`tr[data-page-key="${CSS.escape(key)}"]`);
                 if (!row) return;
+                currentKey = key;
                 pagesTable.querySelectorAll('tr[data-page-key]').forEach(r =>
                     r.classList.toggle('adm-row--on', r === row));
                 previewSide.querySelectorAll('[data-preview-key]').forEach(el =>
                     el.classList.toggle('adm-window__item--on', el.dataset.previewKey === key));
-                views.forEach(v => { v.hidden = v.dataset.previewView !== key; });
+                showView(key);
                 previewKey.textContent = key;
+            }
+
+            // ---- live preview of the page being mounted ---------------------
+            const newView = document.querySelector('[data-preview-view="__new__"]');
+            if (newView) {
+                const newIcon = document.getElementById('newPreviewIcon');
+                const newLabel = document.getElementById('newPreviewLabel');
+                const newEndpoint = document.getElementById('newPreviewEndpoint');
+                const newPath = document.getElementById('newPreviewPath');
+                const newBody = document.getElementById('newPreviewBody');
+                const placeholder = `{{ _("New page") }}`;
+
+                updatePendingPreview = () => {
+                    const ep = document.getElementById('endpoint')?.value || '';
+                    const info = ENDPOINT_SHAPES[ep] || {};
+                    const key = document.getElementById('PageKey')?.value.trim();
+                    const icon = document.getElementById('icon')?.value.trim() || '';
+                    previewKey.textContent = key || '…';
+                    newLabel.textContent = document.getElementById('label')?.value.trim() || placeholder;
+                    newEndpoint.textContent = ep;
+                    newPath.textContent = info.path || ep;
+                    newIcon.className = `fas ${/^fa-[a-z0-9-]{1,40}$/.test(icon) ? icon : 'fa-arrow-up-right-from-square'}`;
+                    const shape = info.shape || 'list';
+                    newBody.querySelectorAll('[data-shape]').forEach(el => {
+                        el.hidden = el.dataset.shape !== shape;
+                    });
+                };
+
+                showPendingPreview = () => {
+                    pagesTable.querySelectorAll('tr[data-page-key]').forEach(r =>
+                        r.classList.remove('adm-row--on'));
+                    previewSide.querySelectorAll('[data-preview-key]').forEach(el =>
+                        el.classList.remove('adm-window__item--on'));
+                    showView('__new__');
+                    updatePendingPreview();
+                };
+
+                restorePreview = () => { if (currentKey) select(currentKey); };
             }
 
             pagesTable.addEventListener('click', (e) => {
