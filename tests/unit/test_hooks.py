@@ -456,6 +456,67 @@ def test_log_every_request_swallows_io_error(app, monkeypatch):
     assert result is fake_response
 
 
+def test_log_every_request_redacts_free_text_args(app, tmp_path, monkeypatch):
+    """A document search or doc-field value can name the people in the
+    documents; the log keeps the key, never the value (#260 review)."""
+    fake_paths = MagicMock()
+    fake_paths.logs = tmp_path
+    monkeypatch.setattr(hooks_mod, "PATHS", fake_paths)
+
+    url = "/api/generali/documents?search=Muster+Hans&q=12.345.678&docvalue=POL-99&page=2"
+    with app.test_request_context(url):
+        request.start_time = time.time()
+        _log_every_request(MagicMock(status_code=200))
+
+    body = next((tmp_path / "user").rglob("nexora_logs.csv")).read_text(encoding="utf-8")
+    for secret in ("Muster", "12.345.678", "POL-99"):
+        assert secret not in body
+    assert "[redacted]" in body
+    assert "'page': '2'" in body, "structured args must stay for fault tracing"
+
+
+def test_prune_request_log_folders_keeps_the_retention_window(tmp_path):
+    """Hour folders past REQUEST_LOG_RETENTION go; everything inside it, and
+    anything that is not an hour folder, stays."""
+    from datetime import datetime, timedelta
+
+    now = datetime(2026, 9, 29, 12)
+    retention = hooks_mod._config.REQUEST_LOG_RETENTION
+    old = now - retention - timedelta(hours=2)
+    edge = now - retention + timedelta(hours=1)
+    for name in (
+        old.strftime("%Y%m%d%H"),
+        edge.strftime("%Y%m%d%H"),
+        now.strftime("%Y%m%d%H"),
+        "notes",
+    ):
+        (tmp_path / name).mkdir()
+    (tmp_path / "readme.txt").write_text("x")
+
+    hooks_mod._prune_request_log_folders(tmp_path, now)
+
+    left = sorted(p.name for p in tmp_path.iterdir())
+    assert old.strftime("%Y%m%d%H") not in left
+    assert edge.strftime("%Y%m%d%H") in left
+    assert now.strftime("%Y%m%d%H") in left
+    assert "notes" in left and "readme.txt" in left
+
+
+def test_log_every_request_prunes_only_when_a_new_hour_starts(app, tmp_path, monkeypatch):
+    """The sweep runs once per hour folder, not on every request."""
+    fake_paths = MagicMock()
+    fake_paths.logs = tmp_path
+    monkeypatch.setattr(hooks_mod, "PATHS", fake_paths)
+    calls = []
+    monkeypatch.setattr(hooks_mod, "_prune_request_log_folders", lambda d, now: calls.append(d))
+
+    for _ in range(3):
+        with app.test_request_context("/dashboard"):
+            request.start_time = time.time()
+            _log_every_request(MagicMock(status_code=200))
+    assert len(calls) == 1
+
+
 # ---------- error handlers ----------
 
 
@@ -492,6 +553,15 @@ def test_inject_current_lang_returns_dict(app):
         ctx = _inject_current_lang()
         assert "current_lang" in ctx
         assert isinstance(ctx["current_lang"], str)
+
+
+def test_inject_current_lang_falls_back_to_english(app):
+    """No session locale and no supported Accept-Language: the raw selector
+    returns None, which used to render as lang="None"."""
+    with app.test_request_context("/", headers={"Accept-Language": "es"}):
+        assert _inject_current_lang()["current_lang"] == "en"
+    with app.test_request_context("/"):
+        assert _inject_current_lang()["current_lang"] == "en"
 
 
 def test_utility_processor_exposes_helpers(app):

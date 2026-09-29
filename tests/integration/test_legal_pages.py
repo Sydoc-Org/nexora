@@ -156,6 +156,60 @@ def test_privacy_covers_sensitive_data_transfers_abroad_and_cookies(client):
         assert needle in en, needle
 
 
+def test_privacy_describes_the_request_log_as_the_code_writes_it(client):
+    """Review 2026-09-29: the log row carries the IP address, the session id and
+    the query parameters (nx_lib/hooks.py), and free-text search values are
+    redacted before they are written. The page has to say both, in both
+    languages -- and the redaction it promises has to exist."""
+    from nx_lib.hooks import LOG_REDACTED_ARGS
+
+    assert {"search", "q", "docvalue"} <= LOG_REDACTED_ARGS
+    de = client.get("/privacy?lang=de").get_data(as_text=True)
+    en = client.get("/privacy?lang=en").get_data(as_text=True)
+    de_log = de[de.index("Zugriffsprotokoll: für jeden") :].split("</li>")[0]
+    en_log = en[en.index("Request log: for each") :].split("</li>")[0]
+    assert "IP-Adresse" in de_log and "Sitzungskennung" in de_log and "Suchbegriffe" in de_log
+    assert "IP address" in en_log and "session identifier" in en_log and "Search terms" in en_log
+
+
+def test_privacy_names_every_third_party_host_the_pages_load(client):
+    """Every CDN a page loads receives the visitor's IP address. Tailwind's is
+    on the sign-in, error and legal pages -- this one included."""
+    body = client.get("/privacy").get_data(as_text=True)
+    assert (
+        "cdn.tailwindcss.com" in body
+    ), "the page no longer loads Tailwind; update this test and the text"
+    for lang in ("de", "en"):
+        text = client.get(f"/privacy?lang={lang}").get_data(as_text=True)
+        for provider in ("Google Fonts", "cdnjs", "jsDelivr", "Tailwind"):
+            assert provider in text, (lang, provider)
+
+
+def test_privacy_mentions_the_data_it_used_to_leave_out(client):
+    """Profile picture, last sign-in, failed-attempt lock and feedback mail are
+    all stored or sent; the inventory lists them."""
+    de = client.get("/privacy?lang=de").get_data(as_text=True)
+    en = client.get("/privacy?lang=en").get_data(as_text=True)
+    for needle in (
+        "Profilbild",
+        "letzten Anmeldung",
+        "fehlgeschlagener Anmeldeversuche",
+        "Feedback-Formular",
+    ):
+        assert needle in de, needle
+    for needle in ("profile picture", "last sign-in", "failed sign-in attempts", "feedback form"):
+        assert needle in en, needle
+
+
+def test_draft_pages_ask_not_to_be_indexed(client):
+    """Dev and staging are on the internet; an unapproved legal text should not
+    turn up in a search engine under Sydoc's name."""
+    for path in ("/terms", "/privacy"):
+        assert '<meta name="robots" content="noindex">' in client.get(path).get_data(
+            as_text=True
+        ), path
+
+
 def test_terms_name_the_court_of_the_seat(client):
     """Baar has no court of its own; jurisdiction is Zug."""
     assert "Gerichtsstand ist Zug" in client.get("/terms?lang=de").get_data(as_text=True)

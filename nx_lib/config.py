@@ -104,7 +104,9 @@ IS_PROD = os.environ.get("ENVIRONMENT") in ("PROD", "STAGING")
 # They are live on dev and staging so they can be reviewed there, and off on
 # PROD -- routes 404, menu and footer links hidden -- until the text is
 # approved. Keyed on ENVIRONMENT itself, not IS_PROD, which is true on
-# STAGING too. Going live = delete this switch and its three uses.
+# STAGING too. Going live = delete this switch and its four uses
+# (the gate in views/core.py, the context in hooks.py, the header and footer
+# links), and the draft banner and noindex meta in templates/legal.html.
 LEGAL_PAGES_LIVE = os.environ.get("ENVIRONMENT") != "PROD"
 
 # --- Runtime paths -----------------------------------------------------------

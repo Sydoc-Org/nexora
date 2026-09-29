@@ -4,8 +4,9 @@ All these functions are registered against the Flask app inside ``init_app``.
 """
 
 import csv
+import shutil
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from flask import (
     current_app,
@@ -253,14 +254,56 @@ def maintenance_retry_after(blocking, now):
     return max(0, int((end - now).total_seconds()))
 
 
+# Query parameters that carry free text a user typed -- a document search, a
+# doc-field value such as a policy number. They can name third parties (the
+# people in the documents, some with health data), so the request log keeps
+# the key but never the value (#260 review). Structured parameters (dates,
+# page, sort) stay: they are what makes the log useful for tracing a fault.
+LOG_REDACTED_ARGS = frozenset({"search", "q", "docvalue"})
+
+
+def _loggable_args(args):
+    return {
+        k: ("[redacted]" if k.lower() in LOG_REDACTED_ARGS else v)
+        for k, v in args.to_dict().items()
+    }
+
+
+def _prune_request_log_folders(user_logs_dir, now):
+    """Delete hour folders older than REQUEST_LOG_RETENTION.
+
+    The CSVs are normally drained into dbo.Logs by ops/cleanup/csvLogs_toDB.ps1
+    (which prune_request_log.py then trims), but that import runs on PROD only
+    and is not registered by the deploy. This is the backstop that makes the
+    privacy notice's "180 days" hold for the files themselves, on every
+    environment, whether or not the import runs. Called once per new hour.
+    """
+    cutoff = now - _config.REQUEST_LOG_RETENTION
+    for folder in user_logs_dir.iterdir():
+        if not folder.is_dir():
+            continue
+        try:
+            hour = datetime.strptime(folder.name, "%Y%m%d%H")
+        except ValueError:
+            continue
+        if hour + timedelta(hours=1) <= cutoff:
+            shutil.rmtree(folder, ignore_errors=True)
+
+
 def _log_every_request(response):
     if request.path.startswith(("/static", "/avatar", "/branding")):
         return response
     duration = time.time() - request.start_time if hasattr(request, "start_time") else 0
 
     try:
-        logs_hour_folder = PATHS.logs / "user" / datetime.now().strftime("%Y%m%d%H")
-        logs_hour_folder.mkdir(parents=True, exist_ok=True)
+        now = datetime.now()
+        logs_hour_folder = PATHS.logs / "user" / now.strftime("%Y%m%d%H")
+        if not logs_hour_folder.exists():
+            logs_hour_folder.mkdir(parents=True, exist_ok=True)
+            try:
+                _prune_request_log_folders(logs_hour_folder.parent, now)
+            except Exception as e:
+                current_app.logger.warning(f"Request-log folder prune failed: {e}")
 
         with (logs_hour_folder / "nexora_logs.csv").open("a", newline="") as csvfile:
             fieldnames = [
@@ -286,7 +329,7 @@ def _log_every_request(response):
                     "HttpRequestMethod": request.method,
                     "Path": request.path,
                     "HttpResponseCode": response.status_code,
-                    "Args": request.args.to_dict(),
+                    "Args": _loggable_args(request.args),
                     "durationSeconds": round(duration, 4),
                 }
             )
@@ -328,7 +371,11 @@ def _handle_permission_denied(e):
 
 
 def _inject_current_lang():
-    return {"current_lang": str(get_locale())}
+    # get_locale() here is the raw selector, not flask_babel's: it returns None
+    # when neither the session, the user row nor Accept-Language names a
+    # supported language. str(None) rendered as lang="None" and ?locale=None;
+    # fall back to Babel's default instead.
+    return {"current_lang": str(get_locale() or "en")}
 
 
 def _inject_ui_prefs():

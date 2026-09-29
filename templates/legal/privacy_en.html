@@ -8,10 +8,11 @@
 
 <h2>What nexora stores about you</h2>
 <ul>
-    <li>Account details: name, username, e-mail address, organisation, language and display preferences.</li>
-    <li>Sign-in security: a password hash and, where enabled, a two-factor secret.</li>
+    <li>Account details: name, username, e-mail address, organisation, language and display preferences, the time of your last sign-in and, if you upload one, a profile picture.</li>
+    <li>Sign-in security: a password hash, a secret for two-factor sign-in, which applies to every account, and the number of failed sign-in attempts together with any temporary lock.</li>
     <li>Active sessions: a session identifier, your IP address, and the times of sign-in and last use.</li>
-    <li>Request log: for each page or API call, the time, the address, the method and the account that made it.</li>
+    <li>Request log: for each page or API call, the address with its parameters, the method, the response code and the duration, your IP address, the session identifier and the account that made it, timed to the hour. Search terms and searched field values are not stored.</li>
+    <li>Feedback: messages and attachments you send through the feedback form go by e-mail to Sydoc's support.</li>
     <li>Business documents, their index fields and entries such as reports or hours, on behalf of the organisation whose data they are.</li>
 </ul>
 
@@ -20,31 +21,32 @@
 <div class="legal-gap">To be confirmed: where these documents are stored (country) and which additional safeguards apply.</div>
 
 <h2>Why it is stored</h2>
-<p>Account details let you in and show nexora in your language. The password hash and the two-factor secret make sure it is you signing in. Session data keeps you signed in between requests and shows an administrator which sessions are active. The request log is used to trace faults and to detect misuse of an account. Business documents are processed to deliver the service your organisation obtains from Sydoc.</p>
+<p>Account details let you in and show nexora in your language. The password hash and the two-factor secret make sure it is you signing in; counting failed attempts protects your account against someone guessing your password. Session data keeps you signed in between requests and shows an administrator which sessions are active. The request log is used to trace faults and to detect misuse of an account. Feedback messages are used to handle your question or report. Business documents are processed to deliver the service your organisation obtains from Sydoc.</p>
 
 <h2>How long it is kept</h2>
 <ul>
     <li>Request log: 180 days, then deleted automatically.</li>
     <li>Session data including the IP address: 8 days, then deleted automatically.</li>
-    <li>Accounts: until your organisation asks for them to be deleted. Accounts are currently not deleted automatically, because your organisation manages them and they are part of billing.</li>
+    <li>Accounts, including profile picture, last sign-in and sign-in lock: until your organisation asks for them to be deleted. Accounts are currently not deleted automatically, because your organisation manages them and they are part of billing.</li>
     <li>Business documents and entries: as set out in the contract between Sydoc and your organisation.</li>
 </ul>
 <div class="legal-gap">To be confirmed: how long business documents and entries are kept where the contract with the organisation does not say.</div>
+<div class="legal-gap">To be confirmed: how long feedback messages are kept in the support mailbox.</div>
 <div class="legal-gap">To be decided: accounts of people who have left their organisation are deactivated and deleted or anonymised after a fixed period (for example 12 months); only the billing record is kept. This rule is not implemented yet.</div>
 
 <h2>Who receives it</h2>
 <ul>
     <li>Microsoft: parts of nexora run on Microsoft Azure in the Switzerland region, and e-mails such as scheduled reports are sent through Microsoft 365.</li>
     <li>ngrok, Inc. (USA): nexora is reachable from the internet through a service by ngrok. Traffic passes through ngrok's servers, including in the USA. There is a contract with ngrok.</li>
-    <li>When a page loads, your browser fetches fonts from Google Fonts (Google, USA) and program files from cdnjs (Cloudflare, USA) and jsDelivr. These providers receive your IP address in the process.</li>
+    <li>When a page loads, your browser fetches fonts from Google Fonts (Google, USA) and program files from cdnjs (Cloudflare, USA) and jsDelivr, and on the sign-in and password pages, the error pages and these legal texts also from Tailwind (Tailwind Labs, USA). These providers receive your IP address in the process.</li>
     <li>The reporting assistant sends the structure of the databases it may read, meaning table and column names, to an AI provider in order to turn a question into a query. Data rows are only sent for the few accounts that hold a special permission for it.</li>
 </ul>
 <div class="legal-gap">To be confirmed: which AI provider production uses, in which country it processes the data, and whether a data-processing agreement is in place.</div>
-<div class="legal-gap">To be confirmed: data goes to the USA (ngrok, Google Fonts, cdnjs/Cloudflare, jsDelivr and possibly the AI provider). For each of these transfers the page has to say what it relies on, for example the provider's certification under the Swiss-U.S. Data Privacy Framework or standard contractual clauses.</div>
+<div class="legal-gap">To be confirmed: data goes to the USA (ngrok, Google Fonts, cdnjs/Cloudflare, jsDelivr, Tailwind and possibly the AI provider). For each of these transfers the page has to say what it relies on, for example the provider's certification under the Swiss-U.S. Data Privacy Framework or standard contractual clauses.</div>
 <p>Should people in the EU use nexora in future, the rights under the General Data Protection Regulation apply to them as well; the details are set out in the data-processing agreement with the organisation concerned.</p>
 
 <h2>Cookies and browser storage</h2>
-<p>nexora sets a single cookie: the sign-in cookie that keeps you signed in between requests. It is necessary for the service, cannot be read by scripts and expires after 24 hours at the latest. Your browser also stores your settings, for example light or dark mode, whether the sidebar is pinned or which tab was open last. These settings do not leave your browser. nexora uses no cookies for advertising or for analysing your behaviour.</p>
+<p>nexora sets a single cookie. It keeps you signed in between requests and protects forms against being submitted from other websites, which is why it is also set when you are not signed in, for example while reading this page. It is necessary for the service, cannot be read by scripts and expires after 24 hours at the latest. Your browser also stores your settings, for example light or dark mode, whether the sidebar is pinned or which tab was open last. These settings do not leave your browser. nexora uses no cookies for advertising or for analysing your behaviour.</p>
 
 <h2>Your rights</h2>
 <p>You can ask which data about you is processed, and ask for it to be corrected or deleted. Write to <a href="mailto:privacy@sydoc.ch">privacy@sydoc.ch</a>. We answer requests for information within 30 days and check your identity before disclosing anything. Where the data belongs to your organisation, we pass the request on to them, because they decide.</p>

@@ -221,6 +221,34 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **Legal draft checked against the code, and the code brought in line (#260).**
+  The privacy page promised things the system did not do and left out things
+  it does:
+  - **Search terms no longer land in the request log.** `search`, `q` and
+    `docvalue` are written as `[redacted]` (`LOG_REDACTED_ARGS` in
+    `nx_lib/hooks.py`) — a Generali document search can be a name or a policy
+    number. The page now also says a log row holds the IP address, the session
+    id and the query parameters.
+  - **"Deleted after 180 days" now holds for the CSV files too.** Only
+    `dbo.Logs` was pruned; `var/logs/user/` was emptied only by the PROD-only,
+    unscheduled `csvLogs_toDB.ps1`, so dev and staging kept every hour. The
+    request hook deletes hour folders past `REQUEST_LOG_RETENTION` whenever it
+    opens a new one.
+  - **Session files are cleaned on a schedule.** `cleanup_expired_sessionFiles.ps1`
+    gets `ops/cleanup/cleanup-session-files-task.xml` (daily 03:15), registered
+    by the deploy, and now reports and exits non-zero on a failed delete.
+  - **The page names Tailwind** (cdn.tailwindcss.com, USA), loaded by the
+    sign-in, error and legal pages, and lists the profile picture, last sign-in,
+    failed-attempt lock and feedback mail. The cookie is described as set for
+    signed-out visitors too, and two-factor sign-in as mandatory. "Stand"
+    29.09.2026; the draft pages carry `noindex`.
+  - **`<html lang="">` on every page.** 47 templates used `get_locale`, which the
+    template context does not have; they use `current_lang` now. That exposed
+    `current_lang` itself as `"None"` whenever no supported language was known
+    (e.g. a browser set to Spanish), which also reached the PDQM and
+    additional-services category requests as `?locale=None`; it falls back to
+    `en`.
+
 - **The Frigemo reporting source runs on PROD again (#402).** Every report on
   *Frigemo — Documents* failed with "Bericht konnte nicht ausgeführt werden":
   migration `0127` had registered it over `dbo.Frigemo`, a table that only

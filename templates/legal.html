@@ -1,11 +1,15 @@
 <!DOCTYPE html>
-<html lang="{{ get_locale }}">
+<html lang="{{ current_lang }}">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ page_title }} - nexora</title>
+    {# Draft: dev and staging are reachable from the internet, and an unapproved
+       legal text should not be indexed under Sydoc's name. Comes off with the
+       draft banner. #}
+    <meta name="robots" content="noindex">
     {# _small_footer.html is built entirely from Tailwind utilities (container,
        flex, h-24, text-sm). Without Tailwind those classes are inert: the sydoc
        logo loses its height cap and renders at natural size, and the link row
