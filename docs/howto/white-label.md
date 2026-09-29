@@ -102,6 +102,15 @@ stamps it with the current username on every insert and update (the "Visum" colu
 renders as a checkbox and stores `0`/`1`. `date` gives a date picker and the list's date-range
 filter, `count`/`money` a numeric input, everything else a text input.
 
+The write form is a right-hand side sheet (the `.adm-sheet` the admin pages use), and it opens
+half-written: every `date` field starts on today, and a **counter column** starts on the next number,
+with a hint naming the last one used — served by `GET /api/t/<tenant>/<page>/next/<column>`, which
+needs `tenant.<code>.edit` and accepts only a visible, non-id field with an `identifier`/`count`
+role. Which column that is, and any fixed **choice list** for a column (MediaMarkt's `DocType`:
+`K`/`D`/`KA`), are a hardcoded map keyed by tenant/page/column at the top of
+`templates/tenant/page.html` — `dbo.TenantFields` has neither an option list nor a counter flag.
+Lift the map into the registry when a second page needs it.
+
 **Since migration `0090` (#257) the organization is the hub that ties the axes together.**
 `dbo.Organizations` carries `TenantCode` (axis 3) and is referenced by
 `ProcessSources.OrganizationCode` and `AccessProfile.OrganizationCode`. Which axis-1 connections an

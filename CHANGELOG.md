@@ -6,6 +6,43 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **Generated tenant pages (`/t/<tenant>/<page>`) moved onto the slim design
+  system** — the look the Dashboard and the admin redesign already carry, and
+  the first migration of the one page that exists today, **MediaMarkt Batches**
+  (`/t/sydoc/mediamarkt`). Boxes became rules: the bordered `.nx-filter` panel
+  and the table card are gone, the filters sit directly on the page above a
+  hairline at one control height, and the table is framed by its header rule
+  and row dividers alone. The page head collapsed to one row — icon chip,
+  entity name, and a single meta line carrying the tenant and the live record
+  count instead of the tenant name plus a subtitle. Figures (`count`/`money`
+  columns) are right-aligned and tabular so they line up down the column, a
+  `flag` renders as a green check rather than a ✓ glyph, and row actions are
+  icon buttons that surface on row hover. Layout lives in the new
+  `static/css/tenant-page.css`; every component is reused, none invented.
+
+- **The Add/Edit modal became a side sheet.** It was a centred dialog over a 50%
+  black scrim; it is now the same right-hand `.adm-sheet` the redesigned admin
+  pages use, over a light scrim — the list stays readable behind the form.
+  Escape and a backdrop click close it.
+
+- **The add form now opens with the entry half-written.** Every `date` field
+  starts on today, and a hand-kept counter column opens on the next number with
+  a hint naming the last one used — for MediaMarkt, `BatchNo`, which runs as one
+  unbroken counter across years. Both stay editable. The counter is served by a
+  new read-only endpoint, `GET /api/t/<tenant>/<page>/next/<column>` (gated on
+  `tenant.<code>.edit`; the column must be a visible, non-id field with an
+  `identifier` or `count` role, or it 404s), backed by
+  `nx_lib/tenant/queries.py::build_next_value_query`.
+
+- **`DocType` on the MediaMarkt page is a dropdown** (`K` / `D` / `KA`) instead
+  of a free-text box. `dbo.TenantFields` carries no option list, so the choices —
+  and which column is the counter — are a hardcoded, commented map in
+  `templates/tenant/page.html`, keyed by tenant/page/column. Pages without an
+  entry are unaffected; the map moves into the registry the day a second page
+  needs one.
+
 ## [3.3.0] - 2026-09-29
 
 ### Changed
