@@ -13,19 +13,24 @@
     {# _small_footer.html is built entirely from Tailwind utilities (container,
        flex, h-24, text-sm). Without Tailwind those classes are inert: the sydoc
        logo loses its height cap and renders at natural size, and the link row
-       collapses out of its flex layout. Same CDN the other standalone pages
-       use (hero.html, verify_2fa.html). #}
-    <script src="https://cdn.tailwindcss.com"></script>
-    {# Must come AFTER the CDN script -- setting tailwind.config before it is
-       silently discarded (see the same note in hero.html). Without
-       darkMode:'class', Tailwind defaults to 'media', so every dark: utility
-       follows the OS prefers-color-scheme instead of this page's .dark class:
-       on a machine with a dark OS theme the footer logo's
-       `dark:brightness-0 dark:invert` fires while the page is still light,
-       and the logo renders inverted on a white background. #}
-    <script nonce="{{ csp_nonce() }}">
-        tailwind.config = { darkMode: 'class' };
-    </script>
+       collapses out of its flex layout. Loaded from jsDelivr like every other
+       page, not cdn.tailwindcss.com: that host is Tailwind Labs' own and the
+       privacy notice has no transfer basis for it (#260). #}
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.0" integrity="sha384-AIH1kL7JmmReCxSwiSyaRNwzSFO7h4Ir4F/PO28EKezqFza1LwIMgEPLd83KwmZ4" crossorigin="anonymous"></script>
+    {# dark: follows this page's .dark class, not the OS setting -- same
+       variant as the app pages (e.g. appearance.html). #}
+    <style type="text/tailwindcss">
+        @custom-variant dark (&:where(.dark, .dark *));
+        /* v3 compatibility (these pages were written for v3): v4 dropped the
+           gray-200 default border colour, and its utilities sit in a layer,
+           so Font Awesome's unlayered .fas display beat .hidden and both
+           theme icons showed. */
+        @layer base {
+            *, ::after, ::before, ::backdrop, ::file-selector-button { border-color: var(--color-gray-200, currentColor); }
+        }
+        .fas.hidden, .dark .fas.dark\:hidden { display: none; }
+        .dark .fas.dark\:inline { display: inline-block; }
+    </style>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous">
     <link rel="icon" type="image/x-icon" href="{{ static_v('images/favicon.ico') }}">
@@ -59,7 +64,7 @@
         /* --nx-text, not -sec: these are the terms people are bound by, so the
            body text reads at full contrast, not as grey fine print. */
         .legal-wrap p, .legal-wrap li { font-size: 0.95rem; line-height: 1.65; color: var(--nx-text); }
-        /* The Tailwind CDN's preflight zeroes paragraph margins and list
+        /* Tailwind's preflight zeroes paragraph margins and list
            markers, which ran the address block into the next paragraph and
            turned every list into loose lines. */
         .legal-text p { margin: 0 0 0.85rem; }

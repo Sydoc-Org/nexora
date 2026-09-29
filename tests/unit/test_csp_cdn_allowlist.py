@@ -41,9 +41,22 @@ def test_every_cdn_stylesheet_is_allowlisted():
 def test_csp_has_no_bare_cdn_origin():
     for directive in ("script-src", "style-src"):
         for src in cfg.CSP[directive]:
-            # the play CDN's script IS the origin root; Google Fonts is CSS only
-            if src in ("https://cdn.tailwindcss.com", "https://fonts.googleapis.com"):
+            # Google Fonts is CSS only
+            if src == "https://fonts.googleapis.com":
                 continue
             assert not re.fullmatch(
                 r"https://[^/]+/?", src
             ), f"{directive} allows a whole origin: {src}"
+
+
+def test_no_page_loads_tailwind_labs_cdn():
+    """Every page loads Tailwind from jsDelivr; cdn.tailwindcss.com is Tailwind
+    Labs' own host, and the privacy notice has no transfer basis for it (#260)."""
+    offenders = [
+        str(p.relative_to(TEMPLATES))
+        for p in TEMPLATES.rglob("*.html")
+        if re.search(r"<script\b[^>]*cdn\.tailwindcss\.com", p.read_text(encoding="utf-8"))
+    ]
+    assert not offenders, f"load Tailwind from jsDelivr instead: {offenders}"
+    for directive in cfg.CSP.values():
+        assert "https://cdn.tailwindcss.com" not in directive

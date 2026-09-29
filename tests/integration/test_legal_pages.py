@@ -173,16 +173,17 @@ def test_privacy_describes_the_request_log_as_the_code_writes_it(client):
 
 
 def test_privacy_names_every_third_party_host_the_pages_load(client):
-    """Every CDN a page loads receives the visitor's IP address. Tailwind's is
-    on the sign-in, error and legal pages -- this one included."""
+    """Every CDN a page loads receives the visitor's IP address. Tailwind now
+    comes from jsDelivr on every page, so Tailwind Labs is no recipient and
+    must not be named as one (2026-09-29)."""
     body = client.get("/privacy").get_data(as_text=True)
-    assert (
-        "cdn.tailwindcss.com" in body
-    ), "the page no longer loads Tailwind; update this test and the text"
+    assert "cdn.jsdelivr.net/npm/@tailwindcss/browser" in body
+    assert "cdn.tailwindcss.com" not in body
     for lang in ("de", "en"):
         text = client.get(f"/privacy?lang={lang}").get_data(as_text=True)
-        for provider in ("Google Fonts", "cdnjs", "jsDelivr", "Tailwind"):
+        for provider in ("Google Fonts", "cdnjs", "jsDelivr"):
             assert provider in text, (lang, provider)
+        assert "Tailwind Labs" not in text, lang
 
 
 def test_privacy_mentions_the_data_it_used_to_leave_out(client):

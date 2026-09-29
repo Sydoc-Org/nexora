@@ -246,8 +246,17 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     Switzerland, feedback mail deleted once dealt with, Anthropic Claude as
     the AI provider (and the assistant's log in the inventory), and the basis
     for each US transfer — Swiss-U.S. DPF for Google, Cloudflare and ngrok,
-    SCCs for Anthropic and jsDelivr, none found for Tailwind. Paragraph
-    spacing and list bullets restored (the Tailwind preflight removed them).
+    SCCs for Anthropic and jsDelivr. Paragraph spacing and list bullets
+    restored (the Tailwind preflight removed them).
+  - **Tailwind Labs is no longer a recipient.** The 10 standalone pages
+    (start, login, 2FA, the four password pages, error and legal pages)
+    loaded Tailwind v3 from `cdn.tailwindcss.com`, for which no transfer basis
+    exists; they now load the same v4 build from jsDelivr as the rest of the
+    app, with a small v3-compatibility block (default border colour, and the
+    theme icons, which v4's layered `.hidden` lost to Font Awesome's
+    `display`). Compared before/after in light and dark: identical apart from
+    the privacy text itself. `cdn.tailwindcss.com` is gone from the CSP
+    (`script-src` and `connect-src`), pinned by `test_csp_cdn_allowlist.py`.
   - **`<html lang="">` on every page.** 47 templates used `get_locale`, which the
     template context does not have; they use `current_lang` now. That exposed
     `current_lang` itself as `"None"` whenever no supported language was known

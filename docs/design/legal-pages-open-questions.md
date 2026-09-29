@@ -130,10 +130,16 @@ they can be published.
 >   DPA carries SCCs with a Swiss addendum); jsDelivr relies on SCCs per its
 >   privacy policy; **nothing found for Tailwind Labs**.
 >
+> **Tailwind closed the same day:** every page now loads Tailwind from
+> jsDelivr (already covered by SCCs), so Tailwind Labs is no recipient; the
+> host is out of the CSP too.
+>
 > **Still open before PROD:** document retention where the contract is silent
-> ("ka"); how long the assistant log is kept; that Sydoc has concluded
-> Anthropic's DPA; Tailwind (serve it from nexora to drop the transfer);
-> jurisdiction Zug (legal); `privacy@sydoc.ch` (IT); management sign-off.
+> ("ka"; proposed: contract term, then delete or return within 30 days); how
+> long the assistant log is kept (proposed: 180 days, needs a prune job); that
+> Sydoc has concluded Anthropic's DPA (check the company API account accepted
+> the Commercial Terms — the DPA is part of them); jurisdiction Zug (legal);
+> `privacy@sydoc.ch` (IT); management sign-off.
 >
 > The questions below are the original list, kept for the reasoning behind
 > each one.
