@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-29 12:36+0200\n"
+"POT-Creation-Date: 2026-09-29 14:19+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -16,6 +16,100 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
+
+#: nx_lib/finance.py:201
+msgid ""
+"Live figures: EM_Invoice is still edited after a month closes, so a "
+"closed month can return different numbers later. Only the Opex and e-mail"
+" channels are billed."
+msgstr ""
+
+#: nx_lib/finance.py:207 nx_lib/finance.py:239 nx_lib/finance.py:252
+#: nx_lib/finance.py:272 nx_lib/finance.py:355
+msgid "by export date"
+msgstr ""
+
+#: nx_lib/finance.py:209 templates/generali_documents.html:92
+#: templates/generali_documents.html:155 templates/generali_documents.html:239
+msgid "Channel"
+msgstr ""
+
+#: nx_lib/finance.py:218
+msgid ""
+"Counted by upload date, whatever the document date: that is the set the "
+"invoice bills."
+msgstr ""
+
+#: nx_lib/finance.py:223
+msgid "by upload date"
+msgstr ""
+
+#: nx_lib/finance.py:234
+msgid ""
+"The export date of this source is text, so the month is matched on its "
+"'.MM.yyyy' part."
+msgstr ""
+
+#: nx_lib/finance.py:241 nx_lib/finance.py:274 nx_lib/finance.py:296
+msgid "Branch"
+msgstr ""
+
+#: nx_lib/finance.py:259
+msgid "Mandant"
+msgstr ""
+
+#: nx_lib/finance.py:260 templates/admin/user_detail.html:124
+#: templates/reporting.html:361 templates/reporting_metrics.html:41
+#: templates/reporting_metrics.html:53
+msgid "Source"
+msgstr ""
+
+#: nx_lib/finance.py:288
+msgid "by export year and month"
+msgstr ""
+
+#: nx_lib/finance.py:308 nx_lib/finance.py:328
+msgid "by date"
+msgstr ""
+
+#: nx_lib/finance.py:335 nx_lib/views/finance.py:146
+msgid "Client"
+msgstr ""
+
+#: nx_lib/finance.py:337
+msgid "Source database"
+msgstr ""
+
+#: nx_lib/finance.py:351
+msgid "by import date"
+msgstr ""
+
+#: nx_lib/finance.py:367
+msgid "by scan date"
+msgstr ""
+
+#: nx_lib/finance.py:369
+msgid "Type (K/D/KA)"
+msgstr ""
+
+#: nx_lib/finance.py:381
+msgid ""
+"Hours booked in the BPS timetool. Service hours are everything except the"
+" Absences pseudo-customer (vacation, sick leave, compensation), which is "
+"shown separately. The task names are BPS's own."
+msgstr ""
+
+#: nx_lib/finance.py:387
+msgid "by booking date"
+msgstr ""
+
+#: nx_lib/finance.py:394
+msgid "Task"
+msgstr ""
+
+#: nx_lib/finance.py:395
+msgid "Customer"
+msgstr ""
 
 #: nx_lib/octo.py:358
 msgid "Error fetching activity instance"
@@ -663,12 +757,12 @@ msgstr ""
 msgid "Unexpected error occurred"
 msgstr ""
 
-#: nx_lib/views/core.py:65 templates/_header.html:323
+#: nx_lib/views/core.py:65 templates/_header.html:324
 #: templates/_small_footer.html:28
 msgid "Terms of Service"
 msgstr ""
 
-#: nx_lib/views/core.py:77 templates/_header.html:327
+#: nx_lib/views/core.py:77 templates/_header.html:328
 #: templates/_small_footer.html:32
 msgid "Privacy Policy"
 msgstr ""
@@ -710,6 +804,52 @@ msgstr ""
 
 #: nx_lib/views/dashboard.py:944
 msgid "Other"
+msgstr ""
+
+#: nx_lib/views/finance.py:63
+#, python-format
+msgid "The reporting source %(code)s is not registered."
+msgstr ""
+
+#: nx_lib/views/finance.py:69
+msgid "The source's database is not configured."
+msgstr ""
+
+#: nx_lib/views/finance.py:81
+msgid "This section does not match its registered source."
+msgstr ""
+
+#: nx_lib/views/finance.py:91
+msgid "Could not read the source."
+msgstr ""
+
+#: nx_lib/views/finance.py:147
+msgid "Section"
+msgstr ""
+
+#: nx_lib/views/finance.py:148
+msgid "Month basis"
+msgstr ""
+
+#: nx_lib/views/finance.py:149 templates/reporting_sources.html:41
+#: templates/reporting_sources.html:52 templates/reporting_sources.html:64
+msgid "Kind"
+msgstr ""
+
+#: nx_lib/views/finance.py:150
+msgid "Dimension"
+msgstr ""
+
+#: nx_lib/views/finance.py:151
+msgid "Group"
+msgstr ""
+
+#: nx_lib/views/finance.py:152 templates/js/_reporting_simple_js.html:151
+msgid "Measure"
+msgstr ""
+
+#: nx_lib/views/finance.py:154 templates/finance.html:66
+msgid "Previous month"
 msgstr ""
 
 #: nx_lib/views/profile.py:79
@@ -2087,115 +2227,119 @@ msgstr ""
 msgid "Global Reporting"
 msgstr ""
 
-#: templates/_header.html:159 templates/workitems_overview.html:66
+#: templates/_header.html:159 templates/finance.html:48
+msgid "Sydoc Finance"
+msgstr ""
+
+#: templates/_header.html:160 templates/workitems_overview.html:66
 msgid "Global Workitems"
 msgstr ""
 
-#: templates/_header.html:268 templates/_header.html:270
+#: templates/_header.html:269 templates/_header.html:271
 #: templates/appearance.html:302 templates/appearance.html:307
 #: templates/js/_header_js.html:13
 msgid "Keep sidebar open"
 msgstr ""
 
-#: templates/_header.html:274 templates/js/_header_js.html:56
+#: templates/_header.html:275 templates/js/_header_js.html:56
 msgid "Toggle dark mode"
 msgstr ""
 
-#: templates/_header.html:276
+#: templates/_header.html:277
 msgid "Dark Mode"
 msgstr ""
 
-#: templates/_header.html:284 templates/profile.html:44
+#: templates/_header.html:285 templates/profile.html:44
 #: templates/profile.html:123
 msgid "Profile Picture"
 msgstr ""
 
-#: templates/_header.html:294
+#: templates/_header.html:295
 msgid "Your profile"
 msgstr ""
 
-#: templates/_header.html:298 templates/appearance.html:34
+#: templates/_header.html:299 templates/appearance.html:34
 #: templates/js/_header_js.html:57 templates/profile.html:75
 #: templates/profile.html:317
 msgid "Appearance"
 msgstr ""
 
-#: templates/_header.html:302 templates/js/_header_js.html:58
+#: templates/_header.html:303 templates/js/_header_js.html:58
 #: templates/whats_new.html:79
 msgid "What's New"
 msgstr ""
 
-#: templates/_header.html:307 templates/feedback.html:34
+#: templates/_header.html:308 templates/feedback.html:34
 #: templates/js/_header_js.html:59
 msgid "Feedback"
 msgstr ""
 
-#: templates/_header.html:314 templates/_header.html:393
-#: templates/_header.html:396
+#: templates/_header.html:315 templates/_header.html:394
+#: templates/_header.html:397
 msgid "Keyboard shortcuts"
 msgstr ""
 
-#: templates/_header.html:318 templates/_small_footer.html:36
+#: templates/_header.html:319 templates/_small_footer.html:36
 #: templates/reporting.html:86
 msgid "Help"
 msgstr ""
 
-#: templates/_header.html:333 templates/_header.html:375
+#: templates/_header.html:334 templates/_header.html:376
 msgid "Switch user"
 msgstr ""
 
-#: templates/_header.html:339 templates/js/_header_js.html:60
+#: templates/_header.html:340 templates/js/_header_js.html:60
 #: templates/profile.html:82
 msgid "Sign out"
 msgstr ""
 
-#: templates/_header.html:356
+#: templates/_header.html:357
 msgid "Command palette"
 msgstr ""
 
-#: templates/_header.html:360
+#: templates/_header.html:361
 msgid "Type a command or search..."
 msgstr ""
 
-#: templates/_header.html:365
+#: templates/_header.html:366
 msgid "navigate"
 msgstr ""
 
-#: templates/_header.html:366
+#: templates/_header.html:367
 msgid "open"
 msgstr ""
 
-#: templates/_header.html:367
+#: templates/_header.html:368
 msgid "close"
 msgstr ""
 
-#: templates/_header.html:379
+#: templates/_header.html:380
 msgid "Switch to user..."
 msgstr ""
 
-#: templates/_header.html:400 templates/admin/access_control.html:130
+#: templates/_header.html:401 templates/admin/access_control.html:130
 #: templates/admin/organization_detail.html:132
 #: templates/admin/tenant_detail.html:444
 msgid "Global"
 msgstr ""
 
-#: templates/_header.html:402
+#: templates/_header.html:403
 msgid "Open command palette"
 msgstr ""
 
-#: templates/_header.html:406
+#: templates/_header.html:407
 msgid "Show this shortcuts overlay"
 msgstr ""
 
-#: templates/_header.html:410
+#: templates/_header.html:411
 msgid "Close the open dialog or panel"
 msgstr ""
 
-#: templates/_header.html:415
+#: templates/_header.html:416
 msgid "Document viewer"
 msgstr ""
 
-#: templates/_header.html:417
+#: templates/_header.html:418
 msgid "Previous / next document page"
 msgstr ""
 
@@ -2658,8 +2802,8 @@ msgstr ""
 msgid "Week"
 msgstr ""
 
-#: templates/_reporting_simple.html:92 templates/js/_reporting_js.html:24
-#: templates/js/_reporting_simple_js.html:78
+#: templates/_reporting_simple.html:92 templates/finance.html:63
+#: templates/js/_reporting_js.html:24 templates/js/_reporting_simple_js.html:78
 msgid "Month"
 msgstr ""
 
@@ -4001,6 +4145,56 @@ msgstr ""
 msgid "Send another"
 msgstr ""
 
+#: templates/finance.html:9
+msgid "Sydoc Finance - nexora"
+msgstr ""
+
+#: templates/finance.html:29 templates/finance.html:85
+#: templates/js/_finance_js.html:15
+#: templates/js/_generali_documents_js.html:148
+#: templates/js/_reporting_dashboard_js.html:64
+#: templates/js/_reporting_schema_js.html:6 templates/tenant/page.html:141
+msgid "Loading…"
+msgstr ""
+
+#: templates/finance.html:49
+msgid ""
+"Monthly accounting figures per client, read from the same sources and "
+"measures as Reporting."
+msgstr ""
+
+#: templates/finance.html:54
+msgid "CSV"
+msgstr ""
+
+#: templates/finance.html:57
+msgid "Print"
+msgstr ""
+
+#: templates/finance.html:74 templates/finance.html:76
+msgid "Next month"
+msgstr ""
+
+#: templates/finance.html:80
+msgid "This month is still running; the figures grow until it closes."
+msgstr ""
+
+#: templates/finance.html:81
+msgid "Each figure is compared with the month before."
+msgstr ""
+
+#: templates/finance.html:89
+msgid "Internal customers"
+msgstr ""
+
+#: templates/finance.html:92
+msgid "External clients"
+msgstr ""
+
+#: templates/finance.html:95
+msgid "Sydoc services"
+msgstr ""
+
 #: templates/forgot_password.html:7
 msgid "Forgot password - nexora"
 msgstr ""
@@ -4112,7 +4306,7 @@ msgid "Daily Processing Volume"
 msgstr ""
 
 #: templates/generali-dashboard.html:144 templates/generali_documents.html:36
-#: templates/js/_generali_dashboard_js.html:25
+#: templates/js/_finance_js.html:29 templates/js/_generali_dashboard_js.html:25
 #: templates/js/_reporting_js.html:50
 #: templates/js/_reporting_layouts_js.html:37
 #: templates/js/_reporting_simple_js.html:124
@@ -4515,11 +4709,6 @@ msgstr ""
 
 #: templates/generali_documents.html:84
 msgid "All Languages"
-msgstr ""
-
-#: templates/generali_documents.html:92 templates/generali_documents.html:155
-#: templates/generali_documents.html:239
-msgid "Channel"
 msgstr ""
 
 #: templates/generali_documents.html:96
@@ -5447,11 +5636,6 @@ msgstr ""
 msgid "Reports run automatically and get delivered to your inbox or team."
 msgstr ""
 
-#: templates/admin/user_detail.html:124 templates/reporting.html:361
-#: templates/reporting_metrics.html:41 templates/reporting_metrics.html:53
-msgid "Source"
-msgstr ""
-
 #: templates/admin/tenant_detail.html:80
 #: templates/js/_reporting_dashboard_js.html:19
 #: templates/js/_reporting_simple_js.html:62
@@ -5501,7 +5685,8 @@ msgstr ""
 msgid "Share the selected report you own"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:100 templates/reporting.html:395
+#: templates/js/_finance_js.html:28 templates/js/_reporting_simple_js.html:100
+#: templates/reporting.html:395
 msgid "Share"
 msgstr ""
 
@@ -5890,11 +6075,6 @@ msgstr ""
 
 #: templates/reporting_sources.html:38
 msgid "Built-in defaults"
-msgstr ""
-
-#: templates/reporting_sources.html:41 templates/reporting_sources.html:52
-#: templates/reporting_sources.html:64
-msgid "Kind"
 msgstr ""
 
 #: templates/admin/permissions.html:56 templates/admin/user_detail.html:123
@@ -8109,6 +8289,75 @@ msgstr ""
 msgid "Sending…"
 msgstr ""
 
+#: templates/js/_finance_js.html:16
+#, python-brace-format
+msgid "{done} of {total} sections loaded"
+msgstr ""
+
+#: templates/js/_finance_js.html:17
+#, python-brace-format
+msgid "All {total} sections loaded"
+msgstr ""
+
+#: templates/js/_finance_js.html:18
+#, python-brace-format
+msgid "{failed} of {total} sections could not be read"
+msgstr ""
+
+#: templates/js/_finance_js.html:19
+msgid "Could not load this section"
+msgstr ""
+
+#: templates/js/_finance_js.html:20
+msgid "Retry"
+msgstr ""
+
+#: templates/js/_finance_js.html:21
+msgid "live figures"
+msgstr ""
+
+#: templates/js/_finance_js.html:22
+#, python-brace-format
+msgid "Nothing recorded in {month}"
+msgstr ""
+
+#: templates/js/_finance_js.html:23
+msgid "vs. previous month"
+msgstr ""
+
+#: templates/js/_finance_js.html:24
+msgid "unchanged"
+msgstr ""
+
+#: templates/js/_finance_js.html:25
+msgid "new"
+msgstr ""
+
+#: templates/js/_finance_js.html:26
+#, python-brace-format
+msgid "per {dim}"
+msgstr ""
+
+#: templates/js/_finance_js.html:27
+#: templates/js/_reporting_dashboard_js.html:71
+#: templates/js/_reporting_simple_js.html:149
+#, python-brace-format
+msgid "{n} rows"
+msgstr ""
+
+#: templates/js/_finance_js.html:30
+msgid "(blank)"
+msgstr ""
+
+#: templates/js/_finance_js.html:31
+#, python-brace-format
+msgid "Show all {n} rows"
+msgstr ""
+
+#: templates/js/_finance_js.html:32
+msgid "Show fewer"
+msgstr ""
+
 #: templates/js/_generali_additional_services_js.html:177
 #: templates/js/_generali_base_services_js.html:145
 #: templates/js/_generali_pdqm_js.html:233
@@ -8196,12 +8445,6 @@ msgstr ""
 
 #: templates/js/_generali_documents_js.html:79
 msgid "No documents found for the selected criteria."
-msgstr ""
-
-#: templates/js/_generali_documents_js.html:148
-#: templates/js/_reporting_dashboard_js.html:64
-#: templates/js/_reporting_schema_js.html:6 templates/tenant/page.html:141
-msgid "Loading…"
 msgstr ""
 
 #: templates/js/_generali_documents_js.html:158
@@ -8770,12 +9013,6 @@ msgstr ""
 #: templates/js/_reporting_dashboard_js.html:70
 #: templates/js/_reporting_simple_js.html:44
 msgid "Hide table"
-msgstr ""
-
-#: templates/js/_reporting_dashboard_js.html:71
-#: templates/js/_reporting_simple_js.html:149
-#, python-brace-format
-msgid "{n} rows"
 msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:83
@@ -9613,10 +9850,6 @@ msgstr ""
 #: templates/js/_reporting_simple_js.html:150
 #, python-brace-format
 msgid "Step {n} of 4"
-msgstr ""
-
-#: templates/js/_reporting_simple_js.html:151
-msgid "Measure"
 msgstr ""
 
 #: templates/js/_reporting_simple_js.html:153

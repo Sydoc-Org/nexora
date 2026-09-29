@@ -6,6 +6,26 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Sydoc Finance** (`/finance`, permission `finance.view`, #408): the monthly
+  accounting figures of every billed client on one page per month, instead
+  of walking the same numbers out of Reporting report by report. One section
+  per client -- the six #329 workbooks (Elektro-Material per channel, Compass,
+  Privera Posteingang / Rechnungseingang / Physische Zustellung / Neuzugänge
+  per branch, Mandant and source) plus Frigemo, Aveniq Xpert, Bucherer EasyTax
+  and MediaMarkt with what their collectors already deliver -- and the hours
+  Sydoc books in the BPS timetool, per task and per customer, with absences
+  split out (a new `bps_projects_service_hours` measure). Each figure is
+  compared with the month before; breakdown tables carry share and totals; a
+  source that is down shows its error in place. The page has no SQL of its
+  own: `nx_lib/finance.py` names registered sources and measures and builds
+  the queries with the reporting `table` provider, so a figure here **is**
+  the measure in Reporting. Month picker in the URL, CSV export, print
+  stylesheet. Migration `0138` creates the code, grants it to Global Admin
+  and registers the BPS measure; the code is internal-only (no row scoping).
+  `docs/howto/finance.md`.
+
 ### Changed
 
 - **Generated tenant pages (`/t/<tenant>/<page>`) moved onto the slim design

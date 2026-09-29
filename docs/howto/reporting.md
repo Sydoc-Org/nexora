@@ -1111,6 +1111,12 @@ Two shapes are therefore flagged automatically by `scripts/perm-audit.py`
 - a profile carrying an `OrganizationCode` that holds a source belonging to a
   different customer.
 
+The **Sydoc Finance** page (`/finance`, `docs/howto/finance.md`) reads the
+billing `table` sources of every client under one code, `finance.view`, and
+builds its queries with this same provider -- so that code is internal-only
+for exactly the reason above, and a figure there is the registered measure,
+not a second definition.
+
 The audit does not treat a shared tenant as permission: ISS and Generali sit in
 the `generali` tenant and read each other's sources by design, but Privera,
 Compass and Elektro-Material all sit in *sydoc*, which says they are the
