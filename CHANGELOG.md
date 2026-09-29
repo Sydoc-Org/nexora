@@ -242,6 +242,12 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     failed-attempt lock and feedback mail. The cookie is described as set for
     signed-out visitors too, and two-factor sign-in as mandatory. "Stand"
     29.09.2026; the draft pages carry `noindex`.
+  - **Answers of 29.09. filled in:** documents on Sydoc's own servers in
+    Switzerland, feedback mail deleted once dealt with, Anthropic Claude as
+    the AI provider (and the assistant's log in the inventory), and the basis
+    for each US transfer — Swiss-U.S. DPF for Google, Cloudflare and ngrok,
+    SCCs for Anthropic and jsDelivr, none found for Tailwind. Paragraph
+    spacing and list bullets restored (the Tailwind preflight removed them).
   - **`<html lang="">` on every page.** 47 templates used `get_locale`, which the
     template context does not have; they use `current_lang` now. That exposed
     `current_lang` itself as `"None"` whenever no supported language was known

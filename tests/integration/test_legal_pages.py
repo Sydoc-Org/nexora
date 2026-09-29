@@ -201,6 +201,26 @@ def test_privacy_mentions_the_data_it_used_to_leave_out(client):
         assert needle in en, needle
 
 
+def test_privacy_names_the_ai_provider_and_the_transfer_bases(client):
+    """Answers of 2026-09-29: the assistant runs on Anthropic's Claude; the page
+    names it and says what each US transfer relies on (Swiss-U.S. DPF for
+    Google, Cloudflare and ngrok -- checked on their own pages that day)."""
+    de = client.get("/privacy?lang=de").get_data(as_text=True)
+    en = client.get("/privacy?lang=en").get_data(as_text=True)
+    for body in (de, en):
+        assert "Anthropic" in body and "Claude" in body
+        assert "Swiss-U.S. Data Privacy Framework" in body
+    assert "eigenen Servern von Sydoc in der Schweiz" in de
+    assert "Sydoc's own servers in Switzerland" in en
+
+
+def test_legal_text_keeps_paragraph_spacing_and_bullets(client):
+    """The Tailwind preflight zeroes both; the page puts them back."""
+    body = client.get("/privacy").get_data(as_text=True)
+    assert ".legal-text p { margin:" in body
+    assert "list-style: disc" in body
+
+
 def test_draft_pages_ask_not_to_be_indexed(client):
     """Dev and staging are on the internet; an unapproved legal text should not
     turn up in a search engine under Sydoc's name."""

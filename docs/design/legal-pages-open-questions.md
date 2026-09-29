@@ -113,6 +113,28 @@ they can be published.
 >     `tests/unit/test_template_html_lang.py`.
 > 21. The draft pages now carry `noindex`, since dev and staging are public.
 >
+> **Answers, 2026-09-29** (G. Ruoss), now in the text:
+>
+> - Business documents are stored on **Sydoc's own servers in Switzerland**.
+>   Safeguards stated from the code: permission plus mandatory 2FA, and
+>   sensitive-marked fields only for an extra permission.
+> - Feedback mail is **deleted once the request is dealt with**.
+> - **No rule** for accounts of people who left — the "to be decided" proposal
+>   is gone; the page keeps "until the organisation asks".
+> - AI provider: **Anthropic, Claude (Sonnet)**, used only by the reporting
+>   assistant. The page says what goes there (question and schema; rows only
+>   for `reporting.ai.explain.use`), and the assistant's own log
+>   (`dbo.ReportingAiAudit`, never pruned) is now in the inventory.
+> - US transfers: checked on the providers' own pages that day — **Google,
+>   Cloudflare and ngrok are Swiss-U.S. DPF certified**; Anthropic is not (its
+>   DPA carries SCCs with a Swiss addendum); jsDelivr relies on SCCs per its
+>   privacy policy; **nothing found for Tailwind Labs**.
+>
+> **Still open before PROD:** document retention where the contract is silent
+> ("ka"); how long the assistant log is kept; that Sydoc has concluded
+> Anthropic's DPA; Tailwind (serve it from nexora to drop the transfer);
+> jurisdiction Zug (legal); `privacy@sydoc.ch` (IT); management sign-off.
+>
 > The questions below are the original list, kept for the reasoning behind
 > each one.
 

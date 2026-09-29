@@ -59,7 +59,11 @@
         /* --nx-text, not -sec: these are the terms people are bound by, so the
            body text reads at full contrast, not as grey fine print. */
         .legal-wrap p, .legal-wrap li { font-size: 0.95rem; line-height: 1.65; color: var(--nx-text); }
-        .legal-wrap ul { padding-left: 1.15rem; }
+        /* The Tailwind CDN's preflight zeroes paragraph margins and list
+           markers, which ran the address block into the next paragraph and
+           turned every list into loose lines. */
+        .legal-text p { margin: 0 0 0.85rem; }
+        .legal-wrap ul { padding-left: 1.15rem; list-style: disc; margin: 0 0 0.85rem; }
         .legal-wrap li { margin-bottom: 0.35rem; }
         .legal-meta { font-size: 0.8rem; color: var(--nx-text-meta); margin: 0 0 2rem; }
         .legal-todo { background: var(--nx-l-amber); border: 1px solid var(--nx-l-amber-fg);
