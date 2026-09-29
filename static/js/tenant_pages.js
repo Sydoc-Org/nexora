@@ -49,14 +49,29 @@
     var prevBtn = el('tenant-page-prev');
     var nextBtn = el('tenant-page-next');
     var pageInfo = el('tenant-page-info');
+    var headCount = el('tenant-head-count');
+    var resetBtn = el('tenant-filter-reset');
+    var filterInputs = Array.prototype.slice.call(document.querySelectorAll('.tenant-filter-input'));
+
+    // Numeric roles are right-aligned and rendered in the mono/tabular face,
+    // so the figures in a column line up (slim: every figure a user compares
+    // runs in the mono stack). The matching header alignment is server-side,
+    // in tenant_page's header_columns.
+    var NUMERIC_ROLES = { count: 1, money: 1 };
 
     function currentFilters() {
         var params = new URLSearchParams();
-        document.querySelectorAll('.tenant-filter-input').forEach(function (input) {
+        filterInputs.forEach(function (input) {
             var value = input.value.trim();
             if (value) params.set(input.dataset.filter, value);
         });
         return params;
+    }
+
+    function syncResetButton() {
+        if (!resetBtn) return;
+        var any = filterInputs.some(function (input) { return input.value.trim() !== ''; });
+        resetBtn.classList.toggle('hidden', !any);
     }
 
     function reportUnavailableOrError(res, fallback) {
@@ -69,10 +84,22 @@
 
     // ---- rows --------------------------------------------------------------
     function formatCell(field, value) {
-        if (value === null || value === undefined || value === '') return '—';
+        if (value === null || value === undefined || value === '') {
+            return '<span class="tp-flag--off">—</span>';
+        }
         if (field.role === 'date') return esc(formatDate(value));
-        if (field.role === 'flag') return Number(value) ? '✓' : '—';
+        // A mark, not an emoji (slim iconography rule): a green check, or the
+        // same muted dash every other empty cell carries.
+        if (field.role === 'flag') {
+            return Number(value)
+                ? '<i class="fas fa-check tp-flag--on" aria-hidden="true"></i>'
+                : '<span class="tp-flag--off">—</span>';
+        }
         return esc(String(value));
+    }
+
+    function cellClass(field) {
+        return NUMERIC_ROLES[field.role] ? ' class="align-right nx-num"' : '';
     }
 
     function renderRows(rows) {
@@ -80,7 +107,7 @@
         if (!tbody) return;
         if (!rows.length) {
             var colspan = 1 + cfg.fields.length + (cfg.canEdit ? 1 : 0);
-            tbody.innerHTML = '<tr><td colspan="' + colspan + '" class="admin-empty">' + esc(I18N.noRecords) + '</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="' + colspan + '" class="adm-empty">' + esc(I18N.noRecords) + '</td></tr>';
             return;
         }
         var html = '';
@@ -97,16 +124,20 @@
                     'data-testid="tenant-row-view-' + esc(id) + '"><i class="fas fa-up-right-from-square mr-1"></i>' +
                     esc(id) + '</a></td>';
             } else {
-                html += '<td>' + esc(id) + '</td>';
+                html += '<td class="nx-num">' + esc(id) + '</td>';
             }
             cfg.fields.forEach(function (f) {
-                html += '<td>' + formatCell(f, row[f.column]) + '</td>';
+                html += '<td' + cellClass(f) + '>' + formatCell(f, row[f.column]) + '</td>';
             });
             if (cfg.canEdit) {
-                html += '<td class="align-right">' +
-                    '<button type="button" class="nx-btn nx-btn--ghost nx-btn--sm tenant-edit-btn" data-id="' + esc(id) + '" data-testid="tenant-edit-' + esc(id) + '">' + esc(I18N.edit) + '</button> ' +
-                    '<button type="button" class="nx-btn nx-btn--ghost nx-btn--sm nx-c-danger tenant-delete-btn" data-id="' + esc(id) + '" data-testid="tenant-delete-' + esc(id) + '">' + esc(I18N.delete) + '</button>' +
-                    '</td>';
+                html += '<td class="align-right"><span class="tp-row-actions">' +
+                    '<button type="button" class="nx-btn nx-btn--ghost nx-btn--sm tenant-edit-btn" data-id="' + esc(id) + '" ' +
+                    'title="' + esc(I18N.edit) + '" aria-label="' + esc(I18N.edit) + '" data-testid="tenant-edit-' + esc(id) + '">' +
+                    '<i class="fas fa-pen" aria-hidden="true"></i></button>' +
+                    '<button type="button" class="nx-btn nx-btn--ghost nx-btn--sm nx-c-danger tenant-delete-btn" data-id="' + esc(id) + '" ' +
+                    'title="' + esc(I18N.delete) + '" aria-label="' + esc(I18N.delete) + '" data-testid="tenant-delete-' + esc(id) + '">' +
+                    '<i class="fas fa-trash" aria-hidden="true"></i></button>' +
+                    '</span></td>';
             }
             html += '</tr>';
         });
@@ -114,6 +145,7 @@
     }
 
     function updatePaginationControls() {
+        if (headCount) headCount.textContent = I18N.recordCount.replace('{total}', state.total);
         if (!pageInfo) return;
         var start = state.total === 0 ? 0 : state.offset + 1;
         var end = Math.min(state.offset + state.limit, state.total);
@@ -140,9 +172,10 @@
 
     // ---- filters (debounced text, immediate date) ---------------------------
     var filterTimer = null;
-    document.querySelectorAll('.tenant-filter-input').forEach(function (input) {
+    filterInputs.forEach(function (input) {
         var debounced = input.type !== 'date';
         input.addEventListener(debounced ? 'input' : 'change', function () {
+            syncResetButton();
             clearTimeout(filterTimer);
             filterTimer = setTimeout(function () {
                 state.offset = 0;
@@ -150,6 +183,15 @@
             }, debounced ? 300 : 0);
         });
     });
+
+    if (resetBtn) {
+        resetBtn.addEventListener('click', function () {
+            filterInputs.forEach(function (input) { input.value = ''; });
+            syncResetButton();
+            state.offset = 0;
+            loadRecords();
+        });
+    }
 
     // ---- pagination ----------------------------------------------------------
     if (prevBtn) {
@@ -166,30 +208,52 @@
     }
 
     // ---- export (navigate, never fetch) ---------------------------------------
-    window.exportTenantRecords = function () {
-        var params = currentFilters();
-        window.location.href = EXPORT_URL + (params.toString() ? '?' + params.toString() : '');
-    };
+    var exportBtn = el('tenant-export-btn');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', function () {
+            var params = currentFilters();
+            window.location.href = EXPORT_URL + (params.toString() ? '?' + params.toString() : '');
+        });
+    }
 
-    // ---- CRUD modal (crud pages the caller can edit only) ----------------------
+    // ---- record sheet (crud pages the caller can edit only) -------------------
     if (cfg.canEdit) {
-        var modal = el('tenantRecordModal');
-        var modalTitle = el('tenantRecordModalTitle');
+        // Same side sheet the redesigned admin pages use (.adm-sheet): panel
+        // and backdrop are toggled together so a stray class on one cannot
+        // leave the page unclickable.
+        var sheet = el('recordSheet');
+        var sheetBack = el('recordSheetBack');
+        var sheetTitle = el('recordSheetTitle');
         var form = el('tenantRecordForm');
         var idInput = el('tenantRecordId');
+        var seqInput = cfg.sequenceColumn ? el('tenant-field-' + cfg.sequenceColumn) : null;
+        var seqHint = cfg.sequenceColumn ? el('tenant-field-' + cfg.sequenceColumn + '-hint') : null;
 
-        function openModal() {
-            modal.classList.remove('hidden');
-            setTimeout(function () {
-                modal.classList.remove('opacity-0');
-                modal.querySelector('.modal-content').classList.remove('scale-95');
-            }, 10);
+        function openSheet() {
+            sheet.classList.remove('hidden');
+            sheetBack.classList.remove('hidden');
+            var first = sheet.querySelector('.tenant-record-field');
+            if (first) first.focus();
         }
 
-        function closeModal() {
-            modal.classList.add('opacity-0');
-            modal.querySelector('.modal-content').classList.add('scale-95');
-            setTimeout(function () { modal.classList.add('hidden'); }, 300);
+        function closeSheet() {
+            sheet.classList.add('hidden');
+            sheetBack.classList.add('hidden');
+        }
+
+        function todayISO() {
+            var d = new Date();
+            return d.getFullYear() + '-' +
+                String(d.getMonth() + 1).padStart(2, '0') + '-' +
+                String(d.getDate()).padStart(2, '0');
+        }
+
+        // A date input only accepts YYYY-MM-DD; the API hands back whatever the
+        // driver produced ("2026-09-02", or an ISO timestamp for a datetime
+        // column), so keep the date half and drop the rest.
+        function toDateInputValue(value) {
+            if (value === null || value === undefined || value === '') return '';
+            return String(value).slice(0, 10);
         }
 
         function setFieldValues(row) {
@@ -198,31 +262,66 @@
                 if (!input) return;
                 var value = row ? row[f.column] : null;
                 if (input.type === 'checkbox') { input.checked = !!Number(value); return; }
+                if (f.role === 'date') { input.value = toDateInputValue(value); return; }
                 input.value = value === null || value === undefined ? '' : value;
             });
         }
 
-        window.openTenantAddModal = function () {
-            form.reset();
-            idInput.value = '';
-            modalTitle.textContent = I18N.addTitle;
-            setFieldValues(null);
-            openModal();
-        };
-
-        function openEditModal(id) {
-            form.reset();
-            idInput.value = id;
-            modalTitle.textContent = I18N.editTitle;
-            setFieldValues(state.rowsById[id]);
-            openModal();
+        // Counter column (cfg.sequenceColumn): the add sheet opens on max+1 and
+        // says which number that follows, so the usual case is one keystroke --
+        // but the field stays editable for a scanner run that skipped numbers.
+        async function prefillSequence() {
+            if (!seqInput) return;
+            if (seqHint) seqHint.textContent = '';
+            var res = await api(LIST_PATH + '/next/' + encodeURIComponent(cfg.sequenceColumn));
+            if (!res.ok || !res.data) return;
+            // next is null when the column holds something that does not count
+            // -- show the hint, leave the field to the user.
+            if (res.data.next !== null && res.data.next !== undefined) {
+                seqInput.value = res.data.next;
+            }
+            if (seqHint) {
+                seqHint.textContent = res.data.last === null || res.data.last === undefined
+                    ? I18N.noneYet
+                    : I18N.lastUsed.replace('{value}', res.data.last);
+            }
         }
 
-        modal.addEventListener('click', function (e) {
-            if (e.target === modal) closeModal();
+        function openAddSheet() {
+            form.reset();
+            idInput.value = '';
+            sheetTitle.textContent = I18N.addTitle;
+            setFieldValues(null);
+            // An entry is recorded on the day it happens far more often than
+            // not, so every date field opens on today -- still editable.
+            cfg.fields.forEach(function (f) {
+                if (f.role !== 'date') return;
+                var input = el('tenant-field-' + f.column);
+                if (input) input.value = todayISO();
+            });
+            openSheet();
+            prefillSequence();
+        }
+
+        function openEditSheet(id) {
+            form.reset();
+            idInput.value = id;
+            sheetTitle.textContent = I18N.editTitle;
+            setFieldValues(state.rowsById[id]);
+            if (seqHint) seqHint.textContent = '';
+            openSheet();
+        }
+
+        var addBtn = el('tenant-add-btn');
+        if (addBtn) addBtn.addEventListener('click', openAddSheet);
+        sheetBack.addEventListener('click', closeSheet);
+        var closeBtn = el('recordSheetClose');
+        if (closeBtn) closeBtn.addEventListener('click', closeSheet);
+        var cancelBtn = el('recordSheetCancel');
+        if (cancelBtn) cancelBtn.addEventListener('click', closeSheet);
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') closeSheet();
         });
-        var cancelBtn = el('tenantRecordCancelBtn');
-        if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
 
         form.addEventListener('submit', async function (e) {
             e.preventDefault();
@@ -237,7 +336,7 @@
                 reportUnavailableOrError(res, I18N.genericError);
                 return;
             }
-            closeModal();
+            closeSheet();
             toast((res.data && res.data.message) || '');
             state.offset = 0;
             loadRecords();
@@ -247,7 +346,7 @@
             tbody.addEventListener('click', function (e) {
                 var editBtn = e.target.closest('.tenant-edit-btn');
                 if (editBtn) {
-                    openEditModal(editBtn.dataset.id);
+                    openEditSheet(editBtn.dataset.id);
                     return;
                 }
                 var deleteBtn = e.target.closest('.tenant-delete-btn');
@@ -267,5 +366,6 @@
         }
     }
 
+    syncResetButton();
     loadRecords();
 })();

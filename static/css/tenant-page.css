@@ -1,0 +1,116 @@
+/* ============================================================
+   Tenant page (/t/<tenant>/<page>) — slim layout.
+
+   Layout only. Every component used here lives elsewhere and is
+   reused as-is: .nx-page-head / .nx-page-icon / .nx-table /
+   .nx-input / .nx-btn from nexora-ui.css, .adm-sheet + .adm-field
+   from admin.css (the side sheet the redesigned admin pages use).
+
+   The one rule of the slim system applies: boxes become rules. No
+   filter panel, no table card, no shadow in the page flow — the
+   hairlines and the type do the framing. No hardcoded colours: every
+   value rides a --nx-* token, so accent, dark mode, density and the
+   radius preference keep working.
+   ============================================================ */
+
+/* ---------- Page head ---------- */
+/* One meta line under the title, not a subtitle paragraph. */
+.tp-head__meta {
+  font-size: var(--fs-meta);
+  color: var(--nx-text-meta);
+  font-variant-numeric: tabular-nums;
+  margin: 2px 0 0;
+}
+
+/* ---------- Filter row ---------- */
+/* Controls sit directly on the page, closed by one rule. They wrap
+   instead of scrolling: a generated page can carry a dozen filters. */
+.tp-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px 16px;
+  padding-bottom: 14px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--nx-border);
+}
+.tp-filter { min-width: 0; flex: 0 1 172px; }
+.tp-filter--range { flex: 0 1 300px; }
+.tp-filter__label {
+  display: block;
+  font-size: var(--fs-eyebrow);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--nx-text-meta);
+  margin-bottom: 5px;
+}
+/* One control height across the whole row (slim: a row never mixes two). */
+.tp-filters .nx-input {
+  height: var(--ctl-h);
+  padding-block: 0;
+  font-size: var(--fs-control);
+}
+.tp-filters .nx-input-icon > i { font-size: 11px; }
+.tp-range { display: flex; align-items: center; gap: 6px; }
+.tp-range__sep { color: var(--nx-text-meta); font-size: var(--fs-control); }
+
+.tp-filters__reset { margin-left: auto; margin-bottom: 1px; }
+/* Tailwind emits .hidden inside @layer utilities; the unlayered
+   .nx-btn display wins the cascade, so re-assert it (same trap the
+   sheets hit in admin.css). */
+.tp-filters__reset.hidden { display: none; }
+
+/* ---------- Table ---------- */
+/* No .nx-table-wrap: the header rule and row dividers frame it. */
+.tp-table { margin-top: 4px; }
+.tp-table thead th { white-space: nowrap; }
+.tp-table tbody td { font-variant-numeric: tabular-nums; }
+/* A flag cell is a mark, never an emoji: green check or a muted dash. */
+.tp-flag--on { color: var(--nx-success); }
+.tp-flag--off { color: var(--nx-text-meta); }
+/* Row actions stay quiet until the row is under the cursor — the buttons are
+   chrome, the data is the content — but never invisible: an action nobody can
+   see is an action nobody finds. */
+.tp-row-actions { display: inline-flex; gap: 4px; justify-content: flex-end; }
+.tp-row-actions .nx-btn { opacity: 0.45; transition: opacity var(--nx-dur) var(--nx-ease); }
+.tp-table tbody tr:hover .tp-row-actions .nx-btn,
+.tp-row-actions .nx-btn:focus-visible { opacity: 1; }
+@media (hover: none) {
+  .tp-row-actions .nx-btn { opacity: 1; }
+}
+
+/* ---------- Pagination ---------- */
+.tp-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 0 0;
+  border-top: 1px solid var(--nx-border);
+}
+.tp-pagination__info {
+  font-size: var(--fs-meta);
+  color: var(--nx-text-meta);
+  font-variant-numeric: tabular-nums;
+}
+.tp-pagination__nav { display: flex; gap: 8px; }
+
+/* ---------- Record sheet ---------- */
+/* Only the bits admin.css does not already carry. */
+.tp-sheet__note {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--nx-divider);
+}
+
+/* ---------- Mobile ---------- */
+@media (max-width: 640px) {
+  .tp-filter, .tp-filter--range { flex: 1 1 100%; }
+  .tp-filters__reset { margin-left: 0; }
+  .tp-pagination__nav { flex: 1 1 100%; justify-content: space-between; }
+}

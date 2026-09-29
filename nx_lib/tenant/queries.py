@@ -259,3 +259,20 @@ def build_delete(entity: TenantEntity, dialect: str) -> str:
     marker = _marker(dialect)
     id_sql = quote_ident(entity.id_column, dialect)
     return f"DELETE FROM {source} WHERE {id_sql} = {marker}"
+
+
+def build_next_value_query(entity: TenantEntity, column: str, dialect: str) -> str:
+    """``SELECT MAX(<column>) FROM <entity>`` -- the highest value a counter
+    column currently holds, so a write form can offer the next one.
+
+    Only valid for ``Kind='entries'`` entities (the same write-path gate
+    ``build_insert``/``build_update`` apply: this exists to prefill an insert,
+    and a documents/lookup box has no insert form). ``column`` goes through
+    ``quote_ident``, so the caller's own field-list check is backed by the
+    same second identifier gate every other builder here uses.
+    """
+    source = _safe_source(entity)
+    _require_entries_kind(entity, "build_next_value_query")
+    if dialect not in _MARKERS:
+        raise ValueError(f"build_next_value_query: unknown dialect {dialect!r}")
+    return f"SELECT MAX({quote_ident(column, dialect)}) FROM {source}"
