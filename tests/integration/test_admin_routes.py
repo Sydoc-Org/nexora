@@ -549,125 +549,6 @@ def test_admin_clients_delete_unknown_code_is_404(admin_client, admin_all_perms,
     assert resp.status_code == 404
 
 
-def test_admin_clients_view_gated(noperm_client):
-    resp = noperm_client.get("/admin/clients")
-    assert resp.status_code == 403
-
-
-def test_admin_clients_view_renders_rows(
-    admin_client, admin_all_perms, fake_clients_db, monkeypatch
-):
-    """dbo.Clients isn't in sql/test/schema.sql, so the table is faked (same
-    technique as fake_mapping_db below). Asserted at a hard 200 with the seeded
-    rows visible -- the old 200-or-500 tuple-match could not fail, so a Jinja
-    error in clients.html would have shipped green."""
-    monkeypatch.setattr("nx_lib.views.admin.clients.has_permission", lambda code: True)
-    resp = admin_client.get("/admin/clients")
-    assert resp.status_code == 200
-    html = resp.data.decode()
-    assert 'data-testid="admin-client-row-default"' in html
-    assert 'data-testid="admin-client-row-ms02"' in html
-    assert "MS02 (Azure Postgres)" in html
-
-
-def test_admin_clients_form_covers_every_writable_column(
-    admin_client, admin_all_perms, fake_clients_db, monkeypatch
-):
-    """The edit UPDATE writes all ten writable columns, so the form must carry
-    all ten and openEditClientModal() must populate all of them -- otherwise
-    editing a display name silently NULLs StatsEngineKey / StatsDialect /
-    DocfieldsEngineKey / DocfieldsDialect (MS02 statistics break, doc-field
-    search fails closed after the next app-pool recycle)."""
-    monkeypatch.setattr("nx_lib.views.admin.clients.has_permission", lambda code: True)
-    html = admin_client.get("/admin/clients").data.decode()
-    for column in _CLIENTS_COLUMNS:
-        assert f'id="{column}"' in html, f"{column} has no form input"
-        assert f"clientData.{column}" in html, f"openEditClientModal() ignores {column}"
-
-
-def test_admin_clients_view_only_gets_no_edit_affordances(
-    admin_client, admin_all_perms, fake_clients_db, monkeypatch
-):
-    """admin.clients.view without admin.clients.edit: the page renders, but no
-    Add/Edit/Delete button -- clicking one only ever produced a 403 toast."""
-    monkeypatch.setattr(
-        "nx_lib.views.admin.clients.has_permission", lambda code: code != "admin.clients.edit"
-    )
-    resp = admin_client.get("/admin/clients")
-    assert resp.status_code == 200
-    html = resp.data.decode()
-    assert 'data-testid="admin-client-row-ms02"' in html
-    assert "admin-helpers-page-action-add-client" not in html
-    assert "admin-client-edit-ms02" not in html
-    assert "admin-client-delete-ms02" not in html
-
-
-# ---- configured state vs resolved state -------------------------------------
-#
-# 0079's seed is unconditional, so PROD gets an 'ms02' row whether or not
-# env/PROD.env carries the MS02_* keys. Without them _build_clients() skips the
-# row and the page would still say "Active: Yes" for a runtime that serves
-# nothing.
-
-
-def test_admin_clients_marks_a_row_the_registry_did_not_load(
-    admin_client, admin_all_perms, fake_clients_db, monkeypatch
-):
-    monkeypatch.setattr("nx_lib.views.admin.clients.has_permission", lambda code: True)
-    monkeypatch.setattr(
-        admin_module.clients_registry, "CLIENTS", {"default": object()}, raising=False
-    )
-    html = admin_client.get("/admin/clients").data.decode()
-    ms02 = html.split('data-testid="admin-client-loaded-ms02"')[1].split("</td>")[0]
-    default = html.split('data-testid="admin-client-loaded-default"')[1].split("</td>")[0]
-    assert "Configured, not loaded" in ms02
-    assert "Configured, not loaded" not in default
-    assert "Loaded" in default
-
-
-def test_admin_clients_marks_every_row_loaded_when_the_registry_holds_them(
-    admin_client, admin_all_perms, fake_clients_db, monkeypatch
-):
-    monkeypatch.setattr("nx_lib.views.admin.clients.has_permission", lambda code: True)
-    monkeypatch.setattr(
-        admin_module.clients_registry,
-        "CLIENTS",
-        {"default": object(), "ms02": object()},
-        raising=False,
-    )
-    html = admin_client.get("/admin/clients").data.decode()
-    assert "Configured, not loaded" not in html
-
-
-def test_admin_clients_shows_a_banner_when_the_registry_is_degraded(
-    admin_client, admin_all_perms, fake_clients_db, monkeypatch
-):
-    """A boot-time dbo.Clients failure drops every non-default runtime for the
-    whole process lifetime, and its only other signal is a stderr line written
-    before Flask configured logging."""
-    monkeypatch.setattr("nx_lib.views.admin.clients.has_permission", lambda code: True)
-    monkeypatch.setattr(
-        admin_module.clients_registry,
-        "REGISTRY_DEGRADED_REASON",
-        "RuntimeError: NexoraDB down",
-        raising=False,
-    )
-    html = admin_client.get("/admin/clients").data.decode()
-    assert 'data-testid="admin-clients-degraded"' in html
-    assert "NexoraDB down" in html
-
-
-def test_admin_clients_has_no_banner_when_the_registry_is_healthy(
-    admin_client, admin_all_perms, fake_clients_db, monkeypatch
-):
-    monkeypatch.setattr("nx_lib.views.admin.clients.has_permission", lambda code: True)
-    monkeypatch.setattr(
-        admin_module.clients_registry, "REGISTRY_DEGRADED_REASON", None, raising=False
-    )
-    html = admin_client.get("/admin/clients").data.decode()
-    assert 'data-testid="admin-clients-degraded"' not in html
-
-
 def test_admin_clients_add_gated(noperm_client):
     resp = noperm_client.post("/admin/clients/add", json={})
     assert resp.status_code == 403
@@ -848,36 +729,6 @@ def mapping_config_with_six_rows(monkeypatch, app):
     )
     monkeypatch.setattr(mc, "engine_nexora_db", eng)
     yield
-    with app.app_context():
-        mc.invalidate_mapping_config()
-
-
-def test_admin_processes_view_gated(noperm_client):
-    resp = noperm_client.get("/admin/processes")
-    assert resp.status_code == 403
-
-
-def test_admin_processes_view_with_perm(
-    admin_client, admin_all_perms, mapping_config_with_six_rows
-):
-    resp = admin_client.get("/admin/processes")
-    assert resp.status_code == 200
-
-
-def test_admin_processes_view_renders_unavailable_state_on_registry_none(
-    admin_client, admin_all_perms, monkeypatch, app
-):
-    import nx_lib.mapping_config as mc
-
-    with app.app_context():
-        mc.invalidate_mapping_config()
-    dead_eng = MagicMock()
-    dead_eng.raw_connection.side_effect = RuntimeError("NexoraDB down")
-    monkeypatch.setattr(mc, "engine_nexora_db", dead_eng)
-
-    resp = admin_client.get("/admin/processes")
-    assert resp.status_code == 200
-    assert b"unavailable" in resp.data.lower() or b"config" in resp.data.lower()
     with app.app_context():
         mc.invalidate_mapping_config()
 
@@ -1339,29 +1190,6 @@ def test_process_source_add_checks_the_client_before_writing_anything(
     assert ("COMMIT", None) not in fake_mapping_db.calls
 
 
-def test_processes_page_offers_a_client_picker_not_free_text(
-    admin_client, admin_all_perms, mapping_config_with_six_rows, monkeypatch
-):
-    monkeypatch.setattr("nx_lib.views.admin.processes.has_permission", lambda code: True)
-    monkeypatch.setattr(admin_module.processes, "_client_codes", lambda: ["default", "ms02"])
-    resp = admin_client.get("/admin/processes")
-    html = resp.get_data(as_text=True)
-    assert 'id="ClientCode"' in html
-    assert '<select id="ClientCode"' in html
-    assert '<option value="ms02">' in html
-
-
-def test_processes_page_falls_back_to_free_text_when_clients_unreadable(
-    admin_client, admin_all_perms, mapping_config_with_six_rows, monkeypatch
-):
-    """An unreadable dbo.Clients must not leave an empty picker that blocks
-    every add."""
-    monkeypatch.setattr("nx_lib.views.admin.processes.has_permission", lambda code: True)
-    monkeypatch.setattr(admin_module.processes, "_client_codes", list)
-    html = admin_client.get("/admin/processes").get_data(as_text=True)
-    assert '<input type="text" id="ClientCode"' in html
-
-
 def test_every_process_write_path_invalidates_mapping_config(
     admin_client, admin_all_perms, fake_mapping_db, spy_invalidate
 ):
@@ -1575,18 +1403,6 @@ def test_free_form_sql_fragment_columns_are_never_written(
     params = fake_mapping_db.params_for("INSERT INTO dbo.ProcessSources")[0]
     assert "1=1 OR 1=1" not in params
     assert "1=1" not in params
-
-
-def test_processes_page_exposes_no_free_form_sql_inputs(
-    admin_client, admin_all_perms, mapping_config_with_six_rows
-):
-    html = admin_client.get("/admin/processes").get_data(as_text=True)
-    for column in ("JoinCondition", "TimeFilter", "SuggestionTimeFilter", "ExtraCondition"):
-        assert f'name="{column}"' not in html
-        assert f'id="{column}"' not in html
-
-
-# ============================ maintenance banner =============================
 
 
 def test_admin_maintenance_view_gated(noperm_client):
@@ -3034,6 +2850,39 @@ def test_branding_save_unknown_org_is_404(admin_client, admin_all_perms, monkeyp
     monkeypatch.setattr("nx_lib.views.admin.organizations.PATHS.branding", tmp_path)
     resp = admin_client.post("/admin/organizations/NOPE/branding", json={"brand_name": "Provera"})
     assert resp.status_code == 404
+
+
+def test_connection_sheet_covers_every_writable_client_column(
+    admin_client, admin_all_perms, monkeypatch
+):
+    """The edit UPDATE writes all ten writable columns, so the connection sheet
+    must carry an input for each and the prefill/submit path must reference each
+    -- otherwise editing a display name silently NULLs StatsEngineKey /
+    StatsDialect / DocfieldsEngineKey / DocfieldsDialect (MS02 statistics break,
+    doc-field search fails closed after the next app-pool recycle).
+
+    Moved here from the retired /admin/clients page; the sheet is the same one."""
+    monkeypatch.setattr("nx_lib.views.admin.organizations.has_permission", lambda code: True)
+    html = admin_client.get("/admin/organizations/detail/TEST").get_data(as_text=True)
+    # Two inputs are namespaced to avoid colliding with the organization form.
+    element_id = {"DisplayName": "ClientDisplayName", "IsActive": "ClientIsActive"}
+    for column in _CLIENTS_COLUMNS:
+        assert f'id="{element_id.get(column, column)}"' in html, f"{column} has no form input"
+        # ClientCode and IsActive are read explicitly; the rest ride the FIELDS loop.
+        if column not in ("ClientCode", "IsActive"):
+            assert f"'{column}'" in html, f"the edit sheet's FIELDS list ignores {column}"
+
+
+def test_process_source_sheet_exposes_no_free_form_sql_inputs(
+    admin_client, admin_all_perms, monkeypatch
+):
+    """Moved here from the retired /admin/processes page: these four columns are
+    raw SQL fragments and are deliberately not editable through the UI."""
+    monkeypatch.setattr("nx_lib.views.admin.organizations.has_permission", lambda code: True)
+    html = admin_client.get("/admin/organizations/detail/TEST").get_data(as_text=True)
+    for column in ("JoinCondition", "TimeFilter", "SuggestionTimeFilter", "ExtraCondition"):
+        assert f'name="{column}"' not in html
+        assert f'id="{column}"' not in html
 
 
 def test_organization_detail_shows_branding_panel_with_perm(

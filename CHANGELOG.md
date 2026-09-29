@@ -8,6 +8,27 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **Retired: `/admin/clients`, `/admin/processes` and `/admin/tenants`.** All
+  three still answered after the tenancy redesign moved their content onto the
+  pages that own it, but nothing linked to them any more — Data Connections and
+  Process Configurations live on the organization that owns them
+  (`/admin/organizations/detail/<code>`, **Data & processes**), and the tenant
+  tree is `/admin/tenants/manage`. The two stale links left on the admin
+  overview are gone with them.
+
+  **Nothing under `/api/admin/*` changed**: the organization detail page drives
+  its connection cards and process sources through exactly the endpoints those
+  pages used, so every add/edit/delete path is untouched. What went is three
+  page views, their templates and JS partials, and
+  `nx_lib/views/admin/tenants.py` (the read-only tenant tree, superseded by
+  Manage tenants).
+
+  Two assertions that guarded real behaviour rather than page chrome moved to
+  organization detail: that the connection sheet covers all ten writable
+  `dbo.Clients` columns (editing a display name must not NULL the MS02 engine
+  keys), and that no free-form SQL fragment is editable through the process
+  source form.
+
 - **Mount page previews what you are about to mount, and stops being a box.**
   Picking an endpoint now repaints the member preview next to the form with
   the page you would get — its shape sketch, the label and icon you typed, a

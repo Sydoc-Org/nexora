@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-29 06:52+0200\n"
+"POT-Creation-Date: 2026-09-29 07:28+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -984,8 +984,8 @@ msgstr "%(field)s muss ein gültiges Datum sein (JJJJ-MM-TT)."
 msgid "%(field)s must be numeric."
 msgstr "%(field)s muss numerisch sein."
 
-#: nx_lib/views/admin/clients.py:154 nx_lib/views/admin/organizations.py:349
-#: nx_lib/views/admin/processes.py:420 nx_lib/views/admin/processes.py:573
+#: nx_lib/views/admin/clients.py:105 nx_lib/views/admin/organizations.py:349
+#: nx_lib/views/admin/processes.py:372 nx_lib/views/admin/processes.py:525
 #: nx_lib/views/admin/users.py:158 nx_lib/views/tenant.py:533
 #: nx_lib/views/tenant.py:597 nx_lib/views/tenant.py:642
 #: nx_lib/views/tenant.py:677 nx_lib/views/tenant.py:716
@@ -1163,36 +1163,36 @@ msgstr "Die Ansicht konnte nicht gespeichert werden."
 msgid "Could not delete the view."
 msgstr "Die Ansicht konnte nicht gelöscht werden."
 
-#: nx_lib/views/admin/clients.py:81 nx_lib/views/admin/processes.py:180
+#: nx_lib/views/admin/clients.py:32 nx_lib/views/admin/processes.py:132
 msgid "Client code must be 2-50 lowercase letters, digits or underscores."
 msgstr ""
 "Der Client-Code muss 2-50 Kleinbuchstaben, Ziffern oder Unterstriche "
 "enthalten."
 
-#: nx_lib/views/admin/clients.py:84
+#: nx_lib/views/admin/clients.py:35
 msgid "Display name is required."
 msgstr "Anzeigename ist erforderlich."
 
-#: nx_lib/views/admin/clients.py:89
+#: nx_lib/views/admin/clients.py:40
 #, python-format
 msgid "Dialect must be one of: %(allowed)s"
 msgstr "Dialekt muss einer der folgenden sein: %(allowed)s"
 
-#: nx_lib/views/admin/clients.py:93
+#: nx_lib/views/admin/clients.py:44
 #, python-format
 msgid "%(field)s must be one of: %(allowed)s"
 msgstr "%(field)s muss einer der folgenden sein: %(allowed)s"
 
-#: nx_lib/views/admin/clients.py:96
+#: nx_lib/views/admin/clients.py:47
 msgid "Unknown runtime engine key."
 msgstr "Unbekannter Runtime-Engine-Schlüssel."
 
-#: nx_lib/views/admin/clients.py:100
+#: nx_lib/views/admin/clients.py:51
 #, python-format
 msgid "Unknown %(field)s."
 msgstr "Unbekannter Wert für %(field)s."
 
-#: nx_lib/views/admin/clients.py:106
+#: nx_lib/views/admin/clients.py:57
 msgid ""
 "Secret ref must be an env-key prefix (upper-case letters, digits, "
 "underscores) -- never a secret value."
@@ -1200,28 +1200,28 @@ msgstr ""
 "Secret-Ref muss ein Env-Key-Präfix sein (Grossbuchstaben, Ziffern, "
 "Unterstriche) -- niemals ein geheimer Wert."
 
-#: nx_lib/views/admin/clients.py:149
+#: nx_lib/views/admin/clients.py:100
 msgid "Client created successfully."
 msgstr "Client erfolgreich erstellt."
 
-#: nx_lib/views/admin/clients.py:151
+#: nx_lib/views/admin/clients.py:102
 msgid "Client code already exists."
 msgstr "Client-Code existiert bereits."
 
-#: nx_lib/views/admin/clients.py:195 nx_lib/views/admin/clients.py:240
+#: nx_lib/views/admin/clients.py:146 nx_lib/views/admin/clients.py:191
 msgid "Client not found."
 msgstr "Client nicht gefunden."
 
-#: nx_lib/views/admin/clients.py:197
+#: nx_lib/views/admin/clients.py:148
 msgid "Client updated successfully."
 msgstr "Client erfolgreich aktualisiert."
 
-#: nx_lib/views/admin/clients.py:200 nx_lib/views/admin/clients.py:245
+#: nx_lib/views/admin/clients.py:151 nx_lib/views/admin/clients.py:196
 #: nx_lib/views/admin/organizations.py:376
 #: nx_lib/views/admin/organizations.py:408
-#: nx_lib/views/admin/organizations.py:589 nx_lib/views/admin/processes.py:456
-#: nx_lib/views/admin/processes.py:519 nx_lib/views/admin/processes.py:615
-#: nx_lib/views/admin/processes.py:644 nx_lib/views/admin/tenant_manage.py:702
+#: nx_lib/views/admin/organizations.py:589 nx_lib/views/admin/processes.py:408
+#: nx_lib/views/admin/processes.py:471 nx_lib/views/admin/processes.py:567
+#: nx_lib/views/admin/processes.py:596 nx_lib/views/admin/tenant_manage.py:702
 #: nx_lib/views/admin/tenant_manage.py:737
 #: nx_lib/views/admin/tenant_manage.py:775
 #: nx_lib/views/admin/tenant_manage.py:822
@@ -1231,13 +1231,13 @@ msgstr "Client erfolgreich aktualisiert."
 msgid "An error occurred."
 msgstr "Ein Fehler ist aufgetreten."
 
-#: nx_lib/views/admin/clients.py:228
+#: nx_lib/views/admin/clients.py:179
 msgid "This client is still referenced by process sources and cannot be deleted."
 msgstr ""
 "Dieser Client wird noch von Prozessquellen referenziert und kann nicht "
 "gelöscht werden."
 
-#: nx_lib/views/admin/clients.py:242
+#: nx_lib/views/admin/clients.py:193
 msgid "Client deleted successfully."
 msgstr "Client erfolgreich gelöscht."
 
@@ -1346,16 +1346,16 @@ msgstr ""
 msgid "Permission deleted successfully"
 msgstr "Berechtigung erfolgreich gelöscht"
 
-#: nx_lib/views/admin/processes.py:102
+#: nx_lib/views/admin/processes.py:54
 msgid "Mapping config is currently unavailable."
 msgstr "Die Mapping-Konfiguration ist derzeit nicht verfügbar."
 
-#: nx_lib/views/admin/processes.py:166
+#: nx_lib/views/admin/processes.py:118
 #, python-format
 msgid "%(field)s is required."
 msgstr "%(field)s ist erforderlich."
 
-#: nx_lib/views/admin/processes.py:171
+#: nx_lib/views/admin/processes.py:123
 #, python-format
 msgid ""
 "%(field)s must be a plain SQL identifier (letters, digits, underscores, "
@@ -1364,7 +1364,7 @@ msgstr ""
 "%(field)s muss ein einfacher SQL-Bezeichner sein (Buchstaben, Ziffern, "
 "Unterstriche, Punkte, Anführungszeichen oder Klammern)."
 
-#: nx_lib/views/admin/processes.py:184
+#: nx_lib/views/admin/processes.py:136
 msgid ""
 "Process name must be exactly <customer>.<process> -- two parts separated "
 "by a single dot (e.g. acme.01_Invoice), letters, digits, dashes or "
@@ -1377,29 +1377,29 @@ msgstr ""
 "Zugriff auf diesen Prozess gewährt, wird aus diesen beiden Teilen "
 "abgeleitet; jede andere Form kann daher nie vergeben werden."
 
-#: nx_lib/views/admin/processes.py:191
+#: nx_lib/views/admin/processes.py:143
 msgid "Field key must be 1-100 letters, digits, dots, dashes or underscores."
 msgstr ""
 "Der Feldschlüssel muss 1-100 Buchstaben, Ziffern, Punkte, Bindestriche "
 "oder Unterstriche enthalten."
 
-#: nx_lib/views/admin/processes.py:206
+#: nx_lib/views/admin/processes.py:158
 msgid "Table alias must be at most 10 characters."
 msgstr "Der Tabellenalias darf höchstens 10 Zeichen lang sein."
 
-#: nx_lib/views/admin/processes.py:209
+#: nx_lib/views/admin/processes.py:161
 msgid "Id column type must be a plain SQL type name."
 msgstr "Der Id-Spaltentyp muss ein einfacher SQL-Typname sein."
 
-#: nx_lib/views/admin/processes.py:212
+#: nx_lib/views/admin/processes.py:164
 msgid "Organization code must be 1-5 letters or digits."
 msgstr "Der Organisationscode muss aus 1-5 Buchstaben oder Ziffern bestehen."
 
-#: nx_lib/views/admin/processes.py:236
+#: nx_lib/views/admin/processes.py:188
 msgid "Column type must be a plain SQL type name."
 msgstr "Der Spaltentyp muss ein einfacher SQL-Typname sein."
 
-#: nx_lib/views/admin/processes.py:362
+#: nx_lib/views/admin/processes.py:314
 #, python-format
 msgid ""
 "Unknown client code %(code)s -- it must be an existing runtime source "
@@ -1408,7 +1408,7 @@ msgstr ""
 "Unbekannter Client-Code %(code)s – er muss eine vorhandene Laufzeitquelle"
 " von der Seite Clients sein."
 
-#: nx_lib/views/admin/processes.py:375
+#: nx_lib/views/admin/processes.py:327
 #, python-format
 msgid ""
 "Process name %(name)s collides with the existing %(other_client)s / "
@@ -1420,7 +1420,7 @@ msgstr ""
 "Vergabe für den einen auch den anderen berechtigen würde. Bitte einen "
 "anderen Namen wählen."
 
-#: nx_lib/views/admin/processes.py:407
+#: nx_lib/views/admin/processes.py:359
 #, python-format
 msgid ""
 "Process source created. Its permission %(code)s was created but granted "
@@ -1429,19 +1429,19 @@ msgstr ""
 "Prozessquelle erstellt. Die Berechtigung %(code)s wurde angelegt, aber "
 "niemandem zugewiesen -- weisen Sie sie unter Zugriffskontrolle zu."
 
-#: nx_lib/views/admin/processes.py:415
+#: nx_lib/views/admin/processes.py:367
 msgid "This process source already exists."
 msgstr "Diese Prozessquelle existiert bereits."
 
-#: nx_lib/views/admin/processes.py:451 nx_lib/views/admin/processes.py:504
+#: nx_lib/views/admin/processes.py:403 nx_lib/views/admin/processes.py:456
 msgid "Process source not found."
 msgstr "Prozessquelle nicht gefunden."
 
-#: nx_lib/views/admin/processes.py:453
+#: nx_lib/views/admin/processes.py:405
 msgid "Process source updated successfully."
 msgstr "Prozessquelle erfolgreich aktualisiert."
 
-#: nx_lib/views/admin/processes.py:490
+#: nx_lib/views/admin/processes.py:442
 msgid ""
 "This process source still has field mappings and cannot be deleted. "
 "Remove them first."
@@ -1449,33 +1449,33 @@ msgstr ""
 "Diese Prozessquelle hat noch Feldzuordnungen und kann nicht gelöscht "
 "werden. Entfernen Sie diese zuerst."
 
-#: nx_lib/views/admin/processes.py:506
+#: nx_lib/views/admin/processes.py:458
 msgid "Process source deleted successfully."
 msgstr "Prozessquelle erfolgreich gelöscht."
 
-#: nx_lib/views/admin/processes.py:512
+#: nx_lib/views/admin/processes.py:464
 msgid "This process source is still referenced and cannot be deleted."
 msgstr "Diese Prozessquelle wird noch referenziert und kann nicht gelöscht werden."
 
-#: nx_lib/views/admin/processes.py:556
+#: nx_lib/views/admin/processes.py:508
 msgid "Field mapping created successfully."
 msgstr "Feldzuordnung erfolgreich erstellt."
 
-#: nx_lib/views/admin/processes.py:565
+#: nx_lib/views/admin/processes.py:517
 msgid "This field mapping already exists, or its process source does not."
 msgstr ""
 "Diese Feldzuordnung existiert bereits, oder die zugehörige Prozessquelle "
 "existiert nicht."
 
-#: nx_lib/views/admin/processes.py:608 nx_lib/views/admin/processes.py:637
+#: nx_lib/views/admin/processes.py:560 nx_lib/views/admin/processes.py:589
 msgid "Field mapping not found."
 msgstr "Feldzuordnung nicht gefunden."
 
-#: nx_lib/views/admin/processes.py:610
+#: nx_lib/views/admin/processes.py:562
 msgid "Field mapping updated successfully."
 msgstr "Feldzuordnung erfolgreich aktualisiert."
 
-#: nx_lib/views/admin/processes.py:639
+#: nx_lib/views/admin/processes.py:591
 msgid "Field mapping deleted successfully."
 msgstr "Feldzuordnung erfolgreich gelöscht."
 
@@ -2190,24 +2190,24 @@ msgid "Overview"
 msgstr "Übersicht"
 
 #: templates/_header.html:69 templates/admin/access_control.html:19
-#: templates/admin/admin_overview.html:154 templates/js/_header_js.html:18
+#: templates/admin/admin_overview.html:127 templates/js/_header_js.html:18
 msgid "Access Control"
 msgstr "Zugriffskontrolle"
 
-#: templates/_header.html:74 templates/admin/admin_overview.html:164
+#: templates/_header.html:74 templates/admin/admin_overview.html:137
 #: templates/admin/permissions.html:21 templates/admin/user_detail.html:88
 msgid "Permissions"
 msgstr "Berechtigungen"
 
-#: templates/_header.html:79 templates/admin/admin_overview.html:174
+#: templates/_header.html:79 templates/admin/admin_overview.html:147
 msgid "Sessions"
 msgstr "Sitzungen"
 
-#: templates/_header.html:84 templates/admin/admin_overview.html:184
+#: templates/_header.html:84 templates/admin/admin_overview.html:157
 msgid "Logs"
 msgstr "Protokolle"
 
-#: templates/_header.html:90 templates/admin/admin_overview.html:195
+#: templates/_header.html:90 templates/admin/admin_overview.html:168
 #: templates/admin/logs.html:66 templates/admin/logs.html:99
 #: templates/admin/tenant_detail.html:209
 #: templates/admin/tenants_manage.html:93 templates/admin/user_detail.html:222
@@ -2223,7 +2223,7 @@ msgid "Maintenance"
 msgstr "Wartung"
 
 #: templates/_header.html:111 templates/admin/admin_overview.html:92
-#: templates/admin/tenants.html:149 templates/admin/tenants_manage.html:58
+#: templates/admin/tenants_manage.html:58
 msgid "Tenants"
 msgstr "Tenants"
 
@@ -3118,8 +3118,7 @@ msgstr "Excel"
 
 #: templates/_reporting_simple.html:190 templates/_reporting_simple.html:288
 #: templates/admin/access_control.html:240 templates/admin/maintenance.html:114
-#: templates/admin/permissions.html:119 templates/admin/processes.html:208
-#: templates/admin/processes.html:244
+#: templates/admin/permissions.html:119
 #: templates/generali_additionalservices.html:324
 #: templates/generali_baseservices.html:273 templates/generali_pdqm.html:348
 #: templates/generali_projectmanagement.html:259
@@ -3242,18 +3241,15 @@ msgstr "Anmerkungstext"
 #: templates/admin/_process_sheets.html:123
 #: templates/admin/_tenant_sheet.html:57
 #: templates/admin/access_control.html:195
-#: templates/admin/access_control.html:239 templates/admin/clients.html:101
-#: templates/admin/clients.html:176 templates/admin/maintenance.html:113
+#: templates/admin/access_control.html:239 templates/admin/maintenance.html:113
 #: templates/admin/maintenance.html:129
 #: templates/admin/modals/_organizations_modals.html:13
 #: templates/admin/modals/_organizations_modals.html:51
 #: templates/admin/modals/_user_modals.html:13
 #: templates/admin/modals/_user_modals.html:80
 #: templates/admin/organization_detail.html:372
-#: templates/admin/permissions.html:118 templates/admin/processes.html:123
-#: templates/admin/processes.html:207 templates/admin/processes.html:243
-#: templates/admin/tenant_detail.html:197 templates/admin/user_detail.html:78
-#: templates/admin/user_detail.html:276
+#: templates/admin/permissions.html:118 templates/admin/tenant_detail.html:197
+#: templates/admin/user_detail.html:78 templates/admin/user_detail.html:276
 #: templates/generali_additionalservices.html:261
 #: templates/generali_additionalservices.html:320
 #: templates/generali_additionalservices.html:345
@@ -4726,9 +4722,8 @@ msgstr "Unterkategorie"
 #: templates/admin/access_control.html:178
 #: templates/admin/access_control.html:225 templates/admin/logs.html:74
 #: templates/admin/modals/_user_modals.html:61
-#: templates/admin/organizations.html:59 templates/admin/processes.html:60
-#: templates/admin/processes.html:160 templates/admin/processes.html:169
-#: templates/admin/tenant_detail.html:76 templates/admin/user_detail.html:65
+#: templates/admin/organizations.html:59 templates/admin/tenant_detail.html:76
+#: templates/admin/user_detail.html:65
 #: templates/generali_additionalservices.html:95
 #: templates/generali_baseservices.html:83 templates/generali_pdqm.html:103
 #: templates/generali_projectmanagement.html:71
@@ -4784,8 +4779,7 @@ msgstr "Stunden"
 msgid "Recorded At"
 msgstr "Erfasst am"
 
-#: templates/admin/access_control.html:92 templates/admin/clients.html:57
-#: templates/admin/maintenance.html:39 templates/admin/processes.html:78
+#: templates/admin/access_control.html:92 templates/admin/maintenance.html:39
 #: templates/admin/sessions.html:53 templates/admin/sessions.html:69
 #: templates/generali_additionalservices.html:167
 #: templates/generali_baseservices.html:141 templates/generali_pdqm.html:165
@@ -4885,12 +4879,11 @@ msgstr "Eintrag löschen"
 msgid "This action cannot be undone."
 msgstr "Diese Aktion kann nicht rückgängig gemacht werden."
 
-#: templates/admin/clients.html:81 templates/admin/maintenance.html:130
+#: templates/admin/maintenance.html:130
 #: templates/admin/organization_detail.html:56
 #: templates/admin/organization_detail.html:225
 #: templates/admin/organization_detail.html:252
-#: templates/admin/permissions.html:74 templates/admin/processes.html:66
-#: templates/admin/processes.html:89 templates/admin/tenant_detail.html:51
+#: templates/admin/permissions.html:74 templates/admin/tenant_detail.html:51
 #: templates/admin/tenants_manage.html:220 templates/admin/user_detail.html:279
 #: templates/generali_additionalservices.html:349
 #: templates/generali_baseservices.html:298 templates/generali_pdqm.html:373
@@ -5040,12 +5033,9 @@ msgstr "CSV-Importe in die Dokumentdatenbank"
 
 #: templates/generali_importstatus.html:55
 #: templates/js/_generali_import_status_js.html:15
-#: templates/js/admin/_clients_js.html:109
-#: templates/js/admin/_clients_js.html:163
 #: templates/js/admin/_organization_detail_js.html:20
 #: templates/js/admin/_organization_detail_js.html:348
 #: templates/js/admin/_organizations_js.html:19
-#: templates/js/admin/_processes_js.html:152
 #: templates/js/admin/_tenant_detail_js.html:27
 #: templates/js/admin/_tenants_manage_js.html:20
 #: templates/js/admin/_user_management_js.html:120
@@ -5625,13 +5615,13 @@ msgstr "Eingegangen"
 msgid "Any"
 msgstr "Beliebig"
 
-#: templates/admin/clients.html:65 templates/admin/tenants_manage.html:200
-#: templates/prepared_documents.html:94 templates/prepared_documents.html:109
+#: templates/admin/tenants_manage.html:200 templates/prepared_documents.html:94
+#: templates/prepared_documents.html:109
 msgid "Yes"
 msgstr "Ja"
 
-#: templates/admin/clients.html:65 templates/admin/tenants_manage.html:200
-#: templates/prepared_documents.html:95 templates/prepared_documents.html:110
+#: templates/admin/tenants_manage.html:200 templates/prepared_documents.html:95
+#: templates/prepared_documents.html:110
 msgid "No"
 msgstr "Nein"
 
@@ -6332,7 +6322,7 @@ msgstr ""
 msgid "Registered metrics"
 msgstr "Registrierte Metriken"
 
-#: templates/admin/_tenant_sheet.html:27 templates/admin/clients.html:51
+#: templates/admin/_tenant_sheet.html:27
 #: templates/admin/tenants_manage.html:182 templates/reporting_metrics.html:41
 #: templates/reporting_metrics.html:52 templates/reporting_sources.html:41
 #: templates/reporting_sources.html:52 templates/reporting_sources.html:63
@@ -6822,19 +6812,18 @@ msgstr ""
 "(nicht nur die aktuelle Seite)."
 
 #: templates/admin/tenant_detail.html:63 templates/admin/tenant_detail.html:130
-#: templates/admin/tenants.html:187 templates/admin/tenants_manage.html:92
-#: templates/workitems_overview.html:567
+#: templates/admin/tenants_manage.html:92 templates/workitems_overview.html:567
 msgid "Pages"
 msgstr "Seiten"
 
 #: templates/admin/_client_sheet.html:10
 #: templates/admin/organization_detail.html:158
 #: templates/admin/organizations.html:62 templates/admin/tenant_detail.html:79
-#: templates/admin/tenants.html:136 templates/admin/tenants_manage.html:91
+#: templates/admin/tenants_manage.html:91
 msgid "Data connection"
 msgstr "Datenverbindung"
 
-#: templates/admin/_client_sheet.html:11 templates/admin/clients.html:22
+#: templates/admin/_client_sheet.html:11
 #: templates/admin/tenants_manage.html:173
 #: templates/js/admin/_tenants_manage_js.html:195
 msgid "Add connection"
@@ -6847,13 +6836,12 @@ msgid "Client code"
 msgstr "Client-Code"
 
 #: templates/admin/_client_sheet.html:26 templates/admin/_tenant_sheet.html:22
-#: templates/admin/clients.html:52 templates/admin/tenants_manage.html:183
+#: templates/admin/tenants_manage.html:183
 msgid "Display name"
 msgstr "Anzeigename"
 
-#: templates/admin/_client_sheet.html:31 templates/admin/clients.html:53
-#: templates/admin/clients.html:123
-#: templates/admin/organization_detail.html:175 templates/admin/tenants.html:67
+#: templates/admin/_client_sheet.html:31
+#: templates/admin/organization_detail.html:175
 #: templates/admin/tenants_manage.html:184
 msgid "Dialect"
 msgstr "Dialekt"
@@ -6892,10 +6880,9 @@ msgid "An environment-key prefix such as MS02 — never a secret value."
 msgstr "Ein Umgebungsschlüssel-Präfix wie MS02 — niemals ein Geheimwert."
 
 #: templates/admin/_client_sheet.html:86 templates/admin/_tenant_sheet.html:35
-#: templates/admin/clients.html:55 templates/admin/clients.html:172
 #: templates/admin/maintenance.html:38 templates/admin/maintenance.html:95
 #: templates/admin/tenant_detail.html:33 templates/admin/tenant_detail.html:235
-#: templates/admin/tenants.html:174 templates/admin/tenants_manage.html:40
+#: templates/admin/tenants_manage.html:40
 #: templates/admin/tenants_manage.html:134
 #: templates/admin/tenants_manage.html:187
 msgid "Active"
@@ -6915,10 +6902,9 @@ msgstr "Verbindung speichern"
 msgid "Please confirm"
 msgstr "Bitte bestätigen"
 
-#: templates/admin/_confirm_dialog.html:9 templates/admin/clients.html:102
+#: templates/admin/_confirm_dialog.html:9
 #: templates/admin/modals/_organizations_modals.html:16
 #: templates/admin/modals/_user_modals.html:16
-#: templates/admin/processes.html:124
 msgid "Confirm"
 msgstr "Bestätigen"
 
@@ -6966,13 +6952,11 @@ msgstr "Prozessquelle"
 
 #: templates/admin/_process_sheets.html:13
 #: templates/admin/organization_detail.html:201
-#: templates/admin/processes.html:22
 #: templates/js/admin/_organization_detail_js.html:165
 msgid "Add process source"
 msgstr "Prozessquelle hinzufügen"
 
-#: templates/admin/_process_sheets.html:32 templates/admin/processes.html:162
-#: templates/admin/processes.html:171
+#: templates/admin/_process_sheets.html:32
 msgid "Unassigned"
 msgstr "Nicht zugewiesen"
 
@@ -7034,7 +7018,6 @@ msgstr "Feldzuordnung hinzufügen"
 
 #: templates/admin/_process_sheets.html:108
 #: templates/admin/organization_detail.html:233
-#: templates/admin/processes.html:75
 msgid "Field key"
 msgstr "Feldschlüssel"
 
@@ -7044,7 +7027,6 @@ msgstr "Spaltenname"
 
 #: templates/admin/_process_sheets.html:117
 #: templates/admin/organization_detail.html:235
-#: templates/admin/processes.html:77
 msgid "Column type"
 msgstr "Spaltentyp"
 
@@ -7098,7 +7080,7 @@ msgstr "Benutzer und Zugriffsprofile"
 #: templates/admin/organization_detail.html:64
 #: templates/admin/organization_detail.html:116
 #: templates/admin/organizations.html:61 templates/admin/tenant_detail.html:77
-#: templates/admin/tenant_detail.html:433 templates/admin/tenants.html:128
+#: templates/admin/tenant_detail.html:433
 #: templates/admin/tenants_manage.html:90
 msgid "Users"
 msgstr "Benutzer"
@@ -7152,13 +7134,12 @@ msgstr "Profile"
 msgid "Add Profile"
 msgstr "Profil hinzufügen"
 
-#: templates/admin/access_control.html:121 templates/admin/clients.html:80
+#: templates/admin/access_control.html:121
 #: templates/admin/organization_detail.html:52
 #: templates/admin/organization_detail.html:170
 #: templates/admin/organization_detail.html:222
 #: templates/admin/organization_detail.html:249
-#: templates/admin/permissions.html:73 templates/admin/processes.html:64
-#: templates/admin/processes.html:88 templates/admin/tenants_manage.html:215
+#: templates/admin/permissions.html:73 templates/admin/tenants_manage.html:215
 #: templates/js/_generali_additional_services_js.html:124
 #: templates/js/_generali_base_services_js.html:103
 #: templates/js/_generali_pdqm_js.html:178
@@ -7294,229 +7275,80 @@ msgstr "Benutzer, Profile, Datenverbindung und Branding"
 msgid "%(n)s not in a tenant"
 msgstr "%(n)s ohne Tenant"
 
-#: templates/admin/admin_overview.html:120 templates/admin/clients.html:19
-msgid "Data Connections"
-msgstr "Datenverbindungen"
-
-#: templates/admin/admin_overview.html:121
-msgid "Client databases and runtime engines"
-msgstr "Client-Datenbanken und Runtime-Engines"
-
-#: templates/admin/admin_overview.html:125
-#, python-format
-msgid "%(n)s not loaded"
-msgstr "%(n)s nicht geladen"
-
-#: templates/admin/admin_overview.html:136 templates/admin/processes.html:19
-msgid "Process Configurations"
-msgstr "Prozesskonfigurationen"
-
-#: templates/admin/admin_overview.html:137
-msgid "Field mappings per process"
-msgstr "Feldzuordnungen pro Prozess"
-
-#: templates/admin/admin_overview.html:147
+#: templates/admin/admin_overview.html:120
 msgid "Access & monitoring"
 msgstr "Zugriff & Überwachung"
 
-#: templates/admin/admin_overview.html:148
+#: templates/admin/admin_overview.html:121
 msgid "Who can do what, and what happened"
 msgstr "Wer was darf und was passiert ist"
 
-#: templates/admin/admin_overview.html:155
+#: templates/admin/admin_overview.html:128
 msgid "Users, permissions and access profiles"
 msgstr "Benutzer, Berechtigungen und Zugriffsprofile"
 
-#: templates/admin/admin_overview.html:157
+#: templates/admin/admin_overview.html:130
 #: templates/admin/organization_detail.html:45
 #: templates/admin/tenant_detail.html:39
 #, python-format
 msgid "%(n)s users"
 msgstr "%(n)s Benutzer"
 
-#: templates/admin/admin_overview.html:165
+#: templates/admin/admin_overview.html:138
 msgid "Every profile against every permission"
 msgstr "Jedes Profil gegen jede Berechtigung"
 
-#: templates/admin/admin_overview.html:175
+#: templates/admin/admin_overview.html:148
 msgid "Users active in the last 30 minutes"
 msgstr "In den letzten 30 Minuten aktive Benutzer"
 
-#: templates/admin/admin_overview.html:177
+#: templates/admin/admin_overview.html:150
 #, python-format
 msgid "%(n)s live"
 msgstr "%(n)s live"
 
-#: templates/admin/admin_overview.html:185
+#: templates/admin/admin_overview.html:158
 msgid "Filter by user, date, method or status"
 msgstr "Nach Benutzer, Datum, Methode oder Status filtern"
 
-#: templates/admin/admin_overview.html:196
+#: templates/admin/admin_overview.html:169
 msgid "Component health and 30-day uptime"
 msgstr "Komponentenzustand und 30-Tage-Verfügbarkeit"
 
-#: templates/admin/admin_overview.html:199
+#: templates/admin/admin_overview.html:172
 #, python-format
 msgid "%(n)s degraded"
 msgstr "%(n)s beeinträchtigt"
 
-#: templates/admin/admin_overview.html:210
+#: templates/admin/admin_overview.html:183
 msgid "Resources"
 msgstr "Ressourcen"
 
-#: templates/admin/admin_overview.html:213
+#: templates/admin/admin_overview.html:186
 msgid "Nexora documentation"
 msgstr "Nexora-Dokumentation"
 
-#: templates/admin/admin_overview.html:218
+#: templates/admin/admin_overview.html:191
 msgid "ngrok hosting"
 msgstr "ngrok-Hosting"
 
-#: templates/admin/admin_overview.html:245
+#: templates/admin/admin_overview.html:218
 msgid "Restart the dev server now? The page will reload once it is back."
 msgstr ""
 "Den Entwicklungsserver jetzt neu starten? Die Seite wird neu geladen, "
 "sobald er wieder erreichbar ist."
 
-#: templates/admin/admin_overview.html:246
+#: templates/admin/admin_overview.html:219
 msgid "Restart and switch environment to"
 msgstr "Neustarten und Umgebung wechseln zu"
 
-#: templates/admin/admin_overview.html:246
+#: templates/admin/admin_overview.html:219
 msgid "The page will reload once it is back."
 msgstr "Die Seite wird neu geladen, sobald der Server wieder da ist."
 
-#: templates/admin/admin_overview.html:249
+#: templates/admin/admin_overview.html:222
 msgid "Restarting..."
 msgstr "Wird neu gestartet …"
-
-#: templates/admin/clients.html:8
-msgid "Data Connections - nexora"
-msgstr "Datenverbindungen - nexora"
-
-#: templates/admin/clients.html:20
-msgid ""
-"Where tenant data lives: DB, SQL dialect and Octo domain per client code "
-"-- not the organization itself (see Organizations)"
-msgstr ""
-"Wo die Daten eines Mandanten liegen: DB, SQL-Dialekt und Octo-Domain pro "
-"Client-Code -- nicht die Organisation selbst (siehe Organisationen)"
-
-#: templates/admin/clients.html:33 templates/admin/status.html:58
-msgid "Client registry degraded"
-msgstr "Client-Registry eingeschränkt"
-
-#: templates/admin/clients.html:35
-msgid ""
-"dbo.Clients could not be read at startup, so this process is running on "
-"the built-in 'default' client only -- every other runtime source below is"
-" configured but NOT active, whatever this table says. Fix the database "
-"access and recycle the app pool."
-msgstr ""
-"dbo.Clients konnte beim Start nicht gelesen werden, daher läuft dieser "
-"Prozess nur mit dem eingebauten Client 'default' – jede andere "
-"Laufzeitquelle unten ist zwar konfiguriert, aber NICHT aktiv, ungeachtet "
-"dessen, was diese Tabelle anzeigt. Den Datenbankzugriff korrigieren und "
-"den App-Pool neu starten."
-
-#: templates/admin/clients.html:43
-#, python-brace-format
-msgid ""
-"A new or edited client is read once at startup: it takes effect only "
-"after an app-pool recycle. A client bringing its own database also needs "
-"the matching env/{ENV}.env keys added by hand -- adding a row here does "
-"not create them."
-msgstr ""
-"Ein neuer oder bearbeiteter Client wird nur beim Start gelesen: Er wird "
-"erst nach einem App-Pool-Neustart wirksam. Bringt ein Client seine eigene"
-" Datenbank mit, müssen die passenden env/{ENV}.env-Schlüssel zusätzlich "
-"von Hand angelegt werden -- ein Eintrag hier legt sie nicht an."
-
-#: templates/admin/clients.html:46
-msgid "Search clients..."
-msgstr "Clients durchsuchen..."
-
-#: templates/admin/clients.html:54 templates/admin/organization_detail.html:176
-#: templates/admin/tenants.html:68 templates/admin/tenants_manage.html:185
-msgid "Runtime engine"
-msgstr "Runtime-Engine"
-
-#: templates/admin/clients.html:56 templates/admin/organization_detail.html:178
-#: templates/admin/tenants.html:69 templates/admin/tenants_manage.html:188
-msgid "Runtime state"
-msgstr "Laufzeitstatus"
-
-#: templates/admin/clients.html:71 templates/admin/organization_detail.html:181
-#: templates/admin/tenants.html:72 templates/admin/tenants_manage.html:203
-msgid "Loaded"
-msgstr "Geladen"
-
-#: templates/admin/clients.html:73
-#, python-brace-format
-msgid ""
-"This row exists in dbo.Clients but the running process did not load it --"
-" usually missing env/{ENV}.env keys, an unresolvable engine key or Octo "
-"domain, or a registry that failed to load at startup. Nothing routes to "
-"it until that is fixed and the app pool is recycled."
-msgstr ""
-"Diese Zeile existiert in dbo.Clients, wurde vom laufenden Prozess aber "
-"nicht geladen – meist fehlen Schlüssel in env/{ENV}.env, ein Engine-Key "
-"oder eine Octo-Domain lässt sich nicht auflösen, oder die Registry konnte"
-" beim Start nicht geladen werden. Es wird nichts dorthin geleitet, bis "
-"das behoben und der App-Pool neu gestartet ist."
-
-#: templates/admin/clients.html:74 templates/admin/organization_detail.html:183
-#: templates/admin/tenants.html:74 templates/admin/tenants_manage.html:207
-msgid "Configured, not loaded"
-msgstr "Konfiguriert, nicht geladen"
-
-#: templates/admin/clients.html:96
-msgid "Delete Client"
-msgstr "Client löschen"
-
-#: templates/admin/clients.html:109 templates/js/admin/_clients_js.html:42
-msgid "Add a new Client"
-msgstr "Neuen Client hinzufügen"
-
-#: templates/admin/clients.html:115
-msgid "Client Code"
-msgstr "Client-Code"
-
-#: templates/admin/clients.html:119
-msgid "Display Name"
-msgstr "Anzeigename"
-
-#: templates/admin/clients.html:130
-msgid "Runtime Engine Key"
-msgstr "Runtime-Engine-Schlüssel"
-
-#: templates/admin/clients.html:139
-msgid "Stats Engine Key (optional)"
-msgstr "Statistik-Engine-Schlüssel (optional)"
-
-#: templates/admin/clients.html:143
-msgid "Stats Dialect (optional)"
-msgstr "Statistik-Dialekt (optional)"
-
-#: templates/admin/clients.html:151
-msgid "Doc-field Engine Key (optional)"
-msgstr "Dokumentfeld-Engine-Schlüssel (optional)"
-
-#: templates/admin/clients.html:155
-msgid "Doc-field Dialect (optional)"
-msgstr "Dokumentfeld-Dialekt (optional)"
-
-#: templates/admin/clients.html:163
-msgid "Octo Domain (optional)"
-msgstr "Octo-Domäne (optional)"
-
-#: templates/admin/clients.html:167
-msgid "Secret Ref (env-key prefix, optional)"
-msgstr "Secret-Ref (Env-Key-Präfix, optional)"
-
-#: templates/admin/clients.html:177
-msgid "Save Client"
-msgstr "Client speichern"
 
 #: templates/admin/logs.html:8
 msgid "System Logs - nexora"
@@ -7686,7 +7518,7 @@ msgid "Breadcrumb"
 msgstr "Brotkrümelnavigation"
 
 #: templates/admin/organization_detail.html:67
-#: templates/admin/tenant_detail.html:78 templates/admin/tenants.html:132
+#: templates/admin/tenant_detail.html:78
 msgid "Access profiles"
 msgstr "Zugriffsprofile"
 
@@ -7746,6 +7578,26 @@ msgstr ""
 "Die Prozesskonfiguration konnte nicht geladen werden, daher kann dieser "
 "Tab nicht angezeigt werden."
 
+#: templates/admin/organization_detail.html:176
+#: templates/admin/tenants_manage.html:185
+msgid "Runtime engine"
+msgstr "Runtime-Engine"
+
+#: templates/admin/organization_detail.html:178
+#: templates/admin/tenants_manage.html:188
+msgid "Runtime state"
+msgstr "Laufzeitstatus"
+
+#: templates/admin/organization_detail.html:181
+#: templates/admin/tenants_manage.html:203
+msgid "Loaded"
+msgstr "Geladen"
+
+#: templates/admin/organization_detail.html:183
+#: templates/admin/tenants_manage.html:207
+msgid "Configured, not loaded"
+msgstr "Konfiguriert, nicht geladen"
+
 #: templates/admin/organization_detail.html:192
 msgid ""
 "This organization has no process sources, so it reaches no data "
@@ -7773,17 +7625,14 @@ msgid "client"
 msgstr "Client"
 
 #: templates/admin/organization_detail.html:219
-#: templates/admin/processes.html:65
 msgid "Add field"
 msgstr "Feld hinzufügen"
 
 #: templates/admin/organization_detail.html:234
-#: templates/admin/processes.html:76
 msgid "Column"
 msgstr "Spalte"
 
 #: templates/admin/organization_detail.html:260
-#: templates/admin/processes.html:94
 msgid "No field mappings for this process."
 msgstr "Keine Feldzuordnungen für diesen Prozess."
 
@@ -7911,143 +7760,6 @@ msgstr "Berechtigungscode"
 msgid "Short description"
 msgstr "Kurzbeschreibung"
 
-#: templates/admin/processes.html:8
-msgid "Process Configurations - nexora"
-msgstr "Prozesskonfigurationen - nexora"
-
-#: templates/admin/processes.html:20
-msgid ""
-"Process sources and their document-field mappings per client "
-"(dbo.ProcessSources / dbo.ProcessFieldMappings)"
-msgstr ""
-"Prozessquellen und ihre Dokumentfeld-Zuordnungen pro Client "
-"(dbo.ProcessSources / dbo.ProcessFieldMappings)"
-
-#: templates/admin/processes.html:28
-msgid ""
-"\"Client\" here is a runtime source (default/ms02, see Data Connections) "
-"-- not an organization. A process name must be exactly "
-"&lt;customer&gt;.&lt;process&gt; (e.g. privera.02_Posteingang): the "
-"permission that grants access to it is derived from those two parts, so "
-"any other shape can never be granted."
-msgstr ""
-"\"Client\" bedeutet hier eine Laufzeitquelle (default/ms02, siehe "
-"Datenverbindungen) – keine Organisation. Ein Prozessname muss genau "
-"&lt;Kunde&gt;.&lt;Prozess&gt; lauten (z. B. privera.02_Posteingang): Die "
-"Berechtigung, die den Zugriff darauf gewährt, wird aus diesen beiden "
-"Teilen abgeleitet; jede andere Form kann daher nie vergeben werden."
-
-#: templates/admin/processes.html:34
-msgid ""
-"Adding a process source also creates its process.<client>.<name>.view "
-"permission, granted to nobody -- grant it under Access Control. The join "
-"condition, time filters and extra condition are free-form SQL fragments "
-"and stay read-only here: they are editable only by a database migration."
-msgstr ""
-"Das Hinzufügen einer Prozessquelle legt auch deren Berechtigung "
-"process.<client>.<name>.view an, die niemandem zugewiesen ist -- weisen "
-"Sie sie unter Zugriffskontrolle zu. Join-Bedingung, Zeitfilter und "
-"Zusatzbedingung sind freie SQL-Fragmente und bleiben hier "
-"schreibgeschützt: Sie sind nur über eine Datenbankmigration änderbar."
-
-#: templates/admin/processes.html:41
-msgid ""
-"Mapping config is currently unavailable. The registry failed to load -- "
-"check the application log; this is not the same as \"no processes "
-"configured\"."
-msgstr ""
-"Die Mapping-Konfiguration ist derzeit nicht verfügbar. Die Registry "
-"konnte nicht geladen werden -- prüfen Sie das Anwendungsprotokoll; das "
-"ist nicht dasselbe wie \"keine Prozesse konfiguriert\"."
-
-#: templates/admin/processes.html:45
-msgid "Search client or process..."
-msgstr "Client oder Prozess durchsuchen..."
-
-#: templates/admin/processes.html:59
-msgid "Table:"
-msgstr "Tabelle:"
-
-#: templates/admin/processes.html:105
-msgid "No process sources configured."
-msgstr "Keine Prozessquellen konfiguriert."
-
-#: templates/admin/processes.html:118
-msgid "Confirm deletion"
-msgstr "Löschen bestätigen"
-
-#: templates/admin/processes.html:131 templates/js/admin/_processes_js.html:83
-msgid "Add a process source"
-msgstr "Prozessquelle hinzufügen"
-
-#: templates/admin/processes.html:138 templates/admin/processes.html:222
-msgid "Client Code (runtime source)"
-msgstr "Client-Code (Laufzeitquelle)"
-
-#: templates/admin/processes.html:146
-msgid "Select a client..."
-msgstr "Client auswählen..."
-
-#: templates/admin/processes.html:156 templates/admin/processes.html:226
-msgid "Process Name"
-msgstr "Prozessname"
-
-#: templates/admin/processes.html:157
-msgid ""
-"Exactly <customer>.<process> -- two parts separated by a single dot, e.g."
-" acme.01_Invoice."
-msgstr ""
-"Genau <Kunde>.<Prozess> – zwei durch einen einzelnen Punkt getrennte "
-"Teile, z. B. acme.01_Invoice."
-
-#: templates/admin/processes.html:178
-msgid "Table Name"
-msgstr "Tabellenname"
-
-#: templates/admin/processes.html:182
-msgid "Table Alias (optional)"
-msgstr "Tabellenalias (optional)"
-
-#: templates/admin/processes.html:186
-msgid "Export Column (optional)"
-msgstr "Exportspalte (optional)"
-
-#: templates/admin/processes.html:190
-msgid "Import Column (optional)"
-msgstr "Importspalte (optional)"
-
-#: templates/admin/processes.html:194
-msgid "Workitem Column (optional)"
-msgstr "Workitem-Spalte (optional)"
-
-#: templates/admin/processes.html:198
-msgid "Id Column Type (optional)"
-msgstr "Id-Spaltentyp (optional)"
-
-#: templates/admin/processes.html:204
-msgid ""
-"Join condition, time filters and extra condition are free-form SQL and "
-"are not editable here -- change them with a migration."
-msgstr ""
-"Join-Bedingung, Zeitfilter und Zusatzbedingung sind freies SQL und hier "
-"nicht editierbar -- ändern Sie sie über eine Migration."
-
-#: templates/admin/processes.html:216 templates/js/admin/_processes_js.html:113
-msgid "Add a field mapping"
-msgstr "Feldzuordnung hinzufügen"
-
-#: templates/admin/processes.html:230
-msgid "Field Key"
-msgstr "Feldschlüssel"
-
-#: templates/admin/processes.html:234
-msgid "Column Name"
-msgstr "Spaltenname"
-
-#: templates/admin/processes.html:238
-msgid "Column Type (optional)"
-msgstr "Spaltentyp (optional)"
-
 #: templates/admin/sessions.html:8
 msgid "Active Sessions - nexora"
 msgstr "Aktive Sitzungen - nexora"
@@ -8135,6 +7847,10 @@ msgstr "Systemstatus"
 #: templates/admin/status.html:47
 msgid "Component health and incident history, recorded by the outage monitor"
 msgstr "Komponentenzustand und Störungsverlauf, aufgezeichnet vom Ausfall-Monitor"
+
+#: templates/admin/status.html:58
+msgid "Client registry degraded"
+msgstr "Client-Registry eingeschränkt"
 
 #: templates/admin/status.html:60
 msgid ""
@@ -8290,8 +8006,7 @@ msgstr "Keine Störungen aufgezeichnet."
 msgid "Manage tenants"
 msgstr "Tenants verwalten"
 
-#: templates/admin/tenant_detail.html:33 templates/admin/tenants.html:174
-#: templates/admin/tenants_manage.html:43
+#: templates/admin/tenant_detail.html:33 templates/admin/tenants_manage.html:43
 #: templates/admin/tenants_manage.html:134
 msgid "Inactive"
 msgstr "Inaktiv"
@@ -8459,142 +8174,6 @@ msgstr "Der Zugriff ist hier schreibgeschützt."
 msgid "Manage in Permissions"
 msgstr "In Berechtigungen verwalten"
 
-#: templates/admin/tenants.html:8
-msgid "Tenants - nexora"
-msgstr "Tenants - nexora"
-
-#: templates/admin/tenants.html:34
-msgid "No users"
-msgstr "Keine Benutzer"
-
-#: templates/admin/tenants.html:46
-msgid "No profile bound to this organization"
-msgstr "Kein Profil an diese Organisation gebunden"
-
-#: templates/admin/tenants.html:50
-msgid "Global profiles in use:"
-msgstr "Verwendete globale Profile:"
-
-#: templates/admin/tenants.html:58
-msgid "Requires admin.clients.view"
-msgstr "Benötigt admin.clients.view"
-
-#: templates/admin/tenants.html:60
-#, python-format
-msgid "Client %(code)s is missing"
-msgstr "Client %(code)s fehlt"
-
-#: templates/admin/tenants.html:90
-#, python-format
-msgid "%(num)d field"
-msgid_plural "%(num)d fields"
-msgstr[0] "%(num)d Feld"
-msgstr[1] "%(num)d Felder"
-
-#: templates/admin/tenants.html:101
-msgid "Requires admin.processes.view"
-msgstr "Benötigt admin.processes.view"
-
-#: templates/admin/tenants.html:103
-msgid "Mapping configuration unavailable"
-msgstr "Mapping-Konfiguration nicht verfügbar"
-
-#: templates/admin/tenants.html:106
-msgid "No process configuration assigned"
-msgstr "Keine Prozesskonfiguration zugewiesen"
-
-#: templates/admin/tenants.html:107
-msgid "Open Process Configurations"
-msgstr "Prozesskonfigurationen öffnen"
-
-#: templates/admin/tenants.html:137 templates/admin/tenants_manage.html:127
-msgid "No data connection"
-msgstr "Keine Datenverbindung"
-
-#: templates/admin/tenants.html:140
-msgid "Process configurations"
-msgstr "Prozesskonfigurationen"
-
-#: templates/admin/tenants.html:150
-msgid ""
-"Each tenant with its organizations, and per organization its users, "
-"access profiles, data connection and process configurations"
-msgstr ""
-"Jeder Tenant mit seinen Organisationen und pro Organisation deren "
-"Benutzer, Zugriffsprofile, Datenverbindung und Prozesskonfigurationen"
-
-#: templates/admin/tenants.html:157
-msgid "Tenant registry unavailable"
-msgstr "Tenant-Registry nicht verfügbar"
-
-#: templates/admin/tenants.html:158
-msgid ""
-"dbo.Tenants could not be read, so no tenant is shown below -- only the "
-"organizations and connections that exist regardless. Check app.log."
-msgstr ""
-"dbo.Tenants konnte nicht gelesen werden, daher wird unten kein Tenant "
-"angezeigt -- nur die Organisationen und Verbindungen, die unabhängig "
-"davon existieren. Siehe app.log."
-
-#: templates/admin/tenants.html:162
-msgid "Search tenant, organization, user, profile, connection or process..."
-msgstr "Tenant, Organisation, Benutzer, Profil, Verbindung oder Prozess suchen..."
-
-#: templates/admin/tenants.html:175
-#, python-format
-msgid "%(num)d organization"
-msgid_plural "%(num)d organizations"
-msgstr[0] "%(num)d Organisation"
-msgstr[1] "%(num)d Organisationen"
-
-#: templates/admin/tenants.html:176
-msgid "Permission that grants access to this tenant's pages"
-msgstr "Berechtigung, die Zugriff auf die Seiten dieses Tenants gewährt"
-
-#: templates/admin/tenants.html:183
-msgid ""
-"No organization belongs to this tenant yet -- assign one on the "
-"Organizations page."
-msgstr ""
-"Noch keine Organisation gehört zu diesem Tenant -- auf der Seite "
-"Organisationen zuweisen."
-
-#: templates/admin/tenants.html:195
-msgid "No pages"
-msgstr "Keine Seiten"
-
-#: templates/admin/tenants.html:203
-msgid ""
-"No tenants yet. A tenant groups organizations; today tenants are created "
-"by migration."
-msgstr ""
-"Noch keine Tenants. Ein Tenant gruppiert Organisationen; heute werden "
-"Tenants per Migration angelegt."
-
-#: templates/admin/tenants.html:209
-msgid "Organizations not in a tenant"
-msgstr "Organisationen ohne Tenant"
-
-#: templates/admin/tenants.html:218
-msgid "Shared across organizations"
-msgstr "Organisationsübergreifend"
-
-#: templates/admin/tenants.html:222
-msgid "Data connections no organization rides"
-msgstr "Datenverbindungen, die keine Organisation nutzt"
-
-#: templates/admin/tenants.html:227
-msgid "Process configurations not assigned to an organization"
-msgstr "Keiner Organisation zugewiesene Prozesskonfigurationen"
-
-#: templates/admin/tenants.html:236
-msgid "Global access profiles"
-msgstr "Globale Zugriffsprofile"
-
-#: templates/admin/tenants.html:237
-msgid "Not bound to an organization -- assignable to any user."
-msgstr "Nicht an eine Organisation gebunden -- jedem Benutzer zuweisbar."
-
 #: templates/admin/tenants_manage.html:8
 msgid "Manage tenants - nexora"
 msgstr "Tenants verwalten - nexora"
@@ -8653,6 +8232,10 @@ msgstr "geladen"
 #: templates/admin/tenants_manage.html:125
 msgid "configured, not loaded"
 msgstr "konfiguriert, nicht geladen"
+
+#: templates/admin/tenants_manage.html:127
+msgid "No data connection"
+msgstr "Keine Datenverbindung"
 
 #: templates/admin/tenants_manage.html:142
 msgid "No tenant matches your search."
@@ -10641,12 +10224,10 @@ msgstr "Datensatz bearbeiten"
 msgid "{start}-{end} of {total}"
 msgstr "{start}-{end} von {total}"
 
-#: templates/js/_tenant_page_js.html:33 templates/js/admin/_clients_js.html:116
-#: templates/js/admin/_clients_js.html:170
+#: templates/js/_tenant_page_js.html:33
 #: templates/js/admin/_organization_detail_js.html:25
 #: templates/js/admin/_organization_detail_js.html:352
 #: templates/js/admin/_organizations_js.html:24
-#: templates/js/admin/_processes_js.html:162
 #: templates/js/admin/_tenant_detail_js.html:32
 #: templates/js/admin/_tenants_manage_js.html:25
 #: templates/js/admin/_user_management_js.html:127
@@ -10893,42 +10474,15 @@ msgid "You do not have permission to create users."
 msgstr "Sie haben keine Berechtigung, Benutzer zu erstellen."
 
 #: templates/js/admin/_access_control_js.html:16
-#: templates/js/admin/_clients_js.html:112
-#: templates/js/admin/_clients_js.html:166
 #: templates/js/admin/_organization_detail_js.html:21
 #: templates/js/admin/_organization_detail_js.html:349
 #: templates/js/admin/_organizations_js.html:20
-#: templates/js/admin/_processes_js.html:158
 #: templates/js/admin/_tenant_detail_js.html:28
 #: templates/js/admin/_tenants_manage_js.html:21
 #: templates/js/admin/_user_management_js.html:123
 #: templates/js/admin/_user_management_js.html:173
 msgid "Error:"
 msgstr "Fehler:"
-
-#: templates/js/admin/_clients_js.html:51
-msgid "Edit Client"
-msgstr "Client bearbeiten"
-
-#: templates/js/admin/_clients_js.html:102
-#: templates/js/admin/_organization_detail_js.html:7
-#: templates/js/admin/_organizations_js.html:7
-#: templates/js/admin/_processes_js.html:145
-#: templates/js/admin/_tenant_detail_js.html:6
-#: templates/js/admin/_tenants_manage_js.html:7
-#: templates/js/admin/_user_management_js.html:113
-msgid "You do not have permission to perform this action."
-msgstr "Sie haben keine Berechtigung, diese Aktion durchzuführen."
-
-#: templates/js/admin/_clients_js.html:157
-msgid "You do not have permission to delete this client."
-msgstr "Sie haben keine Berechtigung, diesen Client zu löschen."
-
-#: templates/js/admin/_clients_js.html:173
-msgid "Are you sure you want to delete this client? This action cannot be undone."
-msgstr ""
-"Sind Sie sicher, dass Sie diesen Client löschen möchten? Diese Aktion "
-"kann nicht rückgängig gemacht werden."
 
 #: templates/js/admin/_logs_js.html:30
 msgid "Loading logs..."
@@ -11014,6 +10568,14 @@ msgstr "Banner erstellt."
 msgid "Banner deleted."
 msgstr "Banner gelöscht."
 
+#: templates/js/admin/_organization_detail_js.html:7
+#: templates/js/admin/_organizations_js.html:7
+#: templates/js/admin/_tenant_detail_js.html:6
+#: templates/js/admin/_tenants_manage_js.html:7
+#: templates/js/admin/_user_management_js.html:113
+msgid "You do not have permission to perform this action."
+msgstr "Sie haben keine Berechtigung, diese Aktion durchzuführen."
+
 #: templates/js/admin/_organization_detail_js.html:96
 #: templates/js/admin/_organizations_js.html:127
 msgid "Edit organization"
@@ -11032,7 +10594,6 @@ msgid "Edit connection"
 msgstr "Verbindung bearbeiten"
 
 #: templates/js/admin/_organization_detail_js.html:179
-#: templates/js/admin/_processes_js.html:93
 msgid "Edit process source"
 msgstr "Prozessquelle bearbeiten"
 
@@ -11041,7 +10602,6 @@ msgid "Delete this process source and its field mappings?"
 msgstr "Diese Prozessquelle und ihre Feldzuordnungen löschen?"
 
 #: templates/js/admin/_organization_detail_js.html:230
-#: templates/js/admin/_processes_js.html:123
 msgid "Edit field mapping"
 msgstr "Feldzuordnung bearbeiten"
 
@@ -11107,20 +10667,6 @@ msgstr "{n} Benutzer in {profile} haben eine persönliche Erlauben-Ausnahme"
 #, python-brace-format
 msgid "{n} user(s) in {profile} have a personal deny override"
 msgstr "{n} Benutzer in {profile} haben eine persönliche Verweigern-Ausnahme"
-
-#: templates/js/admin/_processes_js.html:224
-msgid ""
-"Delete this process source? Its field mappings must be removed first, and"
-" its permission row is kept."
-msgstr ""
-"Diese Prozessquelle löschen? Ihre Feldzuordnungen müssen zuerst entfernt "
-"werden, und die Berechtigungszeile bleibt erhalten."
-
-#: templates/js/admin/_processes_js.html:235
-msgid "Delete this field mapping? This action cannot be undone."
-msgstr ""
-"Diese Feldzuordnung löschen? Diese Aktion kann nicht rückgängig gemacht "
-"werden."
 
 #: templates/js/admin/_sessions_js.html:16
 msgid "years ago"
@@ -12255,5 +11801,418 @@ msgstr ""
 #~ msgstr ""
 #~ "Sind Sie sicher, dass Sie diese "
 #~ "Organisation löschen möchten? Diese Aktion "
+#~ "kann nicht rückgängig gemacht werden."
+
+#~ msgid "Data Connections"
+#~ msgstr "Datenverbindungen"
+
+#~ msgid "Client databases and runtime engines"
+#~ msgstr "Client-Datenbanken und Runtime-Engines"
+
+#~ msgid "%(n)s not loaded"
+#~ msgstr "%(n)s nicht geladen"
+
+#~ msgid "Process Configurations"
+#~ msgstr "Prozesskonfigurationen"
+
+#~ msgid "Field mappings per process"
+#~ msgstr "Feldzuordnungen pro Prozess"
+
+#~ msgid "Data Connections - nexora"
+#~ msgstr "Datenverbindungen - nexora"
+
+#~ msgid ""
+#~ "Where tenant data lives: DB, SQL "
+#~ "dialect and Octo domain per client "
+#~ "code -- not the organization itself "
+#~ "(see Organizations)"
+#~ msgstr ""
+#~ "Wo die Daten eines Mandanten liegen: "
+#~ "DB, SQL-Dialekt und Octo-Domain "
+#~ "pro Client-Code -- nicht die "
+#~ "Organisation selbst (siehe Organisationen)"
+
+#~ msgid ""
+#~ "dbo.Clients could not be read at "
+#~ "startup, so this process is running "
+#~ "on the built-in 'default' client "
+#~ "only -- every other runtime source "
+#~ "below is configured but NOT active, "
+#~ "whatever this table says. Fix the "
+#~ "database access and recycle the app "
+#~ "pool."
+#~ msgstr ""
+#~ "dbo.Clients konnte beim Start nicht "
+#~ "gelesen werden, daher läuft dieser "
+#~ "Prozess nur mit dem eingebauten Client"
+#~ " 'default' – jede andere Laufzeitquelle "
+#~ "unten ist zwar konfiguriert, aber NICHT"
+#~ " aktiv, ungeachtet dessen, was diese "
+#~ "Tabelle anzeigt. Den Datenbankzugriff "
+#~ "korrigieren und den App-Pool neu "
+#~ "starten."
+
+#~ msgid ""
+#~ "A new or edited client is read "
+#~ "once at startup: it takes effect "
+#~ "only after an app-pool recycle. A"
+#~ " client bringing its own database "
+#~ "also needs the matching env/{ENV}.env "
+#~ "keys added by hand -- adding a "
+#~ "row here does not create them."
+#~ msgstr ""
+#~ "Ein neuer oder bearbeiteter Client wird"
+#~ " nur beim Start gelesen: Er wird "
+#~ "erst nach einem App-Pool-Neustart "
+#~ "wirksam. Bringt ein Client seine eigene"
+#~ " Datenbank mit, müssen die passenden "
+#~ "env/{ENV}.env-Schlüssel zusätzlich von Hand"
+#~ " angelegt werden -- ein Eintrag hier"
+#~ " legt sie nicht an."
+
+#~ msgid "Search clients..."
+#~ msgstr "Clients durchsuchen..."
+
+#~ msgid ""
+#~ "This row exists in dbo.Clients but "
+#~ "the running process did not load "
+#~ "it -- usually missing env/{ENV}.env "
+#~ "keys, an unresolvable engine key or "
+#~ "Octo domain, or a registry that "
+#~ "failed to load at startup. Nothing "
+#~ "routes to it until that is fixed"
+#~ " and the app pool is recycled."
+#~ msgstr ""
+#~ "Diese Zeile existiert in dbo.Clients, "
+#~ "wurde vom laufenden Prozess aber nicht"
+#~ " geladen – meist fehlen Schlüssel in"
+#~ " env/{ENV}.env, ein Engine-Key oder "
+#~ "eine Octo-Domain lässt sich nicht "
+#~ "auflösen, oder die Registry konnte beim"
+#~ " Start nicht geladen werden. Es wird"
+#~ " nichts dorthin geleitet, bis das "
+#~ "behoben und der App-Pool neu "
+#~ "gestartet ist."
+
+#~ msgid "Delete Client"
+#~ msgstr "Client löschen"
+
+#~ msgid "Add a new Client"
+#~ msgstr "Neuen Client hinzufügen"
+
+#~ msgid "Client Code"
+#~ msgstr "Client-Code"
+
+#~ msgid "Display Name"
+#~ msgstr "Anzeigename"
+
+#~ msgid "Runtime Engine Key"
+#~ msgstr "Runtime-Engine-Schlüssel"
+
+#~ msgid "Stats Engine Key (optional)"
+#~ msgstr "Statistik-Engine-Schlüssel (optional)"
+
+#~ msgid "Stats Dialect (optional)"
+#~ msgstr "Statistik-Dialekt (optional)"
+
+#~ msgid "Doc-field Engine Key (optional)"
+#~ msgstr "Dokumentfeld-Engine-Schlüssel (optional)"
+
+#~ msgid "Doc-field Dialect (optional)"
+#~ msgstr "Dokumentfeld-Dialekt (optional)"
+
+#~ msgid "Octo Domain (optional)"
+#~ msgstr "Octo-Domäne (optional)"
+
+#~ msgid "Secret Ref (env-key prefix, optional)"
+#~ msgstr "Secret-Ref (Env-Key-Präfix, optional)"
+
+#~ msgid "Save Client"
+#~ msgstr "Client speichern"
+
+#~ msgid "Process Configurations - nexora"
+#~ msgstr "Prozesskonfigurationen - nexora"
+
+#~ msgid ""
+#~ "Process sources and their document-field"
+#~ " mappings per client (dbo.ProcessSources /"
+#~ " dbo.ProcessFieldMappings)"
+#~ msgstr ""
+#~ "Prozessquellen und ihre Dokumentfeld-"
+#~ "Zuordnungen pro Client (dbo.ProcessSources /"
+#~ " dbo.ProcessFieldMappings)"
+
+#~ msgid ""
+#~ "\"Client\" here is a runtime source "
+#~ "(default/ms02, see Data Connections) -- "
+#~ "not an organization. A process name "
+#~ "must be exactly &lt;customer&gt;.&lt;process&gt; "
+#~ "(e.g. privera.02_Posteingang): the permission "
+#~ "that grants access to it is "
+#~ "derived from those two parts, so "
+#~ "any other shape can never be "
+#~ "granted."
+#~ msgstr ""
+#~ "\"Client\" bedeutet hier eine Laufzeitquelle"
+#~ " (default/ms02, siehe Datenverbindungen) – "
+#~ "keine Organisation. Ein Prozessname muss "
+#~ "genau &lt;Kunde&gt;.&lt;Prozess&gt; lauten (z. "
+#~ "B. privera.02_Posteingang): Die Berechtigung, "
+#~ "die den Zugriff darauf gewährt, wird "
+#~ "aus diesen beiden Teilen abgeleitet; "
+#~ "jede andere Form kann daher nie "
+#~ "vergeben werden."
+
+#~ msgid ""
+#~ "Adding a process source also creates "
+#~ "its process.<client>.<name>.view permission, granted"
+#~ " to nobody -- grant it under "
+#~ "Access Control. The join condition, time"
+#~ " filters and extra condition are "
+#~ "free-form SQL fragments and stay "
+#~ "read-only here: they are editable "
+#~ "only by a database migration."
+#~ msgstr ""
+#~ "Das Hinzufügen einer Prozessquelle legt "
+#~ "auch deren Berechtigung process.<client>.<name>.view"
+#~ " an, die niemandem zugewiesen ist --"
+#~ " weisen Sie sie unter Zugriffskontrolle "
+#~ "zu. Join-Bedingung, Zeitfilter und "
+#~ "Zusatzbedingung sind freie SQL-Fragmente "
+#~ "und bleiben hier schreibgeschützt: Sie "
+#~ "sind nur über eine Datenbankmigration "
+#~ "änderbar."
+
+#~ msgid ""
+#~ "Mapping config is currently unavailable. "
+#~ "The registry failed to load -- "
+#~ "check the application log; this is "
+#~ "not the same as \"no processes "
+#~ "configured\"."
+#~ msgstr ""
+#~ "Die Mapping-Konfiguration ist derzeit "
+#~ "nicht verfügbar. Die Registry konnte "
+#~ "nicht geladen werden -- prüfen Sie "
+#~ "das Anwendungsprotokoll; das ist nicht "
+#~ "dasselbe wie \"keine Prozesse konfiguriert\"."
+
+#~ msgid "Search client or process..."
+#~ msgstr "Client oder Prozess durchsuchen..."
+
+#~ msgid "Table:"
+#~ msgstr "Tabelle:"
+
+#~ msgid "No process sources configured."
+#~ msgstr "Keine Prozessquellen konfiguriert."
+
+#~ msgid "Confirm deletion"
+#~ msgstr "Löschen bestätigen"
+
+#~ msgid "Add a process source"
+#~ msgstr "Prozessquelle hinzufügen"
+
+#~ msgid "Client Code (runtime source)"
+#~ msgstr "Client-Code (Laufzeitquelle)"
+
+#~ msgid "Select a client..."
+#~ msgstr "Client auswählen..."
+
+#~ msgid "Process Name"
+#~ msgstr "Prozessname"
+
+#~ msgid ""
+#~ "Exactly <customer>.<process> -- two parts "
+#~ "separated by a single dot, e.g. "
+#~ "acme.01_Invoice."
+#~ msgstr ""
+#~ "Genau <Kunde>.<Prozess> – zwei durch "
+#~ "einen einzelnen Punkt getrennte Teile, "
+#~ "z. B. acme.01_Invoice."
+
+#~ msgid "Table Name"
+#~ msgstr "Tabellenname"
+
+#~ msgid "Table Alias (optional)"
+#~ msgstr "Tabellenalias (optional)"
+
+#~ msgid "Export Column (optional)"
+#~ msgstr "Exportspalte (optional)"
+
+#~ msgid "Import Column (optional)"
+#~ msgstr "Importspalte (optional)"
+
+#~ msgid "Workitem Column (optional)"
+#~ msgstr "Workitem-Spalte (optional)"
+
+#~ msgid "Id Column Type (optional)"
+#~ msgstr "Id-Spaltentyp (optional)"
+
+#~ msgid ""
+#~ "Join condition, time filters and extra"
+#~ " condition are free-form SQL and "
+#~ "are not editable here -- change "
+#~ "them with a migration."
+#~ msgstr ""
+#~ "Join-Bedingung, Zeitfilter und Zusatzbedingung"
+#~ " sind freies SQL und hier nicht "
+#~ "editierbar -- ändern Sie sie über "
+#~ "eine Migration."
+
+#~ msgid "Add a field mapping"
+#~ msgstr "Feldzuordnung hinzufügen"
+
+#~ msgid "Field Key"
+#~ msgstr "Feldschlüssel"
+
+#~ msgid "Column Name"
+#~ msgstr "Spaltenname"
+
+#~ msgid "Column Type (optional)"
+#~ msgstr "Spaltentyp (optional)"
+
+#~ msgid "Tenants - nexora"
+#~ msgstr "Tenants - nexora"
+
+#~ msgid "No users"
+#~ msgstr "Keine Benutzer"
+
+#~ msgid "No profile bound to this organization"
+#~ msgstr "Kein Profil an diese Organisation gebunden"
+
+#~ msgid "Global profiles in use:"
+#~ msgstr "Verwendete globale Profile:"
+
+#~ msgid "Requires admin.clients.view"
+#~ msgstr "Benötigt admin.clients.view"
+
+#~ msgid "Client %(code)s is missing"
+#~ msgstr "Client %(code)s fehlt"
+
+#~ msgid "%(num)d field"
+#~ msgid_plural "%(num)d fields"
+#~ msgstr[0] "%(num)d Feld"
+#~ msgstr[1] "%(num)d Felder"
+
+#~ msgid "Requires admin.processes.view"
+#~ msgstr "Benötigt admin.processes.view"
+
+#~ msgid "Mapping configuration unavailable"
+#~ msgstr "Mapping-Konfiguration nicht verfügbar"
+
+#~ msgid "No process configuration assigned"
+#~ msgstr "Keine Prozesskonfiguration zugewiesen"
+
+#~ msgid "Open Process Configurations"
+#~ msgstr "Prozesskonfigurationen öffnen"
+
+#~ msgid "Process configurations"
+#~ msgstr "Prozesskonfigurationen"
+
+#~ msgid ""
+#~ "Each tenant with its organizations, and"
+#~ " per organization its users, access "
+#~ "profiles, data connection and process "
+#~ "configurations"
+#~ msgstr ""
+#~ "Jeder Tenant mit seinen Organisationen "
+#~ "und pro Organisation deren Benutzer, "
+#~ "Zugriffsprofile, Datenverbindung und "
+#~ "Prozesskonfigurationen"
+
+#~ msgid "Tenant registry unavailable"
+#~ msgstr "Tenant-Registry nicht verfügbar"
+
+#~ msgid ""
+#~ "dbo.Tenants could not be read, so "
+#~ "no tenant is shown below -- only"
+#~ " the organizations and connections that "
+#~ "exist regardless. Check app.log."
+#~ msgstr ""
+#~ "dbo.Tenants konnte nicht gelesen werden, "
+#~ "daher wird unten kein Tenant angezeigt"
+#~ " -- nur die Organisationen und "
+#~ "Verbindungen, die unabhängig davon existieren."
+#~ " Siehe app.log."
+
+#~ msgid "Search tenant, organization, user, profile, connection or process..."
+#~ msgstr ""
+#~ "Tenant, Organisation, Benutzer, Profil, "
+#~ "Verbindung oder Prozess suchen..."
+
+#~ msgid "%(num)d organization"
+#~ msgid_plural "%(num)d organizations"
+#~ msgstr[0] "%(num)d Organisation"
+#~ msgstr[1] "%(num)d Organisationen"
+
+#~ msgid "Permission that grants access to this tenant's pages"
+#~ msgstr "Berechtigung, die Zugriff auf die Seiten dieses Tenants gewährt"
+
+#~ msgid ""
+#~ "No organization belongs to this tenant"
+#~ " yet -- assign one on the "
+#~ "Organizations page."
+#~ msgstr ""
+#~ "Noch keine Organisation gehört zu diesem"
+#~ " Tenant -- auf der Seite "
+#~ "Organisationen zuweisen."
+
+#~ msgid "No pages"
+#~ msgstr "Keine Seiten"
+
+#~ msgid ""
+#~ "No tenants yet. A tenant groups "
+#~ "organizations; today tenants are created "
+#~ "by migration."
+#~ msgstr ""
+#~ "Noch keine Tenants. Ein Tenant gruppiert"
+#~ " Organisationen; heute werden Tenants per"
+#~ " Migration angelegt."
+
+#~ msgid "Organizations not in a tenant"
+#~ msgstr "Organisationen ohne Tenant"
+
+#~ msgid "Shared across organizations"
+#~ msgstr "Organisationsübergreifend"
+
+#~ msgid "Data connections no organization rides"
+#~ msgstr "Datenverbindungen, die keine Organisation nutzt"
+
+#~ msgid "Process configurations not assigned to an organization"
+#~ msgstr "Keiner Organisation zugewiesene Prozesskonfigurationen"
+
+#~ msgid "Global access profiles"
+#~ msgstr "Globale Zugriffsprofile"
+
+#~ msgid "Not bound to an organization -- assignable to any user."
+#~ msgstr "Nicht an eine Organisation gebunden -- jedem Benutzer zuweisbar."
+
+#~ msgid "Edit Client"
+#~ msgstr "Client bearbeiten"
+
+#~ msgid "You do not have permission to delete this client."
+#~ msgstr "Sie haben keine Berechtigung, diesen Client zu löschen."
+
+#~ msgid ""
+#~ "Are you sure you want to delete"
+#~ " this client? This action cannot be"
+#~ " undone."
+#~ msgstr ""
+#~ "Sind Sie sicher, dass Sie diesen "
+#~ "Client löschen möchten? Diese Aktion "
+#~ "kann nicht rückgängig gemacht werden."
+
+#~ msgid ""
+#~ "Delete this process source? Its field"
+#~ " mappings must be removed first, and"
+#~ " its permission row is kept."
+#~ msgstr ""
+#~ "Diese Prozessquelle löschen? Ihre "
+#~ "Feldzuordnungen müssen zuerst entfernt werden,"
+#~ " und die Berechtigungszeile bleibt "
+#~ "erhalten."
+
+#~ msgid "Delete this field mapping? This action cannot be undone."
+#~ msgstr ""
+#~ "Diese Feldzuordnung löschen? Diese Aktion "
 #~ "kann nicht rückgängig gemacht werden."
 

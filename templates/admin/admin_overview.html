@@ -113,33 +113,6 @@
                     <i class="fas fa-chevron-right adm-table__chev"></i>
                 </a>
 
-                {% if page_visibility.adminClientsPagePerm %}
-                <a href="{{ url_for('admin_clients_view') }}" class="adm-link" data-testid="admin-overview-link-clients">
-                    <span class="adm-link__tile"><i class="fas fa-server"></i></span>
-                    <span class="adm-link__main">
-                        <span class="adm-link__label">{{ _('Data Connections') }}</span>
-                        <span class="adm-link__desc">{{ _('Client databases and runtime engines') }}</span>
-                    </span>
-                    <span class="adm-link__meta {% if clients_not_loaded %}adm-link__meta--warn{% endif %}">
-                        {%- if client_count is not none -%}
-                            {{ client_count }}{% if clients_not_loaded %} &middot; {{ _('%(n)s not loaded', n=clients_not_loaded) }}{% endif %}
-                        {%- endif -%}
-                    </span>
-                    <i class="fas fa-chevron-right adm-table__chev"></i>
-                </a>
-                {% endif %}
-
-                {% if page_visibility.adminProcessesPagePerm %}
-                <a href="{{ url_for('admin_processes_view') }}" class="adm-link" data-testid="admin-overview-link-processes">
-                    <span class="adm-link__tile"><i class="fas fa-diagram-project"></i></span>
-                    <span class="adm-link__main">
-                        <span class="adm-link__label">{{ _('Process Configurations') }}</span>
-                        <span class="adm-link__desc">{{ _('Field mappings per process') }}</span>
-                    </span>
-                    <span class="adm-link__meta">{% if process_count is not none %}{{ process_count }}{% endif %}</span>
-                    <i class="fas fa-chevron-right adm-table__chev"></i>
-                </a>
-                {% endif %}
             </section>
 
             <section>

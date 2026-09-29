@@ -18,7 +18,7 @@
         {% if unavailable %}
         {# Registry load failure (nx_lib/tenant/registry.py's registry() returned
            None -- a load error is never cached). Explicit unavailable state,
-           never an empty-looking page (mirrors admin_processes_view's
+           never an empty-looking page (mirrors api_admin_processes_list's
            mapping_config_available contract). #}
         {{ a.page_header(title=_('Tenant page unavailable'), icon='fa-triangle-exclamation') }}
         <div class="nx-card nx-bg-lred" style="margin:-8px 0 16px;padding:12px 16px" data-testid="tenant-page-unavailable">

@@ -1,9 +1,14 @@
 # White-label admin onboarding (issue #98 phase 4)
 
 Self-service admin surface for onboarding a customer without a SQL migration or a deploy, for the
-common case. Covers **phase A/B** — the `dbo.Clients` runtime-source registry and the
-`/admin/clients` + `/admin/processes` admin pages — and **phase C**, per-organization branding (see
-the branding section at the bottom).
+common case. Covers **phase A/B** — the `dbo.Clients` runtime-source registry and the data-connection and
+process-configuration editors — and **phase C**, per-organization branding (see the branding
+section at the bottom).
+
+The standalone `/admin/clients`, `/admin/processes` and `/admin/tenants` pages were retired in
+the tenancy redesign: connections and process sources are edited on the organization that owns
+them (`/admin/organizations/detail/<code>`, **Data & processes** tab) and the tenant tree lives
+on `/admin/tenants/manage`. The `/api/admin/*` endpoints behind them are unchanged.
 
 Design background: `docs/superpowers/specs/2026-08-27-white-label-admin-ui-design.md`.
 
@@ -82,10 +87,8 @@ in a collapsible **Tenants** group in the admin sidebar:
 | Route | UI label | Axis |
 |---|---|---|
 | `/admin/tenants/manage` | **Manage** (Tenants) | create/edit tenants, their organizations and mounted pages (`admin.tenants.view` / `admin.tenants.edit`, migration `0095`); entities/fields stay migration-only |
-| `/admin/tenants` | **Overview** (Tenants) | read-only join of all three: tenant → organizations → users, access profiles, data connection, process configurations; plus pages; plus what is not in a tenant (#256 phase 1) |
 | `/admin/organizations` | **Organizations** (name kept) | 2 — who the users work for |
-| `/admin/clients` | **Data Connections** | 1 — where the data lives |
-| `/admin/processes` | **Process Configurations** | Octo process sources + their field mappings |
+| `/admin/organizations/detail/<code>` | **Data & processes** tab | 1 — where the data lives, plus that organization's Octo process sources and field mappings |
 
 Note the last one is Octo-specific: `dbo.ProcessSources` describes Octo processes, so a **data-only**
 tenant (a plain table or view, `TenantEntities.Kind = 'entries'`/`'lookup'`) needs an axis-1 client
@@ -108,7 +111,7 @@ configurations (migration `0096` dropped the `Organizations.ClientCode` copy, to
 process sources in every row and only waited to drift). A profile bound to an organization is
 assignable only to that organization's users (`nx_lib/views/admin/users.py::_profile_org_mismatch`);
 a profile with `OrganizationCode = NULL` is global (`Global Admin`, `Enterprise Admin`,
-`Sydoc Supervisor`). Profile names follow `<Organization> <Role>` since migration `0105`. `/admin/tenants` renders exactly this tree and flags what is still unassigned.
+`Sydoc Supervisor`). Profile names follow `<Organization> <Role>` since migration `0105`. `/admin/tenants/manage` renders exactly this tree and flags what is still unassigned.
 
 **Data-only connections.** A `dbo.Clients` row without an Octo domain is a *data-only* connection
 (Generali: `generali` → `engine_generali_db`, migration `0091`): it loads into `CLIENTS` with
@@ -122,7 +125,7 @@ happened exactly once, for MS02. This is exactly why onboarding a `default`-ridi
 zero env edits and zero deploys: only step 3 of the walkthrough below (a process source) touches the
 DB at all, and it does so through the admin UI, not a migration.
 
-## `/admin/clients` — runtime sources
+## Runtime sources (`dbo.Clients`)
 
 Permissions: `admin.clients.view` (read), `admin.clients.edit` (add/edit/delete). Both are granted to
 `Enterprise Admin` and `Global Admin` by migration `0080`.
@@ -169,22 +172,23 @@ outright, `nx_lib/clients.py` records the reason in its module-level `REGISTRY_D
 the app runs on the hardcoded `default`-only registry for the rest of the process lifetime — every
 other runtime source is gone until the next app-pool recycle. The `logger.error` on that path fires
 *before* Flask configures logging, so it reaches stderr (`var/logs/system/waitress-stdout*`) but never
-`app.log`; the recorded reason is what `/admin/clients` and `/admin/status` render as a red banner.
+`app.log`; the recorded reason is what `/admin/status` renders as a red banner.
 There is deliberately no retry loop and no TTL — `CLIENTS` being import-time-only is a locked design
 decision; this only makes the degradation visible.
 
-## `/admin/processes` — process sources and field mappings
+## Process sources and field mappings
 
 Permissions: `admin.processes.view` (read), `admin.processes.edit` (add/edit/delete). Both granted to
 `Enterprise Admin` and `Global Admin` by migration `0080`.
 
 Reads and writes `dbo.ProcessSources` and `dbo.ProcessFieldMappings` (migration `0074`) entirely
-through the cached registry in `nx_lib/mapping_config.py` — never raw SQL for reads. The page groups
-by `ClientCode` (the runtime source, not the customer), then by process name, with each process's
-field mappings nested underneath.
+through the cached registry in `nx_lib/mapping_config.py` — never raw SQL for reads. The
+organization detail page shows one card per `ClientCode` the organization reaches (the runtime
+source, not the customer), then its processes, with each process's field mappings nested
+underneath.
 
-If the registry fails to load, the page renders an explicit "mapping config unavailable" state rather
-than an empty-looking success, and the JSON mirror (`/api/admin/processes/list`) returns **503**.
+If the registry fails to load, the tab renders an explicit "mapping config unavailable" state
+rather than an empty-looking success, and `/api/admin/processes/list` returns **503**.
 
 **Writable columns** for a process source: `TableName`, `TableAlias`, `ExportColumn`,
 `ImportColumn`, `WorkitemColumn`, `IdColumnType`. For a field mapping: `ColumnName`, `ColumnType`.

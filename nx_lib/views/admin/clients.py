@@ -4,61 +4,12 @@ customers, see dbo.Organizations)."""
 import re
 
 import pyodbc
-from flask import current_app, jsonify, render_template, request, session
+from flask import current_app, jsonify, request
 from flask_babel import gettext as _
 
-from ... import clients as clients_registry
 from ...clients import _ENGINE_KEYS
 from ...db import engine_nexora_db
-from ...security import has_permission, page_visibility, require_permission
-
-
-@require_permission("admin.clients.view")
-def admin_clients_view():
-    """List of dbo.Clients -- runtime sources (default/ms02), not customers
-    (see dbo.Organizations). The add/edit/delete affordances are rendered only
-    for ``admin.clients.edit`` (``can_edit``); the endpoints re-check it."""
-    conn = None
-    cursor = None
-    try:
-        conn = engine_nexora_db.raw_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT ClientCode, DisplayName, Dialect, RuntimeEngineKey, StatsEngineKey, "
-            "StatsDialect, DocfieldsEngineKey, DocfieldsDialect, OctoDomain, SecretRef, "
-            "IsActive FROM dbo.Clients ORDER BY ClientCode"
-        )
-        clients = [
-            dict(zip([column[0] for column in cursor.description], row, strict=False))
-            for row in cursor.fetchall()
-        ]
-        # Configured state (the table) is not resolved state (what the process
-        # actually runs on). 0079's seed is unconditional, so PROD gets an
-        # 'ms02' row whether or not env/PROD.env carries the MS02_* keys -- and
-        # without them _build_clients() skips it, leaving the page cheerfully
-        # reporting "Active: Yes" for a runtime that does not exist. Mark each
-        # row with whether the live registry actually holds it.
-        for client in clients:
-            client["loaded"] = client.get("ClientCode") in clients_registry.CLIENTS
-
-        return render_template(
-            "admin/clients.html",
-            clients=clients,
-            registry_degraded_reason=clients_registry.REGISTRY_DEGRADED_REASON,
-            can_edit=has_permission("admin.clients.edit"),
-            logged_in_user=session.get("username"),
-            userid=session.get("userid"),
-            page_visibility=page_visibility(),
-        )
-    except Exception as e:
-        current_app.logger.error(f"Failed to fetch clients: {e}")
-        return render_template("handlers/500.html"), 500
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
-
+from ...security import require_permission
 
 _CLIENTS_ALLOWED_DIALECTS = {"tsql", "postgres"}
 _CLIENT_CODE_RE = re.compile(r"^[a-z0-9_]{2,50}$")
@@ -251,7 +202,6 @@ def api_admin_clients_delete(clientcode):
 
 
 def register_routes(app):
-    app.add_url_rule("/admin/clients", endpoint="admin_clients_view", view_func=admin_clients_view)
     app.add_url_rule(
         "/admin/clients/add",
         endpoint="api_admin_clients_add",

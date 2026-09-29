@@ -53,7 +53,6 @@ from . import (
     processes,
     system,
     tenant_manage,
-    tenants,
     users,
 )
 from .clients import (
@@ -61,7 +60,6 @@ from .clients import (
     _CLIENTS_ALLOWED_DIALECTS,
     _SECRET_REF_RE,
     _validate_client_payload,
-    admin_clients_view,
     api_admin_clients_add,
     api_admin_clients_delete,
     api_admin_clients_edit,
@@ -122,7 +120,6 @@ from .processes import (
     _validate_process_identity,
     _validate_process_source_payload,
     _validation_error,
-    admin_processes_view,
     api_admin_field_mapping_add,
     api_admin_field_mapping_delete,
     api_admin_field_mapping_edit,
@@ -143,7 +140,6 @@ from .system import (
     api_admin_restart,
 )
 from .tenant_manage import admin_tenant_detail_view, admin_tenants_manage_view
-from .tenants import admin_tenants_view
 from .users import (
     admin_active_sessions,
     admin_add_user,
@@ -203,7 +199,6 @@ __all__ = [
     "admin_active_sessions",
     "admin_add_organization",
     "admin_add_user",
-    "admin_clients_view",
     "admin_dashboard",
     "admin_delete_organization",
     "admin_delete_user",
@@ -214,7 +209,6 @@ __all__ = [
     "admin_organization_detail_view",
     "admin_organizations_view",
     "admin_permissions_page",
-    "admin_processes_view",
     "admin_recent_logs",
     "admin_revoke_all_sessions",
     "admin_revoke_session",
@@ -222,7 +216,6 @@ __all__ = [
     "admin_status_view",
     "admin_tenant_detail_view",
     "admin_tenants_manage_view",
-    "admin_tenants_view",
     "admin_user_detail",
     "api_admin_clients_add",
     "api_admin_clients_delete",
@@ -288,7 +281,6 @@ def register_routes(app):
     organizations.register_routes(app)
     clients.register_routes(app)
     processes.register_routes(app)
-    tenants.register_routes(app)
     tenant_manage.register_routes(app)
     system.register_routes(app)
     logs.register_routes(app)
