@@ -26,6 +26,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and registers the BPS measure; the code is internal-only (no row scoping).
   `docs/howto/finance.md`.
 
+## [3.3.0] - 2026-09-29
+
 ### Changed
 
 - **New: a detail page per permission** (`/admin/permissions/detail/<code>`,
