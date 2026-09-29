@@ -9,101 +9,113 @@
     <link rel="stylesheet" href="{{ static_v('css/admin.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous" />
 </head>
-<body class="nx-app">
+<body class="nx-app nx-admin">
     {% set active_page = 'organizations' %}
     {% include '_header.html' %}
-    {% import 'admin/_admin_helpers.html' as a %}
 
     <main class="nx-main">
-        {{ a.page_header(
-            title=_('Organizations'),
-            subtitle=_('Organizations, their codes and tenant'),
-            back_url=url_for('admin_dashboard'),
-            actions=[{'label': _('Add organization'), 'icon': 'fa-plus', 'onclick': 'openAddOrganizationModal()', 'variant': 'primary'}],
-            icon='fa-building'
-        ) }}
 
-        {{ a.toolbar(search_id='orgSearchInput', search_placeholder=_('Search organizations...')) }}
-
-        <div class="nx-table-wrap">
-            <table class="nx-table">
-                {{ a.table_header([
-                    {'label': _('Code'), 'width': '160px'},
-                    {'label': _('Name')},
-                    {'label': _('Tenant'), 'width': '180px'},
-                    {'label': _('Actions'), 'align': 'right', 'width': '180px'}
-                ]) }}
-                <tbody id="orgs-tbody">
-                    {% for organization in organizations %}
-                    <tr id="org-{{ organization.organizationcode }}" data-search="{{ (organization.organizationcode ~ ' ' ~ organization.organization ~ ' ' ~ (organization.tenant_name or ''))|lower }}" data-testid="admin-org-row-{{ organization.organizationcode }}">
-                        <td><span class="nx-mono">{{ organization.organizationcode }}</span></td>
-                        <td>{{ organization.organization }}</td>
-                        <td data-testid="admin-org-tenant-{{ organization.organizationcode }}">
-                            {% if organization.tenant_code %}
-                            <a href="{{ url_for('admin_tenants_view') }}#tenant-{{ organization.tenant_code }}"><i class="fas fa-city"></i> {{ organization.tenant_name or organization.tenant_code }}</a>
-                            {% else %}
-                            <span class="nx-c-meta">—</span>
-                            {% endif %}
-                        </td>
-                        <td class="align-right whitespace-nowrap">
-                            <button data-organization='{{ {'organizationcode': organization.organizationcode, 'organization': organization.organization, 'tenant_code': organization.tenant_code}|tojson|safe }}' class="edit-organization-btn nx-btn nx-btn--ghost nx-btn--sm" type="button" data-testid="admin-org-edit-{{ organization.organizationcode }}">{{ _("Edit") }}</button>
-                            {% if can_edit_branding %}
-                            <button class="branding-organization-btn nx-btn nx-btn--ghost nx-btn--sm" type="button" data-organizationcode="{{ organization.organizationcode }}" data-testid="admin-org-branding-{{ organization.organizationcode }}">{{ _("Branding") }}</button>
-                            {% endif %}
-                            <button class="delete-organization-btn nx-btn nx-btn--ghost nx-btn--sm nx-c-danger" type="button" data-organizationcode="{{ organization.organizationcode }}" data-testid="admin-org-delete-{{ organization.organizationcode }}">{{ _("Delete") }}</button>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        {# ---- Page header ------------------------------------------------ #}
+        <div class="adm-head nx-rise">
+            <span class="adm-head__tile"><i class="fas fa-building"></i></span>
+            <div class="adm-head__main">
+                <h1 class="adm-head__title">{{ _('Organizations') }}</h1>
+                <p class="adm-head__sub">{{ _('Organizations, their codes and tenant') }}</p>
+            </div>
+            <div class="adm-head__actions">
+                <button type="button" class="nx-btn nx-btn--primary" id="addOrgBtn" data-testid="add-organization">
+                    <i class="fas fa-plus"></i> {{ _('Add organization') }}
+                </button>
+            </div>
         </div>
 
-        {% if can_edit_branding %}
-        {# White-label branding (#98 phase 4). Branding belongs to the customer
-           organization, never to a runtime client source. #}
-        <section id="org-branding-panel" class="nx-card mt-6 hidden" data-testid="admin-org-branding-panel">
-            <h2 class="nx-section">{{ _("Branding") }} — <span id="branding-org-label" class="nx-mono"></span></h2>
-            <p class="text-sm nx-c-sec mb-4">{{ _("Applies to this customer organization and everyone in it. Leave a field empty to fall back to nexora branding.") }}</p>
-            <form id="org-branding-form" enctype="multipart/form-data" data-testid="admin-org-branding-form">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-                <input type="hidden" id="branding-orgcode" name="organizationcode" />
-                <div class="space-y-4">
-                    <div>
-                        <label for="branding-name" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Brand name") }}</label>
-                        <input type="text" id="branding-name" name="brand_name" class="nx-input" maxlength="100" data-testid="admin-org-branding-name" />
-                    </div>
-                    <div>
-                        <label for="branding-accent" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Accent colour") }}</label>
-                        <div class="flex items-center gap-3">
-                            <input type="color" id="branding-accent" name="brand_accent_hex" class="nx-input w-16 p-1" value="#4f46e5" data-testid="admin-org-branding-accent" />
-                            <input type="text" id="branding-accent-hex" class="nx-input nx-mono w-32" placeholder="#336699" maxlength="7" data-testid="admin-org-branding-accent-hex" />
-                            <button type="button" id="branding-accent-clear" class="nx-btn nx-btn--ghost nx-btn--sm" data-testid="admin-org-branding-accent-clear">{{ _("Clear") }}</button>
-                        </div>
-                    </div>
-                    <div>
-                        <label for="branding-logo" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Logo") }}</label>
-                        <input type="file" id="branding-logo" name="logo" class="nx-input" accept=".svg,.png,.jpg,.jpeg" data-testid="admin-org-branding-logo" />
-                        <p class="text-xs nx-c-meta mt-1">{{ _("SVG, PNG or JPEG, up to 512 KB.") }}</p>
-                    </div>
-                    <div>
-                        <span class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Preview") }}</span>
-                        <div class="flex items-center gap-3">
-                            <span id="branding-swatch" class="inline-block h-8 w-8 rounded" data-testid="admin-org-branding-swatch"></span>
-                            <img id="branding-preview-logo" alt="{{ _('Logo preview') }}" class="h-8 hidden" />
-                            <span id="branding-preview-name" class="font-semibold"></span>
-                        </div>
-                    </div>
+        {# ---- Tabs: All + one per tenant + No tenant ---------------------- #}
+        <div class="adm-tabs nx-rise-2">
+            <button type="button" class="adm-tab adm-tab--active" data-nx-filter="" data-testid="org-tab-all">
+                {{ _('All') }} <span class="adm-tab__count">{{ organizations|length }}</span>
+            </button>
+            {% for t in tenants %}
+            {% set n = organizations | selectattr('tenant_code', 'equalto', t.code) | list | length %}
+            <button type="button" class="adm-tab" data-nx-filter="{{ t.code }}" data-testid="org-tab-{{ t.code }}">
+                {{ t.name }} <span class="adm-tab__count">{{ n }}</span>
+            </button>
+            {% endfor %}
+            <button type="button" class="adm-tab" data-nx-filter="__none__" data-testid="org-tab-none">
+                {{ _('No tenant') }} <span class="adm-tab__count">{{ orphan_count }}</span>
+            </button>
+            <div class="adm-tabs__search">
+                <div class="nx-input-icon">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="orgSearch" class="nx-input"
+                           placeholder="{{ _('Search organizations…') }}" data-testid="org-search">
                 </div>
-                <div class="flex justify-end mt-6 gap-2">
-                    <button type="button" id="branding-cancel" class="nx-btn nx-btn--secondary" data-testid="admin-org-branding-cancel">{{ _("Cancel") }}</button>
-                    <button type="submit" class="nx-btn nx-btn--primary" data-testid="admin-org-branding-save">{{ _("Save branding") }}</button>
-                </div>
-            </form>
-        </section>
+            </div>
+        </div>
+
+        {# ---- Table ------------------------------------------------------- #}
+        <table class="adm-table" data-testid="organizations-table">
+            <thead>
+                <tr>
+                    <th>{{ _('Organization') }}</th>
+                    <th style="width:180px">{{ _('Tenant') }}</th>
+                    <th class="align-right" style="width:70px">{{ _('Users') }}</th>
+                    <th style="width:190px">{{ _('Data connection') }}</th>
+                    <th style="width:200px">{{ _('Branding') }}</th>
+                    <th style="width:28px"></th>
+                </tr>
+            </thead>
+            <tbody id="orgs-tbody">
+                {% for o in organizations %}
+                <tr class="adm-row--link"
+                    data-nx-href="{{ url_for('admin_organization_detail_view', organizationcode=o.organizationcode) }}"
+                    data-nx-state="{{ o.tenant_code or '__none__' }}"
+                    data-search="{{ (o.organizationcode ~ ' ' ~ (o.organization or '') ~ ' ' ~ (o.tenant_name or ''))|lower }}"
+                    data-testid="admin-org-row-{{ o.organizationcode }}">
+                    <td>
+                        <span class="adm-name">
+                            <span class="adm-name__tile"{% if o.brand_accent_hex %} style="background:{{ o.brand_accent_hex }};color:#fff"{% endif %}>{{ (o.organization or o.organizationcode)[:1]|upper }}</span>
+                            <span class="adm-name__main">
+                                <span class="adm-name__label">{{ o.organization }}</span>
+                                <span class="adm-name__code">{{ o.organizationcode }}</span>
+                            </span>
+                        </span>
+                    </td>
+                    <td>
+                        {% if o.tenant_code %}
+                            {{ o.tenant_name or o.tenant_code }}
+                        {% else %}
+                            <span class="nx-c-meta">{{ _('Not in a tenant') }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="align-right" style="font-variant-numeric:tabular-nums">{{ o.user_count }}</td>
+                    <td>
+                        {% if o.connection_state == 'loaded' %}
+                        <span class="adm-state"><span class="adm-dot adm-dot--ok"></span>{{ o.connection }}</span>
+                        {% elif o.connection_state == 'unloaded' %}
+                        <span class="adm-state"><span class="adm-dot adm-dot--warn"></span>{{ o.connection }} &middot; {{ _('not loaded') }}</span>
+                        {% else %}
+                        <span class="adm-state"><span class="adm-dot"></span>{{ _('None') }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if o.branding_summary == 'both' %}{{ _('Custom logo + colour') }}
+                        {% elif o.branding_summary == 'accent' %}{{ _('Custom colour') }}
+                        {% elif o.branding_summary == 'logo' %}{{ _('Custom logo') }}
+                        {% else %}<span class="nx-c-meta">{{ _('nexora default') }}</span>{% endif %}
+                    </td>
+                    <td class="align-right"><i class="fas fa-chevron-right adm-table__chev"></i></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div id="orgs-empty" class="adm-empty hidden">{{ _('No organization matches your search.') }}</div>
+        {% if not organizations %}
+        <div class="adm-empty">{{ _('No organizations yet.') }}</div>
         {% endif %}
     </main>
 
-    {% include 'admin/modals/_organizations_modals.html' %}
+    {% include 'admin/_organization_sheet.html' %}
+    {% include 'admin/_confirm_dialog.html' %}
     {% include 'js/admin/_organizations_js.html' %}
 </body>
 </html>

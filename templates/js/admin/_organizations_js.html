@@ -1,324 +1,156 @@
     <script nonce="{{ csp_nonce() }}">
-        const organizationModal = document.getElementById('organizationModal');
-        const modalTitle = document.getElementById('modalTitle');
-        const organizationForm = document.getElementById('organizationForm');
-        const organizationcodeInput = document.getElementById('organizationcode');
-
-        const confirmationModal = document.getElementById('confirmationModal');
-        const confirmMessage = document.getElementById('confirmMessage');
-        const confirmBtn = document.getElementById('confirmBtn');
-        const cancelBtn = document.getElementById('cancelBtn');
-
+        // Organizations list (tenancy redesign): tenant tabs, search, row
+        // navigation and the organization sheet. Branding and process sources
+        // moved to the organization detail view.
         const API_PREFIX = window.API_PREFIX;
-
-        // White-label branding (#98 phase 4). Branding belongs to the customer
-        // organization, never to a runtime client source. The panel and every
-        // affordance are server-gated on admin.organizations.branding.edit, so a
-        // viewer never gets a 403 toast after a click.
-        const canEditBranding = {{ (can_edit_branding | default(false)) | tojson }};
-        const orgBranding = {};
-        {% for organization in organizations | default([]) %}
-        orgBranding[{{ organization.organizationcode | tojson }}] = {
-            brand_name: {{ organization.brand_name | tojson }},
-            brand_accent_hex: {{ organization.brand_accent_hex | tojson }},
-            brand_logo_file: {{ organization.brand_logo_file | tojson }}
-        };
-        {% endfor %}
-        // showNotification: shared with nx_core.js (Task 12) -- the top-slide
-        // banner is replaced by NX.toast's bottom-center pill (deliberate UI
-        // consolidation, not a preserve-exact-behavior substitution).
         const showNotification = window.NX.toast;
+        const forbidden = `{{ _("You do not have permission to perform this action.") }}`;
+        const reload = () => window.location.reload();
 
-        function openModal() {
-            organizationModal.classList.remove('hidden');
-            setTimeout(() => {
-                organizationModal.classList.remove('opacity-0');
-                organizationModal.querySelector('.modal-content').classList.remove('scale-95');
-            }, 10);
-        }
-
-        function closeModal(event) {
-            if (event && event.target !== organizationModal) return;
-            organizationModal.classList.add('opacity-0');
-            organizationModal.querySelector('.modal-content').classList.add('scale-95');
-            setTimeout(() => organizationModal.classList.add('hidden'), 300);
-        }
-
-        // #193 finding 10: onclick="" attribute handlers aren't nonce-covered by CSP.
-        organizationModal.addEventListener('click', closeModal);
-        document.getElementById('organizationModalCancelBtn')?.addEventListener('click', () => closeModal());
-
-        function openAddOrganizationModal() {
-            organizationForm.reset();
-            modalTitle.textContent = `{{ _("Add a new Organization") }}`;
-            document.getElementById('organizationname').required = true;
-            openModal();
-        }
-
-        function openEditOrganizationModal(organization) {
-            organizationForm.reset();
-            modalTitle.textContent = `{{ _("Edit Organization") }}`;
-
-            organizationcodeInput.value = organization.organizationcode;
-
-            document.getElementById('organizationname').value = organization.organization;
-            document.getElementById('tenantcode').value = organization.tenant_code || '';
-            openModal();
-        }
-
-        // escapeHtml: shared with nx_core.js (Task 12).
-        const escapeHtml = window.NX.esc;
-
-        // Rows carry a server-resolved Tenant column now; rebuilding them
-        // client-side would mean a second copy of that lookup. Reload instead.
-        function refreshOrgsTable() {
-            window.location.reload();
-        }
-
-        organizationForm.addEventListener('submit', async function(event) {
-            event.preventDefault();
-            const data = Object.fromEntries(new FormData(organizationForm).entries());
-            const organizationcode = organizationcodeInput.value;
-            const url =  organizationcode ? `${API_PREFIX}admin/organizations/edit/${organizationcode}` : `${API_PREFIX}admin/organizations/add`
-
+        async function send(url, method, body) {
             try {
                 const response = await fetch(url, {
-                    method: 'POST', headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
-                },
-                    body: JSON.stringify(data)
+                    method,
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                    body: body === undefined ? undefined : JSON.stringify(body)
                 });
-
-                if (response.status === 403) {
-                    showNotification(`{{ _("You do not have permission to perform this action.") }}`, 'error');
-                    return;
-                }
-
+                if (response.status === 403) { showNotification(forbidden, 'error'); return false; }
                 const result = await response.json();
-                if (response.ok) {
-                    closeModal(null);
-                    showNotification(`{{ _("Success") }}`);
-                    refreshOrgsTable();
-                } else {
-                    showNotification(`{{ _("Error:") }} ${result.message}`, 'error');
-                }
+                if (response.ok) { showNotification(result.message || `{{ _("Success") }}`); return true; }
+                showNotification(`{{ _("Error:") }} ${result.message}`, 'error');
+                return false;
             } catch (error) {
-                console.error('Form submission error:', error);
+                console.error('request failed:', error);
                 showNotification(`{{ _("An unexpected network error occurred.") }}`, 'error');
+                return false;
             }
-        });
+        }
 
+        // ---- Confirm dialog -------------------------------------------------
+        const confirmEl = document.getElementById('admConfirm');
+        const confirmBody = document.getElementById('admConfirmBody');
         let confirmCallback = null;
-
-        function showConfirmationModal(message, onConfirm) {
-            confirmMessage.textContent = message;
+        function askConfirm(message, onConfirm) {
+            confirmBody.textContent = message;
             confirmCallback = onConfirm;
-            confirmationModal.classList.remove('hidden');
-            setTimeout(() => {
-                confirmationModal.classList.remove('opacity-0');
-                confirmationModal.querySelector('.modal-content').classList.remove('scale-95');
-            }, 10);
+            confirmEl.classList.remove('hidden');
         }
-
-        function hideConfirmationModal() {
-            confirmationModal.classList.add('opacity-0');
-            confirmationModal.querySelector('.modal-content').classList.add('scale-95');
-            setTimeout(() => confirmationModal.classList.add('hidden'), 300);
-        }
-
-        confirmBtn.addEventListener('click', () => {
-            if (confirmCallback) confirmCallback();
-            hideConfirmationModal();
+        function closeConfirm() { confirmEl.classList.add('hidden'); confirmCallback = null; }
+        document.getElementById('admConfirmOk').addEventListener('click', () => {
+            const cb = confirmCallback; closeConfirm(); if (cb) cb();
         });
+        document.getElementById('admConfirmCancel').addEventListener('click', closeConfirm);
+        confirmEl.addEventListener('click', (e) => { if (e.target === confirmEl) closeConfirm(); });
 
-        cancelBtn.addEventListener('click', hideConfirmationModal);
-
-
-        async function deleteorganization(organizationcode) {
-            const deletionTask = async () => {
-                try {
-                    const response = await fetch(`${API_PREFIX}admin/organizations/delete/${organizationcode}`, {
-                        headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken
-                        },
-                    method: 'DELETE' });
-
-                    if (response.status === 403) {
-                        showNotification(`{{ _("You do not have permission to delete this Organization.") }}`, 'error');
-                        return;
-                    }
-
-                    const result = await response.json();
-                    if (response.ok) {
-                        showNotification({{ _("Success") | tojson }});
-                        refreshOrgsTable();
-                    } else {
-                        showNotification(`{{ _("Error:") }} ${result.message}`, 'error');
-                    }
-                } catch (error) {
-                    console.error('Delete error:', error);
-                    showNotification(`{{ _("An unexpected network error occurred.") }}`, 'error');
-                }
+        // ---- Side sheet ------------------------------------------------------
+        function sheet(name) {
+            const panel = document.getElementById(`${name}Sheet`);
+            const back = document.getElementById(`${name}SheetBack`);
+            if (!panel || !back) return null;
+            const api = {
+                open() { panel.classList.remove('hidden'); back.classList.remove('hidden'); },
+                close() { panel.classList.add('hidden'); back.classList.add('hidden'); },
             };
-            showConfirmationModal(`{{ _("Are you sure you want to delete this Organization? This action cannot be undone.") }}`, deletionTask);
+            back.addEventListener('click', api.close);
+            document.getElementById(`${name}SheetClose`)?.addEventListener('click', api.close);
+            document.getElementById(`${name}SheetCancel`)?.addEventListener('click', api.close);
+            return api;
         }
-
-        document.addEventListener('DOMContentLoaded', function () {
-            const input = document.getElementById('orgSearchInput');
-            const tbody = document.getElementById('orgs-tbody');
-            if (!input || !tbody) return;
-
-            function applyFilter() {
-                const q = input.value.trim().toLowerCase();
-                tbody.querySelectorAll('tr[data-search]').forEach(tr => {
-                    tr.style.display = !q || tr.dataset.search.includes(q) ? '' : 'none';
-                });
-            }
-
-            input.addEventListener('input', applyFilter);
-
-            // Re-apply the filter whenever the table re-renders (after add/edit/delete)
-            const observer = new MutationObserver(applyFilter);
-            observer.observe(tbody, { childList: true });
-
-            // Deep-link from command palette: /admin/organizations#add-org
-            if (window.location.hash === '#add-org' && typeof openAddOrganizationModal === 'function') {
-                openAddOrganizationModal();
-                history.replaceState(null, '', window.location.pathname + window.location.search);
-            }
+        const orgSheet = sheet('org');
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') { orgSheet?.close(); closeConfirm(); }
         });
 
-        document.addEventListener('click', (e) => {
-            const editBtn = e.target.closest('.edit-organization-btn');
-            if (editBtn) {
-                const organizationdata = JSON.parse(editBtn.dataset.organization);
-                openEditOrganizationModal(organizationdata);
-                return;
-            }
-            // #193 finding 10: onclick="" attribute handlers aren't nonce-covered by CSP.
-            const deleteBtn = e.target.closest('.delete-organization-btn');
-            if (deleteBtn) {
-                deleteorganization(deleteBtn.dataset.organizationcode);
-                return;
-            }
-            const brandingBtn = e.target.closest('.branding-organization-btn');
-            if (brandingBtn) {
-                openBrandingPanel(brandingBtn.dataset.organizationcode);
-            }
+        // ---- Tenant tabs + search ---------------------------------------------
+        const searchInput = document.getElementById('orgSearch');
+        const tbody = document.getElementById('orgs-tbody');
+        const emptyNote = document.getElementById('orgs-empty');
+        let activeFilter = '';
+
+        function applyFilters() {
+            if (!tbody) return;
+            const q = (searchInput?.value || '').trim().toLowerCase();
+            let shown = 0;
+            tbody.querySelectorAll('tr[data-search]').forEach(tr => {
+                const matchesTab = !activeFilter || tr.dataset.nxState === activeFilter;
+                const matchesQuery = !q || tr.dataset.search.includes(q);
+                const visible = matchesTab && matchesQuery;
+                tr.classList.toggle('hidden', !visible);
+                if (visible) shown++;
+            });
+            emptyNote?.classList.toggle('hidden', shown > 0 || !tbody.querySelector('tr[data-search]'));
+        }
+
+        document.querySelectorAll('[data-nx-filter]').forEach(tab => {
+            tab.addEventListener('click', () => {
+                activeFilter = tab.dataset.nxFilter;
+                document.querySelectorAll('[data-nx-filter]').forEach(t =>
+                    t.classList.toggle('adm-tab--active', t === tab));
+                applyFilters();
+            });
+        });
+        searchInput?.addEventListener('input', applyFilters);
+
+        // ---- Row navigation ----------------------------------------------------
+        tbody?.addEventListener('click', (e) => {
+            if (e.target.closest('button, a, input, label')) return;
+            const row = e.target.closest('tr[data-nx-href]');
+            if (row) window.location.href = row.dataset.nxHref;
         });
 
-        // ------------------------------ branding panel ------------------------------
-        // Rendered only when the server says the viewer holds
-        // admin.organizations.branding.edit, so every element below may be absent.
-        const brandingPanel = document.getElementById('org-branding-panel');
-        const brandingForm = document.getElementById('org-branding-form');
+        // ---- Organization sheet -------------------------------------------------
+        const orgForm = document.getElementById('orgForm');
+        const orgOriginalCode = document.getElementById('orgOriginalCode');
+        const orgNameInput = document.getElementById('organizationname');
+        const orgTenantSelect = document.getElementById('orgTenantCode');
+        const orgTenantNote = document.getElementById('orgTenantNote');
+        const orgCodeHint = document.getElementById('orgCodeHint');
+        let orgTenantAtOpen = '';
 
-        function updateBrandingPreview() {
-            const hexField = document.getElementById('branding-accent-hex');
-            const swatch = document.getElementById('branding-swatch');
-            const hex = hexField.value.trim();
-            const valid = /^#[0-9a-fA-F]{6}$/.test(hex);
-            swatch.style.background = valid ? hex : 'transparent';
-            swatch.style.border = valid ? 'none' : '1px dashed var(--nx-border)';
-            document.getElementById('branding-preview-name').textContent =
-                document.getElementById('branding-name').value.trim();
-        }
+        // The amber note only earns its place when the pick actually changes.
+        orgTenantSelect?.addEventListener('change', () => {
+            orgTenantNote?.classList.toggle('hidden', orgTenantSelect.value === orgTenantAtOpen);
+        });
 
-        function openBrandingPanel(organizationcode) {
-            if (!brandingPanel) return;
-            const brand = orgBranding[organizationcode] || {};
-            document.getElementById('branding-orgcode').value = organizationcode;
-            document.getElementById('branding-org-label').textContent = organizationcode;
-            document.getElementById('branding-name').value = brand.brand_name || '';
-            document.getElementById('branding-accent-hex').value = brand.brand_accent_hex || '';
-            document.getElementById('branding-accent').value = brand.brand_accent_hex || '#4f46e5';
-            document.getElementById('branding-logo').value = '';
+        document.getElementById('addOrgBtn')?.addEventListener('click', () => {
+            orgForm.reset();
+            document.getElementById('orgSheetTitle').textContent = `{{ _("Add organization") }}`;
+            orgOriginalCode.value = '';
+            orgTenantAtOpen = '';
+            orgTenantNote?.classList.add('hidden');
+            orgCodeHint?.classList.remove('hidden');
+            orgSheet.open();
+        });
 
-            const img = document.getElementById('branding-preview-logo');
-            if (brand.brand_logo_file) {
-                img.src = `${API_PREFIX}branding/${encodeURIComponent(organizationcode)}/logo`;
-                img.classList.remove('hidden');
-            } else {
-                img.removeAttribute('src');
-                img.classList.add('hidden');
-            }
-            updateBrandingPreview();
-            brandingPanel.classList.remove('hidden');
-            brandingPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
+        window.openEditOrgSheet = function (o) {
+            orgForm.reset();
+            document.getElementById('orgSheetTitle').textContent = `{{ _("Edit organization") }}`;
+            orgOriginalCode.value = o.organizationcode;
+            orgNameInput.value = o.organization || '';
+            orgTenantSelect.value = o.tenant_code || '';
+            orgTenantAtOpen = o.tenant_code || '';
+            orgTenantNote?.classList.add('hidden');
+            // The code is derived on create and never changes afterwards.
+            orgCodeHint?.classList.add('hidden');
+            orgSheet.open();
+        };
 
-        if (brandingForm) {
-            document.getElementById('branding-accent').addEventListener('input', (e) => {
-                document.getElementById('branding-accent-hex').value = e.target.value;
-                updateBrandingPreview();
+        orgForm?.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const code = orgOriginalCode.value;
+            const data = { organizationname: orgNameInput.value, tenantcode: orgTenantSelect.value };
+            const url = code
+                ? `${API_PREFIX}admin/organizations/edit/${encodeURIComponent(code)}`
+                : `${API_PREFIX}admin/organizations/add`;
+            if (await send(url, 'POST', data)) { orgSheet.close(); reload(); }
+        });
+
+        window.confirmDeleteOrganization = function (code, onDone) {
+            askConfirm(`{{ _("Delete this organization? Its process sources become unassigned.") }}`, async () => {
+                const url = `${API_PREFIX}admin/organizations/delete/${encodeURIComponent(code)}`;
+                if (await send(url, 'DELETE')) (onDone || reload)();
             });
-            document.getElementById('branding-accent-hex').addEventListener('input', (e) => {
-                if (/^#[0-9a-fA-F]{6}$/.test(e.target.value.trim())) {
-                    document.getElementById('branding-accent').value = e.target.value.trim();
-                }
-                updateBrandingPreview();
-            });
-            document.getElementById('branding-accent-clear').addEventListener('click', () => {
-                document.getElementById('branding-accent-hex').value = '';
-                updateBrandingPreview();
-            });
-            document.getElementById('branding-name').addEventListener('input', updateBrandingPreview);
-            document.getElementById('branding-cancel').addEventListener('click', () => {
-                brandingPanel.classList.add('hidden');
-            });
-            document.getElementById('branding-logo').addEventListener('change', (e) => {
-                const file = e.target.files && e.target.files[0];
-                const img = document.getElementById('branding-preview-logo');
-                if (!file) return;
-                if (file.size > 512 * 1024) {
-                    showNotification(`{{ _("Logo is too large (max 512 KB).") }}`, 'error');
-                    e.target.value = '';
-                    return;
-                }
-                img.src = URL.createObjectURL(file);
-                img.classList.remove('hidden');
-            });
+        };
 
-            brandingForm.addEventListener('submit', async function (event) {
-                event.preventDefault();
-                const organizationcode = document.getElementById('branding-orgcode').value;
-                const body = new FormData();
-                body.append('brand_name', document.getElementById('branding-name').value.trim());
-                body.append('brand_accent_hex', document.getElementById('branding-accent-hex').value.trim());
-                const file = document.getElementById('branding-logo').files[0];
-                if (file) body.append('logo', file);
-
-                try {
-                    const response = await fetch(
-                        `${API_PREFIX}admin/organizations/${encodeURIComponent(organizationcode)}/branding`,
-                        { method: 'POST', headers: { 'X-CSRFToken': csrfToken }, body }
-                    );
-                    if (response.status === 403) {
-                        showNotification(`{{ _("You do not have permission to perform this action.") }}`, 'error');
-                        return;
-                    }
-                    const result = await response.json();
-                    if (response.ok) {
-                        const previous = orgBranding[organizationcode] || {};
-                        const saved = result.brand || {};
-                        orgBranding[organizationcode] = {
-                            brand_name: saved.brand_name,
-                            brand_accent_hex: saved.brand_accent_hex,
-                            // a save without an upload leaves the stored logo alone
-                            brand_logo_file: saved.brand_logo_file || previous.brand_logo_file || null
-                        };
-                        brandingPanel.classList.add('hidden');
-                        showNotification(`{{ _("Branding saved.") }}`);
-                    } else {
-                        showNotification(`{{ _("Error:") }} ${result.message}`, 'error');
-                    }
-                } catch (error) {
-                    console.error('Branding save error:', error);
-                    showNotification(`{{ _("An unexpected network error occurred.") }}`, 'error');
-                }
-            });
-        }
-
+        applyFilters();
     </script>

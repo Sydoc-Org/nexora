@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="{{ get_locale }}">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    {% include '_theme_prepaint.html' %}
+    <link rel="stylesheet" href="{{ static_v('css/nexora-ui.css') }}">
+    <title>{{ perm.Code }} - nexora</title>
+    <link rel="stylesheet" href="{{ static_v('css/admin.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous" />
+</head>
+<body class="nx-app nx-admin">
+    {% set active_page = 'admin_permissions' %}
+    {% include '_header.html' %}
+
+    <main class="nx-main">
+
+        <nav class="adm-crumbs nx-rise" aria-label="{{ _('Breadcrumb') }}">
+            <a href="{{ url_for('admin_access_control') }}">{{ _('Access Control') }}</a>
+            <i class="fas fa-chevron-right adm-crumbs__sep"></i>
+            <a href="{{ url_for('admin_permissions') }}">{{ _('Permissions') }}</a>
+            <i class="fas fa-chevron-right adm-crumbs__sep"></i>
+            <span class="adm-crumbs__here nx-mono">{{ perm.Code }}</span>
+        </nav>
+
+        {# ---- Header ------------------------------------------------------- #}
+        <div class="adm-head nx-rise">
+            <span class="adm-head__tile"><i class="fas fa-key"></i></span>
+            <div class="adm-head__main">
+                <h1 class="adm-head__title nx-mono perm-detail__code">{{ perm.Code }}</h1>
+                <p class="adm-head__sub">{{ perm.Description }}</p>
+            </div>
+            <div class="adm-head__actions">
+                {% if granted_profiles %}
+                <span class="adm-pill adm-pill--ok" data-testid="perm-detail-holders">
+                    {{ ngettext('%(num)d profile holds it', '%(num)d profiles hold it', granted_profiles|length) }}
+                </span>
+                {% else %}
+                <span class="adm-pill adm-pill--warn" data-testid="perm-detail-holders">{{ _('Nobody holds it') }}</span>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if facts.unused %}
+        <div class="adm-warn" style="margin-bottom:20px" data-testid="perm-detail-unused">
+            <i class="fas fa-triangle-exclamation"></i>
+            <span>{{ _('This code guards no route and is checked nowhere in the app. It is either a leftover or a code the app has not caught up with yet — granting it changes nothing today.') }}</span>
+        </div>
+        {% endif %}
+
+        <div class="perm-detail">
+            <div class="perm-detail__main">
+
+                {# ---- What the code says --------------------------------- #}
+                <div class="adm-sec" style="margin-top:0">
+                    <h3 class="adm-sec__title">{{ _('What the code says') }}</h3>
+                    <span class="adm-sec__sub">{{ _('Read straight off the grammar') }}</span>
+                </div>
+                <div class="perm-parts" data-testid="perm-detail-grammar">
+                    <div class="perm-part">
+                        <span class="perm-part__key">{{ pgettext('permission grammar', 'Area') }}</span>
+                        <span class="perm-part__val nx-mono">{{ facts.grammar.area }}</span>
+                    </div>
+                    {% if facts.grammar.object_label %}
+                    <div class="perm-part">
+                        <span class="perm-part__key">{{ pgettext('permission grammar', 'Object') }}</span>
+                        <span class="perm-part__val nx-mono">{{ facts.grammar.object_label }}</span>
+                    </div>
+                    {% endif %}
+                    <div class="perm-part">
+                        <span class="perm-part__key">{{ pgettext('permission grammar', 'Action') }}</span>
+                        <span class="perm-part__val nx-mono">{{ facts.grammar.action }}</span>
+                        {% if action_help %}<span class="perm-part__help">{{ action_help }}</span>{% endif %}
+                    </div>
+                    <div class="perm-part">
+                        <span class="perm-part__key">{{ pgettext('permission grammar', 'Scope') }}</span>
+                        <span class="perm-part__val nx-mono">{{ facts.grammar.scope or _('own') }}</span>
+                        {% if scope_help %}<span class="perm-part__help">{{ scope_help }}</span>{% endif %}
+                    </div>
+                </div>
+
+                {% if facts.grammar.gate_candidates %}
+                <p class="adm-field__hint" data-testid="perm-detail-gate">
+                    <i class="fas fa-lock" style="font-size:10px"></i>
+                    {{ _('The admin grid greys this out until the holder also has') }}
+                    {% for g in facts.grammar.gate_candidates %}
+                    <a class="nx-mono" href="{{ url_for('admin_permission_detail_view', code=g) }}">{{ g }}</a>{% if not loop.last %} {{ _('or') }} {% endif %}
+                    {% endfor %}.
+                    {{ _('That is a UI convention only — the server checks every code on its own.') }}
+                </p>
+                {% endif %}
+
+                {# ---- What it unlocks ------------------------------------ #}
+                {% set pages = facts.routes | selectattr('page') | list %}
+                {% set apis = facts.routes | rejectattr('page') | list %}
+                <div class="adm-sec">
+                    <h3 class="adm-sec__title">{{ _('What it unlocks') }}</h3>
+                    <span class="adm-sec__sub">{{ _('Routes that refuse without it') }}</span>
+                </div>
+
+                {% if pages %}
+                <div class="perm-pages">
+                    {% for r in pages %}
+                    <a class="adm-link" href="{{ r.rule }}" data-testid="perm-detail-page-{{ r.endpoint }}">
+                        <span class="adm-link__tile"><i class="fas fa-window-maximize"></i></span>
+                        <span class="adm-link__main">
+                            <span class="adm-link__label nx-mono">{{ r.rule }}</span>
+                            <span class="adm-link__desc">{{ r.endpoint }}</span>
+                        </span>
+                        <i class="fas fa-arrow-up-right-from-square adm-table__chev"></i>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                {% if apis %}
+                <table class="adm-table" data-testid="perm-detail-routes">
+                    <thead>
+                        <tr>
+                            <th style="width:92px">{{ _('Method') }}</th>
+                            <th>{{ _('Route') }}</th>
+                            <th style="width:220px">{{ _('Endpoint') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in apis %}
+                        <tr>
+                            <td>
+                                {% for m in r.methods %}<span class="adm-pill perm-method perm-method--{{ m|lower }}">{{ m }}</span> {% endfor %}
+                            </td>
+                            <td>
+                                <span class="nx-mono" style="font-size:12px">{{ r.rule }}</span>
+                                {% if r.any_of %}
+                                <span class="adm-link__desc">{{ _('opens for any of:') }}
+                                    {% for c in r.any_of %}<a class="nx-mono" href="{{ url_for('admin_permission_detail_view', code=c) }}">{{ c }}</a>{% if not loop.last %}, {% endif %}{% endfor %}
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td><span class="nx-mono" style="font-size:11.5px">{{ r.endpoint }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+
+                {% if not facts.routes %}
+                <div class="adm-blank">
+                    <p class="adm-blank__text">{{ _('No route is guarded by this code. It is checked inside a page instead — see below.') }}</p>
+                </div>
+                {% endif %}
+
+                {# ---- Where it shows ------------------------------------- #}
+                {% if facts.ui_usages %}
+                <div class="adm-sec">
+                    <h3 class="adm-sec__title">{{ _('Where it shows in the interface') }}</h3>
+                    <span class="adm-sec__sub">{{ ngettext('%(num)d place', '%(num)d places', facts.ui_usages|length) }}</span>
+                </div>
+                <table class="adm-table perm-usages" data-testid="perm-detail-usages">
+                    <thead>
+                        <tr>
+                            <th style="width:300px">{{ _('Template') }}</th>
+                            <th>{{ _('Rendered only when the holder has it') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in facts.ui_usages %}
+                        <tr>
+                            <td><span class="nx-mono" style="font-size:11.5px">{{ u.file }}:{{ u.line }}</span></td>
+                            <td><code class="perm-snippet" title="{{ u.snippet }}">{{ u.snippet }}</code></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+
+                {% if facts.code_usages %}
+                <div class="adm-sec">
+                    <h3 class="adm-sec__title">{{ _('Where it is checked in code') }}</h3>
+                    <span class="adm-sec__sub">{{ ngettext('%(num)d place', '%(num)d places', facts.code_usages|length) }}</span>
+                </div>
+                <table class="adm-table perm-usages" data-testid="perm-detail-code-usages">
+                    <colgroup><col style="width:300px"><col></colgroup>
+                    <tbody>
+                        {% for u in facts.code_usages %}
+                        <tr>
+                            <td><span class="nx-mono" style="font-size:11.5px">{{ u.file }}:{{ u.line }}</span></td>
+                            <td><code class="perm-snippet" title="{{ u.snippet }}">{{ u.snippet }}</code></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+
+                {# ---- Siblings -------------------------------------------- #}
+                {% if siblings %}
+                <div class="adm-sec">
+                    <h3 class="adm-sec__title">{{ _('The rest of this object') }}</h3>
+                    <span class="adm-sec__sub nx-mono">{{ facts.grammar.object }}</span>
+                </div>
+                <table class="adm-table" data-testid="perm-detail-siblings">
+                    <tbody>
+                        {% for sp in siblings %}
+                        <tr class="adm-row--link" data-nx-href="{{ url_for('admin_permission_detail_view', code=sp.Code) }}">
+                            <td style="width:340px"><span class="nx-mono perm-code">{{ sp.Code }}</span></td>
+                            <td><span class="adm-link__desc">{{ sp.Description }}</span></td>
+                            <td class="align-right" style="width:28px"><i class="fas fa-chevron-right adm-table__chev"></i></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+            </div>
+
+            {# ---- Aside: the screenshot and the grant state --------------- #}
+            <aside class="perm-detail__side">
+                {% if facts.screenshot %}
+                <div class="adm-sec" style="margin-top:0">
+                    <h3 class="adm-sec__title">{{ _('What the holder sees') }}</h3>
+                </div>
+                <figure class="perm-shot" data-testid="perm-detail-screenshot">
+                    <img src="{{ static_v(facts.screenshot) }}" alt="{{ _('Screenshot of the page this permission opens') }}" loading="lazy">
+                    {% if pages %}
+                    <figcaption class="nx-mono">{{ pages[0].rule }}</figcaption>
+                    {% endif %}
+                </figure>
+                {% endif %}
+
+                <div class="adm-sec"{% if not facts.screenshot %} style="margin-top:0"{% endif %}>
+                    <h3 class="adm-sec__title">{{ _('Who holds it') }}</h3>
+                    <span class="adm-sec__sub">{{ _('Profile grants') }}</span>
+                </div>
+                <table class="adm-table" data-testid="perm-detail-profiles">
+                    <tbody>
+                        {% for p in profiles %}
+                        <tr>
+                            <td>
+                                <span class="adm-state">
+                                    {% if p.Granted %}<span class="adm-dot adm-dot--ok"></span>{% else %}<span class="adm-dot"></span>{% endif %}
+                                    <span class="adm-name__main">
+                                        <span class="adm-name__label">{{ p.Name }}</span>
+                                        <span class="adm-name__code">{{ _('rank') }} {{ p.Rank }}</span>
+                                    </span>
+                                </span>
+                            </td>
+                            <td class="align-right" style="width:64px;font-variant-numeric:tabular-nums">
+                                {% if p.Granted %}{{ p.UserCount }}{% else %}<span class="nx-c-meta">—</span>{% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                <div class="adm-sec">
+                    <h3 class="adm-sec__title">{{ _('Per-user overrides') }}</h3>
+                    <span class="adm-sec__sub">{{ _('The only place a deny exists') }}</span>
+                </div>
+                {% if overrides %}
+                <table class="adm-table" data-testid="perm-detail-overrides">
+                    <tbody>
+                        {% for o in overrides %}
+                        <tr>
+                            <td>
+                                <span class="adm-name__main">
+                                    <span class="adm-name__label">{{ o.Fullname or o.username }}</span>
+                                    <span class="adm-name__code">{{ o.username }}</span>
+                                </span>
+                            </td>
+                            <td class="align-right" style="width:90px">
+                                {% if o.Effect == 'D' %}
+                                <span class="adm-pill adm-pill--danger">{{ _('Denied') }}</span>
+                                {% else %}
+                                <span class="adm-pill adm-pill--ok">{{ _('Allowed') }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="adm-field__hint">{{ _('None. Everyone who holds this gets it from their profile.') }}</p>
+                {% endif %}
+
+                <p class="adm-field__hint">
+                    <a href="{{ url_for('admin_permissions') }}#{{ perm.Code }}">{{ _('Change grants in the permissions grid') }}</a>
+                </p>
+            </aside>
+        </div>
+    </main>
+
+    {% include 'js/admin/_permission_detail_js.html' %}
+</body>
+</html>

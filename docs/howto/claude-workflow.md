@@ -34,6 +34,41 @@ Disabling the auto-pick / plugin-finder / superpowers session-start injection re
 - **Writer/Reviewer with worktrees.** Implement in one worktree (created under `.claude/worktrees/`); review the diff in a *fresh* session or with the `/code-review` skill before merging, so the reviewer isn't biased toward code it just wrote.
 - **Git policy.** Feature branches allow stage/commit/push; `main` allows no modifying git ops (PR instead). Never `--no-verify`; if the SQL hook can't reach INT (e.g. a fresh worktree without `env/INT.env`), use `SQL_SYNC_SKIP=1 git commit`.
 
+## Status line (user-global, not shipped with the repo)
+
+The status line is **per-developer config, not a repo asset**. The repo used to ship
+`.claude/helpers/statusline.cjs`, wired through `.claude/settings.json` — but it was launched with
+`node`, which nobody here has installed, so it failed silently on every repaint and the bar was
+simply blank. Both are now deleted; set yours up once in `~/.claude` and it applies to every repo.
+
+`~/.claude/statusline.py` reads the status-line JSON on stdin and prints one line:
+
+```
+Opus 5 │ effort:high │ ctx:24% │ 5h:31%(1h52m) 7d:88%(4d4h) │ +12/-3 │ nexora ⎇ main ±10 │ PR#397 ✓ │ ⧉ wt-plan (feat/253) │ ⚑ handoff │ Statusbar work
+```
+
+Segments appear only when they carry signal: no in-flight agents means no `agents:` segment, a
+clean tree means no `±`, medium effort stays hidden, and the git segment drops out entirely
+outside a repo. `ctx`, `5h` and `7d` go green → amber → red at 60% and 85%. The `⚑ handoff`
+flag is the `var/handoff-pending` file from the session handoff loop below.
+
+Wire it up in `~/.claude/settings.json`:
+
+```json
+{
+  "statusLine": {
+    "type": "command",
+    "command": "sh -c 'for c in \"$APPDATA\"/uv/python/cpython-*/python.exe \"${CLAUDE_PROJECT_DIR:-.}/.venv/Scripts/python.exe\"; do [ -x \"$c\" ] && exec \"$c\" \"$HOME/.claude/statusline.py\"; done'"
+  }
+}
+```
+
+The loop takes the first interpreter that exists, preferring uv's managed CPython over a project
+`.venv` so the bar survives a repo with no venv and a venv mid-`uv sync`. Budget ~350 ms per
+repaint — almost entirely process spawns (`sh`, `python`, `git status`), so there is little left to
+optimise. Changes to `settings.json` need a Claude Code restart. Don't put this back in the repo's
+`.claude/settings.json`: project settings override user settings, and the second copy drifts.
+
 ## Session handoff loop (fresh context per batch)
 
 The cheapest context is a fresh one. Instead of letting a long session degrade into auto-compact,

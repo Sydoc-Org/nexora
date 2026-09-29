@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="{{ get_locale }}">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    {% include '_theme_prepaint.html' %}
+    <link rel="stylesheet" href="{{ static_v('css/nexora-ui.css') }}">
+    <title>{{ org.organization }} - nexora</title>
+    <link rel="stylesheet" href="{{ static_v('css/admin.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous" />
+</head>
+<body class="nx-app nx-admin">
+    {% set active_page = 'organizations' %}
+    {% include '_header.html' %}
+
+    <main class="nx-main">
+
+        {# ---- Breadcrumbs -------------------------------------------------- #}
+        <nav class="adm-crumbs nx-rise" aria-label="{{ _('Breadcrumb') }}">
+            <a href="{{ url_for('admin_organizations_view') }}">{{ _('Organizations') }}</a>
+            {% if org.tenant_code %}
+            <i class="fas fa-chevron-right adm-crumbs__sep"></i>
+            <a href="{{ url_for('admin_tenant_detail_view', tenantcode=org.tenant_code) }}">{{ org.tenant_name or org.tenant_code }}</a>
+            {% endif %}
+            <i class="fas fa-chevron-right adm-crumbs__sep"></i>
+            <span class="adm-crumbs__here">{{ org.organization }}</span>
+        </nav>
+
+        {# ---- Page header --------------------------------------------------- #}
+        <div class="adm-head nx-rise">
+            <span class="adm-head__tile adm-head__tile--initial"
+                  {% if org.brand_accent_hex %}style="background:{{ org.brand_accent_hex }}"{% endif %}>
+                {{ (org.organization or org.organizationcode)[:1]|upper }}
+            </span>
+            <div class="adm-head__main">
+                <h1 class="adm-head__title">{{ org.organization }}</h1>
+                <p class="adm-head__sub">
+                    <span class="nx-mono">{{ org.organizationcode }}</span>
+                    {% if org.tenant_code %}
+                    &middot; {{ _('Tenant') }}
+                    <a href="{{ url_for('admin_tenant_detail_view', tenantcode=org.tenant_code) }}">{{ org.tenant_name or org.tenant_code }}</a>
+                    {% else %}
+                    &middot; {{ _('Not in a tenant') }}
+                    {% endif %}
+                    &middot; {{ _('%(n)s users', n=users|length) }}
+                </p>
+            </div>
+            <div class="adm-head__actions">
+                <button type="button" class="nx-btn nx-btn--sm" id="editOrgBtn"
+                        data-org='{{ {"organizationcode": org.organizationcode, "organization": org.organization, "tenant_code": org.tenant_code}|tojson|safe }}'
+                        data-testid="admin-org-edit">
+                    <i class="fas fa-pen"></i> {{ _('Edit') }}
+                </button>
+                <button type="button" class="nx-btn nx-btn--sm nx-btn--danger-outline" id="deleteOrgBtn"
+                        data-org="{{ org.organizationcode }}" data-testid="admin-org-delete">
+                    {{ _('Delete') }}
+                </button>
+            </div>
+        </div>
+
+        {# ---- Tabs ----------------------------------------------------------- #}
+        <div class="adm-tabs nx-rise-2">
+            <button type="button" class="adm-tab adm-tab--active" data-nx-tab="users" data-testid="org-tab-users">
+                {{ _('Users') }} <span class="adm-tab__count">{{ users|length }}</span>
+            </button>
+            <button type="button" class="adm-tab" data-nx-tab="profiles" data-testid="org-tab-profiles">
+                {{ _('Access profiles') }} <span class="adm-tab__count">{{ profiles|length }}</span>
+            </button>
+            <button type="button" class="adm-tab" data-nx-tab="data" data-testid="org-tab-data">
+                {{ _('Data & processes') }} <span class="adm-tab__count">{{ sources|length }}</span>
+            </button>
+            <button type="button" class="adm-tab" data-nx-tab="branding" data-testid="org-tab-branding">
+                {{ _('Branding') }}
+            </button>
+            <button type="button" class="adm-tab" data-nx-tab="tenant" data-testid="org-tab-tenant">
+                {{ _('Tenant') }}
+            </button>
+        </div>
+
+        {# ---- Users (read-only) ----------------------------------------------- #}
+        <section data-nx-panel="users">
+            {% if users %}
+            <table class="adm-table" data-testid="org-users-table">
+                <thead>
+                    <tr>
+                        <th>{{ _('User') }}</th>
+                        <th style="width:220px">{{ _('Access profile') }}</th>
+                        <th style="width:180px">{{ _('Last sign-in') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in users %}
+                    <tr>
+                        <td>
+                            <span class="adm-name__label">{{ u.Fullname or u.username }}</span>
+                            <span class="adm-name__code">{{ u.username }}</span>
+                        </td>
+                        <td>{% if u.profile %}<span class="adm-pill adm-pill--accent">{{ u.profile }}</span>{% else %}<span class="nx-c-meta">{{ _('None') }}</span>{% endif %}</td>
+                        <td>{% if u.LastLoginAt %}{{ u.LastLoginAt.strftime('%d.%m.%Y %H:%M') }}{% else %}<span class="nx-c-meta">{{ _('Never') }}</span>{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="adm-empty">{{ _('No users in this organization.') }}</div>
+            {% endif %}
+        </section>
+
+        {# ---- Access profiles (read-only) --------------------------------------- #}
+        <section data-nx-panel="profiles" class="hidden">
+            <table class="adm-table" data-testid="org-profiles-table">
+                <thead>
+                    <tr>
+                        <th>{{ _('Access profile') }}</th>
+                        <th style="width:140px">{{ _('Scope') }}</th>
+                        <th class="align-right" style="width:90px">{{ _('Users') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in profiles %}
+                    <tr>
+                        <td>
+                            <span class="adm-name">
+                                <span class="adm-name__tile"><i class="fas fa-id-badge"></i></span>
+                                <span class="adm-name__label">{{ p.Name }}</span>
+                            </span>
+                        </td>
+                        <td>
+                            {% if p.OrganizationCode %}
+                            <span class="adm-pill adm-pill--accent">{{ _('Bound') }}</span>
+                            {% else %}
+                            <span class="adm-pill">{{ _('Global') }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="align-right" style="font-variant-numeric:tabular-nums">{{ p.user_count }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="3" class="adm-empty">{{ _('No access profiles.') }}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <p class="adm-field__hint">
+                {{ _('Access profiles are read-only here.') }}
+                <a href="{{ url_for('admin_access_control') }}">{{ _('Manage in Access Control') }}</a>
+            </p>
+        </section>
+
+        {# ---- Data & processes ---------------------------------------------------- #}
+        <section data-nx-panel="data" class="hidden">
+            {% if not mapping_config_available %}
+            <div class="adm-warn">
+                <i class="fas fa-triangle-exclamation"></i>
+                <span>{{ _('The process configuration could not be loaded, so this tab cannot be shown.') }}</span>
+            </div>
+            {% else %}
+
+            <div class="adm-sec" style="margin-top:0">
+                <h3 class="adm-sec__title">{{ _('Data connection') }}</h3>
+            </div>
+            {% if connections %}
+            <div class="adm-cards">
+                {% for c in connections %}
+                <div class="adm-card" data-testid="org-connection-{{ c.ClientCode }}">
+                    <div class="adm-card__head">
+                        <span class="adm-name__label">{{ c.DisplayName }}</span>
+                        <span class="adm-name__code">{{ c.ClientCode }}</span>
+                        {% if can_edit_clients %}
+                        <button type="button" class="nx-btn nx-btn--ghost nx-btn--sm adm-card__action edit-client-btn"
+                                data-client='{{ c|tojson|safe }}' data-testid="org-connection-edit-{{ c.ClientCode }}">
+                            <i class="fas fa-pen"></i> {{ _('Edit') }}
+                        </button>
+                        {% endif %}
+                    </div>
+                    <dl class="adm-facts">
+                        <dt>{{ _('Dialect') }}</dt><dd>{{ c.Dialect }}</dd>
+                        <dt>{{ _('Runtime engine') }}</dt><dd><span class="nx-mono">{{ c.RuntimeEngineKey }}</span></dd>
+                        <dt>{{ _('Octo domain') }}</dt><dd>{{ c.OctoDomain or '—' }}</dd>
+                        <dt>{{ _('Runtime state') }}</dt>
+                        <dd>
+                            {% if c.loaded %}
+                            <span class="adm-state"><i class="fas fa-circle-check"></i>{{ _('Loaded') }}</span>
+                            {% else %}
+                            <span class="adm-state nx-c-danger"><i class="fas fa-triangle-exclamation"></i>{{ _('Configured, not loaded') }}</span>
+                            {% endif %}
+                        </dd>
+                    </dl>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="adm-blank">
+                <p class="adm-blank__text">{{ _('This organization has no process sources, so it reaches no data connection.') }}</p>
+            </div>
+            {% endif %}
+
+            <div class="adm-sec">
+                <h3 class="adm-sec__title">{{ _('Process sources') }}</h3>
+                {% if can_edit_processes %}
+                <div class="adm-sec__actions">
+                    <button type="button" class="nx-btn nx-btn--primary nx-btn--sm" id="addSourceBtn" data-testid="org-add-source">
+                        <i class="fas fa-plus"></i> {{ _('Add process source') }}
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+            <p class="adm-field__hint" style="margin-top:-4px">
+                {{ _('A process name is two parts separated by a single dot, for example privera.02_Posteingang. Adding one also creates its process view permission, granted to nobody.') }}
+            </p>
+
+            {% for s in sources %}
+            <div class="adm-card" data-testid="org-source-{{ s.client }}-{{ s.process }}">
+                <div class="adm-card__head">
+                    <span class="nx-mono adm-name__label">{{ s.process }}</span>
+                    <span class="adm-name__code">{{ _('Table') }} {{ s.table }} &middot; {{ _('client') }} {{ s.client }}</span>
+                    {% if can_edit_processes %}
+                    <div class="adm-card__action">
+                        <button type="button" class="nx-btn nx-btn--ghost nx-btn--sm add-field-btn"
+                                data-client="{{ s.client }}" data-process="{{ s.process }}"
+                                data-testid="org-add-field-{{ s.process }}"><i class="fas fa-plus"></i> {{ _('Add field') }}</button>
+                        <button type="button" class="nx-btn nx-btn--ghost nx-btn--sm edit-source-btn"
+                                data-source='{{ s|tojson|safe }}'
+                                data-testid="org-edit-source-{{ s.process }}"><i class="fas fa-pen"></i> {{ _('Edit') }}</button>
+                        <button type="button" class="adm-iconbtn adm-iconbtn--danger delete-source-btn"
+                                data-client="{{ s.client }}" data-process="{{ s.process }}"
+                                title="{{ _('Delete') }}" data-testid="org-delete-source-{{ s.process }}"><i class="fas fa-trash-can"></i></button>
+                    </div>
+                    {% endif %}
+                </div>
+                {% if s.fields %}
+                <table class="adm-table adm-table--inner">
+                    <thead>
+                        <tr>
+                            <th>{{ _('Field key') }}</th>
+                            <th>{{ _('Column') }}</th>
+                            <th style="width:140px">{{ _('Column type') }}</th>
+                            {% if can_edit_processes %}<th class="align-right" style="width:64px"></th>{% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for f in s.fields %}
+                        <tr>
+                            <td><span class="nx-mono">{{ f.field_key }}</span></td>
+                            <td><span class="nx-mono">{{ f.column }}</span></td>
+                            <td>{{ f.column_type or '—' }}</td>
+                            {% if can_edit_processes %}
+                            <td class="align-right">
+                                <button type="button" class="adm-iconbtn edit-field-btn"
+                                        data-client="{{ s.client }}" data-process="{{ s.process }}"
+                                        data-field='{{ f|tojson|safe }}' title="{{ _('Edit') }}"><i class="fas fa-pen"></i></button>
+                                <button type="button" class="adm-iconbtn adm-iconbtn--danger delete-field-btn"
+                                        data-client="{{ s.client }}" data-process="{{ s.process }}"
+                                        data-field="{{ f.field_key }}" title="{{ _('Delete') }}"><i class="fas fa-trash-can"></i></button>
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="adm-empty" style="padding:16px 0">{{ _('No field mappings for this process.') }}</p>
+                {% endif %}
+            </div>
+            {% else %}
+            <div class="adm-empty">{{ _('No process sources for this organization.') }}</div>
+            {% endfor %}
+            {% endif %}
+        </section>
+
+        {# ---- Branding ------------------------------------------------------------ #}
+        <section data-nx-panel="branding" class="hidden">
+            {% if can_edit_branding %}
+            <div class="adm-brand" data-testid="admin-org-branding-panel">
+                <form id="brandingForm" class="adm-brand__form" data-org="{{ org.organizationcode }}">
+                    <div class="adm-field">
+                        <label class="adm-field__label" for="brand_name">{{ _('Brand name') }}</label>
+                        <input type="text" id="brand_name" name="brand_name" class="nx-input" maxlength="100"
+                               value="{{ org.brand_name or '' }}" data-testid="admin-org-branding-name">
+                        <p class="adm-field__hint">{{ _('Shown to this organization’s members instead of “nexora”.') }}</p>
+                    </div>
+                    <div class="adm-field">
+                        <label class="adm-field__label" for="brand_accent_hex">{{ _('Accent colour') }}</label>
+                        <div class="adm-brand__colour">
+                            <input type="color" id="brand_accent_picker" class="adm-brand__swatch"
+                                   value="{{ org.brand_accent_hex or '#4f46e5' }}" data-testid="admin-org-branding-picker">
+                            <input type="text" id="brand_accent_hex" name="brand_accent_hex" class="nx-input nx-mono"
+                                   placeholder="#336699" pattern="#[0-9A-Fa-f]{6}"
+                                   value="{{ org.brand_accent_hex or '' }}" data-testid="admin-org-branding-accent">
+                            <button type="button" class="nx-btn nx-btn--secondary nx-btn--sm" id="brandAccentClear"
+                                    data-testid="admin-org-branding-clear">{{ _('Clear') }}</button>
+                        </div>
+                    </div>
+                    <div class="adm-field">
+                        <label class="adm-field__label" for="brand_logo">{{ _('Logo') }}</label>
+                        <input type="file" id="brand_logo" name="logo" class="nx-input"
+                               accept=".svg,.png,.jpg,.jpeg" data-testid="admin-org-branding-logo">
+                        <p class="adm-field__hint">{{ _('SVG, PNG or JPEG, at most 512 KB.') }}</p>
+                    </div>
+                    <div class="adm-brand__actions">
+                        <button type="button" class="nx-btn nx-btn--secondary nx-btn--sm" id="brandDiscard" disabled
+                                data-testid="admin-org-branding-discard">{{ _('Discard') }}</button>
+                        <button type="submit" class="nx-btn nx-btn--primary nx-btn--sm" id="brandSave" disabled
+                                data-testid="admin-org-branding-save">{{ _('Save branding') }}</button>
+                    </div>
+                </form>
+
+                {# Live preview: what a member of this organization sees. #}
+                <aside class="adm-preview">
+                    <div class="adm-sec" style="margin-top:0">
+                        <h3 class="adm-sec__title">{{ _('What members see') }}</h3>
+                    </div>
+                    <div class="adm-window" id="brandPreview">
+                        <div class="adm-window__bar">
+                            <span class="adm-window__dot"></span><span class="adm-window__dot"></span><span class="adm-window__dot"></span>
+                        </div>
+                        <div class="adm-window__body">
+                            <div class="adm-window__side">
+                                <div class="adm-window__brand">
+                                    <img id="brandPreviewLogo" alt=""
+                                         src="{{ url_for('branding_logo', orgcode=org.organizationcode) if org.brand_logo_file else '' }}"
+                                         {% if not org.brand_logo_file %}hidden{% endif %}>
+                                    <span id="brandPreviewName">{{ org.brand_name or 'nexora' }}</span>
+                                </div>
+                                <div class="adm-window__item"><i class="fas fa-gauge"></i><span>{{ _('Dashboard') }}</span></div>
+                                <div class="adm-window__item"><i class="fas fa-layer-group"></i><span>{{ _('Workitems') }}</span></div>
+                                <div class="adm-window__item"><i class="fas fa-chart-line"></i><span>{{ _('Reporting') }}</span></div>
+                            </div>
+                            <div class="adm-window__canvas">
+                                <div class="adm-window__skel adm-window__skel--wide"></div>
+                                <div class="adm-window__skel"></div>
+                                <div class="adm-window__skel adm-window__skel--short"></div>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+            {% else %}
+            <div class="adm-empty">{{ _('You do not have permission to change branding.') }}</div>
+            {% endif %}
+        </section>
+
+        {# ---- Tenant ---------------------------------------------------------------- #}
+        <section data-nx-panel="tenant" class="hidden">
+            <form id="orgTenantForm" data-org="{{ org.organizationcode }}" data-current="{{ org.tenant_code or '' }}">
+                <div class="adm-radios" data-testid="org-tenant-radios">
+                    <label class="adm-radio">
+                        <input type="radio" name="tenantcode" value=""
+                               {% if not org.tenant_code %}checked{% endif %}>
+                        <span class="adm-radio__main">
+                            <span class="adm-name__label">{{ _('No tenant') }}</span>
+                            <span class="adm-link__desc">{{ _('Members see the global navigation.') }}</span>
+                        </span>
+                    </label>
+                    {% for t in tenants %}
+                    <label class="adm-radio">
+                        <input type="radio" name="tenantcode" value="{{ t.code }}"
+                               {% if org.tenant_code == t.code %}checked{% endif %}>
+                        <span class="adm-radio__main">
+                            <span class="adm-name__label">{{ t.name }}</span>
+                            <span class="adm-name__code">{{ t.code }}</span>
+                        </span>
+                    </label>
+                    {% endfor %}
+                </div>
+
+                <div class="adm-warn hidden" id="orgTenantWarn" style="margin-top:16px">
+                    <i class="fas fa-triangle-exclamation"></i>
+                    <span id="orgTenantWarnText"></span>
+                </div>
+
+                <div class="adm-brand__actions" style="justify-content:flex-start">
+                    <button type="button" class="nx-btn nx-btn--secondary nx-btn--sm" id="orgTenantCancel" disabled
+                            data-testid="org-tenant-cancel">{{ _('Cancel') }}</button>
+                    <button type="submit" class="nx-btn nx-btn--primary nx-btn--sm" id="orgTenantSave" disabled
+                            data-testid="org-tenant-save">{{ _('Move organization') }}</button>
+                </div>
+            </form>
+        </section>
+    </main>
+
+    {% include 'admin/_organization_sheet.html' %}
+    {% include 'admin/_process_sheets.html' %}
+    {% include 'admin/_client_sheet.html' %}
+    {% include 'admin/_confirm_dialog.html' %}
+    {% include 'js/admin/_organization_detail_js.html' %}
+</body>
+</html>

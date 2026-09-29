@@ -158,7 +158,11 @@ def _translations_map(catalog):
     for msg in catalog:
         if not msg.id:
             continue
-        key = (msg.id if isinstance(msg.id, str) else tuple(msg.id), msg.context)
+        # read_mo hands the message context back as bytes and read_po as str,
+        # so an msgctxt entry never matched between the two sides -- latent
+        # until the permission detail page became the first pgettext() caller.
+        ctx = msg.context.decode("utf-8") if isinstance(msg.context, bytes) else msg.context
+        key = (msg.id if isinstance(msg.id, str) else tuple(msg.id), ctx)
         # read_po hands plural msgstrs back as a tuple, read_mo as a list --
         # normalise, or the first ngettext() string in the app fails this test.
         if isinstance(msg.string, tuple | list):

@@ -1,0 +1,1361 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<style>body{margin:0;background:#f9fafb} a{color:#4f46e5;text-decoration:none} a:hover{color:#4338ca} @keyframes nxIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}} @keyframes nxSheet{from{transform:translateX(40px);opacity:0}to{transform:none;opacity:1}}</style>
+</helmet>
+<div data-screen-label="Tenants prototype" style="position:relative;display:flex;height:100vh;min-width:1180px;overflow-x:auto;overflow-y:hidden;background:#f9fafb;font-family:Inter,system-ui,sans-serif;color:#1f2937">
+  <dc-import name="Admin Sidebar" active="{{ sideActive }}" variant="new" compact="{{ true }}" on-navigate="{{ sideNav }}" hint-size="220px,100%" style="height:100%"></dc-import>
+  <main ref="{{ mainRef }}" style="flex:1;min-width:0;overflow:auto;padding:32px 40px 64px;box-sizing:border-box">
+    <div style="max-width:1260px;margin:0 auto">
+
+    <sc-if value="{{ hasCrumbs }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:#9ca3af;margin-bottom:14px">
+        <sc-for list="{{ crumbs }}" as="c" hint-placeholder-count="2">
+          <span style="display:flex;align-items:center;gap:6px">
+            <sc-if value="{{ c.sep }}" hint-placeholder-val="{{ false }}"><i class="fas fa-chevron-right" style="font-size:8px"></i></sc-if>
+            <span onClick="{{ c.go }}" style="color:{{ c.ink }};font-weight:{{ c.weight }};cursor:{{ c.cursor }}">{{ c.label }}</span>
+          </span>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isManage }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="width:44px;height:44px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;font-size:18px;color:#fff;background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);box-shadow:0 8px 20px -6px rgba(79,70,229,0.55)"><i class="fas fa-city"></i></span>
+        <div>
+          <h1 style="font-size:24px;font-weight:600;letter-spacing:-0.5px;margin:0;line-height:1.2">Manage tenants</h1>
+          <p style="font-size:11.5px;color:#9ca3af;margin:2px 0 0">A tenant groups organizations. Its members see the tenant's pages instead of the global navigation.</p>
+        </div>
+        <button onClick="{{ openNewTenant }}" style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:7px;font-family:inherit;font-size:13px;font-weight:500;border:1px solid transparent;cursor:pointer;background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);color:#fff;box-shadow:0 2px 8px -2px rgba(79,70,229,0.45)"><i class="fas fa-plus"></i> New tenant</button>
+      </div>
+
+      <div style="display:flex;align-items:flex-end;gap:20px;margin-top:22px;border-bottom:1px solid #e5e7eb">
+        <sc-for list="{{ filters }}" as="f" hint-placeholder-count="3">
+          <span onClick="{{ f.select }}" style="padding:0 0 9px;margin-bottom:-1px;font-size:12.5px;font-weight:600;color:{{ f.ink }};border-bottom:2px solid {{ f.line }};cursor:pointer">{{ f.label }} <span style="font-weight:500;color:#9ca3af">{{ f.count }}</span></span>
+        </sc-for>
+        <div style="position:relative;width:260px;margin-left:auto;margin-bottom:8px">
+          <i class="fas fa-search" style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:#9ca3af;font-size:10px"></i>
+          <input value="{{ q }}" onChange="{{ setQ }}" placeholder="Search tenants, organizations, users…" style="width:100%;height:29px;box-sizing:border-box;background:#fff;border:1px solid #d1d5db;border-radius:7px;padding:0 10px 0 26px;font-family:inherit;font-size:12.5px;color:#1f2937;outline:none">
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-bottom:1px solid #e5e7eb">
+        <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
+          <div style="padding:18px 30px 16px;border-left:1px solid #f3f4f6;min-width:0">
+            <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af;margin:0">{{ k.label }}</p>
+            <p style="font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:32px;font-weight:600;letter-spacing:-1.4px;line-height:1;margin:10px 0 0">{{ k.value }}</p>
+            <p style="font-size:11px;font-weight:600;margin:6px 0 0;color:#9ca3af">{{ k.sub }}</p>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:10px;padding:18px 0 0">
+        <h3 style="font-size:15px;font-weight:700;letter-spacing:-0.02em;margin:0">All tenants</h3>
+        <span style="font-size:11px;color:#9ca3af">Click a row to open organizations, pages and access</span>
+      </div>
+      <table style="width:100%;border-collapse:collapse;margin-top:10px">
+        <thead><tr>
+          <th style="text-align:left;padding:7px 12px 7px 0;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#9ca3af;border-bottom:1px solid #e5e7eb">Tenant</th>
+          <th style="text-align:left;padding:7px 12px 7px 0;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#9ca3af;border-bottom:1px solid #e5e7eb">Organizations</th>
+          <th style="text-align:right;padding:7px 24px 7px 0;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#9ca3af;border-bottom:1px solid #e5e7eb;width:70px">Users</th>
+          <th style="text-align:left;padding:7px 12px 7px 0;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#9ca3af;border-bottom:1px solid #e5e7eb;width:210px">Data connection</th>
+          <th style="text-align:left;padding:7px 12px 7px 0;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#9ca3af;border-bottom:1px solid #e5e7eb;width:90px">Pages</th>
+          <th style="text-align:left;padding:7px 12px 7px 0;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#9ca3af;border-bottom:1px solid #e5e7eb;width:100px">Status</th>
+          <th style="border-bottom:1px solid #e5e7eb;width:28px"></th>
+        </tr></thead>
+        <tbody>
+          <sc-for list="{{ rows }}" as="t" hint-placeholder-count="4">
+            <tr onClick="{{ t.open }}" style="cursor:pointer;opacity:{{ t.opacity }}" style-hover="background:#f5f7ff">
+              <td style="padding:14px 12px 14px 0;border-bottom:1px solid #f3f4f6;vertical-align:top">
+                <div style="display:flex;align-items:center;gap:10px">
+                  <span style="width:28px;height:28px;border-radius:8px;background:{{ t.tint }};color:{{ t.ink }};display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">{{ t.initial }}</span>
+                  <div><div style="font-size:13px;font-weight:600">{{ t.name }}</div><div style="font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:11px;color:#9ca3af;margin-top:1px">{{ t.code }}</div></div>
+                </div>
+              </td>
+              <td style="padding:14px 12px 14px 0;border-bottom:1px solid #f3f4f6;vertical-align:top;font-size:12.5px">
+                <div style="display:flex;flex-direction:column;gap:3px">
+                  <sc-for list="{{ t.orgs }}" as="o" hint-placeholder-count="1">
+                    <span>{{ o.name }} <span style="font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:11px;color:#9ca3af">{{ o.id }}</span></span>
+                  </sc-for>
+                  <sc-if value="{{ t.noOrgs }}" hint-placeholder-val="{{ false }}"><span style="color:#9ca3af">No organization yet</span></sc-if>
+                </div>
+              </td>
+              <td style="padding:14px 24px 14px 0;border-bottom:1px solid #f3f4f6;vertical-align:top;text-align:right;font-size:12.5px;font-variant-numeric:tabular-nums">{{ t.users }}</td>
+              <td style="padding:14px 12px 14px 0;border-bottom:1px solid #f3f4f6;vertical-align:top"><span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:500;color:#6b7280"><span style="width:7px;height:7px;border-radius:999px;background:{{ t.connDot }}"></span>{{ t.conn }}</span></td>
+              <td style="padding:14px 12px 14px 0;border-bottom:1px solid #f3f4f6;vertical-align:top;font-size:12.5px;font-variant-numeric:tabular-nums">{{ t.pages }}</td>
+              <td style="padding:14px 12px 14px 0;border-bottom:1px solid #f3f4f6;vertical-align:top"><span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:500;color:#6b7280"><span style="width:7px;height:7px;border-radius:999px;background:{{ t.statusDot }}"></span>{{ t.status }}</span></td>
+              <td style="padding:14px 0;border-bottom:1px solid #f3f4f6;vertical-align:top;text-align:right;color:#d1d5db;font-size:11px"><i class="fas fa-chevron-right"></i></td>
+            </tr>
+          </sc-for>
+        </tbody>
+      </table>
+      <sc-if value="{{ noRows }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:28px 0;text-align:center;font-size:12.5px;color:#9ca3af">No tenant matches “{{ q }}”.</div>
+      </sc-if>
+
+      <sc-if value="{{ hasIssues }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;align-items:center;gap:10px;padding:28px 0 0">
+          <h3 style="font-size:15px;font-weight:700;letter-spacing:-0.02em;margin:0">Needs attention</h3>
+          <span style="font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;background:#fef3c7;color:#92400e">{{ issueCount }}</span>
+        </div>
+        <div style="margin-top:10px;border-top:1px solid #e5e7eb">
+          <sc-for list="{{ issues }}" as="i" hint-placeholder-count="3">
+            <div style="display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid #f3f4f6;font-size:12.5px">
+              <i class="fas {{ i.icon }}" style="width:16px;text-align:center;color:#9ca3af;font-size:12px"></i>
+              <span style="font-weight:500">{{ i.title }}</span>
+              <span style="color:#9ca3af;font-size:11.5px">{{ i.detail }}</span>
+              <span onClick="{{ i.go }}" style="margin-left:auto;font-size:11.5px;font-weight:600;color:#4f46e5;cursor:pointer">{{ i.action }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <div style="display:flex;align-items:center;gap:10px;padding:32px 0 0">
+        <h3 style="font-size:15px;font-weight:700;letter-spacing:-0.02em;margin:0">Data connections</h3>
+        <span style="font-size:11px;color:#9ca3af">Where tenant data lives: DB, SQL dialect and Octo domain per client code</span>
+        <button onClick="{{ openNewClient }}" style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:7px;font-family:inherit;font-size:12px;font-weight:500;border:1px solid #d1d5db;background:#fff;color:#1f2937;cursor:pointer" style-hover="background:#f9fafb"><i class="fas fa-plus" style="font-size:10px"></i> Add connection</button>
+      </div>
+      <p style="display:flex;gap:8px;font-size:11.5px;color:#9ca3af;margin:6px 0 0;line-height:1.5"><i class="fas fa-circle-info" style="margin-top:3px"></i><span>A new or edited connection is read once at startup and takes effect after an app-pool recycle. A connection with its own database also needs matching env/{ENV}.env keys added by hand.</span></p>
+      <table style="width:100%;border-collapse:collapse;margin-top:10px">
+        <thead><tr>
+          <th style="text-align:left;padding:7px 12px 7px 0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af;border-bottom:1px solid #e5e7eb;width:110px">Code</th>
+          <th style="text-align:left;padding:7px 12px 7px 0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af;border-bottom:1px solid #e5e7eb">Display name</th>
+          <th style="text-align:left;padding:7px 12px 7px 0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af;border-bottom:1px solid #e5e7eb;width:90px">Dialect</th>
+          <th style="text-align:left;padding:7px 12px 7px 0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af;border-bottom:1px solid #e5e7eb">Runtime engine</th>
+          <th style="text-align:left;padding:7px 12px 7px 0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af;border-bottom:1px solid #e5e7eb">Used by</th>
+          <th style="text-align:left;padding:7px 12px 7px 0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af;border-bottom:1px solid #e5e7eb;width:70px">Active</th>
+          <th style="text-align:left;padding:7px 12px 7px 0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af;border-bottom:1px solid #e5e7eb;width:180px">Runtime state</th>
+          <th style="border-bottom:1px solid #e5e7eb;width:60px"></th>
+        </tr></thead>
+        <tbody>
+          <sc-for list="{{ clientRows }}" as="c" hint-placeholder-count="4">
+            <tr style="opacity:{{ c.opacity }}">
+              <td style="padding:11px 12px 11px 0;border-bottom:1px solid #f3f4f6;font-size:12.5px;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:12px">{{ c.code }}</td>
+              <td style="padding:11px 12px 11px 0;border-bottom:1px solid #f3f4f6;font-size:12.5px;font-weight:600">{{ c.name }}</td>
+              <td style="padding:11px 12px 11px 0;border-bottom:1px solid #f3f4f6;font-size:12.5px;color:#6b7280">{{ c.dialect }}</td>
+              <td style="padding:11px 12px 11px 0;border-bottom:1px solid #f3f4f6;font-size:12.5px;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:11.5px;color:#6b7280">{{ c.engine }}</td>
+              <td style="padding:11px 12px 11px 0;border-bottom:1px solid #f3f4f6;font-size:12.5px;color:#6b7280">{{ c.usedBy }}</td>
+              <td style="padding:11px 12px 11px 0;border-bottom:1px solid #f3f4f6;font-size:12.5px;color:#6b7280">{{ c.activeLabel }}</td>
+              <td style="padding:11px 12px 11px 0;border-bottom:1px solid #f3f4f6;font-size:12.5px"><span title="{{ c.stateTitle }}" style="display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:500;color:{{ c.stateInk }}"><i class="fas {{ c.stateIcon }}" style="font-size:11px"></i>{{ c.state }}</span></td>
+              <td style="padding:8px 0;border-bottom:1px solid #f3f4f6;text-align:right;white-space:nowrap"><span onClick="{{ c.edit }}" title="Edit" style="display:inline-flex;width:26px;height:26px;align-items:center;justify-content:center;border-radius:6px;color:#9ca3af;font-size:11px;cursor:pointer" style-hover="background:#f3f4f6;color:#1f2937"><i class="fas fa-pen"></i></span><span onClick="{{ c.remove }}" title="Delete" style="display:inline-flex;width:26px;height:26px;align-items:center;justify-content:center;border-radius:6px;color:#9ca3af;font-size:11px;cursor:pointer" style-hover="background:#fee2e2;color:#dc2626"><i class="fas fa-trash-can"></i></span></td>
+            </tr>
+          </sc-for>
+        </tbody>
+      </table>
+    </sc-if>
+
+    <sc-if value="{{ isTenant }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="width:44px;height:44px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;background:{{ tn.tint }};color:{{ tn.ink }}">{{ tn.initial }}</span>
+        <div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <h1 style="font-size:24px;font-weight:600;letter-spacing:-0.5px;margin:0;line-height:1.2">{{ tn.name }}</h1>
+            <span style="display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:500;background:{{ tn.pillBg }};color:{{ tn.pillInk }}"><span style="width:6px;height:6px;border-radius:999px;background:{{ tn.statusDot }}"></span>{{ tn.status }}</span>
+          </div>
+          <p style="font-size:11.5px;color:#9ca3af;margin:3px 0 0;display:flex;gap:8px"><span style="font-family:ui-monospace,'SF Mono',Consolas,monospace">{{ tn.id }}</span><span>·</span><span>{{ tn.orgLine }}</span><span>·</span><span>{{ tn.userLine }}</span></p>
+        </div>
+        <button onClick="{{ openEditTenant }}" style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:7px;font-family:inherit;font-size:12px;font-weight:500;border:1px solid #d1d5db;background:#fff;color:#1f2937;cursor:pointer" style-hover="background:#f9fafb"><i class="fas fa-pen" style="font-size:10px"></i> Edit tenant</button>
+        <button onClick="{{ askDeleteTenant }}" style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:7px;font-family:inherit;font-size:12px;font-weight:500;border:1px solid #fecaca;background:#fff;color:#dc2626;cursor:pointer" style-hover="background:#fef2f2"><i class="fas fa-trash-can" style="font-size:10px"></i> Delete</button>
+      </div>
+      <div style="display:flex;gap:20px;margin-top:22px;border-bottom:1px solid #e5e7eb">
+        <sc-for list="{{ tTabs }}" as="t" hint-placeholder-count="4">
+          <span onClick="{{ t.select }}" style="padding:0 0 9px;margin-bottom:-1px;font-size:12.5px;font-weight:600;color:{{ t.ink }};border-bottom:2px solid {{ t.line }};cursor:pointer">{{ t.label }} <span style="font-weight:500;color:#9ca3af">{{ t.count }}</span></span>
+        </sc-for>
+      </div>
+
+      <sc-if value="{{ tTabOrgs }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;align-items:center;gap:10px;padding:18px 0 0">
+          <h3 style="font-size:15px;font-weight:700;letter-spacing:-0.02em;margin:0">Organizations in {{ tn.name }}</h3>
+          <span style="font-size:11px;color:#9ca3af">Users, access and data belong to the organization</span>
+          <button onClick="{{ openEditTenant }}" style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:7px;font-family:inherit;font-size:12px;font-weight:500;border:1px solid #d1d5db;background:#fff;color:#1f2937;cursor:pointer" style-hover="background:#f9fafb"><i class="fas fa-plus" style="font-size:10px"></i> Add organization</button>
+        </div>
+        <sc-if value="{{ tNoOrgs }}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top:14px;padding:36px;border:1px dashed #d1d5db;border-radius:10px;text-align:center">
+            <i class="fas fa-building" style="font-size:18px;color:#d1d5db"></i>
+            <p style="font-size:13px;font-weight:600;margin:10px 0 4px">No organizations yet</p>
+            <p style="font-size:12px;color:#9ca3af;margin:0 0 14px">Add an organization so its users see {{ tn.name }}'s pages.</p>
+            <button onClick="{{ openEditTenant }}" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:7px;font-family:inherit;font-size:13px;font-weight:500;border:1px solid transparent;cursor:pointer;background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);color:#fff">Add organizations</button>
+          </div>
+        </sc-if>
+        <sc-if value="{{ tHasOrgs }}" hint-placeholder-val="{{ true }}">
+        <table style="width:100%;border-collapse:collapse;margin-top:10px">
+          <thead><tr>
+            <th style="text-align:left;padding:7px 12px 7px 0;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#9ca3af;border-bottom:1px solid #e5e7eb">Organization</th>
+            <th style="text-align:left;padding:7px 12px 7px 0;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#9ca3af;border-bottom:1px solid #e5e7eb;width:220px">Users</th>
+            <th style="text-align:left;padding:7px 12px 7px 0;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#9ca3af;border-bottom:1px solid #e5e7eb;width:220px">Access profiles</th>
+            <th style="text-align:left;padding:7px 12px 7px 0;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#9ca3af;border-bottom:1px solid #e5e7eb;width:190px">Data connection</th>
+            <th style="text-align:left;padding:7px 12px 7px 0;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#9ca3af;border-bottom:1px solid #e5e7eb;width:170px">Processes</th>
+            <th style="border-bottom:1px solid #e5e7eb;width:28px"></th>
+          </tr></thead>
+          <tbody>
+            <sc-for list="{{ tOrgs }}" as="o" hint-placeholder-count="2">
+              <tr onClick="{{ o.open }}" style="cursor:pointer" style-hover="background:#f5f7ff">
+                <td style="padding:12px 12px 12px 0;border-bottom:1px solid #f3f4f6;vertical-align:middle">
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <span style="width:28px;height:28px;border-radius:7px;background:{{ o.accent }};color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0">{{ o.mono }}</span>
+                    <div style="min-width:0"><div style="font-size:13px;font-weight:600">{{ o.name }}</div><div style="font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:11px;color:#9ca3af">{{ o.id }}</div></div>
+                  </div>
+                </td>
+                <td style="padding:12px 12px 12px 0;border-bottom:1px solid #f3f4f6;vertical-align:middle">
+                  <div style="display:flex;align-items:center">
+                    <sc-for list="{{ o.avatars }}" as="a" hint-placeholder-count="3"><span style="width:22px;height:22px;border-radius:999px;background:{{ a.bg }};color:{{ a.ink }};border:2px solid #fff;margin-right:-6px;display:inline-flex;align-items:center;justify-content:center;font-size:8px;font-weight:700">{{ a.i }}</span></sc-for>
+                    <span style="margin-left:12px;font-size:12px;font-variant-numeric:tabular-nums">{{ o.userCount }}</span>
+                  </div>
+                </td>
+                <td style="padding:12px 12px 12px 0;border-bottom:1px solid #f3f4f6;vertical-align:middle">
+                  <div style="display:flex;flex-wrap:wrap;gap:4px">
+                    <sc-for list="{{ o.profiles }}" as="p" hint-placeholder-count="2"><span style="padding:2px 8px;border:1px solid #e5e7eb;border-radius:999px;font-size:11px;background:#fff">{{ p }}</span></sc-for>
+                    <sc-if value="{{ o.noProfiles }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#9ca3af">None</span></sc-if>
+                  </div>
+                </td>
+                <td style="padding:12px 12px 12px 0;border-bottom:1px solid #f3f4f6;vertical-align:middle"><span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;color:#6b7280"><span style="width:7px;height:7px;border-radius:999px;background:{{ o.connDot }}"></span>{{ o.conn }}</span></td>
+                <td style="padding:12px 12px 12px 0;border-bottom:1px solid #f3f4f6;vertical-align:middle;font-size:12px;color:#6b7280">{{ o.procLine }}</td>
+                <td style="padding:12px 0;border-bottom:1px solid #f3f4f6;text-align:right;color:#d1d5db;font-size:11px"><i class="fas fa-chevron-right"></i></td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+        </sc-if>
+      </sc-if>
+
+      <sc-if value="{{ tTabPages }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 440px;gap:28px">
+          <div>
+            <div style="display:flex;align-items:center;gap:10px;padding:18px 0 0">
+              <h3 style="font-size:15px;font-weight:700;letter-spacing:-0.02em;margin:0">Pages</h3>
+              <span style="font-size:11px;color:#9ca3af">Order here is the order members see</span>
+              <button onClick="{{ openMount }}" style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:7px;font-family:inherit;font-size:12px;font-weight:500;border:1px solid transparent;background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);color:#fff;cursor:pointer"><i class="fas fa-plus" style="font-size:10px"></i> Mount page</button>
+            </div>
+            <sc-if value="{{ noPages }}" hint-placeholder-val="{{ false }}">
+              <div style="margin-top:14px;padding:36px;border:1px dashed #d1d5db;border-radius:10px;text-align:center;font-size:12.5px;color:#9ca3af">No pages mounted. Members fall back to the global navigation.</div>
+            </sc-if>
+            <table style="width:100%;border-collapse:collapse;margin-top:10px">
+              <tbody>
+                <sc-for list="{{ pageRows }}" as="p" hint-placeholder-count="5">
+                  <tr onClick="{{ p.select }}" style="cursor:pointer;background:{{ p.rowBg }}" style-hover="background:#f5f7ff">
+                    <td style="padding:11px 12px 11px 4px;border-bottom:1px solid #f3f4f6">
+                      <div style="display:flex;align-items:center;gap:10px">
+                        <span style="width:26px;height:26px;border-radius:7px;background:#f3f4f6;color:#6b7280;display:inline-flex;align-items:center;justify-content:center;font-size:11px"><i class="fas {{ p.icon }}"></i></span>
+                        <div><div style="font-size:12.5px;font-weight:600">{{ p.label }}</div><div style="font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:10.5px;color:#9ca3af">{{ p.target }}</div></div>
+                      </div>
+                    </td>
+                    <td style="padding:11px 12px 11px 0;border-bottom:1px solid #f3f4f6;width:70px"><span style="font-size:10px;text-transform:uppercase;letter-spacing:0.6px;color:#6b7280;font-weight:600">{{ p.type }}</span></td>
+                    <td style="padding:11px 12px 11px 0;border-bottom:1px solid #f3f4f6;width:120px">
+                      <div style="display:inline-flex;height:25px;overflow:hidden;border:1px solid #e5e7eb;border-radius:7px;background:#fff">
+                        <span onClick="{{ p.setDraft }}" style="display:inline-flex;align-items:center;padding:0 9px;font-size:11px;font-weight:600;background:{{ p.draftBg }};color:{{ p.draftInk }};cursor:pointer">Draft</span>
+                        <span onClick="{{ p.setLive }}" style="display:inline-flex;align-items:center;padding:0 9px;font-size:11px;font-weight:600;border-left:1px solid #e5e7eb;background:{{ p.liveBg }};color:{{ p.liveInk }};cursor:pointer">Active</span>
+                      </div>
+                    </td>
+                    <td style="padding:11px 4px 11px 0;border-bottom:1px solid #f3f4f6;width:30px;text-align:right">
+                      <sc-if value="{{ p.canRemove }}" hint-placeholder-val="{{ true }}"><span onClick="{{ p.remove }}" title="Unmount" style="display:inline-flex;width:24px;height:24px;align-items:center;justify-content:center;border-radius:6px;color:#9ca3af;font-size:11px;cursor:pointer" style-hover="background:#fee2e2;color:#dc2626"><i class="fas fa-trash-can"></i></span></sc-if>
+                      <sc-if value="{{ p.locked }}" hint-placeholder-val="{{ false }}"><i class="fas fa-lock" title="Generated from a migration" style="font-size:10px;color:#d1d5db"></i></sc-if>
+                    </td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+            <p style="font-size:11.5px;color:#9ca3af;margin:12px 0 0"><i class="fas fa-lock" style="font-size:10px"></i> Generated list/crud pages come from migrations and can only be reordered or set to draft.</p>
+          </div>
+          <aside style="padding-top:18px">
+            <div style="display:flex;align-items:center;gap:8px;margin:0 0 8px">
+              <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af;margin:0">Member preview</p>
+              <button onClick="{{ toggleReorder }}" style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border-radius:7px;font-family:inherit;font-size:11.5px;font-weight:500;border:1px solid {{ reorderBorder }};background:{{ reorderBg }};color:{{ reorderInk }};cursor:pointer"><i class="fas {{ reorderIcon }}" style="font-size:10px"></i>{{ reorderLabel }}</button>
+            </div>
+            <div style="border:1px solid {{ listBorder }};border-radius:10px;background:#fff;overflow:hidden;box-shadow:0 8px 24px -12px rgba(16,24,40,0.18)">
+              <div style="display:flex;align-items:center;gap:6px;height:26px;padding:0 10px;background:#f3f4f6;border-bottom:1px solid #e5e7eb">
+                <span style="width:8px;height:8px;border-radius:999px;background:#e5e7eb"></span><span style="width:8px;height:8px;border-radius:999px;background:#e5e7eb"></span><span style="width:8px;height:8px;border-radius:999px;background:#e5e7eb"></span>
+                <span style="margin-left:8px;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:10px;color:#9ca3af">nexora / {{ tn.id }} / {{ pv.key }}</span>
+              </div>
+              <div style="display:grid;grid-template-columns:{{ previewCols }};height:470px">
+                <div style="border-right:1px solid #e5e7eb;background:#fafafa;padding:8px;min-width:0">
+                  <div style="display:flex;align-items:center;gap:6px;padding:4px 6px 10px">
+                    <span style="width:18px;height:18px;border-radius:5px;background:{{ tn.accent }};color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700">{{ tn.initial }}</span>
+                    <span style="font-size:11.5px;font-weight:700">{{ tn.name }}</span>
+                  </div>
+                  <sc-for list="{{ navPreview }}" as="n" hint-placeholder-count="5">
+                    <div onClick="{{ n.select }}" style="display:flex;align-items:center;gap:8px;padding:7px 6px;border-radius:6px;font-size:11.5px;font-weight:500;color:{{ n.ink }};background:{{ n.bg }};cursor:pointer;white-space:nowrap;overflow:hidden">
+                      <sc-if value="{{ n.showGrip }}" hint-placeholder-val="{{ false }}"><i class="fas fa-grip-vertical" style="font-size:11px;color:#d1d5db"></i></sc-if>
+                      <i class="fas {{ n.icon }}" style="width:16px;text-align:center;font-size:11px"></i>{{ n.label }}
+                      <sc-if value="{{ n.showGrip }}" hint-placeholder-val="{{ false }}">
+                        <span style="margin-left:auto;display:flex;gap:2px">
+                          <span onClick="{{ n.up }}" style="width:22px;height:22px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;color:{{ n.upInk }};cursor:pointer;font-size:10px" style-hover="background:#e5e7eb"><i class="fas fa-chevron-up"></i></span>
+                          <span onClick="{{ n.down }}" style="width:22px;height:22px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;color:{{ n.downInk }};cursor:pointer;font-size:10px" style-hover="background:#e5e7eb"><i class="fas fa-chevron-down"></i></span>
+                        </span>
+                      </sc-if>
+                      <sc-if value="{{ n.showLock }}" hint-placeholder-val="{{ false }}"><i class="fas fa-lock" style="margin-left:auto;font-size:10px;color:#d1d5db"></i></sc-if>
+                    </div>
+                  </sc-for>
+                </div>
+                <div style="padding:14px 16px;min-width:0;overflow:hidden">
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <i class="fas {{ pv.icon }}" style="font-size:12px;color:{{ tn.accent }}"></i>
+                    <span style="font-size:13px;font-weight:700">{{ pv.label }}</span>
+                    <sc-if value="{{ pv.draft }}" hint-placeholder-val="{{ false }}"><span style="font-size:10px;font-weight:600;padding:1px 7px;border-radius:999px;background:#f3f4f6;color:#4b5563">Draft · hidden from members</span></sc-if>
+                  </div>
+                  <sc-if value="{{ pv.dash }}" hint-placeholder-val="{{ true }}">
+                    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px">
+                      <sc-for list="{{ skelKpis }}" as="k" hint-placeholder-count="3">
+                        <div style="border:1px solid #f3f4f6;border-radius:7px;padding:8px"><div style="width:50%;height:5px;border-radius:3px;background:#e5e7eb"></div><div style="font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:15px;font-weight:600;margin-top:6px">{{ k }}</div></div>
+                      </sc-for>
+                    </div>
+                    <div style="display:flex;align-items:flex-end;gap:5px;height:120px;margin-top:10px;padding:10px;border:1px solid #f3f4f6;border-radius:7px">
+                      <sc-for list="{{ skelBars }}" as="b" hint-placeholder-count="10"><div style="flex:1;height:{{ b.h }};background:{{ b.c }};border-radius:3px 3px 0 0"></div></sc-for>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ pv.table }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;gap:6px;margin-top:12px">
+                      <div style="width:110px;height:20px;border-radius:5px;border:1px solid #e5e7eb"></div>
+                      <div style="width:50px;height:20px;border-radius:5px;background:#f3f4f6"></div>
+                      <div style="margin-left:auto;width:60px;height:20px;border-radius:5px;background:{{ tn.accent }};opacity:.85"></div>
+                    </div>
+                    <div style="margin-top:10px;border-top:1px solid #e5e7eb">
+                      <sc-for list="{{ skelRows }}" as="r" hint-placeholder-count="8">
+                        <div style="display:grid;grid-template-columns:16px 1.6fr 1fr .7fr;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #f3f4f6">
+                          <i class="fas {{ pv.icon }}" style="font-size:10px;color:#9ca3af"></i>
+                          <div style="height:6px;border-radius:3px;background:#d1d5db;width:{{ r.w1 }}"></div>
+                          <div style="height:6px;border-radius:3px;background:#e5e7eb;width:{{ r.w2 }}"></div>
+                          <span style="height:12px;width:40px;border-radius:999px;background:{{ r.pill }}"></span>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+                </div>
+              </div>
+            </div>
+            <p style="font-size:11.5px;color:#9ca3af;margin:10px 0 0;line-height:1.5">What a user inside only {{ tn.name }} sees. Click a page to preview it. Draft pages are hidden from the sidebar.</p>
+          </aside>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ tTabAccess }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width:820px">
+          <div style="display:flex;align-items:center;gap:10px;padding:18px 0 0">
+            <h3 style="font-size:15px;font-weight:700;letter-spacing:-0.02em;margin:0">Who can open {{ tn.name }}'s pages</h3>
+            <span style="font-size:11px;color:#9ca3af">Profiles holding <span style="font-family:ui-monospace,'SF Mono',Consolas,monospace;color:#6b7280">{{ perm }}</span></span>
+            <span onClick="{{ goPermissions }}" style="margin-left:auto;font-size:11.5px;font-weight:600;color:#4f46e5;cursor:pointer">Manage in Permissions <i class="fas fa-arrow-up-right-from-square" style="font-size:9px"></i></span>
+          </div>
+          <sc-if value="{{ noAccess }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;gap:10px;align-items:flex-start;margin-top:14px;padding:12px 14px;border-radius:8px;background:#fef3c7;color:#92400e;font-size:12px;line-height:1.5"><i class="fas fa-triangle-exclamation" style="margin-top:3px"></i><span>Nobody holds {{ perm }}. Mounted pages exist but no user can open them.</span></div>
+          </sc-if>
+          <div style="margin-top:14px;border-top:1px solid #e5e7eb">
+            <sc-for list="{{ accessRows }}" as="a" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #f3f4f6;font-size:12.5px">
+                <i class="fas {{ a.icon }}" style="width:16px;text-align:center;color:#9ca3af;font-size:12px"></i>
+                <span style="font-weight:600;min-width:170px">{{ a.profile }}</span>
+                <span style="color:#6b7280;flex:1">{{ a.scope }}</span>
+                <span style="color:#9ca3af;font-size:11.5px;font-variant-numeric:tabular-nums">{{ a.usersLine }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+    </sc-if>
+
+    <sc-if value="{{ isOrgs }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="width:44px;height:44px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;font-size:18px;color:#fff;background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);box-shadow:0 8px 20px -6px rgba(79,70,229,0.55)"><i class="fas fa-building"></i></span>
+        <div>
+          <h1 style="font-size:24px;font-weight:600;letter-spacing:-0.5px;margin:0;line-height:1.2">Organizations</h1>
+          <p style="font-size:11.5px;color:#9ca3af;margin:2px 0 0">Organizations, their codes and tenant</p>
+        </div>
+        <button onClick="{{ openNewOrg }}" style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:7px;font-family:inherit;font-size:13px;font-weight:500;border:1px solid transparent;background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);color:#fff;cursor:pointer;box-shadow:0 2px 8px -2px rgba(79,70,229,0.45)"><i class="fas fa-plus"></i> Add organization</button>
+      </div>
+      <div style="display:flex;align-items:flex-end;gap:20px;margin-top:22px;border-bottom:1px solid #e5e7eb">
+        <sc-for list="{{ orgFilters }}" as="f" hint-placeholder-count="5">
+          <span onClick="{{ f.select }}" style="padding:0 0 9px;margin-bottom:-1px;font-size:12.5px;font-weight:600;color:{{ f.ink }};border-bottom:2px solid {{ f.line }};cursor:pointer">{{ f.label }} <span style="font-weight:500;color:#9ca3af">{{ f.count }}</span></span>
+        </sc-for>
+        <div style="position:relative;width:260px;margin-left:auto;margin-bottom:8px">
+          <i class="fas fa-search" style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:#9ca3af;font-size:10px"></i>
+          <input value="{{ orgQ }}" onChange="{{ setOrgQ }}" placeholder="Search name, code, user…" style="width:100%;height:29px;box-sizing:border-box;background:#fff;border:1px solid #d1d5db;border-radius:7px;padding:0 10px 0 26px;font-family:inherit;font-size:12.5px;outline:none">
+        </div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;margin-top:6px">
+        <thead><tr>
+          <th style="text-align:left;padding:10px 12px 7px 0;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#9ca3af;border-bottom:1px solid #e5e7eb">Organization</th>
+          <th style="text-align:left;padding:10px 12px 7px 0;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#9ca3af;border-bottom:1px solid #e5e7eb;width:150px">Tenant</th>
+          <th style="text-align:right;padding:10px 24px 7px 0;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#9ca3af;border-bottom:1px solid #e5e7eb;width:70px">Users</th>
+          <th style="text-align:left;padding:10px 12px 7px 0;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#9ca3af;border-bottom:1px solid #e5e7eb;width:200px">Data connection</th>
+          <th style="text-align:left;padding:10px 12px 7px 0;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#9ca3af;border-bottom:1px solid #e5e7eb;width:170px">Branding</th>
+          <th style="border-bottom:1px solid #e5e7eb;width:28px"></th>
+        </tr></thead>
+        <tbody>
+          <sc-for list="{{ orgRows }}" as="o" hint-placeholder-count="6">
+            <tr onClick="{{ o.open }}" style="cursor:pointer" style-hover="background:#f5f7ff">
+              <td style="padding:12px 12px 12px 0;border-bottom:1px solid #f3f4f6">
+                <div style="display:flex;align-items:center;gap:10px">
+                  <span style="width:28px;height:28px;border-radius:7px;background:{{ o.accent }};color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700">{{ o.mono }}</span>
+                  <div><div style="font-size:13px;font-weight:600">{{ o.name }}</div><div style="font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:11px;color:#9ca3af">{{ o.id }}</div></div>
+                </div>
+              </td>
+              <td style="padding:12px 12px 12px 0;border-bottom:1px solid #f3f4f6;font-size:12.5px;color:{{ o.tenantInk }}">{{ o.tenantName }}</td>
+              <td style="padding:12px 24px 12px 0;border-bottom:1px solid #f3f4f6;text-align:right;font-size:12.5px;font-variant-numeric:tabular-nums">{{ o.userCount }}</td>
+              <td style="padding:12px 12px 12px 0;border-bottom:1px solid #f3f4f6"><span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;color:#6b7280"><span style="width:7px;height:7px;border-radius:999px;background:{{ o.connDot }}"></span>{{ o.conn }}</span></td>
+              <td style="padding:12px 12px 12px 0;border-bottom:1px solid #f3f4f6;font-size:12px;color:#6b7280">{{ o.brandLine }}</td>
+              <td style="padding:12px 0;border-bottom:1px solid #f3f4f6;text-align:right;color:#d1d5db;font-size:11px"><i class="fas fa-chevron-right"></i></td>
+            </tr>
+          </sc-for>
+        </tbody>
+      </table>
+    </sc-if>
+
+    <sc-if value="{{ isOrg }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="width:44px;height:44px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;background:{{ og.accent }}">{{ og.mono }}</span>
+        <div style="min-width:0;flex:1">
+          <sc-if value="{{ notRenaming }}" hint-placeholder-val="{{ true }}">
+            <h1 style="font-size:24px;font-weight:600;letter-spacing:-0.5px;margin:0;line-height:1.2">{{ og.name }}</h1>
+          </sc-if>
+          <sc-if value="{{ renaming }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;align-items:center;gap:8px">
+              <input value="{{ rn.name }}" onChange="{{ setRnName }}" style="flex:1;max-width:460px;height:34px;box-sizing:border-box;border:1px solid #a5b4fc;border-radius:7px;padding:0 10px;font-family:inherit;font-size:16px;font-weight:600;color:#1f2937;outline:none;box-shadow:0 0 0 3px rgba(79,70,229,0.12)">
+              <button onClick="{{ saveRename }}" style="padding:7px 12px;border-radius:7px;font-family:inherit;font-size:12.5px;font-weight:500;border:1px solid transparent;background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);color:#fff;cursor:pointer">Save</button>
+              <button onClick="{{ cancelRename }}" style="padding:7px 10px;border-radius:7px;font-family:inherit;font-size:12.5px;border:none;background:transparent;color:#6b7280;cursor:pointer">Cancel</button>
+            </div>
+          </sc-if>
+          <p style="font-size:11.5px;color:#9ca3af;margin:3px 0 0;display:flex;gap:8px;align-items:center"><span style="font-family:ui-monospace,'SF Mono',Consolas,monospace">{{ og.id }}</span><span>·</span><span>{{ og.tenantPrefix }} <span onClick="{{ og.openTenant }}" style="font-weight:600;color:{{ og.tenantLinkInk }};cursor:pointer">{{ og.tenantName }}</span></span><span>·</span><span>Created {{ og.created }}</span></p>
+        </div>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+          <button onClick="{{ openEditOrg }}" style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:7px;font-family:inherit;font-size:12px;font-weight:500;border:1px solid #d1d5db;background:#fff;color:#1f2937;cursor:pointer" style-hover="background:#f9fafb"><i class="fas fa-pen" style="font-size:10px"></i> Edit</button>
+          <button onClick="{{ askDeleteOrg }}" style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:7px;font-family:inherit;font-size:12px;font-weight:500;border:1px solid #fecaca;background:#fff;color:#dc2626;cursor:pointer" style-hover="background:#fef2f2"><i class="fas fa-trash-can" style="font-size:10px"></i> Delete</button>
+        </div>
+      </div>
+      <nav style="display:flex;gap:20px;margin-top:22px;border-bottom:1px solid #e5e7eb">
+        <sc-for list="{{ oTabs }}" as="t" hint-placeholder-count="5">
+          <span onClick="{{ t.select }}" style="padding:0 0 9px;margin-bottom:-1px;font-size:12.5px;font-weight:600;color:{{ t.ink }};border-bottom:2px solid {{ t.line }};cursor:pointer">{{ t.label }} <span style="font-weight:500;color:#9ca3af">{{ t.count }}</span></span>
+        </sc-for>
+      </nav>
+
+      <sc-if value="{{ oTabUsers }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;align-items:center;gap:10px;padding:18px 0 0">
+          <h3 style="font-size:15px;font-weight:700;letter-spacing:-0.02em;margin:0">Users</h3>
+          <span style="font-size:11px;color:#9ca3af">{{ og.userCount }} people</span>
+        </div>
+        <table style="width:100%;border-collapse:collapse;margin-top:10px">
+          <thead><tr>
+            <th style="text-align:left;padding:7px 12px 7px 0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af;border-bottom:1px solid #e5e7eb">Name</th>
+            <th style="text-align:left;padding:7px 12px 7px 0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af;border-bottom:1px solid #e5e7eb;width:200px">Access profile</th>
+            <th style="text-align:left;padding:7px 12px 7px 0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af;border-bottom:1px solid #e5e7eb;width:160px">Last sign-in</th>
+          </tr></thead>
+          <tbody>
+            <sc-for list="{{ oUsers }}" as="u" hint-placeholder-count="4">
+              <tr>
+                <td style="padding:11px 12px 11px 0;border-bottom:1px solid #f3f4f6">
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <span style="width:28px;height:28px;border-radius:999px;background:{{ u.bg }};color:{{ u.ink }};display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:600">{{ u.i }}</span>
+                    <div><div style="font-size:12.5px;font-weight:600">{{ u.name }}</div><div style="font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:10.5px;color:#9ca3af">{{ u.login }}</div></div>
+                  </div>
+                </td>
+                <td style="padding:11px 12px 11px 0;border-bottom:1px solid #f3f4f6;font-size:12px">{{ u.profile }}</td>
+                <td style="padding:11px 12px 11px 0;border-bottom:1px solid #f3f4f6;font-size:12px;color:#6b7280;font-variant-numeric:tabular-nums">{{ u.last }}</td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </sc-if>
+
+      <sc-if value="{{ oTabAccess }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width:820px;padding-top:18px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><h3 style="font-size:15px;font-weight:700;letter-spacing:-0.02em;margin:0">Access profiles</h3><span style="font-size:11px;color:#9ca3af">Bound profiles only apply inside this organization</span></div>
+          <div style="border-top:1px solid #e5e7eb">
+            <sc-for list="{{ oProfiles }}" as="p" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid #f3f4f6;font-size:12.5px">
+                <i class="fas {{ p.icon }}" style="width:18px;color:#9ca3af;font-size:11px"></i>
+                <span style="font-weight:600">{{ p.name }}</span>
+                <span style="font-size:10.5px;font-weight:600;padding:1px 7px;border-radius:999px;background:{{ p.tagBg }};color:{{ p.tagInk }}">{{ p.tag }}</span>
+                <span style="margin-left:auto;font-size:11.5px;color:#9ca3af">{{ p.usersLine }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <sc-if value="{{ oNoProfiles }}" hint-placeholder-val="{{ false }}"><p style="font-size:12.5px;color:#9ca3af">No access profiles yet.</p></sc-if>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ oTabData }}" hint-placeholder-val="{{ false }}">
+        <div style="padding-top:18px">
+          <h3 style="font-size:15px;font-weight:700;letter-spacing:-0.02em;margin:0;margin-bottom:12px">Data connection</h3>
+          <sc-if value="{{ og.noConn }}" hint-placeholder-val="{{ false }}"><div style="padding:18px;border:1px dashed #d1d5db;border-radius:10px;font-size:12.5px;color:#9ca3af">No process source yet, so no runtime source is used. Add a process source below and pick its client code.</div></sc-if>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px">
+            <sc-for list="{{ oConns }}" as="c" hint-placeholder-count="1">
+              <div style="border:1px solid #e5e7eb;border-radius:10px;background:#fff;padding:14px 16px">
+                <div style="display:flex;align-items:center;gap:8px"><i class="fas {{ c.stateIcon }}" style="font-size:11px;color:{{ c.stateInk }}"></i><span style="font-size:13px;font-weight:600">{{ c.name }}</span><span style="font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:11px;color:#9ca3af">{{ c.code }}</span>
+                  <button onClick="{{ c.edit }}" style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:7px;font-family:inherit;font-size:12px;font-weight:500;border:1px solid #d1d5db;background:#fff;color:#1f2937;cursor:pointer" style-hover="background:#f9fafb"><i class="fas fa-pen" style="font-size:10px"></i> Edit</button></div>
+                <dl style="display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;margin:12px 0 0;font-size:12px">
+                  <dt style="color:#9ca3af">Dialect</dt><dd style="margin:0">{{ c.dialect }}</dd>
+                  <dt style="color:#9ca3af">Runtime engine</dt><dd style="margin:0;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:11.5px">{{ c.engine }}</dd>
+                  <dt style="color:#9ca3af">Octo domain</dt><dd style="margin:0;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:11.5px">{{ c.octo }}</dd>
+                  <dt style="color:#9ca3af">Runtime state</dt><dd style="margin:0;color:{{ c.stateInk }}">{{ c.state }}</dd>
+                </dl>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:10px;padding:30px 0 0">
+            <h3 style="font-size:15px;font-weight:700;letter-spacing:-0.02em;margin:0">Process sources</h3>
+            <span style="font-size:11px;color:#9ca3af">{{ oSourceCount }}</span>
+            <button onClick="{{ openNewSource }}" style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:7px;font-family:inherit;font-size:12px;font-weight:500;border:1px solid #d1d5db;background:#fff;color:#1f2937;cursor:pointer" style-hover="background:#f9fafb"><i class="fas fa-plus" style="font-size:10px"></i> Add process source</button>
+          </div>
+          <p style="display:flex;gap:8px;font-size:11.5px;color:#9ca3af;margin:6px 0 0;line-height:1.5"><i class="fas fa-circle-info" style="margin-top:3px"></i><span>A process name must be exactly &lt;customer&gt;.&lt;process&gt;, e.g. generali.02_Leistungen. Adding a source also creates its process.&lt;client&gt;.&lt;name&gt;.view permission, granted to nobody.</span></p>
+          <sc-if value="{{ oNoSources }}" hint-placeholder-val="{{ false }}"><div style="margin-top:14px;padding:22px;border:1px dashed #d1d5db;border-radius:10px;font-size:12.5px;color:#9ca3af;text-align:center">No process sources for this organization.</div></sc-if>
+          <div style="display:flex;flex-direction:column;gap:14px;margin-top:14px">
+            <sc-for list="{{ oSources }}" as="p" hint-placeholder-count="2">
+              <div style="border:1px solid #e5e7eb;border-radius:10px;background:#fff;overflow:hidden;animation:nxIn .2s ease">
+                <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid #f3f4f6;flex-wrap:wrap">
+                  <span style="font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:13px;font-weight:600">{{ p.process }}</span>
+                  <span style="font-size:11.5px;color:#9ca3af">Table <span style="font-family:ui-monospace,'SF Mono',Consolas,monospace;color:#6b7280">{{ p.table }}</span> · client <span style="font-family:ui-monospace,'SF Mono',Consolas,monospace;color:#6b7280">{{ p.client }}</span></span>
+                  <span style="margin-left:auto;display:flex;gap:6px">
+                    <button onClick="{{ p.addField }}" style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:7px;font-family:inherit;font-size:12px;font-weight:500;border:1px solid #d1d5db;background:#fff;color:#1f2937;cursor:pointer" style-hover="background:#f9fafb"><i class="fas fa-plus" style="font-size:10px"></i> Add field</button>
+                    <button onClick="{{ p.edit }}" style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:7px;font-family:inherit;font-size:12px;font-weight:500;border:1px solid #d1d5db;background:#fff;color:#1f2937;cursor:pointer" style-hover="background:#f9fafb"><i class="fas fa-pen" style="font-size:10px"></i> Edit</button>
+                    <button onClick="{{ p.remove }}" style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:7px;font-family:inherit;font-size:12px;font-weight:500;border:1px solid #d1d5db;background:#fff;color:#1f2937;cursor:pointer;border-color:#fecaca;color:#dc2626" style-hover="background:#fef2f2"><i class="fas fa-trash-can" style="font-size:10px"></i> Delete</button>
+                  </span>
+                </div>
+                <table style="width:100%;border-collapse:collapse">
+                  <thead><tr>
+                    <th style="text-align:left;padding:7px 12px 7px 0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af;border-bottom:1px solid #e5e7eb;padding-left:14px">Field key</th>
+                    <th style="text-align:left;padding:7px 12px 7px 0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af;border-bottom:1px solid #e5e7eb">Column</th>
+                    <th style="text-align:left;padding:7px 12px 7px 0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af;border-bottom:1px solid #e5e7eb;width:140px">Column type</th>
+                    <th style="border-bottom:1px solid #e5e7eb;width:70px"></th>
+                  </tr></thead>
+                  <tbody>
+                    <sc-for list="{{ p.fields }}" as="f" hint-placeholder-count="3">
+                      <tr style-hover="background:#fafafa">
+                        <td style="padding:8px 12px 8px 14px;border-bottom:1px solid #f3f4f6;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:12px">{{ f.key }}</td>
+                        <td style="padding:8px 12px 8px 0;border-bottom:1px solid #f3f4f6;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:12px;color:#6b7280">{{ f.column }}</td>
+                        <td style="padding:8px 12px 8px 0;border-bottom:1px solid #f3f4f6;font-size:12px;color:#6b7280">{{ f.typeLabel }}</td>
+                        <td style="padding:4px 10px 4px 0;border-bottom:1px solid #f3f4f6;text-align:right;white-space:nowrap"><span onClick="{{ f.edit }}" title="Edit" style="display:inline-flex;width:26px;height:26px;align-items:center;justify-content:center;border-radius:6px;color:#9ca3af;font-size:11px;cursor:pointer" style-hover="background:#f3f4f6;color:#1f2937"><i class="fas fa-pen"></i></span><span onClick="{{ f.remove }}" title="Delete" style="display:inline-flex;width:26px;height:26px;align-items:center;justify-content:center;border-radius:6px;color:#9ca3af;font-size:11px;cursor:pointer" style-hover="background:#fee2e2;color:#dc2626"><i class="fas fa-trash-can"></i></span></td>
+                      </tr>
+                    </sc-for>
+                  </tbody>
+                </table>
+                <sc-if value="{{ p.noFields }}" hint-placeholder-val="{{ false }}"><div style="padding:14px;font-size:12px;color:#9ca3af">No field mappings for this process.</div></sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ oTabBrand }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid;grid-template-columns:400px minmax(0,1fr);gap:40px;padding-top:22px">
+          <div style="display:flex;flex-direction:column;gap:20px">
+            <p style="font-size:12px;color:#6b7280;margin:0;line-height:1.55">Applies to everyone in this organization. Leave a field empty to fall back to nexora branding.</p>
+            <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af">Brand name</span><input value="{{ bd.name }}" onChange="{{ setBdName }}" placeholder="nexora" style="height:33px;box-sizing:border-box;background:#fff;border:1px solid #d1d5db;border-radius:7px;padding:0 10px;font-family:inherit;font-size:12.5px"></label>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af">Accent colour</span>
+              <div style="display:flex;align-items:center;gap:8px">
+                <input type="color" value="{{ bd.picker }}" onChange="{{ setBdAccent }}" style="width:44px;height:33px;box-sizing:border-box;padding:3px;border:1px solid #d1d5db;border-radius:7px;background:#fff;cursor:pointer">
+                <input value="{{ bd.accent }}" onChange="{{ setBdAccent }}" placeholder="#336699" maxlength="7" style="width:110px;height:33px;box-sizing:border-box;background:#fff;border:1px solid #d1d5db;border-radius:7px;padding:0 10px;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:12px;color:#1f2937">
+                <button onClick="{{ clearAccent }}" style="padding:5px 10px;border-radius:7px;border:none;background:transparent;font-family:inherit;font-size:12px;color:#6b7280;cursor:pointer" style-hover="background:#f3f4f6">Clear</button>
+              </div>
+              <sc-if value="{{ bd.badHex }}" hint-placeholder-val="{{ false }}"><div style="font-size:11.5px;color:#dc2626">Use a 6-digit hex colour like #336699</div></sc-if>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af">Logo</span>
+              <div style="display:flex;align-items:center;gap:14px;padding:14px;border:1px dashed #d1d5db;border-radius:10px;background:#fff">
+                <div style="width:48px;height:48px;border-radius:8px;background:repeating-linear-gradient(135deg,#f3f4f6 0 6px,#fff 6px 12px);border:1px solid #e5e7eb;display:flex;align-items:center;justify-content:center;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:9px;color:#9ca3af">logo</div>
+                <div style="flex:1"><div style="font-size:12.5px;font-weight:500">{{ bd.logoLabel }}</div><div style="font-size:11px;color:#9ca3af">SVG, PNG or JPEG, up to 512 KB</div></div>
+                <button onClick="{{ fakeUpload }}" style="padding:5px 10px;border-radius:7px;border:1px solid #d1d5db;background:#fff;font-family:inherit;font-size:12px;cursor:pointer">{{ bd.logoBtn }}</button>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;padding-top:14px;border-top:1px solid #e5e7eb">
+              <span style="margin-left:auto"></span>
+              <button onClick="{{ discardBrand }}" disabled="{{ bdClean }}" style="padding:8px 14px;border-radius:7px;font-family:inherit;font-size:13px;font-weight:500;border:1px solid #d1d5db;background:#fff;color:#1f2937;cursor:pointer;opacity:{{ bdOpacity }}">Discard</button>
+              <button onClick="{{ saveBrand }}" disabled="{{ bdClean }}" style="padding:8px 14px;border-radius:7px;font-family:inherit;font-size:13px;font-weight:500;border:1px solid transparent;background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);color:#fff;cursor:pointer;opacity:{{ bdOpacity }}">Save branding</button>
+            </div>
+          </div>
+          <div>
+            <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af;margin:0 0 10px">Preview · what members see</p>
+            <div style="display:flex;height:420px;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;background:#f9fafb;box-shadow:0 12px 32px rgba(16,24,40,0.08)">
+              <div style="width:180px;background:#fff;border-right:1px solid #f3f4f6;display:flex;flex-direction:column">
+                <div style="display:flex;align-items:center;gap:8px;height:52px;padding:0 12px;border-bottom:1px solid #f3f4f6">
+                  <span style="width:26px;height:26px;border-radius:6px;background:{{ bd.swatch }};color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">{{ bd.initial }}</span>
+                  <span style="font-size:14px;font-weight:600;letter-spacing:-0.02em">{{ bd.shownName }}</span>
+                </div>
+                <div style="padding:10px 8px;display:flex;flex-direction:column;gap:2px;font-size:12px;color:#57606a">
+                  <sc-for list="{{ brandNav }}" as="n" hint-placeholder-count="4">
+                    <div style="position:relative;display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:6px;background:{{ n.bg }};color:{{ n.ink }};font-weight:{{ n.weight }}">
+                      <sc-if value="{{ n.first }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;left:-8px;top:50%;transform:translateY(-50%);width:3px;height:16px;border-radius:0 2px 2px 0;background:{{ bd.swatch }}"></span></sc-if>
+                      <i class="fas {{ n.icon }}" style="width:14px;font-size:11px"></i>{{ n.label }}
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="flex:1;padding:22px 24px">
+                <div style="display:flex;align-items:center;gap:10px">
+                  <span style="width:34px;height:34px;border-radius:9px;background:{{ bd.swatch }};color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:13px"><i class="fas fa-gauge-high"></i></span>
+                  <span style="font-size:18px;font-weight:600;letter-spacing:-0.3px">Dashboard</span>
+                  <span style="margin-left:auto;padding:6px 11px;border-radius:6px;background:{{ bd.swatch }};color:#fff;font-size:11.5px;font-weight:500">Export</span>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);margin-top:18px;border-bottom:1px solid #e5e7eb">
+                  <div style="padding:10px 0"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af">Imported</div><div style="font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:20px;font-weight:600;margin-top:5px">1'284</div></div>
+                  <div style="padding:10px 0 10px 14px;border-left:1px solid #f3f4f6"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af">Processed</div><div style="font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:20px;font-weight:600;margin-top:5px">1'190</div></div>
+                  <div style="padding:10px 0 10px 14px;border-left:1px solid #f3f4f6"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af">Backlog</div><div style="font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:20px;font-weight:600;margin-top:5px">94</div></div>
+                </div>
+                <div style="display:flex;align-items:flex-end;gap:6px;height:170px;margin-top:16px">
+                  <sc-for list="{{ brandBars }}" as="b" hint-placeholder-count="12"><div style="flex:1;height:{{ b.h }};background:{{ bd.swatch }};opacity:{{ b.o }};border-radius:3px 3px 0 0"></div></sc-for>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ oTabTenant }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width:640px;padding-top:18px">
+          <h3 style="font-size:15px;font-weight:700;letter-spacing:-0.02em;margin:0">Tenant</h3>
+          <p style="font-size:12px;color:#6b7280;margin:4px 0 14px">Members see the pages of the tenant their organization belongs to.</p>
+          <div style="border:1px solid #e5e7eb;border-radius:10px;background:#fff;overflow:hidden">
+            <sc-for list="{{ moveOptions }}" as="m" hint-placeholder-count="4">
+              <div onClick="{{ m.pick }}" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid #f3f4f6;cursor:pointer;background:{{ m.bg }}" style-hover="background:#f9fafb">
+                <span style="width:16px;height:16px;border-radius:999px;box-sizing:border-box;border:{{ m.ring }};background:#fff;flex-shrink:0"></span>
+                <span style="width:24px;height:24px;border-radius:7px;background:{{ m.tint }};color:{{ m.ink }};display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700">{{ m.initial }}</span>
+                <span style="font-size:12.5px;font-weight:600">{{ m.name }}</span>
+                <span style="font-size:11.5px;color:#9ca3af">{{ m.desc }}</span>
+                <sc-if value="{{ m.current }}" hint-placeholder-val="{{ false }}"><span style="margin-left:auto;font-size:10.5px;font-weight:600;color:#6b7280">Current</span></sc-if>
+              </div>
+            </sc-for>
+          </div>
+          <sc-if value="{{ moveChanged }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;gap:10px;align-items:flex-start;margin-top:14px;padding:12px 14px;border-radius:8px;background:#fef3c7;color:#92400e;font-size:12px;line-height:1.5;animation:nxIn .2s ease"><i class="fas fa-arrow-right-arrow-left" style="margin-top:3px"></i><span>{{ moveText }}</span></div>
+            <div style="display:flex;gap:8px;margin-top:14px">
+              <span style="margin-left:auto"></span>
+              <button onClick="{{ cancelMove }}" style="padding:8px 14px;border-radius:7px;font-family:inherit;font-size:13px;font-weight:500;border:1px solid #d1d5db;background:#fff;color:#1f2937;cursor:pointer">Cancel</button>
+              <button onClick="{{ confirmMove }}" style="padding:8px 14px;border-radius:7px;font-family:inherit;font-size:13px;font-weight:500;border:1px solid transparent;background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);color:#fff;cursor:pointer">Move organization</button>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+    </sc-if>
+    </div>
+  </main>
+
+  <sc-if value="{{ sheetTenant }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeSheet }}" style="position:fixed;inset:0;background:rgba(17,24,39,0.28)"></div>
+    <div style="position:fixed;top:0;right:0;bottom:0;width:480px;background:#fff;box-shadow:-12px 0 32px rgba(16,24,40,0.12);display:flex;flex-direction:column;animation:nxSheet .22s ease">
+      <div style="display:flex;align-items:center;gap:10px;padding:20px 24px;border-bottom:1px solid #e5e7eb">
+        <div>
+          <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af;margin:0">{{ ts.kicker }}</p>
+          <h2 style="font-size:17px;font-weight:600;letter-spacing:-0.2px;margin:3px 0 0">{{ ts.title }}</h2>
+        </div>
+        <button onClick="{{ closeSheet }}" style="margin-left:auto;width:30px;height:30px;border:none;border-radius:7px;background:transparent;color:#6b7280;cursor:pointer" style-hover="background:#f3f4f6"><i class="fas fa-xmark"></i></button>
+      </div>
+      <div style="flex:1;overflow:auto;padding:20px 24px;display:flex;flex-direction:column;gap:18px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af">Display name</span><input value="{{ ts.name }}" onChange="{{ setTsName }}" placeholder="e.g. Helvetia" style="height:33px;box-sizing:border-box;background:#fff;border:1px solid #d1d5db;border-radius:7px;padding:0 10px;font-family:inherit;font-size:12.5px;color:#1f2937"></label>
+          <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af">Code</span><input value="{{ ts.code }}" onChange="{{ setTsCode }}" disabled="{{ ts.codeLocked }}" placeholder="helvetia" style="height:33px;box-sizing:border-box;background:{{ ts.codeBg }};border:1px solid {{ ts.codeBorder }};border-radius:7px;padding:0 10px;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:12.5px;color:{{ ts.codeInk }}"></label>
+        </div>
+        <sc-if value="{{ ts.hasError }}" hint-placeholder-val="{{ false }}"><div style="margin-top:-8px;font-size:11.5px;color:#dc2626">{{ ts.error }}</div></sc-if>
+        <div onClick="{{ toggleTsActive }}" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid #e5e7eb;border-radius:8px;cursor:pointer">
+          <span style="position:relative;width:36px;height:20px;border-radius:999px;background:{{ ts.trackBg }};flex-shrink:0;transition:background .15s"><span style="position:absolute;top:3px;left:{{ ts.knobLeft }};width:14px;height:14px;border-radius:999px;background:#fff;transition:left .15s"></span></span>
+          <div><div style="font-size:12.5px;font-weight:600">{{ ts.activeLabel }}</div><div style="font-size:11.5px;color:#9ca3af">Members see this tenant's pages instead of the global navigation</div></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center"><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af">Organizations</span><span style="margin-left:auto;font-size:11px;color:#9ca3af">{{ ts.selCount }} selected</span></div>
+          <div style="position:relative">
+            <i class="fas fa-search" style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:#9ca3af;font-size:10px"></i>
+            <input value="{{ ts.filter }}" onChange="{{ setTsFilter }}" placeholder="Filter organizations" style="width:100%;height:29px;box-sizing:border-box;background:#fff;border:1px solid #d1d5db;border-radius:7px;padding:0 10px 0 26px;font-family:inherit;font-size:12.5px">
+          </div>
+          <div style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
+            <sc-for list="{{ tsPick }}" as="p" hint-placeholder-count="6">
+              <div onClick="{{ p.toggle }}" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid #f3f4f6;font-size:12.5px;background:{{ p.bg }};cursor:pointer" style-hover="background:#f9fafb">
+                <span style="width:16px;height:16px;border-radius:4px;box-sizing:border-box;border:1.5px solid {{ p.boxBorder }};background:{{ p.boxBg }};display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:9px"><i class="fas fa-check"></i></span>
+                <span style="flex:1">{{ p.name }} <span style="font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:11px;color:#9ca3af">{{ p.id }}</span></span>
+                <span style="font-size:11px;color:{{ p.noteInk }};font-weight:{{ p.noteWeight }}">{{ p.note }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <sc-for list="{{ tsWarnings }}" as="w" hint-placeholder-count="0">
+            <div style="display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border-radius:8px;background:#fef3c7;color:#92400e;font-size:11.5px;line-height:1.5"><i class="fas fa-arrow-right-arrow-left" style="margin-top:3px"></i><span>{{ w }}</span></div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding:14px 24px;border-top:1px solid #e5e7eb">
+        <span style="margin-left:auto"></span>
+        <button onClick="{{ closeSheet }}" style="padding:8px 14px;border-radius:7px;font-family:inherit;font-size:13px;font-weight:500;border:1px solid #d1d5db;background:#fff;color:#1f2937;cursor:pointer">Cancel</button>
+        <button onClick="{{ saveTenantSheet }}" style="padding:8px 14px;border-radius:7px;font-family:inherit;font-size:13px;font-weight:500;border:1px solid transparent;background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);color:#fff;cursor:pointer;box-shadow:0 2px 8px -2px rgba(79,70,229,0.45)">{{ ts.saveLabel }}</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ sheetMount }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeSheet }}" style="position:fixed;inset:0;background:rgba(17,24,39,0.28)"></div>
+    <div style="position:fixed;top:0;right:0;bottom:0;width:480px;background:#fff;box-shadow:-12px 0 32px rgba(16,24,40,0.12);display:flex;flex-direction:column;animation:nxSheet .22s ease">
+      <div style="display:flex;align-items:center;gap:10px;padding:20px 24px;border-bottom:1px solid #e5e7eb">
+        <div>
+          <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af;margin:0">{{ tn.name }} · Pages</p>
+          <h2 style="font-size:17px;font-weight:600;letter-spacing:-0.2px;margin:3px 0 0">Mount a page</h2>
+        </div>
+        <button onClick="{{ closeSheet }}" style="margin-left:auto;width:30px;height:30px;border:none;border-radius:7px;background:transparent;color:#6b7280;cursor:pointer" style-hover="background:#f3f4f6"><i class="fas fa-xmark"></i></button>
+      </div>
+      <div style="flex:1;overflow:auto;padding:20px 24px;display:flex;flex-direction:column;gap:16px">
+        <p style="font-size:12px;color:#6b7280;margin:0;line-height:1.55">Mounted pages point at existing nexora pages. Generated list/crud pages come from migrations.</p>
+        <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af">Page</span>
+          <select value="{{ ms.endpoint }}" onChange="{{ setMsEndpoint }}" style="height:33px;box-sizing:border-box;background:#fff;border:1px solid #d1d5db;border-radius:7px;padding:0 10px;font-family:inherit;font-size:12.5px;color:#1f2937;padding:0 8px">
+            <sc-for list="{{ endpointOptions }}" as="e" hint-placeholder-count="6"><option value="{{ e.value }}">{{ e.label }}</option></sc-for>
+          </select>
+        </label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af">Key</span><input value="{{ ms.key }}" onChange="{{ setMsKey }}" placeholder="e.g. dashboard" style="height:33px;box-sizing:border-box;background:#fff;border:1px solid #d1d5db;border-radius:7px;padding:0 10px;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:12px;color:#1f2937;border-color:{{ ms.keyBorder }}"></label>
+          <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af">Label</span><input value="{{ ms.label }}" onChange="{{ setMsLabel }}" maxlength="100" placeholder="Shown in the sidebar" style="height:33px;box-sizing:border-box;background:#fff;border:1px solid #d1d5db;border-radius:7px;padding:0 10px;font-family:inherit;font-size:12.5px;color:#1f2937"></label>
+        </div>
+        <sc-if value="{{ ms.hasError }}" hint-placeholder-val="{{ false }}"><div style="margin-top:-8px;font-size:11.5px;color:#dc2626">{{ ms.error }}</div></sc-if>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af">Icon</span>
+            <span style="position:relative;display:block">
+              <i class="fas {{ ms.iconShown }}" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:12px;color:#6b7280"></i>
+              <input value="{{ ms.icon }}" onChange="{{ setMsIcon }}" placeholder="fa-chart-line" style="width:100%;height:33px;box-sizing:border-box;background:#fff;border:1px solid #d1d5db;border-radius:7px;padding:0 10px 0 30px;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:12px;color:#1f2937">
+            </span>
+          </label>
+          <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af">Sort order</span><input type="number" value="{{ ms.sort }}" onChange="{{ setMsSort }}" style="height:33px;box-sizing:border-box;background:#fff;border:1px solid #d1d5db;border-radius:7px;padding:0 10px;font-family:inherit;font-size:12.5px;color:#1f2937;font-variant-numeric:tabular-nums"></label>
+        </div>
+        <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af">Active page <span style="text-transform:none;letter-spacing:0;font-weight:500">(optional)</span></span><input value="{{ ms.active }}" onChange="{{ setMsActive }}" placeholder="active_page" style="height:33px;box-sizing:border-box;background:#fff;border:1px solid #d1d5db;border-radius:7px;padding:0 10px;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:12px;color:#1f2937"><span style="font-size:11.5px;color:#9ca3af">Sidebar item to highlight when the page is open. Defaults to the key.</span></label>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding:14px 24px;border-top:1px solid #e5e7eb">
+        <span style="margin-left:auto"></span>
+        <button onClick="{{ closeSheet }}" style="padding:8px 14px;border-radius:7px;font-family:inherit;font-size:13px;font-weight:500;border:1px solid #d1d5db;background:#fff;color:#1f2937;cursor:pointer">Cancel</button>
+        <button onClick="{{ saveMount }}" disabled="{{ ms.invalid }}" style="padding:8px 14px;border-radius:7px;font-family:inherit;font-size:13px;font-weight:500;border:1px solid transparent;background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);color:#fff;cursor:pointer;opacity:{{ ms.opacity }}">Add page</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ sheetOrg }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeSheet }}" style="position:fixed;inset:0;background:rgba(17,24,39,0.28)"></div>
+    <div style="position:fixed;top:0;right:0;bottom:0;width:440px;background:#fff;box-shadow:-12px 0 32px rgba(16,24,40,0.12);display:flex;flex-direction:column;animation:nxSheet .22s ease">
+      <div style="display:flex;align-items:center;gap:10px;padding:20px 24px;border-bottom:1px solid #e5e7eb">
+        <div>
+          <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af;margin:0">{{ os.kicker }}</p>
+          <h2 style="font-size:17px;font-weight:600;letter-spacing:-0.2px;margin:3px 0 0">{{ os.title }}</h2>
+        </div>
+        <button onClick="{{ closeSheet }}" style="margin-left:auto;width:30px;height:30px;border:none;border-radius:7px;background:transparent;color:#6b7280;cursor:pointer" style-hover="background:#f3f4f6"><i class="fas fa-xmark"></i></button>
+      </div>
+      <div style="flex:1;overflow:auto;padding:20px 24px;display:flex;flex-direction:column;gap:16px">
+        <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af">Organization name</span><input value="{{ os.name }}" onChange="{{ setOsName }}" style="height:33px;box-sizing:border-box;background:#fff;border:1px solid #d1d5db;border-radius:7px;padding:0 10px;font-family:inherit;font-size:12.5px;color:#1f2937"></label>
+        <sc-if value="{{ os.hasError }}" hint-placeholder-val="{{ false }}"><div style="margin-top:-8px;font-size:11.5px;color:#dc2626">{{ os.error }}</div></sc-if>
+        <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af">Tenant</span>
+          <select value="{{ os.tenant }}" onChange="{{ setOsTenant }}" style="height:33px;box-sizing:border-box;background:#fff;border:1px solid #d1d5db;border-radius:7px;padding:0 10px;font-family:inherit;font-size:12.5px;color:#1f2937;padding:0 8px">
+            <sc-for list="{{ osTenantOptions }}" as="t" hint-placeholder-count="4"><option value="{{ t.value }}">{{ t.label }}</option></sc-for>
+          </select>
+        </label>
+        <sc-if value="{{ os.hasMoveNote }}" hint-placeholder-val="{{ false }}"><div style="display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border-radius:8px;background:#fef3c7;color:#92400e;font-size:11.5px;line-height:1.5"><i class="fas fa-arrow-right-arrow-left" style="margin-top:3px"></i><span>{{ os.moveNote }}</span></div></sc-if>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding:14px 24px;border-top:1px solid #e5e7eb">
+        <span style="margin-left:auto"></span>
+        <button onClick="{{ closeSheet }}" style="padding:8px 14px;border-radius:7px;font-family:inherit;font-size:13px;font-weight:500;border:1px solid #d1d5db;background:#fff;color:#1f2937;cursor:pointer">Cancel</button>
+        <button onClick="{{ saveOrgSheet }}" style="padding:8px 14px;border-radius:7px;font-family:inherit;font-size:13px;font-weight:500;border:1px solid transparent;background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);color:#fff;cursor:pointer;box-shadow:0 2px 8px -2px rgba(79,70,229,0.45)">Save organization</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ sheetForm }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeSheet }}" style="position:fixed;inset:0;background:rgba(17,24,39,0.28)"></div>
+    <div style="position:fixed;top:0;right:0;bottom:0;width:500px;background:#fff;box-shadow:-12px 0 32px rgba(16,24,40,0.12);display:flex;flex-direction:column;animation:nxSheet .22s ease">
+      <div style="display:flex;align-items:center;gap:10px;padding:20px 24px;border-bottom:1px solid #e5e7eb">
+        <div>
+          <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af;margin:0">{{ fs.kicker }}</p>
+          <h2 style="font-size:17px;font-weight:600;letter-spacing:-0.2px;margin:3px 0 0">{{ fs.title }}</h2>
+        </div>
+        <button onClick="{{ closeSheet }}" style="margin-left:auto;width:30px;height:30px;border:none;border-radius:7px;background:transparent;color:#6b7280;cursor:pointer" style-hover="background:#f3f4f6"><i class="fas fa-xmark"></i></button>
+      </div>
+      <div style="flex:1;overflow:auto;padding:20px 24px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-content:start;overflow-x:hidden">
+        <sc-for list="{{ formFields }}" as="f" hint-placeholder-count="6">
+          <label style="display:flex;flex-direction:column;gap:6px;min-width:0;grid-column:{{ f.span }}">
+            <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af">{{ f.label }} <span style="text-transform:none;letter-spacing:0;font-weight:500">{{ f.hint }}</span></span>
+            <sc-if value="{{ f.isText }}" hint-placeholder-val="{{ true }}"><input value="{{ f.value }}" onChange="{{ f.set }}" placeholder="{{ f.placeholder }}" disabled="{{ f.readonly }}" maxlength="{{ f.max }}" style="width:100%;height:33px;box-sizing:border-box;background:{{ f.bg }};border:1px solid {{ f.border }};border-radius:7px;padding:0 10px;font-family:{{ f.font }};font-size:12.5px;color:{{ f.ink }}"></sc-if>
+            <sc-if value="{{ f.isSelect }}" hint-placeholder-val="{{ false }}"><select value="{{ f.value }}" onChange="{{ f.set }}" style="width:100%;height:33px;box-sizing:border-box;background:#fff;border:1px solid {{ f.border }};border-radius:7px;padding:0 8px;font-family:inherit;font-size:12.5px;color:#1f2937"><sc-for list="{{ f.options }}" as="o" hint-placeholder-count="3"><option value="{{ o.value }}">{{ o.label }}</option></sc-for></select></sc-if>
+            <sc-if value="{{ f.isToggle }}" hint-placeholder-val="{{ false }}"><span onClick="{{ f.set }}" style="display:flex;align-items:center;gap:10px;height:33px;cursor:pointer"><span style="position:relative;width:36px;height:20px;border-radius:999px;background:{{ f.trackBg }};flex-shrink:0;transition:background .15s"><span style="position:absolute;top:3px;left:{{ f.knobLeft }};width:14px;height:14px;border-radius:999px;background:#fff;transition:left .15s"></span></span><span style="font-size:12.5px;color:#1f2937">{{ f.toggleLabel }}</span></span></sc-if>
+          </label>
+        </sc-for>
+        <sc-if value="{{ fs.hasError }}" hint-placeholder-val="{{ false }}"><div style="grid-column:1 / -1;font-size:11.5px;color:#dc2626">{{ fs.error }}</div></sc-if>
+        <sc-for list="{{ fs.notes }}" as="n" hint-placeholder-count="0">
+          <div style="grid-column:1 / -1;display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border-radius:8px;background:#f3f4f6;color:#4b5563;font-size:11.5px;line-height:1.5"><i class="fas {{ n.icon }}" style="margin-top:3px"></i><span>{{ n.text }}</span></div>
+        </sc-for>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding:14px 24px;border-top:1px solid #e5e7eb">
+        <span style="margin-left:auto"></span>
+        <button onClick="{{ closeSheet }}" style="padding:8px 14px;border-radius:7px;font-family:inherit;font-size:13px;font-weight:500;border:1px solid #d1d5db;background:#fff;color:#1f2937;cursor:pointer">Cancel</button>
+        <button onClick="{{ saveForm }}" style="padding:8px 14px;border-radius:7px;font-family:inherit;font-size:13px;font-weight:500;border:1px solid transparent;background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);color:#fff;cursor:pointer;box-shadow:0 2px 8px -2px rgba(79,70,229,0.45)">{{ fs.saveLabel }}</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ hasConfirm }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeConfirm }}" style="position:fixed;inset:0;background:rgba(17,24,39,0.35);display:flex;align-items:center;justify-content:center">
+      <div onClick="{{ stop }}" style="width:420px;background:#fff;border-radius:12px;box-shadow:0 24px 48px rgba(16,24,40,0.2);padding:22px 24px;animation:nxIn .18s ease">
+        <h3 style="font-size:16px;font-weight:600;margin:0">{{ cf.title }}</h3>
+        <p style="font-size:12.5px;color:#6b7280;line-height:1.55;margin:8px 0 18px">{{ cf.body }}</p>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button onClick="{{ closeConfirm }}" style="padding:8px 14px;border-radius:7px;font-family:inherit;font-size:13px;font-weight:500;border:1px solid #d1d5db;background:#fff;color:#1f2937;cursor:pointer">Cancel</button>
+          <button onClick="{{ cf.ok }}" style="padding:8px 14px;border-radius:7px;font-family:inherit;font-size:13px;font-weight:500;border:1px solid transparent;background:#dc2626;color:#fff;cursor:pointer">{{ cf.okLabel }}</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);display:flex;align-items:center;gap:14px;padding:10px 14px 10px 16px;border-radius:10px;background:#1f2937;color:#fff;font-size:12.5px;box-shadow:0 12px 32px rgba(16,24,40,0.3);animation:nxIn .2s ease">
+      <i class="fas fa-circle-check" style="color:#34d399"></i>{{ toastMsg }}
+      <sc-if value="{{ hasUndo }}" hint-placeholder-val="{{ false }}"><span onClick="{{ undo }}" style="font-weight:600;color:#a5b4fc;cursor:pointer">Undo</span></sc-if>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  static seed() {
+    const G='#059669', A='#d97706';
+    const U=(i,name,login,profile,last,bg,ink)=>({i,name,login,profile,last,bg,ink});
+    const P=(key,label,icon,type,target,live)=>({key,label,icon,type,target,live});
+    return {
+      tenants: [
+        { id:'generali', name:'Generali', active:true, pilot:false, tint:'#fdecea', ink:'#c21b17', accent:'#c21b17', landing:'dashboard',
+          access:[{profile:'Generali Viewer',scope:'Generali Versicherungen AG, Generali Personenversicherungen',users:5},{profile:'Generali Editor',scope:'Generali Versicherungen AG',users:1},{profile:'Administrator',scope:'Global',users:2}] },
+        { id:'sydoc', name:'Sydoc', active:true, pilot:false, tint:'#eef2ff', ink:'#4338ca', accent:'#4f46e5', landing:'dashboard',
+          access:[{profile:'Sydoc Staff',scope:'Sydoc AG',users:6},{profile:'Administrator',scope:'Global',users:2}] },
+        { id:'ms02', name:'MS02', active:true, pilot:true, tint:'#ecfeff', ink:'#0e7490', accent:'#0e7490', landing:'dashboard', access:[] },
+        { id:'bvg_test', name:'BVG Test', active:false, pilot:false, tint:'#f3f4f6', ink:'#4b5563', accent:'#6b7280', landing:'', access:[] },
+      ],
+      orgs: [
+        { id:'GEN', name:'Generali Versicherungen AG', tenant:'generali', mono:'GEN', accent:'#c21b17', created:'03.02.2025',
+          users:[U('AB','Anna Brunner','abrunner','Generali Viewer','Today 08:14','#eef2ff','#4338ca'),U('LM','Luca Moretti','lmoretti','Generali Editor','Yesterday','#f5f3ff','#6d28d9'),U('SF','Sabine Frei','sfrei','Generali Viewer','22.09.2026','#ecfeff','#0e7490'),U('TH','Thomas Huber','thuber','Reporting','Never','#fef3c7','#92400e')],
+          profiles:[{name:'Generali Viewer',bound:true},{name:'Generali Editor',bound:true},{name:'Reporting',bound:false}],
+          conn:{name:'Generali Scanning',code:'gen01',dialect:'mssql',loaded:true}, procs:[{p:'generali.01_Posteingang',f:14},{p:'generali.02_Leistungen',f:9}],
+          brand:{name:'Generali',accent:'#C21B17',logo:'generali-logo.svg'} },
+        { id:'GPV', name:'Generali Personenversicherungen', tenant:'generali', mono:'GPV', accent:'#c21b17', created:'11.04.2025',
+          users:[U('MR','Marco Rossi','mrossi','Generali Viewer','Today 07:52','#d1fae5','#065f46'),U('CW','Claudia Weber','cweber','Generali Viewer','19.09.2026','#fee2e2','#991b1b')],
+          profiles:[{name:'Generali Viewer',bound:true}],
+          conn:{name:'Generali Scanning',code:'gen01',dialect:'mssql',loaded:true}, procs:[{p:'generali.03_Antraege',f:11}],
+          brand:{name:'Generali',accent:'#C21B17',logo:''} },
+        { id:'SYDOC', name:'Sydoc AG', tenant:'sydoc', mono:'SY', accent:'#4f46e5', created:'01.01.2024',
+          users:[U('MK','Martin Keller','mkeller','Sydoc Staff','Today 09:02','#e0e7ff','#4338ca'),U('RB','Reto Baumann','rbaumann','Administrator','Today 08:40','#f5f3ff','#6d28d9'),U('NS','Nina Schmid','nschmid','Sydoc Staff','Yesterday','#ecfeff','#0e7490'),U('DM','David Meier','dmeier','Sydoc Staff','24.09.2026','#fef3c7','#92400e'),U('LG','Lea Gerber','lgerber','Administrator','23.09.2026','#d1fae5','#065f46'),U('PW','Patrick Wyss','pwyss','Sydoc Staff','15.09.2026','#fee2e2','#991b1b')],
+          profiles:[{name:'Sydoc Staff',bound:true},{name:'Administrator',bound:false}],
+          conn:{name:'Sydoc Internal',code:'sydoc',dialect:'mssql',loaded:true}, procs:[{p:'sydoc.intake',f:8},{p:'sydoc.billing',f:12},{p:'sydoc.qa',f:5}],
+          brand:{name:'',accent:'',logo:''} },
+        { id:'PDBS', name:'Praesidialdepartement Basel-Stadt', tenant:'ms02', mono:'BS', accent:'#0e7490', created:'02.06.2026',
+          users:[U('JV','Jonas Vogt','jvogt','MS02 Viewer','Never','#ecfeff','#0e7490'),U('EH','Eva Hofer','ehofer','MS02 Viewer','Never','#f5f3ff','#6d28d9')],
+          profiles:[{name:'MS02 Viewer',bound:true}],
+          conn:{name:'MS02 Archive',code:'ms02',dialect:'mssql',loaded:false}, procs:[{p:'ms02.eingang',f:7}],
+          brand:{name:'Basel-Stadt',accent:'#0E7490',logo:'bs-wappen.png'} },
+        { id:'KZST', name:'Kanton Zürich Steueramt', tenant:null, mono:'ZH', accent:'#6b7280', created:'18.08.2026',
+          users:[U('SK','Stefan Koch','skoch','KZST Viewer','20.09.2026','#e0e7ff','#4338ca'),U('MB','Mia Bachmann','mbachmann','KZST Viewer','18.09.2026','#d1fae5','#065f46'),U('UF','Urs Fischer','ufischer','KZST Viewer','Never','#fef3c7','#92400e')],
+          profiles:[{name:'KZST Viewer',bound:true}],
+          conn:{name:'KZST Scanning',code:'kzst01',dialect:'mssql',loaded:true}, procs:[{p:'kzst.veranlagung',f:10},{p:'kzst.einsprache',f:6}],
+          brand:{name:'',accent:'',logo:''} },
+        { id:'DEMO', name:'Demo AG', tenant:null, mono:'DE', accent:'#9ca3af', created:'05.05.2026',
+          users:[U('DU','Demo User','demo','Reporting','02.09.2026','#f3f4f6','#4b5563')],
+          profiles:[], conn:null, procs:[], brand:{name:'',accent:'',logo:''} },
+      ],
+      pages: {
+        generali:[P('dashboard','Dashboard','fa-gauge-high','custom','dashboard',true),P('workitems','Workitems','fa-layer-group','custom','workitems_overview',true),P('baseservices','Base services','fa-list-check','custom','generali_baseservices',true),P('additionalservices','Additional services','fa-circle-plus','custom','generali_additionalservices',true),P('documents','Documents','fa-file-lines','custom','generali_documents',true),P('importstatus','Import status','fa-table-list','list','entity generali.imports',false)],
+        sydoc:[P('dashboard','Dashboard','fa-gauge-high','custom','dashboard',true),P('workitems','Workitems','fa-layer-group','custom','workitems_overview',true),P('reports','Reports','fa-chart-line','custom','sydoc_reports',true)],
+        ms02:[P('dashboard','Dashboard','fa-gauge-high','custom','dashboard',true),P('documents','Documents','fa-file-lines','custom','ms02_documents',false)],
+        bvg_test:[],
+      },
+    };
+  }
+
+  state = (() => {
+    let saved = {};
+    try { saved = JSON.parse(localStorage.getItem('nx-tenants-proto') || '{}'); } catch (e) {}
+    const seed = Component.seed();
+    const clients = [
+      { code:'default', name:'Sydoc default', dialect:'tsql', engine:'engine_default_tsql', statsEngine:'', statsDialect:'', docEngine:'', docDialect:'', octo:'octo.sydoc.ch', secret:'', active:true, loaded:true },
+      { code:'gen01', name:'Generali Scanning', dialect:'tsql', engine:'engine_gen01_tsql', statsEngine:'', statsDialect:'', docEngine:'engine_gen01_docfields', docDialect:'tsql', octo:'octo-gen.sydoc.ch', secret:'GEN01', active:true, loaded:true },
+      { code:'ms02', name:'MS02 Archive', dialect:'postgres', engine:'engine_ms02_pg', statsEngine:'engine_ms02_stats', statsDialect:'postgres', docEngine:'', docDialect:'', octo:'octo-ms02.sydoc.ch', secret:'MS02', active:true, loaded:false },
+      { code:'kzst01', name:'KZST Scanning', dialect:'tsql', engine:'engine_kzst01_tsql', statsEngine:'', statsDialect:'', docEngine:'', docDialect:'', octo:'', secret:'KZST01', active:true, loaded:true },
+      { code:'legacy01', name:'Legacy Archive', dialect:'tsql', engine:'engine_legacy01_tsql', statsEngine:'', statsDialect:'', docEngine:'', docDialect:'', octo:'', secret:'', active:false, loaded:false },
+    ];
+    const fk = [['doc.id','DocID','bigint'],['doc.date','Eingangsdatum','datetime'],['doc.type','Dokumenttyp','nvarchar'],['customer.no','KundenNr','nvarchar'],['customer.name','Kundenname','nvarchar'],['policy.no','PolicenNr','nvarchar'],['amount','Betrag','decimal'],['status','Status','']];
+    const codeMap = { gen01:'gen01', sydoc:'default', ms02:'ms02', kzst01:'kzst01' };
+    const sources = [];
+    seed.orgs.forEach(o => (o.procs||[]).forEach((p,i) => sources.push({ client: codeMap[o.conn?.code] || 'default', process:p.p, org:o.id,
+      table:'dbo.tbl' + p.p.split('.')[1].replace(/^\d+_/,''), alias:'', exportCol:'ExportDatum', importCol:'ImportDatum', workitemCol:'', idType:'bigint',
+      fields: fk.slice(0, 3 + ((p.f + i) % 5)).map(([key,column,type]) => ({ key, column, type })) })));
+    sources.push({ client:'default', process:'demo.01_Test', org:null, table:'dbo.tblTest', alias:'', exportCol:'', importCol:'', workitemCol:'', idType:'', fields:[] });
+    return { ...seed, clients, sources, route: saved.route || { screen:'manage' }, tenantTab: saved.tenantTab || 'orgs', orgTab: saved.orgTab || 'users',
+      filter:'all', q:'', orgFilter:'all', orgQ:'', sheet:null, confirm:null, toast:null, previewKey:null, reorder:false,
+      brandDraft:null, moveDraft:undefined, addUser:null, settingsDraft:null, grantPick:'' };
+  })();
+  mainRef = React.createRef();
+
+  componentDidUpdate() {
+    const { route, tenantTab, orgTab } = this.state;
+    try { localStorage.setItem('nx-tenants-proto', JSON.stringify({ route, tenantTab, orgTab })); } catch (e) {}
+  }
+  componentWillUnmount() { clearTimeout(this._t); }
+
+  nav(route, extra) {
+    this.setState({ route, sheet:null, previewKey:null, reorder:false, brandDraft:null, moveDraft:undefined, addUser:null, settingsDraft:null, grantPick:'', rename:null, newProfile:null, npr:'', ...(extra||{}) });
+    if (this.mainRef.current) this.mainRef.current.scrollTop = 0;
+  }
+  toast(msg, undo) {
+    clearTimeout(this._t);
+    this.setState({ toast:{ msg, undo } });
+    this._t = setTimeout(() => this.setState({ toast:null }), 4000);
+  }
+  snapshot() { const { tenants, orgs, pages, clients, sources } = this.state; return JSON.parse(JSON.stringify({ tenants, orgs, pages, clients, sources })); }
+  withUndo(msg, mutate) {
+    const snap = this.snapshot();
+    mutate();
+    this.toast(msg, () => { this.setState({ ...snap, toast:null }); });
+  }
+
+  renderVals() {
+    const s = this.state, { tenants, orgs, pages } = s;
+    const G='#059669', A='#d97706', N='#d1d5db';
+    const set = patch => () => this.setState(patch);
+    const tById = id => tenants.find(t => t.id === id);
+    const orgsOf = id => orgs.filter(o => o.tenant === id);
+    const usersOf = id => orgsOf(id).reduce((a,o) => a + o.users.length, 0);
+    const pgs = id => pages[id] || [];
+    const liveCount = id => pgs(id).filter(p => p.live).length;
+    const statusOf = t => !t.active ? ['Inactive',N,'#f3f4f6','#4b5563'] : t.pilot ? ['Pilot',A,'#fef3c7','#92400e'] : ['Active',G,'#d1fae5','#065f46'];
+    const srcOf = id => s.sources.filter(x => x.org === id);
+    const clientsOf = id => [...new Set(srcOf(id).map(x => x.client))].map(c => s.clients.find(x => x.code === c) || { code:c, name:c, missing:true });
+    const connOf = o => { const cs = o ? clientsOf(o.id) : []; if (!cs.length) return ['No data connection',N]; const c = cs[0]; const ok = c.loaded && c.active; return [c.code + (ok ? ' · loaded' : ' · configured, not loaded') + (cs.length > 1 ? ' +' + (cs.length-1) : ''), ok ? G : A]; };
+    const clientState = c => c.missing ? ['Unknown client code','#dc2626','fa-circle-xmark','Not in dbo.Clients'] : (c.loaded && c.active) ? ['Loaded','#059669','fa-circle-check',''] : ['Configured, not loaded','#dc2626','fa-triangle-exclamation','This row exists in dbo.Clients but the running process did not load it: usually missing env keys, an unresolvable engine key or Octo domain. Nothing routes to it until fixed and the app pool is recycled.'];
+    const plural = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
+    const tab = (k, cur, label, count, select) => ({ label, count, ink: k===cur?'#1f2937':'#6b7280', line: k===cur?'#4f46e5':'transparent', select });
+
+    let r = s.route;
+    if (r.screen === 'tenant' && !tById(r.tenantId)) r = { screen:'manage' };
+    if (r.screen === 'org' && !orgs.find(o => o.id === r.orgId)) r = { screen:'orgs' };
+    const v = { mainRef: this.mainRef, stop: e => e.stopPropagation() };
+    v.goPermissions = () => this.toast('Opens Admin › Permissions');
+    v.goAccessControl = () => this.toast('Opens Admin › Access Control');
+    v.goProcesses = () => this.toast('Opens Process Configurations');
+    v.isManage = r.screen === 'manage'; v.isTenant = r.screen === 'tenant'; v.isOrgs = r.screen === 'orgs'; v.isOrg = r.screen === 'org';
+    v.sideActive = (v.isManage || v.isTenant) ? 'tenants' : 'organizations';
+    v.sideNav = key => { if (key === 'tenants') this.nav({ screen:'manage' }); else if (key === 'organizations') this.nav({ screen:'orgs' }); else this.toast('Not part of this prototype'); };
+
+    // tenant sheet
+    const openTenantSheet = (mode, t) => this.setState({ sheet: { kind:'tenant', mode, id: t ? t.id : null, name: t ? t.name : '', code: t ? t.id : '', active: t ? t.active : true, orgIds: t ? orgsOf(t.id).map(o => o.id) : [], filter:'', error:'' } });
+    v.openNewTenant = () => openTenantSheet('new');
+
+    // ---------- MANAGE ----------
+    const q = s.q.trim().toLowerCase();
+    const match = t => !q || [t.name, t.id, ...orgsOf(t.id).flatMap(o => [o.name, o.id, ...o.users.map(u => u.name)])].some(x => x.toLowerCase().includes(q));
+    const fOk = t => s.filter === 'all' || (s.filter === 'active' ? t.active : !t.active);
+    v.q = s.q; v.setQ = e => this.setState({ q: e.target.value });
+    v.filters = [['all','All',tenants.length],['active','Active',tenants.filter(t=>t.active).length],['inactive','Inactive',tenants.filter(t=>!t.active).length]]
+      .map(([k,l,c]) => tab(k, s.filter, l, c, set({ filter:k })));
+    v.rows = tenants.filter(t => fOk(t) && match(t)).map(t => {
+      const [st, sd] = statusOf(t), os = orgsOf(t.id), [c, cd] = connOf(os[0]);
+      return { name:t.name, code:t.id, initial:t.name[0].toUpperCase(), tint:t.tint, ink:t.ink, orgs: os.map(o => ({ name:o.name, id:o.id })), noOrgs: !os.length,
+        users: usersOf(t.id), conn:c, connDot:cd, pages: liveCount(t.id) + ' / ' + pgs(t.id).length, status:st, statusDot:sd, opacity: t.active ? 1 : 0.65,
+        open: () => this.nav({ screen:'tenant', tenantId:t.id }, { tenantTab:'orgs' }) };
+    });
+    v.noRows = !v.rows.length;
+    const orphans = orgs.filter(o => !o.tenant || !tById(o.tenant));
+    const allPages = tenants.flatMap(t => pgs(t.id));
+    const inTenant = orgs.filter(o => o.tenant && tById(o.tenant));
+    v.kpis = [
+      { label:'Tenants', value: String(tenants.length), sub: tenants.filter(t=>t.active).length + ' active' },
+      { label:'Organizations', value: String(orgs.length), sub: orphans.length + ' not in a tenant' },
+      { label:'Tenant users', value: String(inTenant.reduce((a,o)=>a+o.users.length,0)), sub: 'across ' + plural(inTenant.length,'organization') },
+      { label:'Mounted pages', value: String(allPages.length), sub: allPages.filter(p=>!p.live).length + ' in draft' },
+    ];
+    const issues = [];
+    if (orphans.length) issues.push({ icon:'fa-building', title: plural(orphans.length,'organization') + (orphans.length===1?' is':' are') + ' not in a tenant', detail: orphans.map(o=>o.name).join(', '), action:'Assign', go: () => this.nav({ screen:'org', orgId: orphans[0].id, from:'manage' }, { orgTab:'tenant' }) });
+    tenants.filter(t => t.active && !t.access.length && pgs(t.id).length).forEach(t => issues.push({ icon:'fa-key', title:'Nobody holds tenant.' + t.id + '.view', detail: t.name + ' pages are mounted but no user can open them', action:'Grant access', go: () => this.nav({ screen:'tenant', tenantId:t.id }, { tenantTab:'access' }) }));
+    tenants.filter(t => !orgsOf(t.id).length).forEach(t => issues.push({ icon:'fa-city', title: t.name + ' has no organizations', detail: t.active ? 'Active but empty' : 'Inactive', action:'Add organizations', go: () => { this.nav({ screen:'tenant', tenantId:t.id }, { tenantTab:'orgs' }); } }));
+    v.issues = issues; v.hasIssues = issues.length > 0; v.issueCount = issues.length;
+
+    // ---------- TENANT ----------
+    const t = v.isTenant ? tById(r.tenantId) : null;
+    v.tn = {}; v.tTabs = []; v.tOrgs = []; v.pageRows = []; v.navPreview = []; v.accessRows = []; v.grantOptions = []; v.landingOptions = [];
+    v.pv = {}; v.sd = {}; v.skelKpis = []; v.skelBars = []; v.skelRows = [];
+    if (t) {
+      const [st, sd, pb, pi] = statusOf(t), os = orgsOf(t.id), tp = pgs(t.id);
+      v.tn = { ...t, initial: t.name[0].toUpperCase(), status:st, statusDot:sd, pillBg:pb, pillInk:pi, orgLine: plural(os.length,'organization'), userLine: plural(usersOf(t.id),'user') };
+      v.openEditTenant = () => openTenantSheet('edit', t);
+      const tt = ['orgs','pages','access'].includes(s.tenantTab) ? s.tenantTab : 'orgs';
+      v.tTabs = [['orgs','Organizations',os.length],['pages','Pages',tp.length],['access','Access',t.access.length]].map(([k,l,c]) => tab(k, tt, l, c, () => this.setState({ tenantTab:k, reorder:false })));
+      v.tTabOrgs = tt==='orgs'; v.tTabPages = tt==='pages'; v.tTabAccess = tt==='access';
+      v.tNoOrgs = !os.length; v.tHasOrgs = !!os.length;
+      v.tOrgs = os.map(o => { const [c, cd] = connOf(o), b = o.profiles.filter(p=>p.bound).map(p=>p.name);
+        return { id:o.id, name:o.name, mono:o.mono, accent:o.accent, userCount:o.users.length, avatars:o.users.slice(0,4).map(u=>({i:u.i,bg:u.bg,ink:u.ink})),
+          more: o.users.length > 4 ? '+' + (o.users.length-4) + ' more' : o.users.map(u=>u.name.split(' ')[0]).join(', '),
+          profiles:b, noProfiles:!b.length, conn:c, connDot:cd, procLine: srcOf(o.id).length ? srcOf(o.id).map(p=>p.process.split('.')[1]).join(', ') : 'None',
+          open: () => this.nav({ screen:'org', orgId:o.id, from:'tenant' }, { orgTab:'users' }) }; });
+
+      // pages
+      const setPages = fn => this.setState(st2 => ({ pages: { ...st2.pages, [t.id]: fn([...(st2.pages[t.id]||[])]) } }));
+      const live = tp.filter(p => p.live);
+      const pk = s.previewKey ?? (live[0] || tp[0] || {}).key ?? 'reporting';
+      v.noPages = !tp.length;
+      v.pageRows = tp.map(p => ({ ...p, type: p.type === 'list' ? 'List' : 'Custom', rowBg: p.key===pk ? '#f5f7ff' : 'transparent',
+        draftBg: p.live?'transparent':'#f3f4f6', draftInk: p.live?'#9ca3af':'#4b5563', liveBg: p.live?'#d1fae5':'transparent', liveInk: p.live?'#065f46':'#9ca3af',
+        canRemove: p.type !== 'list', locked: p.type === 'list',
+        select: () => this.setState({ previewKey:p.key }),
+        setDraft: e => { e.stopPropagation(); setPages(a => a.map(x => x.key===p.key ? { ...x, live:false } : x)); this.setState({ previewKey:p.key }); },
+        setLive: e => { e.stopPropagation(); setPages(a => a.map(x => x.key===p.key ? { ...x, live:true } : x)); this.setState({ previewKey:p.key }); },
+        remove: e => { e.stopPropagation(); this.withUndo(p.label + ' unmounted', () => setPages(a => a.filter(x => x.key !== p.key))); if (pk===p.key) this.setState({ previewKey:null }); } }));
+      const ro = s.reorder;
+      const moveLive = (key, d) => e => { e.stopPropagation(); setPages(a => { const idx = a.map((x,i)=>x.live?i:-1).filter(i=>i>=0); const pos = idx.findIndex(i => a[i].key===key), to = pos + d; if (to<0 || to>=idx.length) return a; const i1=idx[pos], i2=idx[to]; [a[i1],a[i2]]=[a[i2],a[i1]]; return a; }); };
+      v.navPreview = live.map((p,i) => ({ label:p.label, icon:p.icon, showGrip:ro, showLock:false, select: () => this.setState({ previewKey:p.key }),
+        bg: ro ? '#fff' : (p.key===pk ? 'rgba(0,0,0,0.06)' : 'transparent'), ink: (!ro && p.key===pk) ? '#1f2328' : '#57606a',
+        up: moveLive(p.key,-1), down: moveLive(p.key,1), upInk: i===0?'#e5e7eb':'#6b7280', downInk: i===live.length-1?'#e5e7eb':'#6b7280' }));
+      v.navPreview.push({ label:'Global Reporting', icon:'fa-chart-column', bg: pk==='reporting' ? 'rgba(0,0,0,0.06)' : 'transparent', ink:'#9ca3af', showGrip:false, showLock:ro, select: () => this.setState({ previewKey:'reporting' }) });
+      v.toggleReorder = () => this.setState({ reorder: !ro });
+      Object.assign(v, { reorderLabel: ro?'Done':'Reorder', reorderIcon: ro?'fa-check':'fa-arrows-up-down', reorderBg: ro?'#4f46e5':'#fff', reorderInk: ro?'#fff':'#374151', reorderBorder: ro?'#4f46e5':'#d1d5db', listBorder: ro?'#a5b4fc':'#e5e7eb', previewCols: ro?'220px minmax(0,1fr)':'150px minmax(0,1fr)' });
+      const cur = tp.find(p => p.key===pk) || { key:'reporting', label:'Global Reporting', icon:'fa-chart-column', live:true };
+      const isDash = /dashboard|reporting|reports/.test(cur.key);
+      const seed = [...cur.key].reduce((a,c) => a + c.charCodeAt(0), 0);
+      const rnd = i => ((seed * (i+3) * 9301 + 49297) % 233280) / 233280;
+      const pills = ['#d1fae5','#fef3c7','#e0e7ff','#f3f4f6'];
+      v.pv = { key:cur.key, label:cur.label, icon:cur.icon, draft:!cur.live, dash:isDash, table:!isDash };
+      v.skelKpis = ['128','37','4.2d'];
+      v.skelBars = Array.from({length:12}, (_,i) => ({ h: Math.round(25 + rnd(i)*70) + '%', c: i===9 ? t.accent : '#e5e7eb' }));
+      v.skelRows = Array.from({length:11}, (_,i) => ({ w1: Math.round(55 + rnd(i)*45) + '%', w2: Math.round(35 + rnd(i+20)*55) + '%', pill: pills[Math.floor(rnd(i+40)*4)] }));
+
+      // access
+      v.perm = 'tenant.' + t.id + '.view';
+      const updTenant = fn => this.setState(st2 => ({ tenants: st2.tenants.map(x => x.id===t.id ? fn({ ...x }) : x) }));
+      v.accessRows = t.access.map((a,i) => ({ ...a, icon: a.scope==='Global' ? 'fa-globe' : 'fa-id-badge', usersLine: plural(a.users,'user'),
+        remove: () => this.withUndo(a.profile + ' no longer opens ' + t.name, () => updTenant(x => ({ ...x, access: x.access.filter((_,j) => j!==i) }))) }));
+      v.noAccess = !t.access.length;
+      const cands = [];
+      os.forEach(o => o.profiles.forEach(p => { if (!cands.find(c => c.name===p.name)) cands.push({ name:p.name, scope: p.bound ? o.name : 'Global', users: o.users.filter(u=>u.profile===p.name).length }); }));
+      ['Administrator','Reporting','Workitems'].forEach(n => { if (!cands.find(c=>c.name===n)) cands.push({ name:n, scope:'Global', users:2 }); });
+      const avail = cands.filter(c => !t.access.find(a => a.profile===c.name));
+      v.grantOptions = [{ value:'', label:'Choose an access profile…' }, ...avail.map(c => ({ value:c.name, label: c.name + (c.scope==='Global' ? ' · global' : ' · ' + c.scope) }))];
+      v.grantPick = s.grantPick; v.setGrantPick = e => this.setState({ grantPick:e.target.value });
+      v.grantDisabled = !s.grantPick; v.grantOpacity = s.grantPick ? 1 : 0.45;
+      v.grant = () => { const c = avail.find(x => x.name===s.grantPick); if (!c) return; updTenant(x => ({ ...x, access: [...x.access, { profile:c.name, scope:c.scope, users: Math.max(c.users,1) }] })); this.setState({ grantPick:'' }); this.toast(c.name + ' can now open ' + t.name); };
+
+      // settings
+      const sdr = s.settingsDraft || { name:t.name, active:t.active, landing:t.landing || (live[0]||{}).key || '' };
+      const setSd = p => this.setState({ settingsDraft: { ...sdr, ...p } });
+      v.sd = { ...sdr, trackBg: sdr.active?'#4f46e5':'#d1d5db', knobLeft: sdr.active?'19px':'3px', activeLabel: sdr.active?'Active':'Inactive', activeHint: sdr.active ? 'Members see ' + t.name + "'s pages instead of the global navigation" : 'Members use the global navigation' };
+      v.setSdName = e => setSd({ name:e.target.value }); v.toggleSdActive = () => setSd({ active:!sdr.active }); v.setSdLanding = e => setSd({ landing:e.target.value });
+      v.landingOptions = live.length ? live.map(p => ({ key:p.key, label:p.label })) : [{ key:'', label:'No active pages' }];
+      v.sdClean = sdr.name===t.name && sdr.active===t.active && sdr.landing===(t.landing || (live[0]||{}).key || ''); v.sdOpacity = v.sdClean ? 0.45 : 1;
+      v.discardSettings = () => this.setState({ settingsDraft:null });
+      v.saveSettings = () => { if (!sdr.name.trim()) return this.toast('Display name cannot be empty'); updTenant(x => ({ ...x, name:sdr.name.trim(), active:sdr.active, landing:sdr.landing })); this.setState({ settingsDraft:null }); this.toast('Settings saved'); };
+      v.askDeleteTenant = () => this.setState({ confirm: { title:'Delete ' + t.name + '?', body: plural(os.length,'organization') + ' will leave the tenant and ' + plural(tp.length,'mounted page') + ' will be removed. Users keep their accounts.', okLabel:'Delete tenant',
+        ok: () => { this.setState({ confirm:null }); this.withUndo(t.name + ' deleted', () => { this.setState(st2 => { const pg = { ...st2.pages }; delete pg[t.id]; return { tenants: st2.tenants.filter(x=>x.id!==t.id), orgs: st2.orgs.map(o => o.tenant===t.id ? { ...o, tenant:null } : o), pages:pg }; }); }); this.nav({ screen:'manage' }); } } });
+
+      v.openMount = () => this.setState({ sheet: { kind:'mount', endpoint:'', key:'', label:'', icon:'', active:'', sort:'100', error:'' } });
+    }
+
+    // ---------- ORGS ----------
+    const oq = s.orgQ.trim().toLowerCase();
+    const orgTenantKey = o => o.tenant && tById(o.tenant) ? o.tenant : '_none';
+    v.orgQ = s.orgQ; v.setOrgQ = e => this.setState({ orgQ:e.target.value });
+    v.orgFilters = [['all','All',orgs.length], ...tenants.filter(x => orgsOf(x.id).length).map(x => [x.id, x.name, orgsOf(x.id).length]), ['_none','No tenant',orphans.length]]
+      .map(([k,l,c]) => tab(k, s.orgFilter, l, c, set({ orgFilter:k })));
+    v.orgRows = orgs.filter(o => (s.orgFilter==='all' || orgTenantKey(o)===s.orgFilter) && (!oq || [o.name,o.id,...o.users.map(u=>u.name)].some(x=>x.toLowerCase().includes(oq)))).map(o => {
+      const tt = tById(o.tenant), [c, cd] = connOf(o), b = o.brand;
+      return { id:o.id, name:o.name, mono:o.mono, accent:o.accent, tenantName: tt ? tt.name : 'Not in a tenant', tenantInk: tt ? '#1f2937' : '#9ca3af', userCount:o.users.length, conn:c, connDot:cd,
+        brandLine: b.logo && b.accent ? 'Custom logo + colour' : b.accent ? 'Custom colour' : b.logo ? 'Custom logo' : 'nexora default',
+        open: () => this.nav({ screen:'org', orgId:o.id, from:'orgs' }, { orgTab:'users' }) };
+    });
+
+    // ---------- ORG ----------
+    const o = v.isOrg ? orgs.find(x => x.id === r.orgId) : null;
+    v.og = {}; v.rn = {}; v.np = {}; v.globalOptions = []; v.connOptions = []; v.oTabs = []; v.oUsers = []; v.oProfiles = []; v.oProcs = []; v.presets = []; v.brandNav = []; v.brandBars = []; v.moveOptions = []; v.profileOptions = []; v.bd = {}; v.au = {};
+    if (o) {
+      const ot = tById(o.tenant);
+      const updOrg = fn => this.setState(st2 => ({ orgs: st2.orgs.map(x => x.id===o.id ? fn({ ...x }) : x) }));
+      v.og = { ...o, userCount:o.users.length, tenantPrefix: ot ? 'Tenant' : '', tenantName: ot ? ot.name : 'Not in a tenant', tenantLinkInk: ot ? '#4f46e5' : '#9ca3af',
+        openTenant: () => ot && this.nav({ screen:'tenant', tenantId:ot.id }, { tenantTab:'orgs' }),
+        hasConn: clientsOf(o.id).length > 0, noConn: !clientsOf(o.id).length, connName: o.conn?.name, connCode: o.conn?.code, connDialect: o.conn?.dialect, connEngine: o.conn ? 'engine_' + o.conn.code + '_' + o.conn.dialect : '',
+        connDot: o.conn?.loaded ? G : A, connState: o.conn ? (o.conn.loaded ? 'Loaded' : 'Configured, not loaded') : '' };
+      const ottab = s.orgTab;
+      v.oTabs = [['users','Users',o.users.length],['access','Access profiles',o.profiles.length],['data','Data & processes',srcOf(o.id).length],['branding','Branding',''],['tenant','Tenant','']]
+        .map(([k,l,c]) => tab(k, ottab, l, c, () => this.setState({ orgTab:k, addUser:null })));
+      v.oTabUsers = ottab==='users'; v.oTabAccess = ottab==='access'; v.oTabData = ottab==='data'; v.oTabBrand = ottab==='branding'; v.oTabTenant = ottab==='tenant';
+      v.oUsers = o.users.map((u,i) => ({ ...u,
+        setProfile: e => { const p = e.target.value; updOrg(x => ({ ...x, users: x.users.map((y,j) => j===i ? { ...y, profile:p } : y) })); this.toast(u.name + ' is now ' + p); },
+        remove: () => this.withUndo(u.name + ' removed from ' + o.name, () => updOrg(x => ({ ...x, users: x.users.filter((_,j) => j!==i) }))) }));
+      // rename + delete
+      v.renaming = !!s.rename; v.notRenaming = !s.rename; v.rn = s.rename || {};
+      v.startRename = () => this.setState({ rename: { name:o.name } });
+      v.cancelRename = () => this.setState({ rename:null });
+      v.setRnName = e => this.setState({ rename: { name:e.target.value } });
+      v.saveRename = () => { const n = (s.rename?.name || '').trim(); if (!n) return this.toast('Name cannot be empty'); updOrg(x => ({ ...x, name:n })); this.setState({ rename:null }); this.toast('Renamed to ' + n); };
+      v.askDeleteOrg = () => this.setState({ confirm: { title:'Delete ' + o.name + '?', body: plural(o.users.length,'user') + ', ' + plural(o.profiles.filter(p=>p.bound).length,'bound access profile') + ' and ' + plural(srcOf(o.id).length,'process source') + ' are removed with it.', okLabel:'Delete organization',
+        ok: () => { this.setState({ confirm:null }); this.withUndo(o.name + ' deleted', () => this.setState(st2 => ({ orgs: st2.orgs.filter(x => x.id !== o.id), sources: st2.sources.map(x => x.org === o.id ? { ...x, org:null } : x) }))); this.nav(ot && r.from==='tenant' ? { screen:'tenant', tenantId:ot.id } : { screen:'orgs' }); } } });
+      // profiles
+      const np = s.newProfile || { name:'', pick:'' };
+      const globals = ['Administrator','Reporting','Workitems'].filter(g => !o.profiles.find(p => p.name===g));
+      v.globalOptions = [{ value:'', label:'…or add a global profile' }, ...globals.map(g => ({ value:g, label:g + ' · global' }))];
+      const npName = np.name.trim(), npDup = npName && o.profiles.find(p => p.name.toLowerCase()===npName.toLowerCase());
+      v.np = { ...np, invalid: (!npName && !np.pick) || !!npDup, opacity: ((!npName && !np.pick) || npDup) ? 0.45 : 1 };
+      v.setNpName = e => this.setState({ newProfile: { name:e.target.value, pick:'' } });
+      v.setNpPick = e => this.setState({ newProfile: { name:'', pick:e.target.value } });
+      v.addProfile = () => { if (v.np.invalid) return; const prof = npName ? { name:npName, bound:true } : { name:np.pick, bound:false }; updOrg(x => ({ ...x, profiles: [...x.profiles, prof] })); this.setState({ newProfile:null }); this.toast(prof.name + ' added'); };
+      // data + processes
+      const conns = [{code:'gen01',name:'Generali Scanning',loaded:true},{code:'sydoc',name:'Sydoc Internal',loaded:true},{code:'ms02',name:'MS02 Archive',loaded:false},{code:'kzst01',name:'KZST Scanning',loaded:true},{code:'legacy01',name:'Legacy Archive',loaded:false}];
+      v.connPick = o.conn ? o.conn.code : '';
+      v.connOptions = [{ value:'', label:'No data connection' }, ...conns.map(c => ({ value:c.code, label:c.name + ' · ' + c.code }))];
+      v.setConn = e => { const c = conns.find(x => x.code===e.target.value); this.withUndo(c ? 'Now using ' + c.name : 'Data connection removed', () => updOrg(x => ({ ...x, conn: c ? { name:c.name, code:c.code, dialect:'mssql', loaded:c.loaded } : null }))); };
+      const pfx = (ot ? ot.id : o.id.toLowerCase()) + '.';
+      v.npr = s.npr ?? ''; v.nprPlaceholder = pfx + '04_Neu';
+      v.setNpr = e => this.setState({ npr:e.target.value });
+      const nprV = v.npr.trim(); v.nprInvalid = !nprV || false; v.nprOpacity = v.nprInvalid ? 0.45 : 1;
+      v.addProc = () => { if (v.nprInvalid) return; updOrg(x => ({ ...x, procs: [...x.procs, { p:nprV, f:0 }] })); this.setState({ npr:'' }); this.toast(nprV + ' added'); };
+      v.profileOptions = [...new Set([...o.profiles.map(p=>p.name), 'Reporting'])];
+      const au = s.addUser || { name:'', login:'', profile: v.profileOptions[0] };
+      v.au = au; v.addingUser = !!s.addUser;
+      const setAu = p => this.setState({ addUser: { ...au, ...p } });
+      v.openAddUser = () => this.setState({ addUser: { name:'', login:'', profile: v.profileOptions[0] } });
+      v.cancelAddUser = () => this.setState({ addUser:null });
+      v.setAuName = e => { const name = e.target.value; const auto = au.login === '' || au.login === this._autoLogin; const login = auto ? (name.trim().split(/\s+/).map((w,i,a)=> i===0 && a.length>1 ? w[0] : w).join('').toLowerCase().replace(/[^a-z0-9]/g,'')) : au.login; if (auto) this._autoLogin = login; setAu({ name, login }); };
+      v.setAuLogin = e => setAu({ login:e.target.value }); v.setAuProfile = e => setAu({ profile:e.target.value });
+      v.auInvalid = !au.name.trim() || !au.login.trim(); v.auOpacity = v.auInvalid ? 0.45 : 1;
+      v.addUser = () => { if (v.auInvalid) return; const ini = au.name.trim().split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase(); updOrg(x => ({ ...x, users: [{ i:ini, name:au.name.trim(), login:au.login.trim(), profile:au.profile, last:'Invited', bg:'#e0e7ff', ink:'#4338ca' }, ...x.users] })); this.setState({ addUser:null }); this.toast(au.name.trim() + ' added to ' + o.name); };
+      v.oProfiles = o.profiles.map((p,i) => { const n = o.users.filter(u=>u.profile===p.name).length; return { name:p.name, icon: p.bound?'fa-id-badge':'fa-globe', tag: p.bound?'Bound':'Global', tagBg: p.bound?'#eef2ff':'#f3f4f6', tagInk: p.bound?'#4338ca':'#4b5563', usersLine: plural(n,'user'),
+        toggleBound: () => updOrg(x => ({ ...x, profiles: x.profiles.map((y,j) => j===i ? { ...y, bound:!y.bound } : y) })),
+        remove: () => n ? this.toast(plural(n,'user') + ' still use ' + p.name + '. Change their profile first.') : this.withUndo(p.name + ' removed', () => updOrg(x => ({ ...x, profiles: x.profiles.filter((_,j) => j!==i) }))) }; });
+      v.oNoProfiles = !o.profiles.length;
+      // processes rendered via oSources
+
+      // branding
+      const bdr = s.brandDraft || o.brand;
+      const setBd = p => this.setState({ brandDraft: { ...bdr, ...p } });
+      const hex = /^#?[0-9a-f]{6}$/i.test(bdr.accent.trim()) ? ('#' + bdr.accent.trim().replace('#','')) : null;
+      const sw = hex || '#4f46e5';
+      const lum = h => { const n = parseInt(h.slice(1),16); const c = [n>>16&255, n>>8&255, n&255].map(x => { x/=255; return x<=0.03928 ? x/12.92 : Math.pow((x+0.055)/1.055,2.4); }); return 0.2126*c[0]+0.7152*c[1]+0.0722*c[2]; };
+      const ratio = 1.05 / (lum(sw) + 0.05), ok = ratio >= 4.5;
+      const shownName = bdr.name.trim() || 'nexora';
+      v.bd = { ...bdr, swatch: sw, shownName, initial: shownName[0].toUpperCase(), logoLabel: bdr.logo || 'No logo uploaded', logoBtn: bdr.logo ? 'Replace' : 'Upload',
+        contrastInk: !bdr.accent.trim() ? '#6b7280' : !hex ? '#dc2626' : ok ? '#065f46' : '#92400e',
+        contrastIcon: !bdr.accent.trim() ? 'fa-circle-info' : !hex ? 'fa-circle-xmark' : ok ? 'fa-circle-check' : 'fa-triangle-exclamation',
+        contrastText: !bdr.accent.trim() ? 'Empty: nexora indigo is used' : !hex ? 'Use a 6-digit hex colour like #C21B17' : ok ? 'White text on this colour passes contrast (' + ratio.toFixed(1) + ':1)' : 'White text on this colour is hard to read (' + ratio.toFixed(1) + ':1, needs 4.5)' };
+      v.setBdName = e => setBd({ name:e.target.value }); v.setBdAccent = e => setBd({ accent:e.target.value.toUpperCase() });
+      v.clearAccent = () => setBd({ accent:'' });
+      v.bd.picker = hex || '#4f46e5'; v.bd.badHex = !!bdr.accent.trim() && !hex;
+      v.presets = ['#C21B17','#4F46E5','#0E7490','#047857','#B45309','#FACC15'].map(c => ({ c, pick: () => setBd({ accent:c }), ring: hex && hex.toUpperCase()===c ? '0 0 0 2px #fff, 0 0 0 4px ' + c : 'inset 0 0 0 1px rgba(0,0,0,0.08)' }));
+      v.fakeUpload = () => setBd({ logo: o.id.toLowerCase() + '-logo.svg' });
+      v.bdClean = JSON.stringify(bdr) === JSON.stringify(o.brand); v.bdOpacity = v.bdClean ? 0.45 : 1;
+      v.discardBrand = () => this.setState({ brandDraft:null });
+      v.saveBrand = () => { if (bdr.accent.trim() && !hex) return this.toast('Fix the accent colour first'); updOrg(x => ({ ...x, brand: { ...bdr, accent: hex ? hex.toUpperCase() : '' }, accent: hex || x.accent })); this.setState({ brandDraft:null }); this.toast('Branding saved for ' + o.name); };
+      const navSrc = ot ? pgs(ot.id).filter(p=>p.live).slice(0,5) : [{label:'Global Dashboard',icon:'fa-gauge-high'},{label:'Global Reporting',icon:'fa-chart-column'},{label:'Global Workitems',icon:'fa-layer-group'}];
+      v.brandNav = navSrc.map((p,i) => ({ label:p.label, icon:p.icon, first:i===0, bg: i===0?'rgba(0,0,0,0.05)':'transparent', ink: i===0?'#1f2328':'#57606a', weight: i===0?600:500 }));
+      v.brandBars = [40,55,48,62,70,58,76,68,84,72,90,80].map((h,i) => ({ h: h + '%', o: i===10 ? 1 : 0.28 }));
+
+      // move tenant
+      const md = s.moveDraft === undefined ? (ot ? ot.id : null) : s.moveDraft;
+      v.moveOptions = [...tenants.map(x => ({ id:x.id, name:x.name, initial:x.name[0].toUpperCase(), tint:x.tint, ink:x.ink, desc: plural(pgs(x.id).filter(p=>p.live).length,'page') + (x.active ? '' : ' · inactive') })),
+        { id:null, name:'No tenant', initial:'–', tint:'#f3f4f6', ink:'#9ca3af', desc:'Global navigation' }]
+        .map(m => ({ ...m, current: m.id === (ot ? ot.id : null), bg: m.id===md ? '#f5f7ff' : 'transparent', ring: m.id===md ? '5px solid #4f46e5' : '1.5px solid #d1d5db', pick: () => this.setState({ moveDraft:m.id }) }));
+      v.moveChanged = md !== (ot ? ot.id : null);
+      const target = tById(md);
+      v.moveText = plural(o.users.length,'user') + ' will see ' + (target ? target.name + "'s " + plural(pgs(target.id).filter(p=>p.live).length,'page') : 'the global navigation') + ' instead of ' + (ot ? ot.name + "'s pages" : 'the global navigation') + '.';
+      v.cancelMove = () => this.setState({ moveDraft:undefined });
+      v.confirmMove = () => { this.withUndo(o.name + ' moved to ' + (target ? target.name : 'no tenant'), () => updOrg(x => ({ ...x, tenant: md }))); this.setState({ moveDraft:undefined }); };
+    }
+
+    // crumbs
+    const crumb = (label, go) => ({ label, go, ink: go ? '#6b7280' : '#1f2937', weight: go ? 400 : 500, cursor: go ? 'pointer' : 'default' });
+    let crumbs = [];
+    if (t) crumbs = [crumb('Manage tenants', () => this.nav({ screen:'manage' })), crumb(t.name)];
+    if (o) { const ot = tById(o.tenant); crumbs = r.from === 'tenant' && ot ? [crumb('Manage tenants', () => this.nav({ screen:'manage' })), crumb(ot.name, () => this.nav({ screen:'tenant', tenantId:ot.id }, { tenantTab:'orgs' })), crumb(o.name)]
+      : r.from === 'manage' ? [crumb('Manage tenants', () => this.nav({ screen:'manage' })), crumb(o.name)] : [crumb('Organizations', () => this.nav({ screen:'orgs' })), crumb(o.name)]; }
+    v.crumbs = crumbs.map((c,i) => ({ ...c, sep: i>0 })); v.hasCrumbs = crumbs.length > 0;
+
+    // ---------- SHEETS ----------
+    const sh = s.sheet;
+    v.closeSheet = () => this.setState({ sheet:null });
+    const openOrgSheet = (mode, x) => this.setState({ sheet: { kind:'org', mode, id: x ? x.id : null, name: x ? x.name : '', tenant: x && x.tenant && tById(x.tenant) ? x.tenant : '', error:'' } });
+    v.openNewOrg = () => openOrgSheet('new');
+    if (o) v.openEditOrg = () => openOrgSheet('edit', o);
+    v.sheetOrg = sh?.kind === 'org'; v.os = {}; v.osTenantOptions = [];
+    if (v.sheetOrg) {
+      const upd = p => this.setState({ sheet: { ...sh, ...p, error:'' } });
+      const cur = sh.id ? orgs.find(x => x.id === sh.id) : null;
+      const from = cur && cur.tenant ? tById(cur.tenant) : null, to = tById(sh.tenant);
+      const moving = cur && (cur.tenant || '') !== sh.tenant;
+      v.os = { ...sh, kicker: sh.mode==='new' ? 'Add a new organization' : 'Edit organization', title: sh.name.trim() || 'Untitled organization', hasError: !!sh.error,
+        hasMoveNote: !!moving, moveNote: moving ? plural(cur.users.length,'user') + ' will see ' + (to ? to.name + "'s pages" : 'the global navigation') + ' instead of ' + (from ? from.name + "'s pages" : 'the global navigation') + '.' : '' };
+      v.osTenantOptions = [{ value:'', label:'Not in a tenant' }, ...tenants.map(x => ({ value:x.id, label: x.name + ' (' + x.id + ')' }))];
+      v.setOsName = e => upd({ name:e.target.value }); v.setOsTenant = e => upd({ tenant:e.target.value });
+      v.saveOrgSheet = () => {
+        const name = sh.name.trim(); if (!name) return upd({ error:'Organization name is required' });
+        const tenant = sh.tenant || null;
+        if (sh.mode === 'new') {
+          const base = name.split(/\s+/).map(w => w[0]).join('').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,5) || 'ORG';
+          let id = base, n = 2; while (orgs.find(x => x.id === id)) id = base + n++;
+          this.withUndo(name + ' created', () => this.setState(st2 => ({ orgs: [...st2.orgs, { id, name, tenant, mono: id.slice(0,3), accent:'#6b7280', created:'28.09.2026', users:[], profiles:[], conn:null, procs:[], brand:{name:'',accent:'',logo:''} }], sheet:null })));
+        } else {
+          this.withUndo(name + ' saved', () => this.setState(st2 => ({ orgs: st2.orgs.map(x => x.id === sh.id ? { ...x, name, tenant } : x), sheet:null })));
+        }
+      };
+    }
+    v.sheetTenant = sh?.kind === 'tenant'; v.sheetMount = sh?.kind === 'mount';
+    v.ts = {}; v.tsPick = []; v.tsWarnings = []; v.ms = {};
+    if (v.sheetTenant) {
+      const upd = p => this.setState({ sheet: { ...sh, ...p, error:'' } });
+      const isNew = sh.mode === 'new';
+      v.ts = { ...sh, kicker: isNew ? 'New tenant' : 'Edit tenant', title: isNew ? (sh.name.trim() || 'Untitled tenant') : sh.name || sh.id, codeLocked: false,
+        codeBg: '#fff', codeInk: '#1f2937', codeBorder: sh.error && /code/i.test(sh.error) ? '#dc2626' : '#d1d5db', hasError: !!sh.error,
+        trackBg: sh.active?'#4f46e5':'#d1d5db', knobLeft: sh.active?'19px':'3px', activeLabel: sh.active?'Active':'Inactive', selCount: sh.orgIds.length, saveLabel: isNew ? 'Create tenant' : 'Save tenant' };
+      v.setTsName = e => { const name = e.target.value; const p = { name }; if (isNew && (sh.code === '' || sh.code === this._autoCode)) { p.code = name.toLowerCase().trim().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,''); this._autoCode = p.code; } upd(p); };
+      v.setTsCode = e => upd({ code: e.target.value.toLowerCase() });
+      v.toggleTsActive = () => upd({ active: !sh.active });
+      v.setTsFilter = e => this.setState({ sheet: { ...sh, filter:e.target.value } });
+      const f = sh.filter.trim().toLowerCase();
+      v.tsPick = orgs.filter(x => !f || (x.name + ' ' + x.id).toLowerCase().includes(f)).map(x => {
+        const on = sh.orgIds.includes(x.id), from = x.tenant && x.tenant !== sh.id ? tById(x.tenant) : null, moving = on && from;
+        return { id:x.id, name:x.name, boxBorder: on?'#4f46e5':'#d1d5db', boxBg: on?'#4f46e5':'#fff', bg: moving ? '#fffbeb' : 'transparent',
+          note: moving ? 'moves from ' + from.name : from ? 'in ' + from.name : '', noteInk: moving ? '#92400e' : '#9ca3af', noteWeight: moving ? 600 : 400,
+          toggle: () => this.setState({ sheet: { ...sh, orgIds: on ? sh.orgIds.filter(i=>i!==x.id) : [...sh.orgIds, x.id] } }) };
+      });
+      v.tsWarnings = sh.orgIds.map(id => orgs.find(x=>x.id===id)).filter(x => x && x.tenant && x.tenant !== sh.id && tById(x.tenant)).map(x => x.name + ' moves here from ' + tById(x.tenant).name + '. Its ' + plural(x.users.length,'user') + ' lose ' + tById(x.tenant).name + "'s pages.");
+      if (!isNew) { const leaving = orgsOf(sh.id).filter(x => !sh.orgIds.includes(x.id)); leaving.forEach(x => v.tsWarnings.push(x.name + ' leaves the tenant. Its ' + plural(x.users.length,'user') + ' fall back to the global navigation.')); }
+      v.saveTenantSheet = () => {
+        const name = sh.name.trim(), code = sh.code.trim();
+        if (!name) return upd({ error:'Display name is required' });
+        if (!/^[a-z0-9_]{2,50}$/.test(code)) return upd({ error:'Code must be 2–50 characters: a–z, 0–9 and _' });
+        if (code !== sh.id && tById(code)) return upd({ error:'Code “' + code + '” is already taken' });
+        const id = code, old = sh.id;
+        this.withUndo(isNew ? name + ' created' : name + ' saved', () => this.setState(st2 => ({
+          tenants: isNew ? [...st2.tenants, { id, name, active:sh.active, pilot:false, tint:'#f5f3ff', ink:'#6d28d9', accent:'#7c3aed', landing:'', access:[] }] : st2.tenants.map(x => x.id===old ? { ...x, id, name, active:sh.active } : x),
+          orgs: st2.orgs.map(x => sh.orgIds.includes(x.id) ? { ...x, tenant:id } : (x.tenant===id || x.tenant===old) ? { ...x, tenant:null } : x),
+          pages: isNew ? { ...st2.pages, [id]: [] } : (() => { const pg = { ...st2.pages }; if (old !== id) { pg[id] = pg[old] || []; delete pg[old]; } return pg; })(),
+          sheet:null })));
+        if (isNew || old !== id) this.nav({ screen:'tenant', tenantId:id }, { tenantTab:'orgs' });
+      };
+    }
+    v.endpointOptions = [];
+    if (v.sheetMount && t) {
+      const upd = p => this.setState({ sheet: { ...sh, ...p, error:'' } });
+      const eps = ['dashboard','workitems_overview','reporting_view','archive_search','sla_overview','generali_baseservices','generali_additionalservices','generali_documents','sydoc_reports','ms02_documents'];
+      v.endpointOptions = [{ value:'', label:'Page…' }, ...eps.map(x => ({ value:x, label:x }))];
+      const keyOk = /^[a-z0-9_.\-]{1,100}$/.test(sh.key), iconOk = !sh.icon || /^fa-[a-z0-9\-]{1,40}$/.test(sh.icon), activeOk = /^[A-Za-z0-9_\-]{0,60}$/.test(sh.active);
+      v.ms = { ...sh, hasError: !!sh.error, keyBorder: sh.key && !keyOk ? '#dc2626' : '#d1d5db', iconShown: iconOk && sh.icon ? sh.icon : 'fa-icons', opacity: 1 };
+      v.setMsEndpoint = e => { const ep = e.target.value; const p = { endpoint: ep };
+        if (!sh.key || sh.key === sh._autoKey) { p.key = ep.replace(/^[a-z0-9]+_(?=.)/, m => ['generali_','sydoc_','ms02_'].includes(m) ? '' : m); p._autoKey = p.key; }
+        if (!sh.label || sh.label === sh._autoLabel) { const lab = (p.key || ep).replace(/[_.]/g,' ').replace(/^\w/, c => c.toUpperCase()); p.label = lab; p._autoLabel = lab; }
+        upd(p); };
+      v.setMsKey = e => upd({ key:e.target.value }); v.setMsLabel = e => upd({ label:e.target.value });
+      v.setMsIcon = e => upd({ icon:e.target.value }); v.setMsActive = e => upd({ active:e.target.value }); v.setMsSort = e => upd({ sort:e.target.value });
+      v.saveMount = () => {
+        if (!sh.endpoint) return upd({ error:'Pick a page to mount' });
+        if (!keyOk) return upd({ error:'Key may only use a–z, 0–9, _ . and -' });
+        if (pgs(t.id).find(p => p.key === sh.key)) return upd({ error:'Key “' + sh.key + '” is already used in ' + t.name });
+        if (!sh.label.trim()) return upd({ error:'Label is required' });
+        if (!iconOk) return upd({ error:'Icon must look like fa-chart-line' });
+        if (!activeOk) return upd({ error:'Active page may only use letters, digits, _ and -' });
+        const sort = parseInt(sh.sort, 10); const page = { key:sh.key, label:sh.label.trim(), icon: sh.icon || 'fa-file-lines', type:'custom', target:sh.endpoint, live:false, sort: isNaN(sort) ? 100 : sort };
+        this.setState(st2 => { const list = [...(st2.pages[t.id]||[]), page].sort((a,b) => (a.sort ?? 100) - (b.sort ?? 100)); return { pages: { ...st2.pages, [t.id]: list }, sheet:null, previewKey:page.key }; });
+        this.toast(page.label + ' added as draft');
+      };
+    }
+
+    // ---------- DATA CONNECTIONS + PROCESS SOURCES ----------
+    const openForm = (form, mode, vals, ctx) => this.setState({ sheet: { kind:'form', form, mode, vals, ctx: ctx || {}, error:'' } });
+    const clientVals = c => ({ code:c?.code||'', name:c?.name||'', dialect:c?.dialect||'tsql', engine:c?.engine||'', statsEngine:c?.statsEngine||'', statsDialect:c?.statsDialect||'', docEngine:c?.docEngine||'', docDialect:c?.docDialect||'', octo:c?.octo||'', secret:c?.secret||'', active: c ? c.active : true });
+    const editClient = c => () => openForm('client', 'edit', clientVals(c), { orig:c.code });
+    v.openNewClient = () => openForm('client', 'new', clientVals(null));
+    v.clientRows = s.clients.map(c => { const [st, ink, icon, title] = clientState(c); const used = [...new Set(s.sources.filter(x => x.client===c.code).map(x => x.org).filter(Boolean))].map(id => (orgs.find(o=>o.id===id)||{}).name).filter(Boolean);
+      return { ...c, activeLabel: c.active ? 'Yes' : 'No', state:st, stateInk: ink === '#059669' ? '#6b7280' : ink, stateIcon:icon, stateTitle:title, opacity: c.active ? 1 : 0.6,
+        usedBy: used.length ? used.join(', ') : '—', edit: editClient(c),
+        remove: () => this.setState({ confirm: { title:'Delete connection ' + c.code + '?', body: (s.sources.filter(x=>x.client===c.code).length ? plural(s.sources.filter(x=>x.client===c.code).length,'process source') + ' still point at ' + c.code + ' and will stop resolving. ' : '') + 'Takes effect after an app-pool recycle.', okLabel:'Delete connection',
+          ok: () => { this.setState({ confirm:null }); this.withUndo(c.code + ' deleted', () => this.setState(st2 => ({ clients: st2.clients.filter(x => x.code !== c.code) }))); } } }) }; });
+    v.oConns = []; v.oSources = [];
+    if (o) {
+      v.oConns = clientsOf(o.id).map(c => { const [st, ink, icon] = clientState(c); return { ...c, dialect: c.dialect || '—', engine: c.engine || '—', octo: c.octo || '—', state:st, stateInk:ink, stateIcon:icon, edit: c.missing ? v.openNewClient : editClient(c) }; });
+      const srcVals = x => ({ client:x?.client||'', process:x?.process||'', org: x ? (x.org||'') : o.id, table:x?.table||'', alias:x?.alias||'', exportCol:x?.exportCol||'', importCol:x?.importCol||'', workitemCol:x?.workitemCol||'', idType:x?.idType||'' });
+      v.openNewSource = () => openForm('source', 'new', srcVals(null));
+      const list = srcOf(o.id);
+      v.oSourceCount = plural(list.length, 'source'); v.oNoSources = !list.length;
+      v.oSources = list.map(x => ({ ...x,
+        edit: () => openForm('source', 'edit', srcVals(x), { origClient:x.client, origProcess:x.process }),
+        addField: () => openForm('field', 'new', { key:'', column:'', type:'' }, { client:x.client, process:x.process }),
+        remove: () => this.setState({ confirm: { title:'Delete ' + x.process + '?', body:'Deletes the process source and its ' + plural(x.fields.length,'field mapping') + '. Its view permission stays until removed under Access Control.', okLabel:'Delete process source',
+          ok: () => { this.setState({ confirm:null }); this.withUndo(x.process + ' deleted', () => this.setState(st2 => ({ sources: st2.sources.filter(y => !(y.client===x.client && y.process===x.process)) }))); } } }),
+        noFields: !x.fields.length,
+        fields: x.fields.map(f => ({ ...f, typeLabel: f.type || '—',
+          edit: () => openForm('field', 'edit', { ...f }, { client:x.client, process:x.process, origKey:f.key }),
+          remove: () => this.setState({ confirm: { title:'Delete field ' + f.key + '?', body:'Removes the mapping ' + f.key + ' → ' + f.column + ' from ' + x.process + '.', okLabel:'Delete field',
+            ok: () => { this.setState({ confirm:null }); this.withUndo(f.key + ' deleted', () => this.setState(st2 => ({ sources: st2.sources.map(y => y.client===x.client && y.process===x.process ? { ...y, fields: y.fields.filter(z => z.key !== f.key) } : y) }))); } } }) })) }));
+    }
+    v.sheetForm = sh?.kind === 'form'; v.fs = {}; v.formFields = [];
+    if (v.sheetForm) {
+      const fv = sh.vals, setV = k => e => this.setState({ sheet: { ...sh, vals: { ...fv, [k]: e.target.value }, error:'' } });
+      const tog = k => () => this.setState({ sheet: { ...sh, vals: { ...fv, [k]: !fv[k] }, error:'' } });
+      const MONOF = "ui-monospace,'SF Mono',Consolas,monospace";
+      const txt = (k, label, o2) => ({ isText:true, isSelect:false, isToggle:false, label, hint: o2?.hint || '', value: fv[k], set: setV(k), placeholder: o2?.ph || '', readonly: !!o2?.ro, max: o2?.max || 200,
+        font: o2?.mono ? MONOF : 'inherit', bg: o2?.ro ? '#f3f4f6' : '#fff', ink: o2?.ro ? '#6b7280' : '#1f2937', border: sh.errKey === k ? '#dc2626' : '#d1d5db', span: o2?.half ? 'auto' : '1 / -1' });
+      const sel = (k, label, options, o2) => ({ isText:false, isSelect:true, isToggle:false, label, hint: o2?.hint || '', value: fv[k], set: setV(k), options, border: sh.errKey === k ? '#dc2626' : '#d1d5db', span: o2?.half ? 'auto' : '1 / -1' });
+      const dial = [{value:'tsql',label:'tsql'},{value:'postgres',label:'postgres'}], dialOpt = [{value:'',label:'—'}, ...dial];
+      const fail = (error, errKey) => this.setState({ sheet: { ...sh, error, errKey } });
+      let fields = [], notes = [], kicker = '', title = '', saveLabel = 'Save', save = () => {};
+      if (sh.form === 'client') {
+        kicker = sh.mode === 'new' ? 'Add a new connection' : 'Edit connection'; title = fv.name.trim() || fv.code || 'Untitled connection'; saveLabel = 'Save connection';
+        fields = [txt('code','Client code',{mono:true,half:true,ph:'gen02'}), txt('name','Display name',{half:true}), sel('dialect','Dialect',dial,{half:true}), txt('engine','Runtime engine key',{mono:true,half:true}),
+          txt('statsEngine','Stats engine key',{mono:true,half:true,hint:'(optional)'}), sel('statsDialect','Stats dialect',dialOpt,{half:true,hint:'(optional)'}),
+          txt('docEngine','Doc-field engine key',{mono:true,half:true,hint:'(optional)'}), sel('docDialect','Doc-field dialect',dialOpt,{half:true,hint:'(optional)'}),
+          txt('octo','Octo domain',{mono:true,half:true,hint:'(optional)'}), txt('secret','Secret ref',{mono:true,half:true,hint:'(env-key prefix, optional)',ph:'MS02',max:20}),
+          { isText:false, isSelect:false, isToggle:true, label:'Active', hint:'', set: tog('active'), trackBg: fv.active?'#4f46e5':'#d1d5db', knobLeft: fv.active?'19px':'3px', toggleLabel: fv.active ? 'Active' : 'Inactive', span:'1 / -1' }];
+        notes = [{ icon:'fa-rotate', text:'Read once at startup: takes effect only after an app-pool recycle. A connection with its own database also needs the matching env/{ENV}.env keys added by hand.' }];
+        save = () => {
+          const c = { ...fv, code: fv.code.trim(), name: fv.name.trim(), engine: fv.engine.trim(), secret: fv.secret.trim() };
+          if (!/^[a-z0-9_]{2,50}$/.test(c.code)) return fail('Client code must be 2–50 characters: a–z, 0–9 and _', 'code');
+          if (c.code !== sh.ctx.orig && s.clients.find(x => x.code === c.code)) return fail('Client code “' + c.code + '” already exists', 'code');
+          if (!c.name) return fail('Display name is required', 'name');
+          if (!c.engine) return fail('Runtime engine key is required', 'engine');
+          if (!/^[A-Z0-9_]{0,20}$/.test(c.secret)) return fail('Secret ref may only use A–Z, 0–9 and _', 'secret');
+          const prev = s.clients.find(x => x.code === sh.ctx.orig);
+          this.withUndo(c.code + ' saved · recycle the app pool to apply', () => this.setState(st2 => ({ clients: sh.mode === 'new' ? [...st2.clients, { ...c, loaded:false }] : st2.clients.map(x => x.code === sh.ctx.orig ? { ...c, loaded: prev?.loaded && c.code === prev.code } : x),
+            sources: st2.sources.map(x => sh.ctx.orig && x.client === sh.ctx.orig ? { ...x, client: c.code } : x), sheet:null })));
+        };
+      }
+      if (sh.form === 'source') {
+        kicker = sh.mode === 'new' ? 'Add a process source' : 'Edit process source'; title = fv.process.trim() || 'Untitled process'; saveLabel = 'Save';
+        fields = [sel('client','Client code',[{value:'',label:'Select a client…'}, ...s.clients.map(c => ({ value:c.code, label:c.code + ' · ' + c.name }))],{half:true,hint:'(runtime source)'}),
+          txt('process','Process name',{mono:true,half:true,ph:'generali.02_Leistungen'}),
+          sel('org','Organization',[{value:'',label:'Unassigned'}, ...orgs.map(x => ({ value:x.id, label:x.name + ' (' + x.id + ')' }))]),
+          txt('table','Table name',{mono:true,half:true,ph:'dbo.tblAlpha'}), txt('alias','Table alias',{mono:true,half:true,hint:'(optional)',max:10}),
+          txt('exportCol','Export column',{mono:true,half:true,hint:'(optional)'}), txt('importCol','Import column',{mono:true,half:true,hint:'(optional)'}),
+          txt('workitemCol','Workitem column',{mono:true,half:true,hint:'(optional)'}), txt('idType','Id column type',{mono:true,half:true,hint:'(optional)',ph:'bigint'})];
+        notes = [{ icon:'fa-lock', text:'Join condition, time filters and extra condition are free-form SQL and are not editable here. Change them with a migration.' }];
+        if (sh.mode === 'new') notes.unshift({ icon:'fa-shield-halved', text:'Also creates process.' + (fv.client || '<client>') + '.' + (fv.process || '<name>') + '.view, granted to nobody. Grant it under Access Control.' });
+        save = () => {
+          const x = { ...fv, process: fv.process.trim(), table: fv.table.trim() };
+          if (!x.client) return fail('Pick a client code', 'client');
+          if (!/^[A-Za-z0-9_\-]{1,49}\.[A-Za-z0-9_\-]{1,50}$/.test(x.process)) return fail('Exactly <customer>.<process>: two parts separated by a single dot', 'process');
+          const clash = s.sources.find(y => y.client === x.client && y.process === x.process && !(y.client === sh.ctx.origClient && y.process === sh.ctx.origProcess));
+          if (clash) return fail(x.process + ' already exists for ' + x.client, 'process');
+          if (!x.table) return fail('Table name is required', 'table');
+          const org = x.org || null;
+          this.withUndo(x.process + ' saved', () => this.setState(st2 => ({ sources: sh.mode === 'new' ? [...st2.sources, { ...x, org, fields:[] }] : st2.sources.map(y => y.client === sh.ctx.origClient && y.process === sh.ctx.origProcess ? { ...y, ...x, org } : y), sheet:null })));
+        };
+      }
+      if (sh.form === 'field') {
+        kicker = sh.mode === 'new' ? 'Add a field mapping' : 'Edit field mapping'; title = fv.key.trim() || 'New field'; saveLabel = 'Save';
+        fv.client = sh.ctx.client; fv.process = sh.ctx.process;
+        fields = [txt('client','Client code',{mono:true,half:true,ro:true,hint:'(runtime source)'}), txt('process','Process name',{mono:true,half:true,ro:true}),
+          txt('key','Field key',{mono:true,ph:'customer.no'}), txt('column','Column name',{mono:true,half:true,ph:'KundenNr'}), txt('type','Column type',{mono:true,half:true,hint:'(optional)',ph:'nvarchar'})];
+        save = () => {
+          const f = { key: fv.key.trim(), column: fv.column.trim(), type: fv.type.trim() };
+          if (!/^[A-Za-z0-9_.\-]{1,100}$/.test(f.key)) return fail('Field key may only use letters, digits, _ . and -', 'key');
+          const src = s.sources.find(y => y.client === sh.ctx.client && y.process === sh.ctx.process);
+          if (src && src.fields.find(z => z.key === f.key && z.key !== sh.ctx.origKey)) return fail(f.key + ' is already mapped', 'key');
+          if (!f.column) return fail('Column name is required', 'column');
+          this.withUndo(f.key + ' saved', () => this.setState(st2 => ({ sources: st2.sources.map(y => y.client === sh.ctx.client && y.process === sh.ctx.process ? { ...y, fields: sh.mode === 'new' ? [...y.fields, f] : y.fields.map(z => z.key === sh.ctx.origKey ? f : z) } : y), sheet:null })));
+        };
+      }
+      v.fs = { kicker, title, saveLabel, notes, hasError: !!sh.error, error: sh.error };
+      v.formFields = fields; v.saveForm = save;
+    }
+
+    // confirm + toast
+    v.hasConfirm = !!s.confirm; v.cf = s.confirm || {}; v.closeConfirm = () => this.setState({ confirm:null });
+    v.hasToast = !!s.toast; v.toastMsg = s.toast?.msg; v.hasUndo = !!s.toast?.undo; v.undo = () => s.toast?.undo && s.toast.undo();
+    return v;
+  }
+}
+</script>
+</body>
+</html>

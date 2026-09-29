@@ -112,14 +112,40 @@ cells are rows in `dbo.AccessProfilePermission`. Saving posts only the changed c
 `POST /api/admin/profiles/grants` (`admin.profiles.edit`), which inserts or deletes rows, clears the
 user permission cache (the `/api/admin/*` prefix is outside the hook that clears it on `/admin`
 writes) and reloads the caller's own session permissions. Clicking a permission's name lists who
-holds it. Catalogue actions (add, rename, delete a code) sit on the same page behind
-`admin.permissions.edit`. This page replaced the per-profile permission drawer on Access Control and
+holds it, and the code itself links to [the detail page](#the-detail-page). Catalogue actions (add,
+rename, delete a code) sit on the same page behind `admin.permissions.edit`. This page replaced the per-profile permission drawer on Access Control and
 the read-only Permission Matrix.
 
 A badge on a cell (#275) counts `dbo.UserPermissionOverride` rows for users of that profile on that
 permission — e.g. a user overriding a permission their profile doesn't grant. The "Columns" picker
 shows/hides and reorders profile columns; both choices are per-viewer (`localStorage`, key
 `nx.permsGrid.columns`), not server-side prefs — there's nothing here worth a `dbo.Users.ui_prefs` key.
+
+## The detail page
+
+`/admin/permissions/detail/<code>` (`admin.profiles.view`, linked from the code in the grid) answers
+the question the grid cannot: *what does holding this actually do*. Everything on the left of it is
+**derived**, not described — `dbo.Permission.Description` is one 200-character sentence written by
+hand, and it can neither say where a code is enforced nor stay true when a route moves.
+
+`nx_lib/permission_docs.py` does the deriving, with two indexes built once per process:
+
+| what | how |
+|---|---|
+| **What it unlocks** | `routes_index()` walks `url_map` and reads the `required_permissions` tuple that `require_permission` / `require_any_permission` already leave on every guarded view. A route counts as a *page* — clickable, and worth a screenshot — only if it is a GET with no URL arguments outside `/api/`. |
+| **Where it shows in the interface** | `usage_index()` scans `templates/`, `nx_lib/` and `static/js/` for permission literals. Templates rarely call `has_permission` directly, so it also resolves the `page_visibility()` flags (`adminTenantsPagePerm` → `admin.tenants.view`) by reading that function's own body — without it, every page-gating code reports "used nowhere". |
+| **What the holder sees** | `static/img/permissions/<code>.jpg`, captured by `scripts/capture-permission-shots.py` against a local nexora. Only the ~24 page-gating codes have one; there is no single screen behind `reporting.export`. These drift like any screenshot — re-run the script after a UI change, nothing detects it for you. |
+
+The right-hand column is grant state out of the database: which profiles hold it, and the
+`dbo.UserPermissionOverride` rows, which are the only place a deny exists.
+
+A code that guards no route and is checked nowhere is called out as such — it is either a leftover
+or one the app has not caught up with, and granting it changes nothing.
+
+The grammar labels on that page are the repo's first and only `pgettext()` messages; the context is
+`permission grammar`, because "Area" also means a chart area in reporting. `read_mo` hands a message
+context back as bytes where `read_po` gives `str`, which had silently broken the `.po`/`.mo`
+comparison in `test_translations.py` for any contextual message — fixed there.
 
 ## User overrides
 

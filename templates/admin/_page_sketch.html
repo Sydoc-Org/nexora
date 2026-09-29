@@ -1,0 +1,98 @@
+{# Shape sketches for a tenant page that mounts an existing nexora endpoint.
+
+   We do not own the endpoint's markup, only know which family of screen it
+   belongs to (nx_lib/views/admin/tenant_manage.py :: _custom_shape), so the
+   preview body is a sketch of that family rather than a claim about the real
+   page. Kept in a macro because two callers need the same four sketches: the
+   per-page previews, and the live preview of the page you are about to mount,
+   which swaps between all four as you pick an endpoint. #}
+
+{% macro sketch(shape) -%}
+{% if shape == 'dashboard' %}
+<div class="adm-window__tiles adm-window__tiles--4">
+    {% for v in ['128', '37', '4.2d', '92%'] %}
+    <div class="adm-window__tile">
+        <span class="adm-window__skel adm-window__skel--tiny"></span><b>{{ v }}</b>
+    </div>
+    {% endfor %}
+</div>
+<div class="adm-window__chart" aria-hidden="true">
+    {% for hgt in [52, 74, 61, 88, 45, 70, 96, 58, 80, 66] %}
+    <span style="height:{{ hgt }}%"></span>
+    {% endfor %}
+</div>
+<div class="adm-window__grid">
+    {% for w in [86, 62, 74] %}
+    <div class="adm-window__gridrow">
+        <span><span class="adm-window__avatar"></span></span>
+        <span><span class="adm-window__skel" style="width:{{ w }}%"></span></span>
+        <span><span class="adm-window__cpill"></span></span>
+    </div>
+    {% endfor %}
+</div>
+
+{% elif shape == 'report' %}
+<div class="adm-window__filters">
+    {% for _f in range(2) %}
+    <span class="adm-window__filter">
+        <span class="adm-window__skel adm-window__skel--tiny"></span>
+        <span class="adm-window__fbox"><i class="fas fa-calendar"></i></span>
+    </span>
+    {% endfor %}
+</div>
+<div class="adm-window__chart" aria-hidden="true">
+    {% for hgt in [38, 56, 44, 72, 90, 64, 52, 78] %}
+    <span style="height:{{ hgt }}%"></span>
+    {% endfor %}
+</div>
+<div class="adm-window__grid">
+    <div class="adm-window__gridhead">
+        {% for _c in range(3) %}<span><span class="adm-window__skel adm-window__skel--tiny"></span></span>{% endfor %}
+    </div>
+    {% for v in ['1 204', '318', '96'] %}
+    <div class="adm-window__gridrow">
+        <span><span class="adm-window__skel" style="width:78%"></span></span>
+        <span><span class="adm-window__cpill"></span></span>
+        <span><em class="adm-window__val adm-window__val--num">{{ v }}</em></span>
+    </div>
+    {% endfor %}
+</div>
+
+{% elif shape == 'cards' %}
+<div class="adm-window__cards">
+    {% for icon in ['fa-cube', 'fa-diagram-project', 'fa-gears', 'fa-folder-open'] %}
+    <div class="adm-window__card">
+        <i class="fas {{ icon }}"></i>
+        <span class="adm-window__skel" style="width:70%"></span>
+        <span class="adm-window__skel adm-window__skel--tiny" style="width:90%"></span>
+        <span class="adm-window__skel adm-window__skel--tiny" style="width:55%"></span>
+    </div>
+    {% endfor %}
+</div>
+
+{% else %}
+<div class="adm-window__toolbar">
+    <span class="adm-window__fbox adm-window__fbox--grow"><i class="fas fa-search"></i></span>
+    <span class="adm-window__cpill"></span>
+    <span class="adm-window__cpill"></span>
+</div>
+<div class="adm-window__grid">
+    <div class="adm-window__gridhead">
+        {% for _c in range(4) %}<span><span class="adm-window__skel adm-window__skel--tiny"></span></span>{% endfor %}
+    </div>
+    {% for w in [86, 64, 74, 58] %}
+    <div class="adm-window__gridrow">
+        <span><em class="adm-window__val">{{ ['10241', '10238', '10231', '10225'][loop.index0] }}</em></span>
+        <span><span class="adm-window__skel" style="width:{{ w }}%"></span></span>
+        <span><span class="adm-window__cpill"></span></span>
+        <span><em class="adm-window__val adm-window__val--num">{{ ['12.03.2026', '09.03.2026', '27.02.2026', '21.02.2026'][loop.index0] }}</em></span>
+    </div>
+    {% endfor %}
+    <div class="adm-window__gridfoot">
+        <span class="adm-window__skel" style="width:84px"></span>
+        <span class="adm-window__btn">{{ _('Previous') }}</span>
+        <span class="adm-window__btn">{{ _('Next') }}</span>
+    </div>
+</div>
+{% endif %}
+{%- endmacro %}

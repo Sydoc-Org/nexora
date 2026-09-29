@@ -12,6 +12,7 @@ __pycache__/
 .claude/logs/
 .claude/cache/
 .claude/.session*
+.claude/helpers/*.log
 .claude-flow/
 .gitnexus/
 .idea/

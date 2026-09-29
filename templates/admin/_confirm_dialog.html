@@ -1,0 +1,12 @@
+{# Shared destructive-action confirm dialog for the admin tenancy pages. #}
+    {# ---- Confirm dialog -------------------------------------------------- #}
+    <div id="admConfirm" class="adm-confirm hidden" role="alertdialog" aria-modal="true" aria-labelledby="admConfirmTitle">
+        <div class="adm-confirm__card">
+            <h3 class="adm-confirm__title" id="admConfirmTitle">{{ _('Please confirm') }}</h3>
+            <p class="adm-confirm__body" id="admConfirmBody"></p>
+            <div class="adm-confirm__foot">
+                <button type="button" class="nx-btn nx-btn--secondary" id="admConfirmCancel" data-testid="admin-confirm-cancel">{{ _('Cancel') }}</button>
+                <button type="button" class="nx-btn nx-btn--danger" id="admConfirmOk" data-testid="admin-confirm-ok">{{ _('Confirm') }}</button>
+            </div>
+        </div>
+    </div>

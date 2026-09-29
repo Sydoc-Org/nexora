@@ -5,9 +5,10 @@ from contextlib import suppress
 from flask import current_app, jsonify, render_template, request, session
 from flask_babel import gettext as _
 
-from ... import user_cache
+from ... import permission_docs, user_cache
 from ...db import engine_nexora_db
 from ...security import (
+    _split_code,
     assignable_profile_ids,
     group_permissions,
     has_permission,
@@ -125,6 +126,126 @@ def admin_permissions_page():
         grants=grants,
         overrides=overrides,
         can_edit=has_permission("admin.profiles.edit"),
+        can_edit_catalog=has_permission("admin.permissions.edit"),
+        page_visibility=page_visibility(),
+    )
+
+
+# The vocabulary, spelled out. docs/design/permissions.md defines these; the
+# page repeats them next to the code so a reader does not have to hold the
+# grammar in their head to know what ".edit.org" means.
+_ACTION_HELP = {
+    "view": lambda: _("Open and read. Without it the rest of the object is unreachable."),
+    "add": lambda: _("Create new records."),
+    "edit": lambda: _("Change existing records."),
+    "delete": lambda: _("Remove records permanently."),
+    "use": lambda: _("Use a feature someone else configured."),
+    "run": lambda: _("Execute something on demand."),
+    "import": lambda: _("Bring data in from outside nexora."),
+    "export": lambda: _("Take data out, as a file or a download."),
+    "schedule": lambda: _("Set something to run on a timer."),
+    "manage": lambda: _("Administer the object itself, not its records."),
+    "bypass": lambda: _("Skip a restriction that applies to everyone else."),
+    "restart": lambda: _("Restart a running service."),
+}
+
+_SCOPE_HELP = {
+    "": lambda: _("Own records only."),
+    "org": lambda: _("Every record of the holder's own organization."),
+    "all": lambda: _("Every record, in every organization."),
+    "pastdeadline": lambda: _("Also after the deadline has passed."),
+}
+
+
+@require_permission("admin.profiles.view")
+def admin_permission_detail_view(code):
+    """One permission, in depth.
+
+    The grid answers "who holds this"; it cannot answer "what does holding it
+    actually do", which is the question an admin handing out access is really
+    asking. Everything on the left of this page is derived from the running
+    app and the source tree (nx_lib/permission_docs.py) rather than from the
+    200-character Description, so it cannot drift away from the code; the
+    right-hand side is the grant state out of the database.
+    """
+    conn = None
+    try:
+        conn = engine_nexora_db.raw_connection()
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT PermissionID, Code, Description FROM dbo.Permission WHERE Code = ?", (code,)
+        )
+        row = cur.fetchone()
+        if not row:
+            return render_template("handlers/404.html"), 404
+        perm = {"PermissionID": row[0], "Code": row[1], "Description": row[2]}
+
+        # Who holds it, by profile, with how many users sit on each.
+        cur.execute(
+            """SELECT ap.AccessID, ap.Name, ap.Rank,
+                      (SELECT COUNT(*) FROM dbo.Users u WHERE u.accessid = ap.AccessID) AS UserCount,
+                      CASE WHEN app.PermissionID IS NULL THEN 0 ELSE 1 END AS Granted
+               FROM dbo.AccessProfile ap
+               LEFT JOIN dbo.AccessProfilePermission app
+                      ON app.AccessID = ap.AccessID AND app.PermissionID = ?
+               ORDER BY ap.Rank DESC, ap.Name""",
+            (perm["PermissionID"],),
+        )
+        profiles = [
+            dict(zip([c[0] for c in cur.description], r, strict=False)) for r in cur.fetchall()
+        ]
+
+        # The only place a deny can exist (migration 0086), so it is worth
+        # naming the users rather than just counting them.
+        cur.execute(
+            """SELECT u.userID, u.username, u.Fullname, uo.Effect
+               FROM dbo.UserPermissionOverride uo
+               JOIN dbo.Users u ON u.userID = uo.UserID
+               WHERE uo.PermissionID = ?
+               ORDER BY uo.Effect, u.Fullname""",
+            (perm["PermissionID"],),
+        )
+        overrides = [
+            dict(zip([c[0] for c in cur.description], r, strict=False)) for r in cur.fetchall()
+        ]
+
+        # Siblings: the other actions on the same object, so the page doubles
+        # as "what else does this object have".
+        _, obj, _action, _scope = _split_code(code)
+        cur.execute(
+            "SELECT PermissionID, Code, Description FROM dbo.Permission "
+            "WHERE Code = ? OR Code LIKE ? ORDER BY Code",
+            (obj, obj + ".%"),
+        )
+        # A LIKE on the object prefix is too wide for an area-level code:
+        # reporting.export's object *is* "reporting", so the prefix also drags
+        # in every reporting.source.<x>.use. Keep only codes that split to the
+        # same object, which is what "the rest of this object" means.
+        siblings = [
+            {"PermissionID": r[0], "Code": r[1], "Description": r[2]}
+            for r in cur.fetchall()
+            if r[1] != code and _split_code(r[1])[1] == obj
+        ]
+    except Exception as e:
+        current_app.logger.error(f"Failed to render permission detail for {code}: {e}")
+        return render_template("handlers/500.html"), 500
+    finally:
+        if conn:
+            conn.close()
+
+    facts = permission_docs.describe(code, current_app.url_map, current_app.view_functions)
+    action_help = _ACTION_HELP.get(facts["grammar"]["action"])
+    scope_help = _SCOPE_HELP.get(facts["grammar"]["scope"])
+    return render_template(
+        "admin/permission_detail.html",
+        perm=perm,
+        facts=facts,
+        action_help=action_help() if action_help else None,
+        scope_help=scope_help() if scope_help else None,
+        profiles=profiles,
+        granted_profiles=[p for p in profiles if p["Granted"]],
+        overrides=overrides,
+        siblings=siblings,
         can_edit_catalog=has_permission("admin.permissions.edit"),
         page_visibility=page_visibility(),
     )
@@ -816,6 +937,11 @@ def register_routes(app):
     )
     app.add_url_rule(
         "/admin/permissions", endpoint="admin_permissions", view_func=admin_permissions_page
+    )
+    app.add_url_rule(
+        "/admin/permissions/detail/<code>",
+        endpoint="admin_permission_detail_view",
+        view_func=admin_permission_detail_view,
     )
     app.add_url_rule(
         "/api/admin/profiles/grants",

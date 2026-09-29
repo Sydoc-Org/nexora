@@ -436,7 +436,7 @@ def tenant_page(tenant_code, page_key):
     if reg is None:
         # A load failure is never cached (nx_lib/tenant/registry.py) -- render
         # the explicit unavailable state, never an empty-looking page (same
-        # contract as admin_processes_view's mapping_config_available flag).
+        # contract as api_admin_processes_list's mapping_config_available flag).
         return render_template(
             "tenant/page.html",
             unavailable=True,

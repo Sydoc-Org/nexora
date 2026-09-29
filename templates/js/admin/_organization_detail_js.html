@@ -1,0 +1,398 @@
+    <script nonce="{{ csp_nonce() }}">
+        // Organization detail: users / profiles / data & processes / branding /
+        // tenant. Absorbs the branding panel and this organization's slice of
+        // the Process Configurations page.
+        const API_PREFIX = window.API_PREFIX;
+        const showNotification = window.NX.toast;
+        const forbidden = `{{ _("You do not have permission to perform this action.") }}`;
+        const ORG_CODE = {{ org.organizationcode|tojson }};
+        const reload = () => window.location.reload();
+
+        async function send(url, method, body) {
+            try {
+                const response = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                    body: body === undefined ? undefined : JSON.stringify(body)
+                });
+                if (response.status === 403) { showNotification(forbidden, 'error'); return false; }
+                const result = await response.json();
+                if (response.ok) { showNotification(result.message || `{{ _("Success") }}`); return true; }
+                showNotification(`{{ _("Error:") }} ${result.message}`, 'error');
+                return false;
+            } catch (error) {
+                console.error('request failed:', error);
+                showNotification(`{{ _("An unexpected network error occurred.") }}`, 'error');
+                return false;
+            }
+        }
+
+        // ---- Confirm dialog -------------------------------------------------
+        const confirmEl = document.getElementById('admConfirm');
+        const confirmBody = document.getElementById('admConfirmBody');
+        let confirmCallback = null;
+        function askConfirm(message, onConfirm) {
+            confirmBody.textContent = message;
+            confirmCallback = onConfirm;
+            confirmEl.classList.remove('hidden');
+        }
+        function closeConfirm() { confirmEl.classList.add('hidden'); confirmCallback = null; }
+        document.getElementById('admConfirmOk').addEventListener('click', () => {
+            const cb = confirmCallback; closeConfirm(); if (cb) cb();
+        });
+        document.getElementById('admConfirmCancel').addEventListener('click', closeConfirm);
+        confirmEl.addEventListener('click', (e) => { if (e.target === confirmEl) closeConfirm(); });
+
+        // ---- Side sheets ----------------------------------------------------
+        function sheet(name) {
+            const panel = document.getElementById(`${name}Sheet`);
+            const back = document.getElementById(`${name}SheetBack`);
+            if (!panel || !back) return null;
+            const api = {
+                open() { panel.classList.remove('hidden'); back.classList.remove('hidden'); },
+                close() { panel.classList.add('hidden'); back.classList.add('hidden'); },
+            };
+            back.addEventListener('click', api.close);
+            document.getElementById(`${name}SheetClose`)?.addEventListener('click', api.close);
+            document.getElementById(`${name}SheetCancel`)?.addEventListener('click', api.close);
+            return api;
+        }
+        const orgSheet = sheet('org');
+        const sourceSheet = sheet('source');
+        const fieldSheet = sheet('field');
+        const clientSheet = sheet('client');
+        document.addEventListener('keydown', (e) => {
+            if (e.key !== 'Escape') return;
+            orgSheet?.close(); sourceSheet?.close(); fieldSheet?.close(); clientSheet?.close();
+            closeConfirm();
+        });
+
+        // ---- Tabs -------------------------------------------------------------
+        const TABS = ['users', 'profiles', 'data', 'branding', 'tenant'];
+        function showTab(name) {
+            if (!TABS.includes(name)) name = TABS[0];
+            document.querySelectorAll('[data-nx-tab]').forEach(t =>
+                t.classList.toggle('adm-tab--active', t.dataset.nxTab === name));
+            document.querySelectorAll('[data-nx-panel]').forEach(p =>
+                p.classList.toggle('hidden', p.dataset.nxPanel !== name));
+        }
+        document.querySelectorAll('[data-nx-tab]').forEach(tab => {
+            tab.addEventListener('click', () => {
+                history.replaceState(null, '', `#${tab.dataset.nxTab}`);
+                showTab(tab.dataset.nxTab);
+            });
+        });
+        showTab((window.location.hash || '').replace('#', ''));
+
+        // ---- Organization sheet -------------------------------------------------
+        const orgForm = document.getElementById('orgForm');
+        const orgOriginalCode = document.getElementById('orgOriginalCode');
+        const orgNameInput = document.getElementById('organizationname');
+        const orgTenantSelect = document.getElementById('orgTenantCode');
+
+        document.getElementById('editOrgBtn')?.addEventListener('click', (e) => {
+            const o = JSON.parse(e.currentTarget.dataset.org);
+            orgForm.reset();
+            document.getElementById('orgSheetTitle').textContent = `{{ _("Edit organization") }}`;
+            orgOriginalCode.value = o.organizationcode;
+            orgNameInput.value = o.organization || '';
+            orgTenantSelect.value = o.tenant_code || '';
+            document.getElementById('orgCodeHint')?.classList.add('hidden');
+            orgSheet.open();
+        });
+
+        orgForm?.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const data = { organizationname: orgNameInput.value, tenantcode: orgTenantSelect.value };
+            const url = `${API_PREFIX}admin/organizations/edit/${encodeURIComponent(orgOriginalCode.value)}`;
+            if (await send(url, 'POST', data)) { orgSheet.close(); reload(); }
+        });
+
+        document.getElementById('deleteOrgBtn')?.addEventListener('click', (e) => {
+            const code = e.currentTarget.dataset.org;
+            askConfirm(`{{ _("Delete this organization? Its process sources become unassigned.") }}`, async () => {
+                if (await send(`${API_PREFIX}admin/organizations/delete/${encodeURIComponent(code)}`, 'DELETE')) {
+                    window.location.href = `${API_PREFIX}admin/organizations`;
+                }
+            });
+        });
+
+        // ---- Data connection sheet ------------------------------------------------
+        const clientForm = document.getElementById('clientForm');
+        if (clientForm) {
+            const FIELDS = ['DisplayName', 'Dialect', 'RuntimeEngineKey', 'StatsEngineKey',
+                            'StatsDialect', 'DocfieldsEngineKey', 'DocfieldsDialect',
+                            'OctoDomain', 'SecretRef'];
+            const idOf = (f) => (f === 'DisplayName' ? 'ClientDisplayName' : f);
+            const clientOriginalCode = document.getElementById('clientOriginalCode');
+            const clientCodeInput = document.getElementById('ClientCode');
+
+            document.addEventListener('click', (e) => {
+                const edit = e.target.closest('.edit-client-btn');
+                if (!edit) return;
+                const c = JSON.parse(edit.dataset.client);
+                clientForm.reset();
+                document.getElementById('clientSheetTitle').textContent = `{{ _("Edit connection") }}`;
+                clientOriginalCode.value = c.ClientCode;
+                clientCodeInput.value = c.ClientCode;
+                clientCodeInput.disabled = true;
+                FIELDS.forEach(f => { document.getElementById(idOf(f)).value = c[f] || ''; });
+                document.getElementById('ClientIsActive').checked = !!c.IsActive;
+                clientSheet.open();
+            });
+
+            clientForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const data = { ClientCode: clientCodeInput.value, IsActive: document.getElementById('ClientIsActive').checked };
+                FIELDS.forEach(f => { data[f] = document.getElementById(idOf(f)).value; });
+                const url = `${API_PREFIX}admin/clients/edit/${encodeURIComponent(clientOriginalCode.value)}`;
+                if (await send(url, 'POST', data)) { clientSheet.close(); reload(); }
+            });
+        }
+
+        // ---- Process sources ----------------------------------------------------
+        const sourceForm = document.getElementById('sourceForm');
+        if (sourceForm) {
+            const SRC = ['ProcessName', 'TableName', 'TableAlias', 'ExportColumn',
+                         'ImportColumn', 'WorkitemColumn', 'IdColumnType'];
+            const origClient = document.getElementById('sourceOriginalClient');
+            const origProcess = document.getElementById('sourceOriginalProcess');
+            const clientSelect = document.getElementById('ClientCode');
+            const processInput = document.getElementById('ProcessName');
+
+            document.getElementById('addSourceBtn')?.addEventListener('click', () => {
+                sourceForm.reset();
+                document.getElementById('sourceSheetTitle').textContent = `{{ _("Add process source") }}`;
+                origClient.value = '';
+                origProcess.value = '';
+                clientSelect.disabled = false;
+                processInput.readOnly = false;
+                document.getElementById('OrganizationCode').value = ORG_CODE;
+                sourceSheet.open();
+            });
+
+            document.addEventListener('click', (e) => {
+                const edit = e.target.closest('.edit-source-btn');
+                if (!edit) return;
+                const s = JSON.parse(edit.dataset.source);
+                sourceForm.reset();
+                document.getElementById('sourceSheetTitle').textContent = `{{ _("Edit process source") }}`;
+                origClient.value = s.client;
+                origProcess.value = s.process;
+                // (ClientCode, ProcessName) is the key the edit endpoint routes on.
+                clientSelect.value = s.client;
+                clientSelect.disabled = true;
+                processInput.value = s.process;
+                processInput.readOnly = true;
+                document.getElementById('TableName').value = s.table || '';
+                document.getElementById('TableAlias').value = s.alias || '';
+                document.getElementById('ExportColumn').value = s.export_column || '';
+                document.getElementById('ImportColumn').value = s.import_column || '';
+                document.getElementById('WorkitemColumn').value = s.workitem_column || '';
+                document.getElementById('IdColumnType').value = s.id_column_type || '';
+                document.getElementById('OrganizationCode').value = ORG_CODE;
+                sourceSheet.open();
+            });
+
+            sourceForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const data = {
+                    ClientCode: clientSelect.value,
+                    OrganizationCode: document.getElementById('OrganizationCode').value,
+                };
+                SRC.forEach(f => { data[f] = document.getElementById(f).value; });
+                const url = origProcess.value
+                    ? `${API_PREFIX}admin/processes/sources/edit/${encodeURIComponent(origClient.value)}/${encodeURIComponent(origProcess.value)}`
+                    : `${API_PREFIX}admin/processes/sources/add`;
+                if (await send(url, 'POST', data)) { sourceSheet.close(); reload(); }
+            });
+        }
+
+        document.addEventListener('click', (e) => {
+            const del = e.target.closest('.delete-source-btn');
+            if (!del) return;
+            askConfirm(`{{ _("Delete this process source and its field mappings?") }}`, async () => {
+                const url = `${API_PREFIX}admin/processes/sources/delete/${encodeURIComponent(del.dataset.client)}/${encodeURIComponent(del.dataset.process)}`;
+                if (await send(url, 'DELETE')) reload();
+            });
+        });
+
+        // ---- Field mappings -------------------------------------------------------
+        const fieldForm = document.getElementById('fieldForm');
+        if (fieldForm) {
+            const fieldOriginalKey = document.getElementById('fieldOriginalKey');
+            const fieldClient = document.getElementById('fieldClientCode');
+            const fieldProcess = document.getElementById('fieldProcessName');
+
+            function openField(client, process, field) {
+                fieldForm.reset();
+                document.getElementById('fieldSheetTitle').textContent = field
+                    ? `{{ _("Edit field mapping") }}` : `{{ _("Add field mapping") }}`;
+                fieldClient.value = client;
+                fieldProcess.value = process;
+                fieldOriginalKey.value = field ? field.field_key : '';
+                document.getElementById('FieldKey').value = field ? field.field_key : '';
+                document.getElementById('ColumnName').value = field ? (field.column || '') : '';
+                document.getElementById('ColumnType').value = field ? (field.column_type || '') : '';
+                fieldSheet.open();
+            }
+
+            document.addEventListener('click', (e) => {
+                const add = e.target.closest('.add-field-btn');
+                if (add) { openField(add.dataset.client, add.dataset.process, null); return; }
+                const edit = e.target.closest('.edit-field-btn');
+                if (edit) { openField(edit.dataset.client, edit.dataset.process, JSON.parse(edit.dataset.field)); }
+            });
+
+            fieldForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const client = fieldClient.value;
+                const process = fieldProcess.value;
+                const data = {
+                    ClientCode: client,
+                    ProcessName: process,
+                    FieldKey: document.getElementById('FieldKey').value,
+                    ColumnName: document.getElementById('ColumnName').value,
+                    ColumnType: document.getElementById('ColumnType').value,
+                };
+                const original = fieldOriginalKey.value;
+                const url = original
+                    ? `${API_PREFIX}admin/processes/fields/edit/${encodeURIComponent(client)}/${encodeURIComponent(process)}/${encodeURIComponent(original)}`
+                    : `${API_PREFIX}admin/processes/fields/add`;
+                if (await send(url, 'POST', data)) { fieldSheet.close(); reload(); }
+            });
+        }
+
+        document.addEventListener('click', (e) => {
+            const del = e.target.closest('.delete-field-btn');
+            if (!del) return;
+            askConfirm(`{{ _("Delete this field mapping?") }}`, async () => {
+                const url = `${API_PREFIX}admin/processes/fields/delete/${encodeURIComponent(del.dataset.client)}/${encodeURIComponent(del.dataset.process)}/${encodeURIComponent(del.dataset.field)}`;
+                if (await send(url, 'DELETE')) reload();
+            });
+        });
+
+        // ---- Branding ---------------------------------------------------------------
+        const brandingForm = document.getElementById('brandingForm');
+        if (brandingForm) {
+            const nameInput = document.getElementById('brand_name');
+            const hexInput = document.getElementById('brand_accent_hex');
+            const picker = document.getElementById('brand_accent_picker');
+            const logoInput = document.getElementById('brand_logo');
+            const saveBtn = document.getElementById('brandSave');
+            const discardBtn = document.getElementById('brandDiscard');
+            const previewName = document.getElementById('brandPreviewName');
+            const previewLogo = document.getElementById('brandPreviewLogo');
+            const preview = document.getElementById('brandPreview');
+            const initial = { name: nameInput.value, hex: hexInput.value };
+
+            // Save stays disabled until something actually changed -- the panel
+            // posts every field, so an accidental save would rewrite all of them.
+            function dirty() {
+                return nameInput.value !== initial.name
+                    || hexInput.value !== initial.hex
+                    || (logoInput.files && logoInput.files.length > 0);
+            }
+            function refresh() {
+                const on = dirty();
+                saveBtn.disabled = !on;
+                discardBtn.disabled = !on;
+                previewName.textContent = nameInput.value || 'nexora';
+                const hex = /^#[0-9A-Fa-f]{6}$/.test(hexInput.value) ? hexInput.value : '';
+                preview.style.setProperty('--nx-accent', hex || '');
+            }
+
+            // The row can name a logo whose file is not on this host (var/ is
+            // per-machine and never deployed); hide the broken image instead.
+            previewLogo.addEventListener('error', () => { previewLogo.hidden = true; });
+
+            nameInput.addEventListener('input', refresh);
+            hexInput.addEventListener('input', () => {
+                if (/^#[0-9A-Fa-f]{6}$/.test(hexInput.value)) picker.value = hexInput.value;
+                refresh();
+            });
+            picker.addEventListener('input', () => { hexInput.value = picker.value; refresh(); });
+            logoInput.addEventListener('change', () => {
+                const file = logoInput.files && logoInput.files[0];
+                if (file) {
+                    previewLogo.src = URL.createObjectURL(file);
+                    previewLogo.hidden = false;
+                }
+                refresh();
+            });
+            document.getElementById('brandAccentClear').addEventListener('click', () => {
+                hexInput.value = '';
+                refresh();
+            });
+            discardBtn.addEventListener('click', () => {
+                nameInput.value = initial.name;
+                hexInput.value = initial.hex;
+                picker.value = initial.hex || '#4f46e5';
+                logoInput.value = '';
+                refresh();
+            });
+
+            brandingForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                // multipart, not JSON: the logo travels with the two text fields.
+                const body = new FormData();
+                body.append('brand_name', nameInput.value);
+                body.append('brand_accent_hex', hexInput.value);
+                if (logoInput.files && logoInput.files[0]) body.append('logo', logoInput.files[0]);
+                try {
+                    const response = await fetch(
+                        `${API_PREFIX}admin/organizations/${encodeURIComponent(ORG_CODE)}/branding`,
+                        { method: 'POST', headers: { 'X-CSRFToken': csrfToken }, body });
+                    if (response.status === 403) { showNotification(forbidden, 'error'); return; }
+                    const result = await response.json();
+                    if (response.ok) { showNotification(result.message || `{{ _("Success") }}`); reload(); return; }
+                    showNotification(`{{ _("Error:") }} ${result.message}`, 'error');
+                } catch (error) {
+                    console.error('branding save failed:', error);
+                    showNotification(`{{ _("An unexpected network error occurred.") }}`, 'error');
+                }
+            });
+
+            refresh();
+        }
+
+        // ---- Tenant move ---------------------------------------------------------------
+        const tenantForm = document.getElementById('orgTenantForm');
+        if (tenantForm) {
+            const current = tenantForm.dataset.current || '';
+            const warn = document.getElementById('orgTenantWarn');
+            const warnText = document.getElementById('orgTenantWarnText');
+            const saveBtn = document.getElementById('orgTenantSave');
+            const cancelBtn = document.getElementById('orgTenantCancel');
+
+            function picked() {
+                return tenantForm.querySelector('input[name="tenantcode"]:checked')?.value || '';
+            }
+            function refresh() {
+                const changed = picked() !== current;
+                saveBtn.disabled = !changed;
+                cancelBtn.disabled = !changed;
+                warn.classList.toggle('hidden', !changed);
+                if (changed) {
+                    warnText.textContent = picked()
+                        ? `{{ _("Members of this organization will see the tenant's pages instead of the global navigation.") }}`
+                        : `{{ _("Members of this organization will see the global navigation again.") }}`;
+                }
+            }
+            tenantForm.addEventListener('change', refresh);
+            cancelBtn.addEventListener('click', () => {
+                const input = tenantForm.querySelector(`input[name="tenantcode"][value="${CSS.escape(current)}"]`);
+                if (input) input.checked = true;
+                refresh();
+            });
+            tenantForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                // Same endpoint the organization sheet uses: membership is just
+                // Organizations.TenantCode.
+                const data = { organizationname: {{ org.organization|tojson }}, tenantcode: picked() };
+                const url = `${API_PREFIX}admin/organizations/edit/${encodeURIComponent(ORG_CODE)}`;
+                if (await send(url, 'POST', data)) reload();
+            });
+            refresh();
+        }
+    </script>

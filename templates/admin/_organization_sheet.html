@@ -1,0 +1,42 @@
+{# Organization add/edit side sheet. Shared by the Organizations list and the
+   Organization detail view; both drive it via #addOrgBtn / openEditOrgSheet().
+   Expects `tenants` (every tenant, for the picker). #}
+<div id="orgSheetBack" class="adm-sheet-back hidden"></div>
+<aside id="orgSheet" class="adm-sheet hidden" role="dialog" aria-modal="true" aria-labelledby="orgSheetTitle">
+    <form id="orgForm" data-testid="admin-org-sheet-form" style="display:contents">
+        <div class="adm-sheet__head">
+            <div>
+                <div class="adm-sheet__kicker">{{ _('Organization') }}</div>
+                <h2 class="adm-sheet__title" id="orgSheetTitle">{{ _('Add organization') }}</h2>
+            </div>
+            <button type="button" class="nx-btn nx-btn--ghost nx-btn--sm adm-sheet__close" id="orgSheetClose"
+                    aria-label="{{ _('Close') }}" data-testid="admin-org-sheet-close"><i class="fas fa-xmark"></i></button>
+        </div>
+        <div class="adm-sheet__body">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <input type="hidden" id="orgOriginalCode">
+            <div class="adm-sheet__grid adm-sheet__grid--full">
+                <div class="adm-field">
+                    <label class="adm-field__label" for="organizationname">{{ _('Organization name') }}</label>
+                    <input type="text" id="organizationname" class="nx-input" maxlength="200" required
+                           data-testid="admin-org-sheet-name">
+                    <p class="adm-field__hint" id="orgCodeHint">{{ _('The organization code is derived from the name when it is created.') }}</p>
+                </div>
+                <div class="adm-field">
+                    <label class="adm-field__label" for="orgTenantCode">{{ _('Tenant') }}</label>
+                    <select id="orgTenantCode" class="nx-select" data-testid="admin-org-sheet-tenant">
+                        <option value="">{{ _('Not in a tenant') }}</option>
+                        {% for t in tenants %}<option value="{{ t.code }}">{{ t.name }}</option>{% endfor %}
+                    </select>
+                    <p class="adm-field__hint hidden" id="orgTenantNote">
+                        <span class="adm-check__moves">{{ _('Members will see this tenant’s pages instead of the global navigation.') }}</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="adm-sheet__foot">
+            <button type="button" class="nx-btn nx-btn--secondary" id="orgSheetCancel" data-testid="admin-org-sheet-cancel">{{ _('Cancel') }}</button>
+            <button type="submit" class="nx-btn nx-btn--primary" data-testid="admin-org-sheet-save">{{ _('Save organization') }}</button>
+        </div>
+    </form>
+</aside>

@@ -1,0 +1,364 @@
+    <script nonce="{{ csp_nonce() }}">
+        // Tenant detail: organizations / pages / access tabs, page mounting and
+        // the tenant sheet shared with Manage tenants.
+        const API_PREFIX = window.API_PREFIX;
+        const showNotification = window.NX.toast;
+        const forbidden = `{{ _("You do not have permission to perform this action.") }}`;
+        const TENANT_CODE = {{ tenant.TenantCode|tojson }};
+        // Shape + resolved URL per mountable endpoint, so the live preview of
+        // the page you are mounting agrees with the page it becomes.
+        const ENDPOINT_SHAPES = {{ (endpoint_shapes or {})|tojson }};
+        const reload = () => window.location.reload();
+
+        // Assigned by the preview block further down; the mount form calls them.
+        let showPendingPreview = () => {};
+        let updatePendingPreview = () => {};
+        let restorePreview = () => {};
+
+        async function send(url, method, body) {
+            try {
+                const response = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                    body: body === undefined ? undefined : JSON.stringify(body)
+                });
+                if (response.status === 403) { showNotification(forbidden, 'error'); return false; }
+                const result = await response.json();
+                if (response.ok) { showNotification(result.message || `{{ _("Success") }}`); return true; }
+                showNotification(`{{ _("Error:") }} ${result.message}`, 'error');
+                return false;
+            } catch (error) {
+                console.error('request failed:', error);
+                showNotification(`{{ _("An unexpected network error occurred.") }}`, 'error');
+                return false;
+            }
+        }
+
+        // ---- Confirm dialog -------------------------------------------------
+        const confirmEl = document.getElementById('admConfirm');
+        const confirmBody = document.getElementById('admConfirmBody');
+        let confirmCallback = null;
+        function askConfirm(message, onConfirm) {
+            confirmBody.textContent = message;
+            confirmCallback = onConfirm;
+            confirmEl.classList.remove('hidden');
+        }
+        function closeConfirm() { confirmEl.classList.add('hidden'); confirmCallback = null; }
+        document.getElementById('admConfirmOk').addEventListener('click', () => {
+            const cb = confirmCallback; closeConfirm(); if (cb) cb();
+        });
+        document.getElementById('admConfirmCancel').addEventListener('click', closeConfirm);
+        confirmEl.addEventListener('click', (e) => { if (e.target === confirmEl) closeConfirm(); });
+
+        // ---- Side sheets ----------------------------------------------------
+        function sheet(name) {
+            const panel = document.getElementById(`${name}Sheet`);
+            const back = document.getElementById(`${name}SheetBack`);
+            if (!panel || !back) return null;
+            const api = {
+                open() { panel.classList.remove('hidden'); back.classList.remove('hidden'); },
+                close() { panel.classList.add('hidden'); back.classList.add('hidden'); },
+            };
+            back.addEventListener('click', api.close);
+            document.getElementById(`${name}SheetClose`)?.addEventListener('click', api.close);
+            document.getElementById(`${name}SheetCancel`)?.addEventListener('click', api.close);
+            return api;
+        }
+        const tenantSheet = sheet('tenant');
+        document.addEventListener('keydown', (e) => {
+            if (e.key !== 'Escape') return;
+            tenantSheet?.close(); closePageForm(); closeConfirm();
+        });
+
+        // ---- Tabs ------------------------------------------------------------
+        // The tab lives in the hash so a reload -- and every write below triggers
+        // one -- comes back to the tab you were on.
+        const TABS = ['organizations', 'pages', 'access'];
+        function showTab(name) {
+            if (!TABS.includes(name)) name = TABS[0];
+            document.querySelectorAll('[data-nx-tab]').forEach(t =>
+                t.classList.toggle('adm-tab--active', t.dataset.nxTab === name));
+            document.querySelectorAll('[data-nx-panel]').forEach(p =>
+                p.classList.toggle('hidden', p.dataset.nxPanel !== name));
+        }
+        document.querySelectorAll('[data-nx-tab]').forEach(tab => {
+            tab.addEventListener('click', () => {
+                history.replaceState(null, '', `#${tab.dataset.nxTab}`);
+                showTab(tab.dataset.nxTab);
+            });
+        });
+        showTab((window.location.hash || '').replace('#', ''));
+
+        // ---- Tenant sheet ------------------------------------------------------
+        const tenantForm = document.getElementById('tenantForm');
+        if (tenantForm) {
+            const tenantSheetTitle = document.getElementById('tenantSheetTitle');
+            const tenantOriginalCode = document.getElementById('tenantOriginalCode');
+            const tenantCodeInput = document.getElementById('TenantCode');
+            const orgFilter = document.getElementById('tenantOrgFilter');
+
+            function setOrganizations(selected, ownCode) {
+                tenantForm.querySelectorAll('input[name="organizations"]').forEach(cb => {
+                    cb.checked = selected.includes(cb.value);
+                    const elsewhere = cb.dataset.currentTenant && cb.dataset.currentTenant !== ownCode;
+                    const hint = cb.closest('label').querySelector('.adm-check__moves');
+                    hint.classList.toggle('hidden', !elsewhere);
+                    if (elsewhere) hint.querySelector('.adm-check__moves-name').textContent = cb.dataset.currentTenant;
+                });
+            }
+
+            orgFilter?.addEventListener('input', () => {
+                const q = orgFilter.value.trim().toLowerCase();
+                tenantForm.querySelectorAll('[data-org-search]').forEach(label => {
+                    label.classList.toggle('hidden', q && !label.dataset.orgSearch.includes(q));
+                });
+            });
+
+            function openEdit(btn) {
+                const t = JSON.parse(btn.dataset.tenant);
+                tenantForm.reset();
+                tenantSheetTitle.textContent = `{{ _("Edit tenant") }}`;
+                tenantOriginalCode.value = t.TenantCode;
+                tenantCodeInput.value = t.TenantCode;
+                tenantCodeInput.disabled = true;
+                document.getElementById('DisplayName').value = t.DisplayName || '';
+                document.getElementById('IsActive').checked = !!t.IsActive;
+                setOrganizations(t.organizations || [], t.TenantCode);
+                tenantSheet.open();
+            }
+            document.getElementById('editTenantBtn')?.addEventListener('click', (e) => openEdit(e.currentTarget));
+            document.getElementById('addOrgsBtn')?.addEventListener('click', (e) => openEdit(e.currentTarget));
+
+            tenantForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const data = {
+                    TenantCode: tenantCodeInput.value,
+                    DisplayName: document.getElementById('DisplayName').value,
+                    IsActive: document.getElementById('IsActive').checked,
+                    organizations: Array.from(
+                        tenantForm.querySelectorAll('input[name="organizations"]:checked')).map(cb => cb.value),
+                };
+                const url = `${API_PREFIX}admin/tenants/edit/${encodeURIComponent(tenantOriginalCode.value)}`;
+                if (await send(url, 'POST', data)) { tenantSheet.close(); reload(); }
+            });
+        }
+
+        document.getElementById('deleteTenantBtn')?.addEventListener('click', (e) => {
+            const code = e.currentTarget.dataset.tenant;
+            askConfirm(`{{ _("Delete this tenant and its page descriptors? Organizations must be moved out first.") }}`, async () => {
+                if (await send(`${API_PREFIX}admin/tenants/delete/${encodeURIComponent(code)}`, 'DELETE')) {
+                    window.location.href = `${API_PREFIX}admin/tenants/manage`;
+                }
+            });
+        });
+
+        // ---- Pages --------------------------------------------------------------
+        // The mount form sits inline above the table rather than in a sheet, so
+        // opening it must not scroll the table it edits out of view.
+        const pageForm = document.getElementById('pageForm');
+        function closePageForm() {
+            pageForm?.classList.add('hidden');
+            restorePreview();
+        }
+        if (pageForm) {
+            const iconInput = document.getElementById('icon');
+            const iconPreview = document.getElementById('iconPreview')?.querySelector('i');
+            iconInput?.addEventListener('input', () => {
+                if (!iconPreview) return;
+                const v = iconInput.value.trim();
+                iconPreview.className = `fas ${/^fa-[a-z0-9-]{1,40}$/.test(v) ? v : 'fa-arrow-up-right-from-square'}`;
+            });
+
+            document.getElementById('mountPageBtn')?.addEventListener('click', () => {
+                pageForm.reset();
+                if (iconPreview) iconPreview.className = 'fas fa-arrow-up-right-from-square';
+                pageForm.classList.remove('hidden');
+                pageForm.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                document.getElementById('endpoint')?.focus();
+                showPendingPreview();
+            });
+            document.getElementById('pageFormClose')?.addEventListener('click', closePageForm);
+            document.getElementById('pageFormCancel')?.addEventListener('click', closePageForm);
+
+            // The key and label are derived from the chosen endpoint, so the
+            // common case is pick-one-thing-and-save.
+            const keyInput = document.getElementById('PageKey');
+            const labelInput = document.getElementById('label');
+            const endpointSel = document.getElementById('endpoint');
+            // Autofill follows the endpoint until you type in the field
+            // yourself -- picking a second endpoint should not leave the first
+            // one's name behind, but it must never clobber your own wording.
+            [keyInput, labelInput].forEach(el => el.addEventListener('input', () => {
+                delete el.dataset.auto;
+            }));
+            endpointSel?.addEventListener('change', (e) => {
+                const ep = e.target.value;
+                if (!ep) return;
+                if (!keyInput.value || keyInput.dataset.auto) {
+                    keyInput.value = ep.replace(/_view$/, '').replace(/[^a-z0-9_.-]/g, '_');
+                    keyInput.dataset.auto = '1';
+                }
+                if (!labelInput.value || labelInput.dataset.auto) {
+                    labelInput.value = ep.replace(/_view$/, '').replace(/[_-]+/g, ' ')
+                        .replace(/\b\w/g, (c) => c.toUpperCase());
+                    labelInput.dataset.auto = '1';
+                }
+            });
+            // Anything that changes what the mounted page will look like
+            // repaints the preview next to the form.
+            pageForm.addEventListener('input', () => {
+                if (!pageForm.classList.contains('hidden')) updatePendingPreview();
+            });
+            pageForm.addEventListener('change', () => {
+                if (!pageForm.classList.contains('hidden')) updatePendingPreview();
+            });
+
+            pageForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const data = Object.fromEntries(new FormData(pageForm).entries());
+                delete data.csrf_token;
+                const url = `${API_PREFIX}admin/tenants/${encodeURIComponent(TENANT_CODE)}/pages/add`;
+                if (await send(url, 'POST', data)) { closePageForm(); reload(); }
+            });
+        }
+
+        // ---- Member preview ------------------------------------------------------
+        // Every page has its own view rendered server-side from its entity and
+        // field descriptors; selecting a row only unhides one. Nothing about a
+        // page's shape is reconstructed in JS.
+        const pagesTable = document.querySelector('[data-testid="tenant-pages-table"]');
+        const previewSide = document.getElementById('previewSide');
+        if (pagesTable && previewSide) {
+            const previewKey = document.getElementById('previewKey');
+            const views = document.querySelectorAll('[data-preview-view]');
+            let currentKey = null;
+
+            function showView(key) {
+                views.forEach(v => { v.hidden = v.dataset.previewView !== key; });
+            }
+
+            function select(key) {
+                const row = pagesTable.querySelector(`tr[data-page-key="${CSS.escape(key)}"]`);
+                if (!row) return;
+                currentKey = key;
+                pagesTable.querySelectorAll('tr[data-page-key]').forEach(r =>
+                    r.classList.toggle('adm-row--on', r === row));
+                previewSide.querySelectorAll('[data-preview-key]').forEach(el =>
+                    el.classList.toggle('adm-window__item--on', el.dataset.previewKey === key));
+                showView(key);
+                previewKey.textContent = key;
+            }
+
+            // ---- live preview of the page being mounted ---------------------
+            const newView = document.querySelector('[data-preview-view="__new__"]');
+            if (newView) {
+                const newIcon = document.getElementById('newPreviewIcon');
+                const newLabel = document.getElementById('newPreviewLabel');
+                const newEndpoint = document.getElementById('newPreviewEndpoint');
+                const newPath = document.getElementById('newPreviewPath');
+                const newBody = document.getElementById('newPreviewBody');
+                const placeholder = `{{ _("New page") }}`;
+
+                updatePendingPreview = () => {
+                    const ep = document.getElementById('endpoint')?.value || '';
+                    const info = ENDPOINT_SHAPES[ep] || {};
+                    const key = document.getElementById('PageKey')?.value.trim();
+                    const icon = document.getElementById('icon')?.value.trim() || '';
+                    previewKey.textContent = key || '…';
+                    newLabel.textContent = document.getElementById('label')?.value.trim() || placeholder;
+                    newEndpoint.textContent = ep;
+                    newPath.textContent = info.path || ep;
+                    newIcon.className = `fas ${/^fa-[a-z0-9-]{1,40}$/.test(icon) ? icon : 'fa-arrow-up-right-from-square'}`;
+                    const shape = info.shape || 'list';
+                    newBody.querySelectorAll('[data-shape]').forEach(el => {
+                        el.hidden = el.dataset.shape !== shape;
+                    });
+                };
+
+                showPendingPreview = () => {
+                    pagesTable.querySelectorAll('tr[data-page-key]').forEach(r =>
+                        r.classList.remove('adm-row--on'));
+                    previewSide.querySelectorAll('[data-preview-key]').forEach(el =>
+                        el.classList.remove('adm-window__item--on'));
+                    showView('__new__');
+                    updatePendingPreview();
+                };
+
+                restorePreview = () => { if (currentKey) select(currentKey); };
+            }
+
+            pagesTable.addEventListener('click', (e) => {
+                if (e.target.closest('button, a, input, label')) return;
+                const row = e.target.closest('tr[data-page-key]');
+                if (row) select(row.dataset.pageKey);
+            });
+            previewSide.addEventListener('click', (e) => {
+                const item = e.target.closest('[data-preview-key]');
+                if (item) select(item.dataset.previewKey);
+            });
+
+            // Open on the first active page, else the first row -- the preview
+            // should never start blank when the tenant has pages.
+            const first = pagesTable.querySelector('tr[data-page-status="active"]')
+                       || pagesTable.querySelector('tr[data-page-key]');
+            if (first) select(first.dataset.pageKey);
+        }
+
+        // ---- Reorder ---------------------------------------------------------------
+        const reorderBtn = document.getElementById('reorderBtn');
+        if (reorderBtn && pagesTable) {
+            const tbody = pagesTable.querySelector('tbody');
+            let reordering = false;
+
+            function currentOrder() {
+                return Array.from(tbody.querySelectorAll('tr[data-page-key]'))
+                    .map(r => r.dataset.pageKey);
+            }
+
+            reorderBtn.addEventListener('click', async () => {
+                reordering = !reordering;
+                document.body.classList.toggle('is-reordering', reordering);
+                reorderBtn.classList.toggle('nx-btn--primary', reordering);
+                reorderBtn.classList.toggle('nx-btn--secondary', !reordering);
+                if (reordering) return;
+                // Leaving reorder mode is the save: one request, not one per nudge.
+                const url = `${API_PREFIX}admin/tenants/${encodeURIComponent(TENANT_CODE)}/pages/reorder`;
+                if (await send(url, 'POST', { order: currentOrder() })) reload();
+            });
+
+            tbody.addEventListener('click', (e) => {
+                const btn = e.target.closest('.move-page-btn');
+                if (!btn) return;
+                const row = btn.closest('tr');
+                const sibling = btn.dataset.dir === 'up'
+                    ? row.previousElementSibling : row.nextElementSibling;
+                if (!sibling || !sibling.dataset.pageKey) return;
+                if (btn.dataset.dir === 'up') tbody.insertBefore(row, sibling);
+                else tbody.insertBefore(sibling, row);
+                // Mirror the move into the preview sidebar straight away.
+                const key = row.dataset.pageKey;
+                const item = previewSide?.querySelector(`[data-preview-key="${CSS.escape(key)}"]`);
+                const sibItem = previewSide?.querySelector(`[data-preview-key="${CSS.escape(sibling.dataset.pageKey)}"]`);
+                if (item && sibItem) {
+                    if (btn.dataset.dir === 'up') previewSide.insertBefore(item, sibItem);
+                    else previewSide.insertBefore(sibItem, item);
+                }
+            });
+        }
+
+        document.addEventListener('click', async (e) => {
+            const toggle = e.target.closest('.toggle-page-btn');
+            if (toggle && !toggle.disabled) {
+                const url = `${API_PREFIX}admin/tenants/${encodeURIComponent(TENANT_CODE)}/pages/${encodeURIComponent(toggle.dataset.page)}/status`;
+                if (await send(url, 'POST', { Status: toggle.dataset.next })) reload();
+                return;
+            }
+            const del = e.target.closest('.delete-page-btn');
+            if (del) {
+                askConfirm(`{{ _("Remove this page from the tenant?") }}`, async () => {
+                    const url = `${API_PREFIX}admin/tenants/${encodeURIComponent(TENANT_CODE)}/pages/${encodeURIComponent(del.dataset.page)}`;
+                    if (await send(url, 'DELETE')) reload();
+                });
+            }
+        });
+    </script>

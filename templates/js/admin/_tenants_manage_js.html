@@ -1,68 +1,12 @@
     <script nonce="{{ csp_nonce() }}">
-        // Tenant management (#256 phase 2): tenants, their organizations, mounted pages.
+        // Manage tenants (tenancy redesign): the merged tenants list, its issue
+        // list and the data connections that used to live on their own page.
+        // Page-level editing moved to the tenant detail view.
         const API_PREFIX = window.API_PREFIX;
         const showNotification = window.NX.toast;
-
-        const tenantModal = document.getElementById('tenantModal');
-        const tenantModalTitle = document.getElementById('tenantModalTitle');
-        const tenantForm = document.getElementById('tenantForm');
-        const tenantOriginalCode = document.getElementById('tenantOriginalCode');
-        const tenantCodeInput = document.getElementById('TenantCode');
-
-        const confirmationModal = document.getElementById('confirmationModal');
-        const confirmMessage = document.getElementById('confirmMessage');
-        const confirmBtn = document.getElementById('confirmBtn');
-        const cancelBtn = document.getElementById('cancelBtn');
-
-        function openModal() {
-            tenantModal.classList.remove('hidden');
-            setTimeout(() => {
-                tenantModal.classList.remove('opacity-0');
-                tenantModal.querySelector('.modal-content').classList.remove('scale-95');
-            }, 10);
-        }
-        function closeModal(event) {
-            if (event && event.target !== tenantModal) return;
-            tenantModal.classList.add('opacity-0');
-            tenantModal.querySelector('.modal-content').classList.add('scale-95');
-            setTimeout(() => tenantModal.classList.add('hidden'), 300);
-        }
-        tenantModal.addEventListener('click', closeModal);
-        document.getElementById('tenantModalCancelBtn')?.addEventListener('click', () => closeModal());
-
-        // Organization checkboxes: tick the members, flag the ones another tenant owns.
-        function setOrganizations(selected, ownCode) {
-            tenantForm.querySelectorAll('input[name="organizations"]').forEach(cb => {
-                cb.checked = selected.includes(cb.value);
-                const elsewhere = cb.dataset.currentTenant && cb.dataset.currentTenant !== ownCode;
-                const hint = cb.closest('label').querySelector('.org-elsewhere');
-                hint.classList.toggle('hidden', !elsewhere);
-                if (elsewhere) hint.querySelector('.org-elsewhere-name').textContent = cb.dataset.currentTenant;
-            });
-        }
-
-        window.openAddTenantModal = function () {
-            tenantForm.reset();
-            tenantModalTitle.textContent = `{{ _("Add a new Tenant") }}`;
-            tenantOriginalCode.value = '';
-            tenantCodeInput.disabled = false;
-            document.getElementById('IsActive').checked = true;
-            setOrganizations([], '');
-            openModal();
-        };
-
-        function openEditTenantModal(t) {
-            tenantForm.reset();
-            tenantModalTitle.textContent = `{{ _("Edit Tenant") }}`;
-            tenantOriginalCode.value = t.TenantCode;
-            tenantCodeInput.value = t.TenantCode;
-            // TenantCode is the primary key and the middle of tenant.<code>.view -- not editable.
-            tenantCodeInput.disabled = true;
-            document.getElementById('DisplayName').value = t.DisplayName || '';
-            document.getElementById('IsActive').checked = !!t.IsActive;
-            setOrganizations(t.organizations || [], t.TenantCode);
-            openModal();
-        }
+        const forbidden = `{{ _("You do not have permission to perform this action.") }}`;
+        // Server-rendered page: reload to pick up the new state.
+        const reload = () => window.location.reload();
 
         async function send(url, method, body, forbiddenMsg) {
             try {
@@ -82,113 +26,214 @@
                 return false;
             }
         }
-        // Server-rendered page: reload to pick up the new state (same as Data Connections).
-        const reload = () => window.location.reload();
 
-        tenantForm.addEventListener('submit', async function (event) {
-            event.preventDefault();
-            const data = {
-                TenantCode: tenantCodeInput.value,
-                DisplayName: document.getElementById('DisplayName').value,
-                IsActive: document.getElementById('IsActive').checked,
-                organizations: Array.from(tenantForm.querySelectorAll('input[name="organizations"]:checked')).map(cb => cb.value),
-            };
-            const original = tenantOriginalCode.value;
-            const url = original
-                ? `${API_PREFIX}admin/tenants/edit/${encodeURIComponent(original)}`
-                : `${API_PREFIX}admin/tenants/add`;
-            if (await send(url, 'POST', data, `{{ _("You do not have permission to perform this action.") }}`)) {
-                closeModal(null);
-                reload();
-            }
-        });
-
+        // ---- Confirm dialog -------------------------------------------------
+        const confirmEl = document.getElementById('admConfirm');
+        const confirmBody = document.getElementById('admConfirmBody');
         let confirmCallback = null;
-        function showConfirmationModal(message, onConfirm) {
-            confirmMessage.textContent = message;
+
+        function askConfirm(message, onConfirm) {
+            confirmBody.textContent = message;
             confirmCallback = onConfirm;
-            confirmationModal.classList.remove('hidden');
-            setTimeout(() => {
-                confirmationModal.classList.remove('opacity-0');
-                confirmationModal.querySelector('.modal-content').classList.remove('scale-95');
-            }, 10);
+            confirmEl.classList.remove('hidden');
         }
-        function hideConfirmationModal() {
-            confirmationModal.classList.add('opacity-0');
-            confirmationModal.querySelector('.modal-content').classList.add('scale-95');
-            setTimeout(() => confirmationModal.classList.add('hidden'), 300);
+        function closeConfirm() { confirmEl.classList.add('hidden'); confirmCallback = null; }
+        document.getElementById('admConfirmOk').addEventListener('click', () => {
+            const cb = confirmCallback;
+            closeConfirm();
+            if (cb) cb();
+        });
+        document.getElementById('admConfirmCancel').addEventListener('click', closeConfirm);
+        confirmEl.addEventListener('click', (e) => { if (e.target === confirmEl) closeConfirm(); });
+
+        // ---- Side sheets ----------------------------------------------------
+        // One helper for both sheets: the backdrop and the panel are toggled
+        // together so a stray class on one cannot leave the page unclickable.
+        function sheet(name) {
+            const panel = document.getElementById(`${name}Sheet`);
+            const back = document.getElementById(`${name}SheetBack`);
+            if (!panel || !back) return null;
+            const api = {
+                open() { panel.classList.remove('hidden'); back.classList.remove('hidden'); },
+                close() { panel.classList.add('hidden'); back.classList.add('hidden'); },
+            };
+            back.addEventListener('click', api.close);
+            document.getElementById(`${name}SheetClose`)?.addEventListener('click', api.close);
+            document.getElementById(`${name}SheetCancel`)?.addEventListener('click', api.close);
+            return api;
         }
-        confirmBtn.addEventListener('click', () => { if (confirmCallback) confirmCallback(); hideConfirmationModal(); });
-        cancelBtn.addEventListener('click', hideConfirmationModal);
-
-        const forbidden = `{{ _("You do not have permission to perform this action.") }}`;
-
-        document.addEventListener('click', async (e) => {
-            const edit = e.target.closest('.edit-tenant-btn');
-            if (edit) { openEditTenantModal(JSON.parse(edit.dataset.tenant)); return; }
-
-            const pages = e.target.closest('.pages-tenant-btn');
-            if (pages) {
-                document.querySelectorAll('.tenant-pages-panel').forEach(p => p.classList.add('hidden'));
-                const panel = document.getElementById(`pages-panel-${pages.dataset.tenant}`);
-                panel?.classList.remove('hidden');
-                panel?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                return;
-            }
-
-            const del = e.target.closest('.delete-tenant-btn');
-            if (del) {
-                showConfirmationModal(`{{ _("Delete this tenant and its page descriptors? Organizations must be moved out first.") }}`, async () => {
-                    if (await send(`${API_PREFIX}admin/tenants/delete/${encodeURIComponent(del.dataset.tenant)}`, 'DELETE', undefined, forbidden)) reload();
-                });
-                return;
-            }
-
-            const toggle = e.target.closest('.toggle-page-btn');
-            if (toggle) {
-                const url = `${API_PREFIX}admin/tenants/${encodeURIComponent(toggle.dataset.tenant)}/pages/${encodeURIComponent(toggle.dataset.page)}/status`;
-                if (await send(url, 'POST', { Status: toggle.dataset.next }, forbidden)) reload();
-                return;
-            }
-
-            const delPage = e.target.closest('.delete-page-btn');
-            if (delPage) {
-                showConfirmationModal(`{{ _("Remove this page from the tenant?") }}`, async () => {
-                    const url = `${API_PREFIX}admin/tenants/${encodeURIComponent(delPage.dataset.tenant)}/pages/${encodeURIComponent(delPage.dataset.page)}`;
-                    if (await send(url, 'DELETE', undefined, forbidden)) reload();
-                });
-            }
+        const tenantSheet = sheet('tenant');
+        const clientSheet = sheet('client');
+        document.addEventListener('keydown', (e) => {
+            if (e.key !== 'Escape') return;
+            tenantSheet?.close();
+            clientSheet?.close();
+            closeConfirm();
         });
 
-        document.querySelectorAll('.add-page-form').forEach(form => {
-            form.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const data = Object.fromEntries(new FormData(form).entries());
-                delete data.csrf_token;
-                const url = `${API_PREFIX}admin/tenants/${encodeURIComponent(form.dataset.tenant)}/pages/add`;
-                if (await send(url, 'POST', data, forbidden)) reload();
+        // ---- Tabs + search --------------------------------------------------
+        // Both narrow the same row set, so they are applied together rather than
+        // each hiding rows the other wants shown.
+        const searchInput = document.getElementById('tenantManageSearch');
+        const tbody = document.getElementById('tenants-tbody');
+        const emptyNote = document.getElementById('tenants-empty');
+        let activeFilter = 'all';
+
+        function applyFilters() {
+            if (!tbody) return;
+            const q = (searchInput?.value || '').trim().toLowerCase();
+            let shown = 0;
+            tbody.querySelectorAll('tr[data-search]').forEach(tr => {
+                const matchesTab = activeFilter === 'all' || tr.dataset.nxState === activeFilter;
+                const matchesQuery = !q || tr.dataset.search.includes(q);
+                const visible = matchesTab && matchesQuery;
+                tr.classList.toggle('hidden', !visible);
+                if (visible) shown++;
+            });
+            emptyNote?.classList.toggle('hidden', shown > 0 || !tbody.querySelector('tr[data-search]'));
+        }
+
+        document.querySelectorAll('[data-nx-filter]').forEach(tab => {
+            tab.addEventListener('click', () => {
+                activeFilter = tab.dataset.nxFilter;
+                document.querySelectorAll('[data-nx-filter]').forEach(t =>
+                    t.classList.toggle('adm-tab--active', t === tab));
+                applyFilters();
             });
         });
+        searchInput?.addEventListener('input', applyFilters);
 
-        // Remember which pages panel was open across the reloads the writes trigger.
+        // ---- Row navigation --------------------------------------------------
+        // The row is the link; the action buttons inside it are not.
+        tbody?.addEventListener('click', (e) => {
+            if (e.target.closest('button, a, input, label')) return;
+            const row = e.target.closest('tr[data-nx-href]');
+            if (row) window.location.href = row.dataset.nxHref;
+        });
+
+        // ---- Tenant sheet ----------------------------------------------------
+        const tenantForm = document.getElementById('tenantForm');
+        if (tenantForm) {
+            const tenantSheetTitle = document.getElementById('tenantSheetTitle');
+            const tenantOriginalCode = document.getElementById('tenantOriginalCode');
+            const tenantCodeInput = document.getElementById('TenantCode');
+            const orgFilter = document.getElementById('tenantOrgFilter');
+
+            // Tick the members, and flag the ones another tenant currently owns.
+            function setOrganizations(selected, ownCode) {
+                tenantForm.querySelectorAll('input[name="organizations"]').forEach(cb => {
+                    cb.checked = selected.includes(cb.value);
+                    const elsewhere = cb.dataset.currentTenant && cb.dataset.currentTenant !== ownCode;
+                    const hint = cb.closest('label').querySelector('.adm-check__moves');
+                    hint.classList.toggle('hidden', !elsewhere);
+                    if (elsewhere) hint.querySelector('.adm-check__moves-name').textContent = cb.dataset.currentTenant;
+                });
+            }
+
+            orgFilter?.addEventListener('input', () => {
+                const q = orgFilter.value.trim().toLowerCase();
+                tenantForm.querySelectorAll('[data-org-search]').forEach(label => {
+                    label.classList.toggle('hidden', q && !label.dataset.orgSearch.includes(q));
+                });
+            });
+
+            document.getElementById('addTenantBtn')?.addEventListener('click', () => {
+                tenantForm.reset();
+                tenantSheetTitle.textContent = `{{ _("New tenant") }}`;
+                tenantOriginalCode.value = '';
+                tenantCodeInput.disabled = false;
+                document.getElementById('IsActive').checked = true;
+                setOrganizations([], '');
+                tenantSheet.open();
+            });
+
+            window.openEditTenantSheet = function (t) {
+                tenantForm.reset();
+                tenantSheetTitle.textContent = `{{ _("Edit tenant") }}`;
+                tenantOriginalCode.value = t.TenantCode;
+                tenantCodeInput.value = t.TenantCode;
+                // TenantCode is the primary key and the middle of tenant.<code>.view -- not editable.
+                tenantCodeInput.disabled = true;
+                document.getElementById('DisplayName').value = t.DisplayName || '';
+                document.getElementById('IsActive').checked = !!t.IsActive;
+                setOrganizations(t.organizations || [], t.TenantCode);
+                tenantSheet.open();
+            };
+
+            tenantForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const data = {
+                    TenantCode: tenantCodeInput.value,
+                    DisplayName: document.getElementById('DisplayName').value,
+                    IsActive: document.getElementById('IsActive').checked,
+                    organizations: Array.from(
+                        tenantForm.querySelectorAll('input[name="organizations"]:checked')).map(cb => cb.value),
+                };
+                const original = tenantOriginalCode.value;
+                const url = original
+                    ? `${API_PREFIX}admin/tenants/edit/${encodeURIComponent(original)}`
+                    : `${API_PREFIX}admin/tenants/add`;
+                if (await send(url, 'POST', data, forbidden)) { tenantSheet.close(); reload(); }
+            });
+        }
+
+        // ---- Data connections -------------------------------------------------
+        const clientForm = document.getElementById('clientForm');
+        if (clientForm) {
+            const clientSheetTitle = document.getElementById('clientSheetTitle');
+            const clientOriginalCode = document.getElementById('clientOriginalCode');
+            const clientCodeInput = document.getElementById('ClientCode');
+            // All ten columns are always posted: the edit endpoint writes every
+            // one of them, so omitting a field would blank it.
+            const FIELDS = ['DisplayName', 'Dialect', 'RuntimeEngineKey', 'StatsEngineKey',
+                            'StatsDialect', 'DocfieldsEngineKey', 'DocfieldsDialect',
+                            'OctoDomain', 'SecretRef'];
+            const idOf = (f) => (f === 'DisplayName' ? 'ClientDisplayName' : f);
+
+            document.getElementById('addClientBtn')?.addEventListener('click', () => {
+                clientForm.reset();
+                clientSheetTitle.textContent = `{{ _("Add connection") }}`;
+                clientOriginalCode.value = '';
+                clientCodeInput.disabled = false;
+                document.getElementById('ClientIsActive').checked = true;
+                clientSheet.open();
+            });
+
+            document.addEventListener('click', (e) => {
+                const edit = e.target.closest('.edit-client-btn');
+                if (!edit) return;
+                const c = JSON.parse(edit.dataset.client);
+                clientForm.reset();
+                clientSheetTitle.textContent = `{{ _("Edit connection") }}`;
+                clientOriginalCode.value = c.ClientCode;
+                clientCodeInput.value = c.ClientCode;
+                // ClientCode keys dbo.Clients and every ProcessSources row -- not editable.
+                clientCodeInput.disabled = true;
+                FIELDS.forEach(f => { document.getElementById(idOf(f)).value = c[f] || ''; });
+                document.getElementById('ClientIsActive').checked = !!c.IsActive;
+                clientSheet.open();
+            });
+
+            clientForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const data = { ClientCode: clientCodeInput.value, IsActive: document.getElementById('ClientIsActive').checked };
+                FIELDS.forEach(f => { data[f] = document.getElementById(idOf(f)).value; });
+                const original = clientOriginalCode.value;
+                const url = original
+                    ? `${API_PREFIX}admin/clients/edit/${encodeURIComponent(original)}`
+                    : `${API_PREFIX}admin/clients/add`;
+                if (await send(url, 'POST', data, forbidden)) { clientSheet.close(); reload(); }
+            });
+        }
+
         document.addEventListener('click', (e) => {
-            const pages = e.target.closest('.pages-tenant-btn');
-            if (pages) { try { sessionStorage.setItem('nx-tenant-pages-open', pages.dataset.tenant); } catch (_) {} }
-        });
-        document.addEventListener('DOMContentLoaded', () => {
-            try {
-                const open = sessionStorage.getItem('nx-tenant-pages-open');
-                if (open) document.getElementById(`pages-panel-${open}`)?.classList.remove('hidden');
-            } catch (_) {}
-
-            const input = document.getElementById('tenantManageSearch');
-            const tbody = document.getElementById('tenants-tbody');
-            if (!input || !tbody) return;
-            input.addEventListener('input', () => {
-                const q = input.value.trim().toLowerCase();
-                tbody.querySelectorAll('tr[data-search]').forEach(tr => {
-                    tr.style.display = !q || tr.dataset.search.includes(q) ? '' : 'none';
-                });
+            const del = e.target.closest('.delete-client-btn');
+            if (!del) return;
+            askConfirm(`{{ _("Delete this data connection? Process sources that point at it stop resolving.") }}`, async () => {
+                const url = `${API_PREFIX}admin/clients/delete/${encodeURIComponent(del.dataset.client)}`;
+                if (await send(url, 'DELETE', undefined, forbidden)) reload();
             });
         });
+
+        applyFilters();
     </script>

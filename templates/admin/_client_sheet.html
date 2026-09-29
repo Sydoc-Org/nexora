@@ -1,0 +1,98 @@
+{# Data-connection add/edit side sheet. Shared by Manage tenants and the
+   Organization detail view. Expects `engine_keys` and `can_edit_clients`. #}
+    {# ---- Data connection sheet ------------------------------------------- #}
+    {% if can_edit_clients %}
+    <div id="clientSheetBack" class="adm-sheet-back hidden"></div>
+    <aside id="clientSheet" class="adm-sheet hidden" role="dialog" aria-modal="true" aria-labelledby="clientSheetTitle">
+        <form id="clientForm" data-testid="admin-client-sheet-form" style="display:contents">
+            <div class="adm-sheet__head">
+                <div>
+                    <div class="adm-sheet__kicker">{{ _('Data connection') }}</div>
+                    <h2 class="adm-sheet__title" id="clientSheetTitle">{{ _('Add connection') }}</h2>
+                </div>
+                <button type="button" class="nx-btn nx-btn--ghost nx-btn--sm adm-sheet__close" id="clientSheetClose"
+                        aria-label="{{ _('Close') }}" data-testid="admin-client-sheet-close"><i class="fas fa-xmark"></i></button>
+            </div>
+            <div class="adm-sheet__body">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <input type="hidden" id="clientOriginalCode">
+                <div class="adm-sheet__grid">
+                    <div class="adm-field">
+                        <label class="adm-field__label" for="ClientCode">{{ _('Client code') }}</label>
+                        <input type="text" id="ClientCode" class="nx-input nx-mono" pattern="[a-z0-9_]{2,50}" required
+                               data-testid="admin-client-sheet-code">
+                    </div>
+                    <div class="adm-field">
+                        <label class="adm-field__label" for="ClientDisplayName">{{ _('Display name') }}</label>
+                        <input type="text" id="ClientDisplayName" class="nx-input" maxlength="100" required
+                               data-testid="admin-client-sheet-name">
+                    </div>
+                    <div class="adm-field">
+                        <label class="adm-field__label" for="Dialect">{{ _('Dialect') }}</label>
+                        <select id="Dialect" class="nx-select" data-testid="admin-client-sheet-dialect">
+                            <option value="tsql">tsql</option>
+                            <option value="postgres">postgres</option>
+                        </select>
+                    </div>
+                    <div class="adm-field">
+                        <label class="adm-field__label" for="RuntimeEngineKey">{{ _('Runtime engine key') }}</label>
+                        <select id="RuntimeEngineKey" class="nx-select" required data-testid="admin-client-sheet-engine">
+                            {% for k in engine_keys %}<option value="{{ k }}">{{ k }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="adm-field">
+                        <label class="adm-field__label" for="StatsEngineKey">{{ _('Stats engine key') }}</label>
+                        <select id="StatsEngineKey" class="nx-select" data-testid="admin-client-sheet-stats-engine">
+                            <option value="">{{ _('None') }}</option>
+                            {% for k in engine_keys %}<option value="{{ k }}">{{ k }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="adm-field">
+                        <label class="adm-field__label" for="StatsDialect">{{ _('Stats dialect') }}</label>
+                        <select id="StatsDialect" class="nx-select" data-testid="admin-client-sheet-stats-dialect">
+                            <option value="">{{ _('None') }}</option>
+                            <option value="tsql">tsql</option>
+                            <option value="postgres">postgres</option>
+                        </select>
+                    </div>
+                    <div class="adm-field">
+                        <label class="adm-field__label" for="DocfieldsEngineKey">{{ _('Doc-field engine key') }}</label>
+                        <select id="DocfieldsEngineKey" class="nx-select" data-testid="admin-client-sheet-docfields-engine">
+                            <option value="">{{ _('None') }}</option>
+                            {% for k in engine_keys %}<option value="{{ k }}">{{ k }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="adm-field">
+                        <label class="adm-field__label" for="DocfieldsDialect">{{ _('Doc-field dialect') }}</label>
+                        <select id="DocfieldsDialect" class="nx-select" data-testid="admin-client-sheet-docfields-dialect">
+                            <option value="">{{ _('None') }}</option>
+                            <option value="tsql">tsql</option>
+                            <option value="postgres">postgres</option>
+                        </select>
+                    </div>
+                    <div class="adm-field">
+                        <label class="adm-field__label" for="OctoDomain">{{ _('Octo domain') }}</label>
+                        <input type="text" id="OctoDomain" class="nx-input" data-testid="admin-client-sheet-octo-domain">
+                    </div>
+                    <div class="adm-field">
+                        <label class="adm-field__label" for="SecretRef">{{ _('Secret ref') }}</label>
+                        <input type="text" id="SecretRef" class="nx-input nx-mono" pattern="[A-Z0-9_]{0,20}"
+                               data-testid="admin-client-sheet-secret-ref">
+                        <p class="adm-field__hint">{{ _('An environment-key prefix such as MS02 — never a secret value.') }}</p>
+                    </div>
+                    <div class="adm-field adm-field--full">
+                        <label class="adm-check">
+                            <input type="checkbox" id="ClientIsActive" data-testid="admin-client-sheet-active">
+                            {{ _('Active') }}
+                        </label>
+                        <p class="adm-field__hint">{{ _('A new or changed connection applies only after the app pool recycles.') }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="adm-sheet__foot">
+                <button type="button" class="nx-btn nx-btn--secondary" id="clientSheetCancel" data-testid="admin-client-sheet-cancel">{{ _('Cancel') }}</button>
+                <button type="submit" class="nx-btn nx-btn--primary" data-testid="admin-client-sheet-save">{{ _('Save connection') }}</button>
+            </div>
+        </form>
+    </aside>
+    {% endif %}
