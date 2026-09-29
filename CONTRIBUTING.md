@@ -179,7 +179,9 @@ Anything else is refused at push time.
 - No tests run on push. CI runs the fast tier (unit + integration) on the **PR**
   and again on the merge commit that gates `deploy`. The e2e browser suite runs
   nightly on `main` and on demand (Actions → Deploy → Run workflow); a red
-  nightly means revert or fix forward the next morning
+  nightly means revert or fix forward the next morning. A manual run on
+  `main` also redeploys **staging** once its tests pass — the way to move
+  staging when a merge's push event never arrived (it happened with #410).
 - Keep PRs small and focused. The repo prefers many small PRs over one large one.
 - Squash or merge, your call — but delete the branch after merging.
 

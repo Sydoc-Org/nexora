@@ -1,3 +1,7 @@
+> **Newer same-date handoff:** the Sydoc Finance page (#408) is in
+> [`2026-09-29-sydoc-finance-page-shipped.md`](2026-09-29-sydoc-finance-page-shipped.md) —
+> `/reset-session` that path to resume it.
+
 # Handoff — `include=tables` on `/api/v1/workitems` shipped (#398)
 
 **Date:** 2026-09-29 · **Branch:** `feat/admin-tenants-redesign` (this file only — the
