@@ -26,6 +26,14 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and registers the BPS measure; the code is internal-only (no row scoping).
   `docs/howto/finance.md`.
 
+### Fixed
+
+- **Deploy: a manual "Run workflow" on `main` now redeploys staging.** The merge
+  of #410 never received its push event from GitHub, so staging stayed on the
+  release commit and the only ways to move it were the 01:30 nightly or another
+  code push. The dispatch keeps running the E2E tier first; dev and PROD
+  triggers are unchanged (#408).
+
 ## [3.3.0] - 2026-09-29
 
 ### Changed

@@ -118,10 +118,12 @@ it through the `0106` trigger.
 
 ## Gotchas
 
-- On INT the Neuzugänge view is broken (it binds to a `SYDOC_Statistik1` that
-  does not exist, `0134`); its section shows the driver error in place while
-  the other nine render. That is the designed behaviour for any source that is
-  down, not a page failure.
+- The INT copy of the Neuzugänge view used to bind to a `SYDOC_Statistik1` that
+  does not exist (a restore artefact, see `0134`), so its section showed the
+  driver error in place while the other ten rendered — the designed behaviour
+  for any source that is down, not a page failure. Repointed on 2026-09-29 with
+  one `ALTER VIEW` on INT's `SYDOC_Statistik` (the stray database prefix dropped,
+  nothing else); INT's sample rows do not join, so the section reads zero there.
 - INT's Statistics tables are sparse copies; pick a month that has rows before
   concluding a section is broken (Posteingang has July 2025, Compass May 2026,
   MediaMarkt August 2026, …).
