@@ -51,6 +51,17 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **The Frigemo reporting source runs on PROD again (#402).** Every report on
+  *Frigemo — Documents* failed with "Bericht konnte nicht ausgeführt werden":
+  migration `0127` had registered it over `dbo.Frigemo`, a table that only
+  ever existed on INT (hand-made, synthetic rows). The collector on PROD writes
+  `dbo.Frigemo_Statistic` under the vendor's column names (`DCD`,
+  `OVERALL_IMP_DOCS`, …). Migration `0137` repoints the source and its six
+  measures at that table; labels and permissions are unchanged, and no saved
+  report referenced the old field names. INT got a matching
+  `Frigemo_Statistic` so it rehearses the same SQL. Guarded by
+  `tests/unit/test_frigemo_source.py`. PROD's data currently ends on
+  2025-02-28 — the collector, not the source, is what stopped there.
 - **Reporting pages fit on a phone again (#381).** `/reporting`, report
   definitions, the source registry and the guide were up to 160 px wider than
   an iPhone screen, so buttons were cut off at the right edge and the page

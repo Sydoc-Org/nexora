@@ -1291,8 +1291,13 @@ to `SortOrder` 200+ so platform sources lead. `0127` registers two Statistics-DB
 tables the same way: **Bucherer — EasyTax** (`bucherer_easytax` over
 `dbo.Bucherer_EasyTax`, one row per document; *Exported documents* is a
 conditional count over `ExportTime IS NOT NULL`, `Pages` a sum) and **Frigemo —
-Documents** (`frigemo` over `dbo.Frigemo`, one row per day of already-summed
-counters, so every measure is a `sum`; `Date` grainable). `SortOrder` 300/310. `0124` registers **Sydoc — Project Hours**
+Documents** (`frigemo`, one row per day of already-summed counters, so every
+measure is a `sum`; the day column grainable). `SortOrder` 300/310. `0127`
+wrote the Frigemo source over `dbo.Frigemo`, a table that only existed on INT;
+PROD's collector fills `dbo.Frigemo_Statistic` with the vendor's column names
+(`DCD` is a varchar ISO date, typed `date` in the catalog so grains cast it),
+and **`0137`** repoints the source and its measures there (#402,
+`tests/unit/test_frigemo_source.py` pins the columns). `0124` registers **Sydoc — Project Hours**
 (`bps_projects` over `dbo.BPS_ProjectReport`, the bpsuite Projektbericht export
 loaded by the `nx-sources/bps/bps_project_report.py` collector; measures `Hours`,
 `Bookings`, and `Absence hours` = hours where `Kunde = 'Absences'`). `0126` registers **MediaMarkt — Batches**
@@ -1402,7 +1407,10 @@ gate, so grant it deliberately. Tune the exposed columns/object at
 
 **Registering a generic source needs no code:** add a `ReportingSources` row with
 `Kind=curated`, `Provider=table`, an `Engine`, a `BaseObject`, the `ColumnsJSON`
-catalog, and a `Permission` — then grant that permission. A `Kind=sql` row adds a
+catalog, and a `Permission` — then grant that permission. **Introspect the
+table on PROD before writing the seed**, not on INT: `SYDOC_Statistik` is a
+vendor DB the collectors own, and its INT copy has hand-made tables that PROD
+never had (`0127` shipped over one of them, #402). A `Kind=sql` row adds a
 SQL-sandbox source over an existing target. Use the code path below only when a
 source needs bespoke query logic the `table` provider can't express.
 
