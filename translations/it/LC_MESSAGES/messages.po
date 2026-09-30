@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-29 14:19+0200\n"
+"POT-Creation-Date: 2026-09-30 09:42+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -14,39 +14,44 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: nx_lib/finance.py:201
+#: nx_lib/finance.py:230
 msgid ""
-"Live figures: EM_Invoice is still edited after a month closes, so a "
-"closed month can return different numbers later. Only the Opex and e-mail"
-" channels are billed."
+"EM_Invoice is still edited after a month ends: a re-exported document "
+"moves to the month of its new export date. Close the month once it is "
+"invoiced so its figures stay as billed. Only the Opex and e-mail channels"
+" are billed."
 msgstr ""
-"Cifre in tempo reale: EM_Invoice viene ancora modificata dopo la chiusura"
-" del mese, quindi un mese chiuso può restituire cifre diverse in seguito."
-" Vengono fatturati solo i canali Opex ed e-mail."
+"EM_Invoice viene ancora modificato dopo la fine del mese: un documento "
+"riesportato passa al mese della sua nuova data di esportazione. Chiudere "
+"il mese una volta fatturato, così le cifre restano come fatturate. Sono "
+"fatturati solo i canali Opex ed e-mail."
 
-#: nx_lib/finance.py:207 nx_lib/finance.py:239 nx_lib/finance.py:252
-#: nx_lib/finance.py:272 nx_lib/finance.py:355
+#: nx_lib/finance.py:237 nx_lib/finance.py:270 nx_lib/finance.py:291
+#: nx_lib/finance.py:311 nx_lib/finance.py:407
 msgid "by export date"
 msgstr "per data di esportazione"
 
-#: nx_lib/finance.py:209 templates/generali_documents.html:92
+#: nx_lib/finance.py:239 templates/generali_documents.html:92
 #: templates/generali_documents.html:155 templates/generali_documents.html:239
 msgid "Channel"
 msgstr "Canale"
 
-#: nx_lib/finance.py:218
+#: nx_lib/finance.py:248
 msgid ""
 "Counted by upload date, whatever the document date: that is the set the "
-"invoice bills."
+"invoice bills. Rows without a workitem that repeat a barcode (74 in "
+"August 2026) are counted, as the workbook counts them."
 msgstr ""
-"Conteggiati per data di caricamento, indipendentemente dalla data del "
-"documento: è l'insieme che la fattura addebita."
+"Conteggiato per data di caricamento, indipendentemente dalla data del "
+"documento: è l'insieme fatturato. Le righe senza workitem che ripetono un"
+" codice a barre (74 ad agosto 2026) vengono contate, come nella cartella "
+"di lavoro."
 
-#: nx_lib/finance.py:223
+#: nx_lib/finance.py:254
 msgid "by upload date"
 msgstr "per data di caricamento"
 
-#: nx_lib/finance.py:234
+#: nx_lib/finance.py:265
 msgid ""
 "The export date of this source is text, so the month is matched on its "
 "'.MM.yyyy' part."
@@ -54,69 +59,141 @@ msgstr ""
 "La data di esportazione di questa fonte è testo, quindi il mese viene "
 "individuato dalla parte '.MM.yyyy'."
 
-#: nx_lib/finance.py:241 nx_lib/finance.py:274 nx_lib/finance.py:296
+#: nx_lib/finance.py:273 nx_lib/finance.py:278 nx_lib/finance.py:314
+#: nx_lib/finance.py:320 nx_lib/finance.py:348
 msgid "Branch"
 msgstr "Filiale"
 
-#: nx_lib/finance.py:259
+#: nx_lib/finance.py:276
+msgid "Register"
+msgstr "Registro"
+
+#: nx_lib/finance.py:298
 msgid "Mandant"
 msgstr "Mandante"
 
-#: nx_lib/finance.py:260 templates/admin/user_detail.html:124
+#: nx_lib/finance.py:299 templates/admin/user_detail.html:124
 #: templates/reporting.html:361 templates/reporting_metrics.html:41
 #: templates/reporting_metrics.html:53
 msgid "Source"
 msgstr "Origine"
 
-#: nx_lib/finance.py:288
+#: nx_lib/finance.py:317
+msgid "Forwarding type"
+msgstr "Tipo di inoltro"
+
+#: nx_lib/finance.py:332
+msgid ""
+"A dossier registered under two branches is counted in both, exactly as "
+"the workbook counts it."
+msgstr ""
+"Un dossier registrato sotto due filiali viene contato in entrambe, "
+"esattamente come nella cartella di lavoro."
+
+#: nx_lib/finance.py:340
 msgid "by export year and month"
 msgstr "per anno e mese di esportazione"
 
-#: nx_lib/finance.py:308 nx_lib/finance.py:328
+#: nx_lib/finance.py:360 nx_lib/finance.py:380
 msgid "by date"
 msgstr "per data"
 
-#: nx_lib/finance.py:335 nx_lib/views/finance.py:146
+#: nx_lib/finance.py:387 nx_lib/views/finance.py:342
 msgid "Client"
 msgstr "Cliente"
 
-#: nx_lib/finance.py:337
+#: nx_lib/finance.py:389
 msgid "Source database"
 msgstr "Database di origine"
 
-#: nx_lib/finance.py:351
+#: nx_lib/finance.py:403
 msgid "by import date"
 msgstr "per data di importazione"
 
-#: nx_lib/finance.py:367
+#: nx_lib/finance.py:419
 msgid "by scan date"
 msgstr "per data di scansione"
 
-#: nx_lib/finance.py:369
+#: nx_lib/finance.py:421
 msgid "Type (K/D/KA)"
 msgstr "Tipo (K/D/KA)"
 
-#: nx_lib/finance.py:381
-msgid ""
-"Hours booked in the BPS timetool. Service hours are everything except the"
-" Absences pseudo-customer (vacation, sick leave, compensation), which is "
-"shown separately. The task names are BPS's own."
-msgstr ""
-"Ore registrate nel timetool BPS. Le ore di prestazione sono tutto tranne "
-"lo pseudo-cliente Absences (vacanze, malattia, compensazione), mostrato "
-"separatamente. I nomi delle attività sono quelli di BPS."
+#: nx_lib/finance.py:429
+msgid "Billable services"
+msgstr "Prestazioni fatturabili"
 
-#: nx_lib/finance.py:387
+#: nx_lib/finance.py:434
+msgid ""
+"Every billable booking of the BPS timetool, singly and with its comment: "
+"Support (verrechenbar, extern verrechenbar), Change, Change Request, "
+"Professional Services and Projektmanagement on customers, plus "
+"Vorbereitung Akten on Privera · Tagesgeschäft Neuzugänge. All hours, "
+"drilled down per task, customer and person, are on the Sydoc BPS page."
+msgstr ""
+"Ogni registrazione fatturabile del timetool BPS, singolarmente e con il "
+"suo commento: Support (verrechenbar, extern verrechenbar), Change, Change"
+" Request, Professional Services e Projektmanagement sui clienti, più "
+"Vorbereitung Akten su Privera · Tagesgeschäft Neuzugänge. Tutte le ore, "
+"dettagliate per attività, cliente e persona, sono nella pagina Sydoc BPS."
+
+#: nx_lib/finance.py:442
 msgid "by booking date"
 msgstr "per data di registrazione"
 
-#: nx_lib/finance.py:394
+#: nx_lib/finance.py:449 nx_lib/reporting/catalog.py:255
+#: nx_lib/views/bps.py:152 templates/generali_additionalservices.html:148
+#: templates/generali_additionalservices.html:224
+#: templates/generali_additionalservices.html:282
+#: templates/generali_baseservices.html:135
+#: templates/generali_baseservices.html:197
+#: templates/generali_baseservices.html:243
+#: templates/generali_documents.html:222 templates/generali_pdqm.html:157
+#: templates/generali_pdqm.html:223 templates/generali_pdqm.html:294
+#: templates/generali_projectmanagement.html:123
+#: templates/generali_projectmanagement.html:185
+#: templates/generali_projectmanagement.html:236
+#: templates/generali_reporting.html:152 templates/js/_bps_js.html:38
+msgid "Date"
+msgstr "Data"
+
+#: nx_lib/finance.py:450 nx_lib/views/bps.py:153 templates/js/_bps_js.html:46
+msgid "Customer"
+msgstr "Cliente"
+
+#: nx_lib/finance.py:451 nx_lib/views/bps.py:154 templates/js/_bps_js.html:39
+msgid "Package"
+msgstr "Pacchetto di progetto"
+
+#: nx_lib/finance.py:452 nx_lib/views/bps.py:155 templates/bps.html:108
+#: templates/js/_bps_js.html:45
 msgid "Task"
 msgstr "Attività"
 
-#: nx_lib/finance.py:395
-msgid "Customer"
-msgstr "Cliente"
+#: nx_lib/finance.py:453 nx_lib/views/bps.py:156 templates/js/_bps_js.html:47
+msgid "Person"
+msgstr "Persona"
+
+#: nx_lib/finance.py:454 nx_lib/views/bps.py:157 templates/bps.html:109
+#: templates/generali_additionalservices.html:160
+#: templates/generali_baseservices.html:138
+#: templates/generali_projectmanagement.html:125 templates/js/_bps_js.html:40
+msgid "Hours"
+msgstr "Ore"
+
+#: nx_lib/finance.py:455 nx_lib/views/bps.py:159
+#: templates/generali_projectmanagement.html:126
+#: templates/generali_projectmanagement.html:207
+#: templates/generali_projectmanagement.html:246 templates/js/_bps_js.html:41
+msgid "Comment"
+msgstr "Commento"
+
+#: nx_lib/finance.py:736 templates/js/_bps_js.html:16
+msgid "Billable hours"
+msgstr "Ore fatturabili"
+
+#: nx_lib/finance.py:742
+msgid "Billable bookings"
+msgstr "Registrazioni fatturabili"
 
 #: nx_lib/octo.py:358
 msgid "Error fetching activity instance"
@@ -777,22 +854,6 @@ msgstr "Data di importazione"
 msgid "Export date"
 msgstr "Data di esportazione"
 
-#: nx_lib/reporting/catalog.py:255
-#: templates/generali_additionalservices.html:148
-#: templates/generali_additionalservices.html:224
-#: templates/generali_additionalservices.html:282
-#: templates/generali_baseservices.html:135
-#: templates/generali_baseservices.html:197
-#: templates/generali_baseservices.html:243
-#: templates/generali_documents.html:222 templates/generali_pdqm.html:157
-#: templates/generali_pdqm.html:223 templates/generali_pdqm.html:294
-#: templates/generali_projectmanagement.html:123
-#: templates/generali_projectmanagement.html:185
-#: templates/generali_projectmanagement.html:236
-#: templates/generali_reporting.html:152
-msgid "Date"
-msgstr "Data"
-
 #: nx_lib/reporting/catalog.py:265
 msgid "Workitem ID"
 msgstr "ID Workitem"
@@ -921,12 +982,47 @@ msgstr ""
 msgid "Unexpected error occurred"
 msgstr "Si è verificato un errore imprevisto"
 
-#: nx_lib/views/core.py:65 templates/_header.html:324
+#: nx_lib/views/bps.py:33 nx_lib/views/finance.py:77
+#, python-format
+msgid "The reporting source %(code)s is not registered."
+msgstr "La fonte di reporting %(code)s non è registrata."
+
+#: nx_lib/views/bps.py:37 nx_lib/views/finance.py:85
+msgid "The source's database is not configured."
+msgstr "Il database della fonte non è configurato."
+
+#: nx_lib/views/bps.py:88 nx_lib/views/bps.py:121
+msgid "This page does not match its registered source."
+msgstr "Questa pagina non corrisponde alla sua fonte registrata."
+
+#: nx_lib/views/bps.py:94 nx_lib/views/bps.py:126 nx_lib/views/bps.py:150
+#: nx_lib/views/finance.py:110
+msgid "Could not read the source."
+msgstr "Impossibile leggere la fonte."
+
+#: nx_lib/views/bps.py:158 templates/bps.html:79 templates/bps.html:110
+#: templates/js/_bps_js.html:24
+msgid "Billable"
+msgstr "Fatturabile"
+
+#: nx_lib/views/bps.py:161
+msgid "yes"
+msgstr "sì"
+
+#: nx_lib/views/bps.py:161
+msgid "no"
+msgstr "no"
+
+#: nx_lib/views/bps.py:161
+msgid "absence"
+msgstr "assenza"
+
+#: nx_lib/views/core.py:65 templates/_header.html:325
 #: templates/_small_footer.html:28
 msgid "Terms of Service"
 msgstr "Condizioni di utilizzo"
 
-#: nx_lib/views/core.py:77 templates/_header.html:328
+#: nx_lib/views/core.py:77 templates/_header.html:329
 #: templates/_small_footer.html:32
 msgid "Privacy Policy"
 msgstr "Informativa sulla privacy"
@@ -970,51 +1066,75 @@ msgstr "Arretrato"
 msgid "Other"
 msgstr "Altro"
 
-#: nx_lib/views/finance.py:63
-#, python-format
-msgid "The reporting source %(code)s is not registered."
-msgstr "La fonte di reporting %(code)s non è registrata."
-
-#: nx_lib/views/finance.py:69
-msgid "The source's database is not configured."
-msgstr "Il database della fonte non è configurato."
-
-#: nx_lib/views/finance.py:81
+#: nx_lib/views/finance.py:99
 msgid "This section does not match its registered source."
 msgstr "Questa sezione non corrisponde alla sua fonte registrata."
 
-#: nx_lib/views/finance.py:91
-msgid "Could not read the source."
-msgstr "Impossibile leggere la fonte."
+#: nx_lib/views/finance.py:203
+msgid "Unknown month."
+msgstr "Mese sconosciuto."
 
-#: nx_lib/views/finance.py:147
+#: nx_lib/views/finance.py:206
+msgid "A month can only be closed once it has ended."
+msgstr "Un mese può essere chiuso solo quando è terminato."
+
+#: nx_lib/views/finance.py:276 nx_lib/views/finance.py:302
+#: templates/js/_finance_js.html:48
+msgid "Could not close the month."
+msgstr "Impossibile chiudere il mese."
+
+#: nx_lib/views/finance.py:278
+msgid "This month is already closed."
+msgstr "Questo mese è già chiuso."
+
+#: nx_lib/views/finance.py:284
+#, python-format
+msgid "The month cannot be closed while a section cannot be read: %(names)s"
+msgstr ""
+"Il mese non può essere chiuso finché una sezione non è leggibile: "
+"%(names)s"
+
+#: nx_lib/views/finance.py:317 nx_lib/views/finance.py:326
+#: templates/js/_finance_js.html:49
+msgid "Could not reopen the month."
+msgstr "Impossibile riaprire il mese."
+
+#: nx_lib/views/finance.py:330
+msgid "This month is not closed."
+msgstr "Questo mese non è chiuso."
+
+#: nx_lib/views/finance.py:343
 msgid "Section"
 msgstr "Sezione"
 
-#: nx_lib/views/finance.py:148
+#: nx_lib/views/finance.py:344
 msgid "Month basis"
 msgstr "Base mensile"
 
-#: nx_lib/views/finance.py:149 templates/reporting_sources.html:41
+#: nx_lib/views/finance.py:345 templates/reporting_sources.html:41
 #: templates/reporting_sources.html:52 templates/reporting_sources.html:64
 msgid "Kind"
 msgstr "Tipo"
 
-#: nx_lib/views/finance.py:150
+#: nx_lib/views/finance.py:346
 msgid "Dimension"
 msgstr "Dimensione"
 
-#: nx_lib/views/finance.py:151
+#: nx_lib/views/finance.py:347
 msgid "Group"
 msgstr "Gruppo"
 
-#: nx_lib/views/finance.py:152 templates/js/_reporting_simple_js.html:151
+#: nx_lib/views/finance.py:348 templates/js/_reporting_simple_js.html:151
 msgid "Measure"
 msgstr "Misura"
 
-#: nx_lib/views/finance.py:154 templates/finance.html:66
+#: nx_lib/views/finance.py:350 templates/finance.html:81
 msgid "Previous month"
 msgstr "Mese precedente"
+
+#: nx_lib/views/finance.py:351
+msgid "Detail"
+msgstr "Dettaglio"
 
 #: nx_lib/views/profile.py:79
 msgid "Email Adress is not valid"
@@ -2198,7 +2318,7 @@ msgid "Could not export query"
 msgstr "Impossibile esportare la query"
 
 #: nx_lib/views/reporting/export.py:128 nx_lib/views/reporting/export.py:175
-#: nx_lib/views/reporting/export.py:210 templates/hero.html:165
+#: nx_lib/views/reporting/export.py:210 templates/hero.html:166
 #: templates/js/_reporting_js.html:33
 #: templates/js/_reporting_scheduled_js.html:15 templates/reporting.html:573
 msgid "Report"
@@ -2456,119 +2576,123 @@ msgstr "Dashboard globale"
 msgid "Global Reporting"
 msgstr "Reporting globale"
 
-#: templates/_header.html:159 templates/finance.html:48
+#: templates/_header.html:159 templates/bps.html:31 templates/finance.html:55
 msgid "Sydoc Finance"
 msgstr "Sydoc Finance"
 
-#: templates/_header.html:160 templates/workitems_overview.html:66
+#: templates/_header.html:160 templates/bps.html:25
+msgid "Sydoc BPS"
+msgstr "Sydoc BPS"
+
+#: templates/_header.html:161 templates/workitems_overview.html:66
 msgid "Global Workitems"
 msgstr "Workitems globali"
 
-#: templates/_header.html:269 templates/_header.html:271
+#: templates/_header.html:270 templates/_header.html:272
 #: templates/appearance.html:302 templates/appearance.html:307
 #: templates/js/_header_js.html:13
 msgid "Keep sidebar open"
 msgstr "Mantieni la barra laterale aperta"
 
-#: templates/_header.html:275 templates/js/_header_js.html:56
+#: templates/_header.html:276 templates/js/_header_js.html:56
 msgid "Toggle dark mode"
 msgstr "Attiva/disattiva modalità scura"
 
-#: templates/_header.html:277
+#: templates/_header.html:278
 msgid "Dark Mode"
 msgstr "Modalità scura"
 
-#: templates/_header.html:285 templates/profile.html:44
+#: templates/_header.html:286 templates/profile.html:44
 #: templates/profile.html:123
 msgid "Profile Picture"
 msgstr "Foto profilo"
 
-#: templates/_header.html:295
+#: templates/_header.html:296
 msgid "Your profile"
 msgstr "Il tuo profilo"
 
-#: templates/_header.html:299 templates/appearance.html:34
+#: templates/_header.html:300 templates/appearance.html:34
 #: templates/js/_header_js.html:57 templates/profile.html:75
 #: templates/profile.html:317
 msgid "Appearance"
 msgstr "Aspetto"
 
-#: templates/_header.html:303 templates/js/_header_js.html:58
+#: templates/_header.html:304 templates/js/_header_js.html:58
 #: templates/whats_new.html:79
 msgid "What's New"
 msgstr "Novità"
 
-#: templates/_header.html:308 templates/feedback.html:34
+#: templates/_header.html:309 templates/feedback.html:34
 #: templates/js/_header_js.html:59
 msgid "Feedback"
 msgstr "Feedback"
 
-#: templates/_header.html:315 templates/_header.html:394
-#: templates/_header.html:397
+#: templates/_header.html:316 templates/_header.html:395
+#: templates/_header.html:398
 msgid "Keyboard shortcuts"
 msgstr "Scorciatoie da tastiera"
 
-#: templates/_header.html:319 templates/_small_footer.html:36
+#: templates/_header.html:320 templates/_small_footer.html:36
 #: templates/reporting.html:86
 msgid "Help"
 msgstr "Aiuto"
 
-#: templates/_header.html:334 templates/_header.html:376
+#: templates/_header.html:335 templates/_header.html:377
 msgid "Switch user"
 msgstr "Cambia utente"
 
-#: templates/_header.html:340 templates/js/_header_js.html:60
+#: templates/_header.html:341 templates/js/_header_js.html:60
 #: templates/profile.html:82
 msgid "Sign out"
 msgstr "Disconnetti"
 
-#: templates/_header.html:357
+#: templates/_header.html:358
 msgid "Command palette"
 msgstr "Tavolozza dei comandi"
 
-#: templates/_header.html:361
+#: templates/_header.html:362
 msgid "Type a command or search..."
 msgstr "Digita un comando o cerca..."
 
-#: templates/_header.html:366
+#: templates/_header.html:367
 msgid "navigate"
 msgstr "naviga"
 
-#: templates/_header.html:367
+#: templates/_header.html:368
 msgid "open"
 msgstr "apri"
 
-#: templates/_header.html:368
+#: templates/_header.html:369
 msgid "close"
 msgstr "chiudi"
 
-#: templates/_header.html:380
+#: templates/_header.html:381
 msgid "Switch to user..."
 msgstr "Passa all'utente ..."
 
-#: templates/_header.html:401 templates/admin/access_control.html:130
+#: templates/_header.html:402 templates/admin/access_control.html:130
 #: templates/admin/organization_detail.html:132
 #: templates/admin/tenant_detail.html:444
 msgid "Global"
 msgstr "Globale"
 
-#: templates/_header.html:403
+#: templates/_header.html:404
 msgid "Open command palette"
 msgstr "Apri la tavolozza dei comandi"
 
-#: templates/_header.html:407
+#: templates/_header.html:408
 msgid "Show this shortcuts overlay"
 msgstr "Mostra questa panoramica scorciatoie"
 
-#: templates/_header.html:411
+#: templates/_header.html:412
 msgid "Close the open dialog or panel"
 msgstr "Chiudi la finestra di dialogo o il pannello aperto"
 
-#: templates/_header.html:416
+#: templates/_header.html:417
 msgid "Document viewer"
 msgstr "Visualizzatore documenti"
 
-#: templates/_header.html:418
+#: templates/_header.html:419
 msgid "Previous / next document page"
 msgstr "Pagina documento precedente / successiva"
 
@@ -3198,7 +3322,7 @@ msgstr "Giorno"
 msgid "Week"
 msgstr "Settimana"
 
-#: templates/_reporting_simple.html:92 templates/finance.html:63
+#: templates/_reporting_simple.html:92 templates/finance.html:78
 #: templates/js/_reporting_js.html:24 templates/js/_reporting_simple_js.html:78
 msgid "Month"
 msgstr "Mese"
@@ -3272,7 +3396,7 @@ msgid "Report definition"
 msgstr "Definizione di report"
 
 #: templates/_reporting_simple.html:132 templates/_reporting_simple.html:133
-#: templates/_reporting_simple.html:134 templates/init_reset.html:136
+#: templates/_reporting_simple.html:134 templates/init_reset.html:145
 #: templates/js/_reporting_ai_js.html:45
 msgid "Continue"
 msgstr "Continua"
@@ -3453,7 +3577,7 @@ msgstr "Testo dell'annotazione"
 #: templates/admin/organization_detail.html:372
 #: templates/admin/permissions.html:118 templates/admin/tenant_detail.html:197
 #: templates/admin/user_detail.html:78 templates/admin/user_detail.html:276
-#: templates/generali_additionalservices.html:261
+#: templates/finance.html:128 templates/generali_additionalservices.html:261
 #: templates/generali_additionalservices.html:320
 #: templates/generali_additionalservices.html:345
 #: templates/generali_baseservices.html:222
@@ -4572,6 +4696,147 @@ msgstr "Cerca workitem..."
 msgid "Filter"
 msgstr "Filtra"
 
+#: templates/bps.html:9
+msgid "Sydoc BPS - nexora"
+msgstr "Sydoc BPS - nexora"
+
+#: templates/bps.html:26
+msgid ""
+"Every hour booked in the BPS timetool, by task, customer and person, down"
+" to the single booking."
+msgstr ""
+"Ogni ora registrata nel timetool BPS, per attività, cliente e persona, "
+"fino alla singola registrazione."
+
+#: templates/bps.html:36 templates/finance.html:69
+msgid "CSV"
+msgstr "CSV"
+
+#: templates/bps.html:43 templates/bps.html:44
+msgid "Period"
+msgstr "Periodo"
+
+#: templates/bps.html:45 templates/js/_reporting_dashboard_js.html:29
+#: templates/js/_reporting_drill_js.html:28 templates/js/_reporting_js.html:11
+#: templates/js/_reporting_simple_js.html:51
+msgid "Last month"
+msgstr "Il mese scorso"
+
+#: templates/bps.html:46 templates/js/_reporting_dashboard_js.html:28
+#: templates/js/_reporting_drill_js.html:28 templates/js/_reporting_js.html:10
+#: templates/js/_reporting_simple_js.html:50
+#: templates/workitems_overview.html:164
+msgid "This month"
+msgstr "Questo mese"
+
+#: templates/bps.html:47 templates/js/_reporting_dashboard_js.html:27
+#: templates/js/_reporting_drill_js.html:27 templates/js/_reporting_js.html:9
+#: templates/js/_reporting_simple_js.html:67
+msgid "Last week"
+msgstr "Settimana scorsa"
+
+#: templates/bps.html:48 templates/js/_reporting_dashboard_js.html:32
+#: templates/js/_reporting_drill_js.html:30 templates/js/_reporting_js.html:14
+#: templates/js/_reporting_simple_js.html:52
+msgid "Last 3 months"
+msgstr "Ultimi 3 mesi"
+
+#: templates/bps.html:51 templates/generali-dashboard.html:77
+msgid "From"
+msgstr "Da"
+
+#: templates/bps.html:55 templates/generali-dashboard.html:82
+msgid "To"
+msgstr "A"
+
+#: templates/bps.html:58
+msgid "Show"
+msgstr "Mostra"
+
+#: templates/bps.html:61 templates/finance.html:29 templates/finance.html:107
+#: templates/js/_bps_js.html:11 templates/js/_finance_js.html:16
+#: templates/js/_generali_documents_js.html:148
+#: templates/js/_reporting_dashboard_js.html:64
+#: templates/js/_reporting_schema_js.html:6 templates/tenant/page.html:141
+msgid "Loading…"
+msgstr "Caricamento…"
+
+#: templates/bps.html:75
+msgid "Hours per day"
+msgstr "Ore al giorno"
+
+#: templates/bps.html:80 templates/js/_bps_js.html:25
+msgid "Other service"
+msgstr "Altre prestazioni"
+
+#: templates/bps.html:81 templates/js/_bps_js.html:26
+msgid "Absence"
+msgstr "Assenza"
+
+#: templates/bps.html:84
+msgid ""
+"Hours per day by billable, other service and absence; the table below "
+"lists the same hours."
+msgstr ""
+"Ore al giorno per fatturabili, altre prestazioni e assenze; la tabella "
+"sottostante elenca le stesse ore."
+
+#: templates/bps.html:90
+msgid "Drill-down"
+msgstr "Analisi dettagliata"
+
+#: templates/bps.html:91 templates/reporting_metrics.html:43
+#: templates/reporting_sources.html:54
+msgid "Order"
+msgstr "Ordine"
+
+#: templates/bps.html:92
+msgid "Task › Customer › Person"
+msgstr "Attività › Cliente › Persona"
+
+#: templates/bps.html:93
+msgid "Customer › Task › Person"
+msgstr "Cliente › Attività › Persona"
+
+#: templates/bps.html:94
+msgid "Person › Customer › Task"
+msgstr "Persona › Cliente › Attività"
+
+#: templates/bps.html:97
+msgid "Billable only"
+msgstr "Solo fatturabili"
+
+#: templates/bps.html:98
+msgid "Hide absences"
+msgstr "Nascondi assenze"
+
+#: templates/bps.html:101
+msgid "Filter task, customer, person"
+msgstr "Filtra attività, cliente, persona"
+
+#: templates/bps.html:101
+msgid "Filter task, customer, person…"
+msgstr "Filtra attività, cliente, persona…"
+
+#: templates/bps.html:111 templates/js/_bps_js.html:18
+msgid "Bookings"
+msgstr "Registrazioni"
+
+#: templates/bps.html:112 templates/js/_finance_js.html:38
+msgid "Share of total"
+msgstr "Quota"
+
+#: templates/bps.html:121
+#, python-format
+msgid ""
+"Billable: %(tasks)s on customers (not sydoc / sydoc intern), plus "
+"%(prep)s on %(customer)s · %(package)s — the same rule as the Finance "
+"page."
+msgstr ""
+"Fatturabile: %(tasks)s sui clienti (non sydoc / sydoc intern), più "
+"%(prep)s su %(customer)s · %(package)s — la stessa regola della pagina "
+"Finance."
+
 #: templates/dashboard.html:9
 msgid "Dashboard - nexora"
 msgstr "Dashboard - nexora"
@@ -4728,15 +4993,11 @@ msgstr "Invia un altro"
 msgid "Sydoc Finance - nexora"
 msgstr "Sydoc Finance - nexora"
 
-#: templates/finance.html:29 templates/finance.html:85
-#: templates/js/_finance_js.html:15
-#: templates/js/_generali_documents_js.html:148
-#: templates/js/_reporting_dashboard_js.html:64
-#: templates/js/_reporting_schema_js.html:6 templates/tenant/page.html:141
-msgid "Loading…"
-msgstr "Caricamento…"
+#: templates/finance.html:36
+msgid "All hours"
+msgstr "Tutte le ore"
 
-#: templates/finance.html:49
+#: templates/finance.html:56
 msgid ""
 "Monthly accounting figures per client, read from the same sources and "
 "measures as Reporting."
@@ -4744,35 +5005,85 @@ msgstr ""
 "Cifre contabili mensili per cliente, lette dalle stesse fonti e misure "
 "del Reporting."
 
-#: templates/finance.html:54
-msgid "CSV"
-msgstr "CSV"
+#: templates/finance.html:63 templates/finance.html:130
+msgid "Reopen month"
+msgstr "Riapri il mese"
 
-#: templates/finance.html:57
+#: templates/finance.html:64 templates/finance.html:130
+msgid "Close month"
+msgstr "Chiudi il mese"
+
+#: templates/finance.html:72
 msgid "Print"
 msgstr "Stampa"
 
-#: templates/finance.html:74 templates/finance.html:76
+#: templates/finance.html:89 templates/finance.html:91
 msgid "Next month"
 msgstr "Mese successivo"
 
-#: templates/finance.html:80
+#: templates/finance.html:97
+#, python-format
+msgid "Closed %(when)s by %(who)s"
+msgstr "Chiuso il %(when)s da %(who)s"
+
+#: templates/finance.html:101
 msgid "This month is still running; the figures grow until it closes."
 msgstr "Questo mese è ancora in corso; le cifre crescono fino alla chiusura."
 
-#: templates/finance.html:81
-msgid "Each figure is compared with the month before."
-msgstr "Ogni cifra è confrontata con il mese precedente."
+#: templates/finance.html:102
+msgid ""
+"Figures as frozen at the close. Where the live data has moved since, the "
+"section says so."
+msgstr ""
+"Cifre come congelate alla chiusura. Dove i dati in tempo reale sono "
+"cambiati da allora, la sezione lo indica."
 
-#: templates/finance.html:89
+#: templates/finance.html:103
+msgid ""
+"Live figures, each compared with the month before. Close the month once "
+"it is invoiced to freeze them."
+msgstr ""
+"Cifre in tempo reale, ciascuna confrontata con il mese precedente. "
+"Chiudere il mese una volta fatturato per congelarle."
+
+#: templates/finance.html:119
+#, python-format
+msgid "Reopen %(month)s?"
+msgstr "Riaprire %(month)s?"
+
+#: templates/finance.html:119
+#, python-format
+msgid "Close %(month)s?"
+msgstr "Chiudere %(month)s?"
+
+#: templates/finance.html:122
+msgid ""
+"The frozen figures are deleted and the page shows live data again. Close "
+"it again afterwards to freeze the new state."
+msgstr ""
+"Le cifre congelate vengono eliminate e la pagina mostra di nuovo i dati "
+"in tempo reale. Chiudere poi di nuovo il mese per congelare il nuovo "
+"stato."
+
+#: templates/finance.html:123
+msgid ""
+"Every section is read now and frozen. From then on this month shows "
+"exactly these figures, and only notes where the live data moves away from"
+" them."
+msgstr ""
+"Tutte le sezioni vengono lette ora e congelate. Da quel momento il mese "
+"mostra esattamente queste cifre e segnala solo dove i dati in tempo reale"
+" se ne discostano."
+
+#: templates/finance.html:136
 msgid "Internal customers"
 msgstr "Clienti interni"
 
-#: templates/finance.html:92
+#: templates/finance.html:139
 msgid "External clients"
 msgstr "Clienti esterni"
 
-#: templates/finance.html:95
+#: templates/finance.html:142
 msgid "Sydoc services"
 msgstr "Prestazioni Sydoc"
 
@@ -4780,18 +5091,18 @@ msgstr "Prestazioni Sydoc"
 msgid "Forgot password - nexora"
 msgstr "Password dimenticata - nexora"
 
-#: templates/forgot_password.html:75 templates/hero.html:92
-#: templates/index.html:78 templates/init_2FA.html:75
-#: templates/init_reset.html:77 templates/reset_password.html:77
-#: templates/set_password.html:77
+#: templates/forgot_password.html:84 templates/hero.html:93
+#: templates/index.html:85 templates/init_2FA.html:84
+#: templates/init_reset.html:86 templates/reset_password.html:86
+#: templates/set_password.html:86
 msgid "Switch to dark mode"
 msgstr "Attiva/disattiva modalità scura"
 
-#: templates/forgot_password.html:89
+#: templates/forgot_password.html:98
 msgid "Forgot your password"
 msgstr "Hai dimenticato la password"
 
-#: templates/forgot_password.html:90
+#: templates/forgot_password.html:99
 msgid ""
 "No problem. Enter the email address associated with your account and "
 "we'll send you a link to reset your password"
@@ -4799,16 +5110,16 @@ msgstr ""
 "Nessun problema. Inserisca l'indirizzo e-mail associato al suo account e "
 "le invieremo un link per reimpostare la password."
 
-#: templates/forgot_password.html:101 templates/profile.html:148
+#: templates/forgot_password.html:110 templates/profile.html:148
 msgid "Email address"
 msgstr "Indirizzo e-mail"
 
-#: templates/forgot_password.html:111
+#: templates/forgot_password.html:120
 msgid "Send reset link"
 msgstr "Invia link di reimpostazione"
 
-#: templates/forgot_password.html:117 templates/init_reset.html:141
-#: templates/reset_password.html:141
+#: templates/forgot_password.html:126 templates/init_reset.html:150
+#: templates/reset_password.html:150
 msgid "Back to login"
 msgstr "Torna al login"
 
@@ -4842,14 +5153,6 @@ msgstr "Elenco documenti"
 #: templates/reporting.html:79
 msgid "Reporting"
 msgstr "Reporting"
-
-#: templates/generali-dashboard.html:77
-msgid "From"
-msgstr "Da"
-
-#: templates/generali-dashboard.html:82
-msgid "To"
-msgstr "A"
 
 #: templates/admin/permissions.html:45 templates/generali-dashboard.html:90
 #: templates/generali_additionalservices.html:122
@@ -4889,7 +5192,8 @@ msgid "Daily Processing Volume"
 msgstr "Volume di elaborazione giornaliero"
 
 #: templates/generali-dashboard.html:144 templates/generali_documents.html:36
-#: templates/js/_finance_js.html:29 templates/js/_generali_dashboard_js.html:25
+#: templates/js/_bps_js.html:29 templates/js/_finance_js.html:39
+#: templates/js/_generali_dashboard_js.html:25
 #: templates/js/_reporting_js.html:50
 #: templates/js/_reporting_layouts_js.html:37
 #: templates/js/_reporting_simple_js.html:124
@@ -5088,12 +5392,6 @@ msgstr "Tutti gli utenti"
 #: templates/generali_projectmanagement.html:104
 msgid "Total hours (filtered):"
 msgstr "Ore totali (filtrate):"
-
-#: templates/generali_additionalservices.html:160
-#: templates/generali_baseservices.html:138
-#: templates/generali_projectmanagement.html:125
-msgid "Hours"
-msgstr "Ore"
 
 #: templates/generali_additionalservices.html:163
 #: templates/generali_baseservices.html:139 templates/generali_pdqm.html:163
@@ -5511,12 +5809,6 @@ msgstr "Generali Gestione del progetto"
 msgid "Daily effort tracking"
 msgstr "Monitoraggio giornaliero dello sforzo"
 
-#: templates/generali_projectmanagement.html:126
-#: templates/generali_projectmanagement.html:207
-#: templates/generali_projectmanagement.html:246
-msgid "Comment"
-msgstr "Commento"
-
 #: templates/generali_projectmanagement.html:194
 msgid "Project Effort"
 msgstr "Sforzo di progetto"
@@ -5601,7 +5893,7 @@ msgstr "Data del rapporto"
 msgid "Email Received"
 msgstr "Email Ricevuta"
 
-#: templates/generali_reporting.html:298 templates/hero.html:224
+#: templates/generali_reporting.html:298 templates/hero.html:225
 #: templates/js/_generali_reporting_js.html:21
 msgid "Delivery"
 msgstr "Consegna"
@@ -5611,19 +5903,19 @@ msgstr "Consegna"
 msgid "Latest Delivery"
 msgstr "Ultima consegna"
 
-#: templates/hero.html:97 templates/hero.html:100
+#: templates/hero.html:98 templates/hero.html:101
 msgid "Sign In"
 msgstr "Accedi"
 
-#: templates/hero.html:113 templates/hero.html:145
+#: templates/hero.html:114 templates/hero.html:146
 msgid "Real-time updates"
 msgstr "Aggiornamenti in tempo reale"
 
-#: templates/hero.html:115
+#: templates/hero.html:116
 msgid "Seamless Document Tracking, Complete Peace of Mind."
 msgstr "Tracciamento fluido dei documenti, totale tranquillità."
 
-#: templates/hero.html:118
+#: templates/hero.html:119
 msgid ""
 "Welcome to nexora. Securely monitor your document's journey from import "
 "to validation and final delivery in real-time. Access a complete, "
@@ -5633,39 +5925,39 @@ msgstr ""
 "documento dall'importazione alla validazione e alla consegna finale. "
 "Acceda a uno storico completo e verificabile 24 ore su 24."
 
-#: templates/hero.html:122
+#: templates/hero.html:123
 msgid "Access Your Portal"
 msgstr "Accedi al tuo portale"
 
-#: templates/hero.html:126 templates/hero.html:248
+#: templates/hero.html:127 templates/hero.html:249
 msgid "Real-time tracking"
 msgstr "Tracciamento in tempo reale"
 
-#: templates/hero.html:127 templates/hero.html:255
+#: templates/hero.html:128 templates/hero.html:256
 msgid "Document history"
 msgstr "Cronologia documenti"
 
-#: templates/hero.html:128 templates/hero.html:262
+#: templates/hero.html:129 templates/hero.html:263
 msgid "Secure access"
 msgstr "Accesso sicuro"
 
-#: templates/hero.html:138 templates/hero.html:144
+#: templates/hero.html:139 templates/hero.html:145
 msgid "Document Status"
 msgstr "Stato del documento"
 
-#: templates/hero.html:151
+#: templates/hero.html:152
 msgid "Invoice"
 msgstr "Fattura"
 
-#: templates/hero.html:158
+#: templates/hero.html:159
 msgid "Contract"
 msgstr "Contratto"
 
-#: templates/hero.html:183
+#: templates/hero.html:184
 msgid "Visualize Your Document's Journey"
 msgstr "Visualizza il percorso del tuo documento"
 
-#: templates/hero.html:186
+#: templates/hero.html:187
 msgid ""
 "Our automated system handles every step with precision and security. "
 "Follow along as a document is processed in real-time."
@@ -5673,32 +5965,32 @@ msgstr ""
 "Il nostro sistema automatizzato gestisce ogni fase con precisione e "
 "sicurezza. Segua in tempo reale l'elaborazione di un documento."
 
-#: templates/hero.html:203 templates/js/_workitems_overview_js.html:17
+#: templates/hero.html:204 templates/js/_workitems_overview_js.html:17
 #: templates/workitems_overview.html:81
 msgid "Import"
 msgstr "Importazione"
 
-#: templates/hero.html:210
+#: templates/hero.html:211
 msgid "Extraction"
 msgstr "Estrazione"
 
-#: templates/hero.html:217
+#: templates/hero.html:218
 msgid "Validation"
 msgstr "Validazione"
 
-#: templates/hero.html:230
+#: templates/hero.html:231
 msgid "Initializing..."
 msgstr "Inizializzazione in corso..."
 
-#: templates/hero.html:240
+#: templates/hero.html:241
 msgid "Why use nexora"
 msgstr "Perché usare nexora"
 
-#: templates/hero.html:241
+#: templates/hero.html:242
 msgid "Everything you need in one secure and convenient place"
 msgstr "Tutto ciò di cui hai bisogno in un unico luogo sicuro e conveniente"
 
-#: templates/hero.html:249
+#: templates/hero.html:250
 msgid ""
 "Monitor your document's journey from import to validation and final "
 "delivery, every step of the way"
@@ -5706,7 +5998,7 @@ msgstr ""
 "Monitori il percorso del suo documento dall'importazione alla validazione"
 " e alla consegna finale, passo dopo passo."
 
-#: templates/hero.html:256
+#: templates/hero.html:257
 msgid ""
 "Access a complete, auditable history of all your processed documents "
 "available 24/7."
@@ -5714,7 +6006,7 @@ msgstr ""
 "Acceda 24 ore su 24 a uno storico completo e verificabile di tutti i "
 "documenti elaborati."
 
-#: templates/hero.html:263
+#: templates/hero.html:264
 msgid ""
 "Your data is protected with industry-leading security protocols, ensuring"
 " complete confidentiality"
@@ -5722,11 +6014,11 @@ msgstr ""
 "I suoi dati sono protetti con protocolli di sicurezza all'avanguardia nel"
 " settore, garantendo la massima riservatezza."
 
-#: templates/hero.html:272
+#: templates/hero.html:273
 msgid "Ready to See Your Documents in Action?"
 msgstr "Pronto a vedere i tuoi documenti in azione?"
 
-#: templates/hero.html:275
+#: templates/hero.html:276
 msgid ""
 "Log in to your portal to access real-time tracking, view your history, "
 "and manage your workflow with confidence."
@@ -5734,7 +6026,7 @@ msgstr ""
 "Acceda al suo portale per il monitoraggio in tempo reale, consultare lo "
 "storico e gestire il flusso di lavoro con sicurezza."
 
-#: templates/hero.html:278
+#: templates/hero.html:279
 msgid "Access Your Portal Now"
 msgstr "Accedi ora al tuo portale"
 
@@ -5745,38 +6037,38 @@ msgstr "Accesso - nexora"
 #: templates/admin/access_control.html:156 templates/admin/logs.html:44
 #: templates/admin/modals/_user_modals.html:32 templates/admin/sessions.html:49
 #: templates/admin/sessions.html:64 templates/admin/user_detail.html:37
-#: templates/index.html:98 templates/profile.html:137
+#: templates/index.html:105 templates/profile.html:137
 msgid "Username"
 msgstr "Nome utente"
 
-#: templates/index.html:105
+#: templates/index.html:112
 msgid "Your Username"
 msgstr "Il tuo nome utente"
 
 #: templates/admin/access_control.html:191
-#: templates/admin/modals/_user_modals.html:71 templates/index.html:109
+#: templates/admin/modals/_user_modals.html:71 templates/index.html:116
 #: templates/js/admin/_sessions_js.html:140 templates/profile.html:65
-#: templates/set_password.html:106
+#: templates/set_password.html:115
 msgid "Password"
 msgstr "Password"
 
-#: templates/index.html:118 templates/init_reset.html:112
-#: templates/init_reset.html:127 templates/profile.html:198
+#: templates/index.html:125 templates/init_reset.html:121
+#: templates/init_reset.html:136 templates/profile.html:198
 #: templates/profile.html:209 templates/profile.html:226
-#: templates/reset_password.html:112 templates/reset_password.html:127
-#: templates/set_password.html:115 templates/set_password.html:130
+#: templates/reset_password.html:121 templates/reset_password.html:136
+#: templates/set_password.html:124 templates/set_password.html:139
 msgid "Toggle password visibility"
 msgstr "Mostra/nascondi password"
 
-#: templates/index.html:127
+#: templates/index.html:134
 msgid "Remember me"
 msgstr "Ricordami"
 
-#: templates/index.html:130
+#: templates/index.html:137
 msgid "Forgot password"
 msgstr "Password dimenticata"
 
-#: templates/index.html:134
+#: templates/index.html:141
 msgid "Sign in"
 msgstr "Accedi"
 
@@ -5784,11 +6076,11 @@ msgstr "Accedi"
 msgid "Setup 2FA - nexora"
 msgstr "Configurazione 2FA - nexora"
 
-#: templates/init_2FA.html:86
+#: templates/init_2FA.html:95
 msgid "Secure Your Account"
 msgstr "Proteggi il tuo account"
 
-#: templates/init_2FA.html:88
+#: templates/init_2FA.html:97
 msgid ""
 "Scan the QR code below with your Authenticator App (Microsoft or Google "
 "Authenticator)."
@@ -5796,23 +6088,23 @@ msgstr ""
 "Scansiona il codice QR qui sotto con la tua app Authenticator (Microsoft "
 "o Google Authenticator)."
 
-#: templates/init_2FA.html:108
+#: templates/init_2FA.html:117
 msgid "Error generating QR code. Please refresh."
 msgstr "Errore nella generazione del codice QR. Aggiorna la pagina."
 
-#: templates/init_2FA.html:113
+#: templates/init_2FA.html:122
 msgid "Can't scan the code?"
 msgstr "Non riesci a scansionare il codice?"
 
-#: templates/init_2FA.html:114
+#: templates/init_2FA.html:123
 msgid "Enter this code manually:"
 msgstr "Inserisci questo codice manualmente:"
 
-#: templates/init_2FA.html:123
+#: templates/init_2FA.html:132
 msgid "Enter 6-digit Code"
 msgstr "Inserisci il codice a 6 cifre"
 
-#: templates/init_2FA.html:140
+#: templates/init_2FA.html:149
 msgid "Verify and Enable"
 msgstr "Verifica e abilita"
 
@@ -5820,47 +6112,47 @@ msgstr "Verifica e abilita"
 msgid "Initial Password Reset - nexora"
 msgstr "Reimpostazione password iniziale - nexora"
 
-#: templates/init_reset.html:91 templates/reset_password.html:91
+#: templates/init_reset.html:100 templates/reset_password.html:100
 msgid "Set a new password"
 msgstr "Imposta una nuova password"
 
-#: templates/init_reset.html:92 templates/reset_password.html:92
+#: templates/init_reset.html:101 templates/reset_password.html:101
 msgid "Your new password must be different from your previously used password."
 msgstr ""
 "La tua nuova password deve essere diversa dalla password utilizzata in "
 "precedenza."
 
-#: templates/admin/user_detail.html:73 templates/init_reset.html:103
-#: templates/profile.html:204 templates/reset_password.html:103
+#: templates/admin/user_detail.html:73 templates/init_reset.html:112
+#: templates/profile.html:204 templates/reset_password.html:112
 msgid "New password"
 msgstr "Nuova password"
 
-#: templates/init_reset.html:110 templates/reset_password.html:110
+#: templates/init_reset.html:119 templates/reset_password.html:119
 msgid "Enter your new password"
 msgstr "Inserisci la tua nuova password"
 
-#: templates/init_reset.html:118 templates/profile.html:221
-#: templates/reset_password.html:118
+#: templates/init_reset.html:127 templates/profile.html:221
+#: templates/reset_password.html:127
 msgid "Confirm new password"
 msgstr "Conferma la nuova password"
 
-#: templates/init_reset.html:125 templates/reset_password.html:125
+#: templates/init_reset.html:134 templates/reset_password.html:134
 msgid "Confirm your new password"
 msgstr "Conferma la tua nuova password"
 
-#: templates/legal.html:78
+#: templates/legal.html:91
 msgid "Back to nexora"
 msgstr "Torna a nexora"
 
-#: templates/legal.html:82
+#: templates/legal.html:95
 msgid "Sydoc AG"
 msgstr "Sydoc AG"
 
-#: templates/legal.html:90
+#: templates/legal.html:103
 msgid "Draft — not yet in force."
 msgstr "Bozza – non ancora in vigore."
 
-#: templates/legal.html:91
+#: templates/legal.html:104
 msgid ""
 "The facts on this page were confirmed by Sydoc management and read from "
 "the application itself. The text still has to be reviewed and approved "
@@ -6296,8 +6588,7 @@ msgstr "Carica"
 msgid "Share the selected report you own"
 msgstr "Condividi il report selezionato di tua proprietà"
 
-#: templates/js/_finance_js.html:28 templates/js/_reporting_simple_js.html:100
-#: templates/reporting.html:395
+#: templates/js/_reporting_simple_js.html:100 templates/reporting.html:395
 msgid "Share"
 msgstr "Condividi"
 
@@ -6651,10 +6942,6 @@ msgstr "Campo di base"
 msgid "Enabled"
 msgstr "Abilitato"
 
-#: templates/reporting_metrics.html:43 templates/reporting_sources.html:54
-msgid "Order"
-msgstr "Ordine"
-
 #: templates/reporting_metrics.html:55
 msgid "German label"
 msgstr "Etichetta tedesca"
@@ -6749,7 +7036,7 @@ msgstr "Formatta JSON"
 msgid "Reset password - nexora"
 msgstr "Reimposta password - nexora"
 
-#: templates/reset_password.html:136
+#: templates/reset_password.html:145
 msgid "Reset password"
 msgstr "Reimposta password"
 
@@ -6757,11 +7044,11 @@ msgstr "Reimposta password"
 msgid "Set password - nexora"
 msgstr "Imposta la password - nexora"
 
-#: templates/set_password.html:91
+#: templates/set_password.html:100
 msgid "Welcome to nexora"
 msgstr "Benvenuto su nexora"
 
-#: templates/set_password.html:92
+#: templates/set_password.html:101
 msgid ""
 "Choose a password for your account. You will be asked to set up two-"
 "factor authentication right after."
@@ -6769,23 +7056,23 @@ msgstr ""
 "Scegli una password per il tuo account. Subito dopo ti verrà chiesto di "
 "configurare l'autenticazione a due fattori."
 
-#: templates/set_password.html:113
+#: templates/set_password.html:122
 msgid "At least 12 characters, no spaces"
 msgstr "Almeno 12 caratteri, senza spazi"
 
-#: templates/set_password.html:121
+#: templates/set_password.html:130
 msgid "Confirm password"
 msgstr "Conferma la password"
 
-#: templates/set_password.html:128
+#: templates/set_password.html:137
 msgid "Repeat your password"
 msgstr "Ripeti la tua password"
 
-#: templates/set_password.html:139
+#: templates/set_password.html:148
 msgid "Set password"
 msgstr "Imposta password"
 
-#: templates/set_password.html:145
+#: templates/set_password.html:154
 msgid "Go to login"
 msgstr "Vai al login"
 
@@ -6793,15 +7080,15 @@ msgstr "Vai al login"
 msgid "Two-Factor Authentication - nexora"
 msgstr "Autenticazione a due fattori - nexora"
 
-#: templates/verify_2fa.html:55
+#: templates/verify_2fa.html:62
 msgid "Two-Factor Authentication"
 msgstr "Autenticazione a due fattori"
 
-#: templates/verify_2fa.html:57
+#: templates/verify_2fa.html:64
 msgid "Please enter the code from your authenticator app to continue."
 msgstr "Inserisci il codice dalla tua app Authenticator per continuare."
 
-#: templates/verify_2fa.html:94
+#: templates/verify_2fa.html:101
 msgid "Verify Identity"
 msgstr "Verifica identità"
 
@@ -6907,13 +7194,6 @@ msgstr "Questa settimana"
 #: templates/admin/logs.html:29 templates/workitems_overview.html:163
 msgid "Last 7 days"
 msgstr "Ultimi 7 giorni"
-
-#: templates/js/_reporting_dashboard_js.html:28
-#: templates/js/_reporting_drill_js.html:28 templates/js/_reporting_js.html:10
-#: templates/js/_reporting_simple_js.html:50
-#: templates/workitems_overview.html:164
-msgid "This month"
-msgstr "Questo mese"
 
 #: templates/workitems_overview.html:191
 msgid "Document Value Search"
@@ -8963,6 +9243,107 @@ msgstr "Scrivici"
 msgid "Chat to our team"
 msgstr "Scrivi al nostro team"
 
+#: templates/js/_bps_js.html:12
+#, python-brace-format
+msgid "{n} bookings · {from} – {to}"
+msgstr "{n} registrazioni · {from} – {to}"
+
+#: templates/js/_bps_js.html:13
+msgid "Could not read the source"
+msgstr "Impossibile leggere la fonte"
+
+#: templates/js/_bps_js.html:14
+msgid "Total hours"
+msgstr "Ore totali"
+
+#: templates/js/_bps_js.html:15
+msgid "Service hours"
+msgstr "Ore di prestazione"
+
+#: templates/js/_bps_js.html:17
+msgid "Absence hours"
+msgstr "Ore di assenza"
+
+#: templates/js/_bps_js.html:19
+msgid "People"
+msgstr "Persone"
+
+#: templates/js/_bps_js.html:20
+#, python-brace-format
+msgid "{pct} of service hours"
+msgstr "{pct} delle ore di prestazione"
+
+#: templates/js/_bps_js.html:21
+#, python-brace-format
+msgid "{pct} of all hours"
+msgstr "{pct} di tutte le ore"
+
+#: templates/js/_bps_js.html:22
+msgid "with service hours"
+msgstr "con ore di prestazione"
+
+#: templates/js/_bps_js.html:23
+msgid "in the period"
+msgstr "nel periodo"
+
+#: templates/js/_bps_js.html:27
+msgid "partly billable"
+msgstr "parzialmente fatturabile"
+
+#: templates/js/_bps_js.html:28
+msgid "billable"
+msgstr "fatturabile"
+
+#: templates/js/_bps_js.html:30 templates/js/_finance_js.html:44
+#, python-brace-format
+msgid "{n} h"
+msgstr "{n} h"
+
+#: templates/js/_bps_js.html:31
+#, python-brace-format
+msgid "Total: {n} h"
+msgstr "Totale: {n} h"
+
+#: templates/js/_bps_js.html:32
+#, python-brace-format
+msgid "{days} days · {n} h"
+msgstr "{days} giorni · {n} h"
+
+#: templates/js/_bps_js.html:33
+msgid "No bookings match."
+msgstr "Nessuna registrazione corrispondente."
+
+#: templates/js/_bps_js.html:34
+msgid "Nothing was booked in this period. The BPS export starts on 3 August 2026."
+msgstr ""
+"In questo periodo non è stato registrato nulla. L'esportazione BPS inizia"
+" il 3 agosto 2026."
+
+#: templates/js/_bps_js.html:35
+msgid "Loading bookings…"
+msgstr "Caricamento delle registrazioni…"
+
+#: templates/js/_bps_js.html:36
+msgid "Could not load the bookings"
+msgstr "Impossibile caricare le registrazioni"
+
+#: templates/js/_bps_js.html:37
+msgid "Showing the first 5,000 bookings; export the CSV for all."
+msgstr "Vengono mostrate le prime 5.000 registrazioni; esportare il CSV per tutte."
+
+#: templates/js/_bps_js.html:42
+#, python-brace-format
+msgid "Show {name}"
+msgstr "Mostra {name}"
+
+#: templates/js/_bps_js.html:43
+msgid ""
+"The period has more combinations than the page loads; narrow it for exact"
+" figures."
+msgstr ""
+"Il periodo ha più combinazioni di quante la pagina ne carichi; "
+"restringerlo per cifre esatte."
+
 #: templates/js/_dashboard_js.html:14
 msgid "No data to display"
 msgstr "Nessun dato da visualizzare"
@@ -9007,74 +9388,137 @@ msgstr "Impossibile aggiornare il dashboard"
 msgid "Sending…"
 msgstr "Invio in corso…"
 
-#: templates/js/_finance_js.html:16
+#: templates/js/_finance_js.html:17
 #, python-brace-format
 msgid "{done} of {total} sections loaded"
 msgstr "{done} sezioni su {total} caricate"
 
-#: templates/js/_finance_js.html:17
+#: templates/js/_finance_js.html:18
 #, python-brace-format
 msgid "All {total} sections loaded"
 msgstr "Tutte le {total} sezioni caricate"
 
-#: templates/js/_finance_js.html:18
+#: templates/js/_finance_js.html:19
 #, python-brace-format
 msgid "{failed} of {total} sections could not be read"
 msgstr "{failed} sezioni su {total} non sono state lette"
 
-#: templates/js/_finance_js.html:19
+#: templates/js/_finance_js.html:20
 msgid "Could not load this section"
 msgstr "Impossibile caricare questa sezione"
 
-#: templates/js/_finance_js.html:20
+#: templates/js/_finance_js.html:21
 msgid "Retry"
 msgstr "Riprova"
 
-#: templates/js/_finance_js.html:21
+#: templates/js/_finance_js.html:22
 msgid "live figures"
 msgstr "cifre in tempo reale"
 
-#: templates/js/_finance_js.html:22
+#: templates/js/_finance_js.html:23
+msgid "closed"
+msgstr "chiuso"
+
+#: templates/js/_finance_js.html:24
+msgid "live data moved"
+msgstr "dati in tempo reale cambiati"
+
+#: templates/js/_finance_js.html:25
+msgid "live data unavailable"
+msgstr "dati in tempo reale non disponibili"
+
+#: templates/js/_finance_js.html:26
+#, python-brace-format
+msgid "The live data has moved since the close: {n} figures differ"
+msgstr "I dati in tempo reale sono cambiati dalla chiusura: {n} cifre differiscono"
+
+#: templates/js/_finance_js.html:27
+msgid ""
+"The frozen figures above are what was invoiced. Typical cause: documents "
+"re-exported after the month closed."
+msgstr ""
+"Le cifre congelate sopra sono quelle fatturate. Causa tipica: documenti "
+"riesportati dopo la chiusura del mese."
+
+#: templates/js/_finance_js.html:28
+msgid "At close"
+msgstr "Alla chiusura"
+
+#: templates/js/_finance_js.html:29 templates/js/admin/_maintenance_js.html:42
+msgid "Live now"
+msgstr "Attivo ora"
+
+#: templates/js/_finance_js.html:30
+msgid "Difference"
+msgstr "Differenza"
+
+#: templates/js/_finance_js.html:31
 #, python-brace-format
 msgid "Nothing recorded in {month}"
 msgstr "Nessuna registrazione in {month}"
 
-#: templates/js/_finance_js.html:23
+#: templates/js/_finance_js.html:32
 msgid "vs. previous month"
 msgstr "vs mese precedente"
 
-#: templates/js/_finance_js.html:24
+#: templates/js/_finance_js.html:33
 msgid "unchanged"
 msgstr "invariato"
 
-#: templates/js/_finance_js.html:25
+#: templates/js/_finance_js.html:34
 msgid "new"
 msgstr "nuovo"
 
-#: templates/js/_finance_js.html:26
+#: templates/js/_finance_js.html:35
 #, python-brace-format
 msgid "per {dim}"
 msgstr "per {dim}"
 
-#: templates/js/_finance_js.html:27
+#: templates/js/_finance_js.html:36
+#, python-brace-format
+msgid "{dim} by {across}"
+msgstr "{dim} per {across}"
+
+#: templates/js/_finance_js.html:37
 #: templates/js/_reporting_dashboard_js.html:71
 #: templates/js/_reporting_simple_js.html:149
 #, python-brace-format
 msgid "{n} rows"
 msgstr "{n} righe"
 
-#: templates/js/_finance_js.html:30
+#: templates/js/_finance_js.html:40
 msgid "(blank)"
 msgstr "(vuoto)"
 
-#: templates/js/_finance_js.html:31
+#: templates/js/_finance_js.html:41
 #, python-brace-format
 msgid "Show all {n} rows"
 msgstr "Mostra tutte le {n} righe"
 
-#: templates/js/_finance_js.html:32
+#: templates/js/_finance_js.html:42
 msgid "Show fewer"
 msgstr "Mostra meno"
+
+#: templates/js/_finance_js.html:43
+#, python-brace-format
+msgid "{n} bookings"
+msgstr "{n} registrazioni"
+
+#: templates/js/_finance_js.html:45
+msgid "Hours per task"
+msgstr "Ore per attività"
+
+#: templates/js/_finance_js.html:46
+msgid ""
+"The list stops at 5,000 bookings; the totals above still count every one."
+" Export the CSV for the full list."
+msgstr ""
+"L'elenco si ferma a 5.000 registrazioni; i totali sopra le contano "
+"comunque tutte. Esportare il CSV per l'elenco completo."
+
+#: templates/js/_finance_js.html:47 templates/js/_reporting_ai_js.html:58
+msgid "Working…"
+msgstr "Elaborazione…"
 
 #: templates/js/_generali_additional_services_js.html:177
 #: templates/js/_generali_base_services_js.html:145
@@ -9449,10 +9893,6 @@ msgstr "Chiedere a Eddard"
 msgid "Thinking…"
 msgstr "Riflessione…"
 
-#: templates/js/_reporting_ai_js.html:58
-msgid "Working…"
-msgstr "Elaborazione…"
-
 #: templates/js/_reporting_ai_js.html:59
 msgid "Building your report…"
 msgstr "Creazione del tuo report…"
@@ -9577,18 +10017,6 @@ msgstr "misto"
 msgid "Back to the reports’ own value"
 msgstr "Torna al valore dei report"
 
-#: templates/js/_reporting_dashboard_js.html:27
-#: templates/js/_reporting_drill_js.html:27 templates/js/_reporting_js.html:9
-#: templates/js/_reporting_simple_js.html:67
-msgid "Last week"
-msgstr "Settimana scorsa"
-
-#: templates/js/_reporting_dashboard_js.html:29
-#: templates/js/_reporting_drill_js.html:28 templates/js/_reporting_js.html:11
-#: templates/js/_reporting_simple_js.html:51
-msgid "Last month"
-msgstr "Il mese scorso"
-
 #: templates/js/_reporting_dashboard_js.html:30
 #: templates/js/_reporting_drill_js.html:29 templates/js/_reporting_js.html:12
 #: templates/js/_reporting_simple_js.html:55
@@ -9600,12 +10028,6 @@ msgstr "Questo trimestre"
 #: templates/js/_reporting_simple_js.html:56
 msgid "Last quarter"
 msgstr "Trimestre scorso"
-
-#: templates/js/_reporting_dashboard_js.html:32
-#: templates/js/_reporting_drill_js.html:30 templates/js/_reporting_js.html:14
-#: templates/js/_reporting_simple_js.html:52
-msgid "Last 3 months"
-msgstr "Ultimi 3 mesi"
 
 #: templates/js/_reporting_dashboard_js.html:33
 #: templates/js/_reporting_drill_js.html:30 templates/js/_reporting_js.html:15
@@ -11033,10 +11455,6 @@ msgstr "Nome di questo preset di filtri:"
 #: templates/js/admin/_logs_js.html:240 templates/js/admin/_logs_js.html:243
 msgid "No arguments provided."
 msgstr "Nessun argomento fornito."
-
-#: templates/js/admin/_maintenance_js.html:42
-msgid "Live now"
-msgstr "Attivo ora"
 
 #: templates/js/admin/_maintenance_js.html:46
 msgid "Past"
@@ -12636,4 +13054,39 @@ msgstr "%(field)s viene impostato dall'utente connesso al salvataggio."
 
 #~ msgid "This tenant page is temporarily unavailable"
 #~ msgstr "Questa pagina tenant è temporaneamente non disponibile"
+
+#~ msgid ""
+#~ "Hours booked in the BPS timetool. "
+#~ "Service hours are everything except the"
+#~ " Absences pseudo-customer (vacation, sick"
+#~ " leave, compensation), which is shown "
+#~ "separately. The task names are BPS's "
+#~ "own."
+#~ msgstr ""
+#~ "Ore registrate nel timetool BPS. Le "
+#~ "ore di prestazione sono tutto tranne "
+#~ "lo pseudo-cliente Absences (vacanze, "
+#~ "malattia, compensazione), mostrato separatamente."
+#~ " I nomi delle attività sono quelli"
+#~ " di BPS."
+
+#~ msgid "Each figure is compared with the month before."
+#~ msgstr "Ogni cifra è confrontata con il mese precedente."
+
+#~ msgid ""
+#~ "Live figures: EM_Invoice is still edited"
+#~ " after a month closes, so a "
+#~ "closed month can return different "
+#~ "numbers later. Only the Opex and "
+#~ "e-mail channels are billed."
+#~ msgstr ""
+#~ "Cifre in tempo reale: EM_Invoice viene"
+#~ " ancora modificata dopo la chiusura "
+#~ "del mese, quindi un mese chiuso "
+#~ "può restituire cifre diverse in seguito."
+#~ " Vengono fatturati solo i canali Opex"
+#~ " ed e-mail."
+
+#~ msgid "title"
+#~ msgstr "Titolo"
 

@@ -138,6 +138,7 @@ def create_app():
         admin,
         api_external,
         auth,
+        bps,
         core,
         dashboard,
         finance,
@@ -155,6 +156,7 @@ def create_app():
     dashboard.register_routes(app)
     reporting.register_routes(app)
     finance.register_routes(app)  # /finance monthly accounting report (#408)
+    bps.register_routes(app)  # /bps BPS timetool hours drill-down (#415)
     workitems.register_routes(app)
     generali.register_routes(app)
     tenant.register_routes(app)  # /t/<tenant_code>/<page_key> generated tenant pages

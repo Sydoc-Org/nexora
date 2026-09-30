@@ -8,6 +8,27 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Sydoc BPS** (`/bps`, permission `bps.view`, #415): every hour booked in
+  the BPS timetool for a period -- KPIs (total / service / billable / absence
+  hours, bookings, people), hours per day stacked by category, and a
+  drill-down task › customer › person (or customer- / person-first) down to the
+  single booking with its comment; filters for billable only, absences and a
+  text filter; CSV of every booking. The billable-task rule lives once in
+  `nx_lib/bps.py` and is shared with the Finance page. Migration `0140`.
+  `docs/howto/bps.md`.
+- **Finance month close** (#415): *Close month* (`finance.month.edit`) freezes every
+  section of an invoiced month into `dbo.FinanceMonthClose`; a closed month is
+  served from the snapshot (CSV included) and only notes where the live data
+  has moved since -- EM re-exports and Compass re-uploads overwrite their date
+  after the workbook is refreshed, so live figures drift. *Reopen month*
+  deletes the snapshot. Migration `0139`.
+- **Finance**: the register × branch (Posteingang) and forwarding type × branch
+  (Physische Zustellung) matrices of the billed Privera sheets; the Sydoc
+  services section now lists every **billable** BPS booking singly with its
+  comment (Support verrechenbar / extern verrechenbar, Change, Change Request,
+  Professional Services, Projektmanagement, plus Vorbereitung Akten on Privera
+  Neuzugänge), grouped per customer, instead of hour totals.
+
 - **Sydoc Finance** (`/finance`, permission `finance.view`, #408): the monthly
   accounting figures of every billed client on one page per month, instead
   of walking the same numbers out of Reporting report by report. One section
@@ -27,6 +48,15 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `docs/howto/finance.md`.
 
 ### Changed
+
+- **Finance parity with the billing workbooks** (#415, migration `0139`):
+  Privera *Documents by mail* now drops MAIL rows without a file name, as the
+  Rechnungseingang workbook's Mail pivot does (May / July / August 2026:
+  11,669 / 14,945 / 11,759 -- exact); MediaMarkt *Batches* counts only rows with
+  a piece count, so pre-typed placeholder batches no longer count. Reconciled
+  against the May-August 2026 workbooks: every Privera figure and matrix cell
+  exact; Elektro-Material and Compass definitions exact, their live data drifts
+  after the refresh (hence the month close).
 
 - **Generated tenant pages (`/t/<tenant>/<page>`) moved onto the slim design
   system** — the look the Dashboard and the admin redesign already carry, and

@@ -1309,7 +1309,8 @@ loaded by the `nx-sources/bps/bps_project_report.py` collector; measures `Hours`
 `Bookings`, and `Absence hours` = hours where `Kunde = 'Absences'`). `0126` registers **MediaMarkt — Batches**
 (`mediamarkt_batches` over `SYDOC_Statistik.dbo.MediaMarkt_Batches`, the table behind the
 generated `/t/sydoc/mediamarkt` CRUD page; measures `Pieces scanned` = sum of
-`Pieces`, `Batches` = row count; `ScanDate` grainable, `DocType` K/D/KA and `Visum`
+`Pieces`, `Batches` = rows with a piece count (the protocol pre-types batch
+numbers; a placeholder without pieces is not a batch, `0139`); `ScanDate` grainable, `DocType` K/D/KA and `Visum`
 as dimensions). `0128` registers **Aveniq — Xpert Statistics** (`xpert_stats` over
 `SYDOC_Statistik.dbo.Xpert_Stats`, the daily long-format counts mailed in from the
 Aveniq box and loaded by `nx-sources/xpert/importCSVtoSQL.py`; every measure is a
@@ -1338,12 +1339,10 @@ load-bearing: Compass's pivot has **no** channel split, so its single
 `Documents` measure is unfiltered and bills on `UploadDatetime` (the pivot's
 page filter) rather than the `DocDate` its rows display; Privera publishes three
 pivots, so it gets `Documents total` / `Documents by mail` / `eBill documents`,
-split on `DocSource` rather than the workbook's unreproducible `FileName`
-filter. Verified against the published workbooks: Compass exact in 6 of 8
-months, Privera exact in 5 of 6 figures — the gap is August 2026 mail, where the
-old pivot dropped 5 mail documents that have no `Mandant` while its own total
-counted them, so the measure keeps the honest definition and `Mandant` stays a
-dimension. `SortOrder` 340/350. Both pinned by
+split on `DocSource`. The workbook's Mail pivot also filters on the file name,
+dropping MAIL rows that have none; `0139` (#415) adds `FileName IS NOT NULL` to
+`Documents by mail`, which makes it the published figure in every month checked
+(May / July / August 2026: 11,669 / 14,945 / 11,759). `SortOrder` 340/350. Both pinned by
 `tests/unit/test_billing_sources.py`, which also asserts no billing source
 exposes amounts, IBANs or the Privera property/owner numbers. `0133` adds **Privera —
 Physische Zustellung** (`privera_nachsendungen`), the **first source outside

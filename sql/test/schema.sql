@@ -283,6 +283,20 @@ BEGIN
 END;
 GO
 
+-- Finance month-close snapshots (mirrors 0139_finance_parity_and_close.sql).
+IF OBJECT_ID(N'dbo.FinanceMonthClose', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.FinanceMonthClose (
+        Month      CHAR(7)       NOT NULL,
+        SectionKey VARCHAR(64)   NOT NULL,
+        Payload    NVARCHAR(MAX) NOT NULL,
+        ClosedAt   DATETIME2(0)  NOT NULL CONSTRAINT DF_FinanceMonthClose_ClosedAt DEFAULT SYSUTCDATETIME(),
+        ClosedBy   NVARCHAR(100) NOT NULL,
+        CONSTRAINT PK_FinanceMonthClose PRIMARY KEY (Month, SectionKey)
+    );
+END;
+GO
+
 -- DB-backed reporting source registry (mirrors 0010_reporting_sources_registry.sql).
 IF OBJECT_ID(N'dbo.ReportingSources', N'U') IS NULL
 BEGIN

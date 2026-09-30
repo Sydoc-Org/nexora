@@ -4,7 +4,10 @@
 per billed client, one month at a time, with each figure compared to the month
 before. It replaces walking the same numbers out of Reporting report by report.
 Issue #408; permission `finance.view`; migration `0138` (the code, its Global
-Admin grant, and one extra BPS measure).
+Admin grant, and one extra BPS measure). #415 made the figures match the
+workbooks exactly, added the month close and lists the billable BPS bookings
+singly (migration `0139`); every BPS hour, drilled down, is on the Sydoc BPS page
+(`docs/howto/bps.md`).
 
 ## Where the numbers come from
 
@@ -24,23 +27,68 @@ identical on both pages.
 |---|---|---|---|---|
 | Elektro-Material | `em_invoice` | `ExportEM_dt` | documents (Opex + e-mail), images out, order item positions | per channel |
 | Compass Group | `compass_invoice` | `UploadDatetime` | documents | – |
-| Privera · Posteingang | `privera_posteingang` | `ExportDatetime` (text) | documents | per branch |
+| Privera · Posteingang | `privera_posteingang` | `ExportDatetime` (text) | documents | per branch; register × branch |
 | Privera · Rechnungseingang | `privera_invoice` | `ExportDate` | documents total / mail / eBill | per Mandant, per source |
-| Privera · Physische Zustellung | `privera_nachsendungen` | `ExportDatetime` | forwardings total / without TEC | per branch |
+| Privera · Physische Zustellung | `privera_nachsendungen` | `ExportDatetime` | forwardings total / without TEC | per branch; forwarding type × branch |
 | Privera · Neuzugänge | `privera_neuzugaenge` | `JahrExport` + `MonatExportNr` | dossiers / registers / pages | per branch |
 | Frigemo | `frigemo` | `DCD` | imported/exported documents and pages, invoices, deleted | – |
 | Aveniq · Xpert | `xpert_stats` | `ExportDate` | documents, BFH new creditors, ZHAW workitems | per client, per source database |
 | Bucherer · EasyTax | `bucherer_easytax` | `ImportTime` (imported, pages) / `ExportTime` (exported) | imported documents, pages, exported documents | – |
 | MediaMarkt | `mediamarkt_batches` | `ScanDate` | batches, pieces | per type (K/D/KA) |
-| Sydoc · BPS | `bps_projects` | `Datum` | service hours, absence hours, total hours | per task, per customer |
+| Sydoc · Billable services | `bps_projects` | `Datum` | billable hours, billable bookings | every booking, per customer, with its comment; hours per task |
 
 The first six are the #329 workbooks (internal customers); the next four are
 the external clients whose collectors already fill a Statistics table — what
-exists, shown the way it makes sense for a monthly bill. The last one is Sydoc's
-own time: the hours booked in the BPS timetool (`0124`), per BPS task (Support
-verrechenbar, Change, Professional Services, Vorbereitung Akten, …) and per
-customer. *Service hours* is a measure `0138` adds — every booking except the
-`Absences` pseudo-customer — so the split is registered, not subtracted by hand.
+exists, shown the way it makes sense for a monthly bill. The last one is the
+Sydoc services billed per booking: every **billable** BPS booking of the month
+(`0124`'s `BPS_ProjectReport`), one line each with date, package, task, person,
+hours and comment, grouped per customer with a subtotal. BPS has no billing
+flag; the rule lives once in `nx_lib/bps.py` (`BILLABLE_RULES`, shared with the
+BPS page):
+
+- tasks `Support-verrechenbar`, `Support extern verrechenbar`, `Change`,
+  `Change Request`, `Professional Services`, `Projektmanagement` on any customer
+  except `sydoc` / `sydoc intern`;
+- plus `Vorbereitung Akten`, but only on `Privera` · `Tagesgeschäft Neuzugänge`.
+
+The Reporting filter grammar only ANDs, so each rule group is its own row query
+and the groups are disjoint by construction; the figures come from separate
+aggregates, so a list cut at 5,000 rows still totals correctly.
+
+## Parity with the workbooks (#415)
+
+Reconciled against PROD and the published workbooks for May, July and August
+2026, figure by figure and, where the workbook has a pivot cache, row by row:
+
+| Section | Result |
+|---|---|
+| Privera Posteingang, Physische Zustellung, Neuzugänge | exact, every branch; the register × branch and forwarding type × branch matrices of the billed "PRIVERA" sheet are exact cell by cell |
+| Privera Rechnungseingang | exact after `0139`: the workbook's Mail pivot drops MAIL rows without a file name, so the measure does too (`FileName IS NOT NULL`) |
+| Elektro-Material, Compass | the definitions are exact; the **data** moves after the workbook is refreshed (a re-exported EM document gets a new `ExportEM_dt`, a re-uploaded Compass document a new `UploadDatetime`, so the workbook bills it in both months, the live page once) — which is what the month close is for |
+| MediaMarkt | 2026 exact once the two 16 Sep batches were entered (they were placeholder rows); `0139` stops counting placeholders as batches |
+
+Deliberately counted as the workbooks count them, and flagged on the page:
+Compass August 2026 has 74 rows without a workitem that repeat a barcode, and
+the Neuzugänge view counts a dossier registered under two branches in both.
+
+## Month close
+
+Accounting closes a month once it is invoiced (**Close month**, permission
+`finance.month.edit`). Every section is read live; if any cannot be read the close
+is refused and nothing is written. Otherwise each section's payload goes into
+`dbo.FinanceMonthClose` (one row per month and section, stamped with who and
+when, `0139`). From then on:
+
+- the month is served **from the snapshot** — the figures, breakdowns, matrices
+  and BPS bookings exactly as invoiced, whatever the sources do later;
+- the live figures are still computed next to it and, where they moved, the
+  section says so ("live data moved", a collapsible at-close / live-now list);
+  `?live=1` on the section API returns the live payload instead;
+- the CSV export reads the snapshot too (`sydoc-finance-YYYY-MM-closed.csv`).
+
+**Reopen month** deletes the snapshot; close it again to freeze the new state.
+The running month cannot be closed. Labels in a snapshot are frozen in the
+closer's language.
 
 ## How a month is selected
 
@@ -69,7 +117,8 @@ reads every billing source on the page. It is for Sydoc's own accounting — it
 must **never** be granted to a customer profile, the same rule as the
 `reporting.source.<code>.use` codes it reads through (`0136`, #332).
 `0138` creates the code and grants it to `Global Admin`; `Enterprise Admin` holds
-it through the `0106` trigger.
+it through the `0106` trigger. `finance.month.edit` (`0139`, same grants) closes and
+reopens a month.
 
 ## Adding a client
 
@@ -91,18 +140,18 @@ it through the `0106` trigger.
 
 ## What the page does not do (yet)
 
-- **It does not freeze anything.** `EM_Invoice` is edited after a month closes
-  (values as well as rows — see the 2026-09-14 handoff), so re-opening a closed
-  month can show different numbers. The Elektro-Material section says so. A
-  "close month" snapshot is the natural next step on top of this page.
-- It does not know what was actually invoiced; that confirmation is what keeps
-  #329's question open, and the page only makes the comparison easier.
+- It does not know what was actually invoiced beyond the close: closing is
+  accounting's statement that these are the figures billed.
+- Privera's *Mailbestellungen* (a hand-pasted Outlook export) has no source and
+  is not on the page.
 
 ## Export and print
 
-- **CSV** (`/api/finance/export.csv?month=YYYY-MM`): every figure and every
-  breakdown cell of the month as one flat sheet, UTF-8 with BOM so Excel opens
-  it directly. Sections that could not be read appear as an `error` line.
+- **CSV** (`/api/finance/export.csv?month=YYYY-MM`): every figure, every
+  breakdown and matrix cell and every billable booking of the month as one flat
+  sheet, UTF-8 with BOM so Excel opens it directly; a booking's date, package,
+  person and comment are in the `Detail` column. Sections that could not be
+  read appear as an `error` line. A closed month exports its snapshot.
 - **Print** uses a print stylesheet: app chrome hidden, one section per block,
   collapsed tables expanded.
 
@@ -110,11 +159,13 @@ it through the `0106` trigger.
 
 | What | Where |
 |---|---|
-| Spec, month arithmetic, query building, payload | `nx_lib/finance.py` (pure, DB-free) |
-| Routes: page, section API, CSV | `nx_lib/views/finance.py` |
+| Spec, month arithmetic, query building, payload, snapshot diff | `nx_lib/finance.py` (pure, DB-free) |
+| Billable rule (shared with the BPS page) | `nx_lib/bps.py` |
+| Routes: page, section API, close / reopen, CSV | `nx_lib/views/finance.py` |
 | Page, JS shim, behaviour, styles | `templates/finance.html`, `templates/js/_finance_js.html`, `static/js/finance.js`, `static/css/finance.css` |
 | Permission + BPS measure | `sql/_migrations/NexoraDB/0138_finance_page.sql`, `sql/test/seed.sql` |
-| Tests | `tests/unit/test_finance.py`, `tests/integration/test_finance_routes.py` |
+| Parity fixes, `FinanceMonthClose`, `finance.month.edit` | `sql/_migrations/NexoraDB/0139_finance_parity_and_close.sql`, `sql/test/schema.sql` |
+| Tests | `tests/unit/test_finance.py`, `tests/unit/test_bps.py`, `tests/integration/test_finance_routes.py` |
 
 ## Gotchas
 
@@ -130,3 +181,5 @@ it through the `0106` trigger.
 - The section API answers a failed source with HTTP 200 and an `error` field:
   the page renders the error where the figures would be. A 404 is only an
   unknown section key.
+- The legacy ODBC driver returns `datetime2` as text: `ClosedAt` is parsed back
+  in `views/finance.py` (`_as_datetime`), and shown in Swiss time.

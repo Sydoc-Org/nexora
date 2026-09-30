@@ -4,6 +4,7 @@ Routes covered:
 - GET /finance                          page (finance.view-gated)
 - GET /api/finance/section/<key>        one section's figures as JSON
 - GET /api/finance/export.csv           the whole month as CSV
+- POST /api/finance/close|reopen        freeze / unfreeze a month (#415)
 
 The test tier seeds finance.view (sql/test/seed.sql, TestAdmin holds every
 code) but none of the billing sources, so against the seeded registry every
@@ -204,8 +205,104 @@ def test_export_is_a_csv_download_with_one_line_per_figure(admin_client, fake_re
     text = resp.get_data(as_text=True)
     assert text.startswith("﻿")
     lines = text.strip().splitlines()
-    assert lines[0].endswith(",2026-09,Previous month")
-    assert "Elektro-Material,,by export date,figure,,,Dokumente,150,140" in lines
-    assert "Elektro-Material,,by export date,breakdown,Channel,E_MAIL,Bilder,61," in lines
+    assert lines[0].endswith(",2026-09,Previous month,Detail")
+    assert "Elektro-Material,,by export date,figure,,,Dokumente,150,140," in lines
+    assert "Elektro-Material,,by export date,breakdown,Channel,E_MAIL,Bilder,61,," in lines
     # Every unregistered section still appears, as its error line.
     assert any(line.startswith("Compass Group,,,error,") for line in lines)
+
+
+# ---- month close (#415) ----------------------------------------------------
+
+
+@pytest.fixture()
+def all_sections_readable(monkeypatch):
+    """Every section answers with one figure, so a close can go through."""
+    value = {"n": 7}
+
+    def payload(section, year, month):
+        return {
+            "key": section.key,
+            "client": section.client,
+            "title": section.title,
+            "group": section.group,
+            "source": {"code": section.source, "label": None},
+            "note": None,
+            "blocks": [
+                {
+                    "basis": "b",
+                    "figures": [{"code": "x", "label": "Docs", "value": value["n"], "prev": 1}],
+                    "breakdowns": [],
+                }
+            ],
+            "bookings": None,
+            "error": None,
+        }
+
+    monkeypatch.setattr(fv, "_section_payload", payload)
+    return value
+
+
+@pytest.fixture()
+def reopen_after(admin_client):
+    yield
+    admin_client.post("/api/finance/reopen?month=2026-08")
+
+
+@pytest.mark.parametrize(
+    "path", ["/api/finance/close?month=2026-08", "/api/finance/reopen?month=2026-08"]
+)
+def test_close_and_reopen_need_finance_close(user_client, path):
+    assert user_client.post(path).status_code == 403
+
+
+@pytest.mark.parametrize("month", ["", "nope", "2026-13", "2999-01"])
+def test_close_refuses_an_unnamed_running_or_future_month(admin_client, month):
+    """A write never falls back to a default month, and a running month cannot close."""
+    resp = admin_client.post(f"/api/finance/close?month={month}")
+    assert resp.status_code == 400
+    assert resp.get_json()["error"]
+
+
+def test_close_refuses_while_a_section_cannot_be_read(admin_client):
+    """The test tier registers no billing sources: every section errors, so nothing is frozen."""
+    resp = admin_client.post("/api/finance/close?month=2026-08")
+    assert resp.status_code == 409
+    assert "Compass Group" in resp.get_json()["error"]
+    body = admin_client.get("/api/finance/section/compass?month=2026-08").get_json()
+    assert body["closed"] is None
+
+
+def test_a_closed_month_serves_its_snapshot_and_reports_live_drift(
+    admin_client, all_sections_readable, reopen_after
+):
+    resp = admin_client.post("/api/finance/close?month=2026-08")
+    assert resp.status_code == 200, resp.get_json()
+    assert admin_client.post("/api/finance/close?month=2026-08").status_code == 409
+
+    # Nothing moved: the snapshot is served, with an empty drift list.
+    body = admin_client.get("/api/finance/section/compass?month=2026-08").get_json()
+    assert body["closed"]["by"]
+    assert body["blocks"][0]["figures"][0]["value"] == 7
+    assert body["live_diff"] == []
+
+    # The source is edited after the close: the snapshot stays, the drift shows.
+    all_sections_readable["n"] = 9
+    body = admin_client.get("/api/finance/section/compass?month=2026-08").get_json()
+    assert body["blocks"][0]["figures"][0]["value"] == 7
+    assert body["live_diff"] == [{"label": "Docs", "closed": 7, "live": 9}]
+    live = admin_client.get("/api/finance/section/compass?month=2026-08&live=1").get_json()
+    assert live["closed"] is None and live["blocks"][0]["figures"][0]["value"] == 9
+
+    page = admin_client.get("/finance?month=2026-08").get_data(as_text=True)
+    assert 'data-testid="finance-closed-badge"' in page
+    assert 'data-action="reopen"' in page
+
+    csv = admin_client.get("/api/finance/export.csv?month=2026-08")
+    assert 'filename="sydoc-finance-2026-08-closed.csv"' in csv.headers["Content-Disposition"]
+    assert "Compass Group,,b,figure,,,Docs,7,1," in csv.get_data(as_text=True).splitlines()
+
+    assert admin_client.post("/api/finance/reopen?month=2026-08").status_code == 200
+    assert admin_client.post("/api/finance/reopen?month=2026-08").status_code == 404
+    body = admin_client.get("/api/finance/section/compass?month=2026-08").get_json()
+    assert body["closed"] is None and body["blocks"][0]["figures"][0]["value"] == 9

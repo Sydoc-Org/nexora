@@ -16,7 +16,7 @@ old → new mapping, and migration `0088` applied it.
 - `<action>` is one of `view add edit delete use run export schedule manage bypass import restart`.
 - `<scope>` is optional: `org` (records of the actor's organization), `all` (every organization),
   `pastdeadline` (the deadline modifier on `add`). No scope means own records.
-- Areas: `admin workitems dashboard reporting finance process tenant api jd`. `tenant.<code>` and
+- Areas: `admin workitems dashboard reporting finance bps process tenant api jd`. `tenant.<code>` and
   `process.<client>` are two-segment areas.
 - `<area>.view` alone is the area's landing page and gates everything beneath it. The admin grid
   greys the children of an area (or of an `<object>.view`) until that `.view` is granted. This is a

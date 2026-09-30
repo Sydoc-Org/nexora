@@ -1,0 +1,170 @@
+/* ============================================================
+   Sydoc BPS (#415) — layout only, on the nexora-ui tokens, in the
+   same slim-console doctrine as finance.css: hairlines, no cards in
+   the page flow, every colour a --nx-* token except the three
+   category hues below.
+   ============================================================ */
+
+/* Category hues (billable / other service / absence). Checked with the
+   dataviz validator against the chart surface in both themes: lightness
+   band, chroma floor, CVD separation (deutan ΔE 15.0 light, 12.6 dark),
+   normal-vision floor and 3:1 contrast all pass. Always shown next to a
+   text label -- never colour alone. */
+:root {
+  --bps-billable: #7c3aed;
+  --bps-service:  #0891b2;
+  --bps-absence:  #d97706;
+}
+html.dark {
+  --bps-billable: #8b5cf6;
+  --bps-service:  #0891b2;
+  --bps-absence:  #d97706;
+}
+
+html { overflow-y: auto; }
+
+.nx-bps-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.nx-bps-head__meta { font-size: var(--fs-meta); color: var(--nx-text-meta); margin: 2px 0 0; }
+.nx-bps-head__right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+/* Period row, closed by a rule. */
+.nx-bps-filter {
+  display: flex; align-items: center; gap: 10px 12px; flex-wrap: wrap;
+  margin-top: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--nx-border);
+}
+.nx-bps-filter .nx-segmented { height: var(--ctl-h-lg); }
+.nx-bps-date { display: inline-flex; align-items: center; gap: 6px; }
+.nx-bps-date__label { font-size: var(--fs-meta); color: var(--nx-text-sec); }
+.nx-bps-date .nx-input { height: var(--ctl-h-lg); padding: 0 8px; font-variant-numeric: tabular-nums; font-size: var(--fs-control); }
+.nx-bps-filter__spacer { margin-left: auto; }
+.nx-bps-status {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: var(--fs-meta); color: var(--nx-text-meta); font-variant-numeric: tabular-nums;
+}
+.nx-bps-status .nx-live-dot { background: var(--nx-warning); }
+.nx-bps-status.is-done .nx-live-dot { background: var(--nx-success); }
+.nx-bps-status.is-failed .nx-live-dot { background: var(--nx-danger); }
+
+.nx-bps-error {
+  margin-top: 14px; padding: 12px 14px; border-radius: var(--nx-radius-sm);
+  background: var(--nx-l-red); color: var(--nx-l-red-fg); font-size: 13px;
+  display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap;
+}
+.nx-bps-error__detail { font-family: var(--nx-mono); font-size: 11.5px; opacity: .85; flex-basis: 100%; word-break: break-word; }
+
+/* KPI strip: six tiles, wrapping to three / two on narrower screens. */
+.nx-bps-kpis { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); margin-top: 4px; }
+.nx-bps-kpis .nx-kpi { padding: 14px 20px; border-top: none; }
+.nx-bps-kpis .nx-kpi:first-child { border-left: none; }
+.nx-bps-kpis .nx-kpi__value { font-size: 26px; letter-spacing: -1px; font-variant-numeric: tabular-nums; }
+.nx-bps-kpis .nx-kpi__delta { color: var(--nx-text-meta); }
+.nx-bps-kpis .nx-kpi__label { display: flex; align-items: center; gap: 6px; }
+.nx-bps-skel { height: 52px; border-radius: 6px; }
+
+/* Category swatch: a square chip, used in the legend and on KPI labels. */
+.nx-bps-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+.nx-bps-swatch--billable { background: var(--bps-billable); }
+.nx-bps-swatch--service  { background: var(--bps-service); }
+.nx-bps-swatch--absence  { background: var(--bps-absence); }
+
+/* Chart: a hairline section, fixed height so nothing shifts when it draws. */
+.nx-bps-chart { margin-top: 10px; padding: 18px 0 8px; border-top: 1px solid var(--nx-border); border-bottom: 1px solid var(--nx-border); }
+.nx-bps-chart__canvas { position: relative; height: 240px; margin-top: 10px; }
+
+/* Explorer toolbar */
+.nx-bps-explorer { margin-top: 22px; }
+.nx-bps-toolbar { display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; }
+.nx-bps-toolbar__spacer { margin-left: auto; }
+.nx-bps-check { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-meta); color: var(--nx-text-sec); cursor: pointer; min-height: 32px; }
+.nx-bps-check input { accent-color: var(--nx-accent); width: 15px; height: 15px; }
+.nx-bps-search { position: relative; display: inline-flex; align-items: center; }
+.nx-bps-search i { position: absolute; left: 10px; font-size: 12px; color: var(--nx-text-meta); pointer-events: none; }
+.nx-bps-search .nx-input { height: var(--ctl-h-lg); padding-left: 30px; width: 240px; max-width: 100%; font-size: var(--fs-control); }
+
+/* Tree table */
+.nx-bps-tree-wrap { margin-top: 12px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.nx-bps-tree { width: 100%; min-width: 620px; }
+.nx-bps-tree thead th { background: transparent; padding: 8px 10px; }
+.nx-bps-tree thead th:first-child { padding-left: 0; }
+.nx-bps-tree th.nx-num, .nx-bps-tree td.nx-num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.nx-bps-tree tbody td, .nx-bps-tree tbody th { padding: 7px 10px; font-size: 12.5px; border-bottom: 1px solid var(--nx-divider); }
+.nx-bps-tree tbody td.nx-num { font-family: var(--nx-mono); font-size: 12px; }
+.nx-bps-tree td.is-zero { color: var(--nx-text-meta); opacity: .5; }
+.nx-bps-row { cursor: pointer; }
+.nx-bps-row:hover { background: var(--nx-alt); }
+.nx-bps-name { text-align: left; font-weight: 500; color: var(--nx-text); white-space: nowrap; padding-left: 0 !important; }
+.nx-bps-row--l1 .nx-bps-name { font-weight: 650; }
+.nx-bps-row--l2 .nx-bps-name { padding-left: 22px !important; }
+.nx-bps-row--l3 .nx-bps-name { padding-left: 44px !important; font-weight: 400; color: var(--nx-text-sec); }
+/* Depth is a tint on the row (the cells stay transparent, see the stripes rule at the end). */
+.nx-bps-row--l2, .nx-bps-row--l3, .nx-bps-entries-row { background: color-mix(in srgb, var(--nx-alt) 45%, transparent); }
+.nx-bps-row--l2:hover, .nx-bps-row--l3:hover { background: var(--nx-alt); }
+.nx-bps-name__text { vertical-align: middle; }
+.nx-bps-toggle {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; margin-right: 4px; vertical-align: middle;
+  border: none; border-radius: 6px; background: transparent; color: var(--nx-text-meta); cursor: pointer;
+}
+.nx-bps-toggle i { font-size: 10px; transition: transform var(--nx-dur, .15s) var(--nx-ease, ease); }
+.nx-bps-toggle[aria-expanded="true"] i { transform: rotate(90deg); }
+.nx-bps-toggle:hover { background: var(--nx-sunken); color: var(--nx-text); }
+.nx-bps-toggle:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--nx-accent); }
+@media (prefers-reduced-motion: reduce) { .nx-bps-toggle i { transition: none; } }
+
+.nx-bps-tag { margin-left: 6px; font-size: 10.5px; padding: 1px 7px; vertical-align: middle; }
+.nx-bps-tag--billable { background: color-mix(in srgb, var(--bps-billable) 16%, transparent); color: var(--nx-text); }
+.nx-bps-tag--partly   { background: transparent; color: var(--nx-text-sec); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--bps-billable) 55%, transparent); }
+.nx-bps-tag--absence  { background: color-mix(in srgb, var(--bps-absence) 16%, transparent); color: var(--nx-text); }
+
+.nx-bps-tree tfoot th, .nx-bps-tree tfoot td {
+  padding: 9px 10px; font-size: 12.5px; font-weight: 700; color: var(--nx-text);
+  border-top: 1px solid var(--nx-border); text-align: left;
+}
+.nx-bps-tree tfoot th { padding-left: 0; }
+.nx-bps-tree tfoot td.nx-num { text-align: right; font-family: var(--nx-mono); }
+.nx-bps-empty { padding: 22px 0 !important; color: var(--nx-text-meta); text-align: left; }
+
+.nx-bps-share { display: inline-flex; align-items: center; gap: 8px; justify-content: flex-end; }
+.nx-bps-share__bar { width: 56px; height: 4px; border-radius: 2px; background: var(--nx-sunken); overflow: hidden; }
+.nx-bps-share__fill { display: block; height: 100%; background: var(--nx-accent); border-radius: 2px; }
+.nx-bps-share__pct { width: 36px; text-align: right; font-size: 11.5px; color: var(--nx-text-sec); }
+
+/* Bookings under an open leaf */
+.nx-bps-entries-row > td { padding: 0 0 10px 66px !important; }
+.nx-bps-entries { border-left: 2px solid var(--nx-border-strong); padding-left: 12px; }
+.nx-bps-entries__msg { margin: 0; padding: 8px 0; font-size: var(--fs-meta); color: var(--nx-text-meta); }
+.nx-bps-entries__msg.is-error { color: var(--nx-danger); }
+.nx-bps-e { width: 100%; }
+.nx-bps-e thead th { background: transparent; padding: 6px 10px 4px 0; font-size: 10.5px; }
+.nx-bps-e tbody td { padding: 5px 10px 5px 0; font-size: 12px; border-bottom: 1px solid var(--nx-divider); vertical-align: top; }
+.nx-bps-e tbody tr:last-child td { border-bottom: none; }
+.nx-bps-e__date { white-space: nowrap; color: var(--nx-text-sec); font-variant-numeric: tabular-nums; }
+.nx-bps-e__comment { color: var(--nx-text-sec); overflow-wrap: anywhere; max-width: 70ch; }
+.nx-bps-e td.nx-num, .nx-bps-e th.nx-num { text-align: right; font-family: var(--nx-mono); white-space: nowrap; }
+
+.nx-bps-rule {
+  display: flex; align-items: flex-start; gap: 8px; margin: 14px 0 0;
+  font-size: var(--fs-micro); color: var(--nx-text-meta); max-width: 90ch;
+}
+
+@media (max-width: 768px) {
+  .nx-bps-kpis .nx-kpi { padding: 12px 14px; }
+  .nx-bps-kpis .nx-kpi__value { font-size: 22px; }
+  .nx-bps-search .nx-input { width: 100%; }
+  .nx-bps-search { flex: 1 1 100%; }
+  .nx-bps-chart__canvas { height: 200px; }
+}
+
+@media print {
+  .sidebar, .sidebar-toggle-btn, .firefly-field, .nx-bps-head__right, .nx-bps-filter, .nx-bps-toolbar { display: none !important; }
+}
+
+/* The user's table-stripes preference paints even <td>s only; in a tree the
+   row order changes with every expand, so stripes would jump. The level tint
+   on the rows carries the structure instead. One step (`body`) more specific
+   than the stripes rules: _header.html loads nexora-ui.css again after this
+   sheet, so equal specificity would lose. */
+html.nx-stripes body .nx-bps-tree tbody tr:not(.details-row):nth-child(even) td,
+html.dark.nx-stripes body .nx-bps-tree tbody tr:not(.details-row):nth-child(even) td,
+html.nx-stripes body .nx-bps-e tbody tr:not(.details-row):nth-child(even) td,
+html.dark.nx-stripes body .nx-bps-e tbody tr:not(.details-row):nth-child(even) td { background: transparent; }
