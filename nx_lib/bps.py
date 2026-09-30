@@ -145,6 +145,36 @@ def range_filters(first, last):
     ]
 
 
+def previous_range(first, last):
+    """The period a range is compared with ("vs. July"): the previous calendar
+    month when the range is exactly one month, else as many days just before."""
+    prev_last = first - dt.timedelta(days=1)
+    if _whole_month(first, last):
+        return prev_last.replace(day=1), prev_last
+    return prev_last - dt.timedelta(days=(last - first).days), prev_last
+
+
+def next_range(first, last, today=None):
+    """The period after a range (the next month, or as many days after it), or
+    None when it would start after today."""
+    today = today or dt.date.today()
+    start = last + dt.timedelta(days=1)
+    if start > today:
+        return None
+    if _whole_month(first, last):
+        end = (start.replace(day=28) + dt.timedelta(days=4)).replace(day=1) - dt.timedelta(days=1)
+        return start, end
+    return start, start + dt.timedelta(days=(last - first).days)
+
+
+def _whole_month(first, last):
+    return (
+        first.day == 1
+        and (last + dt.timedelta(days=1)).day == 1
+        and (first.year, first.month) == (last.year, last.month)
+    )
+
+
 # --------------------------------------------------------------------------
 # Queries and payloads of the BPS page
 # --------------------------------------------------------------------------
@@ -211,6 +241,34 @@ def entries_query(base_object, catalog, first, last, where):
         "sort": [{"field": "Datum", "dir": "asc"}, {"field": "Benutzer", "dir": "asc"}],
     }
     return build_generic_query(rd, base_object, catalog, row_cap=ENTRIES_ROW_CAP)
+
+
+MONTHS_ROW_CAP = 1000
+
+
+def months_query(base_object, catalog):
+    """Hours per calendar month over the whole history -- the period picker's cells."""
+    fields = _require(catalog, ("Datum", "Stunden"))
+    resolved = resolve_metrics([{"metric": "hours"}], _TOTALS, fields)
+    rd = {
+        "columns": [{"field": "Datum", "grain": "month"}],
+        "filters": [],
+        "metrics": [{"metric": "hours"}],
+        "sort": [],
+    }
+    return build_generic_query(
+        rd, base_object, catalog, row_cap=MONTHS_ROW_CAP, resolved_metrics=resolved
+    )
+
+
+def months_payload(rows):
+    """[(month start, hours)] -> {'YYYY-MM': hours}, months without hours left out."""
+    out = {}
+    for r in rows:
+        value = _num(r[1])
+        if value and r[0] is not None:
+            out[_day(r[0])[:7]] = value
+    return out
 
 
 def _num(value):

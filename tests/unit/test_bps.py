@@ -205,3 +205,54 @@ def test_entries_payload_cleans_and_categorises_each_booking():
             "category": "billable",
         }
     ]
+
+
+def test_previous_range_is_the_previous_month_for_a_whole_month():
+    assert bps.previous_range(dt.date(2026, 8, 1), dt.date(2026, 8, 31)) == (
+        dt.date(2026, 7, 1),
+        dt.date(2026, 7, 31),
+    )
+    assert bps.previous_range(dt.date(2026, 3, 1), dt.date(2026, 3, 31)) == (
+        dt.date(2026, 2, 1),
+        dt.date(2026, 2, 28),
+    )
+
+
+def test_previous_range_is_the_same_length_just_before_otherwise():
+    assert bps.previous_range(dt.date(2026, 9, 21), dt.date(2026, 9, 27)) == (
+        dt.date(2026, 9, 14),
+        dt.date(2026, 9, 20),
+    )
+    assert bps.previous_range(dt.date(2026, 6, 1), dt.date(2026, 8, 31)) == (
+        dt.date(2026, 3, 1),
+        dt.date(2026, 5, 31),
+    )
+
+
+def test_next_range_is_the_next_month_or_the_next_span_and_stops_at_today():
+    today = dt.date(2026, 9, 30)
+    assert bps.next_range(dt.date(2026, 8, 1), dt.date(2026, 8, 31), today) == (
+        dt.date(2026, 9, 1),
+        dt.date(2026, 9, 30),
+    )
+    assert bps.next_range(dt.date(2026, 9, 14), dt.date(2026, 9, 20), today) == (
+        dt.date(2026, 9, 21),
+        dt.date(2026, 9, 27),
+    )
+    assert bps.next_range(dt.date(2026, 9, 1), dt.date(2026, 9, 30), today) is None
+
+
+def test_months_query_sums_hours_per_calendar_month():
+    sql, params = bps.months_query("dbo.BPS_ProjectReportAll", CATALOG)
+    assert "DATEFROMPARTS(YEAR([Datum]), MONTH([Datum]), 1)" in sql
+    assert "GROUP BY" in sql and params == []
+
+
+def test_months_payload_keys_by_yyyy_mm_and_drops_empty_months():
+    rows = [
+        (dt.date(2025, 1, 1), Decimal("12.5")),
+        (dt.date(2026, 8, 1), Decimal("1300.5")),
+        (dt.date(2026, 9, 1), None),
+        (None, Decimal("3")),
+    ]
+    assert bps.months_payload(rows) == {"2025-01": 12.5, "2026-08": 1300.5}
