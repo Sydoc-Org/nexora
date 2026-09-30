@@ -461,6 +461,19 @@ SECTIONS = (
 SECTIONS_BY_KEY = {s.key: s for s in SECTIONS}
 
 
+def billed_clients():
+    """The Finance clients a Bexio invoice is addressed to, in page order (#423).
+
+    One per distinct Section.client; Sydoc's own BPS services are billed on the
+    customers' invoices, so the SERVICES group names no client of its own.
+    """
+    seen: dict[str, None] = {}
+    for s in SECTIONS:
+        if s.group != SERVICES:
+            seen.setdefault(s.client, None)
+    return list(seen)
+
+
 def section_descriptors():
     """The static shape of the page: what the template renders before any data."""
     return [

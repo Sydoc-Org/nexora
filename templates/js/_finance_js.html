@@ -47,7 +47,56 @@
       working:        {{ _("Working…") | tojson }},
       closeFailed:    {{ _("Could not close the month.") | tojson }},
       reopenFailed:   {{ _("Could not reopen the month.") | tojson }}
+    },
+    // The Bexio invoice panel (#423), static/js/finance_bexio.js.
+    bexio: {
+      window:         {{ _("Invoices dated in {month}, read live from Bexio") | tojson }},
+      notConfigured:  {{ _("Bexio is not configured on this server. Set BEXIO_PAT to show the invoices here.") | tojson }},
+      invoiced:       {{ _("Invoiced") | tojson }},
+      excl:           {{ _("Excl. VAT") | tojson }},
+      totalCol:       {{ _("Total") | tojson }},
+      invoices:       {{ _("Invoices") | tojson }},
+      notInvoiced:    {{ _("Clients without an invoice") | tojson }},
+      drafts:         {{ _("Drafts not yet issued: {n}") | tojson }},
+      client:         {{ _("Client") | tojson }},
+      contact:        {{ _("Bexio contact") | tojson }},
+      invoice:        {{ _("Invoice") | tojson }},
+      date:           {{ _("Date") | tojson }},
+      due:            {{ _("Due") | tojson }},
+      statusCol:      {{ _("Status") | tojson }},
+      unlinked:       {{ _("No Bexio contact linked") | tojson }},
+      unlinkedHint:   {{ _("Link one from the other invoices below.") | tojson }},
+      missing:        {{ _("No invoice in {month}") | tojson }},
+      draftOnly:      {{ _("Draft only") | tojson }},
+      others:         {{ _("Other invoices in {month}") | tojson }},
+      othersNote:     {{ _("Invoices to Bexio contacts that no Finance client is linked to.") | tojson }},
+      linkTo:         {{ _("Link to client…") | tojson }},
+      unlink:         {{ _("Unlink {name}") | tojson }},
+      linkFailed:     {{ _("Could not save the link.") | tojson }},
+      unlinkFailed:   {{ _("Could not remove the link.") | tojson }},
+      lines:          {{ _("Lines") | tojson }},
+      pdf:            {{ _("PDF") | tojson }},
+      openInBexio:    {{ _("Open in Bexio") | tojson }},
+      linesFailed:    {{ _("Could not load the invoice lines.") | tojson }},
+      noLines:        {{ _("This invoice has no lines.") | tojson }},
+      text:           {{ _("Text") | tojson }},
+      quantity:       {{ _("Quantity") | tojson }},
+      unitPrice:      {{ _("Unit price") | tojson }},
+      discount:       {{ _("Discount") | tojson }},
+      subtotal:       {{ _("Subtotal") | tojson }},
+      optional:       {{ _("optional") | tojson }},
+      nothing:        {{ _("No invoices in Bexio are dated in {month}.") | tojson }},
+      status: {
+        draft:        {{ _("Draft") | tojson }},
+        open:         {{ _("Open") | tojson }},
+        paid:         {{ _("Paid") | tojson }},
+        partial:      {{ _("Partly paid") | tojson }},
+        cancelled:    {{ _("Cancelled") | tojson }},
+        unpaid:       {{ _("Unpaid") | tojson }},
+        other:        {{ _("Other") | tojson }}
+      }
     }
   };
 </script>
 <script src="{{ static_v('js/finance.js') }}" nonce="{{ csp_nonce() }}" defer></script>
+<script src="{{ static_v('js/finance_bexio.js') }}" nonce="{{ csp_nonce() }}" defer></script>

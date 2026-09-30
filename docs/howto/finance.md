@@ -138,10 +138,52 @@ reopens a month.
    labels and the "by … date" basis strings are `N_()`-marked msgids in the spec
    — run `/nx-i18n` after changing them.
 
+## Invoiced in Bexio (#423)
+
+Above the client sections, a panel shows what was actually invoiced in
+**Bexio** for the month, so the counted figures and the billed amounts sit on
+one page. It is **read-only** against Bexio: `nx_lib/bexio.py` only searches and
+GETs; prices and amounts are Bexio's, nexora keeps none. Drafting invoices from
+the page is deliberately not built (it needs the invoicing process and a
+go-ahead first).
+
+- **Which invoices.** The invoice for billed month M is assumed to be dated
+  (`is_valid_from`) in month **M + 1**: the August page lists invoices dated in
+  September. One constant, `INVOICE_MONTH_OFFSET` in `nx_lib/bexio.py`; the
+  panel names the window it searched, so a wrong assumption is visible.
+- **Per client.** Each Finance client (`Section.client`, Sydoc's own services
+  excluded; they are billed on the customers' invoices) shows its invoices
+  with number, title, date, status, the amount excl. VAT (`total` minus
+  `total_taxes`) and the total, or a flag: *no Bexio contact linked*, *no invoice
+  in M + 1*, *draft only*. Drafts and cancelled invoices are listed but never
+  counted in the totals. **Lines** loads the invoice's positions (quantity,
+  unit, unit price, discount, total) for comparison with the figures below;
+  **PDF** streams the invoice PDF through nexora (`no-store`).
+- **Linking contacts.** Invoices to Bexio contacts no client is linked to are
+  listed as *other invoices*. A holder of `finance.month.edit` links one to a
+  client from its dropdown (×, next to a linked contact, removes it). The link
+  is stored in `dbo.FinanceBexioContacts` (`0141`): one row per contact, so a
+  contact belongs to one client while a client may have several. A client can
+  only be linked in a month in which its contact has an invoice.
+- **Live, not frozen.** The panel is not part of the month close: Bexio is the
+  system of record for the invoice itself. Results are cached for five
+  minutes in-process; **Refresh** bypasses the cache.
+- **Token.** `BEXIO_PAT` in `env/<ENV>.env`. Unset, the panel says *not
+  configured* and nothing calls Bexio; a rejected token or a Bexio outage shows
+  its reason in the panel while the rest of the page renders. Check a token,
+  read-only, with:
+
+  ```
+  .venv\Scripts\python.exe scripts\bexio-probe.py INT
+  ```
+
+  It reports which of the endpoints the panel needs answer. It cannot tell
+  whether the token could also write; that is visible only in Bexio.
+
 ## What the page does not do (yet)
 
-- It does not know what was actually invoiced beyond the close: closing is
-  accounting's statement that these are the figures billed.
+- It does not write invoices: the Bexio panel reads them, and matching an
+  invoice line to a figure is left to the reader.
 - Privera's *Mailbestellungen* (a hand-pasted Outlook export) has no source and
   is not on the page.
 
@@ -165,7 +207,11 @@ reopens a month.
 | Page, JS shim, behaviour, styles | `templates/finance.html`, `templates/js/_finance_js.html`, `static/js/finance.js`, `static/css/finance.css` |
 | Permission + BPS measure | `sql/_migrations/NexoraDB/0138_finance_page.sql`, `sql/test/seed.sql` |
 | Parity fixes, `FinanceMonthClose`, `finance.month.edit` | `sql/_migrations/NexoraDB/0139_finance_parity_and_close.sql`, `sql/test/schema.sql` |
-| Tests | `tests/unit/test_finance.py`, `tests/unit/test_bps.py`, `tests/integration/test_finance_routes.py` |
+| Bexio client (read-only), window, reconciliation | `nx_lib/bexio.py` |
+| Bexio panel routes: panel, invoice lines, PDF, link / unlink | `nx_lib/views/finance_bexio.py`, `static/js/finance_bexio.js` |
+| `FinanceBexioContacts` | `sql/_migrations/NexoraDB/0141_finance_bexio_contacts.sql`, `sql/test/schema.sql` |
+| Token check | `scripts/bexio-probe.py` |
+| Tests | `tests/unit/test_finance.py`, `tests/unit/test_bps.py`, `tests/unit/test_bexio.py`, `tests/integration/test_finance_routes.py`, `tests/integration/test_finance_bexio_routes.py` |
 
 ## Gotchas
 

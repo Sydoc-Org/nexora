@@ -8,6 +8,14 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Finance: invoiced in Bexio** (#423): a read-only panel on `/finance` lists
+  the Bexio invoices dated in the month after the billed one, per Finance
+  client, with status, amount excl. VAT and total, the invoice lines and the
+  PDF; flags clients with no linked contact, no invoice or only a draft, and
+  totals what was billed. Holders of `finance.month.edit` link Bexio contacts
+  to clients from the panel (`dbo.FinanceBexioContacts`, migration `0141`).
+  New env key `BEXIO_PAT` (unset disables the panel); `scripts/bexio-probe.py`
+  checks a token read-only. `docs/howto/finance.md`.
 - **Sydoc BPS** (`/bps`, permission `bps.view`, #415): every hour booked in
   the BPS timetool for a period -- KPIs (total / service / billable / absence
   hours, bookings, people), hours per day stacked by category, and a

@@ -8,7 +8,7 @@ Docs are authored in git (`docs/`, `README.md`, `CONTRIBUTING.md`, `CHANGELOG.md
 
 ## Project overview
 
-Nexora is a Flask web application (Python 3, WSGI) deployed on Windows/IIS, which runs it as a single `waitress` process via HttpPlatformHandler. It is Sydoc's internal portal (workitems, reporting, admin, plus tenant-specific "generali" pages). It talks to multiple SQL Server databases and integrates with Microsoft Graph and Octo-based runtime services. (The Bexio billing integration was retired with the invoices page — archived in #177, deleted along with its `decapitated_ClientInvoices` table in #98.)
+Nexora is a Flask web application (Python 3, WSGI) deployed on Windows/IIS, which runs it as a single `waitress` process via HttpPlatformHandler. It is Sydoc's internal portal (workitems, reporting, admin, plus tenant-specific "generali" pages). It talks to multiple SQL Server databases and integrates with Microsoft Graph and Octo-based runtime services. (The customer-facing Bexio invoices page was retired in #177/#98; Bexio is read again, read-only, by the Finance invoice panel — #423.)
 
 `nx_main.py` is a 119-line WSGI shim; routes live under `nx_lib/views/`, templates under `templates/` (Jinja2, page templates paired with JS partials under `templates/js/`), assets under `static/`.
 
@@ -101,7 +101,7 @@ One line each; **the full detail lives in `docs/design/architecture-conventions.
 
 **Reporting** is the largest subsystem — Simple/Advanced tabs, report builder, provider-agnostic AI assistant, sharing, DB-backed source registry, scheduled email delivery. Architecture: `docs/howto/reporting.md` + `docs/design/reporting-ai-assistant.md`. `docs/howto/reporting-guide.md` is the **end-user** guide: any user-visible reporting change must update it **and** the in-app tips panel (`templates/_reporting_help.html`) in the same commit — the `reporting-help-sync` pre-commit hook reminds you.
 
-**Sydoc Finance** (`/finance`, `finance.view`, #408) is the monthly accounting report over the registered billing sources: `nx_lib/finance.py` holds the per-client section spec and builds its SQL with the reporting `table` provider, so its figures are Reporting's measures by construction. Adding a client is one `Section` entry there; the code is internal-only (no row scoping). A month is **closed** once invoiced (`finance.month.edit`, snapshot in `dbo.FinanceMonthClose`) and then served frozen. `docs/howto/finance.md`.
+**Sydoc Finance** (`/finance`, `finance.view`, #408) is the monthly accounting report over the registered billing sources: `nx_lib/finance.py` holds the per-client section spec and builds its SQL with the reporting `table` provider, so its figures are Reporting's measures by construction. Adding a client is one `Section` entry there; the code is internal-only (no row scoping). A month is **closed** once invoiced (`finance.month.edit`, snapshot in `dbo.FinanceMonthClose`) and then served frozen. A read-only panel shows what was invoiced in Bexio (`nx_lib/bexio.py`, `BEXIO_PAT`, contact links in `dbo.FinanceBexioContacts`, #423). `docs/howto/finance.md`.
 
 **Sydoc BPS** (`/bps`, `bps.view`, #415) shows every BPS timetool hour drilled down task › customer › person › booking; the billable-task rule lives once in `nx_lib/bps.py` and is shared with Finance. `docs/howto/bps.md`.
 

@@ -187,6 +187,10 @@ GRAPH_USERNAME = os.environ.get("GRAPH_USERNAME")
 GRAPH_PASSWORD = os.environ.get("GRAPH_PASSWORD")
 GRAPH_CLIENT_SECRET = os.environ.get("GRAPH_CLIENT_SECRET")
 
+# Bexio personal access token for the Finance page's read-only invoice panel
+# (#423). Unset -> the panel says "not configured" and nothing calls Bexio.
+BEXIO_PAT = os.environ.get("BEXIO_PAT")
+
 OCTO_CLIENT_SECRET = os.environ.get("OCTO_CLIENT_SECRET")
 OCTO_CLIENT_ID = os.environ.get("OCTO_CLIENT_ID")
 OCTO_GRANT_TYPE = os.environ.get("OCTO_GRANT_TYPE")
