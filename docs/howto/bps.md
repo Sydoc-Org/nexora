@@ -48,25 +48,44 @@ and Reporting.
 
 ## The page
 
+Redesigned in #427 as the mirror of Sydoc Finance (design 1a in
+`docs/design/design_handoff_sydoc_finance_bps/`): the ink header band, the
+period headline and the period picker are shared with `/finance`.
+
 - **Period**: two dates in the URL (`/bps?from=2026-08-01&to=2026-08-31`),
-  default the previous month, at most a year. Presets: last month, this month,
-  last week, last three months.
-- **KPIs**: total, service, billable and absence hours, bookings, people with
-  service hours.
-- **Hours per day**: stacked columns billable / other service / absence. The
-  three hues are the page's `--bps-*` tokens in `static/css/bps.css`, checked
-  with the dataviz palette validator against the chart surface in both themes;
-  every category is also named in the legend, the KPIs and the tree.
-- **Drill-down**: a tree in one of three orders — task › customer › person
-  (default), customer › task › person, person › customer › task — with hours,
-  billable hours, bookings and share of the parent. The third level opens the
-  single bookings with date, package, hours and comment. Filters: billable only,
-  hide absences, a text filter over task / customer / package / person.
+  default the previous month, at most a year. The headline names it ("August
+  2026", "Week 39", "Jun – Aug", "4 – 19 Aug"); the arrows beside it go to the
+  previous / next month (or the same number of days before / after) and stop
+  when the next period would start after today. Clicking the headline opens the
+  **picker**: presets (last month, this month, last week, last three months),
+  the months of a year with their hours (a month without hours reads "No data";
+  loaded lazily from `/api/bps/months`), and a free from/to range.
+- **Band totals**: total hours, service hours, bookings, people with service
+  hours, and a composition bar billable / other service / absence.
+- **Hours per day**: stacked columns billable / other service / absence,
+  weekends shaded. The three hues are the page's `--bps-*` tokens in
+  `static/css/bps.css`, checked with the dataviz palette validator against the
+  chart surface in both themes; every category is also named in the legends.
+- **Drill-down**: one level at a time in one of three orders — task › customer ›
+  person (default), customer › task › person, person › customer › task. Click a
+  row (or tile) to zoom in; the breadcrumb, the back button, Backspace or
+  Alt+← go up. Two views: **Table** (default; hours, billable hours, bookings,
+  the change against the previous period, and the split of each row) and
+  **Treemap** (squarified, tile size = hours). The view choice is kept per
+  browser (`localStorage` `nx.bps.view`). The third level lists the single
+  bookings per day with package, hours and comment (five per day, then "Show
+  n more"). Filters: billable only, hide absences, a text filter over task /
+  customer / package / person; they apply at every level, and changing the
+  order or the text filter goes back to the top.
+- **Previous period** ("vs. July"): the previous calendar month when the
+  period is exactly one month, otherwise as many days just before it
+  (`bps.previous_range`).
 - **CSV**: every booking of the period with its category.
 
 One summary request (`/api/bps/summary`) returns hours per task / customer /
-package / person plus per day; the tree is built in the browser from it, so
-changing the order or a filter never goes back to the server. A leaf loads its
+package / person plus per day, and the same rows for the previous period
+(`prev`); the drill-down is built in the browser from it, so changing the
+order, the view or a filter never goes back to the server. A leaf loads its
 bookings from `/api/bps/entries` (5,000 at most; the CSV has all).
 
 ## Permission
@@ -81,7 +100,9 @@ the `0106` trigger.
 | What | Where |
 |---|---|
 | Billable rule, period, queries, payloads | `nx_lib/bps.py` (pure, DB-free) |
-| Routes: page, summary, entries, CSV | `nx_lib/views/bps.py` |
+| Routes: page, summary, entries, months, CSV | `nx_lib/views/bps.py` |
 | Page, JS shim, behaviour, styles | `templates/bps.html`, `templates/js/_bps_js.html`, `static/js/bps.js`, `static/css/bps.css` |
+| Drill-down logic (levels, deltas, treemap, per-day) | `static/js/bps_view.js` (`window.BpsView`) |
+| Band, headline, picker shared with Finance | `templates/_sydoc.html`, `static/js/nx_sydoc.js`, `nx-sydoc-*` in `static/css/nexora-ui.css` |
 | Permission | `sql/_migrations/NexoraDB/0140_bps_page.sql`, `sql/test/seed.sql` |
-| Tests | `tests/unit/test_bps.py`, `tests/integration/test_bps_routes.py` |
+| Tests | `tests/unit/test_bps.py`, `tests/unit/test_bps_view_js.py`, `tests/unit/test_nx_sydoc_js.py`, `tests/integration/test_bps_routes.py` |
