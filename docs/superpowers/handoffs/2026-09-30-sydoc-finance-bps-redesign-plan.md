@@ -1,3 +1,5 @@
+> **Superseded:** the next handoff is [`2026-09-30-sydoc-bps-redesign-shipped.md`](2026-09-30-sydoc-bps-redesign-shipped.md). Resume from there.
+
 # Handoff — Sydoc Finance + BPS redesign: plan written, not started
 
 **Date:** 2026-09-30 · **Branch:** `plan/sydoc-finance-bps-redesign` in the worktree
