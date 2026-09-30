@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 09:42+0200\n"
+"POT-Creation-Date: 2026-09-30 10:45+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -173,11 +173,11 @@ msgstr ""
 msgid "Comment"
 msgstr ""
 
-#: nx_lib/finance.py:736 templates/js/_bps_js.html:16
+#: nx_lib/finance.py:740 templates/js/_bps_js.html:16
 msgid "Billable hours"
 msgstr ""
 
-#: nx_lib/finance.py:742
+#: nx_lib/finance.py:746
 msgid "Billable bookings"
 msgstr ""
 
@@ -4233,6 +4233,7 @@ msgid "Filter task, customer, person…"
 msgstr ""
 
 #: templates/bps.html:111 templates/js/_bps_js.html:18
+#: templates/js/_finance_js.html:44
 msgid "Bookings"
 msgstr ""
 
@@ -8550,7 +8551,7 @@ msgstr ""
 msgid "billable"
 msgstr ""
 
-#: templates/js/_bps_js.html:30 templates/js/_finance_js.html:44
+#: templates/js/_bps_js.html:30 templates/js/_finance_js.html:45
 #, python-brace-format
 msgid "{n} h"
 msgstr ""
@@ -8752,10 +8753,6 @@ msgstr ""
 #: templates/js/_finance_js.html:43
 #, python-brace-format
 msgid "{n} bookings"
-msgstr ""
-
-#: templates/js/_finance_js.html:45
-msgid "Hours per task"
 msgstr ""
 
 #: templates/js/_finance_js.html:46

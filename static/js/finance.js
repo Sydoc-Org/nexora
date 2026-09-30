@@ -178,11 +178,24 @@
             return parts.join('');
         }
         if (bk.by_task && bk.by_task.length) {
-            const total = bk.by_task.reduce((a, t) => a + t.hours, 0);
-            parts.push(`<div class="nx-fin-tasks" aria-label="${esc(S.byTask)}">` + bk.by_task.map(t =>
-                `<span class="nx-fin-task"><span class="nx-fin-task__name">${esc(t.key)}</span>` +
-                `<span class="nx-fin-task__hours">${esc(fmt(S.hoursUnit, { n: num(t.hours) }))}</span>` +
-                `${shareHtml(t.hours, total)}</span>`).join('') + '</div>');
+            // Hours per task as the same vertical breakdown table every other
+            // section uses (label, hours, bookings, share, total row).
+            const taskCol = cols.find(c => c.field === 'Aufgabe');
+            const hoursCol = cols.find(c => c.numeric);
+            const perTask = {
+                dim: 'Aufgabe',
+                label: taskCol ? taskCol.label : '',
+                columns: [
+                    { code: 'hours', label: hoursCol ? hoursCol.label : '' },
+                    { code: 'count', label: S.bookingsCol },
+                ],
+                rows: bk.by_task.map(t => ({ key: t.key, values: [t.hours, t.count] })),
+                totals: [
+                    bk.by_task.reduce((a, t) => a + t.hours, 0),
+                    bk.by_task.reduce((a, t) => a + t.count, 0),
+                ],
+            };
+            parts.push('<div class="nx-fin-tables">' + breakdownHtml(perTask, sectionKey) + '</div>');
         }
         parts.push('<div class="nx-fin-bookings">');
         bk.groups.forEach(g => {

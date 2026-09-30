@@ -229,11 +229,6 @@ html { overflow-y: auto; }
 .nx-fin-matrix .nx-table tbody tr:hover th, .nx-fin-matrix .nx-table tbody tr:hover td { background: var(--nx-alt); }
 
 /* ---------- Billable bookings (BPS) ---------- */
-.nx-fin-tasks { display: flex; flex-wrap: wrap; gap: 6px 22px; margin-top: 14px; }
-.nx-fin-task { display: inline-flex; align-items: center; gap: 10px; font-size: 12.5px; }
-.nx-fin-task__name { color: var(--nx-text); font-weight: 600; }
-.nx-fin-task__hours { font-family: var(--nx-mono); font-variant-numeric: tabular-nums; color: var(--nx-text-sec); }
-.nx-fin-task .nx-fin-share { min-width: 0; }
 .nx-fin-bookings { display: grid; gap: 22px; margin-top: 18px; }
 .nx-fin-bk__customer { font-size: 13px; font-weight: 700; color: var(--nx-text); }
 .nx-fin-bk { width: 100%; }

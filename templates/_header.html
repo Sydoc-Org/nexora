@@ -156,9 +156,9 @@
             {% set nav_items = [
                 {'perm': page_visibility.dashboardPagePerm,  'url': url_for('dashboard', tenant=''), 'icon': 'fa-gauge-high',          'label': _('Global Dashboard'),              'active': active_page == 'dashboard'},
                 {'perm': page_visibility.reportingPagePerm, 'url': url_for('reporting'),           'icon': 'fa-chart-column',        'label': _('Global Reporting'),       'active': active_page == 'reporting', 'always': true},
+                {'perm': page_visibility.workitemsPagePerm, 'url': url_for('workitems_overview', tenant=''), 'icon': 'fa-layer-group',         'label': _('Global Workitems'),              'active': active_page == 'workitems_overview'},
                 {'perm': page_visibility.financePagePerm,   'url': url_for('finance'),             'icon': 'fa-file-invoice-dollar', 'label': _('Sydoc Finance'),          'active': active_page == 'finance',   'always': true},
                 {'perm': page_visibility.bpsPagePerm,       'url': url_for('bps'),                 'icon': 'fa-user-clock',          'label': _('Sydoc BPS'),              'active': active_page == 'bps',       'always': true},
-{'perm': page_visibility.workitemsPagePerm, 'url': url_for('workitems_overview', tenant=''), 'icon': 'fa-layer-group',         'label': _('Global Workitems'),              'active': active_page == 'workitems_overview'},
             ] %}
 
             {# A user inside exactly ONE tenant reaches Dashboard/Workitems through
