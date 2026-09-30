@@ -41,7 +41,8 @@ The first six are the #329 workbooks (internal customers); the next four are
 the external clients whose collectors already fill a Statistics table — what
 exists, shown the way it makes sense for a monthly bill. The last one is the
 Sydoc services billed per booking: every **billable** BPS booking of the month
-(`0124`'s `BPS_ProjectReport`), one line each with date, package, task, person,
+(`0124`'s `bps_projects` source, which reads `BPS_ProjectReportAll` since `0142`
+— history from January 2025), one line each with date, package, task, person,
 hours and comment, grouped per customer with a subtotal. BPS has no billing
 flag; the rule lives once in `nx_lib/bps.py` (`BILLABLE_RULES`, shared with the
 BPS page):
