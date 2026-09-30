@@ -28,6 +28,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **Privacy policy contact** (`/privacy`, #260): data-protection questions now
+  go to the helpdesk mailbox `support.helpdesk@sydoc.ch`, the same one feedback
+  goes to, instead of a separate `privacy@sydoc.ch` that was never created.
+
 - **Generated tenant pages (`/t/<tenant>/<page>`) moved onto the slim design
   system** — the look the Dashboard and the admin redesign already carry, and
   the first migration of the one page that exists today, **MediaMarkt Batches**

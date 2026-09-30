@@ -84,7 +84,7 @@ def test_privacy_names_the_controller_and_the_contact(client):
     for lang in ("de", "en"):
         body = client.get(f"/privacy?lang={lang}").get_data(as_text=True)
         assert "Sydoc AG" in body and "CHE-112.467.492" in body and "6340 Baar" in body, lang
-        assert "privacy@sydoc.ch" in body, lang
+        assert "support.helpdesk@sydoc.ch" in body, lang
         # revDSG: a request for information is answered within 30 days.
         assert "30" in body, lang
 

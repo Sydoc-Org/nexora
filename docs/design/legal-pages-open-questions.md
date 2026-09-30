@@ -41,8 +41,11 @@ they can be published.
 >
 > **Still open before publishing:**
 >
-> 1. **Create the `privacy@sydoc.ch` mailbox.** (The sheet also said
->    "sydoch.ch" once — read as a typo.)
+> 1. ~~Create the `privacy@sydoc.ch` mailbox.~~ **Closed 2026-09-30** (IT,
+>    G. Ruoss): privacy questions go to the existing helpdesk mailbox
+>    `support.helpdesk@sydoc.ch`, the same one feedback goes to — no separate
+>    mailbox. The helpdesk must spot requests for information, which the
+>    30-day deadline (Art. 18 DSV) applies to.
 > 2. **Q17 was "no guaranteed deadline"** — the revDSG requires an answer to a
 >    request for information within **30 days**, so the page says 30 days.
 >    Confirm with management.
@@ -139,7 +142,7 @@ they can be published.
 > long the assistant log is kept (proposed: 180 days, needs a prune job); that
 > Sydoc has concluded Anthropic's DPA (check the company API account accepted
 > the Commercial Terms — the DPA is part of them); jurisdiction Zug (legal);
-> `privacy@sydoc.ch` (IT); management sign-off.
+> management sign-off. (Contact mailbox closed 2026-09-30: `support.helpdesk@sydoc.ch`.)
 >
 > The questions below are the original list, kept for the reasoning behind
 > each one.
