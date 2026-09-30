@@ -59,6 +59,10 @@ MIN_COVERAGE = {
     # views/generali.py intentionally excluded — covered by the Generali
     # phase-2 plan.
     "reporting/derived.py": 90,
+    # include=tables on /api/v1/workitems (#398): pure parser/fetch and
+    # the storage-name -> engine resolver, both fully unit-tested.
+    "workitems/tables.py": 100,
+    "document_storage.py": 100,
 }
 
 
