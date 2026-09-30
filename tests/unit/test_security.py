@@ -322,6 +322,8 @@ def _all_false_page_v():
     return {
         "dashboardPagePerm": False,
         "reportingPagePerm": False,
+        "financePagePerm": False,
+        "bpsPagePerm": False,
         "workitemsPagePerm": False,
         "generaliPagePerm": False,
         "generaliDocumentsPerm": False,
@@ -369,17 +371,19 @@ def test_startpage_redirect_to_api_docs_only_lands_on_api_docs():
 
 
 # ---------------------------------------------------------------------------
-# page_visibility — all 20 keys
+# page_visibility — all 23 keys
 # ---------------------------------------------------------------------------
 
 
-def test_page_visibility_returns_all_21_keys_with_no_perms(fake_session):
+def test_page_visibility_returns_all_23_keys_with_no_perms(fake_session):
     fake_session["permissions"] = []
     pv = page_visibility()
     expected_keys = {
         "adminPagePerm",
         "dashboardPagePerm",
         "reportingPagePerm",
+        "financePagePerm",
+        "bpsPagePerm",
         "workitemsPagePerm",
         "preparedDocsPagePerm",
         "apiDocsPagePerm",

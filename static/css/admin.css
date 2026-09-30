@@ -275,6 +275,576 @@ body.nx-app label.ml-toggle input[type="checkbox"] { opacity: 0; width: 0; heigh
 /* Tenant management (#256): organization picker in the tenant modal */
 .tenant-org-picker { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px 14px; max-height: 220px; overflow: auto; padding: 8px 10px; border: 1px solid var(--nx-border); border-radius: 8px; }
 
+/* ============================================================
+   ADMIN TENANCY REDESIGN — shared primitives
+   Design handoff: docs/design/design_handoff_admin_tenants/
+
+   The handoff quotes literal hex values; every one of them is an
+   existing nexora-ui token (its --nx-accent *is* #4f46e5, its
+   --nx-brand-grad *is* the 135deg indigo-to-violet), so these are
+   written against the tokens and inherit dark mode for free.
+   Prefix: .adm-*  (page-scoped, never generic chrome).
+   ============================================================ */
+
+.nx-app {
+  /* #f5f7ff in the handoff: an indigo-tinted row hover, a touch lighter
+     than --nx-accent-tint. Mixed rather than hardcoded so the accent
+     preference and dark mode both carry it. */
+  --adm-hover: color-mix(in srgb, var(--nx-accent-tint) 55%, var(--nx-card));
+  --adm-sheet-w: 460px;
+}
+
+/* — Page header ------------------------------------------------ */
+.adm-head { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; }
+.adm-head__tile { width: 44px; height: 44px; flex: none; border-radius: calc(var(--nx-radius-scale, 1) * 12px); display: inline-flex; align-items: center; justify-content: center; font-size: 18px; color: var(--nx-on-accent, #fff); background: var(--nx-brand-grad); box-shadow: 0 8px 20px -6px var(--nx-accent-soft); }
+.adm-head__main { min-width: 0; }
+.adm-head__title { font-size: 24px; font-weight: 600; letter-spacing: -0.5px; margin: 0; line-height: 1.2; color: var(--nx-text); }
+.adm-head__sub { font-size: var(--fs-meta); color: var(--nx-text-meta); margin: 2px 0 0; }
+.adm-head__sub .nx-mono { color: var(--nx-text-sec); }
+.adm-head__actions { margin-left: auto; display: flex; align-items: center; gap: 8px; flex: none; }
+
+/* Identity tile variant: a letter instead of an icon (tenants, orgs). */
+.adm-head__tile--initial { font-size: 17px; font-weight: 600; letter-spacing: -0.02em; }
+
+/* — Breadcrumbs ------------------------------------------------ */
+.adm-crumbs { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; font-size: var(--fs-meta); color: var(--nx-text-meta); margin-bottom: 10px; }
+.adm-crumbs a { color: var(--nx-text-sec); text-decoration: none; }
+.adm-crumbs a:hover { color: var(--nx-accent); text-decoration: underline; }
+.adm-crumbs__sep { font-size: 8px; color: var(--nx-text-meta); }
+.adm-crumbs__here { color: var(--nx-text); font-weight: 500; }
+
+/* — KPI strip -------------------------------------------------- */
+.adm-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--nx-border); border-bottom: 1px solid var(--nx-border); margin-bottom: 8px; }
+.adm-kpi { padding: 18px 30px 16px; border-left: 1px solid var(--nx-divider); min-width: 0; }
+.adm-kpi:first-child { padding-left: 0; border-left: none; }
+.adm-kpi:last-child { padding-right: 0; }
+.adm-kpi__label { font-size: var(--fs-eyebrow); font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: var(--nx-text-meta); margin: 0; }
+.adm-kpi__value { font-family: var(--nx-mono); font-variant-numeric: tabular-nums; font-size: var(--fs-kpi); font-weight: 600; letter-spacing: -1.4px; line-height: 1; margin: 10px 0 0; color: var(--nx-text); }
+.adm-kpi__value--danger { color: var(--nx-danger); }
+.adm-kpi__sub { font-size: var(--fs-micro); font-weight: 600; margin: 6px 0 0; color: var(--nx-text-meta); }
+.adm-kpi__pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+
+/* — Tabs + inline search (one style everywhere) ---------------- */
+.adm-tabs { display: flex; align-items: center; gap: 20px; border-bottom: 1px solid var(--nx-border); margin-bottom: 18px; }
+.adm-tab { appearance: none; background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -1px; padding: 0 0 9px; font-family: inherit; font-size: var(--fs-control); font-weight: 600; color: var(--nx-text-sec); cursor: pointer; display: inline-flex; align-items: baseline; gap: 6px; }
+.adm-tab:hover { color: var(--nx-text); }
+.adm-tab--active { color: var(--nx-text); border-bottom-color: var(--nx-accent); }
+.adm-tab__count { font-weight: 500; color: var(--nx-text-meta); font-variant-numeric: tabular-nums; }
+.adm-tabs__search { margin-left: auto; width: 260px; flex: none; padding-bottom: 6px; }
+.adm-tabs__search .nx-input { height: var(--ctl-h); font-size: var(--fs-control); }
+
+/* — Section heading (table captions) --------------------------- */
+.adm-sec { display: flex; align-items: baseline; gap: 10px; margin: 26px 0 10px; flex-wrap: wrap; }
+.adm-sec__title { font-size: var(--fs-title); font-weight: 700; letter-spacing: -0.02em; margin: 0; color: var(--nx-text); }
+.adm-sec__sub { font-size: var(--fs-micro); color: var(--nx-text-meta); }
+.adm-sec__count { font-size: var(--fs-micro); font-weight: 700; padding: 1px 7px; border-radius: var(--nx-radius-pill); background: var(--nx-l-amber); color: var(--nx-l-amber-fg); }
+.adm-sec__actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+/* — Tables ----------------------------------------------------- */
+.adm-table { width: 100%; border-collapse: collapse; }
+.adm-table th { text-align: left; font-size: var(--fs-eyebrow); font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: var(--nx-text-meta); padding: 0 12px 8px 0; border-bottom: 1px solid var(--nx-border); white-space: nowrap; }
+.adm-table td { padding: 11px 12px 11px 0; border-bottom: 1px solid var(--nx-divider); font-size: 13px; color: var(--nx-text); vertical-align: middle; }
+.adm-table th:last-child, .adm-table td:last-child { padding-right: 0; }
+.adm-table .align-right { text-align: right; }
+.adm-table tbody tr.adm-row--link { cursor: pointer; }
+.adm-table tbody tr.adm-row--link:hover { background: var(--adm-hover); }
+.adm-table tbody tr.adm-row--muted { opacity: 0.65; }
+.adm-table__chev { color: var(--nx-border-strong); font-size: 11px; }
+
+/* Name cell: small identity tile + name over mono code. */
+.adm-name { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.adm-name__tile { width: 28px; height: 28px; flex: none; border-radius: calc(var(--nx-radius-scale, 1) * 8px); display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; background: var(--nx-l-indigo); color: var(--nx-l-indigo-fg); }
+.adm-name__main { min-width: 0; }
+.adm-name__label { display: block; font-size: 13px; font-weight: 600; color: var(--nx-text); }
+.adm-name__code { display: block; font-family: var(--nx-mono); font-size: var(--fs-eyebrow); color: var(--nx-text-meta); text-transform: none; letter-spacing: 0; }
+
+/* — Status dots & pills ---------------------------------------- */
+.adm-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; display: inline-block; background: var(--nx-text-meta); }
+.adm-dot--ok { background: var(--nx-success); }
+.adm-dot--warn { background: var(--nx-warning); }
+.adm-dot--err { background: var(--nx-danger); }
+.adm-state { display: inline-flex; align-items: center; gap: 7px; font-size: var(--fs-control); color: var(--nx-text-sec); }
+.adm-pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; border-radius: var(--nx-radius-pill); font-size: var(--fs-micro); font-weight: 500; background: var(--nx-l-gray); color: var(--nx-l-gray-fg); }
+.adm-pill--ok { background: var(--nx-l-green); color: var(--nx-l-green-fg); }
+.adm-pill--warn { background: var(--nx-l-amber); color: var(--nx-l-amber-fg); }
+.adm-pill--err { background: var(--nx-l-red); color: var(--nx-l-red-fg); }
+.adm-pill--accent { background: var(--nx-l-indigo); color: var(--nx-l-indigo-fg); }
+
+/* — Link groups (admin overview) ------------------------------- */
+.adm-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 48px; margin-top: 8px; }
+.adm-group__head { display: flex; align-items: center; gap: 10px; padding: 20px 0 10px; border-bottom: 1px solid var(--nx-border); }
+.adm-group__title { font-size: var(--fs-title); font-weight: 700; letter-spacing: -0.02em; margin: 0; color: var(--nx-text); }
+.adm-group__sub { font-size: var(--fs-micro); color: var(--nx-text-meta); }
+.adm-link { display: flex; align-items: center; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--nx-divider); text-decoration: none; color: inherit; }
+.adm-link:hover { background: var(--adm-hover); }
+.adm-link:hover .adm-link__label { color: var(--nx-accent); }
+.adm-link__tile { width: 32px; height: 32px; flex: none; border-radius: calc(var(--nx-radius-scale, 1) * 9px); background: var(--nx-sunken); color: var(--nx-text-sec); display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
+.adm-link__main { flex: 1; min-width: 0; }
+.adm-link__label { display: block; font-size: 13px; font-weight: 600; color: var(--nx-text); }
+.adm-link__desc { display: block; font-size: var(--fs-meta); color: var(--nx-text-meta); margin-top: 1px; }
+.adm-link__meta { font-size: var(--fs-meta); font-weight: 600; color: var(--nx-text-meta); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.adm-link__meta--warn { color: var(--nx-l-amber-fg); }
+
+/* — Resources footer ------------------------------------------- */
+.adm-res { display: flex; align-items: center; gap: 20px; margin-top: 28px; font-size: var(--fs-control); flex-wrap: wrap; }
+.adm-res__label { font-size: var(--fs-eyebrow); font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: var(--nx-text-meta); }
+.adm-res a { color: var(--nx-accent); text-decoration: none; }
+.adm-res a:hover { text-decoration: underline; }
+
+/* — Segmented control (env switch) ----------------------------- */
+.adm-seg { display: inline-flex; height: var(--ctl-h); overflow: hidden; border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 8px); background: var(--nx-card); }
+.adm-seg__btn { border: none; background: transparent; padding: 0 10px; font-family: inherit; font-size: var(--fs-meta); font-weight: 600; color: var(--nx-text-meta); cursor: pointer; }
+.adm-seg__btn + .adm-seg__btn { border-left: 1px solid var(--nx-border); }
+.adm-seg__btn--active { background: var(--nx-l-indigo); color: var(--nx-l-indigo-fg); }
+
+@media (max-width: 1100px) {
+  .adm-groups { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .adm-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .adm-kpi { padding-left: 20px; padding-right: 20px; }
+  .adm-kpi:nth-child(odd) { padding-left: 0; border-left: none; }
+}
+@media (max-width: 680px) {
+  .adm-kpis { grid-template-columns: minmax(0, 1fr); }
+  .adm-kpi { padding-left: 0; padding-right: 0; border-left: none; border-top: 1px solid var(--nx-divider); }
+  .adm-kpi:first-child { border-top: none; }
+  .adm-tabs { flex-wrap: wrap; gap: 14px; }
+  .adm-tabs__search { margin-left: 0; width: 100%; }
+}
+
+/* — Empty states ----------------------------------------------- */
+.adm-empty { padding: 28px 0; text-align: center; font-size: var(--fs-control); color: var(--nx-text-meta); }
+
+/* — Icon buttons (table row actions) --------------------------- */
+.adm-iconbtn { appearance: none; border: none; background: transparent; width: 26px; height: 26px; border-radius: calc(var(--nx-radius-scale, 1) * 6px); color: var(--nx-text-meta); font-size: 11px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+.adm-iconbtn:hover { background: var(--nx-sunken); color: var(--nx-text); }
+.adm-iconbtn--danger:hover { background: var(--nx-l-red); color: var(--nx-danger); }
+
+/* — Needs attention -------------------------------------------- */
+.adm-issues { border-top: 1px solid var(--nx-border); }
+.adm-issue { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--nx-divider); font-size: var(--fs-control); }
+.adm-issue__icon { width: 26px; flex: none; color: var(--nx-text-meta); font-size: 12px; text-align: center; }
+.adm-issue__text { color: var(--nx-text); font-weight: 500; }
+.adm-issue__detail { color: var(--nx-text-meta); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adm-issue__action { margin-left: auto; flex: none; color: var(--nx-accent); text-decoration: none; font-weight: 600; }
+.adm-issue__action:hover { text-decoration: underline; }
+
+/* — Side sheets (replace the centred modals) -------------------- */
+/* The backdrop owns the open state; both it and the panel are hidden
+   together so a stray class on one cannot leave the page unclickable. */
+.adm-sheet-back { position: fixed; inset: 0; background: rgba(17, 24, 39, 0.28); z-index: var(--z-popover, 100); }
+.adm-sheet { position: fixed; top: 0; right: 0; bottom: 0; width: var(--adm-sheet-w); max-width: 100vw; background: var(--nx-card); box-shadow: -12px 0 32px rgba(16, 24, 40, 0.12); z-index: var(--z-top, 200); display: flex; flex-direction: column; animation: admSheetIn calc(var(--nx-anim-speed, 1) * 220ms) var(--nx-ease); }
+@keyframes admSheetIn { from { transform: translateX(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .adm-sheet { animation: none; } }
+.adm-sheet__head { display: flex; align-items: flex-start; gap: 12px; padding: 18px 24px 14px; border-bottom: 1px solid var(--nx-border); }
+.adm-sheet__kicker { font-size: var(--fs-eyebrow); font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: var(--nx-text-meta); }
+.adm-sheet__title { font-size: 17px; font-weight: 600; margin: 2px 0 0; color: var(--nx-text); }
+.adm-sheet__close { margin-left: auto; }
+.adm-sheet__body { flex: 1; overflow-y: auto; padding: 20px 24px; }
+.adm-sheet__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.adm-sheet__grid--full { grid-template-columns: minmax(0, 1fr); }
+.adm-sheet__foot { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 24px; border-top: 1px solid var(--nx-border); }
+.adm-field { min-width: 0; }
+.adm-field--full { grid-column: 1 / -1; }
+.adm-field__label { display: block; font-size: var(--fs-eyebrow); font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: var(--nx-text-meta); margin-bottom: 5px; }
+.adm-field__hint { font-size: var(--fs-meta); color: var(--nx-text-meta); margin: 5px 0 0; }
+.adm-field__err { display: block; font-size: var(--fs-meta); color: var(--nx-danger); margin-top: 4px; }
+.adm-field .nx-input:user-invalid, .adm-field .nx-input.is-error { border-color: var(--nx-danger); }
+
+/* Organization checklist inside the tenant sheet. */
+.adm-checklist { max-height: 260px; overflow-y: auto; border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 8px); padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; }
+.adm-check { display: flex; align-items: center; gap: 8px; font-size: var(--fs-control); padding: 4px 2px; border-radius: 5px; }
+.adm-check:hover { background: var(--adm-hover); }
+.adm-check__code { font-family: var(--nx-mono); font-size: var(--fs-eyebrow); color: var(--nx-text-meta); }
+.adm-check__moves { margin-left: auto; font-size: var(--fs-eyebrow); font-weight: 600; padding: 1px 7px; border-radius: var(--nx-radius-pill); background: var(--nx-l-amber); color: var(--nx-l-amber-fg); }
+
+/* — Confirm dialog --------------------------------------------- */
+.adm-confirm { position: fixed; inset: 0; z-index: var(--z-top, 200); display: flex; align-items: center; justify-content: center; background: rgba(17, 24, 39, 0.28); }
+.adm-confirm__card { width: 420px; max-width: calc(100vw - 32px); background: var(--nx-card); border-radius: calc(var(--nx-radius-scale, 1) * 12px); box-shadow: 0 24px 48px rgba(16, 24, 40, 0.2); padding: 22px 24px 18px; }
+.adm-confirm__title { font-size: 16px; font-weight: 600; margin: 0; color: var(--nx-text); }
+.adm-confirm__body { font-size: var(--fs-control); color: var(--nx-text-sec); margin: 8px 0 0; }
+.adm-confirm__foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+
+@media (max-width: 560px) {
+  .adm-sheet { width: 100vw; }
+  .adm-sheet__grid { grid-template-columns: minmax(0, 1fr); }
+  .adm-issue { flex-wrap: wrap; }
+  .adm-issue__detail { width: 100%; padding-left: 38px; }
+}
+
+/* — Tenant detail ---------------------------------------------- */
+
+/* Outline danger: Delete sits next to Edit in the page header, where a solid
+   red fill would out-shout the primary action it is standing beside. */
+.nx-btn--danger-outline { background: transparent; border: 1px solid var(--nx-l-red-fg); color: var(--nx-danger); }
+.nx-btn--danger-outline:hover { background: var(--nx-l-red); }
+
+/* Draft|Active switch: the "on" half is green rather than accent, so it reads
+   as a state and not as the selected tab. */
+.adm-seg__btn--on { background: var(--nx-l-green); color: var(--nx-l-green-fg); }
+.adm-seg__btn[disabled] { cursor: default; }
+.adm-seg__btn:not([disabled]):hover { background: var(--nx-sunken); }
+.adm-seg__btn--active:not([disabled]):hover { background: var(--nx-l-indigo); }
+
+.adm-blank { border: 1px dashed var(--nx-border-strong); border-radius: calc(var(--nx-radius-scale, 1) * 10px); padding: 30px 24px; text-align: center; }
+.adm-blank__text { font-size: var(--fs-control); color: var(--nx-text-sec); margin: 0 0 14px; }
+
+.adm-warn { display: flex; align-items: center; gap: 10px; padding: 11px 16px; font-size: 13px; background: var(--nx-l-amber); color: var(--nx-l-amber-fg); border-radius: calc(var(--nx-radius-scale, 1) * 8px); }
+
+/* Pages tab: table on the left, member preview pinned to the right. */
+.adm-pages { display: grid; grid-template-columns: minmax(0, 1fr) 520px; gap: 28px; align-items: start; }
+.adm-pages__main { min-width: 0; }
+.adm-preview { min-width: 0; position: sticky; top: 16px; }
+
+/* Mini browser window -- the point is "this is what a member sees", so it is
+   deliberately chrome-first rather than a bare list. */
+.adm-window { border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 10px); overflow: hidden; background: var(--nx-card); box-shadow: 0 8px 24px -12px rgba(16, 24, 40, 0.18); }
+.adm-window__bar { display: flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px; background: var(--nx-alt); border-bottom: 1px solid var(--nx-border); }
+.adm-window__dot { width: 7px; height: 7px; border-radius: 50%; background: var(--nx-border-strong); flex: none; }
+.adm-window__url { margin-left: 10px; font-family: var(--nx-mono); font-size: var(--fs-eyebrow); color: var(--nx-text-meta); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adm-window__body { display: grid; grid-template-columns: 136px minmax(0, 1fr); min-height: 230px; }
+.adm-window__side { border-right: 1px solid var(--nx-border); padding: 10px 8px; display: flex; flex-direction: column; gap: 2px; background: var(--nx-alt); }
+.adm-window__item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: calc(var(--nx-radius-scale, 1) * 6px); font-size: var(--fs-micro); color: var(--nx-text); }
+.adm-window__item i { width: 13px; font-size: 10px; color: var(--nx-accent); flex: none; }
+.adm-window__item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adm-window__item--muted { color: var(--nx-text-meta); margin-top: auto; }
+.adm-window__item--muted i { color: var(--nx-text-meta); }
+.adm-window__canvas { padding: 14px; display: flex; flex-direction: column; gap: 9px; }
+.adm-window__skel { height: 11px; border-radius: 4px; background: var(--nx-sunken); }
+.adm-window__skel--wide { height: 34px; }
+.adm-window__skel--short { width: 55%; }
+
+@media (max-width: 1180px) {
+  .adm-pages { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .adm-preview { max-width: 520px; position: static; }
+}
+
+/* .hidden is a single-class utility declared at the top of this file, so any
+   later single-class rule that sets `display` (the sheets, the backdrop, the
+   confirm dialog) silently outranks it and the element renders open. Raise the
+   specificity rather than reaching for !important. */
+.adm-sheet.hidden,
+.adm-sheet-back.hidden,
+.adm-confirm.hidden { display: none; }
+
+/* — Organization detail ---------------------------------------- */
+.adm-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.adm-card { border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 10px); padding: 16px 18px; background: var(--nx-card); margin-bottom: 16px; }
+.adm-card__head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.adm-card__action { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+.adm-facts { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; font-size: var(--fs-control); }
+.adm-facts dt { color: var(--nx-text-meta); }
+.adm-facts dd { margin: 0; color: var(--nx-text); }
+
+/* Field mappings nest inside a process-source card; the outer card already
+   draws the border, so the inner table drops its own top rule. */
+.adm-table--inner { margin-top: 4px; }
+.adm-table--inner th { border-bottom-color: var(--nx-divider); }
+.adm-table--inner td { font-size: var(--fs-control); }
+
+/* Branding: form left, live preview right. */
+.adm-brand { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 32px; align-items: start; }
+.adm-brand__form { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.adm-brand__colour { display: flex; align-items: center; gap: 8px; }
+.adm-brand__swatch { width: 38px; height: 33px; padding: 0; border: 1px solid var(--nx-border-strong); border-radius: calc(var(--nx-radius-scale, 1) * 7px); background: none; cursor: pointer; flex: none; }
+.adm-brand__actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 6px; border-top: 1px solid var(--nx-border); margin-top: 4px; }
+.adm-window__brand { display: flex; align-items: center; gap: 8px; padding: 4px 8px 10px; font-size: var(--fs-control); font-weight: 600; color: var(--nx-text); border-bottom: 1px solid var(--nx-border); margin-bottom: 6px; }
+.adm-window__brand img { max-height: 20px; max-width: 80px; }
+
+/* Tenant tab: one radio row per tenant. */
+.adm-radios { display: flex; flex-direction: column; border-top: 1px solid var(--nx-border); }
+.adm-radio { display: flex; align-items: center; gap: 12px; padding: 12px 8px; border-bottom: 1px solid var(--nx-divider); cursor: pointer; }
+.adm-radio:hover { background: var(--adm-hover); }
+.adm-radio__main { display: flex; flex-direction: column; min-width: 0; }
+
+@media (max-width: 1080px) {
+  .adm-brand { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .adm-brand .adm-preview { max-width: 380px; }
+}
+
+/* — Member preview: selected page mock --------------------------- */
+.adm-window__brandtile { width: 18px; height: 18px; flex: none; border-radius: 5px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; background: var(--nx-brand-grad); color: var(--nx-on-accent, #fff); }
+.adm-window__item--pick { cursor: pointer; }
+.adm-window__item--pick:hover { background: var(--adm-hover); }
+.adm-window__item--on { background: var(--nx-accent-tint); color: var(--nx-l-indigo-fg); font-weight: 600; }
+.adm-window__item--on i { color: var(--nx-l-indigo-fg); }
+
+.adm-window__title { display: flex; align-items: center; gap: 8px; font-size: var(--fs-control); font-weight: 600; color: var(--nx-text); margin-bottom: 12px; }
+.adm-window__title i { color: var(--nx-accent); font-size: 12px; }
+
+.adm-window__tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+.adm-window__tiles--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.adm-window__tile { border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 7px); padding: 7px 9px; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.adm-window__tile b { font-family: var(--nx-mono); font-variant-numeric: tabular-nums; font-size: 15px; font-weight: 600; color: var(--nx-text); letter-spacing: -0.4px; }
+
+/* Bars are decorative: fixed heights, no data behind them. */
+.adm-window__chart { display: flex; align-items: flex-end; gap: 5px; height: 74px; border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 7px); padding: 8px; }
+.adm-window__chart span { flex: 1 1 0; background: var(--nx-sunken); border-radius: 2px 2px 0 0; }
+.adm-window__chart span:nth-child(7) { background: var(--nx-accent); opacity: 0.85; }
+
+.adm-window__rowhead, .adm-window__row { display: grid; grid-template-columns: 1.4fr 1fr 0.8fr; gap: 10px; align-items: center; }
+.adm-window__rowhead { padding-bottom: 7px; border-bottom: 1px solid var(--nx-border); }
+.adm-window__row { padding: 9px 0; border-bottom: 1px solid var(--nx-divider); }
+.adm-window__skel--tiny { height: 7px; width: 60%; }
+
+/* Row selection in the pages table. */
+.adm-table tbody tr.adm-row--pick { cursor: pointer; }
+.adm-table tbody tr.adm-row--pick:hover { background: var(--adm-hover); }
+.adm-table tbody tr.adm-row--on { background: var(--nx-accent-tint); }
+
+/* Reorder mode: arrows appear per row while it is on. */
+.adm-reorder { display: none; gap: 2px; }
+.is-reordering .adm-reorder { display: inline-flex; }
+.is-reordering .adm-row--pick { cursor: default; }
+
+/* ============================================================
+   FLATTEN THE REMAINING ADMIN BOXES
+   The tenancy pages were rewritten onto .adm-*; the rest of the
+   admin area still renders the shared nx-filter / nx-table-wrap /
+   page_header card chrome. Rather than rewrite seven templates,
+   restyle those three constructs to the same flat language.
+
+   Scoped to body.nx-admin, NOT to admin.css as a whole: the
+   generated tenant pages (templates/tenant/page.html) also load
+   this file and are member-facing, so they must keep their cards.
+   ============================================================ */
+
+/* Filter bar: the controls are the content; the box around them was chrome. */
+body.nx-admin .nx-filter {
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--nx-border);
+  border-radius: 0;
+  padding: 0 0 16px;
+  margin-bottom: 18px;
+}
+
+/* Table: no surrounding card, header rule instead of a filled head row. */
+body.nx-admin .nx-table-wrap {
+  background: none;
+  border: none;
+  border-radius: 0;
+  overflow: visible;
+}
+body.nx-admin .nx-table thead th {
+  background: none;
+  font-size: var(--fs-eyebrow);
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  padding: 0 12px 8px 0;
+  border-bottom: 1px solid var(--nx-border);
+}
+body.nx-admin .nx-table tbody td {
+  padding: 11px 12px 11px 0;
+  border-bottom: 1px solid var(--nx-divider);
+}
+body.nx-admin .nx-table thead th:last-child,
+body.nx-admin .nx-table tbody td:last-child { padding-right: 0; }
+/* The card used to close the last row; without it the list needs its own rule. */
+body.nx-admin .nx-table tbody tr:last-child td { border-bottom: 1px solid var(--nx-divider); }
+body.nx-admin .nx-table tbody tr:hover { background: var(--adm-hover); }
+
+/* Page header from the _admin_helpers macro, brought to .adm-head's proportions. */
+body.nx-admin .nx-page-head { align-items: center; margin-bottom: 22px; }
+body.nx-admin .nx-page-icon {
+  width: 44px; height: 44px;
+  border-radius: calc(var(--nx-radius-scale, 1) * 12px);
+  background: var(--nx-brand-grad);
+  color: var(--nx-on-accent, #fff);
+  font-size: 18px;
+  box-shadow: 0 8px 20px -6px var(--nx-accent-soft);
+}
+body.nx-admin .nx-title { font-size: 24px; font-weight: 600; letter-spacing: -0.5px; line-height: 1.2; }
+body.nx-admin .nx-subtitle { font-size: var(--fs-meta); color: var(--nx-text-meta); margin-top: 2px; }
+
+/* Standalone cards that only wrap a list (status groups, the access-control
+   side panel) lose their border; ones that are genuinely a panel keep it. */
+body.nx-admin .nx-card--flat { background: none; border: none; border-radius: 0; padding: 0; }
+
+
+/* — Inline editor panel ---------------------------------------- */
+/* A side sheet is right for a form that owns the screen; mounting a page is a
+   six-field edit to the table directly below it, so it opens in the flow
+   instead. Same field primitives as the sheets -- only the frame differs. */
+/* No card: hairline rules above and below, the same language the filter bars
+   and tables were flattened to. The form is part of the page, not a dialog
+   that happens to be parked in it. */
+.adm-inline { border-top: 1px solid var(--nx-border); border-bottom: 1px solid var(--nx-border); margin: 0 0 18px; padding: 14px 0 0; }
+.adm-inline.hidden { display: none; }
+.adm-inline__head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
+.adm-inline__kicker { font-size: var(--fs-eyebrow); font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: var(--nx-text-meta); }
+.adm-inline__title { font-size: var(--fs-title); font-weight: 600; margin: 2px 0 0; color: var(--nx-text); }
+.adm-inline__head .adm-iconbtn { margin-left: auto; }
+.adm-inline__body { padding: 0; }
+.adm-inline__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; }
+.adm-inline__foot { display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding: 14px 0; margin-top: 16px; border-top: 1px solid var(--nx-divider); }
+.adm-inline__note { margin: 0 auto 0 0; max-width: 46ch; }
+
+@media (max-width: 640px) {
+  .adm-inline__foot { flex-wrap: wrap; }
+  .adm-inline__note { margin-bottom: 4px; }
+}
+
+/* — Member preview: the page body ------------------------------ */
+/* One view per mounted page, rendered server-side; the JS only unhides one.
+   Numeric-ish cells print a sample value, everything else stays a grey bar --
+   inventing words for a text column would read as live data. */
+.adm-window__view { display: flex; flex-direction: column; gap: 10px; }
+.adm-window__head { display: flex; align-items: center; gap: 7px; }
+.adm-window__head > i { color: var(--nx-accent); font-size: 12px; flex: none; }
+.adm-window__headmain { min-width: 0; display: flex; flex-direction: column; margin-right: auto; }
+.adm-window__headmain b { font-size: var(--fs-control); font-weight: 600; color: var(--nx-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adm-window__headmain em { font-style: normal; font-size: var(--fs-eyebrow); color: var(--nx-text-meta); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adm-window__btn { display: inline-flex; align-items: center; gap: 4px; flex: none; font-size: var(--fs-eyebrow); font-weight: 600; padding: 3px 8px; border-radius: calc(var(--nx-radius-scale, 1) * 6px); border: 1px solid var(--nx-border); color: var(--nx-text-sec); background: var(--nx-card); white-space: nowrap; }
+.adm-window__btn i { font-size: 8px; }
+.adm-window__btn--primary { background: var(--nx-accent); border-color: transparent; color: var(--nx-on-accent, #fff); }
+
+.adm-window__filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 8px; padding: 8px 9px; border-radius: calc(var(--nx-radius-scale, 1) * 7px); background: var(--nx-alt); border: 1px solid var(--nx-border); }
+.adm-window__filter { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.adm-window__flabel { font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--nx-text-meta); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adm-window__fbox { height: 15px; border-radius: 4px; border: 1px solid var(--nx-border); background: var(--nx-card); display: flex; align-items: center; padding: 0 5px; }
+.adm-window__fbox i { font-size: 7px; color: var(--nx-text-meta); }
+
+.adm-window__grid { border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 7px); overflow: hidden; }
+.adm-window__gridhead, .adm-window__gridrow { display: flex; align-items: center; gap: 8px; padding: 0 9px; }
+.adm-window__gridhead { height: 22px; background: var(--nx-alt); border-bottom: 1px solid var(--nx-border); }
+.adm-window__gridhead > span { font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--nx-text-meta); }
+.adm-window__gridrow { height: 26px; border-bottom: 1px solid var(--nx-divider); }
+.adm-window__gridrow:last-of-type { border-bottom: 0; }
+.adm-window__gridhead > span, .adm-window__gridrow > span { flex: 1 1 0; min-width: 0; display: flex; align-items: center; gap: 5px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.adm-window__gridhead > span:first-child, .adm-window__gridrow > span:first-child { flex: 0 0 46px; }
+.adm-window__gridhead > span.adm-window__rowacts, .adm-window__gridrow > span.adm-window__rowacts { flex: 0 0 30px; justify-content: flex-end; gap: 6px; }
+.adm-window__rowacts i { font-size: 8px; color: var(--nx-text-meta); }
+.adm-window__val { font-style: normal; font-family: var(--nx-mono); font-size: 9px; font-variant-numeric: tabular-nums; color: var(--nx-text-sec); }
+.adm-window__val--num { width: 100%; text-align: right; }
+.adm-window__cpill { height: 10px; width: 46px; border-radius: var(--nx-radius-pill); background: var(--nx-accent-tint); }
+.adm-window__avatar { width: 12px; height: 12px; flex: none; border-radius: 50%; background: var(--nx-brand-grad); opacity: 0.55; }
+.adm-window__gridfoot { display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 9px; background: var(--nx-alt); border-top: 1px solid var(--nx-border); }
+.adm-window__gridfoot .adm-window__btn:first-of-type { margin-left: auto; }
+.adm-window__src { display: flex; align-items: center; gap: 5px; margin: 0; font-size: var(--fs-eyebrow); color: var(--nx-text-meta); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adm-window__src i { font-size: 8px; }
+
+/* Mounted endpoints: we do not own their markup, so the view says so. */
+.adm-window__note { display: flex; flex-direction: column; align-items: center; gap: 5px; text-align: center; padding: 26px 18px; border: 1px dashed var(--nx-border-strong); border-radius: calc(var(--nx-radius-scale, 1) * 7px); color: var(--nx-text-meta); }
+.adm-window__note i { font-size: 15px; color: var(--nx-border-strong); }
+.adm-window__note b { font-size: var(--fs-control); color: var(--nx-text); }
+.adm-window__note .nx-mono { font-size: var(--fs-eyebrow); }
+.adm-window__note p { margin: 4px 0 0; font-size: var(--fs-eyebrow); max-width: 30ch; }
+
+/* Shape sketches for mounted endpoints (dashboard / report / cards / list). */
+.adm-window__toolbar { display: flex; align-items: center; gap: 6px; }
+.adm-window__fbox--grow { flex: 1 1 auto; }
+.adm-window__cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.adm-window__card { display: flex; flex-direction: column; gap: 5px; padding: 10px; border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 7px); min-width: 0; }
+.adm-window__card i { font-size: 12px; color: var(--nx-accent); }
+/* A row of sketch blocks inside a grid has no header, so it needs its own
+   top border back. */
+.adm-window__grid > .adm-window__gridrow:first-child { border-top: 0; }
+
+/* The pending-page preview stacks its sketch like a real view; `hidden` alone
+   would lose to the flex display, same trap as the sheets. */
+.adm-window__shape { display: flex; flex-direction: column; gap: 10px; }
+.adm-window__shape[hidden] { display: none; }
+
+
+/* — Status and Sessions: the last boxed panels ------------------ */
+/* These were left as cards while the rest of the admin area was flattened,
+   on the theory that an incident page reads better in panels. It does not --
+   it reads as a different product. The state signal the hero card carried is
+   kept, and moved onto the rule and the text: an outage still shouts, it just
+   does so without a border around it. */
+body.nx-admin .status-hero {
+  background: none;
+  border: 0;
+  border-left: 3px solid var(--nx-border-strong);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 4px 0 18px 16px;
+  margin-bottom: 18px;
+}
+body.nx-admin .status-hero--operational { border-left-color: var(--nx-l-green-fg); }
+body.nx-admin .status-hero--degraded    { border-left-color: var(--nx-l-amber-fg); }
+body.nx-admin .status-hero--outage      { border-left-color: var(--nx-danger); }
+body.nx-admin .status-hero--maintenance { border-left-color: var(--nx-l-indigo-fg); }
+
+/* Incident and component lists: rules between rows, no card around them. */
+body.nx-admin .status-open-list,
+body.nx-admin .status-components {
+  background: none;
+  border: 0;
+  border-top: 1px solid var(--nx-border);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+}
+body.nx-admin .status-components { padding-bottom: 8px; }
+
+body.nx-admin .admin-empty {
+  background: none;
+  border: 0;
+  border-top: 1px solid var(--nx-border);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* Sessions: the locked-accounts block is a list, not a panel. */
+body.nx-admin #locked-accounts-wrap {
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--nx-border);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0 0 18px;
+}
+
+
+/* — Permission detail ------------------------------------------ */
+/* The grid answers "who holds this"; this page answers "what does holding it
+   do", and everything on the left of it is derived from the route map and the
+   source tree rather than from the hand-written Description. */
+.perm-detail { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 32px; align-items: start; }
+.perm-detail__main { min-width: 0; }
+.perm-detail__side { min-width: 0; }
+.perm-detail__code { font-size: 20px; letter-spacing: -0.2px; word-break: break-all; }
+
+@media (max-width: 1100px) {
+  .perm-detail { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .perm-detail__side { max-width: 420px; }
+}
+
+/* Grammar breakdown: one row per segment, the vocabulary spelled out next to
+   it so a reader need not hold docs/design/permissions.md in their head. */
+.perm-parts { border-top: 1px solid var(--nx-border); }
+.perm-part { display: flex; align-items: baseline; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--nx-divider); font-size: var(--fs-control); }
+.perm-part__key { flex: 0 0 76px; font-size: var(--fs-eyebrow); font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: var(--nx-text-meta); }
+.perm-part__val { flex: 0 0 auto; font-weight: 600; color: var(--nx-text); }
+.perm-part__help { color: var(--nx-text-sec); min-width: 0; }
+
+.perm-pages { display: flex; flex-direction: column; margin-bottom: 8px; }
+
+.perm-method { font-family: var(--nx-mono); font-size: var(--fs-eyebrow); }
+.perm-method--get { background: var(--nx-l-green); color: var(--nx-l-green-fg); }
+.perm-method--post { background: var(--nx-l-amber); color: var(--nx-l-amber-fg); }
+.perm-method--delete { background: var(--nx-l-red); color: var(--nx-danger); }
+
+/* A guarding line can be arbitrarily long (_header.html chains five
+   page_visibility flags in one `if`). In an auto-layout table the snippet cell
+   has no width to shrink against, so the column grew until the table pushed
+   out of its grid track and over the aside. Fixing the layout gives the cell a
+   width, and the ellipsis something to clip to. */
+.perm-usages { table-layout: fixed; }
+.perm-usages th, .perm-usages td { overflow: hidden; }
+.perm-snippet { font-family: var(--nx-mono); font-size: 11.5px; color: var(--nx-text-sec); background: var(--nx-sunken); border-radius: 4px; padding: 2px 6px; display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* The captured page, when scripts/capture-permission-shots.py has one. */
+.perm-shot { margin: 0 0 4px; border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 10px); overflow: hidden; background: var(--nx-card); }
+.perm-shot img { display: block; width: 100%; height: auto; }
+.perm-shot figcaption { padding: 7px 10px; font-size: var(--fs-eyebrow); color: var(--nx-text-meta); border-top: 1px solid var(--nx-border); background: var(--nx-alt); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* The grid's permission code becomes the way into this page. */
+.perms-grid .perm-code a { color: inherit; text-decoration: none; }
+.perms-grid .perm-code a:hover { color: var(--nx-accent); text-decoration: underline; }
+.adm-pill--danger { background: var(--nx-l-red); color: var(--nx-danger); }
+
 /* Touch targets on the admin pages (#354). Pointer-keyed like the rest: size
    follows the finger, not the screen, so a desktop is untouched at any width.
 
@@ -306,29 +876,3 @@ body.nx-app label.ml-toggle input[type="checkbox"] { opacity: 0; width: 0; heigh
      being scannable to fix a target you reach deliberately, one at a time. */
 }
 
-/* The restart row on the admin overview (#354 follow-up). Was three inline
-   styles on the wrapper and the select, which left no way to lay it out
-   differently on a phone -- the select, the button and the "Current env"
-   note collided into each other on one unwrappable line. */
-.admin-restart-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-}
-.admin-restart-row .nx-select { width: auto; }
-
-@media (max-width: 768px) and (pointer: coarse) {
-  /* Stacked, like the other phone toolbars: the select and the button each
-     take the full width and the env note sits under them, rather than three
-     things fighting over 390px. */
-  .admin-restart-row {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
-  }
-  .admin-restart-row .nx-select,
-  .admin-restart-row .nx-btn { width: 100%; }
-  .admin-restart-row .nx-meta { align-self: flex-start; }
-}

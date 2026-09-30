@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ get_locale }}">
+<html lang="{{ current_lang }}">
 
 <head>
     <meta charset="UTF-8">
@@ -51,14 +51,21 @@
             } catch (e) {}
         })();
     </script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Config must come AFTER the CDN script -- setting it before gets
-         silently overwritten when the script loads (see hero.html, this
-         was a real bug there: without darkMode:'class', dark: utilities
-         follow the OS color-scheme instead of the toggle button). -->
-    <script nonce="{{ csp_nonce() }}">
-        tailwind.config = { darkMode: 'class' };
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.0" integrity="sha384-AIH1kL7JmmReCxSwiSyaRNwzSFO7h4Ir4F/PO28EKezqFza1LwIMgEPLd83KwmZ4" crossorigin="anonymous"></script>
+    {# dark: follows this page's .dark class, not the OS setting -- same
+       variant as the app pages (e.g. appearance.html). #}
+    <style type="text/tailwindcss">
+        @custom-variant dark (&:where(.dark, .dark *));
+        /* v3 compatibility (these pages were written for v3): v4 dropped the
+           gray-200 default border colour, and its utilities sit in a layer,
+           so Font Awesome's unlayered .fas display beat .hidden and both
+           theme icons showed. */
+        @layer base {
+            *, ::after, ::before, ::backdrop, ::file-selector-button { border-color: var(--color-gray-200, currentColor); }
+        }
+        .fas.hidden, .dark .fas.dark\:hidden { display: none; }
+        .dark .fas.dark\:inline { display: inline-block; }
+    </style>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous">
     <link rel="stylesheet" href="{{ static_v('css/index.css') }}">

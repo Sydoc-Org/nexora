@@ -2,9 +2,9 @@
 
 Reports the status of every layer the running app depends on: Python and
 its third-party packages, the .env files, filesystem dirs, all four SQL
-Server engines, the migrations table, schema drift, on-PATH tooling, git
-hooks, port 8000, and the external services nexora talks to (Microsoft
-Graph, Octopus).
+Server engines, the Octo document-storage databases (#398), the migrations
+table, every curated reporting source's table or view (#329), schema drift, on-PATH tooling, git hooks, port 8000, and the
+external services nexora talks to (Microsoft Graph, Octopus).
 
 Invoked via the nx CLI:
     nx --doctor                  full check (incl. external services)
@@ -387,6 +387,69 @@ def _check_databases() -> list[CheckResult]:
     return results
 
 
+def _check_document_storages(octo_ok: bool = True) -> list[CheckResult]:
+    """Every document storage the default runtime lists must open by name
+    (issue #398): ``/api/v1/workitems?include=tables`` reads table values
+    from ``<storage name>`` as a database on the runtime server -- a
+    convention, not config -- so a storage that cannot be opened here would
+    500 that endpoint for every workitem stored in it. Skipped when the
+    OctoDB ping already failed (nothing to learn, and no ODBC timeouts)."""
+    if not octo_ok:
+        return [CheckResult("Document storages", "skip", "skipped (OctoDB unreachable)")]
+    try:
+        from .document_storage import list_storages, storage_engine_for
+        from .workitems.tables import DEFAULT_STORAGE_NAME
+    except Exception as exc:
+        return [
+            CheckResult(
+                "Document storages",
+                "fail",
+                f"cannot import nx_lib.document_storage: {exc}",
+            )
+        ]
+    try:
+        names = list_storages("default")
+    except Exception as exc:
+        return [
+            CheckResult(
+                "Document storages",
+                "fail",
+                f"t_DocumentStorages unreadable: {str(exc).splitlines()[0][:120]}",
+                hint="OctoDB unreachable? See the Databases section above.",
+            )
+        ]
+    results: list[CheckResult] = []
+    for name in names:
+        if name == DEFAULT_STORAGE_NAME:
+            results.append(CheckResult(name, "ok", "the runtime database itself"))
+            continue
+        try:
+            conn = storage_engine_for("default", name).raw_connection()
+            try:
+                cur = conn.cursor()
+                cur.execute("SELECT COUNT(*) FROM t_Documents")
+                count = cur.fetchone()[0]
+                cur.close()
+            finally:
+                conn.close()
+            results.append(CheckResult(name, "ok", f"{count} documents"))
+        except Exception as exc:
+            results.append(
+                CheckResult(
+                    name,
+                    "fail",
+                    str(exc).splitlines()[0][:120],
+                    hint=(
+                        f"?include=tables needs a database named '{name}' on DB_SERVER_PRD, "
+                        "readable by DB_UID (storage name = database name)."
+                    ),
+                )
+            )
+    if not results:
+        results.append(CheckResult("Document storages", "warn", "the runtime lists no storages"))
+    return results
+
+
 def _check_migrations() -> list[CheckResult]:
     if not MIGRATE_SCRIPT.exists():
         return [CheckResult("schema migrations", "skip", "scripts/db-migrate.py not found")]
@@ -493,6 +556,127 @@ def _check_permissions() -> list[CheckResult]:
         )
     else:
         results.append(CheckResult("profile rank", "ok", "every profile ranked"))
+    return results
+
+
+# A curated 'table' source's Engine code -> (engine attr, read-only engine attr)
+# in nx_lib.db. Mirrors _CURATED_ENGINES / _SQL_TARGET_ENGINES in
+# nx_lib/views/reporting/_shared.py by name, without importing the views layer.
+_SOURCE_ENGINES = {
+    "nexora": ("engine_nexora_db", None),
+    "statistics": ("engine_statistics_db", "engine_statistics_ro"),
+    "generali": ("engine_generali_db", "engine_generali_ro"),
+    "octopus": ("engine_octo_db", "engine_octo_ro"),
+}
+
+
+def _source_select_list(columns_json: str | None) -> str:
+    """The source's configured columns, bracket-quoted, or ``*`` when it lists
+    none. Probing the configured columns rather than ``*`` also catches a field
+    the registry offers but the table does not have, and matches a column-level
+    grant to the read-only login (which refuses ``*``)."""
+    import json
+
+    try:
+        fields = [c["field"] for c in json.loads(columns_json or "[]") if c.get("field")]
+    except (ValueError, TypeError, KeyError):
+        fields = []
+    return ", ".join("[" + f.replace("]", "]]") + "]" for f in fields) or "*"
+
+
+def _probe_object(engine, quoted: str, select_list: str = "*") -> str | None:
+    """None when ``SELECT TOP 0 <select_list>`` on the object compiles and runs,
+    else the first SQL Server message. TOP 0 still binds a view, so a view over
+    a missing table or database fails here exactly as a real report would."""
+    import re
+
+    from sqlalchemy import text
+
+    try:
+        with engine.connect() as conn:
+            conn.execute(text(f"SELECT TOP 0 {select_list} FROM {quoted}")).fetchall()
+        return None
+    except Exception as e:
+        msg = str(getattr(e, "orig", e))
+        # pyodbc chains messages: "...[SQL Server]Invalid object name 'x'. (208) (SQLExecDirectW); [42S02]..."
+        m = re.search(r"\[SQL Server\]([^(]+)", msg)
+        return (m.group(1).strip() if m else msg.splitlines()[0])[:160]
+
+
+def _check_reporting_sources() -> list[CheckResult]:
+    """Every enabled curated 'table' source must be readable where reporting
+    reads it (#329). The rail's status dot only proves the database answers;
+    this proves the source's own table or view does -- a view bound to a
+    database that does not exist, a table that was never created on this
+    server, or a login without rights all pass the dot and fail every report.
+
+    The read-only login is checked too: the SQL tab and the AI assistant run
+    through it, so a source it cannot read works in the builder and fails
+    there -- the "only sometimes" symptom."""
+    try:
+        from sqlalchemy import text
+
+        from . import db as nx_db
+        from .reporting.table_query import _quote_object
+
+        if nx_db.engine_nexora_db is None:
+            return [CheckResult("reporting sources", "warn", "skipped (NexoraDB not configured)")]
+        with nx_db.engine_nexora_db.connect() as conn:
+            rows = conn.execute(
+                text(
+                    "SELECT Code, Engine, BaseObject, ColumnsJSON FROM dbo.ReportingSources "
+                    "WHERE Enabled = 1 AND Provider = 'table' AND BaseObject IS NOT NULL "
+                    "ORDER BY Code"
+                )
+            ).fetchall()
+    except Exception:
+        return [CheckResult("reporting sources", "warn", "skipped (DB down)")]
+
+    results: list[CheckResult] = []
+    no_ro: list[str] = []
+    for code, engine_code, base, columns_json in rows:
+        main_attr, ro_attr = _SOURCE_ENGINES.get(engine_code, (None, None))
+        engine = getattr(nx_db, main_attr, None) if main_attr else None
+        if engine is None:
+            results.append(
+                CheckResult(code, "fail", f"engine {engine_code!r} is not configured", hint=base)
+            )
+            continue
+        try:
+            quoted = _quote_object(base)
+        except Exception:
+            results.append(CheckResult(code, "fail", f"invalid BaseObject {base!r}"))
+            continue
+        select_list = _source_select_list(columns_json)
+        err = _probe_object(engine, quoted, select_list)
+        if err:
+            results.append(
+                CheckResult(
+                    code,
+                    "fail",
+                    f"{base}: {err}",
+                    hint="the table/view (or one of its configured columns) is missing or broken on this server",
+                )
+            )
+            continue
+        ro = getattr(nx_db, ro_attr, None) if ro_attr else None
+        if ro is not None and _probe_object(ro, quoted, select_list):
+            no_ro.append(code)
+
+    failed = [r for r in results if r.status == "fail"]
+    if not failed:
+        results.append(
+            CheckResult("reporting sources", "ok", f"all {len(rows)} table sources readable")
+        )
+    if no_ro:
+        results.append(
+            CheckResult(
+                "read-only login",
+                "warn",
+                f"cannot read {len(no_ro)} source(s): {', '.join(no_ro[:6])}",
+                hint="SQL tab / AI assistant fail on these; grant the DB_REPORTING_RO_* login SELECT there",
+            )
+        )
     return results
 
 
@@ -788,14 +972,18 @@ def run(fast: bool = False, fix: bool = False) -> int:
         sys.stdout.write(f"  {C_DIM}(fast: externals + drift skipped){C_OFF}")
     sys.stdout.write("\n")
 
+    db_results = _check_databases()
+    octo_ok = any(r.name == "OctoDB" and r.status == "ok" for r in db_results)
     sections: list[tuple[str, list[CheckResult]]] = [
         ("Python", _check_python()),
         ("Packages", _check_packages()),
         ("Environment", _check_env()),
         ("Filesystem", _check_filesystem()),
-        ("Databases", _check_databases()),
+        ("Databases", db_results),
+        ("Document storages", _check_document_storages(octo_ok)),
         ("Migrations", _check_migrations()),
         ("Permissions", _check_permissions()),
+        ("Reporting sources", _check_reporting_sources()),
     ]
 
     if not fast:

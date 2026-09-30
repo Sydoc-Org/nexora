@@ -44,7 +44,13 @@ from ..clients import CLIENTS
 from ..i18n import get_locale
 from ..security import PermissionDenied, has_permission, page_visibility
 from ..tenant import entity_for, fields_for, pages_for, registry, tenant
-from ..tenant.queries import build_delete, build_insert, build_list_query, build_update
+from ..tenant.queries import (
+    build_delete,
+    build_insert,
+    build_list_query,
+    build_next_value_query,
+    build_update,
+)
 from ..tenant.registry import organization_tenant
 
 _DEFAULT_LIMIT = 50
@@ -63,6 +69,17 @@ _FILTER_ROLE_OP = {
     "count": "eq",
     "flag": "eq",
 }
+
+# Roles a "what is the next value?" lookup is offered for (api_tenant_next_value):
+# whole-number columns a human keeps counting up by hand -- a batch number, a
+# sheet number. Never a date, a flag or free text, and never the id column
+# (identity/serial: the DB assigns it, nothing prefills it).
+_SEQUENCE_ROLES = {"identifier", "count"}
+
+# Roles whose values are figures the user compares down a column: right-aligned
+# and mono/tabular, header and cell alike (static/js/tenant_pages.js carries the
+# matching NUMERIC_ROLES for the cells).
+_NUMERIC_ROLES = {"count", "money"}
 
 
 # ---------------------------------------------------------------- helpers --
@@ -436,7 +453,7 @@ def tenant_page(tenant_code, page_key):
     if reg is None:
         # A load failure is never cached (nx_lib/tenant/registry.py) -- render
         # the explicit unavailable state, never an empty-looking page (same
-        # contract as admin_processes_view's mapping_config_available flag).
+        # contract as api_admin_processes_list's mapping_config_available flag).
         return render_template(
             "tenant/page.html",
             unavailable=True,
@@ -470,7 +487,10 @@ def tenant_page(tenant_code, page_key):
     # list-comprehension syntax, only the {% for %} statement tag.
     locale = get_locale() or "en"
     header_columns = [{"label": entity.id_column}] + [
-        {"label": f.labels.get(locale) or f.labels.get("en") or f.column}
+        {
+            "label": f.labels.get(locale) or f.labels.get("en") or f.column,
+            "align": "right" if f.semantic_role in _NUMERIC_ROLES else None,
+        }
         for f in fields
         if f.column != entity.id_column
     ]
@@ -594,6 +614,70 @@ def api_tenant_add(tenant_code, page_key):
         return jsonify({"success": True, "message": _("Record created successfully.")})
     except Exception as e:
         current_app.logger.error(f"tenant add failed for {tenant_code}/{page_key}: {e}")
+        return jsonify({"success": False, "message": _("An unexpected error occurred.")}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+def api_tenant_next_value(tenant_code, page_key, column):
+    """``{"last": <max>, "next": <max+1>}`` for a hand-kept counter column.
+
+    Read-only, but gated on ``tenant.<code>.edit`` rather than view: its only
+    caller is the add sheet's prefill, and the highest value in a column is a
+    write-form hint, not list data. ``column`` must be one of the entity's own
+    visible, non-id fields with a ``_SEQUENCE_ROLES`` role -- an unknown or
+    wrong-typed column 404s rather than reaching the query builder (the same
+    "never trust a column name off the wire" rule the module docstring sets
+    out for filters and sorts).
+    """
+    if not has_permission(f"tenant.{tenant_code}.edit"):
+        raise PermissionDenied()
+
+    unavailable, t, _page, entity, fields = _resolve_page_entity(
+        tenant_code, page_key, require_entries=True
+    )
+    if unavailable:
+        return jsonify({"success": False, "unavailable": True}), 503
+
+    field = next((f for f in fields if f.column == column), None)
+    if (
+        field is None
+        or field.column == entity.id_column
+        or field.semantic_role not in _SEQUENCE_ROLES
+    ):
+        abort(404)
+
+    engine, dialect = _resolve_client_engine(entity)
+    if engine is None:
+        return jsonify({"success": False, "unavailable": True}), 503
+
+    conn = None
+    cursor = None
+    try:
+        conn = engine.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute(build_next_value_query(entity, column, dialect))
+        row = cursor.fetchone()
+        raw = row[0] if row else None
+        # An empty table (or an all-NULL column) starts the count at 1. An
+        # identifier column holding something that does not count (a natural
+        # string key) reports its last value with ``next: null``: the caller
+        # shows the hint and leaves the field alone rather than prefilling
+        # nonsense.
+        if raw is None:
+            return jsonify({"success": True, "column": column, "last": None, "next": 1})
+        try:
+            last = int(raw)
+        except (TypeError, ValueError):
+            return jsonify({"success": True, "column": column, "last": str(raw), "next": None})
+        return jsonify({"success": True, "column": column, "last": last, "next": last + 1})
+    except Exception as e:
+        current_app.logger.error(
+            f"tenant next-value query failed for {tenant_code}/{page_key}/{column}: {e}"
+        )
         return jsonify({"success": False, "message": _("An unexpected error occurred.")}), 500
     finally:
         if cursor:
@@ -770,6 +854,12 @@ def register_routes(app):
         "/api/t/<tenant_code>/<page_key>/export",
         endpoint="api_tenant_export",
         view_func=api_tenant_export,
+        methods=["GET"],
+    )
+    app.add_url_rule(
+        "/api/t/<tenant_code>/<page_key>/next/<column>",
+        endpoint="api_tenant_next_value",
+        view_func=api_tenant_next_value,
         methods=["GET"],
     )
     app.add_url_rule(

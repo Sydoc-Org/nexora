@@ -6,31 +6,107 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Sydoc BPS** (`/bps`, permission `bps.view`, #415): every hour booked in
+  the BPS timetool for a period -- KPIs (total / service / billable / absence
+  hours, bookings, people), hours per day stacked by category, and a
+  drill-down task › customer › person (or customer- / person-first) down to the
+  single booking with its comment; filters for billable only, absences and a
+  text filter; CSV of every booking. The billable-task rule lives once in
+  `nx_lib/bps.py` and is shared with the Finance page. Migration `0140`.
+  `docs/howto/bps.md`.
+- **Finance month close** (#415): *Close month* (`finance.month.edit`) freezes every
+  section of an invoiced month into `dbo.FinanceMonthClose`; a closed month is
+  served from the snapshot (CSV included) and only notes where the live data
+  has moved since -- EM re-exports and Compass re-uploads overwrite their date
+  after the workbook is refreshed, so live figures drift. *Reopen month*
+  deletes the snapshot. Migration `0139`.
+- **Finance**: the register × branch (Posteingang) and forwarding type × branch
+  (Physische Zustellung) matrices of the billed Privera sheets; the Sydoc
+  services section now lists every **billable** BPS booking singly with its
+  comment (Support verrechenbar / extern verrechenbar, Change, Change Request,
+  Professional Services, Projektmanagement, plus Vorbereitung Akten on Privera
+  Neuzugänge), grouped per customer, instead of hour totals.
+
+- **Sydoc Finance** (`/finance`, permission `finance.view`, #408): the monthly
+  accounting figures of every billed client on one page per month, instead
+  of walking the same numbers out of Reporting report by report. One section
+  per client -- the six #329 workbooks (Elektro-Material per channel, Compass,
+  Privera Posteingang / Rechnungseingang / Physische Zustellung / Neuzugänge
+  per branch, Mandant and source) plus Frigemo, Aveniq Xpert, Bucherer EasyTax
+  and MediaMarkt with what their collectors already deliver -- and the hours
+  Sydoc books in the BPS timetool, per task and per customer, with absences
+  split out (a new `bps_projects_service_hours` measure). Each figure is
+  compared with the month before; breakdown tables carry share and totals; a
+  source that is down shows its error in place. The page has no SQL of its
+  own: `nx_lib/finance.py` names registered sources and measures and builds
+  the queries with the reporting `table` provider, so a figure here **is**
+  the measure in Reporting. Month picker in the URL, CSV export, print
+  stylesheet. Migration `0138` creates the code, grants it to Global Admin
+  and registers the BPS measure; the code is internal-only (no row scoping).
+  `docs/howto/finance.md`.
+
+### Changed
+
+- **Finance parity with the billing workbooks** (#415, migration `0139`):
+  Privera *Documents by mail* now drops MAIL rows without a file name, as the
+  Rechnungseingang workbook's Mail pivot does (May / July / August 2026:
+  11,669 / 14,945 / 11,759 -- exact); MediaMarkt *Batches* counts only rows with
+  a piece count, so pre-typed placeholder batches no longer count. Reconciled
+  against the May-August 2026 workbooks: every Privera figure and matrix cell
+  exact; Elektro-Material and Compass definitions exact, their live data drifts
+  after the refresh (hence the month close).
+
+- **Generated tenant pages (`/t/<tenant>/<page>`) moved onto the slim design
+  system** — the look the Dashboard and the admin redesign already carry, and
+  the first migration of the one page that exists today, **MediaMarkt Batches**
+  (`/t/sydoc/mediamarkt`). Boxes became rules: the bordered `.nx-filter` panel
+  and the table card are gone, the filters sit directly on the page above a
+  hairline at one control height, and the table is framed by its header rule
+  and row dividers alone. The page head collapsed to one row — icon chip,
+  entity name, and a single meta line carrying the tenant and the live record
+  count instead of the tenant name plus a subtitle. Figures (`count`/`money`
+  columns) are right-aligned and tabular so they line up down the column, a
+  `flag` renders as a green check rather than a ✓ glyph, and row actions are
+  icon buttons that surface on row hover. Layout lives in the new
+  `static/css/tenant-page.css`; every component is reused, none invented.
+
+- **The Add/Edit modal became a side sheet.** It was a centred dialog over a 50%
+  black scrim; it is now the same right-hand `.adm-sheet` the redesigned admin
+  pages use, over a light scrim — the list stays readable behind the form.
+  Escape and a backdrop click close it.
+
+- **The add form now opens with the entry half-written.** Every `date` field
+  starts on today, and a hand-kept counter column opens on the next number with
+  a hint naming the last one used — for MediaMarkt, `BatchNo`, which runs as one
+  unbroken counter across years. Both stay editable. The counter is served by a
+  new read-only endpoint, `GET /api/t/<tenant>/<page>/next/<column>` (gated on
+  `tenant.<code>.edit`; the column must be a visible, non-id field with an
+  `identifier` or `count` role, or it 404s), backed by
+  `nx_lib/tenant/queries.py::build_next_value_query`.
+
+- **`DocType` on the MediaMarkt page is a dropdown** (`K` / `D` / `KA`) instead
+  of a free-text box. `dbo.TenantFields` carries no option list, so the choices —
+  and which column is the counter — are a hardcoded, commented map in
+  `templates/tenant/page.html`, keyed by tenant/page/column. Pages without an
+  entry are unaffected; the map moves into the registry the day a second page
+  needs one.
+
 ### Fixed
 
-- **Reporting pages fit on a phone again (#381).** `/reporting`, report
-  definitions, the source registry and the guide were up to 160 px wider than
-  an iPhone screen, so buttons were cut off at the right edge and the page
-  scrolled sideways. The single-column layout now shrinks to the screen, and
-  the top bar, the Library heading and the filter row wrap when they run out
-  of room.
-- **Admin page titles are no longer hidden behind the "+ Add …" button on a
-  phone (#382).** Maintenance, Organizations, Processes, Data Connections and
-  Manage Tenants: the button now drops below the title when both don't fit.
-- **No more big empty gap under page titles on narrow screens.** The #382 fix
-  above gave the title block an 18rem flex *basis*. On pages that stack their
-  header as a column below 768px (Workitems, Prepared Documents and every
-  Generali page) a basis is a height, so ~300px of blank space opened up
-  between the title and its buttons. It is a minimum width now, which wraps
-  the admin buttons exactly as before without touching column headers.
-- **Row actions stay on one line on desktop (#383, #384).** On
-  `/admin/organizations`, "Delete" dropped to a second line under "Edit" and
-  "Branding". On `/reporting/metrics`, "Edit" and "Delete" were stacked on
-  top of each other. Both now sit side by side, and the metrics pair gets a
-  small gap.
-
-The two phone fixes change nothing on a desktop screen: they only kick in
-when there isn't enough room.
+- **Deploy: a scheduled run can no longer cancel a merge's staging deploy**
+  (#419). The `test` job's concurrency group was per ref only, so the 03:00
+  e2e cron -- which GitHub ran six hours late on 2026-09-30 -- cancelled the
+  push run of #418 and with it `deploy-staging`, while the schedule run itself
+  does not deploy staging: the merge never reached staging and nothing said so.
+  The group is now per ref **and** event, so only a newer run of the same kind
+  supersedes one (successive pushes still do).
+- **Deploy: a manual "Run workflow" on `main` now redeploys staging.** The merge
+  of #410 never received its push event from GitHub, so staging stayed on the
+  release commit and the only ways to move it were the 01:30 nightly or another
+  code push. The dispatch keeps running the E2E tier first; dev and PROD
+  triggers are unchanged (#408).
 
 <!-- Everything below, down to the next release heading, is the phone view from
      feat/354-phone-tabbar. It is NOT on main: fold it in only when that branch merges. -->
@@ -862,6 +938,335 @@ when there isn't enough room.
   signed-in user, so none of it belonged in a cache anyway — this also stops
   a back-button press on a shared machine redisplaying the previous user's
   page after sign-out.
+
+## [3.3.0] - 2026-09-29
+
+### Changed
+
+- **New: a detail page per permission** (`/admin/permissions/detail/<code>`,
+  linked from the code in the grid). The grid says who holds a permission; it
+  could never say what holding it does, and the 200-character
+  `dbo.Permission.Description` cannot either.
+
+  Everything on the page is **derived rather than described**, so it cannot
+  drift from the code. *What it unlocks* walks the route map and reads the
+  `required_permissions` tuple that `require_permission` already leaves on every
+  guarded view, listing the exact pages and API endpoints that refuse without
+  it. *Where it shows in the interface* scans the templates and the package for
+  the code — following the `page_visibility()` flags, since templates read those
+  rather than calling `has_permission` — and prints file, line and the guarding
+  line itself. The grammar is spelled out segment by segment with the
+  vocabulary from `docs/design/permissions.md`, and a code that guards nothing
+  anywhere is called out as a leftover.
+
+  **Screenshots**: the ~24 permissions that gate a page carry a captured image
+  of that page, under `static/img/permissions/`, regenerated by
+  `scripts/capture-permission-shots.py`. Codes with no single screen behind them
+  (`reporting.export`) correctly have none.
+
+  Alongside: the page is the repo's first `pgettext()` caller, which surfaced a
+  latent bug in `test_translations.py` — `read_mo` returns a message context as
+  bytes where `read_po` returns `str`, so the `.po`/`.mo` comparison could never
+  match a contextual message. Fixed.
+
+- **Retired: `/admin/clients`, `/admin/processes` and `/admin/tenants`.** All
+  three still answered after the tenancy redesign moved their content onto the
+  pages that own it, but nothing linked to them any more — Data Connections and
+  Process Configurations live on the organization that owns them
+  (`/admin/organizations/detail/<code>`, **Data & processes**), and the tenant
+  tree is `/admin/tenants/manage`. The two stale links left on the admin
+  overview are gone with them.
+
+  **Nothing under `/api/admin/*` changed**: the organization detail page drives
+  its connection cards and process sources through exactly the endpoints those
+  pages used, so every add/edit/delete path is untouched. What went is three
+  page views, their templates and JS partials, and
+  `nx_lib/views/admin/tenants.py` (the read-only tenant tree, superseded by
+  Manage tenants).
+
+  Two assertions that guarded real behaviour rather than page chrome moved to
+  organization detail: that the connection sheet covers all ten writable
+  `dbo.Clients` columns (editing a display name must not NULL the MS02 engine
+  keys), and that no free-form SQL fragment is editable through the process
+  source form.
+
+- **Mount page previews what you are about to mount, and stops being a box.**
+  Picking an endpoint now repaints the member preview next to the form with
+  the page you would get — its shape sketch, the label and icon you typed, a
+  Draft pill (new pages start hidden from members) and the URL the sidebar
+  entry will point at. Key and label keep following the endpoint until you
+  type your own, then they stop. The panel itself lost its card and sits
+  between two hairlines like the filter bars and tables around it.
+
+- **Status and Sessions lose their last panels.** The status hero, the open
+  incident list, the component list and the Sessions locked-accounts block were
+  the last `.nx-card` chrome left in the admin area. The hero keeps its state
+  signal — the colour moves onto the rule and the icon — so an outage still
+  reads at a glance without a border around it.
+
+- **The tenant page preview is now per page, and Mount page opens inline.**
+  Every mounted page renders its own preview instead of one generic mock.
+  Generated `list`/`crud` pages are built from the same `TenantEntities` /
+  `TenantFields` descriptors the member-facing page renders from, so the
+  preview carries the page's real column labels, its real filter row (id
+  column, the text-ish fields, the first date field as a from/to pair), its
+  Add/Export buttons and the source table it reads — only the cell *values*
+  are synthetic, and the caption says so. A page that mounts an existing
+  nexora endpoint has no descriptor to read, so it previews as one of four
+  shape sketches (dashboard, report, cards, list) chosen from the endpoint,
+  plus the URL the sidebar entry actually points at.
+
+  **Mount page** moved out of the side sheet into an inline panel above the
+  table it edits: a six-field form left most of a full-height sheet empty and
+  hid the table you were changing. Choosing an endpoint now fills the key and
+  label for you. Empty required fields no longer paint themselves red before
+  they have been touched (`:invalid` → `:user-invalid`).
+
+- **The tenant member preview now previews the page, and pages can be
+  reordered.** The Pages tab's preview was a generic grey skeleton; it now
+  shows the selected page — the tenant's brand in the preview sidebar, the page
+  key in the window's address bar, and either a dashboard mock (KPI tiles and a
+  chart) or a table mock depending on the page. Selecting a row or a preview
+  sidebar entry drives both. **Reorder** puts up/down arrows on each row and,
+  on leaving reorder mode, writes `TenantPages.SortOrder` as 10, 20, 30 … so a
+  later single move has room to land between two neighbours. The new endpoint
+  rejects a key list that does not exactly match the tenant's own pages rather
+  than reordering a subset.
+
+- **The rest of the admin area loses its boxes.** Access Control, Permissions,
+  Sessions, Logs, User detail, Data Connections and Process Configurations
+  still rendered the old card chrome — a bordered filter box and a bordered
+  table card. The three shared constructs behind that (`nx-filter`,
+  `nx-table-wrap`, the `page_header` macro) are now flattened to the same
+  language as the redesigned pages. Scoped to a new `body.nx-admin` class
+  rather than to `admin.css` as a whole, because the generated tenant pages
+  load that stylesheet too and are member-facing.
+
+- **Organizations list and organization detail complete the tenancy redesign.**
+  The Organizations list gains tenant tabs (All, one per tenant, No tenant),
+  search, per-organization user counts, the data connection it actually reaches
+  and a branding summary. Each row opens the new organization detail page
+  (`/admin/organizations/detail/<code>`) with **Users · Access profiles · Data
+  & processes · Branding · Tenant** tabs.
+
+  The detail page absorbs two things that used to live elsewhere: the branding
+  panel (now with a live "what members see" preview and Save disabled until
+  something actually changed), and this organization's slice of **Process
+  Configurations** — its connection cards, process sources and field mappings,
+  with add/edit/delete through side sheets. The Tenant tab moves an
+  organization between tenants with an explicit warning about what its members
+  will see.
+
+  **Sidebar:** the Tenants group is now just **Manage** and **Organizations**.
+  Overview merged into Manage tenants, and Data Connections / Process
+  Configurations moved onto the pages that own them. Their routes still answer,
+  so existing deep links keep working.
+
+- **Fixed: the admin sidebar clipped instead of scrolling.** `.sidebar-nav` had
+  `flex: 1` and `overflow-y: auto` but no `min-height: 0`, and a flex item will
+  not shrink below its content — so a long nav (admin, with the Tenants group
+  open) ran past the viewport with no way to reach the bottom entries.
+
+- **Fixed: "1 organization" and "1 field" showed a button label in de/fr/it.**
+  The singular form of both plural catalog entries held the *Add organization*
+  / *Add field* text instead of the count, so any count of exactly one rendered
+  as a button label. All three locales corrected.
+
+- **Manage tenants is now one page, and every tenant has a detail view.**
+  Tenants Overview and Manage Tenants merge into **Manage tenants**: tabs
+  (All / Active / Inactive) with a search over tenants, organizations and
+  codes, a KPI strip, and one row per tenant showing its organizations, user
+  count, **data connection**, active-vs-total pages and status. A **Needs
+  attention** list names the things that are actually wrong — organizations in
+  no tenant, a tenant nobody holds `tenant.<code>.view` for, a tenant with no
+  organizations — each with a link to where it gets fixed.
+
+  Clicking a row opens the new tenant detail page
+  (`/admin/tenants/detail/<code>`) with **Organizations · Pages · Access**
+  tabs; the tab lives in the URL hash, so a reload comes back to it. Pages
+  moved here from the inline panel and gained a Draft/Active switch and a
+  **member preview** — a mini window showing the sidebar a member of that
+  tenant actually sees. Access lists the profiles holding the tenant's view
+  permission and warns when none do.
+
+  **Data Connections** (`dbo.Clients`) now also appear on Manage tenants, each
+  row showing which organizations use it — derived from their process sources
+  — and whether the runtime actually loaded it. Centred modals are replaced by
+  right-hand **side sheets** for the tenant, page-mount and connection forms.
+  The standalone Data Connections and Process Configurations pages are
+  unchanged and still reachable; the sidebar is cleaned up in a later step.
+
+- **Admin Overview rebuilt to the tenancy redesign.** The 2×2 launcher-card
+  grid is replaced by a KPI strip (active sessions, failed logins, users,
+  database health) over two columns of link rows — **Tenancy** and **Access &
+  monitoring** — each row carrying a live count, so the page says what needs
+  attention instead of only where to click. New metas: tenants without an
+  organization, organizations not in a tenant, data connections configured but
+  **not loaded** by the runtime, and degraded status components. Every count is
+  individually guarded: on an environment mid-migration the row loses its meta
+  rather than the page 500-ing. First slice of the admin tenancy redesign —
+  brief and prototypes in `docs/design/design_handoff_admin_tenants/`.
+
+  The shared `.adm-*` primitives it introduces in `static/css/admin.css` (page
+  header, KPI strip, tabs, tables, link groups, status pills, segmented
+  control) are written against the existing `--nx-*` tokens rather than the
+  handoff's literal hex values, so the redesign follows the accent preference
+  and dark mode for free.
+
+- **Legal draft: gaps found in review are now covered** (#260). The privacy
+  policy gains a section on sensitive data (health data in insurance
+  documents), names every disclosure to the USA (ngrok, and the Google Fonts,
+  cdnjs and jsDelivr files every page loads) with the safeguard still to be
+  confirmed, describes the single sign-in cookie and the settings kept in the
+  browser, and proposes a deletion rule for accounts of people who have left.
+  The terms name Zug as the place of jurisdiction (Baar has no court). Still a
+  draft, still hidden on PROD.
+
+### Added
+
+- **`nx --doctor` checks every reporting source's own table or view** (#329).
+  The rail's status dot only proves a database answers, so a source over a
+  missing table stayed green while every report on it failed. The new
+  *Reporting sources* section runs `SELECT TOP 0 <configured columns>` for each
+  enabled `table` source on its engine — which also catches a configured
+  column the table does not have — and again through the read-only login the
+  SQL tab and the AI assistant use. On INT it finds two real problems, both in
+  the databases rather than in nexora:
+  - **Privera — Neuzugänge fails everywhere**: its view
+    `v_PriveraNeuzugaenge_StatistikNiederlassung_AnzahlDossiers` reads from
+    `SYDOC_Statistik1`, a database that does not exist (a restore leftover
+    already noted in `0134`); the table is in `SYDOC_Statistik`.
+  - **Privera — Physische Zustellung and Posteingang fail only in the SQL tab
+    and the AI assistant**: the read-only login has no access to
+    `01_Privera_Posteingang`. They work in the report builder, which is the
+    "only sometimes" symptom.
+  Neither database is managed by nexora's migrations, so both fixes are SQL
+  for whoever administers the server (column-level grant, so the owner,
+  property and recipient columns stay unreadable). Runs on SYAPP01 against PROD
+  with `ENVIRONMENT=PROD python -m nx_lib.cli doctor --fast` — see
+  `docs/howto/nx.md`.
+
+- **`GET /api/v1/workitems?include=tables`** (#398): each row can now carry
+  its extracted table values (line items, VAT rows, order references) in
+  the same shape `/workitems/<id>` returns, resolved once per page like
+  `include=fields`; `include=fields,tables` returns both. The values are read
+  set-based from the client's **document storage database** -- Octo keeps
+  each client's documents in a separate database named after its
+  `t_DocumentStorages` row on the runtime server, and the table values sit
+  there as one plain-XML media item per document (`nx_lib/workitems/tables.py`
+  parses it with the detail endpoint's rules, `nx_lib/document_storage.py`
+  opens the storages by name) -- so there is no per-row Octo call and no
+  page-size cap. Sensitive columns are stripped with the detail endpoint's
+  rule; any storage failure 500s the whole page. `nx --doctor` gains a
+  "Document storages" section that verifies every storage the runtime lists
+  can be opened. Sandbox twin and `docs/howto/external-api.md` updated.
+- **Terms of Service and Privacy Policy pages** at `/terms` and `/privacy`
+  (#260), public on purpose (a privacy notice readable only after signing in
+  cannot inform the decision to sign in), linked under **Help** in the profile
+  menu and from the login-screen footer. The text is filled in from
+  management's answers (2026-09-24): Sydoc AG, Baar, as controller,
+  `privacy@sydoc.ch`, retention as implemented (request log 180 days, sessions
+  8 days, accounts until the client asks), sub-processors named (Microsoft
+  Azure CH, Microsoft 365, ngrok), requests answered within 30 days. nexora is
+  not sold standalone, so the Terms supplement the client contract. German is
+  the authoritative text, English a courtesy version, picked by the UI
+  language with a `?lang=de|en` switch. **Still a draft** -- the banner stays
+  until management signs it off; open points are in
+  `docs/design/legal-pages-open-questions.md`. Until then the pages are **live
+  on dev and staging only**: on PROD `LEGAL_PAGES_LIVE` (in `nx_lib/config.py`)
+  makes both routes 404 and hides the menu and footer links.
+
+### Fixed
+
+- **Legal draft checked against the code, and the code brought in line (#260).**
+  The privacy page promised things the system did not do and left out things
+  it does:
+  - **Search terms no longer land in the request log.** `search`, `q` and
+    `docvalue` are written as `[redacted]` (`LOG_REDACTED_ARGS` in
+    `nx_lib/hooks.py`) — a Generali document search can be a name or a policy
+    number. The page now also says a log row holds the IP address, the session
+    id and the query parameters.
+  - **"Deleted after 180 days" now holds for the CSV files too.** Only
+    `dbo.Logs` was pruned; `var/logs/user/` was emptied only by the PROD-only,
+    unscheduled `csvLogs_toDB.ps1`, so dev and staging kept every hour. The
+    request hook deletes hour folders past `REQUEST_LOG_RETENTION` whenever it
+    opens a new one.
+  - **Session files are cleaned on a schedule.** `cleanup_expired_sessionFiles.ps1`
+    gets `ops/cleanup/cleanup-session-files-task.xml` (daily 03:15), registered
+    by the deploy, and now reports and exits non-zero on a failed delete.
+  - **The page names Tailwind** (cdn.tailwindcss.com, USA), loaded by the
+    sign-in, error and legal pages, and lists the profile picture, last sign-in,
+    failed-attempt lock and feedback mail. The cookie is described as set for
+    signed-out visitors too, and two-factor sign-in as mandatory. "Stand"
+    29.09.2026; the draft pages carry `noindex`.
+  - **Answers of 29.09. filled in:** documents on Sydoc's own servers in
+    Switzerland, feedback mail deleted once dealt with, Anthropic Claude as
+    the AI provider (and the assistant's log in the inventory), and the basis
+    for each US transfer — Swiss-U.S. DPF for Google, Cloudflare and ngrok,
+    SCCs for Anthropic and jsDelivr. Paragraph spacing and list bullets
+    restored (the Tailwind preflight removed them).
+  - **Tailwind Labs is no longer a recipient.** The 10 standalone pages
+    (start, login, 2FA, the four password pages, error and legal pages)
+    loaded Tailwind v3 from `cdn.tailwindcss.com`, for which no transfer basis
+    exists; they now load the same v4 build from jsDelivr as the rest of the
+    app, with a small v3-compatibility block (default border colour, and the
+    theme icons, which v4's layered `.hidden` lost to Font Awesome's
+    `display`). Compared before/after in light and dark: identical apart from
+    the privacy text itself. `cdn.tailwindcss.com` is gone from the CSP
+    (`script-src` and `connect-src`), pinned by `test_csp_cdn_allowlist.py`.
+  - **`<html lang="">` on every page.** 47 templates used `get_locale`, which the
+    template context does not have; they use `current_lang` now. That exposed
+    `current_lang` itself as `"None"` whenever no supported language was known
+    (e.g. a browser set to Spanish), which also reached the PDQM and
+    additional-services category requests as `?locale=None`; it falls back to
+    `en`.
+
+- **The Frigemo reporting source runs on PROD again (#402).** Every report on
+  *Frigemo — Documents* failed with "Bericht konnte nicht ausgeführt werden":
+  migration `0127` had registered it over `dbo.Frigemo`, a table that only
+  ever existed on INT (hand-made, synthetic rows). The collector on PROD writes
+  `dbo.Frigemo_Statistic` under the vendor's column names (`DCD`,
+  `OVERALL_IMP_DOCS`, …). Migration `0137` repoints the source and its six
+  measures at that table; labels and permissions are unchanged, and no saved
+  report referenced the old field names. INT got a matching
+  `Frigemo_Statistic` so it rehearses the same SQL. Guarded by
+  `tests/unit/test_frigemo_source.py`. PROD's data currently ends on
+  2025-02-28 — the collector, not the source, is what stopped there.
+- **Reporting pages fit on a phone again (#381).** `/reporting`, report
+  definitions, the source registry and the guide were up to 160 px wider than
+  an iPhone screen, so buttons were cut off at the right edge and the page
+  scrolled sideways. The single-column layout now shrinks to the screen, and
+  the top bar, the Library heading and the filter row wrap when they run out
+  of room.
+- **Admin page titles are no longer hidden behind the "+ Add …" button on a
+  phone (#382).** Maintenance, Organizations, Processes, Data Connections and
+  Manage Tenants: the button now drops below the title when both don't fit.
+- **No more big empty gap under page titles on narrow screens.** The #382 fix
+  above gave the title block an 18rem flex *basis*. On pages that stack their
+  header as a column below 768px (Workitems, Prepared Documents and every
+  Generali page) a basis is a height, so ~300px of blank space opened up
+  between the title and its buttons. It is a minimum width now, which wraps
+  the admin buttons exactly as before without touching column headers.
+- **Row actions stay on one line on desktop (#383, #384).** On
+  `/admin/organizations`, "Delete" dropped to a second line under "Edit" and
+  "Branding". On `/reporting/metrics`, "Edit" and "Delete" were stacked on
+  top of each other. Both now sit side by side, and the metrics pair gets a
+  small gap.
+
+The two phone fixes change nothing on a desktop screen: they only kick in
+when there isn't enough room.
+
+### Removed
+
+- **The repo no longer ships a Claude Code status line.**
+  `.claude/helpers/statusline.cjs` was invoked via `node`, which is not
+  installed on the dev machines, so every render failed silently and the status
+  line was simply blank — it had never worked for anyone without a Node
+  runtime. It is deleted, along with the `statusLine` block in
+  `.claude/settings.json`; the status line now lives in user-global config
+  (`~/.claude/statusline.py` + `~/.claude/settings.json`), where it applies to
+  every repo instead of this one. **If yours went blank, that is why** — set it
+  up globally, see `docs/howto/claude-workflow.md`.
 
 ## [3.2.14] - 2026-09-23
 

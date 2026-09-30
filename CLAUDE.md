@@ -17,7 +17,7 @@ Nexora is a Flask web application (Python 3, WSGI) deployed on Windows/IIS, whic
 - `ENVIRONMENT` (`INT`, `STAGING`, `PROD`, or `TEST` for pytest) selects the env file; `nx_lib/config.py` loads `env/{ENVIRONMENT}.env`. Sanitised templates: `env/*.env.example`.
 - **Local dev:** `.venv` via `uv venv && uv sync` (or `bootstrap.ps1`), `ENVIRONMENT=INT`, `.venv\Scripts\python.exe nx_main.py`. WSGI handler is `nx_main.app`. `requirements*.txt` are generated from `uv.lock` for the IIS deploy path — never install from them locally. Full setup: `CONTRIBUTING.md`.
 - **Production:** IIS + HttpPlatformHandler → `waitress` (32 threads). `web.config` is the whole hosting contract — it starts waitress, sets `ENVIRONMENT=PROD` / `PYTHONPATH`, trusts `X-Forwarded-For`, logs stdout to `var/logs/system/waitress-stdout*`. Note `path="*"`: **waitress serves `/static`, not IIS**. See `docs/howto/iis.md`. (`wfastcgi` retired in v3.2.3.)
-- **Hosted envs (SYAPP01):** `dev-nexora.sydoc.ch` (any branch push, `INT`, INT DBs) · `staging-nexora.sydoc.ch` (`main` + 01:30 nightly, `STAGING`, nightly PROD-copy DBs `nexora_STAGING`/`Generali_STAGING` on PRDSQL01) · `nexora.sydoc.ch` (`v*` tag, `PROD`). One ngrok agent fronts all three (`docs/howto/ngrok.md`); host setup `ops/setup-env.ps1`; DB refresh `ops/staging-refresh.sql`. Cloudflare Tunnel is parked (`docs/howto/cloudflare-tunnel.md`). `IS_PROD` is true for `STAGING` too.
+- **Hosted envs (SYAPP01):** `dev-nexora.sydoc.ch` (any branch push, `INT`, INT DBs) · `staging-nexora.sydoc.ch` (`main` + 01:30 nightly, or Actions → Deploy → Run workflow on `main`; `STAGING`, nightly PROD-copy DBs `nexora_STAGING`/`Generali_STAGING` on PRDSQL01) · `nexora.sydoc.ch` (`v*` tag, `PROD`). One ngrok agent fronts all three (`docs/howto/ngrok.md`); host setup `ops/setup-env.ps1`; DB refresh `ops/staging-refresh.sql`. Cloudflare Tunnel is parked (`docs/howto/cloudflare-tunnel.md`). `IS_PROD` is true for `STAGING` too.
 
 ## Databases
 
@@ -36,11 +36,13 @@ SQLAlchemy engines with pyodbc, defined in `nx_lib/db.py`. Credentials come from
 | `engine_ms02_stats_pg` | MS02 dashboard-statistics DB — `MS02_STATS_DB_*` |
 | `engine_ms02_docfields_pg` | MS02 doc-field source DB — `MS02_DOCFIELDS_DB_*`. While `None`, doc-field search **fails closed** for MS02 (zero rows), never unconstrained |
 
+**Octo document storages** (`nx_lib/document_storage.py`, #398) — each client's documents live in a **separate database named after its `t_DocumentStorages` row** on the runtime server (`EM_Storage`, `Compass_Storage`, …; `<Default>` = the runtime DB). Convention, not config: nexora opens them by name with the runtime login. Table values are one XML media item per document there (`nx_lib/workitems/tables.py` parses it) — that is what `/api/v1/workitems?include=tables` reads; `nx --doctor` verifies every listed storage opens.
+
 **Workitem identity is compound (client + id)** — ids are unique only *within* a client (1216 collides between the Octo and MS02 runtimes on INT). Detail routes take `?client=<code>`; per-workitem caches and front-end element ids include the client.
 
 **Multi-source workitems (MS02)** live in `nx_lib/workitem_sources.py` (adapters + probe-then-cache routing) and `nx_lib/clients.py` (client registry). Statistics and doc-field search route per-client through `nx_lib/mapping_config.py`'s cached registry over `dbo.ProcessSources`/`ProcessFieldMappings`/`FieldLabels`/`FieldAliases` (migration `0074`; the legacy `SearchConfig`/`StatConfig`/`IndexFieldMappings`/`Search_Field_Labels` tables were decapitated by `0075`); for MS02 both read wide **columnar** statistik tables (e.g. `public."DossierStatistik"`), *not* an EAV index. **Engines, migrations `0023`–`0033`, `0074`–`0075`, resolvers, permission gates, gotchas: `docs/design/ms02-multisource.md`.**
 
-**Onboarding a new client/customer** (the `ClientCode` runtime-source vs. `Organizations` customer split, `dbo.Clients` registry, `/admin/tenants/manage` + `/admin/clients` + `/admin/processes` admin pages): `docs/howto/white-label.md`.
+**Onboarding a new client/customer** (the `ClientCode` runtime-source vs. `Organizations` customer split, `dbo.Clients` registry, the `/admin/tenants/manage` and `/admin/organizations` admin pages): `docs/howto/white-label.md`.
 
 **Schema changes always go through a migration.** DDL under `sql/` mirrors SSMS Object Explorer; the **live INT database is the source of truth** and the per-object files under `sql/<Database>/` are auto-generated — **never hand-edit them**. Only the two app-owned DBs are tracked (`StatisticsDB` and `OctoDB` are vendor/runtime surfaces).
 
@@ -98,6 +100,10 @@ One line each; **the full detail lives in `docs/design/architecture-conventions.
 - **Workitems logic package** — Flask-free helpers (field/table value ops, sensitivity redaction, media/cache-key helpers, DB query) live in `nx_lib/workitems/` (`fields.py`/`sensitivity.py`/`media.py`/`query.py`); `nx_lib/views/workitems.py` keeps route handlers plus Flask-aware wrappers, and `api_external.py`/`dashboard.py` import the Flask-free symbols directly.
 
 **Reporting** is the largest subsystem — Simple/Advanced tabs, report builder, provider-agnostic AI assistant, sharing, DB-backed source registry, scheduled email delivery. Architecture: `docs/howto/reporting.md` + `docs/design/reporting-ai-assistant.md`. `docs/howto/reporting-guide.md` is the **end-user** guide: any user-visible reporting change must update it **and** the in-app tips panel (`templates/_reporting_help.html`) in the same commit — the `reporting-help-sync` pre-commit hook reminds you.
+
+**Sydoc Finance** (`/finance`, `finance.view`, #408) is the monthly accounting report over the registered billing sources: `nx_lib/finance.py` holds the per-client section spec and builds its SQL with the reporting `table` provider, so its figures are Reporting's measures by construction. Adding a client is one `Section` entry there; the code is internal-only (no row scoping). A month is **closed** once invoiced (`finance.month.edit`, snapshot in `dbo.FinanceMonthClose`) and then served frozen. `docs/howto/finance.md`.
+
+**Sydoc BPS** (`/bps`, `bps.view`, #415) shows every BPS timetool hour drilled down task › customer › person › booking; the billable-task rule lives once in `nx_lib/bps.py` and is shared with Finance. `docs/howto/bps.md`.
 
 
 ## Testing & browser automation

@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="{{ current_lang }}">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
+    {% include '_theme_prepaint.html' %}
+    <link rel="stylesheet" href="{{ static_v('css/nexora-ui.css') }}">
+    <title>{{ tenant.DisplayName }} - nexora</title>
+    <link rel="stylesheet" href="{{ static_v('css/admin.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous" />
+</head>
+<body class="nx-app nx-admin">
+    {% set active_page = 'admin_tenants_manage' %}
+    {% import 'admin/_page_sketch.html' as sk %}
+    {% include '_header.html' %}
+
+    <main class="nx-main">
+
+        {# ---- Breadcrumbs -------------------------------------------------- #}
+        <nav class="adm-crumbs nx-rise" aria-label="{{ _('Breadcrumb') }}">
+            <a href="{{ url_for('admin_tenants_manage_view') }}">{{ _('Manage tenants') }}</a>
+            <i class="fas fa-chevron-right adm-crumbs__sep"></i>
+            <span class="adm-crumbs__here">{{ tenant.DisplayName }}</span>
+        </nav>
+
+        {# ---- Page header --------------------------------------------------- #}
+        <div class="adm-head nx-rise">
+            <span class="adm-head__tile adm-head__tile--initial">{{ tenant.DisplayName[:1]|upper }}</span>
+            <div class="adm-head__main">
+                <h1 class="adm-head__title">
+                    {{ tenant.DisplayName }}
+                    <span class="adm-pill {{ 'adm-pill--ok' if tenant.IsActive else '' }}" style="vertical-align:middle;margin-left:8px">
+                        {{ _('Active') if tenant.IsActive else _('Inactive') }}
+                    </span>
+                </h1>
+                <p class="adm-head__sub">
+                    <span class="nx-mono">{{ tenant.TenantCode }}</span>
+                    &middot; {{ _('%(n)s organizations', n=organizations|length) }}
+                    &middot; {{ _('%(n)s users', n=tenant.user_count) }}
+                </p>
+            </div>
+            {% if can_edit %}
+            <div class="adm-head__actions">
+                <button type="button" class="nx-btn nx-btn--sm" id="editTenantBtn"
+                        data-tenant='{{ {"TenantCode": tenant.TenantCode, "DisplayName": tenant.DisplayName, "IsActive": tenant.IsActive, "organizations": organizations | map(attribute="organizationcode") | list}|tojson|safe }}'
+                        data-testid="admin-tenant-edit">
+                    <i class="fas fa-pen"></i> {{ _('Edit tenant') }}
+                </button>
+                <button type="button" class="nx-btn nx-btn--sm nx-btn--danger-outline" id="deleteTenantBtn"
+                        data-tenant="{{ tenant.TenantCode }}" data-testid="admin-tenant-delete">
+                    {{ _('Delete') }}
+                </button>
+            </div>
+            {% endif %}
+        </div>
+
+        {# ---- Tabs ----------------------------------------------------------- #}
+        <div class="adm-tabs nx-rise-2">
+            <button type="button" class="adm-tab adm-tab--active" data-nx-tab="organizations" data-testid="tenant-tab-organizations">
+                {{ _('Organizations') }} <span class="adm-tab__count">{{ organizations|length }}</span>
+            </button>
+            <button type="button" class="adm-tab" data-nx-tab="pages" data-testid="tenant-tab-pages">
+                {{ _('Pages') }} <span class="adm-tab__count">{{ pages|length }}</span>
+            </button>
+            <button type="button" class="adm-tab" data-nx-tab="access" data-testid="tenant-tab-access">
+                {{ _('Access') }} <span class="adm-tab__count">{{ viewers|length }}</span>
+            </button>
+        </div>
+
+        {# ---- Organizations --------------------------------------------------- #}
+        <section data-nx-panel="organizations">
+            {% if organizations %}
+            <table class="adm-table" data-testid="tenant-organizations-table">
+                <thead>
+                    <tr>
+                        <th>{{ _('Organization') }}</th>
+                        <th class="align-right" style="width:70px">{{ _('Users') }}</th>
+                        <th>{{ _('Access profiles') }}</th>
+                        <th style="width:210px">{{ _('Data connection') }}</th>
+                        <th style="width:90px">{{ _('Processes') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for o in organizations %}
+                    <tr data-testid="tenant-org-row-{{ o.organizationcode }}">
+                        <td>
+                            <span class="adm-name">
+                                <span class="adm-name__tile">{{ o.organization[:1]|upper }}</span>
+                                <span class="adm-name__main">
+                                    <span class="adm-name__label">{{ o.organization }}</span>
+                                    <span class="adm-name__code">{{ o.organizationcode }}</span>
+                                </span>
+                            </span>
+                        </td>
+                        <td class="align-right" style="font-variant-numeric:tabular-nums">{{ o.user_count }}</td>
+                        <td>
+                            {% for p in o.profiles %}<span class="adm-pill adm-pill--accent">{{ p }}</span> {% else %}<span class="nx-c-meta">{{ _('None') }}</span>{% endfor %}
+                        </td>
+                        <td>
+                            {% if o.connection_state == 'loaded' %}
+                            <span class="adm-state"><span class="adm-dot adm-dot--ok"></span>{{ o.connection }}</span>
+                            {% elif o.connection_state == 'unloaded' %}
+                            <span class="adm-state"><span class="adm-dot adm-dot--warn"></span>{{ o.connection }} &middot; {{ _('not loaded') }}</span>
+                            {% else %}
+                            <span class="adm-state"><span class="adm-dot"></span>{{ _('None') }}</span>
+                            {% endif %}
+                        </td>
+                        <td style="font-variant-numeric:tabular-nums">{{ o.process_count }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="adm-blank">
+                <p class="adm-blank__text">{{ _('This tenant has no organizations yet. Its members cannot be resolved until one is assigned.') }}</p>
+                {% if can_edit %}
+                <button type="button" class="nx-btn nx-btn--primary nx-btn--sm" id="addOrgsBtn"
+                        data-tenant='{{ {"TenantCode": tenant.TenantCode, "DisplayName": tenant.DisplayName, "IsActive": tenant.IsActive, "organizations": []}|tojson|safe }}'
+                        data-testid="tenant-add-organizations">{{ _('Add organizations') }}</button>
+                {% endif %}
+            </div>
+            {% endif %}
+        </section>
+
+        {# ---- Pages ------------------------------------------------------------ #}
+        <section data-nx-panel="pages" class="hidden">
+            <div class="adm-pages">
+                <div class="adm-pages__main">
+                    <div class="adm-sec" style="margin-top:0">
+                        <h3 class="adm-sec__title">{{ _('Pages') }}</h3>
+                        <span class="adm-sec__sub">{{ _('Order here is the order members see') }}</span>
+                        {% if can_edit %}
+                        <div class="adm-sec__actions">
+                            <button type="button" class="nx-btn nx-btn--primary nx-btn--sm" id="mountPageBtn" data-testid="tenant-mount-page">
+                                <i class="fas fa-plus"></i> {{ _('Mount page') }}
+                            </button>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    {% if can_edit %}
+                    {# Mounting a page is a small, page-local edit, so the form
+                       lives in the flow right above the table it changes --
+                       a full-height side sheet for six fields left most of the
+                       viewport empty (and hid the table you were editing). #}
+                    <form id="pageForm" class="adm-inline hidden" data-testid="tenant-page-form">
+                        <div class="adm-inline__head">
+                            <div>
+                                <div class="adm-inline__kicker">{{ _('Tenant page') }}</div>
+                                <h4 class="adm-inline__title">{{ _('Mount page') }}</h4>
+                            </div>
+                            <button type="button" class="adm-iconbtn" id="pageFormClose"
+                                    aria-label="{{ _('Close') }}" data-testid="tenant-page-form-close"><i class="fas fa-xmark"></i></button>
+                        </div>
+                        <div class="adm-inline__body">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <div class="adm-inline__grid">
+                                <div class="adm-field adm-field--full">
+                                    <label class="adm-field__label" for="endpoint">{{ _('Page') }}</label>
+                                    <select id="endpoint" name="endpoint" class="nx-select" required data-testid="tenant-page-endpoint">
+                                        <option value="">{{ _('Choose a page…') }}</option>
+                                        {% for ep in endpoints %}<option value="{{ ep }}">{{ ep }}</option>{% endfor %}
+                                    </select>
+                                </div>
+                                <div class="adm-field">
+                                    <label class="adm-field__label" for="PageKey">{{ _('Key') }}</label>
+                                    <input type="text" id="PageKey" name="PageKey" class="nx-input nx-mono"
+                                           pattern="[a-z0-9_.\-]{1,100}" required data-testid="tenant-page-key">
+                                </div>
+                                <div class="adm-field">
+                                    <label class="adm-field__label" for="label">{{ _('Label') }}</label>
+                                    <input type="text" id="label" name="label" class="nx-input" maxlength="100" required
+                                           data-testid="tenant-page-label">
+                                </div>
+                                <div class="adm-field">
+                                    <label class="adm-field__label" for="icon">{{ _('Icon') }}</label>
+                                    <div style="display:flex;align-items:center;gap:8px">
+                                        <input type="text" id="icon" name="icon" class="nx-input nx-mono" placeholder="fa-chart-line"
+                                               pattern="fa-[a-z0-9\-]{1,40}" data-testid="tenant-page-icon">
+                                        <span class="adm-name__tile" id="iconPreview"><i class="fas fa-arrow-up-right-from-square"></i></span>
+                                    </div>
+                                </div>
+                                <div class="adm-field">
+                                    <label class="adm-field__label" for="SortOrder">{{ _('Sort order') }}</label>
+                                    <input type="number" id="SortOrder" name="SortOrder" class="nx-input" value="100"
+                                           data-testid="tenant-page-sort">
+                                </div>
+                                <div class="adm-field adm-field--full">
+                                    <label class="adm-field__label" for="active">{{ _('Active page marker (optional)') }}</label>
+                                    <input type="text" id="active" name="active" class="nx-input nx-mono"
+                                           pattern="[A-Za-z0-9_\-]{0,60}" data-testid="tenant-page-active">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="adm-inline__foot">
+                            <p class="adm-field__hint adm-inline__note">{{ _('New pages start as drafts and stay hidden from members until you activate them.') }}</p>
+                            <button type="button" class="nx-btn nx-btn--secondary nx-btn--sm" id="pageFormCancel" data-testid="tenant-page-form-cancel">{{ _('Cancel') }}</button>
+                            <button type="submit" class="nx-btn nx-btn--primary nx-btn--sm" data-testid="tenant-page-form-save">{{ _('Mount page') }}</button>
+                        </div>
+                    </form>
+                    {% endif %}
+
+                    <table class="adm-table" data-testid="tenant-pages-table">
+                        <thead>
+                            <tr>
+                                <th>{{ _('Page') }}</th>
+                                <th>{{ _('Target') }}</th>
+                                <th style="width:80px">{{ _('Type') }}</th>
+                                <th style="width:130px">{{ _('Status') }}</th>
+                                {% if can_edit %}<th class="align-right" style="width:44px"></th>{% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in pages %}
+                            <tr class="adm-row--pick" data-page-key="{{ p.PageKey }}"
+                                data-page-status="{{ p.Status }}"
+                                data-testid="tenant-page-row-{{ p.PageKey }}">
+                                <td>
+                                    <span class="adm-name">
+                                        <span class="adm-name__tile"><i class="fas {{ p.layout.icon or 'fa-arrow-up-right-from-square' }}"></i></span>
+                                        <span class="adm-name__main">
+                                            <span class="adm-name__label">{{ p.layout.label or p.PageKey }}</span>
+                                            <span class="adm-name__code">{{ p.PageKey }}</span>
+                                        </span>
+                                    </span>
+                                </td>
+                                <td><span class="nx-mono" style="font-size:11.5px">{% if p.PageType == 'custom' %}{{ p.layout.endpoint }}{% else %}{{ _('entity') }} {{ p.EntityKey }}{% endif %}</span></td>
+                                <td>{{ p.PageType }}</td>
+                                <td>
+                                    {% if can_edit %}
+                                    <div class="adm-seg" data-testid="tenant-page-status-{{ p.PageKey }}">
+                                        <button type="button" class="adm-seg__btn toggle-page-btn {{ 'adm-seg__btn--active' if p.Status != 'active' else '' }}"
+                                                data-page="{{ p.PageKey }}" data-next="draft" {{ 'disabled' if p.Status != 'active' }}>{{ _('Draft') }}</button>
+                                        <button type="button" class="adm-seg__btn toggle-page-btn {{ 'adm-seg__btn--on' if p.Status == 'active' else '' }}"
+                                                data-page="{{ p.PageKey }}" data-next="active" {{ 'disabled' if p.Status == 'active' }}>{{ _('Active') }}</button>
+                                    </div>
+                                    {% else %}
+                                    <span class="adm-pill {{ 'adm-pill--ok' if p.Status == 'active' else '' }}">{{ p.Status }}</span>
+                                    {% endif %}
+                                </td>
+                                {% if can_edit %}
+                                <td class="align-right">
+                                    {# Reorder arrows apply to every page, generated ones
+                                       included: order is presentation, not schema. #}
+                                    <span class="adm-reorder">
+                                        <button type="button" class="adm-iconbtn move-page-btn" data-dir="up"
+                                                title="{{ _('Move up') }}" data-testid="tenant-page-up-{{ p.PageKey }}"><i class="fas fa-chevron-up"></i></button>
+                                        <button type="button" class="adm-iconbtn move-page-btn" data-dir="down"
+                                                title="{{ _('Move down') }}" data-testid="tenant-page-down-{{ p.PageKey }}"><i class="fas fa-chevron-down"></i></button>
+                                    </span>
+                                    {% if p.PageType == 'custom' %}
+                                    <button type="button" class="adm-iconbtn adm-iconbtn--danger delete-page-btn"
+                                            data-page="{{ p.PageKey }}" title="{{ _('Unmount') }}"
+                                            data-testid="tenant-page-delete-{{ p.PageKey }}"><i class="fas fa-trash-can"></i></button>
+                                    {% else %}
+                                    <i class="fas fa-lock" title="{{ _('Generated from a migration') }}" style="font-size:10px;color:var(--nx-border-strong)"></i>
+                                    {% endif %}
+                                </td>
+                                {% endif %}
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="5" class="adm-empty">{{ _('No pages mounted yet.') }}</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <p class="adm-field__hint">{{ _('Generated list and crud pages come from migrations and can only be activated or deactivated here.') }}</p>
+                </div>
+
+                {# Member preview: the sidebar a member sees plus a mock of the
+                   selected page. A row or a sidebar entry drives both. Each
+                   page renders its own view server-side from the same entity
+                   and field descriptors the real page uses, so the columns,
+                   the filter row and the buttons are the member's, not a
+                   generic placeholder. #}
+                <aside class="adm-preview" aria-label="{{ _('Member preview') }}">
+                    <div class="adm-sec" style="margin-top:0">
+                        <h3 class="adm-sec__title">{{ _('Member preview') }}</h3>
+                        {% if can_edit and pages %}
+                        <div class="adm-sec__actions">
+                            <button type="button" class="nx-btn nx-btn--secondary nx-btn--sm" id="reorderBtn"
+                                    data-testid="tenant-reorder">
+                                <i class="fas fa-arrow-down-up-across-line"></i> {{ _('Reorder') }}
+                            </button>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="adm-window">
+                        <div class="adm-window__bar">
+                            <span class="adm-window__dot"></span><span class="adm-window__dot"></span><span class="adm-window__dot"></span>
+                            <span class="adm-window__url">nexora / {{ tenant.TenantCode }} / <span id="previewKey"></span></span>
+                        </div>
+                        <div class="adm-window__body">
+                            <div class="adm-window__side" id="previewSide">
+                                <div class="adm-window__brand">
+                                    <span class="adm-window__brandtile">{{ tenant.DisplayName[:1]|upper }}</span>
+                                    <span>{{ tenant.DisplayName }}</span>
+                                </div>
+                                {% for p in pages if p.Status == 'active' %}
+                                <div class="adm-window__item adm-window__item--pick" data-preview-key="{{ p.PageKey }}">
+                                    <i class="fas {{ p.layout.icon or 'fa-arrow-up-right-from-square' }}"></i>
+                                    <span>{{ p.layout.label or p.PageKey }}</span>
+                                </div>
+                                {% else %}
+                                <div class="adm-window__item adm-window__item--muted">{{ _('No active pages') }}</div>
+                                {% endfor %}
+                                <div class="adm-window__item adm-window__item--muted">
+                                    <i class="fas fa-lock"></i><span>{{ _('Global Reporting') }}</span>
+                                </div>
+                            </div>
+                            <div class="adm-window__canvas">
+                                {% for p in pages %}
+                                {% set pv = p.preview %}
+                                <div class="adm-window__view" data-preview-view="{{ p.PageKey }}" hidden>
+                                    <div class="adm-window__head">
+                                        <i class="fas {{ p.layout.icon or 'fa-arrow-up-right-from-square' }}"></i>
+                                        <span class="adm-window__headmain">
+                                            <b>{{ pv.title }}</b>
+                                            {% if pv.subtitle %}<em>{{ pv.subtitle }}</em>{% endif %}
+                                        </span>
+                                        {% if p.Status != 'active' %}<span class="adm-pill">{{ _('Draft') }}</span>{% endif %}
+                                        {% for a in pv.actions %}
+                                        <span class="adm-window__btn {{ 'adm-window__btn--primary' if a.primary else '' }}">
+                                            <i class="fas {{ a.icon }}"></i>{{ a.label }}
+                                        </span>
+                                        {% endfor %}
+                                    </div>
+
+                                    {% if pv.kind == 'custom' or not pv.columns %}
+                                    {# A mounted endpoint renders its own screen. We cannot
+                                       know its markup, only which family it belongs to, so
+                                       the body is a shape sketch and the footer carries the
+                                       one fact that is real: where the entry points. #}
+                                    {{ sk.sketch(pv.shape) }}
+
+                                    <p class="adm-window__src">
+                                        <i class="fas fa-arrow-up-right-from-square"></i>
+                                        <span class="nx-mono">{{ pv.path or pv.endpoint or p.PageKey }}</span>
+                                        &middot; {{ _('sketch of an existing nexora page') }}
+                                    </p>
+                                    {% else %}
+                                    <div class="adm-window__filters">
+                                        {% for f in pv.filters %}
+                                        <span class="adm-window__filter">
+                                            <span class="adm-window__flabel">{{ f }}</span>
+                                            <span class="adm-window__fbox"><i class="fas fa-search"></i></span>
+                                        </span>
+                                        {% endfor %}
+                                    </div>
+                                    <div class="adm-window__grid">
+                                        <div class="adm-window__gridhead">
+                                            {% for c in pv.columns %}<span>{{ c }}</span>{% endfor %}
+                                            {% if pv.row_actions %}<span class="adm-window__rowacts"></span>{% endif %}
+                                        </div>
+                                        {% for row in pv.rows %}
+                                        <div class="adm-window__gridrow">
+                                            {% for cell in row %}
+                                            <span>
+                                                {%- if cell.kind in ('mono', 'num') -%}
+                                                <em class="adm-window__val {{ 'adm-window__val--num' if cell.kind == 'num' else '' }}">{{ cell.value }}</em>
+                                                {%- elif cell.kind == 'pill' -%}
+                                                <span class="adm-window__cpill"></span>
+                                                {%- elif cell.kind == 'person' -%}
+                                                <span class="adm-window__avatar"></span><span class="adm-window__skel" style="width:52%"></span>
+                                                {%- else -%}
+                                                <span class="adm-window__skel" style="width:{{ cell.width }}%"></span>
+                                                {%- endif -%}
+                                            </span>
+                                            {% endfor %}
+                                            {% if pv.row_actions %}
+                                            <span class="adm-window__rowacts"><i class="fas fa-pen"></i><i class="fas fa-trash-can"></i></span>
+                                            {% endif %}
+                                        </div>
+                                        {% endfor %}
+                                        <div class="adm-window__gridfoot">
+                                            <span class="adm-window__skel" style="width:84px"></span>
+                                            <span class="adm-window__btn">{{ _('Previous') }}</span>
+                                            <span class="adm-window__btn">{{ _('Next') }}</span>
+                                        </div>
+                                    </div>
+                                    <p class="adm-window__src">
+                                        <i class="fas fa-database"></i><span class="nx-mono">{{ pv.source }}</span>
+                                        {%- if pv.extra_columns %} &middot; {{ ngettext('%(num)d more column', '%(num)d more columns', pv.extra_columns) }}{% endif %}
+                                    </p>
+                                    {% endif %}
+                                </div>
+                                {% else %}
+                                <div class="adm-window__note">
+                                    <i class="fas fa-layer-group"></i>
+                                    <b>{{ _('No pages mounted yet.') }}</b>
+                                </div>
+                                {% endfor %}
+                                {% if can_edit %}
+                                {# The page you are about to mount, previewed in the same
+                                   window as the mounted ones. It carries no sidebar entry
+                                   because a new page starts as a draft, and drafts are
+                                   invisible to members -- the pill says so. #}
+                                <div class="adm-window__view" data-preview-view="__new__" hidden>
+                                    <div class="adm-window__head">
+                                        <i class="fas fa-arrow-up-right-from-square" id="newPreviewIcon"></i>
+                                        <span class="adm-window__headmain">
+                                            <b id="newPreviewLabel">{{ _('New page') }}</b>
+                                            <em id="newPreviewEndpoint"></em>
+                                        </span>
+                                        <span class="adm-pill">{{ _('Draft') }}</span>
+                                    </div>
+                                    <div id="newPreviewBody">
+                                        {% for sh in ['dashboard', 'report', 'cards', 'list'] %}
+                                        <div class="adm-window__shape" data-shape="{{ sh }}" hidden>{{ sk.sketch(sh) }}</div>
+                                        {% endfor %}
+                                    </div>
+                                    <p class="adm-window__src">
+                                        <i class="fas fa-arrow-up-right-from-square"></i>
+                                        <span class="nx-mono" id="newPreviewPath"></span>
+                                    </p>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <p class="adm-field__hint">{{ _('Layout preview with sample values, not live data. Draft pages are hidden from members; only active ones appear in the tenant sidebar.') }}</p>
+                </aside>
+            </div>
+        </section>
+
+        {# ---- Access ------------------------------------------------------------ #}
+        <section data-nx-panel="access" class="hidden">
+            {% if viewers %}
+            <table class="adm-table" data-testid="tenant-access-table">
+                <thead>
+                    <tr>
+                        <th>{{ _('Access profile') }}</th>
+                        <th style="width:180px">{{ _('Scope') }}</th>
+                        <th class="align-right" style="width:90px">{{ _('Users') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for v in viewers %}
+                    <tr>
+                        <td><span class="adm-name__label">{{ v.Name }}</span></td>
+                        <td>
+                            {% if v.OrganizationCode %}
+                            <span class="adm-pill adm-pill--accent">{{ v.OrganizationCode }}</span>
+                            {% else %}
+                            <span class="adm-pill">{{ _('Global') }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="align-right" style="font-variant-numeric:tabular-nums">{{ v.user_count }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="adm-warn">
+                <i class="fas fa-triangle-exclamation"></i>
+                <span>{{ _('No access profile holds tenant.%(code)s.view, so nobody can open this tenant’s pages.', code=tenant.TenantCode) }}</span>
+            </div>
+            {% endif %}
+            <p class="adm-field__hint">
+                {{ _('Access is read-only here.') }}
+                <a href="{{ url_for('admin_permissions') }}">{{ _('Manage in Permissions') }}</a>
+            </p>
+        </section>
+    </main>
+
+    {% with organizations = all_organizations %}
+        {% include 'admin/_tenant_sheet.html' %}
+    {% endwith %}
+
+    {% include 'admin/_confirm_dialog.html' %}
+    {% include 'js/admin/_tenant_detail_js.html' %}
+</body>
+</html>

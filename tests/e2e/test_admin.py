@@ -47,24 +47,24 @@ class TestAdminOverview:
     def test_renders(self, nexora_server, page):
         _login_admin(page, nexora_server)
         page.goto(f"{nexora_server}/admin")
-        expect(page.locator('[data-testid="admin-overview-organizations"]')).to_be_visible()
+        expect(page.locator('[data-testid="admin-overview-link-organizations"]')).to_be_visible()
 
     def test_organizations_link(self, nexora_server, page):
         _login_admin(page, nexora_server)
         page.goto(f"{nexora_server}/admin")
-        page.click('[data-testid="admin-overview-organizations"]')
+        page.click('[data-testid="admin-overview-link-organizations"]')
         page.wait_for_url("**/admin/organizations")
 
     def test_sessions_link(self, nexora_server, page):
         _login_admin(page, nexora_server)
         page.goto(f"{nexora_server}/admin")
-        page.click('[data-testid="admin-overview-sessions"]')
+        page.click('[data-testid="admin-overview-link-sessions"]')
         page.wait_for_url("**/admin/sessions")
 
     def test_access_control_link(self, nexora_server, page):
         _login_admin(page, nexora_server)
         page.goto(f"{nexora_server}/admin")
-        page.click('[data-testid="admin-overview-access-control"]')
+        page.click('[data-testid="admin-overview-link-access-control"]')
         page.wait_for_url("**/admin/access_control")
 
 
@@ -75,25 +75,36 @@ class TestAdminOrganizations:
         page.goto(f"{nexora_server}/admin/organizations")
         expect(page.locator('[data-testid="admin-org-row-TEST"]')).to_be_visible()
 
-    def test_back_button(self, nexora_server, page):
+    def test_row_opens_detail(self, nexora_server, page):
+        """The list is a way into the organization, not an editor: a row opens
+        the detail page, which is where everything about it now lives."""
         _login_admin(page, nexora_server)
         page.goto(f"{nexora_server}/admin/organizations")
-        page.click('[data-testid="admin-helpers-back"]')
-        page.wait_for_url("**/admin")
+        page.click('[data-testid="admin-org-row-TEST"]')
+        page.wait_for_url("**/admin/organizations/detail/TEST")
 
-    def test_edit_opens_modal(self, nexora_server, page):
+    def test_detail_breadcrumb_goes_back(self, nexora_server, page):
+        """The redesign dropped the page_header back button from the list pages
+        -- the sidebar navigates those -- and put a breadcrumb on the detail
+        pages instead. This is the same "you can get back out" guarantee."""
         _login_admin(page, nexora_server)
-        page.goto(f"{nexora_server}/admin/organizations")
-        page.click('[data-testid="admin-org-edit-TEST"]')
-        expect(page.locator('[data-testid="admin-org-modal-form"]')).to_be_visible()
+        page.goto(f"{nexora_server}/admin/organizations/detail/TEST")
+        page.click('[data-testid="admin-org-detail-back"]')
+        page.wait_for_url("**/admin/organizations")
 
-    def test_modal_cancel_closes(self, nexora_server, page):
+    def test_edit_opens_sheet(self, nexora_server, page):
         _login_admin(page, nexora_server)
-        page.goto(f"{nexora_server}/admin/organizations")
-        page.click('[data-testid="admin-org-edit-TEST"]')
-        form = page.locator('[data-testid="admin-org-modal-form"]')
+        page.goto(f"{nexora_server}/admin/organizations/detail/TEST")
+        page.click('[data-testid="admin-org-edit"]')
+        expect(page.locator('[data-testid="admin-org-sheet-form"]')).to_be_visible()
+
+    def test_sheet_cancel_closes(self, nexora_server, page):
+        _login_admin(page, nexora_server)
+        page.goto(f"{nexora_server}/admin/organizations/detail/TEST")
+        page.click('[data-testid="admin-org-edit"]')
+        form = page.locator('[data-testid="admin-org-sheet-form"]')
         expect(form).to_be_visible()
-        page.click('[data-testid="admin-org-modal-cancel"]')
+        page.click('[data-testid="admin-org-sheet-cancel"]')
         expect(form).to_be_hidden()
 
 

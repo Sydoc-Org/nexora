@@ -1,0 +1,62 @@
+{# Tenant add/edit side sheet. Shared by Manage tenants and Tenant detail;
+   both drive it through openEditTenantSheet() / the #addTenantBtn click.
+   Expects `organizations` (every organization) and `can_edit`. #}
+    {# ---- Tenant sheet (replaces the centred modal) ----------------------- #}
+    {% if can_edit %}
+    <div id="tenantSheetBack" class="adm-sheet-back hidden"></div>
+    <aside id="tenantSheet" class="adm-sheet hidden" role="dialog" aria-modal="true" aria-labelledby="tenantSheetTitle">
+        <form id="tenantForm" data-testid="admin-tenant-sheet-form" style="display:contents">
+            <div class="adm-sheet__head">
+                <div>
+                    <div class="adm-sheet__kicker">{{ _('Tenant') }}</div>
+                    <h2 class="adm-sheet__title" id="tenantSheetTitle">{{ _('New tenant') }}</h2>
+                </div>
+                <button type="button" class="nx-btn nx-btn--ghost nx-btn--sm adm-sheet__close" id="tenantSheetClose"
+                        aria-label="{{ _('Close') }}" data-testid="admin-tenant-sheet-close"><i class="fas fa-xmark"></i></button>
+            </div>
+            <div class="adm-sheet__body">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <input type="hidden" id="tenantOriginalCode" name="tenantOriginalCode">
+                <div class="adm-sheet__grid">
+                    <div class="adm-field">
+                        <label class="adm-field__label" for="DisplayName">{{ _('Display name') }}</label>
+                        <input type="text" id="DisplayName" name="DisplayName" class="nx-input" maxlength="100" required
+                               data-testid="admin-tenant-sheet-name">
+                    </div>
+                    <div class="adm-field">
+                        <label class="adm-field__label" for="TenantCode">{{ _('Code') }}</label>
+                        <input type="text" id="TenantCode" name="TenantCode" class="nx-input nx-mono"
+                               pattern="[a-z0-9_]{2,50}" required data-testid="admin-tenant-sheet-code">
+                        <p class="adm-field__hint">{{ _('2-50 lowercase letters, digits or underscores. Cannot be changed later.') }}</p>
+                    </div>
+                    <div class="adm-field adm-field--full">
+                        <label class="adm-check">
+                            <input type="checkbox" id="IsActive" name="IsActive" data-testid="admin-tenant-sheet-active">
+                            {{ _('Active') }}
+                        </label>
+                    </div>
+                    <div class="adm-field adm-field--full">
+                        <label class="adm-field__label">{{ _('Organizations in this tenant') }}</label>
+                        <input type="text" id="tenantOrgFilter" class="nx-input" style="margin-bottom:8px"
+                               placeholder="{{ _('Filter organizations…') }}" data-testid="admin-tenant-sheet-org-filter">
+                        <div class="adm-checklist" data-testid="admin-tenant-sheet-organizations">
+                            {% for o in organizations %}
+                            <label class="adm-check" data-org-search="{{ (o.organization ~ ' ' ~ o.organizationcode)|lower }}">
+                                <input type="checkbox" name="organizations" value="{{ o.organizationcode }}"
+                                       data-current-tenant="{{ o.TenantCode or '' }}">
+                                {{ o.organization }} <span class="adm-check__code">{{ o.organizationcode }}</span>
+                                <span class="adm-check__moves hidden">{{ _('moves from') }} <span class="adm-check__moves-name"></span></span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                        <p class="adm-field__hint">{{ _('Ticking an organization that belongs to another tenant moves it here.') }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="adm-sheet__foot">
+                <button type="button" class="nx-btn nx-btn--secondary" id="tenantSheetCancel" data-testid="admin-tenant-sheet-cancel">{{ _('Cancel') }}</button>
+                <button type="submit" class="nx-btn nx-btn--primary" data-testid="admin-tenant-sheet-save">{{ _('Save tenant') }}</button>
+            </div>
+        </form>
+    </aside>
+    {% endif %}

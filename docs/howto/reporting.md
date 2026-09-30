@@ -1111,6 +1111,12 @@ Two shapes are therefore flagged automatically by `scripts/perm-audit.py`
 - a profile carrying an `OrganizationCode` that holds a source belonging to a
   different customer.
 
+The **Sydoc Finance** page (`/finance`, `docs/howto/finance.md`) reads the
+billing `table` sources of every client under one code, `finance.view`, and
+builds its queries with this same provider -- so that code is internal-only
+for exactly the reason above, and a figure there is the registered measure,
+not a second definition.
+
 The audit does not treat a shared tenant as permission: ISS and Generali sit in
 the `generali` tenant and read each other's sources by design, but Privera,
 Compass and Elektro-Material all sit in *sydoc*, which says they are the
@@ -1291,14 +1297,20 @@ to `SortOrder` 200+ so platform sources lead. `0127` registers two Statistics-DB
 tables the same way: **Bucherer — EasyTax** (`bucherer_easytax` over
 `dbo.Bucherer_EasyTax`, one row per document; *Exported documents* is a
 conditional count over `ExportTime IS NOT NULL`, `Pages` a sum) and **Frigemo —
-Documents** (`frigemo` over `dbo.Frigemo`, one row per day of already-summed
-counters, so every measure is a `sum`; `Date` grainable). `SortOrder` 300/310. `0124` registers **Sydoc — Project Hours**
+Documents** (`frigemo`, one row per day of already-summed counters, so every
+measure is a `sum`; the day column grainable). `SortOrder` 300/310. `0127`
+wrote the Frigemo source over `dbo.Frigemo`, a table that only existed on INT;
+PROD's collector fills `dbo.Frigemo_Statistic` with the vendor's column names
+(`DCD` is a varchar ISO date, typed `date` in the catalog so grains cast it),
+and **`0137`** repoints the source and its measures there (#402,
+`tests/unit/test_frigemo_source.py` pins the columns). `0124` registers **Sydoc — Project Hours**
 (`bps_projects` over `dbo.BPS_ProjectReport`, the bpsuite Projektbericht export
 loaded by the `nx-sources/bps/bps_project_report.py` collector; measures `Hours`,
 `Bookings`, and `Absence hours` = hours where `Kunde = 'Absences'`). `0126` registers **MediaMarkt — Batches**
 (`mediamarkt_batches` over `SYDOC_Statistik.dbo.MediaMarkt_Batches`, the table behind the
 generated `/t/sydoc/mediamarkt` CRUD page; measures `Pieces scanned` = sum of
-`Pieces`, `Batches` = row count; `ScanDate` grainable, `DocType` K/D/KA and `Visum`
+`Pieces`, `Batches` = rows with a piece count (the protocol pre-types batch
+numbers; a placeholder without pieces is not a batch, `0139`); `ScanDate` grainable, `DocType` K/D/KA and `Visum`
 as dimensions). `0128` registers **Aveniq — Xpert Statistics** (`xpert_stats` over
 `SYDOC_Statistik.dbo.Xpert_Stats`, the daily long-format counts mailed in from the
 Aveniq box and loaded by `nx-sources/xpert/importCSVtoSQL.py`; every measure is a
@@ -1327,12 +1339,10 @@ load-bearing: Compass's pivot has **no** channel split, so its single
 `Documents` measure is unfiltered and bills on `UploadDatetime` (the pivot's
 page filter) rather than the `DocDate` its rows display; Privera publishes three
 pivots, so it gets `Documents total` / `Documents by mail` / `eBill documents`,
-split on `DocSource` rather than the workbook's unreproducible `FileName`
-filter. Verified against the published workbooks: Compass exact in 6 of 8
-months, Privera exact in 5 of 6 figures — the gap is August 2026 mail, where the
-old pivot dropped 5 mail documents that have no `Mandant` while its own total
-counted them, so the measure keeps the honest definition and `Mandant` stays a
-dimension. `SortOrder` 340/350. Both pinned by
+split on `DocSource`. The workbook's Mail pivot also filters on the file name,
+dropping MAIL rows that have none; `0139` (#415) adds `FileName IS NOT NULL` to
+`Documents by mail`, which makes it the published figure in every month checked
+(May / July / August 2026: 11,669 / 14,945 / 11,759). `SortOrder` 340/350. Both pinned by
 `tests/unit/test_billing_sources.py`, which also asserts no billing source
 exposes amounts, IBANs or the Privera property/owner numbers. `0133` adds **Privera —
 Physische Zustellung** (`privera_nachsendungen`), the **first source outside
@@ -1402,7 +1412,10 @@ gate, so grant it deliberately. Tune the exposed columns/object at
 
 **Registering a generic source needs no code:** add a `ReportingSources` row with
 `Kind=curated`, `Provider=table`, an `Engine`, a `BaseObject`, the `ColumnsJSON`
-catalog, and a `Permission` — then grant that permission. A `Kind=sql` row adds a
+catalog, and a `Permission` — then grant that permission. **Introspect the
+table on PROD before writing the seed**, not on INT: `SYDOC_Statistik` is a
+vendor DB the collectors own, and its INT copy has hand-made tables that PROD
+never had (`0127` shipped over one of them, #402). A `Kind=sql` row adds a
 SQL-sandbox source over an existing target. Use the code path below only when a
 source needs bespoke query logic the `table` provider can't express.
 

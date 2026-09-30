@@ -1,0 +1,10 @@
+    <script nonce="{{ csp_nonce() }}">
+        // Row-as-link, same idiom as the other admin tables: the whole row is
+        // clickable, but a real link or control inside it still wins.
+        document.querySelectorAll('[data-nx-href]').forEach(row => {
+            row.addEventListener('click', (e) => {
+                if (e.target.closest('a, button, input, label')) return;
+                window.location.href = row.dataset.nxHref;
+            });
+        });
+    </script>

@@ -161,6 +161,10 @@ html.sidebar-pinned #nexora-sidebar .sidebar-logo-area .flex.flex-col {
 /* ---------- Nav section ---------- */
 .sidebar-nav {
     flex: 1;
+    /* A flex item defaults to min-height:auto, which refuses to shrink below
+       its content -- so overflow-y never engaged and a long nav (admin, with
+       the Tenants group open) clipped at the viewport instead of scrolling. */
+    min-height: 0;
     padding: 12px 8px;
     display: flex;
     flex-direction: column;

@@ -40,8 +40,14 @@ jobs:
     # A newer push to the same ref supersedes a still-running test job — cancel it.
     # Never applied to the deploy job: cancelling mid-robocopy would leave
     # PROD half-mirrored.
+    # The group is per event as well as per ref (#419): only a newer run of the
+    # SAME kind may supersede. A scheduled or dispatched run on main must never
+    # cancel a push run -- its deploy-staging needs this job, and the schedule
+    # run does not deploy staging itself (outside 01:30), so a merge would
+    # silently never reach staging. GitHub delays crons by hours under load, so
+    # the 03:00 e2e run can land mid-day, right on top of a merge.
     concurrency:
-      group: test-${{ github.ref }}
+      group: test-${{ github.ref }}-${{ github.event_name }}
       cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4
@@ -195,9 +201,14 @@ jobs:
   # event checks out the default branch, so it always redeploys main.
   deploy-staging:
     needs: test
+    # A manual dispatch on main (Actions -> Deploy -> Run workflow) redeploys
+    # staging too: the 2026-09-29 merge of #410 never got its push event, so
+    # staging stayed behind with no way to move it short of the nightly. The
+    # dispatch still runs the E2E tier first, as it always has.
     if: |
       (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-      (github.event_name == 'schedule' && github.event.schedule == '30 1 * * *')
+      (github.event_name == 'schedule' && github.event.schedule == '30 1 * * *') ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
     concurrency:
       group: staging-deploy
       cancel-in-progress: false

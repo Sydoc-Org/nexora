@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+</helmet>
+<aside style="width:220px;height:100%;display:flex;flex-direction:column;background:#ffffff;border-right:1px solid #f3f4f6;box-shadow:2px 0 8px rgba(0,0,0,0.04);font-family:Inter,system-ui,sans-serif;box-sizing:border-box;overflow:hidden;flex-shrink:0">
+  <div style="display:flex;align-items:center;gap:10px;height:64px;padding:0 12px;border-bottom:1px solid #f3f4f6;flex-shrink:0">
+    <div style="position:relative;width:38px;height:38px;flex-shrink:0">
+      <div style="position:absolute;inset:-3px;border-radius:50%;background:conic-gradient(from 0deg, rgba(79,70,229,0) 0deg, rgba(79,70,229,0.28) 60deg, rgba(124,58,237,0.5) 110deg, rgba(79,70,229,0.32) 180deg, rgba(79,70,229,0) 360deg);transform:perspective(300px) rotateX(64deg)"></div>
+      <div style="position:absolute;inset:0;border-radius:50%;background:radial-gradient(closest-side, transparent calc(50% - 2px), #7a73ec calc(50% - 2px), rgba(79,70,229,0.55) 50%, transparent 52%)"></div>
+      <div style="position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 50% 50%, #000 0%, #000 35%, rgba(0,0,0,0.7) 45%, rgba(67,56,202,0) 60%);box-shadow:0 0 20px rgba(0,0,0,0.4), inset 0 0 10px rgba(0,0,0,0.8)"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-start">
+      <span style="font-size:1.05rem;font-weight:600;letter-spacing:-0.02em;line-height:1.1;color:#0b0b12">nexora</span>
+      <span style="font-size:0.6rem;font-weight:600;margin-top:1px;color:#6b7280">powered by sydoc</span>
+    </div>
+  </div>
+  <nav style="flex:1;min-height:0;padding:12px 8px;display:flex;flex-direction:column;gap:2px;overflow-y:auto;overflow-x:hidden">
+    <sc-for list="{{ items }}" as="it" hint-placeholder-count="14">
+      <div style="position:relative;display:flex;align-items:center;gap:12px;padding:{{ it.pad }};border-radius:8px;color:{{ it.color }};background:{{ it.bg }};font-size:0.875rem;font-weight:{{ it.weight }};cursor:pointer" style-hover="background:rgba(0,0,0,0.04)" onClick="{{ it.go }}">
+        <sc-if value="{{ it.active }}" hint-placeholder-val="{{ false }}">
+          <span style="position:absolute;left:-8px;top:50%;transform:translateY(-50%);width:3px;height:20px;border-radius:0 2px 2px 0;background:linear-gradient(180deg,#4f46e5,#7c3aed)"></span>
+        </sc-if>
+        <i class="fas {{ it.icon }}" style="width:{{ it.iconBox }};height:{{ it.iconBox }};display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:{{ it.iconSize }}"></i>
+        <span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ it.label }}</span>
+        <sc-if value="{{ it.chev }}" hint-placeholder-val="{{ false }}">
+          <i class="fas fa-chevron-right" style="font-size:0.65rem;transform:{{ it.chevRot }}"></i>
+        </sc-if>
+      </div>
+    </sc-for>
+  </nav>
+  <div style="flex-shrink:0;border-top:1px solid #f3f4f6;padding:8px;display:flex;flex-direction:column;gap:2px">
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 8px;border-radius:8px;color:#57606a;font-size:0.875rem;font-weight:500">
+      <i class="fas fa-thumbtack" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:1rem;color:#4f46e5;transform:rotate(-45deg)"></i>
+      <span>Keep sidebar open</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 8px;border-radius:8px;color:#57606a;font-size:0.875rem;font-weight:500">
+      <i class="fas fa-moon" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:1rem;color:#3d6c7a"></i>
+      <span>Dark Mode</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 8px;border-radius:8px">
+      <div style="position:relative;width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <div style="width:28px;height:28px;border-radius:9999px;background:#e0e7ff;color:#4338ca;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center">MK</div>
+        <div style="position:absolute;bottom:1px;right:1px;width:9px;height:9px;border-radius:9999px;background:#22c55e;border:2px solid #fff"></div>
+      </div>
+      <span style="font-size:0.8125rem;font-weight:600;color:#374151">mkeller</span>
+    </div>
+  </div>
+</aside>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:220,&quot;height&quot;:900},&quot;active&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;tenants&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;variant&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;current&quot;,&quot;new&quot;],&quot;default&quot;:&quot;new&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const active = this.props.active ?? 'tenants';
+    const legacy = this.props.variant === 'current';
+    const tenancy = legacy
+      ? [['admin_tenants','Overview','fa-sitemap'],['admin_tenants_manage','Manage','fa-sliders'],['organizations','Organizations','fa-building'],['clients','Data Connections','fa-server'],['processes','Process Configurations','fa-diagram-project']]
+      : [['tenants','Manage','fa-sliders'],['organizations','Organizations','fa-building']];
+    const tenancyKeys = tenancy.map(t => t[0]);
+    const raw = [
+      { key:'admin', label:'Admin', icon:'fa-shield-halved', level:0, chev:true, open:true, groupActive:true },
+      { key:'adminOverview', label:'Overview', icon:'fa-house', level:1 },
+      { key:'admin_access', label:'Access Control', icon:'fa-id-badge', level:1 },
+      { key:'admin_permissions', label:'Permissions', icon:'fa-table-cells', level:1 },
+      { key:'admin_sessions', label:'Sessions', icon:'fa-signal', level:1 },
+      { key:'admin_logs', label:'Logs', icon:'fa-clipboard-list', level:1 },
+      { key:'admin_status', label:'Status', icon:'fa-heart-pulse', level:1 },
+      { key:'maintenance', label:'Maintenance', icon:'fa-bullhorn', level:1 },
+      { key:'tenancy', label:'Tenants', icon:'fa-city', level:1, chev:true, open:true, groupActive: tenancyKeys.includes(active) },
+      ...tenancy.map(([key,label,icon]) => ({ key, label, icon, level:2 })),
+      { key:'dashboard', label:'Global Dashboard', icon:'fa-gauge-high', level:0 },
+      { key:'reporting', label:'Global Reporting', icon:'fa-chart-column', level:0 },
+      { key:'workitems', label:'Global Workitems', icon:'fa-layer-group', level:0 },
+      { key:'t_generali', label:'Generali', icon:'fa-building', level:0, chev:true },
+      { key:'t_sydoc', label:'Sydoc', icon:'fa-building', level:0, chev:true },
+    ];
+    const compact = !!this.props.compact;
+    const items = raw.filter(r => !compact || r.level !== 1 || r.key === 'tenancy' || r.key === 'adminOverview').map(r => {
+      const isActive = r.key === active;
+      const hi = isActive || r.groupActive;
+      return {
+        label: r.label, icon: r.icon, chev: !!r.chev, active: isActive, go: () => this.props.onNavigate?.(r.key),
+        chevRot: r.open ? 'rotate(90deg)' : 'none',
+        pad: r.level === 0 ? '10px 8px' : r.level === 1 ? '10px 8px 10px 20px' : '10px 8px 10px 34px',
+        iconBox: r.level === 0 ? '32px' : '24px',
+        iconSize: r.level === 0 ? '1rem' : '0.8rem',
+        bg: hi ? 'rgba(0,0,0,0.05)' : 'transparent',
+        color: hi ? '#1f2328' : '#57606a',
+        weight: hi ? 600 : 500,
+      };
+    });
+    return { items };
+  }
+}
+</script>
+</body>
+</html>

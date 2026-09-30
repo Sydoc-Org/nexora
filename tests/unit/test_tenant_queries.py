@@ -430,3 +430,40 @@ def test_build_delete_raises_when_not_entries_kind():
     entity = _entity(kind="documents")
     with pytest.raises(ValueError):
         q.build_delete(entity, "tsql")
+
+
+# -- build_next_value_query ------------------------------------------------
+
+
+def test_build_next_value_query_reads_the_column_maximum():
+    entity = _entity(source_object="dbo.Batches", kind="entries")
+
+    sql = q.build_next_value_query(entity, "BatchNo", "tsql")
+
+    assert sql == "SELECT MAX([BatchNo]) FROM dbo.Batches"
+
+
+def test_build_next_value_query_postgres_quotes_the_column():
+    entity = _entity(source_object='public."Batches"', kind="entries")
+
+    sql = q.build_next_value_query(entity, "BatchNo", "postgres")
+
+    assert sql == 'SELECT MAX("BatchNo") FROM public."Batches"'
+
+
+def test_build_next_value_query_raises_when_not_entries_kind():
+    entity = _entity(kind="documents")
+    with pytest.raises(ValueError):
+        q.build_next_value_query(entity, "BatchNo", "tsql")
+
+
+def test_build_next_value_query_raises_on_unsafe_column():
+    entity = _entity(kind="entries")
+    with pytest.raises(ValueError):
+        q.build_next_value_query(entity, "BatchNo; DROP TABLE x--", "tsql")
+
+
+def test_build_next_value_query_raises_on_unknown_dialect():
+    entity = _entity(kind="entries")
+    with pytest.raises(ValueError):
+        q.build_next_value_query(entity, "BatchNo", "mysql")

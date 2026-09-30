@@ -120,6 +120,51 @@ def test_check_databases_uses_ping_dbs_parallel():
     assert any(s in statuses for s in ("fail", "warn"))
 
 
+# ---------- _check_document_storages ----------
+
+
+def test_check_document_storages_reports_each_storage(monkeypatch):
+    """One line per storage the runtime lists: <Default> is the runtime DB,
+    a readable storage reports its document count, an unreadable one fails
+    with the convention spelled out (#398)."""
+    from nx_lib import document_storage as ds
+
+    monkeypatch.setattr(
+        ds, "list_storages", lambda client="default": ["<Default>", "EM_Storage", "Gone_Storage"]
+    )
+
+    def _engine_for(client, name):
+        eng = MagicMock()
+        if name == "Gone_Storage":
+            eng.raw_connection.side_effect = OSError("Cannot open database 'Gone_Storage'")
+        else:
+            cur = MagicMock()
+            cur.fetchone.return_value = (12753,)
+            eng.raw_connection.return_value.cursor.return_value = cur
+        return eng
+
+    monkeypatch.setattr(ds, "storage_engine_for", _engine_for)
+    results = doctor._check_document_storages()
+    by_name = {r.name: r for r in results}
+    assert by_name["<Default>"].status == "ok"
+    assert by_name["EM_Storage"].status == "ok"
+    assert "12753" in by_name["EM_Storage"].detail
+    assert by_name["Gone_Storage"].status == "fail"
+    assert "Gone_Storage" in by_name["Gone_Storage"].hint
+
+
+def test_check_document_storages_fails_when_the_runtime_is_unreadable(monkeypatch):
+    from nx_lib import document_storage as ds
+
+    def _boom(client="default"):
+        raise OSError("OctoDB down")
+
+    monkeypatch.setattr(ds, "list_storages", _boom)
+    results = doctor._check_document_storages()
+    assert len(results) == 1
+    assert results[0].status == "fail"
+
+
 # ---------- _check_migrations ----------
 
 
@@ -287,6 +332,7 @@ def test_run_returns_exit_1_on_failures(capsys):
         patch.object(doctor, "_check_env", return_value=[]),
         patch.object(doctor, "_check_filesystem", return_value=[]),
         patch.object(doctor, "_check_databases", return_value=[]),
+        patch.object(doctor, "_check_document_storages", return_value=[]),
         patch.object(doctor, "_check_migrations", return_value=[]),
         patch.object(doctor, "_check_tooling", return_value=[]),
         patch.object(doctor, "_check_git_hooks", return_value=[]),
@@ -304,13 +350,39 @@ def test_run_returns_exit_0_when_all_ok():
         patch.object(doctor, "_check_env", return_value=ok_result),
         patch.object(doctor, "_check_filesystem", return_value=ok_result),
         patch.object(doctor, "_check_databases", return_value=ok_result),
+        patch.object(doctor, "_check_document_storages", return_value=ok_result),
         patch.object(doctor, "_check_migrations", return_value=ok_result),
+        patch.object(doctor, "_check_reporting_sources", return_value=ok_result),
         patch.object(doctor, "_check_tooling", return_value=ok_result),
         patch.object(doctor, "_check_git_hooks", return_value=ok_result),
         patch.object(doctor, "_check_port", return_value=ok_result),
     ):
         rc = run(fast=True)
     assert rc == 0
+
+
+def test_run_skips_document_storages_when_octodb_is_down():
+    """The storage check is gated on the OctoDB ping so a downed VPN does
+    not add an ODBC login timeout per storage."""
+    ok_result = [CheckResult("fake", "ok", "fine")]
+    db_down = [CheckResult("OctoDB", "fail", "timeout")]
+    with (
+        patch.object(doctor, "_check_python", return_value=ok_result),
+        patch.object(doctor, "_check_packages", return_value=ok_result),
+        patch.object(doctor, "_check_env", return_value=ok_result),
+        patch.object(doctor, "_check_filesystem", return_value=ok_result),
+        patch.object(doctor, "_check_databases", return_value=db_down),
+        patch.object(doctor, "_check_document_storages", return_value=[]) as storages,
+        patch.object(doctor, "_check_migrations", return_value=ok_result),
+        patch.object(doctor, "_check_reporting_sources", return_value=ok_result),
+        patch.object(doctor, "_check_tooling", return_value=ok_result),
+        patch.object(doctor, "_check_git_hooks", return_value=ok_result),
+        patch.object(doctor, "_check_port", return_value=ok_result),
+    ):
+        run(fast=True)
+    storages.assert_called_once_with(False)
+    # And the real check answers a skip, without touching any engine.
+    assert doctor._check_document_storages(False)[0].status == "skip"
 
 
 # ---------- _bootstrap_env ----------

@@ -1,0 +1,277 @@
+/* ============================================================
+   Sydoc Finance (#408) — layout only, on the nexora-ui tokens.
+   Slim-console doctrine (docs/design/Dashboard_redesign/…/readme.md):
+   no cards, no shadows in the page flow. A section is a run of
+   hairlines: head row, KPI strip, breakdown tables. Every colour
+   rides --nx-*, so dark mode, the accent pick and tenant branding
+   apply for free; the shared components (.nx-kpi-strip, .nx-table,
+   .nx-btn, .nx-select, .nx-eyebrow) stay untouched in nexora-ui.css.
+   ============================================================ */
+
+html { overflow-y: auto; }
+
+/* Row 1 — page head: icon tile, title + one muted line, actions right. */
+.nx-fin-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.nx-fin-head__meta {
+  font-size: var(--fs-meta); color: var(--nx-text-meta); margin: 2px 0 0;
+}
+.nx-fin-head__right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+/* Row 2 — month filter row, closed by a rule. */
+.nx-fin-filter {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  margin-top: 18px; padding-bottom: 14px;
+  border-bottom: 1px solid var(--nx-border);
+}
+.nx-fin-filter__spacer { margin-left: auto; }
+.nx-fin-filter__hint { font-size: var(--fs-meta); color: var(--nx-text-meta); }
+
+/* The month control: ‹ [select] › as one bordered group, control height. */
+.nx-fin-month {
+  display: inline-flex; align-items: stretch; height: var(--ctl-h-lg);
+  border: 1px solid var(--nx-border-strong); border-radius: calc(var(--nx-radius-scale, 1) * 8px);
+  background: var(--nx-card); overflow: hidden;
+}
+.nx-fin-month__nav {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; color: var(--nx-text-sec); text-decoration: none; font-size: 12px;
+  transition: background-color var(--nx-dur) var(--nx-ease), color var(--nx-dur) var(--nx-ease);
+}
+.nx-fin-month__nav:hover { background: var(--nx-alt); color: var(--nx-text); }
+.nx-fin-month__nav:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--nx-accent); }
+.nx-fin-month__nav[aria-disabled="true"] { opacity: .35; pointer-events: none; }
+.nx-fin-month__select {
+  border: none; border-left: 1px solid var(--nx-border); border-right: 1px solid var(--nx-border);
+  border-radius: 0; background: var(--nx-card); color: var(--nx-text);
+  font-family: var(--nx-mono); font-variant-numeric: tabular-nums; font-size: var(--fs-control); font-weight: 600;
+  padding: 0 28px 0 12px; min-width: 190px; cursor: pointer;
+  -webkit-appearance: none; appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%239ca3af' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='3 4.5 6 7.5 9 4.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 10px center; background-size: 12px;
+}
+.nx-fin-month__select:focus { outline: none; box-shadow: inset 0 0 0 2px var(--nx-accent); }
+
+/* Load status, right of the filter row. */
+.nx-fin-status {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: var(--fs-meta); color: var(--nx-text-meta); font-variant-numeric: tabular-nums;
+}
+.nx-fin-status .nx-live-dot { background: var(--nx-warning); }
+.nx-fin-status.is-done .nx-live-dot { background: var(--nx-success); }
+.nx-fin-status.is-failed .nx-live-dot { background: var(--nx-danger); }
+
+/* Group label between the internal and external runs of sections. */
+.nx-fin-group {
+  display: flex; align-items: center; gap: 12px;
+  margin: 28px 0 0; font-size: var(--fs-eyebrow); font-weight: 700;
+  text-transform: uppercase; letter-spacing: .09em; color: var(--nx-text-meta);
+}
+.nx-fin-group::after { content: ""; flex: 1; border-top: 1px solid var(--nx-border); }
+
+/* ---------- One section = one client / workbook ---------- */
+.nx-fin-section { padding: 18px 0 8px; border-bottom: 1px solid var(--nx-border); }
+.nx-fin-section:last-child { border-bottom: none; }
+.nx-fin-section__head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.nx-fin-section__tile {
+  width: 32px; height: 32px; border-radius: calc(var(--nx-radius-scale, 1) * 9px); flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; letter-spacing: -.02em;
+  background: var(--nx-accent-tint); color: var(--nx-accent-hover);
+}
+.nx-fin-section--external .nx-fin-section__tile { background: var(--nx-l-blue); color: var(--nx-l-blue-fg); }
+.nx-fin-section--services .nx-fin-section__tile { background: var(--nx-l-amber); color: var(--nx-l-amber-fg); }
+.nx-fin-section__title {
+  font-size: var(--fs-title); font-weight: 700; letter-spacing: -0.02em;
+  color: var(--nx-text); margin: 0;
+}
+.nx-fin-section__sub { font-weight: 500; color: var(--nx-text-sec); }
+.nx-fin-section__meta {
+  font-size: var(--fs-micro); color: var(--nx-text-meta); margin: 2px 0 0;
+  font-variant-numeric: tabular-nums;
+}
+.nx-fin-section__spacer { margin-left: auto; }
+.nx-fin-section__state { display: inline-flex; align-items: center; gap: 8px; }
+
+/* A block: one month basis. A second block (Bucherer) repeats the strip. */
+.nx-fin-block { margin-top: 14px; }
+.nx-fin-block__basis { margin: 0 0 6px; }
+
+/* KPI strip: the shared .nx-kpi-strip, but sized by figure count instead
+   of a fixed four -- a one-figure section (Compass) must not stretch one
+   number across the page, a six-figure one (Frigemo) wraps to two rows. */
+.nx-fin-kpis { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+.nx-fin-kpis .nx-kpi { padding: 14px 24px 14px; border-top: 1px solid var(--nx-divider); }
+.nx-fin-kpis .nx-kpi:first-child { border-left: none; }
+.nx-fin-kpis .nx-kpi__value { font-size: 28px; letter-spacing: -1.2px; }
+.nx-fin-kpis .nx-kpi__delta { color: var(--nx-text-sec); }
+.nx-fin-kpis .nx-kpi__delta--up::before   { content: "\25B2\00A0"; font-size: 8px; vertical-align: 1px; }
+.nx-fin-kpis .nx-kpi__delta--down::before { content: "\25BC\00A0"; font-size: 8px; vertical-align: 1px; }
+
+/* Breakdown tables: no wrapper card; side by side when a block has two. */
+.nx-fin-tables {
+  display: grid; gap: 28px; margin-top: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
+}
+.nx-fin-table__head {
+  display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px;
+}
+.nx-fin-table__count { font-size: var(--fs-micro); color: var(--nx-text-meta); font-variant-numeric: tabular-nums; }
+.nx-fin-table .nx-table thead th { background: transparent; padding: 8px 10px; }
+.nx-fin-table .nx-table thead th:first-child,
+.nx-fin-table .nx-table tbody td:first-child,
+.nx-fin-table .nx-table tfoot td:first-child { padding-left: 0; }
+.nx-fin-table .nx-table tbody td { padding: 8px 10px; font-size: 12.5px; }
+.nx-fin-table .nx-table tbody tr:last-child td { border-bottom: 1px solid var(--nx-divider); }
+.nx-fin-table .nx-table tbody tr:hover { background: transparent; box-shadow: none; }
+.nx-fin-table .nx-table tfoot td {
+  padding: 9px 10px; font-size: 12.5px; font-weight: 600; color: var(--nx-text);
+  border-top: 1px solid var(--nx-border);
+}
+.nx-fin-table .nx-table td.nx-num, .nx-fin-table .nx-table th.nx-num { text-align: right; white-space: nowrap; }
+.nx-fin-table .nx-table tbody tr.is-blank td:first-child { color: var(--nx-text-meta); font-style: italic; }
+.nx-fin-table .nx-table tbody tr.is-more { display: none; }
+.nx-fin-table.is-expanded .nx-table tbody tr.is-more { display: table-row; }
+
+/* Share cell: thin accent bar plus the percentage -- one hue, magnitude only. */
+.nx-fin-share { display: inline-flex; align-items: center; gap: 8px; justify-content: flex-end; min-width: 96px; }
+.nx-fin-share__bar {
+  width: 48px; height: 4px; border-radius: 2px; background: var(--nx-sunken); overflow: hidden; flex-shrink: 0;
+}
+.nx-fin-share__fill { display: block; height: 100%; background: var(--nx-accent); border-radius: 2px; }
+.nx-fin-share__pct {
+  font-family: var(--nx-mono); font-variant-numeric: tabular-nums; font-size: 11.5px; color: var(--nx-text-sec);
+  width: 42px; text-align: right;
+}
+
+.nx-fin-more {
+  background: transparent; border: none; padding: 8px 0 0; cursor: pointer;
+  font-family: var(--nx-font); font-size: var(--fs-meta); font-weight: 600; color: var(--nx-accent-hover);
+}
+.nx-fin-more:hover { text-decoration: underline; }
+.nx-fin-more:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--nx-accent-soft); border-radius: 4px; }
+
+/* Caveat line under a section's figures. */
+.nx-fin-note {
+  display: flex; align-items: flex-start; gap: 8px; margin: 12px 0 0;
+  font-size: var(--fs-meta); color: var(--nx-text-sec); max-width: 72ch;
+}
+.nx-fin-note i { color: var(--nx-text-meta); margin-top: 2px; }
+
+/* Empty month, error, and loading states -- all inline, all borderless. */
+.nx-fin-empty {
+  margin-top: 12px; padding: 14px 0; font-size: 13px; color: var(--nx-text-meta);
+  display: flex; align-items: center; gap: 10px;
+}
+.nx-fin-error {
+  margin-top: 12px; padding: 12px 14px; border-radius: var(--nx-radius-sm);
+  background: var(--nx-l-red); color: var(--nx-l-red-fg); font-size: 13px;
+  display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap;
+}
+.nx-fin-error__detail { font-family: var(--nx-mono); font-size: 11.5px; opacity: .85; word-break: break-word; flex-basis: 100%; }
+.nx-fin-error .nx-btn { margin-left: auto; }
+.nx-fin-skel { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 24px; margin-top: 14px; }
+.nx-fin-skel__tile { height: 58px; border-radius: 6px; }
+
+/* ---------- Month close (#415) ---------- */
+.nx-fin-closed { gap: 6px; }
+.nx-fin-closed i { font-size: 10px; }
+
+/* In-page confirmation, between the filter row and the sections. */
+.nx-fin-confirm {
+  display: flex; align-items: flex-start; gap: 14px; flex-wrap: wrap;
+  margin-top: 14px; padding: 14px 16px;
+  border: 1px solid var(--nx-border-strong); border-left: 3px solid var(--nx-accent);
+  border-radius: var(--nx-radius-sm); background: var(--nx-card);
+}
+.nx-fin-confirm__icon { color: var(--nx-accent-hover); margin-top: 3px; }
+.nx-fin-confirm__text { flex: 1 1 320px; min-width: 0; }
+.nx-fin-confirm__title { margin: 0; font-size: 13.5px; font-weight: 700; color: var(--nx-text); }
+.nx-fin-confirm__body { margin: 4px 0 0; font-size: var(--fs-meta); color: var(--nx-text-sec); max-width: 72ch; }
+.nx-fin-confirm__error { margin: 8px 0 0; font-size: var(--fs-meta); color: var(--nx-danger); }
+.nx-fin-confirm__actions { display: flex; gap: 8px; align-self: center; }
+
+/* Live-drift disclosure under a closed section. */
+.nx-fin-drift {
+  margin-top: 12px; border: 1px solid var(--nx-border); border-radius: var(--nx-radius-sm);
+  background: var(--nx-alt);
+}
+.nx-fin-drift summary {
+  cursor: pointer; padding: 9px 12px; font-size: var(--fs-meta); font-weight: 600; color: var(--nx-text);
+  list-style-position: inside;
+}
+.nx-fin-drift summary i { color: var(--nx-warning); margin: 0 4px 0 2px; }
+.nx-fin-drift summary:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--nx-accent); border-radius: var(--nx-radius-sm); }
+.nx-fin-drift .nx-table { margin: 0 12px; width: calc(100% - 24px); }
+.nx-fin-drift .nx-table th, .nx-fin-drift .nx-table td { padding: 6px 10px; font-size: 12.5px; background: transparent; }
+.nx-fin-drift .nx-table td.nx-num, .nx-fin-drift .nx-table th.nx-num { text-align: right; font-variant-numeric: tabular-nums; }
+.nx-fin-drift__note { margin: 8px 12px 10px; font-size: var(--fs-micro); color: var(--nx-text-meta); }
+
+/* ---------- Matrix (register x branch) ---------- */
+.nx-fin-table--wide { grid-column: 1 / -1; }
+.nx-fin-matrix { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.nx-fin-matrix:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--nx-accent-soft); border-radius: 4px; }
+.nx-fin-matrix .nx-table { min-width: max-content; }
+.nx-fin-matrix .nx-table th, .nx-fin-matrix .nx-table td { white-space: nowrap; }
+.nx-fin-matrix .nx-table td.nx-num, .nx-fin-matrix .nx-table th.nx-num {
+  text-align: right; font-variant-numeric: tabular-nums; font-family: var(--nx-mono); font-size: 12px;
+}
+.nx-fin-matrix .nx-table tbody th, .nx-fin-matrix .nx-table tfoot th {
+  position: sticky; left: 0; z-index: 1; background: var(--nx-page);
+  text-align: left; font-weight: 500; font-size: 12.5px; color: var(--nx-text); padding: 7px 12px 7px 0;
+  border-bottom: 1px solid var(--nx-divider);
+}
+.nx-fin-matrix .nx-table thead th.nx-fin-matrix__corner { position: sticky; left: 0; z-index: 2; background: var(--nx-page); }
+.nx-fin-matrix .nx-table tbody td { padding: 7px 10px; }
+.nx-fin-matrix .nx-table td.is-zero { color: var(--nx-text-meta); opacity: .5; }
+.nx-fin-matrix .nx-fin-matrix__total { font-weight: 700; color: var(--nx-text); border-left: 1px solid var(--nx-border); }
+.nx-fin-matrix .nx-table tfoot th, .nx-fin-matrix .nx-table tfoot td { font-weight: 700; border-top: 1px solid var(--nx-border); }
+.nx-fin-matrix .nx-table tbody tr.is-blank th { color: var(--nx-text-meta); font-style: italic; }
+.nx-fin-matrix .nx-table tbody tr:hover th, .nx-fin-matrix .nx-table tbody tr:hover td { background: var(--nx-alt); }
+
+/* ---------- Billable bookings (BPS) ---------- */
+.nx-fin-bookings { display: grid; gap: 22px; margin-top: 18px; }
+.nx-fin-bk__customer { font-size: 13px; font-weight: 700; color: var(--nx-text); }
+/* One table per customer: a fixed layout with the same column widths in every
+   table, so the columns line up down the whole section whatever each
+   customer's comments are. The comment column takes the rest. */
+.nx-fin-bk { width: 100%; table-layout: fixed; }
+.nx-fin-matrix .nx-fin-bk { min-width: 760px; }
+.nx-fin-bk__col--Datum        { width: 108px; }
+.nx-fin-bk__col--Projektpaket { width: 16%; }
+.nx-fin-bk__col--Aufgabe      { width: 17%; }
+.nx-fin-bk__col--Benutzer     { width: 15%; }
+.nx-fin-bk__col--Stunden      { width: 72px; }
+.nx-fin-matrix .nx-fin-bk th, .nx-fin-matrix .nx-fin-bk td {
+  white-space: normal; vertical-align: baseline; overflow-wrap: anywhere;
+}
+.nx-fin-matrix .nx-fin-bk td { font-family: inherit; }
+.nx-fin-matrix .nx-fin-bk td.nx-num { white-space: nowrap; font-family: var(--nx-mono); }
+.nx-fin-bk__date { white-space: nowrap !important; font-variant-numeric: tabular-nums; color: var(--nx-text-sec); }
+.nx-fin-bk__comment { color: var(--nx-text-sec); }
+.nx-fin-bk tbody tr.is-more { display: none; }
+.nx-fin-table.is-expanded .nx-fin-bk tbody tr.is-more { display: table-row; }
+
+/* Print: the report on paper, without the app chrome. */
+@media print {
+  .sidebar, .sidebar-toggle-btn, .firefly-field, .nx-fin-head__right, .nx-fin-filter, .nx-fin-more { display: none !important; }
+  body.nx-app, body.nx-app .nx-main { background: #fff; color: #000; padding: 0; max-width: none; }
+  .nx-fin-section { break-inside: avoid; page-break-inside: avoid; }
+  .nx-fin-table .nx-table tbody tr.is-more { display: table-row; }
+  .nx-fin-share__bar { display: none; }
+  .nx-fin-confirm, [data-role="month-link"] { display: none !important; }
+  .nx-fin-matrix { overflow: visible; }
+  .nx-fin-drift[open] summary ~ * { display: block; }
+}
+
+@media (max-width: 768px) {
+  .nx-fin-kpis .nx-kpi { padding: 12px 14px; }
+  .nx-fin-kpis .nx-kpi__value { font-size: 24px; }
+  .nx-fin-month__select { min-width: 150px; }
+}
+
+/* Stripes (a user preference) only paint <td>; give the sticky row-header
+   <th> of a matrix the same step so a striped row reads as one band. */
+html.nx-stripes .nx-fin-matrix .nx-table tbody tr:nth-child(even) th {
+  background: color-mix(in srgb, var(--nx-alt) 55%, var(--nx-page));
+}
+html.dark.nx-stripes .nx-fin-matrix .nx-table tbody tr:nth-child(even) th { background: #223046; }

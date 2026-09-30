@@ -9,7 +9,7 @@ app pool answers 503 while the mirror runs, which is enough.
 | host | local upstream | folder | `ENVIRONMENT` | deployed by |
 |---|---|---|---|---|
 | `nexora.sydoc.ch` | `http://localhost:80` (IIS Default Web Site, `DefaultAppPool`) | `D:\sydoc\nexora` | `PROD` | push of a `v*` tag |
-| `staging-nexora.sydoc.ch` | `http://127.0.0.1:8082` (site `nexora-staging`) | `D:\sydoc\nexora-staging` | `STAGING` | merge to `main` + 01:30 nightly |
+| `staging-nexora.sydoc.ch` | `http://127.0.0.1:8082` (site `nexora-staging`) | `D:\sydoc\nexora-staging` | `STAGING` | merge to `main` + 01:30 nightly, or Run workflow on `main` |
 | `dev-nexora.sydoc.ch` | `http://127.0.0.1:8081` (site `nexora-dev`) | `D:\sydoc\nexora-dev` | `INT` | any other branch push (last push wins) |
 
 ## DNS (cyon)

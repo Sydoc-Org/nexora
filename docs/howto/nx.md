@@ -170,7 +170,20 @@ layer the app depends on:
   compile state
 - **Databases** — pings all four engines (NexoraDB, OctoDB, StatisticsDB,
   GeneraliDB) and checks the ODBC driver
+- **Document storages** — every Octo document storage the runtime lists
+  (`t_DocumentStorages`) opens as a database of that name on the runtime
+  server; `/api/v1/workitems?include=tables` reads table values from there
+  (#398). Skipped when the OctoDB ping failed.
 - **Migrations** — pending schema migrations for the current env
+- **Reporting sources** — every enabled `table` source's table or view answers
+  a `SELECT TOP 0 *` on its own engine, so a view bound to a missing database
+  or a table that only exists on another server shows up here rather than as a
+  failed report (#329). The rail's status dot cannot see this: it only proves
+  the database answers. A warning lists sources the read-only login
+  (`DB_REPORTING_RO_*`) cannot read — those work in the report builder and fail
+  in the SQL tab and the AI assistant. To check PROD, run it on SYAPP01 in
+  `D:\sydoc\nexora` (read-only without `--fix`):
+  `set ENVIRONMENT=PROD` then `D:\sydoc\tools\py\python.exe -m nx_lib.cli doctor --fast`.
 - **Schema dump** — drift between the per-object SQL files and INT
 - **Tooling** — `sqlcmd`, `mssql-scripter`, `git`, `pybabel`, `powershell` on PATH
 - **Git hooks** — `pre-commit`, `commit-msg`, `pre-push` installed

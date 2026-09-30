@@ -4,14 +4,14 @@ reads and writes."""
 import re
 
 import pyodbc
-from flask import current_app, jsonify, render_template, request, session
+from flask import current_app, jsonify, request
 from flask_babel import gettext as _
 
 from ... import mapping_config
 from ...db import engine_nexora_db
 from ...mapping_config import invalidate_mapping_config
 from ...process_helpers import process_scope_code
-from ...security import has_permission, page_visibility, require_permission
+from ...security import require_permission
 from .clients import _CLIENT_CODE_RE
 
 
@@ -43,56 +43,8 @@ def _process_source_dict(source, fields):
 
 
 @require_permission("admin.processes.view")
-def admin_processes_view():
-    """Read-only view of dbo.ProcessSources / ProcessFieldMappings (migration
-    0074), grouped by ClientCode -- a *runtime source* (default/ms02, see
-    dbo.Clients), not a customer (dbo.Organizations) -- then by ProcessName,
-    with each process's field mappings as a nested table. Read entirely
-    through the cached nx_lib/mapping_config.py registry, never raw SQL.
-
-    registry() returning None means the config failed to load (a load error
-    is never cached) -- render an explicit "unavailable" state rather than an
-    empty-looking success. The edit affordances render only for
-    admin.processes.edit; the free-form SQL fragment columns (JoinCondition,
-    TimeFilter, SuggestionTimeFilter, ExtraCondition) stay read-only for
-    everybody -- they are editable only by a migration."""
-    reg = mapping_config.registry()
-    clients_data = []
-    if reg is not None:
-        by_client: dict = {}
-        for (client, process), source in reg.sources.items():
-            fields = sorted(
-                (m for m in reg.mappings if m.client == client and m.process == process),
-                key=lambda m: m.field_key,
-            )
-            by_client.setdefault(client, []).append((process, source, fields))
-        for client in sorted(by_client):
-            processes = sorted(by_client[client], key=lambda item: item[0])
-            clients_data.append(
-                {
-                    "client": client,
-                    "processes": [
-                        _process_source_dict(source, fields) for _, source, fields in processes
-                    ],
-                }
-            )
-
-    return render_template(
-        "admin/processes.html",
-        mapping_config_available=reg is not None,
-        can_edit=has_permission("admin.processes.edit"),
-        clients_data=clients_data,
-        client_codes=_client_codes(),
-        organizations=_organization_options(),
-        logged_in_user=session.get("username"),
-        userid=session.get("userid"),
-        page_visibility=page_visibility(),
-    )
-
-
-@require_permission("admin.processes.view")
 def api_admin_processes_list():
-    """JSON mirror of admin_processes_view() for a single client (or every
+    """Process sources and their field mappings for a single client (or every
     client when ``?client=`` is omitted) -- read through nx_lib/mapping_config.py,
     never raw SQL. Mirrors that module's fail-closed contract: a registry load
     failure is a 503, never an empty-looking 200 (task 6 brief)."""
@@ -650,9 +602,6 @@ def api_admin_field_mapping_delete(clientcode, processname, fieldkey):
 
 
 def register_routes(app):
-    app.add_url_rule(
-        "/admin/processes", endpoint="admin_processes_view", view_func=admin_processes_view
-    )
     app.add_url_rule(
         "/api/admin/processes/list",
         endpoint="api_admin_processes_list",
