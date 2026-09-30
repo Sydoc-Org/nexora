@@ -421,7 +421,16 @@
             const big = w > 220 && h > 110;
             const title = `${label(g.key)} · ${hUnit(hours(g.hours))} · ${fmt(S.nBookings, { n: intFmt.format(g.count) })}`;
             let text = '';
-            if (w > 70 && h > 46) {
+            // Narrow tall tiles still get a label, set vertically; small
+            // squarish ones a compact one; only slivers rely on the tooltip.
+            const vertical = w <= 70 && w >= 22 && h >= 90;
+            const compact = !vertical && w <= 70 && w > 40 && h > 40;
+            if (vertical || compact) {
+                text = `<span class="nx-bps-tile__text nx-bps-tile__text--${vertical ? 'vertical' : 'compact'}">
+                    <span class="nx-bps-tile__name">${esc(label(g.key))}</span>
+                    <span class="nx-bps-tile__h">${esc(hours(g.hours))}</span>
+                  </span>`;
+            } else if (w > 70 && h > 46) {
                 let pill = '';
                 if (w > 110 && h > 70) {
                     const d = V.delta(g.hours, g.prev);
@@ -514,6 +523,16 @@
         if (!state.loaded) return;
         const drill = document.getElementById('bps-drill');
         const leaf = state.path.length >= state.order.length;
+        // Zooming swaps a long level for a shorter one (or the one-line
+        // "Loading bookings…"); the page would shrink under the reader and the
+        // browser clamp the scroll, throwing them up the page. So: bring the
+        // breadcrumb into view when it has scrolled off, then keep at least a
+        // viewport of room below the drill-down's top while it re-renders.
+        const crumbsRow = document.querySelector('.nx-bps-crumbs');
+        if (focus && crumbsRow.getBoundingClientRect().top < 0) {
+            crumbsRow.scrollIntoView({ block: 'start', behavior: 'instant' });
+        }
+        drill.style.minHeight = `${Math.max(0, Math.round(window.innerHeight - drill.getBoundingClientRect().top))}px`;
         document.getElementById('bps-crumbs').innerHTML = crumbsHtml();
         document.getElementById('bps-back').hidden = state.path.length === 0;
         document.getElementById('bps-legend-hint').textContent = state.view === 'map' ? S.hintMap : S.hintTable;
@@ -548,7 +567,7 @@
         }
         if (focus) {
             const first = drill.querySelector('button, a[href]');
-            (first || drill).focus();
+            (first || drill).focus({ preventScroll: true });
         }
     }
 

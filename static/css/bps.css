@@ -101,7 +101,7 @@ html.dark .nx-bps-chip[aria-pressed="true"] { border-color: #7c3aed; background:
 .nx-bps-search input:focus { outline: none; border-color: var(--nx-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--nx-accent) 18%, transparent); }
 
 /* ---- breadcrumb ---- */
-.nx-bps-crumbs { margin-top: 16px; min-height: 32px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.nx-bps-crumbs { scroll-margin-top: 16px; margin-top: 16px; min-height: 32px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .nx-bps-back {
   width: 30px; height: 30px; border-radius: 99px; border: 1px solid var(--nx-border); background: var(--nx-card);
   color: var(--nx-text-sec); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 11px;
@@ -191,6 +191,17 @@ html.dark .nx-bps-tile--absence  { --tile-bg: color-mix(in srgb, var(--bps-absen
 .nx-bps-tile__name { font-size: 12.5px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nx-bps-tile__h { font-family: var(--nx-mono); font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .nx-bps-tile__h small { font-family: var(--nx-font, inherit); font-size: 11px; font-weight: 500; color: var(--tile-sub); margin-left: 4px; }
+.nx-bps-tile__text--compact { left: 8px; right: 8px; top: 8px; gap: 1px; }
+.nx-bps-tile__text--compact .nx-bps-tile__name { font-size: 11px; }
+.nx-bps-tile__text--compact .nx-bps-tile__h { font-size: 11.5px; }
+/* Read bottom-up, like a spine label, pinned to the tile's bottom-left. */
+.nx-bps-tile__text--vertical {
+  left: 0; right: auto; top: 10px; bottom: 14px; width: 100%;
+  writing-mode: vertical-rl; transform: rotate(180deg);
+  flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px;
+}
+.nx-bps-tile__text--vertical .nx-bps-tile__name { font-size: 11.5px; max-height: 100%; }
+.nx-bps-tile__text--vertical .nx-bps-tile__h { font-size: 11px; opacity: .8; }
 .nx-bps-tile--big .nx-bps-tile__name { font-size: 15px; }
 .nx-bps-tile--big .nx-bps-tile__h { font-size: 22px; }
 .nx-bps-tile__pill {
