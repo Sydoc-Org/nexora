@@ -33,6 +33,7 @@
     const dayOnly = dFmt({ day: 'numeric' });
     const dayMonth = dFmt({ day: 'numeric', month: 'short' });
     const dayMonthYear = dFmt({ day: 'numeric', month: 'short', year: 'numeric' });
+    const monthShort = dFmt({ month: 'short' });
     const weekdayShort = dFmt({ weekday: 'short' });
     const weekdayFmt = dFmt({ weekday: 'short', day: 'numeric', month: 'short' });
 
@@ -60,7 +61,7 @@
     }
 
     // ---- headline -----------------------------------------------------------
-    const hl = Sy.periodHeadline(CFG.from, CFG.to, lang, S.weekLabel);
+    const hl = Sy.periodHeadline(CFG.from, CFG.to, lang, S.weekLabel, CFG.today);
     document.querySelector('[data-role="period-main"]').textContent = hl.main;
     document.querySelector('[data-role="period-year"]').textContent = hl.year;
     document.querySelector('[data-role="range-text"]').textContent = rangeText(CFG.from, CFG.to);
@@ -316,7 +317,17 @@
                     stacked: true,
                     grid: { display: false },
                     border: { color: token('--nx-border') || '#e5e7eb' },
-                    ticks: { color: ink, maxRotation: 0, autoSkip: true, autoSkipPadding: 4, font: { size: 10.5 }, callback: (v, i) => (days[i] ? utc(days[i].date).getUTCDate() : '') },
+                    // Up to ~6 weeks: day numbers (the 1st of a month named);
+                    // longer ranges: only the month names at their 1st.
+                    ticks: {
+                        color: ink, maxRotation: 0, autoSkip: days.length <= 45, autoSkipPadding: 4, font: { size: 10.5 },
+                        callback: (v, i) => {
+                            if (!days[i]) return '';
+                            const d = utc(days[i].date);
+                            if (days.length > 45) return d.getUTCDate() === 1 ? monthShort.format(d) : '';
+                            return d.getUTCDate() === 1 && i > 0 ? dayMonth.format(d) : d.getUTCDate();
+                        },
+                    },
                 },
                 y: {
                     stacked: true,
@@ -353,19 +364,23 @@
 
     function prevName() {
         if (!state.prev) return '';
-        return Sy.periodHeadline(state.prev.from, state.prev.to, lang, S.weekLabel).main;
+        // "July" -- or "December 2025" / "Sep 2024 – Aug 2025" when its year
+        // is not the headline's, so the comparison is never ambiguous.
+        const p = Sy.periodHeadline(state.prev.from, state.prev.to, lang, S.weekLabel);
+        return p.year === hl.year ? p.main : `${p.main} ${p.year}`;
     }
 
     function vsHtml(value, prev) {
         const d = V.delta(value, prev);
         const period = prevName();
         if (d.dir === 'new') {
-            return `<span class="nx-bps-vs is-up"><span class="nx-bps-vs__pct"><i class="fas fa-arrow-trend-up" aria-hidden="true"></i>${esc(S.isNew)}</span><span class="nx-bps-vs__h">${esc(fmt(S.notBooked, { period }))}</span></span>`;
+            const note = fmt(S.notBooked, { period });
+            return `<span class="nx-bps-vs is-up" title="${esc(note)}"><span class="nx-bps-vs__pct"><i class="fas fa-arrow-trend-up" aria-hidden="true"></i>${esc(S.isNew)}</span><span class="nx-bps-vs__h">${esc(note)}</span></span>`;
         }
         const cls = d.dir === 'up' ? 'is-up' : d.dir === 'down' ? 'is-down' : 'is-flat';
         const icon = d.dir === 'up' ? 'fa-arrow-trend-up' : d.dir === 'down' ? 'fa-arrow-trend-down' : 'fa-minus';
         const p = d.ratio === null ? '' : signed(Math.round(d.ratio * 100), n => `${n}%`);
-        return `<span class="nx-bps-vs ${cls}"><span class="nx-bps-vs__pct"><i class="fas ${icon}" aria-hidden="true"></i>${esc(p)}</span><span class="nx-bps-vs__h">${esc(hUnit(signed(d.diff, hours)))}</span></span>`;
+        return `<span class="nx-bps-vs ${cls}" title="${esc(fmt(S.vsPrev, { period }))}"><span class="nx-bps-vs__pct"><i class="fas ${icon}" aria-hidden="true"></i>${esc(p)}</span><span class="nx-bps-vs__h">${esc(hUnit(signed(d.diff, hours)))}</span></span>`;
     }
 
     function splitSegs(g, cls) {
@@ -378,7 +393,7 @@
         const head = `
             <div class="nx-bps-trow nx-bps-trow--head" aria-hidden="true">
               <span>${esc(S.names[dim])}</span><span class="nx-num">${esc(S.colHours)}</span><span class="nx-num">${esc(S.catBillable)}</span>
-              <span class="nx-num">${esc(S.bookings)}</span><span class="nx-num">${esc(fmt(S.vsPrev, { period: prevName() }))}</span><span>${esc(S.split)}</span><span></span>
+              <span class="nx-num">${esc(S.bookings)}</span><span class="nx-num nx-bps-trow__vs" title="${esc(fmt(S.vsPrev, { period: prevName() }))}">${esc(fmt(S.vsPrev, { period: prevName() }))}</span><span>${esc(S.split)}</span><span></span>
             </div>`;
         const rows = groups.map((g, i) => `
             <button type="button" class="nx-bps-trow" data-zoom="${i}">
@@ -497,6 +512,7 @@
     function leafMeta(res) {
         if (!res || res.error) return '';
         const list = leafList(res);
+        if (!list.length) return '';
         const sum = list.reduce((a, e) => a + (Number(e.hours) || 0), 0);
         return fmt(S.leafMeta, { h: hUnit(hFine.format(sum)), n: intFmt.format(list.length) });
     }
@@ -571,10 +587,16 @@
         }
     }
 
+    // Going up lands the focus on the row (or tile) the reader came from.
     function zoomTo(depth) {
-        state.path.length = Math.max(0, depth);
+        const target = Math.max(0, depth);
+        const came = state.path.length > target ? state.path[target] : undefined;
+        state.path.length = target;
         state.openDays.clear();
         render(true);
+        const i = groups.findIndex(g => g.key === came);
+        const row = i >= 0 && document.querySelector(`#bps-drill [data-zoom="${i}"]`);
+        if (row) row.focus({ preventScroll: true });
     }
 
     const drillEl = document.getElementById('bps-drill');

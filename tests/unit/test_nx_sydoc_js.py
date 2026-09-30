@@ -70,3 +70,13 @@ def test_month_cells_mark_future_months_disabled():
 
 def test_fmt_substitutes_named_placeholders_and_keeps_unknown_ones():
     assert _run("V.fmt('{n} of {m} {x}', {n: 1, m: 2})") == "1 of 2 {x}"
+
+
+def test_a_range_follows_the_locale_and_a_month_so_far_reads_as_the_month():
+    out = _run("""[
+      V.periodHeadline('2026-08-04','2026-08-19','de'),
+      V.periodHeadline('2026-09-01','2026-09-29','en','Week {n}','2026-09-29'),
+      V.periodHeadline('2026-09-01','2026-09-29','en','Week {n}','2026-09-30')]""")
+    assert out[0]["main"] == f"4.{DASH}19. Aug."
+    assert out[1] == {"main": "September", "year": "2026", "kind": "month"}
+    assert out[2]["kind"] == "range"
