@@ -10,6 +10,7 @@
   window.NX_FINANCE = {
     month: {{ month|tojson }},
     monthLabel: {{ month_label|tojson }},
+    closed: {{ closed|tojson }},
     sections: {{ (internal_sections + external_sections + service_sections)|map(attribute='key')|list|tojson }},
     strings: {
       loading:        {{ _("Loading…") | tojson }},
@@ -19,17 +20,33 @@
       loadFailed:     {{ _("Could not load this section") | tojson }},
       retry:          {{ _("Retry") | tojson }},
       live:           {{ _("live figures") | tojson }},
+      closed:         {{ _("closed") | tojson }},
+      drifted:        {{ _("live data moved") | tojson }},
+      liveUnknown:    {{ _("live data unavailable") | tojson }},
+      driftTitle:     {{ _("The live data has moved since the close: {n} figures differ") | tojson }},
+      driftNote:      {{ _("The frozen figures above are what was invoiced. Typical cause: documents re-exported after the month closed.") | tojson }},
+      atClose:        {{ _("At close") | tojson }},
+      liveNow:        {{ _("Live now") | tojson }},
+      difference:     {{ _("Difference") | tojson }},
       empty:          {{ _("Nothing recorded in {month}") | tojson }},
       vsPrev:         {{ _("vs. previous month") | tojson }},
       unchanged:      {{ _("unchanged") | tojson }},
       isNew:          {{ _("new") | tojson }},
       per:            {{ _("per {dim}") | tojson }},
+      byAcross:       {{ _("{dim} by {across}") | tojson }},
       rows:           {{ _("{n} rows") | tojson }},
-      share:          {{ _("Share") | tojson }},
+      share:          {{ _("Share of total") | tojson }},
       total:          {{ _("Total") | tojson }},
       blank:          {{ _("(blank)") | tojson }},
       showAll:        {{ _("Show all {n} rows") | tojson }},
-      showFewer:      {{ _("Show fewer") | tojson }}
+      showFewer:      {{ _("Show fewer") | tojson }},
+      bookings:       {{ _("{n} bookings") | tojson }},
+      hoursUnit:      {{ _("{n} h") | tojson }},
+      byTask:         {{ _("Hours per task") | tojson }},
+      truncated:      {{ _("The list stops at 5,000 bookings; the totals above still count every one. Export the CSV for the full list.") | tojson }},
+      working:        {{ _("Working…") | tojson }},
+      closeFailed:    {{ _("Could not close the month.") | tojson }},
+      reopenFailed:   {{ _("Could not reopen the month.") | tojson }}
     }
   };
 </script>

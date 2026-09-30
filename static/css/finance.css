@@ -172,6 +172,79 @@ html { overflow-y: auto; }
 .nx-fin-skel { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 24px; margin-top: 14px; }
 .nx-fin-skel__tile { height: 58px; border-radius: 6px; }
 
+/* ---------- Month close (#415) ---------- */
+.nx-fin-closed { gap: 6px; }
+.nx-fin-closed i { font-size: 10px; }
+
+/* In-page confirmation, between the filter row and the sections. */
+.nx-fin-confirm {
+  display: flex; align-items: flex-start; gap: 14px; flex-wrap: wrap;
+  margin-top: 14px; padding: 14px 16px;
+  border: 1px solid var(--nx-border-strong); border-left: 3px solid var(--nx-accent);
+  border-radius: var(--nx-radius-sm); background: var(--nx-card);
+}
+.nx-fin-confirm__icon { color: var(--nx-accent-hover); margin-top: 3px; }
+.nx-fin-confirm__text { flex: 1 1 320px; min-width: 0; }
+.nx-fin-confirm__title { margin: 0; font-size: 13.5px; font-weight: 700; color: var(--nx-text); }
+.nx-fin-confirm__body { margin: 4px 0 0; font-size: var(--fs-meta); color: var(--nx-text-sec); max-width: 72ch; }
+.nx-fin-confirm__error { margin: 8px 0 0; font-size: var(--fs-meta); color: var(--nx-danger); }
+.nx-fin-confirm__actions { display: flex; gap: 8px; align-self: center; }
+
+/* Live-drift disclosure under a closed section. */
+.nx-fin-drift {
+  margin-top: 12px; border: 1px solid var(--nx-border); border-radius: var(--nx-radius-sm);
+  background: var(--nx-alt);
+}
+.nx-fin-drift summary {
+  cursor: pointer; padding: 9px 12px; font-size: var(--fs-meta); font-weight: 600; color: var(--nx-text);
+  list-style-position: inside;
+}
+.nx-fin-drift summary i { color: var(--nx-warning); margin: 0 4px 0 2px; }
+.nx-fin-drift summary:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--nx-accent); border-radius: var(--nx-radius-sm); }
+.nx-fin-drift .nx-table { margin: 0 12px; width: calc(100% - 24px); }
+.nx-fin-drift .nx-table th, .nx-fin-drift .nx-table td { padding: 6px 10px; font-size: 12.5px; background: transparent; }
+.nx-fin-drift .nx-table td.nx-num, .nx-fin-drift .nx-table th.nx-num { text-align: right; font-variant-numeric: tabular-nums; }
+.nx-fin-drift__note { margin: 8px 12px 10px; font-size: var(--fs-micro); color: var(--nx-text-meta); }
+
+/* ---------- Matrix (register x branch) ---------- */
+.nx-fin-table--wide { grid-column: 1 / -1; }
+.nx-fin-matrix { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.nx-fin-matrix:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--nx-accent-soft); border-radius: 4px; }
+.nx-fin-matrix .nx-table { min-width: max-content; }
+.nx-fin-matrix .nx-table th, .nx-fin-matrix .nx-table td { white-space: nowrap; }
+.nx-fin-matrix .nx-table td.nx-num, .nx-fin-matrix .nx-table th.nx-num {
+  text-align: right; font-variant-numeric: tabular-nums; font-family: var(--nx-mono); font-size: 12px;
+}
+.nx-fin-matrix .nx-table tbody th, .nx-fin-matrix .nx-table tfoot th {
+  position: sticky; left: 0; z-index: 1; background: var(--nx-page);
+  text-align: left; font-weight: 500; font-size: 12.5px; color: var(--nx-text); padding: 7px 12px 7px 0;
+  border-bottom: 1px solid var(--nx-divider);
+}
+.nx-fin-matrix .nx-table thead th.nx-fin-matrix__corner { position: sticky; left: 0; z-index: 2; background: var(--nx-page); }
+.nx-fin-matrix .nx-table tbody td { padding: 7px 10px; }
+.nx-fin-matrix .nx-table td.is-zero { color: var(--nx-text-meta); opacity: .5; }
+.nx-fin-matrix .nx-fin-matrix__total { font-weight: 700; color: var(--nx-text); border-left: 1px solid var(--nx-border); }
+.nx-fin-matrix .nx-table tfoot th, .nx-fin-matrix .nx-table tfoot td { font-weight: 700; border-top: 1px solid var(--nx-border); }
+.nx-fin-matrix .nx-table tbody tr.is-blank th { color: var(--nx-text-meta); font-style: italic; }
+.nx-fin-matrix .nx-table tbody tr:hover th, .nx-fin-matrix .nx-table tbody tr:hover td { background: var(--nx-alt); }
+
+/* ---------- Billable bookings (BPS) ---------- */
+.nx-fin-tasks { display: flex; flex-wrap: wrap; gap: 6px 22px; margin-top: 14px; }
+.nx-fin-task { display: inline-flex; align-items: center; gap: 10px; font-size: 12.5px; }
+.nx-fin-task__name { color: var(--nx-text); font-weight: 600; }
+.nx-fin-task__hours { font-family: var(--nx-mono); font-variant-numeric: tabular-nums; color: var(--nx-text-sec); }
+.nx-fin-task .nx-fin-share { min-width: 0; }
+.nx-fin-bookings { display: grid; gap: 22px; margin-top: 18px; }
+.nx-fin-bk__customer { font-size: 13px; font-weight: 700; color: var(--nx-text); }
+.nx-fin-bk { width: 100%; }
+.nx-fin-matrix .nx-fin-bk { min-width: 760px; }
+.nx-fin-matrix .nx-fin-bk td { white-space: normal; vertical-align: top; font-family: inherit; }
+.nx-fin-matrix .nx-fin-bk td.nx-num { white-space: nowrap; }
+.nx-fin-bk__date { white-space: nowrap !important; font-variant-numeric: tabular-nums; color: var(--nx-text-sec); }
+.nx-fin-bk__comment { color: var(--nx-text-sec); max-width: 56ch; overflow-wrap: anywhere; }
+.nx-fin-bk tbody tr.is-more { display: none; }
+.nx-fin-table.is-expanded .nx-fin-bk tbody tr.is-more { display: table-row; }
+
 /* Print: the report on paper, without the app chrome. */
 @media print {
   .sidebar, .sidebar-toggle-btn, .firefly-field, .nx-fin-head__right, .nx-fin-filter, .nx-fin-more { display: none !important; }
@@ -179,6 +252,9 @@ html { overflow-y: auto; }
   .nx-fin-section { break-inside: avoid; page-break-inside: avoid; }
   .nx-fin-table .nx-table tbody tr.is-more { display: table-row; }
   .nx-fin-share__bar { display: none; }
+  .nx-fin-confirm, [data-role="month-link"] { display: none !important; }
+  .nx-fin-matrix { overflow: visible; }
+  .nx-fin-drift[open] summary ~ * { display: block; }
 }
 
 @media (max-width: 768px) {
@@ -186,3 +262,10 @@ html { overflow-y: auto; }
   .nx-fin-kpis .nx-kpi__value { font-size: 24px; }
   .nx-fin-month__select { min-width: 150px; }
 }
+
+/* Stripes (a user preference) only paint <td>; give the sticky row-header
+   <th> of a matrix the same step so a striped row reads as one band. */
+html.nx-stripes .nx-fin-matrix .nx-table tbody tr:nth-child(even) th {
+  background: color-mix(in srgb, var(--nx-alt) 55%, var(--nx-page));
+}
+html.dark.nx-stripes .nx-fin-matrix .nx-table tbody tr:nth-child(even) th { background: #223046; }

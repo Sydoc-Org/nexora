@@ -1,0 +1,52 @@
+{# #191 shim: only Jinja-rendered data and translated strings live here.
+   Behaviour is in static/js/bps.js (no url_for, no gettext there).
+   Placeholders are {name}, substituted by bps.js -- see _finance_js.html
+   for why gettext's own %(name)s cannot be used in a shim. #}
+<script nonce="{{ csp_nonce() }}">
+  window.NX_BPS = {
+    from: {{ range_from|tojson }},
+    to: {{ range_to|tojson }},
+    today: {{ today|tojson }},
+    strings: {
+      loading:      {{ _("Loading…") | tojson }},
+      loaded:       {{ _("{n} bookings · {from} – {to}") | tojson }},
+      failed:       {{ _("Could not read the source") | tojson }},
+      totalHours:   {{ _("Total hours") | tojson }},
+      serviceHours: {{ _("Service hours") | tojson }},
+      billable:     {{ _("Billable hours") | tojson }},
+      absence:      {{ _("Absence hours") | tojson }},
+      bookings:     {{ _("Bookings") | tojson }},
+      people:       {{ _("People") | tojson }},
+      ofService:    {{ _("{pct} of service hours") | tojson }},
+      ofTotal:      {{ _("{pct} of all hours") | tojson }},
+      withHours:    {{ _("with service hours") | tojson }},
+      inPeriod:     {{ _("in the period") | tojson }},
+      catBillable:  {{ _("Billable") | tojson }},
+      catService:   {{ _("Other service") | tojson }},
+      catAbsence:   {{ _("Absence") | tojson }},
+      partly:       {{ _("partly billable") | tojson }},
+      billableTag:  {{ _("billable") | tojson }},
+      total:        {{ _("Total") | tojson }},
+      h:            {{ _("{n} h") | tojson }},
+      dayTotal:     {{ _("Total: {n} h") | tojson }},
+      chartMeta:    {{ _("{days} days · {n} h") | tojson }},
+      nothing:      {{ _("No bookings match.") | tojson }},
+      emptyPeriod:  {{ _("Nothing was booked in this period. The BPS export starts on 3 August 2026.") | tojson }},
+      entries:      {{ _("Loading bookings…") | tojson }},
+      entriesFail:  {{ _("Could not load the bookings") | tojson }},
+      entriesCut:   {{ _("Showing the first 5,000 bookings; export the CSV for all.") | tojson }},
+      colDate:      {{ _("Date") | tojson }},
+      colPackage:   {{ _("Package") | tojson }},
+      colHours:     {{ _("Hours") | tojson }},
+      colComment:   {{ _("Comment") | tojson }},
+      expand:       {{ _("Show {name}") | tojson }},
+      truncated:    {{ _("The period has more combinations than the page loads; narrow it for exact figures.") | tojson }},
+      names: {
+        Aufgabe:  {{ _("Task") | tojson }},
+        Kunde:    {{ _("Customer") | tojson }},
+        Benutzer: {{ _("Person") | tojson }}
+      }
+    }
+  };
+</script>
+<script src="{{ static_v('js/bps.js') }}" nonce="{{ csp_nonce() }}" defer></script>

@@ -29,6 +29,13 @@
         <p class="nx-fin-section__meta" data-role="meta">{{ _("Loading…") }}</p>
       </div>
       <span class="nx-fin-section__spacer"></span>
+      {% if s.link and page_visibility.bpsPagePerm %}
+      {# finance.js narrows the link to this month's dates. #}
+      <a class="nx-btn nx-btn--ghost nx-btn--sm" href="{{ url_for(s.link) }}"
+         data-role="month-link" data-testid="finance-section-link-{{ s.key }}">
+        {{ _("All hours") }} <i class="fas fa-arrow-right" aria-hidden="true"></i>
+      </a>
+      {% endif %}
       <span class="nx-fin-section__state" data-role="state"></span>
     </div>
     <div data-role="body">
@@ -49,6 +56,14 @@
         <p class="nx-fin-head__meta">{{ _("Monthly accounting figures per client, read from the same sources and measures as Reporting.") }}</p>
       </div>
       <div class="nx-fin-head__right">
+        {% if can_close %}
+        <button type="button" class="nx-btn nx-btn--sm {{ 'nx-btn--secondary' if closed else 'nx-btn--primary' }}"
+                id="fin-close-toggle" aria-expanded="false" aria-controls="fin-confirm"
+                data-action="{{ 'reopen' if closed else 'close' }}" data-testid="finance-close-toggle">
+          {% if closed %}<i class="fas fa-lock-open" aria-hidden="true"></i> {{ _("Reopen month") }}
+          {% else %}<i class="fas fa-lock" aria-hidden="true"></i> {{ _("Close month") }}{% endif %}
+        </button>
+        {% endif %}
         <a class="nx-btn nx-btn--secondary nx-btn--sm" href="{{ url_for('api_finance_export', month=month) }}"
            data-testid="finance-export-csv">
           <i class="fas fa-file-csv" aria-hidden="true"></i> {{ _("CSV") }}
@@ -76,15 +91,47 @@
         <span class="nx-fin-month__nav" aria-disabled="true" aria-label="{{ _('Next month') }}"><i class="fas fa-chevron-right" aria-hidden="true"></i></span>
         {% endif %}
       </div>
+      {% if closed %}
+      <span class="nx-label nx-label--indigo nx-label--nodot nx-fin-closed" data-testid="finance-closed-badge">
+        <i class="fas fa-lock" aria-hidden="true"></i>
+        {{ _("Closed %(when)s by %(who)s", when=closed.atLabel, who=closed.by) }}
+      </span>
+      {% endif %}
       <span class="nx-fin-filter__hint">
         {% if is_current_month %}{{ _("This month is still running; the figures grow until it closes.") }}
-        {% else %}{{ _("Each figure is compared with the month before.") }}{% endif %}
+        {% elif closed %}{{ _("Figures as frozen at the close. Where the live data has moved since, the section says so.") }}
+        {% else %}{{ _("Live figures, each compared with the month before. Close the month once it is invoiced to freeze them.") }}{% endif %}
       </span>
       <span class="nx-fin-filter__spacer"></span>
       <span class="nx-fin-status" id="fin-status" role="status" data-testid="finance-status">
         <span class="nx-live-dot"></span><span id="fin-status-text">{{ _("Loading…") }}</span>
       </span>
     </div>
+
+    {% if can_close %}
+    {# In-page confirmation (the viewer has no confirm()); one panel serves
+       close and reopen, finance.js fills the wording from the toggle. #}
+    <div class="nx-fin-confirm" id="fin-confirm" role="region" aria-labelledby="fin-confirm-title" hidden
+         data-testid="finance-confirm">
+      <i class="fas {{ 'fa-lock-open' if closed else 'fa-lock' }} nx-fin-confirm__icon" aria-hidden="true"></i>
+      <div class="nx-fin-confirm__text">
+        <p class="nx-fin-confirm__title" id="fin-confirm-title">
+          {% if closed %}{{ _("Reopen %(month)s?", month=month_label) }}{% else %}{{ _("Close %(month)s?", month=month_label) }}{% endif %}
+        </p>
+        <p class="nx-fin-confirm__body">
+          {% if closed %}{{ _("The frozen figures are deleted and the page shows live data again. Close it again afterwards to freeze the new state.") }}
+          {% else %}{{ _("Every section is read now and frozen. From then on this month shows exactly these figures, and only notes where the live data moves away from them.") }}{% endif %}
+        </p>
+        <p class="nx-fin-confirm__error" id="fin-confirm-error" role="alert" hidden></p>
+      </div>
+      <div class="nx-fin-confirm__actions">
+        <button type="button" class="nx-btn nx-btn--secondary nx-btn--sm" id="fin-confirm-cancel">{{ _("Cancel") }}</button>
+        <button type="button" class="nx-btn nx-btn--primary nx-btn--sm" id="fin-confirm-go" data-testid="finance-confirm-go">
+          {% if closed %}{{ _("Reopen month") }}{% else %}{{ _("Close month") }}{% endif %}
+        </button>
+      </div>
+    </div>
+    {% endif %}
 
     <h2 class="nx-fin-group nx-rise-3">{{ _("Internal customers") }}</h2>
     {% for s in internal_sections %}{{ section_shell(s) }}{% endfor %}
