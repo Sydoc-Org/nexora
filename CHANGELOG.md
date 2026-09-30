@@ -95,6 +95,13 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **Deploy: a scheduled run can no longer cancel a merge's staging deploy**
+  (#419). The `test` job's concurrency group was per ref only, so the 03:00
+  e2e cron -- which GitHub ran six hours late on 2026-09-30 -- cancelled the
+  push run of #418 and with it `deploy-staging`, while the schedule run itself
+  does not deploy staging: the merge never reached staging and nothing said so.
+  The group is now per ref **and** event, so only a newer run of the same kind
+  supersedes one (successive pushes still do).
 - **Deploy: a manual "Run workflow" on `main` now redeploys staging.** The merge
   of #410 never received its push event from GitHub, so staging stayed on the
   release commit and the only ways to move it were the 01:30 nightly or another
