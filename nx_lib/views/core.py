@@ -36,7 +36,7 @@ def index():
 # English (a courtesy version) only -- not in all four UI languages (#260,
 # decided 2026-09-24). German for a German UI, English for everyone else;
 # ?lang=de|en is the switch on the page itself.
-LEGAL_TEXT_DATE = "2026-09-29"
+LEGAL_TEXT_DATE = "2026-09-30"
 
 
 def _legal_text_lang():

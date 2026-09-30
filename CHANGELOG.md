@@ -31,6 +31,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Privacy policy contact** (`/privacy`, #260): data-protection questions now
   go to the helpdesk mailbox `support.helpdesk@sydoc.ch`, the same one feedback
   goes to, instead of a separate `privacy@sydoc.ch` that was never created.
+- **Privacy policy, Anthropic** (`/privacy`, #260): the "to be confirmed" note
+  on Anthropic's data-processing agreement is gone -- the production key sits
+  in Sydoc's own organisation, whose Commercial Terms carry the DPA. "Stand"
+  moves to 30.09.2026.
 
 - **Generated tenant pages (`/t/<tenant>/<page>`) moved onto the slim design
   system** — the look the Dashboard and the admin redesign already carry, and

@@ -213,6 +213,10 @@ def test_privacy_names_the_ai_provider_and_the_transfer_bases(client):
         assert "Swiss-U.S. Data Privacy Framework" in body
     assert "eigenen Servern von Sydoc in der Schweiz" in de
     assert "Sydoc's own servers in Switzerland" in en
+    # Checked 2026-09-30: the API key sits in Sydoc's own Anthropic
+    # organisation, whose Commercial Terms carry the DPA -- no longer open.
+    assert "Auftragsbearbeitung von Anthropic abgeschlossen" not in de
+    assert "concluded Anthropic's data-processing agreement" not in en
 
 
 def test_legal_text_keeps_paragraph_spacing_and_bullets(client):

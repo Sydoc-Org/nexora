@@ -144,6 +144,39 @@ they can be published.
 > the Commercial Terms — the DPA is part of them); jurisdiction Zug (legal);
 > management sign-off. (Contact mailbox closed 2026-09-30: `support.helpdesk@sydoc.ch`.)
 >
+> **Checks against the running setup, 2026-09-30** (IT, G. Ruoss; "Stand"
+> moved to 30.09.2026):
+>
+> - **Anthropic DPA — closed.** The production API key sits in Sydoc's own
+>   organisation in the Claude Console (created by Ben). The DPA is part of
+>   Anthropic's Commercial Terms, which every Console API organisation runs
+>   under, so nothing separate is signed; the "to be confirmed" line is gone.
+>   Worth doing: Sydoc's payment method on the organisation, a second admin
+>   besides Ben, a spending limit.
+> - **ngrok — confirmed.** Paid pay-as-you-go account under a `@sydoc.ch`
+>   owner; ngrok's DPA is incorporated into its Terms of Service
+>   (<https://ngrok.com/dpa>). One agent fronts dev, staging and PROD.
+> - **MS02 Azure Postgres — Switzerland North.** The runtime host resolves to
+>   an address in `20.250.0.0/16`, which Microsoft's published Azure IP ranges
+>   (ServiceTags_Public_20260928) assign to `AzureCloud.switzerlandn`.
+> - **All Sydoc servers are in Switzerland** — matches "Sydoc's own servers in
+>   Switzerland".
+> - **Staging accounts** checked: only people who may see the PROD data.
+> - **Helpdesk mailbox — the page is wrong today.** Tickets are deleted once
+>   solved, but the e-mails in `support.helpdesk@sydoc.ch` are **never
+>   deleted**, while the page says feedback is "deleted once the request is
+>   dealt with". Privacy requests (possibly with ID copies) now land there too.
+>   To decide later: a Microsoft 365 retention policy (e.g. 12 months) and the
+>   page says that period, or the page says the mails are kept.
+> - **Cleanups on PROD — working** (read off `\\syapp01\d$\sydoc\nexora`):
+>   `prune_request_log.log` ran 03:45, deleted 911 rows, oldest remaining
+>   `dbo.Logs` row 2026-04-02 (180 days); `prune_active_sessions.log` ran
+>   03:30, deleted 9 of 73; 319 session files, none older than 8 days; only 7
+>   hour folders of CSVs left under `var/logs/user/` (oldest 2026-09-15), the
+>   rest drained into `dbo.Logs`. Closes point 15's SYAPP01 check.
+> - **Still to check:** backup retention on PRDSQL01 — if backups outlive
+>   180 days, the page needs a sentence on backups.
+>
 > The questions below are the original list, kept for the reasoning behind
 > each one.
 
