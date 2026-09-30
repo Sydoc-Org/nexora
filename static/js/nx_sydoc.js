@@ -41,8 +41,9 @@
          a whole month     -> {main: 'August',    year: '2026', kind: 'month'}
          Monday..Sunday    -> {main: 'Week 39',   year: '2026', kind: 'week'}
          whole months      -> {main: 'Jun – Aug', year: '2026', kind: 'months'}
-         anything else     -> {main: '4 – 19 Aug', year: '2026', kind: 'range'} */
-    function periodHeadline(from, to, lang, weekLabel) {
+         anything else     -> {main: '4 – 19 Aug', year: '2026', kind: 'range'}
+       A month so far (the 1st up to `todayIso`) reads as that month. */
+    function periodHeadline(from, to, lang, weekLabel, todayIso) {
         const a = parse(from);
         const b = parse(to);
         const dash = ' – ';
@@ -53,7 +54,8 @@
         const sameYear = a.getUTCFullYear() === b.getUTCFullYear();
         const span = Math.round((b - a) / DAY) + 1;
 
-        if (startsMonth && endsMonth && sameMonth) {
+        const soFar = todayIso && String(to).slice(0, 10) === String(todayIso).slice(0, 10);
+        if (startsMonth && sameMonth && (endsMonth || soFar)) {
             return { main: formatter(lang, { month: 'long' }).format(a), year: yearOf(a), kind: 'month' };
         }
         if (span === 7 && a.getUTCDay() === 1) {
@@ -67,6 +69,11 @@
         }
         const dayOnly = formatter(lang, { day: 'numeric' });
         const dayMonth = formatter(lang, { day: 'numeric', month: 'short' });
+        // formatRange knows each locale's shape ("4–19 Aug", "4.–19. Aug.");
+        // only the dash gets the thin spacing of the design.
+        if (sameYear && dayMonth.formatRange) {
+            return { main: dayMonth.formatRange(a, b).replace(/\s*[–-]\s*/, dash), year: yearOf(b), kind: 'range' };
+        }
         let head;
         if (sameMonth) head = dayOnly.format(a);
         else if (sameYear) head = dayMonth.format(a);

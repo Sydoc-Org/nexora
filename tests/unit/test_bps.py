@@ -256,3 +256,44 @@ def test_months_payload_keys_by_yyyy_mm_and_drops_empty_months():
         (None, Decimal("3")),
     ]
     assert bps.months_payload(rows) == {"2025-01": 12.5, "2026-08": 1300.5}
+
+
+def test_whole_month_spans_step_by_months_both_ways():
+    today = dt.date(2026, 9, 30)
+    assert bps.previous_range(dt.date(2026, 7, 1), dt.date(2026, 9, 30)) == (
+        dt.date(2026, 4, 1),
+        dt.date(2026, 6, 30),
+    )
+    assert bps.next_range(dt.date(2026, 3, 1), dt.date(2026, 5, 31), today) == (
+        dt.date(2026, 6, 1),
+        dt.date(2026, 8, 31),
+    )
+    assert bps.previous_range(dt.date(2025, 11, 1), dt.date(2026, 1, 31)) == (
+        dt.date(2025, 8, 1),
+        dt.date(2025, 10, 31),
+    )
+
+
+def test_next_range_ends_today_at_the_latest():
+    today = dt.date(2026, 9, 30)
+    # Jun-Aug is followed by Sep-Nov, cut at today: the picker's inputs stop there.
+    assert bps.next_range(dt.date(2026, 6, 1), dt.date(2026, 8, 31), today) == (
+        dt.date(2026, 9, 1),
+        today,
+    )
+    assert bps.next_range(dt.date(2026, 9, 21), dt.date(2026, 9, 27), today) == (
+        dt.date(2026, 9, 28),
+        today,
+    )
+
+
+def test_a_month_so_far_compares_with_the_same_days_of_the_month_before():
+    assert bps.previous_range(dt.date(2026, 9, 1), dt.date(2026, 9, 29)) == (
+        dt.date(2026, 8, 1),
+        dt.date(2026, 8, 29),
+    )
+    # February has no 29th/30th: 1-30 Mar compares with all of February.
+    assert bps.previous_range(dt.date(2026, 3, 1), dt.date(2026, 3, 30)) == (
+        dt.date(2026, 2, 1),
+        dt.date(2026, 2, 28),
+    )

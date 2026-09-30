@@ -110,6 +110,8 @@
   --nx-sydoc-band:      #111318;
   --nx-sydoc-band-line: rgba(255,255,255,.08);
   --nx-sydoc-band-ctl:  rgba(255,255,255,.14);
+  /* Small muted text on ink: the design's #6b7280 is 3.8:1 there, this is 4.9:1. */
+  --nx-sydoc-ink-muted: #7c8492;
   --nx-gain:            #047857;
   --nx-loss:            #b91c1c;
   --nx-card-hover-border: color-mix(in srgb, var(--nx-accent) 40%, white);
@@ -1111,7 +1113,7 @@ body.nx-app .reporting-shell {
   font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .12em;
   color: var(--nx-sydoc-soft); white-space: nowrap;
 }
-.nx-sydoc-eyebrow--muted { color: #6b7280; }
+.nx-sydoc-eyebrow--muted { color: var(--nx-sydoc-ink-muted); }
 .nx-sydoc-band__spacer { flex: 1; }
 .nx-sydoc-band__actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
@@ -1162,7 +1164,7 @@ body.nx-app .reporting-shell {
 
 /* Status grid: eyebrows on row 1, values on row 2. */
 .nx-sydoc-stats { display: grid; grid-template-rows: auto auto; grid-auto-flow: column; gap: 4px 36px; }
-.nx-sydoc-stats__k { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: #6b7280; white-space: nowrap; }
+.nx-sydoc-stats__k { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--nx-sydoc-ink-muted); white-space: nowrap; }
 .nx-sydoc-stats__v { font-size: 14px; font-weight: 600; color: #f3f4f6; white-space: nowrap; display: inline-flex; align-items: center; gap: 7px; font-variant-numeric: tabular-nums; }
 .nx-sydoc-stats__v.is-failed { color: var(--nx-danger); }
 .nx-sydoc-dot { width: 8px; height: 8px; border-radius: 99px; background: #6b7280; flex-shrink: 0; display: inline-block; }
@@ -1171,10 +1173,11 @@ body.nx-app .reporting-shell {
 .nx-sydoc-dot--failed { background: var(--nx-danger); }
 
 /* Track switch: a segmented control on a grey track. */
-.nx-track { display: inline-flex; background: #f3f4f6; padding: 3px; border-radius: 10px; gap: 2px; }
+.nx-track { display: inline-flex; background: #f3f4f6; padding: 3px; border-radius: 10px; gap: 2px; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.nx-track::-webkit-scrollbar { display: none; }
 .nx-track__btn {
   display: inline-flex; align-items: center; gap: 6px; height: 27px; padding: 0 11px;
-  border-radius: 7px; border: none; background: transparent; color: #6b7280;
+  border-radius: 7px; border: none; background: transparent; color: #636a76; /* #6b7280 is 4.4:1 on the track */
   font: inherit; font-size: 11.5px; font-weight: 600; white-space: nowrap; cursor: pointer;
 }
 .nx-track__btn:hover { color: #1f2937; }
@@ -1273,8 +1276,12 @@ html.dark .nx-sydoc-pill.is-active { border-color: var(--nx-sydoc-soft); }
 }
 @media (max-width: 600px) {
   .nx-sydoc-band, .nx-sydoc-band--flush { padding-left: 18px; padding-right: 18px; }
-  .nx-sydoc-period__main, .nx-sydoc-period__year { font-size: 30px; letter-spacing: -1px; }
+  .nx-sydoc-period { gap: 6px; }
+  .nx-sydoc-period__main, .nx-sydoc-period__year { font-size: 28px; letter-spacing: -.8px; }
   .nx-sydoc-headline { gap: 8px; }
+  .nx-sydoc-nav { width: 32px; height: 32px; }
+  .nx-sydoc-stats { gap: 4px 20px; }
+  .nx-sydoc-stats__v { white-space: normal; }
 }
 
 /* ============================================================
