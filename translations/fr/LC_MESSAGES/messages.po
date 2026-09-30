@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 09:42+0200\n"
+"POT-Creation-Date: 2026-09-30 10:45+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -188,11 +188,11 @@ msgstr "Heures"
 msgid "Comment"
 msgstr "Commentaire"
 
-#: nx_lib/finance.py:736 templates/js/_bps_js.html:16
+#: nx_lib/finance.py:740 templates/js/_bps_js.html:16
 msgid "Billable hours"
 msgstr "Heures facturables"
 
-#: nx_lib/finance.py:742
+#: nx_lib/finance.py:746
 msgid "Billable bookings"
 msgstr "Saisies facturables"
 
@@ -4837,6 +4837,7 @@ msgid "Filter task, customer, person…"
 msgstr "Filtrer tâche, client, personne…"
 
 #: templates/bps.html:111 templates/js/_bps_js.html:18
+#: templates/js/_finance_js.html:44
 msgid "Bookings"
 msgstr "Saisies"
 
@@ -9332,7 +9333,7 @@ msgstr "partiellement facturable"
 msgid "billable"
 msgstr "facturable"
 
-#: templates/js/_bps_js.html:30 templates/js/_finance_js.html:44
+#: templates/js/_bps_js.html:30 templates/js/_finance_js.html:45
 #, python-brace-format
 msgid "{n} h"
 msgstr "{n} h"
@@ -9543,10 +9544,6 @@ msgstr "Afficher moins"
 #, python-brace-format
 msgid "{n} bookings"
 msgstr "{n} saisies"
-
-#: templates/js/_finance_js.html:45
-msgid "Hours per task"
-msgstr "Heures par tâche"
 
 #: templates/js/_finance_js.html:46
 msgid ""
@@ -13149,4 +13146,7 @@ msgstr "%(field)s est repris de l'utilisateur connecté à l'enregistrement."
 
 #~ msgid "title"
 #~ msgstr "Titre"
+
+#~ msgid "Hours per task"
+#~ msgstr "Heures par tâche"
 
