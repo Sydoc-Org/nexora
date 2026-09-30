@@ -24,8 +24,26 @@
                     {{ _('Environment') }} <span class="nx-mono">{{ current_env }}</span> &middot; nexora v{{ nexora_version }}
                 </p>
             </div>
-            {% if can_restart %}
+            {% if can_restart or can_seed %}
             <div class="adm-head__actions">
+                {% if can_seed %}
+                {# INT-only dev tooling (nx_lib/seed.py): fill collector-owned tables
+                   nexora only reads, and delete exactly those rows again. The
+                   routes 404 outside INT, so this block never renders on
+                   STAGING/PROD. #}
+                <span class="adm-seed" data-testid="admin-overview-seed">
+                    <span class="adm-seed__meta nx-mono" id="nx-seed-meta" data-testid="admin-overview-seed-meta"></span>
+                    <button type="button" id="nx-seed-btn" class="nx-btn nx-btn--sm nx-btn--secondary"
+                            data-testid="admin-overview-seed-btn" title="{{ _('Fill the INT tables nexora only reads with synthetic history') }}">
+                        <i class="fas fa-seedling"></i> {{ _('Seed INT data') }}
+                    </button>
+                    <button type="button" id="nx-seed-clear-btn" class="nx-btn nx-btn--sm nx-btn--danger-outline"
+                            data-testid="admin-overview-seed-clear-btn" title="{{ _('Delete only the rows the seeder wrote') }}">
+                        <i class="fas fa-broom"></i> {{ _('Clear seed') }}
+                    </button>
+                </span>
+                {% endif %}
+                {% if can_restart %}
                 {# The segmented control is the visible affordance; the hidden input
                    stays the single value the restart POST reads. #}
                 <input type="hidden" id="nx-restart-env" value="{{ current_env }}" data-testid="admin-overview-restart-env">
@@ -42,6 +60,7 @@
                         data-testid="admin-overview-restart-btn">
                     <i class="fas fa-rotate-right"></i> {{ _('Restart nexora') }}
                 </button>
+                {% endif %}
             </div>
             {% endif %}
         </div>
@@ -194,6 +213,74 @@
         </div>
     </main>
 
+    {% if can_seed %}
+    <script nonce="{{ csp_nonce() }}">
+    (() => {
+        const url = "/api/admin/seed";  // NX.apiSafe normalises through API_PREFIX
+        const meta = document.getElementById("nx-seed-meta");
+        const seedBtn = document.getElementById("nx-seed-btn");
+        const clearBtn = document.getElementById("nx-seed-clear-btn");
+        const T = {
+            tracked: {{ _('{rows} seeded rows in {runs} run(s)')|tojson }},
+            none: {{ _('nothing seeded')|tojson }},
+            confirmSeed: {{ _('Seed the INT backlog history now? Earlier seeded rows are replaced; real collector rows are left alone.')|tojson }},
+            days: {{ _('Days of history (2-365):')|tojson }},
+            confirmClear: {{ _('Delete every seeded row? Only rows written by the seeder are removed.')|tojson }},
+            seeded: {{ _('Seeded {n} rows.')|tojson }},
+            cleared: {{ _('Deleted {n} seeded rows.')|tojson }},
+            failed: {{ _('Request failed.')|tojson }},
+            working: {{ _('Working...')|tojson }},
+        };
+        // {name} placeholders, not %(name)s: Jinja's gettext %-formats any msgid
+        // that contains %(name)s and raises KeyError when no kwargs are passed.
+        const fmt = (s, vars) => s.replace(/\{(\w+)\}/g, (_, k) => vars[k]);
+        const notify = (msg, isError) => window.NX.toast(msg, isError ? "error" : "success");
+
+        async function refresh() {
+            try {
+                const { ok, data: d } = await window.NX.apiSafe(url, { cache: "no-store" });
+                if (!ok || !d || !d.success) { meta.textContent = ""; return; }
+                meta.textContent = d.rows ? fmt(T.tracked, { rows: d.rows, runs: d.runs.length }) : T.none;
+                clearBtn.disabled = !d.rows;
+                seedBtn.disabled = !d.allowed;
+                if (!d.allowed && d.reason) seedBtn.title = d.reason;
+            } catch (e) { meta.textContent = ""; }
+        }
+
+        async function call(btn, method, body, doneMsg, key) {
+            const label = btn.innerHTML;
+            seedBtn.disabled = clearBtn.disabled = true;
+            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${T.working}`;
+            try {
+                const { ok, status, data } = await window.NX.apiSafe(url, {
+                    method,
+                    body: body ? JSON.stringify(body) : undefined,
+                });
+                const d = data || {};
+                if (!ok || !d.success) throw new Error(d.message || `${status}`);
+                notify(fmt(doneMsg, { n: key(d) }), false);
+            } catch (e) {
+                notify(`${T.failed} ${e.message || ""}`.trim(), true);
+            } finally {
+                btn.innerHTML = label;
+                await refresh();
+            }
+        }
+
+        seedBtn.addEventListener("click", () => {
+            if (!confirm(T.confirmSeed)) return;
+            const days = parseInt(prompt(T.days, "14"), 10);
+            if (!Number.isFinite(days)) return;
+            call(seedBtn, "POST", { what: "backlog-history", days }, T.seeded, (d) => d.report.inserted);
+        });
+        clearBtn.addEventListener("click", () => {
+            if (!confirm(T.confirmClear)) return;
+            call(clearBtn, "DELETE", null, T.cleared, (d) => d.cleared.rows);
+        });
+        refresh();
+    })();
+    </script>
+    {% endif %}
     {% if can_restart %}
     <script nonce="{{ csp_nonce() }}">
         const API_PREFIX = window.location.pathname.split("/")[1] === "nexora" ? "/nexora/" : "/";

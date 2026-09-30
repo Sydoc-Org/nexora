@@ -138,6 +138,98 @@ def test_api_admin_restart_denied_for_remote_caller_without_perm(admin_client, n
     assert resp.status_code == 403
 
 
+# ============================ INT seed / clear ================================
+
+
+@pytest.fixture()
+def seed_on_int(monkeypatch):
+    """Pretend to be INT with a stubbed seed module, so the routes' own plumbing
+    is under test and no Statistics DB is touched."""
+    from nx_lib.views.admin import seed as seed_views
+
+    monkeypatch.setenv("ENVIRONMENT", "INT")
+    fake = _types.SimpleNamespace(
+        SEEDERS={
+            "backlog-history": _types.SimpleNamespace(
+                name="backlog-history", table="dbo.BacklogHistory", doc="d"
+            )
+        },
+        SeedRefusedError=RuntimeError,
+        seed_refusal=lambda: None,
+        list_runs=lambda: [{"run_id": 1, "seeder": "backlog-history", "rows": 42}],
+        run_seed=lambda what, days, **kw: _types.SimpleNamespace(
+            to_dict=lambda: {
+                "seeder": what,
+                "days": days,
+                "inserted": days * 3,
+                "by": kw.get("seeded_by"),
+            }
+        ),
+        clear_seeds=lambda seeder=None: {"runs": 1, "rows": 42},
+    )
+    monkeypatch.setattr(seed_views, "seedlib", fake)
+    yield fake
+
+
+def test_seed_routes_404_outside_int(admin_client, admin_all_perms, monkeypatch):
+    """The user's rule: STAGING and PROD must neither see nor use this. The
+    test env is not INT, so every verb is a 404 even with the permission."""
+    monkeypatch.setenv("ENVIRONMENT", "TEST")
+    assert admin_client.get("/api/admin/seed").status_code == 404
+    assert admin_client.post("/api/admin/seed", json={"days": 14}).status_code == 404
+    assert admin_client.delete("/api/admin/seed").status_code == 404
+
+
+def test_seed_controls_hidden_outside_int(admin_client, admin_all_perms, monkeypatch):
+    monkeypatch.setenv("ENVIRONMENT", "TEST")
+    resp = admin_client.get("/admin")
+    assert resp.status_code == 200
+    assert b"admin-overview-seed-btn" not in resp.data
+
+
+def test_seed_routes_403_without_permission(noperm_client, seed_on_int):
+    assert noperm_client.get("/api/admin/seed").status_code == 403
+    assert noperm_client.post("/api/admin/seed", json={"days": 14}).status_code == 403
+    assert noperm_client.delete("/api/admin/seed").status_code == 403
+
+
+def test_seed_status_lists_runs(admin_client, admin_all_perms, seed_on_int):
+    resp = admin_client.get("/api/admin/seed")
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert body["allowed"] is True
+    assert body["rows"] == 42
+    assert body["runs"][0]["seeder"] == "backlog-history"
+
+
+def test_seed_run_validates_and_reports(admin_client, admin_all_perms, seed_on_int):
+    assert admin_client.post("/api/admin/seed", json={"days": 1}).status_code == 400
+    assert admin_client.post("/api/admin/seed", json={"days": 9999}).status_code == 400
+    assert admin_client.post("/api/admin/seed", json={"what": "nope"}).status_code == 400
+    resp = admin_client.post("/api/admin/seed", json={"what": "backlog-history", "days": 5})
+    assert resp.status_code == 200
+    report = resp.get_json()["report"]
+    assert report["inserted"] == 15
+    assert report["by"] == "admin@test.local"
+
+
+def test_seed_run_refusal_is_409(admin_client, admin_all_perms, seed_on_int):
+    def refuse(*a, **k):
+        raise RuntimeError("refusing to seed: looks like production")
+
+    seed_on_int.run_seed = refuse
+    resp = admin_client.post("/api/admin/seed", json={"days": 5})
+    assert resp.status_code == 409
+    assert "production" in resp.get_json()["message"]
+
+
+def test_seed_clear_reports_counts(admin_client, admin_all_perms, seed_on_int):
+    assert admin_client.delete("/api/admin/seed?what=nope").status_code == 400
+    resp = admin_client.delete("/api/admin/seed")
+    assert resp.status_code == 200
+    assert resp.get_json()["cleared"] == {"runs": 1, "rows": 42}
+
+
 # ============================ permissions grid ================================
 
 

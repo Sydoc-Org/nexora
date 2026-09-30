@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 10:45+0200\n"
+"POT-Creation-Date: 2026-09-30 11:45+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1587,6 +1587,19 @@ msgstr ""
 msgid "Field mapping deleted successfully."
 msgstr ""
 
+#: nx_lib/views/admin/seed.py:68
+msgid "Days must be a whole number."
+msgstr ""
+
+#: nx_lib/views/admin/seed.py:70 nx_lib/views/admin/seed.py:93
+msgid "Unknown seeder."
+msgstr ""
+
+#: nx_lib/views/admin/seed.py:75
+#, python-format
+msgid "Days must be between %(lo)s and %(hi)s."
+msgstr ""
+
 #: nx_lib/views/admin/system.py:93
 msgid "Unknown environment."
 msgstr ""
@@ -2271,26 +2284,26 @@ msgid "Overview"
 msgstr ""
 
 #: templates/_header.html:69 templates/admin/access_control.html:19
-#: templates/admin/admin_overview.html:127
+#: templates/admin/admin_overview.html:146
 #: templates/admin/permission_detail.html:19 templates/js/_header_js.html:18
 msgid "Access Control"
 msgstr ""
 
-#: templates/_header.html:74 templates/admin/admin_overview.html:137
+#: templates/_header.html:74 templates/admin/admin_overview.html:156
 #: templates/admin/permission_detail.html:21
 #: templates/admin/permissions.html:21 templates/admin/user_detail.html:88
 msgid "Permissions"
 msgstr ""
 
-#: templates/_header.html:79 templates/admin/admin_overview.html:147
+#: templates/_header.html:79 templates/admin/admin_overview.html:166
 msgid "Sessions"
 msgstr ""
 
-#: templates/_header.html:84 templates/admin/admin_overview.html:157
+#: templates/_header.html:84 templates/admin/admin_overview.html:176
 msgid "Logs"
 msgstr ""
 
-#: templates/_header.html:90 templates/admin/admin_overview.html:168
+#: templates/_header.html:90 templates/admin/admin_overview.html:187
 #: templates/admin/logs.html:66 templates/admin/logs.html:99
 #: templates/admin/tenant_detail.html:209
 #: templates/admin/tenants_manage.html:93 templates/admin/user_detail.html:222
@@ -2305,7 +2318,7 @@ msgstr ""
 msgid "Maintenance"
 msgstr ""
 
-#: templates/_header.html:111 templates/admin/admin_overview.html:92
+#: templates/_header.html:111 templates/admin/admin_overview.html:111
 #: templates/admin/tenants_manage.html:58
 msgid "Tenants"
 msgstr ""
@@ -2314,7 +2327,7 @@ msgstr ""
 msgid "Manage"
 msgstr ""
 
-#: templates/_header.html:130 templates/admin/admin_overview.html:107
+#: templates/_header.html:130 templates/admin/admin_overview.html:126
 #: templates/admin/organization_detail.html:20
 #: templates/admin/organizations.html:22 templates/admin/tenant_detail.html:60
 #: templates/admin/tenants_manage.html:63
@@ -2338,16 +2351,16 @@ msgstr ""
 msgid "Global Reporting"
 msgstr ""
 
-#: templates/_header.html:159 templates/bps.html:31 templates/finance.html:55
+#: templates/_header.html:159 templates/workitems_overview.html:66
+msgid "Global Workitems"
+msgstr ""
+
+#: templates/_header.html:160 templates/bps.html:31 templates/finance.html:55
 msgid "Sydoc Finance"
 msgstr ""
 
-#: templates/_header.html:160 templates/bps.html:25
+#: templates/_header.html:161 templates/bps.html:25
 msgid "Sydoc BPS"
-msgstr ""
-
-#: templates/_header.html:161 templates/workitems_overview.html:66
-msgid "Global Workitems"
 msgstr ""
 
 #: templates/_header.html:270 templates/_header.html:272
@@ -6975,7 +6988,7 @@ msgid "Users and access profiles"
 msgstr ""
 
 #: templates/admin/access_control.html:29
-#: templates/admin/admin_overview.html:62
+#: templates/admin/admin_overview.html:81
 #: templates/admin/organization_detail.html:64
 #: templates/admin/organization_detail.html:116
 #: templates/admin/organizations.html:61 templates/admin/tenant_detail.html:77
@@ -7108,140 +7121,197 @@ msgstr ""
 msgid "Administration"
 msgstr ""
 
-#: templates/admin/admin_overview.html:32
+#: templates/admin/admin_overview.html:37
+msgid "Fill the INT tables nexora only reads with synthetic history"
+msgstr ""
+
+#: templates/admin/admin_overview.html:38
+msgid "Seed INT data"
+msgstr ""
+
+#: templates/admin/admin_overview.html:41
+msgid "Delete only the rows the seeder wrote"
+msgstr ""
+
+#: templates/admin/admin_overview.html:42
+msgid "Clear seed"
+msgstr ""
+
+#: templates/admin/admin_overview.html:50
 msgid "Restart environment"
 msgstr ""
 
-#: templates/admin/admin_overview.html:43
+#: templates/admin/admin_overview.html:61
 msgid "Restart nexora"
 msgstr ""
 
-#: templates/admin/admin_overview.html:52
+#: templates/admin/admin_overview.html:71
 msgid "Active sessions"
 msgstr ""
 
-#: templates/admin/admin_overview.html:54
+#: templates/admin/admin_overview.html:73
 msgid "Currently signed in"
 msgstr ""
 
-#: templates/admin/admin_overview.html:57
+#: templates/admin/admin_overview.html:76
 msgid "Failed logins today"
 msgstr ""
 
-#: templates/admin/admin_overview.html:59
+#: templates/admin/admin_overview.html:78
 msgid "Since midnight"
 msgstr ""
 
-#: templates/admin/admin_overview.html:64
+#: templates/admin/admin_overview.html:83
 #, python-format
 msgid "in %(n)s organizations"
 msgstr ""
 
-#: templates/admin/admin_overview.html:64
+#: templates/admin/admin_overview.html:83
 msgid "across the portal"
 msgstr ""
 
-#: templates/admin/admin_overview.html:67
+#: templates/admin/admin_overview.html:86
 msgid "Database health"
 msgstr ""
 
-#: templates/admin/admin_overview.html:84
+#: templates/admin/admin_overview.html:103
 msgid "Tenancy"
 msgstr ""
 
-#: templates/admin/admin_overview.html:85
+#: templates/admin/admin_overview.html:104
 msgid "Who the customers are and where their data lives"
 msgstr ""
 
-#: templates/admin/admin_overview.html:93
+#: templates/admin/admin_overview.html:112
 msgid "Organizations, pages and access per tenant"
 msgstr ""
 
-#: templates/admin/admin_overview.html:97
+#: templates/admin/admin_overview.html:116
 #, python-format
 msgid "%(n)s needs attention"
 msgstr ""
 
-#: templates/admin/admin_overview.html:108
+#: templates/admin/admin_overview.html:127
 msgid "Users, profiles, data connection and branding"
 msgstr ""
 
-#: templates/admin/admin_overview.html:111
+#: templates/admin/admin_overview.html:130
 #: templates/admin/tenants_manage.html:65
 #, python-format
 msgid "%(n)s not in a tenant"
 msgstr ""
 
-#: templates/admin/admin_overview.html:120
+#: templates/admin/admin_overview.html:139
 msgid "Access & monitoring"
 msgstr ""
 
-#: templates/admin/admin_overview.html:121
+#: templates/admin/admin_overview.html:140
 msgid "Who can do what, and what happened"
 msgstr ""
 
-#: templates/admin/admin_overview.html:128
+#: templates/admin/admin_overview.html:147
 msgid "Users, permissions and access profiles"
 msgstr ""
 
-#: templates/admin/admin_overview.html:130
+#: templates/admin/admin_overview.html:149
 #: templates/admin/organization_detail.html:45
 #: templates/admin/tenant_detail.html:39
 #, python-format
 msgid "%(n)s users"
 msgstr ""
 
-#: templates/admin/admin_overview.html:138
+#: templates/admin/admin_overview.html:157
 msgid "Every profile against every permission"
 msgstr ""
 
-#: templates/admin/admin_overview.html:148
+#: templates/admin/admin_overview.html:167
 msgid "Users active in the last 30 minutes"
 msgstr ""
 
-#: templates/admin/admin_overview.html:150
+#: templates/admin/admin_overview.html:169
 #, python-format
 msgid "%(n)s live"
 msgstr ""
 
-#: templates/admin/admin_overview.html:158
+#: templates/admin/admin_overview.html:177
 msgid "Filter by user, date, method or status"
 msgstr ""
 
-#: templates/admin/admin_overview.html:169
+#: templates/admin/admin_overview.html:188
 msgid "Component health and 30-day uptime"
 msgstr ""
 
-#: templates/admin/admin_overview.html:172
+#: templates/admin/admin_overview.html:191
 #, python-format
 msgid "%(n)s degraded"
 msgstr ""
 
-#: templates/admin/admin_overview.html:183
+#: templates/admin/admin_overview.html:202
 msgid "Resources"
 msgstr ""
 
-#: templates/admin/admin_overview.html:186
+#: templates/admin/admin_overview.html:205
 msgid "Nexora documentation"
 msgstr ""
 
-#: templates/admin/admin_overview.html:191
+#: templates/admin/admin_overview.html:210
 msgid "ngrok hosting"
 msgstr ""
 
-#: templates/admin/admin_overview.html:218
+#: templates/admin/admin_overview.html:224
+#, python-brace-format
+msgid "{rows} seeded rows in {runs} run(s)"
+msgstr ""
+
+#: templates/admin/admin_overview.html:225
+msgid "nothing seeded"
+msgstr ""
+
+#: templates/admin/admin_overview.html:226
+msgid ""
+"Seed the INT backlog history now? Earlier seeded rows are replaced; real "
+"collector rows are left alone."
+msgstr ""
+
+#: templates/admin/admin_overview.html:227
+msgid "Days of history (2-365):"
+msgstr ""
+
+#: templates/admin/admin_overview.html:228
+msgid "Delete every seeded row? Only rows written by the seeder are removed."
+msgstr ""
+
+#: templates/admin/admin_overview.html:229
+#, python-brace-format
+msgid "Seeded {n} rows."
+msgstr ""
+
+#: templates/admin/admin_overview.html:230
+#, python-brace-format
+msgid "Deleted {n} seeded rows."
+msgstr ""
+
+#: templates/admin/admin_overview.html:231
+msgid "Request failed."
+msgstr ""
+
+#: templates/admin/admin_overview.html:232
+msgid "Working..."
+msgstr ""
+
+#: templates/admin/admin_overview.html:305
 msgid "Restart the dev server now? The page will reload once it is back."
 msgstr ""
 
-#: templates/admin/admin_overview.html:219
+#: templates/admin/admin_overview.html:306
 msgid "Restart and switch environment to"
 msgstr ""
 
-#: templates/admin/admin_overview.html:219
+#: templates/admin/admin_overview.html:306
 msgid "The page will reload once it is back."
 msgstr ""
 
-#: templates/admin/admin_overview.html:222
+#: templates/admin/admin_overview.html:309
 msgid "Restarting..."
 msgstr ""
 

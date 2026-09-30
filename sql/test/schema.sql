@@ -297,6 +297,22 @@ BEGIN
 END;
 GO
 
+-- Seed-run ledger for the INT-only admin seed tooling (mirrors 0141_admin_seed_int.sql).
+IF OBJECT_ID(N'dbo.SeedRuns', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.SeedRuns (
+        RunID       INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_SeedRuns PRIMARY KEY,
+        Seeder      NVARCHAR(50)   NOT NULL,
+        TargetTable NVARCHAR(128)  NOT NULL,
+        Days        INT            NOT NULL,
+        RowsWritten INT            NOT NULL,
+        RowKeys     NVARCHAR(MAX)  NOT NULL,
+        SeededAt    DATETIME2(0)   NOT NULL CONSTRAINT DF_SeedRuns_SeededAt DEFAULT SYSDATETIME(),
+        SeededBy    NVARCHAR(100)  NULL
+    );
+END;
+GO
+
 -- DB-backed reporting source registry (mirrors 0010_reporting_sources_registry.sql).
 IF OBJECT_ID(N'dbo.ReportingSources', N'U') IS NULL
 BEGIN

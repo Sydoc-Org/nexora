@@ -8,6 +8,16 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Admin: Seed INT data / Clear seed** (INT only, permission
+  `admin.seed.manage`): two buttons on the admin overview header fill the
+  collector-owned tables nexora only reads (`dbo.BacklogHistory`) with
+  synthetic history, and delete exactly those rows again. Every run records
+  the keys it wrote in `dbo.SeedRuns`, so clearing never touches a real
+  collector row; re-seeding replaces the seeder's own earlier rows. The
+  routes (`/api/admin/seed`, GET/POST/DELETE) 404 outside `ENVIRONMENT=INT`
+  and the buttons never render on STAGING/PROD. `scripts/seed-int-db.py` is
+  now a thin CLI over the shared `nx_lib/seed.py` and gained `--clear`.
+  Migration `0141`.
 - **Sydoc BPS** (`/bps`, permission `bps.view`, #415): every hour booked in
   the BPS timetool for a period -- KPIs (total / service / billable / absence
   hours, bookings, people), hours per day stacked by category, and a

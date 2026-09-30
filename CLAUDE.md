@@ -117,6 +117,8 @@ The `nx` CLI starts and inspects the dev server. Full reference: `docs/howto/nx.
 
 Playwright screenshot artifacts go in `var/screenshots/`, never the repo root.
 
+**Seeding INT** (collector-owned tables nexora only reads, e.g. `dbo.BacklogHistory`): `nx_lib/seed.py`, driven by `scripts/seed-int-db.py` or the admin overview's *Seed INT data* / *Clear seed* buttons (INT only, `admin.seed.manage`, routes 404 elsewhere). Every run is tracked in `dbo.SeedRuns` so clearing deletes only seeded rows. `/nx-seed-intdb`.
+
 ## Translations (Flask-Babel)
 
 Mark strings `{{ _('...') }}` in templates, `_('...')` / `gettext(...)` in Python. English is the source locale and has no `.po`. `babel.cfg` extracts from `nx_lib/**.py`, root `*.py`, and `templates/**.html`.

@@ -17,6 +17,7 @@ from ...db import (
     ping_dbs_parallel,
 )
 from ...security import page_visibility, require_permission
+from .seed import seed_controls_visible
 from .system import _restart_allowed
 
 
@@ -210,6 +211,7 @@ def admin_dashboard():
         status_degraded=status_degraded,
         current_env=os.environ.get("ENVIRONMENT", "?"),
         can_restart=_restart_allowed(),
+        can_seed=seed_controls_visible(),
         logged_in_user=session.get("username"),
         userid=session.get("userid"),
         page_visibility=page_visibility(),

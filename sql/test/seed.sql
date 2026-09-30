@@ -77,6 +77,7 @@ INSERT INTO dbo.Permission (Code, Description) VALUES
     ('finance.view', 'View the Sydoc Finance page (monthly accounting figures of every billed client)'),  -- migration 0138
     ('finance.month.edit', 'Close and reopen a month on the Sydoc Finance page (freezes its figures)'),  -- migration 0139
     ('bps.view', 'View the Sydoc BPS page (all hours booked in the BPS timetool, per task, customer and person)'),  -- migration 0140
+    ('admin.seed.manage', 'Seed the INT databases with synthetic data and clear it again (dev only; the routes 404 outside INT)'),  -- migration 0141
     ('reporting.source.backlog_history.use', 'Reporting: use the Backlog History source'),  -- migration 0053
     ('reporting.source.docprocessing.use', 'Reporting: use the Document Processing source'),
     ('reporting.export', 'Reporting: export reports to Excel'),

@@ -51,6 +51,7 @@ from . import (
     overview,
     permissions,
     processes,
+    seed,
     system,
     tenant_manage,
     users,
@@ -128,6 +129,12 @@ from .processes import (
     api_admin_process_source_delete,
     api_admin_process_source_edit,
     api_admin_processes_list,
+)
+from .seed import (
+    api_admin_seed_clear,
+    api_admin_seed_run,
+    api_admin_seed_status,
+    seed_controls_visible,
 )
 from .system import (
     _SWITCHABLE_ENVS,
@@ -245,6 +252,9 @@ __all__ = [
     "api_admin_process_source_edit",
     "api_admin_processes_list",
     "api_admin_restart",
+    "api_admin_seed_clear",
+    "api_admin_seed_run",
+    "api_admin_seed_status",
     "api_admin_user_activity",
     "api_admin_user_all_permissions",
     "api_admin_user_effective_permissions",
@@ -272,6 +282,7 @@ __all__ = [
     "require_permission",
     "save_access_profile",
     "save_user_overrides",
+    "seed_controls_visible",
     "status",
 ]
 
@@ -285,6 +296,7 @@ def register_routes(app):
     processes.register_routes(app)
     tenant_manage.register_routes(app)
     system.register_routes(app)
+    seed.register_routes(app)
     logs.register_routes(app)
     users.register_routes(app)
     permissions.register_routes(app)

@@ -844,3 +844,8 @@ body.nx-admin #locked-accounts-wrap {
 .perms-grid .perm-code a { color: inherit; text-decoration: none; }
 .perms-grid .perm-code a:hover { color: var(--nx-accent); text-decoration: underline; }
 .adm-pill--danger { background: var(--nx-l-red); color: var(--nx-danger); }
+
+/* ---- INT-only seed controls on the overview header (nx_lib/seed.py) ---- */
+.adm-seed { display: inline-flex; align-items: center; gap: 8px; padding-right: 8px; border-right: 1px solid var(--nx-border); }
+.adm-seed__meta { font-size: var(--fs-micro); font-weight: 600; color: var(--nx-text-meta); white-space: nowrap; }
+.adm-seed__meta:empty { display: none; }
