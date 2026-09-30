@@ -8,16 +8,30 @@ migration `0140`.
 
 ## Where the data comes from
 
-The registered `bps_projects` reporting source (`0124`) over
-`SYDOC_Statistik.dbo.BPS_ProjectReport`: one row per booking with `Kunde`
-(customer), `Projektpaket` (package), `Aufgabe` (task), `Benutzer` (person),
-`Datum`, `Stunden` and `Beschreibung` (the comment). The queries are built with
-the reporting `table` provider (`build_generic_query`), like Finance and
-Reporting.
+The registered `bps_projects` reporting source (`0124`, repointed by `0142`)
+over the view `SYDOC_Statistik.dbo.BPS_ProjectReportAll`: one row per booking
+with `Kunde` (customer), `Projektpaket` (package), `Aufgabe` (task), `Benutzer`
+(person), `Datum`, `Stunden` and `Beschreibung` (the comment). The queries are
+built with the reporting `table` provider (`build_generic_query`), like Finance
+and Reporting.
 
-- The export is **reloaded every morning** (04:00, truncate and reload) and
-  starts on **3 August 2026**; earlier periods are empty. Closing a Finance
-  month freezes that month's billable bookings in its snapshot.
+- The view is the live feed plus a history table (#424):
+  - `dbo.BPS_ProjectReport` — the bpsuite Projektbericht export, **reloaded
+    every morning** (04:00, truncate and reload), starting **3 August 2026**.
+    Never insert into it by hand: the next load wipes it.
+  - `dbo.BPS_ProjectReportHistory` — a one-off load of an older Projektbericht
+    `.xlsx` export: **3 January 2025 – 31 July 2026**, 72,080 bookings,
+    62,616.03 h (subtotal lines and rows with an empty customer or package
+    dropped, as the feed does). Same columns as the feed.
+  - The view takes history rows only **before the feed's first date**, so if
+    the export is ever widened the overlap comes from the feed and nothing is
+    counted twice. History `ID`s are negated to stay unique.
+  - Both tables and the view exist on PRDSQL01 and INTSQL01. They sit on the
+    vendor-side Statistics DB, which is not tracked under `sql/`; to reload the
+    history, empty `BPS_ProjectReportHistory` and insert the rows again (one
+    transaction), keeping the cutoff at the feed's first date.
+- Closing a Finance month freezes that month's billable bookings in its
+  snapshot — months closed before the history was loaded keep their snapshot.
 - BPS has **no billing flag**. What is billable is a property of the task name,
   defined once in `nx_lib/bps.py` (`BILLABLE_RULES` for SQL, `is_billable()` for
   rows in memory; `tests/unit/test_bps.py` keeps them in step): the tasks
