@@ -15,6 +15,7 @@ import pytest
 
 import nx_lib.views.finance_bexio as fbv
 from nx_lib import bexio, config
+from nx_lib.db import engine_nexora_db
 
 CONTACT = 910001  # far outside any real Bexio id, so cleanup cannot hit a real link
 
@@ -50,11 +51,19 @@ def bexio_on(monkeypatch):
 
 
 @pytest.fixture()
-def clean_links(db_conn):
+def clean_links():
+    """The routes commit through their own connections, so cleanup commits too
+    (the transaction-scoped db_conn fixture would roll back -- or block)."""
+
     def purge():
-        cur = db_conn.cursor()
-        cur.execute("DELETE FROM dbo.FinanceBexioContacts WHERE ContactId = ?", (CONTACT,))
-        db_conn.commit()
+        conn = engine_nexora_db.raw_connection()
+        try:
+            conn.cursor().execute(
+                "DELETE FROM dbo.FinanceBexioContacts WHERE ContactId = ?", (CONTACT,)
+            )
+            conn.commit()
+        finally:
+            conn.close()
 
     purge()
     yield
