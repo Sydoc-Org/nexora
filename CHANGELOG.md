@@ -8,6 +8,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **`GET /api/bps/months`** (#427): hours per calendar month over the whole
+  BPS history, for the period picker; and `/api/bps/summary` now carries the
+  previous period's rows (`prev`) for the drill-down's gain/loss column.
+
 - **BPS history from January 2025** (#424): the bpsuite feed starts on
   3 August 2026 and is truncated every morning, so older bookings were loaded
   once from a Projektbericht export into `SYDOC_Statistik.dbo.BPS_ProjectReportHistory`
@@ -56,6 +60,18 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `docs/howto/finance.md`.
 
 ### Changed
+
+- **Sydoc BPS redesigned** (#427) as the Sydoc-branded mirror of Finance
+  (design 1a, `docs/design/design_handoff_sydoc_finance_bps/`): an ink header
+  band with the Sydoc mark, the period as a headline with prev/next arrows and
+  a picker (presets, months with their hours, a free range), totals and a
+  composition bar in the band, weekends shaded in the daily chart, and a
+  drill-down that zooms one level at a time as a **Table** (default) or a
+  squarified **Treemap**, with the change against the previous period and the
+  bookings of a leaf listed per day. The band, headline and picker are shared
+  pieces (`templates/_sydoc.html`, `static/js/nx_sydoc.js`, `nx-sydoc-*` in
+  `nexora-ui.css`) that Finance will use too. The empty-period text now says
+  the history starts in January 2025.
 
 - **Finance parity with the billing workbooks** (#415, migration `0139`):
   Privera *Documents by mail* now drops MAIL rows without a file name, as the
