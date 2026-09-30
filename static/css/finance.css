@@ -231,12 +231,23 @@ html { overflow-y: auto; }
 /* ---------- Billable bookings (BPS) ---------- */
 .nx-fin-bookings { display: grid; gap: 22px; margin-top: 18px; }
 .nx-fin-bk__customer { font-size: 13px; font-weight: 700; color: var(--nx-text); }
-.nx-fin-bk { width: 100%; }
+/* One table per customer: a fixed layout with the same column widths in every
+   table, so the columns line up down the whole section whatever each
+   customer's comments are. The comment column takes the rest. */
+.nx-fin-bk { width: 100%; table-layout: fixed; }
 .nx-fin-matrix .nx-fin-bk { min-width: 760px; }
-.nx-fin-matrix .nx-fin-bk td { white-space: normal; vertical-align: top; font-family: inherit; }
-.nx-fin-matrix .nx-fin-bk td.nx-num { white-space: nowrap; }
+.nx-fin-bk__col--Datum        { width: 108px; }
+.nx-fin-bk__col--Projektpaket { width: 16%; }
+.nx-fin-bk__col--Aufgabe      { width: 17%; }
+.nx-fin-bk__col--Benutzer     { width: 15%; }
+.nx-fin-bk__col--Stunden      { width: 72px; }
+.nx-fin-matrix .nx-fin-bk th, .nx-fin-matrix .nx-fin-bk td {
+  white-space: normal; vertical-align: baseline; overflow-wrap: anywhere;
+}
+.nx-fin-matrix .nx-fin-bk td { font-family: inherit; }
+.nx-fin-matrix .nx-fin-bk td.nx-num { white-space: nowrap; font-family: var(--nx-mono); }
 .nx-fin-bk__date { white-space: nowrap !important; font-variant-numeric: tabular-nums; color: var(--nx-text-sec); }
-.nx-fin-bk__comment { color: var(--nx-text-sec); max-width: 56ch; overflow-wrap: anywhere; }
+.nx-fin-bk__comment { color: var(--nx-text-sec); }
 .nx-fin-bk tbody tr.is-more { display: none; }
 .nx-fin-table.is-expanded .nx-fin-bk tbody tr.is-more { display: table-row; }
 

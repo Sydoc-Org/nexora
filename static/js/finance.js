@@ -227,6 +227,7 @@
                 </div>
                 <div class="nx-fin-matrix" tabindex="0" role="region" aria-label="${esc(g.key || S.blank)}">
                   <table class="nx-table nx-fin-bk">
+                    <colgroup>${shown.map(c => `<col class="nx-fin-bk__col--${esc(c.field)}">`).join('')}</colgroup>
                     <thead><tr>${head}</tr></thead>
                     <tbody>${body}</tbody>
                     <tfoot>${foot}</tfoot>
