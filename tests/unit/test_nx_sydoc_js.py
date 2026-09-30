@@ -11,7 +11,7 @@ import pytest
 
 SRC = Path("static/js/nx_sydoc.js")
 NODE = shutil.which("node")
-DASH = " 2013 "  # the en dash the headline puts between the two ends
+DASH = " \u2013 "  # the en dash the headline puts between the two ends
 pytestmark = pytest.mark.skipif(NODE is None, reason="node not installed")
 
 _HARNESS = """
