@@ -256,7 +256,9 @@ go-ahead first).
 
 ## Export and print
 
-- **CSV** (`/api/finance/export.csv?month=YYYY-MM`): every figure, every
+- **Excel** (`/api/finance/export.xlsx?month=YYYY-MM`, the band's *Excel*
+  button) and **CSV** (`/api/finance/export.csv`, no button any more, kept for
+  scripts): every figure, every
   breakdown and matrix cell and every billable booking of the month as one flat
   sheet, UTF-8 with BOM so Excel opens it directly; a booking's date, package,
   person and comment are in the `Detail` column. Sections that could not be
@@ -265,7 +267,8 @@ go-ahead first).
   *Export hours* box in the Billable services section): one sheet per invoice
   — per customer, Privera split into Posteingang, Invoice and Neuzugänge
   (`Bookings.split`; "Tagesgeschäft X" counts as X) — with date, package,
-  task, person, comment, booked and billed hours and a total. `sheet=all`
+  task, person, comment and the billed (rounded) hours with a total; the
+  booked hours stay on the page only. `sheet=all`
   (default) is one file behind an overview sheet / page, `sheet=<key>` one
   invoice, `files=separate` a `.zip` with one file per invoice. Built by
   `nx_lib/finance_export.py` (openpyxl, fpdf2 with matplotlib's DejaVu Sans

@@ -301,11 +301,13 @@ SECTIONS = (
                 figures=("privera_posteingang_documents",),
                 breakdowns=(
                     Breakdown("Niederlassung", N_("Branch")),
+                    # Below the per-branch table, which takes the full width.
                     Breakdown(
                         "Register",
                         N_("Register"),
                         across="Niederlassung",
                         across_label=N_("Branch"),
+                        row=1,
                     ),
                 ),
             ),
@@ -350,6 +352,7 @@ SECTIONS = (
                         metrics=("privera_nachsendungen_total",),
                         across="Niederlassung",
                         across_label=N_("Branch"),
+                        row=1,
                     ),
                 ),
             ),
