@@ -10,8 +10,11 @@
       month_url   the page's month report
       with_subs   two-level categories (Additional Services): adds the
                   "recently booked" row and the subcategory list
+      with_category  false for a page without categories (Project
+                  Management -- every row is "Project Effort")
+      with_comment   adds an optional free-text comment (Project Management)
 -#}
-{% macro quick_entry(testid, month_url, with_subs=false) %}
+{% macro quick_entry(testid, month_url, with_subs=false, with_category=true, with_comment=false) %}
 <section id="gqQuick" class="gq-quick" data-testid="{{ testid }}-quick" hidden>
   <div class="gq-quick__head">
     <h2 class="gq-quick__title">{{ _("Book hours") }}</h2>
@@ -34,9 +37,11 @@
   </div>
   {% endif %}
 
+  {% if with_category %}
   <p class="gq-quick__label">{{ _("Category") }}</p>
   <div class="gq-quick__cats" id="gqQuickCats" role="group" aria-label="{{ _('Category') }}"
        data-testid="{{ testid }}-quick-categories"></div>
+  {% endif %}
 
   {% if with_subs %}
   <div id="gqQuickSubsWrap" hidden>
@@ -55,6 +60,12 @@
     <button type="button" class="gq-step" id="gqQuickPlus" aria-label="{{ _('Half an hour more') }}"
             data-testid="{{ testid }}-quick-plus"><i class="fas fa-plus"></i></button>
   </div>
+
+  {% if with_comment %}
+  <label class="gq-quick__label" for="gqQuickComment">{{ _("Comment") }} <span class="gq-quick__opt">({{ _("optional") }})</span></label>
+  <textarea id="gqQuickComment" class="nx-input gq-quick__comment" rows="2"
+            placeholder="{{ _('Enter comment…') }}" data-testid="{{ testid }}-quick-comment"></textarea>
+  {% endif %}
 
   <p class="gq-quick__error" id="gqQuickError" role="alert" hidden></p>
   <button type="button" class="nx-btn nx-btn--primary gq-quick__save" id="gqQuickSave" disabled

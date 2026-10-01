@@ -76,6 +76,7 @@ from .projectmanagement import (
     api_generali_projectmanagement_list,
     api_generali_projectmanagement_org_users,
     api_generali_projectmanagement_organizations,
+    api_generali_projectmanagement_undo,
     generali_project_management,
     generali_projectmanagement_monthreport,
 )
@@ -138,6 +139,7 @@ __all__ = [
     "api_generali_projectmanagement_list",
     "api_generali_projectmanagement_org_users",
     "api_generali_projectmanagement_organizations",
+    "api_generali_projectmanagement_undo",
     "api_generali_reporting_add",
     "api_generali_reporting_delete",
     "api_generali_reporting_edit",

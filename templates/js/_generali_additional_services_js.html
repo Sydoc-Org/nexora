@@ -465,7 +465,7 @@
         crud,
         openAddModal,
         storageKey: 'nx.generali.additionalservices.quick',
-        twoLevel: true,
+        buildBody: p => ({ forDate: p.date, parentCategory: p.cat, subCategory: p.sub, effortInHours: p.hours }),
         categories: categoriesLoaded.then(() => Object.keys(categoriesData).sort().map(p => ({
             value: p,
             label: translationsMap[p] || p,

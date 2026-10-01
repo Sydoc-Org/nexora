@@ -407,7 +407,7 @@
         crud,
         openAddModal,
         storageKey: 'nx.generali.baseservices.quick',
-        twoLevel: false,
+        buildBody: p => ({ forDate: p.date, category: p.cat, effortInHours: p.hours }),
         categories: BASE_CATEGORIES.map(c => ({ value: c, label: c, subs: [] })),
         recordKey: r => ({ cat: r.category, sub: null }),
         fillFullForm: st => {

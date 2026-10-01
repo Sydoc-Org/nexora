@@ -86,6 +86,8 @@ PROJECTMANAGEMENT = CrudTable(
     filter_users_label="Generali ProjectManagement",
     monthreport_url="/generali/projectManagement/monthreport",
     monthreport_endpoint="generali_projectmanagement_monthreport",
+    # The phone quick entry offers "Undo" for a few seconds after saving.
+    undo=True,
     monthreport=CrudMonthReport(
         section="projectmanagement",
         section_title="Generali Project Management",
@@ -148,6 +150,7 @@ api_generali_projectmanagement_list = PROJECTMANAGEMENT.views["list"]
 api_generali_projectmanagement_add = PROJECTMANAGEMENT.views["add"]
 api_generali_projectmanagement_edit = PROJECTMANAGEMENT.views["edit"]
 api_generali_projectmanagement_delete = PROJECTMANAGEMENT.views["delete"]
+api_generali_projectmanagement_undo = PROJECTMANAGEMENT.views["undo"]
 generali_projectmanagement_monthreport = PROJECTMANAGEMENT.views["monthreport"]
 
 for _name, _fn in (
@@ -158,6 +161,7 @@ for _name, _fn in (
     ("api_generali_projectmanagement_add", api_generali_projectmanagement_add),
     ("api_generali_projectmanagement_edit", api_generali_projectmanagement_edit),
     ("api_generali_projectmanagement_delete", api_generali_projectmanagement_delete),
+    ("api_generali_projectmanagement_undo", api_generali_projectmanagement_undo),
     ("generali_projectmanagement_monthreport", generali_projectmanagement_monthreport),
 ):
     _fn.__name__ = _name

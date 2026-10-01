@@ -6,8 +6,9 @@
  * the keyboard. This board does it in three or four: a day chip, a category
  * (and, on Additional Services, its subcategory), an hours preset -- Save.
  *
- * Shared by Base Services (one flat category list) and Additional Services
- * (main category -> optional subcategory, from dbo.EffortCategories). The
+ * Shared by Base Services (one flat category list), Additional Services
+ * (main category -> optional subcategory, from dbo.EffortCategories) and
+ * Project Management (no category, an optional comment instead). The
  * markup is templates/_generali_quick_entry.html; each page's Jinja shim
  * calls NX.generaliQuickEntry.mount() with what differs.
  *
@@ -52,11 +53,14 @@
      *   crud           the page's NX.generaliCrud instance
      *   openAddModal   the page's full add form, or null
      *   storageKey     localStorage key for the last category
-     *   categories     [{value, label, subs: [{value, label}]}] or a
-     *                  Promise of that (Additional Services loads them)
-     *   twoLevel       true: payload is {parentCategory, subCategory};
-     *                  false: {category}
-     *   recordKey(r)   list record -> {cat, sub} as stored
+     *   categories     [{value, label, subs: [{value, label}]}], a Promise of
+     *                  that (Additional Services loads them), or null for a
+     *                  page without categories (Project Management)
+     *   buildBody(p)   picked {date, cat, sub, hours, comment} -> POST body
+     *   recordKey(r)   list record -> {cat, sub} as stored (category pages)
+     *   rowLabel(r)    optional: list record -> text for "your entries";
+     *                  defaults to the record's category label
+     *   pillLabel(p)   optional: picked -> what the Undo pill names
      *   fillFullForm(state)  prefill the full form for "More options"
      */
     function mount(cfg) {
@@ -69,6 +73,7 @@
         const esc = window.NX.esc;
 
         const state = { date: null, cat: null, sub: null, hours: null, saving: false };
+        const hasCats = cfg.categories != null;
         let categories = [];
         let labels = {};  // stored value -> shown label
 
@@ -88,6 +93,7 @@
         const errEl = $('gqQuickError');
         const mineEl = $('gqQuickMine');
         const monthEl = $('gqQuickMonth');
+        const commentEl = $('gqQuickComment');
 
         // ------------------------------------------------------- helpers
         // The add deadline the full form enforces client-side (the server
@@ -100,6 +106,11 @@
         function needsSub() { const c = category(state.cat); return !!(c && c.subs.length); }
         function label(value) { return labels[value] || value; }
         function entryLabel(cat, sub) { return sub ? `${label(cat)} · ${label(sub)}` : label(cat); }
+        function rowLabel(r) {
+            if (cfg.rowLabel) return cfg.rowLabel(r) || '—';
+            const k = cfg.recordKey(r);
+            return k.cat ? entryLabel(k.cat, k.sub) : '—';
+        }
         function readLast() {
             try { return JSON.parse(localStorage.getItem(cfg.storageKey) || 'null'); } catch (e) { return null; }
         }
@@ -109,7 +120,7 @@
 
         // -------------------------------------------------------- render
         function buildButtons() {
-            catsEl.innerHTML = categories.map(c =>
+            if (catsEl) catsEl.innerHTML = categories.map(c =>
                 `<button type="button" class="gq-cat" data-cat="${esc(c.value)}" aria-pressed="false">${esc(c.label)}</button>`
             ).join('');
             presetsEl.innerHTML = PRESETS.map(h =>
@@ -139,7 +150,7 @@
             if (!pickedOther && dateInput.value) dateInput.value = '';
             $('gqQuickDateLabel').textContent = state.date ? fmtDate(state.date) : '';
 
-            catsEl.querySelectorAll('.gq-cat').forEach(b =>
+            if (catsEl) catsEl.querySelectorAll('.gq-cat').forEach(b =>
                 b.setAttribute('aria-pressed', String(b.dataset.cat === state.cat)));
             if (subsEl) subsEl.querySelectorAll('.gq-sub').forEach(b =>
                 b.setAttribute('aria-pressed', String(b.dataset.sub === state.sub)));
@@ -155,7 +166,7 @@
         }
 
         function ready() {
-            return !!(state.date && state.cat && state.hours && (!needsSub() || state.sub));
+            return !!(state.date && state.hours && (!hasCats || (state.cat && (!needsSub() || state.sub))));
         }
 
         function showError(msg) {
@@ -198,8 +209,7 @@
                     mineEl.innerHTML =
                         `<p class="gq-mine__total">${esc(fill(T.dayTotal, { hours: fmtHours(dayRes.totalHours || 0) }))}</p>` +
                         `<ul class="gq-mine__list">${records.map(r => {
-                            const k = cfg.recordKey(r);
-                            return `<li class="gq-mine__row"><span class="gq-mine__cat">${esc(k.cat ? entryLabel(k.cat, k.sub) : '—')}</span>` +
+                            return `<li class="gq-mine__row"><span class="gq-mine__cat">${esc(rowLabel(r))}</span>` +
                                 `<span class="gq-mine__h">${esc(fmtHours(r.effortInHours))} h</span></li>`;
                         }).join('')}</ul>`;
                 }
@@ -247,10 +257,8 @@
             state.saving = true;
             showError('');
             paint();
-            const picked = { ...state };
-            const body = cfg.twoLevel
-                ? { forDate: picked.date, parentCategory: picked.cat, subCategory: picked.sub, effortInHours: picked.hours }
-                : { forDate: picked.date, category: picked.cat, effortInHours: picked.hours };
+            const picked = { ...state, comment: commentEl ? commentEl.value.trim() : '' };
+            const body = cfg.buildBody(picked);
             try {
                 const res = await fetch(cfg.api, {
                     method: 'POST',
@@ -259,16 +267,18 @@
                 });
                 const data = await res.json().catch(() => ({}));
                 if (!data.success) throw new Error(data.error || T.saveFailed);
-                writeLast({ cat: picked.cat, sub: picked.sub });
+                if (hasCats) writeLast({ cat: picked.cat, sub: picked.sub });
                 // Keep the day and category: the next entry is usually the
                 // same day, often the same category. The hours are what changes.
                 state.hours = null;
+                if (commentEl) commentEl.value = '';
                 // The pill is small: the subcategory alone says what was
                 // booked; the tooltip carries the full "main · sub" name.
-                const what = entryLabel(picked.cat, picked.sub);
+                const what = cfg.pillLabel ? cfg.pillLabel(picked) : entryLabel(picked.cat, picked.sub);
+                const short = cfg.pillLabel ? what : label(picked.sub || picked.cat);
                 window.NX.undoPill.show($('gqUndo'), {
-                    text: `${T.saved} · ${fmtHours(picked.hours)} h · ${label(picked.sub || picked.cat)}`,
-                    title: `${fmtDate(picked.date)} · ${what}`,
+                    text: [T.saved, `${fmtHours(picked.hours)} h`, short].filter(Boolean).join(' · '),
+                    title: [fmtDate(picked.date), what].filter(Boolean).join(' · '),
                     failText: T.saveFailed,
                     undo: data.id ? async () => {
                         const r = await fetch(`${cfg.api}/${data.id}/undo`, {
@@ -310,7 +320,7 @@
             minDate: cfg.crud.getAddMinDate(),
             onChange: (sel, str) => { if (str) setDate(str); },
         });
-        catsEl.addEventListener('click', e => {
+        if (catsEl) catsEl.addEventListener('click', e => {
             const b = e.target.closest('.gq-cat');
             if (b) pick(b.dataset.cat, null);
         });
@@ -341,7 +351,7 @@
         $('gqQuickMore').addEventListener('click', () => {
             if (!cfg.openAddModal) return;
             cfg.openAddModal();
-            cfg.fillFullForm({ ...state });
+            cfg.fillFullForm({ ...state, comment: commentEl ? commentEl.value.trim() : '' });
         });
 
         // ------------------------------------------------------ the gate
@@ -350,14 +360,14 @@
             box.hidden = !PHONE.matches;
             if (!PHONE.matches || started) return;
             started = true;
-            categories = await Promise.resolve(cfg.categories);
+            categories = hasCats ? (await Promise.resolve(cfg.categories)) || [] : [];
             labels = {};
             categories.forEach(c => {
                 labels[c.value] = c.label;
                 c.subs.forEach(s => { labels[s.value] = s.label; });
             });
             buildButtons();
-            const last = readLast();
+            const last = hasCats ? readLast() : null;
             if (last && category(last.cat)) {
                 state.cat = last.cat;
                 const c = category(last.cat);

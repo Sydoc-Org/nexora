@@ -1851,6 +1851,11 @@ html.dark .flatpickr-day:hover { background: var(--nx-alt); }
   }
   .gq-step:disabled { opacity: 0.4; cursor: default; }
   .gq-quick__hours { min-width: 4.5em; text-align: center; font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--nx-text); }
+  /* Project Management's optional comment. 16px so iOS does not zoom the
+     page in when it gets focus. */
+  .gq-quick__comment { display: block; width: 100%; min-height: 64px; font-size: 16px; resize: vertical; }
+  label.gq-quick__label { display: block; }
+  .gq-quick__opt { font-weight: 500; text-transform: none; letter-spacing: 0; }
   .gq-quick__error { margin: 12px 0 0; color: var(--nx-danger); font-size: 14px; }
   .gq-quick__save { width: 100%; min-height: 52px; margin: 16px 0 0; font-size: 17px; justify-content: center; }
   .gq-quick__more {
@@ -1889,7 +1894,8 @@ html.dark .flatpickr-day:hover { background: var(--nx-alt); }
   }
   /* Survey 29.09: nobody needs the Excel export on a phone. */
   [data-testid="generali-base-services-export-excel"],
-  [data-testid="generali-additional-services-export-excel"] { display: none; }
+  [data-testid="generali-additional-services-export-excel"],
+  [data-testid="generali-project-management-export-excel"] { display: none; }
 
   /* Folded filter blocks (nx_core.js adds the button and the class). */
   .nx-filter.nx-filter--folded { display: none; }
