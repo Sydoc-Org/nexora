@@ -6,6 +6,13 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **Finance: Bexio panel ignores TCG Informatik AG** (#423): its invoices are
+  not Finance billing, so the panel no longer lists them under unlinked
+  contacts or counts them in the Bexio total (`IGNORED_CONTACTS` in
+  `nx_lib/bexio.py`).
+
 ### Added
 
 - **Finance: invoiced in Bexio** (#423): a read-only panel on `/finance` lists

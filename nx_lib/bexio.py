@@ -46,6 +46,14 @@ CONTACT_TTL = 3600
 # it searched, so a wrong offset is visible rather than silent.
 INVOICE_MONTH_OFFSET = 1
 
+# Bexio contacts the panel leaves out entirely: invoiced from Sydoc's Bexio
+# account, but not Finance billing (neither a client nor "other contacts").
+IGNORED_CONTACTS = frozenset(
+    {
+        438,  # TCG Informatik AG
+    }
+)
+
 # kb_item_status_id. Anything unknown is treated as issued (and shown as "other").
 DRAFT = 7
 PENDING = 8
@@ -372,7 +380,10 @@ def reconcile(clients, links, invoices, names):
     ``links`` -- ``Link`` rows (client -> Bexio contact id).
     ``invoices`` -- normalized invoices of the window.
     ``names`` -- {contact id: name}.
+
+    Invoices of ``IGNORED_CONTACTS`` are dropped first: not listed, not totalled.
     """
+    invoices = [i for i in invoices if i["contactId"] not in IGNORED_CONTACTS]
     by_contact: dict[int | None, list] = {}
     for inv in sorted(invoices, key=lambda i: (i["date"] or "", i["nr"])):
         by_contact.setdefault(inv["contactId"], []).append(inv)

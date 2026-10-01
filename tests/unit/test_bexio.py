@@ -265,6 +265,13 @@ def test_reconcile_linked_without_invoice_is_missing():
     assert out["totals"] == [] and out["others"] == []
 
 
+def test_reconcile_drops_ignored_contacts():
+    tcg = next(iter(bexio.IGNORED_CONTACTS))
+    out = bexio.reconcile([], [], [_inv(1, tcg), _inv(2, 9)], {tcg: "TCG", 9: "Stranger"})
+    assert [o["contact"]["id"] for o in out["others"]] == [9]
+    assert out["totals"] == [{"currency": "CHF", "total": 100.0, "excl": 90.0, "count": 1}]
+
+
 def test_reconcile_totals_split_by_currency():
     out = bexio.reconcile([], [], [_inv(1, 1, currency="EUR"), _inv(2, 1)], {})
     assert [t["currency"] for t in out["totals"]] == ["CHF", "EUR"]

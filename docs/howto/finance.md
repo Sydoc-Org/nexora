@@ -166,6 +166,9 @@ go-ahead first).
   is stored in `dbo.FinanceBexioContacts` (`0141`): one row per contact, so a
   contact belongs to one client while a client may have several. A client can
   only be linked in a month in which its contact has an invoice.
+- **Ignored contacts.** Contacts in `IGNORED_CONTACTS` (`nx_lib/bexio.py`) are
+  left out of the panel entirely, neither listed nor totalled: TCG Informatik AG
+  (contact 438) is invoiced from Sydoc's Bexio account but is not Finance billing.
 - **Live, not frozen.** The panel is not part of the month close: Bexio is the
   system of record for the invoice itself. Results are cached for five
   minutes in-process; **Refresh** bypasses the cache.
