@@ -46,14 +46,6 @@ CONTACT_TTL = 3600
 # it searched, so a wrong offset is visible rather than silent.
 INVOICE_MONTH_OFFSET = 1
 
-# Bexio contacts the panel leaves out entirely: invoiced from Sydoc's Bexio
-# account, but not Finance billing (neither a client nor "other contacts").
-IGNORED_CONTACTS = frozenset(
-    {
-        438,  # TCG Informatik AG
-    }
-)
-
 # kb_item_status_id. Anything unknown is treated as issued (and shown as "other").
 DRAFT = 7
 PENDING = 8
@@ -373,28 +365,28 @@ class Link:
 
 
 def reconcile(clients, links, invoices, names):
-    """The panel: every Finance client with its linked contacts and invoices,
-    then the invoices of contacts no client is linked to.
+    """The panel: every Finance client with its linked contacts and invoices.
 
     ``clients`` -- Finance client names in page order.
     ``links`` -- ``Link`` rows (client -> Bexio contact id).
     ``invoices`` -- normalized invoices of the window.
     ``names`` -- {contact id: name}.
 
-    Invoices of ``IGNORED_CONTACTS`` are dropped first: not listed, not totalled.
+    Only invoices to linked contacts are shown and totalled: Sydoc's Bexio also
+    bills customers nexora has no Finance figures for, and those are not this
+    page's business.
     """
-    invoices = [i for i in invoices if i["contactId"] not in IGNORED_CONTACTS]
-    by_contact: dict[int | None, list] = {}
-    for inv in sorted(invoices, key=lambda i: (i["date"] or "", i["nr"])):
-        by_contact.setdefault(inv["contactId"], []).append(inv)
     linked: dict[str, list] = {}
     for link in links:
         linked.setdefault(link.client, []).append(link.contact_id)
-    claimed = set()
+    claimed = {cid for client in clients for cid in linked.get(client, [])}
+    invoices = [i for i in invoices if i["contactId"] in claimed]
+    by_contact: dict[int | None, list] = {}
+    for inv in sorted(invoices, key=lambda i: (i["date"] or "", i["nr"])):
+        by_contact.setdefault(inv["contactId"], []).append(inv)
     rows = []
     for client in clients:
         ids = sorted(linked.get(client, []))
-        claimed.update(ids)
         mine = [inv for cid in ids for inv in by_contact.get(cid, [])]
         if not ids:
             state = UNLINKED
@@ -413,21 +405,9 @@ def reconcile(clients, links, invoices, names):
                 "totals": totals(mine),
             }
         )
-    others = [
-        {
-            "contact": {"id": cid, "name": names.get(cid, f"#{cid}") if cid else "?"},
-            "invoices": invs,
-            "totals": totals(invs),
-        }
-        for cid, invs in by_contact.items()
-        if cid not in claimed
-    ]
-    others.sort(key=lambda o: str(o["contact"]["name"]).lower())
     return {
         "clients": rows,
-        "others": others,
         "totals": totals(invoices),
-        "linkedTotals": totals([i for r in rows for i in r["invoices"]]),
         "drafts": sum(1 for i in invoices if i["status"] == "draft"),
         "count": len(invoices),
     }

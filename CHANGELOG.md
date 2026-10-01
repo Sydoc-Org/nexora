@@ -8,10 +8,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
-- **Finance: Bexio panel ignores TCG Informatik AG** (#423): its invoices are
-  not Finance billing, so the panel no longer lists them under unlinked
-  contacts or counts them in the Bexio total (`IGNORED_CONTACTS` in
-  `nx_lib/bexio.py`).
+- **Finance: Bexio panel shows linked clients only** (#423): every Finance
+  client is linked to its Bexio contact(s) by migration `0143`, so nobody links
+  them by hand per environment, and invoices to contacts no client is linked to
+  (TCG Informatik AG, MobScan customers, ...) are no longer listed or counted
+  in the Bexio total. The *other invoices* list and its link dropdown are gone.
 
 ### Added
 
