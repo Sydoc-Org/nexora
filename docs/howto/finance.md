@@ -190,7 +190,9 @@ go-ahead first).
   with number, title, date, status, the amount excl. VAT (`total` minus
   `total_taxes`) and the total, or a flag: *no Bexio contact linked*, *no invoice
   in M + 1*, *draft only*. Drafts and cancelled invoices are listed but never
-  counted in the totals. **Lines** loads the invoice's positions (quantity,
+  counted in the totals. Totals are **CHF only**: Bexio sends no exchange rate
+  with an invoice, so a foreign-currency one (Bucherer is sometimes billed in
+  EUR) is listed in its own currency but not added in. **Lines** loads the invoice's positions (quantity,
   unit, unit price, discount, total) for comparison with the figures below;
   **PDF** streams the invoice PDF through nexora (`no-store`).
 - **Linked contacts only.** The panel shows and totals only invoices to Bexio
@@ -199,10 +201,8 @@ go-ahead first).
   `dbo.FinanceBexioContacts` (`0141`): one row per contact, so a contact belongs
   to one client while a client may have several (Aveniq is billed as Aveniq AG
   and as Xpert Consulting AG). Migration `0143` seeds them for every client; a
-  new client or contact gets its link in a new migration. A holder of
-  `finance.month.edit` can remove a link (×, next to the contact); the
-  `POST /api/finance/bexio/link` route still exists but the page no longer
-  offers it.
+  new client or contact gets its link in a new migration. The links are fixed:
+  the page only reads them and nexora has no route that changes them.
 - **Live, not frozen.** The panel is not part of the month close: Bexio is the
   system of record for the invoice itself. Results are cached for five
   minutes in-process; **Refresh** bypasses the cache.

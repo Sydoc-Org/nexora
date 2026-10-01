@@ -342,21 +342,13 @@ html.dark.nx-stripes .nx-fin-matrix .nx-table tbody tr:nth-child(even) th { back
 .nx-fin-bexio__client { font-weight: 600; color: var(--nx-text); }
 .nx-fin-bexio__contacts { display: flex; flex-wrap: wrap; gap: 4px 8px; margin-top: 2px; }
 .nx-fin-bexio__contact { display: inline-flex; align-items: center; gap: 2px; font-size: var(--fs-micro); color: var(--nx-fin-quiet); }
-.nx-fin-bexio__unlink {
-  border: none; background: none; color: var(--nx-fin-quiet); cursor: pointer;
-  padding: 0 3px; font-size: 10px; border-radius: 3px;
-}
-.nx-fin-bexio__unlink:hover { color: var(--nx-danger); background: var(--nx-alt); }
-.nx-fin-bexio__unlink:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--nx-accent); }
 .nx-fin-bexio__nr { font-family: var(--nx-mono); font-weight: 600; margin-right: 6px; white-space: nowrap; }
 .nx-fin-bexio__title { color: var(--nx-text-sec); }
 .nx-fin-bexio__date { white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--nx-text-sec); }
-.nx-fin-bexio__hint { margin-left: 8px; font-size: var(--fs-meta); color: var(--nx-fin-quiet); }
 .nx-fin-bexio__act { white-space: nowrap; text-align: right; }
 .nx-fin-bexio__actions { display: inline-flex; gap: 4px; }
 .nx-fin-bexio__inv.is-cancelled td { color: var(--nx-fin-quiet); }
 .nx-fin-bexio__inv.is-cancelled td.nx-num { text-decoration: line-through; }
-.nx-fin-bexio__link { margin-top: 6px; font-size: var(--fs-meta); max-width: 220px; display: block; }
 .nx-fin-bexio__lines > td { background: var(--nx-alt); padding: 10px 14px !important; }
 .nx-fin-bexio__positions { margin: 0; }
 .nx-fin-bexio__positions td.nx-num { font-family: var(--nx-mono); white-space: nowrap; }
@@ -404,5 +396,5 @@ html.dark.nx-stripes .nx-fin-matrix .nx-table tbody tr:nth-child(even) th { back
   .nx-fin-share__bar, .nx-fin-cmp { display: none; }
   .nx-fin-matrix { overflow: visible; }
   .nx-fin-drift[open] summary ~ * { display: block; }
-  .nx-fin-bexio__actions, .nx-fin-bexio__link, .nx-fin-bexio__unlink { display: none !important; }
+  .nx-fin-bexio__actions { display: none !important; }
 }
