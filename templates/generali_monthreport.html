@@ -38,7 +38,7 @@
     </div>
 
     <!-- Month Navigation -->
-    <div class="flex items-center justify-center gap-4 mb-6 nx-rise-2">
+    <div class="mr-nav flex items-center justify-center gap-4 mb-6 nx-rise-2">
       <a href="?year={{ prev_year }}&month={{ prev_month }}"
          class="nx-btn nx-btn--secondary" data-testid="generali-month-report-prev"
          aria-label="{{ _('Previous') }}">
@@ -66,7 +66,10 @@
        in both engines. Same family as the twelve templates fixed in #366/#367,
        missed here because there was no `grid-cols-1` to correct: Tailwind's
        `sm:` starts at 640px, which is wider than any phone. #}
-    <div class="grid grid-cols-1 sm:grid-cols-2 {% if section == 'reporting' %}lg:grid-cols-4{% else %}lg:grid-cols-2{% endif %} gap-4 mb-6 nx-rise-2">
+    {# On a touch phone `.mr-stats` turns these into compact tiles, two per
+       row, without the icon chip -- that chip is what made the cards need
+       ~217px each (#354). #}
+    <div class="mr-stats grid grid-cols-1 sm:grid-cols-2 {% if section == 'reporting' %}lg:grid-cols-4{% else %}lg:grid-cols-2{% endif %} gap-4 mb-6 nx-rise-2">
 
       <div class="nx-card nx-card--pad nx-stat">
         <div>
@@ -123,7 +126,45 @@
     <!-- Breakdown Table (not shown for Project Management) -->
     {% if section != 'projectmanagement' %}
       {% if rows %}
-      <div class="nx-table-wrap nx-rise-3">
+      {# Phone only (#354, survey 29.09: the monthly figures were the one
+         "Unverzichtbar"): the breakdown as a list, biggest figure first, each
+         row with its share of the month as a bar. The table below stays the
+         desktop view; CSS swaps the two on a touch phone, so nothing here
+         needs JavaScript. #}
+      {% if section == 'reporting' %}
+        {% set mr_rows = rows|sort(attribute='entries', reverse=true) %}
+      {% elif section == 'pdqm' %}
+        {% set mr_rows = rows|sort(attribute='total_quantity', reverse=true) %}
+        {% set mr_total = summary.total_quantity %}
+      {% else %}
+        {% set mr_rows = rows|sort(attribute='total_hours', reverse=true) %}
+        {% set mr_total = summary.total_hours %}
+      {% endif %}
+      <ul class="mr-list nx-rise-3" data-testid="generali-month-report-list">
+        {% for row in mr_rows %}
+        <li class="mr-row">
+          <div class="mr-row__top">
+            <span class="mr-row__name">{{ row.category }}</span>
+            {% if section == 'reporting' %}
+            <span class="mr-row__value">{{ row.pct }}%</span>
+            {% elif section == 'pdqm' %}
+            <span class="mr-row__value">{{ row.total_quantity }}</span>
+            {% else %}
+            <span class="mr-row__value">{{ row.total_hours }} h</span>
+            {% endif %}
+          </div>
+          {% if section == 'reporting' %}
+          <div class="mr-row__bar mr-row__bar--ok" aria-hidden="true"><span style="width: {{ row.pct }}%"></span></div>
+          <p class="mr-row__meta">{{ _("On Time") }} {{ row.on_time }} · {{ _("Late") }} {{ row.late }} · {{ _("Entries") }} {{ row.entries }}</p>
+          {% else %}
+          {% set share = ((row.total_quantity if section == 'pdqm' else row.total_hours) / mr_total * 100) if mr_total else 0 %}
+          <div class="mr-row__bar" aria-hidden="true"><span style="width: {{ '%.1f'|format(share) }}%"></span></div>
+          <p class="mr-row__meta">{{ _("Entries") }} {{ row.entries }} · {{ '%.0f'|format(share) }}%</p>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      <div class="mr-table nx-table-wrap nx-rise-3">
         <div class="overflow-x-auto">
           <table class="nx-table">
             <thead>

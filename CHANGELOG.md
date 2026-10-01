@@ -57,6 +57,13 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   template, because two of the three needed a paragraph of comment each.
 
 ### Added — phone view
+- **The Generali month reports read on a phone.** On a touch phone the
+  breakdown is a list instead of a squeezed table: biggest figure first, the
+  full category name, the value on the right and a bar for its share of the
+  month (Tagesrapport: on-time rate, with on time / late / entries under it).
+  The totals are compact tiles two per row, without the icon chip, and the
+  month arrows are 48px. Server-rendered, no JavaScript; the desktop table is
+  unchanged. Survey 29.09: the monthly figures were the one "Unverzichtbar".
 - **Book Basisleistungen hours on a phone in three taps.** On a touch phone
   Generali Base Services opens with "Book hours": a day chip (today,
   yesterday, or another day within the add deadline), one big button per

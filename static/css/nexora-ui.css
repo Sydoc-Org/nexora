@@ -1885,6 +1885,10 @@ html.dark .flatpickr-day:hover { background: var(--nx-alt); }
    AND a word for the state (never colour alone), and a whole row as the tap
    target for "Report now". The JS only un-hides it on a touch phone; the
    gate here keeps the styling from leaking anywhere else. */
+/* Generali month report, phone list (#354): rendered next to the table,
+   shown instead of it only under the touch gate below. */
+.mr-list { display: none; }
+
 @media (max-width: 768px) and (pointer: coarse) {
   .rp-today { margin: 0 0 20px; }
   .rp-today__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 10px; }
@@ -2124,6 +2128,33 @@ html.dark .flatpickr-day:hover { background: var(--nx-alt); }
   [data-testid="generali-additional-services-export-excel"],
   [data-testid="generali-project-management-export-excel"],
   [data-testid="generali-pdqm-export-excel"] { display: none; }
+
+  /* Generali month report (#354): figures first. Compact stat tiles two per
+     row, the breakdown as a list with a share bar, bigger month arrows. */
+  .mr-nav .nx-btn { min-width: 48px; min-height: 48px; justify-content: center; }
+  /* Two tiles per row. The general phone rule above forces every stat grid
+     to one column because the cards' icon chip does not fit two-up; these
+     tiles hide that chip, so they may. Same selector plus .mr-stats, so it
+     outranks that rule and touches no other page. */
+  body.nx-app .grid.grid-cols-1.sm\:grid-cols-2.mr-stats:has(> .nx-stat) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;
+  }
+  .mr-stats .nx-stat { padding: 12px 14px; }
+  .mr-stats .nx-stat__chip { display: none; }
+  .mr-stats .nx-stat__value { font-size: 24px; }
+  /* "PÜNKTLICHKEITSQUOTE" is one word wider than a tile at 320px. */
+  .mr-stats .nx-stat > div { min-width: 0; }
+  .mr-stats .nx-stat__label { overflow-wrap: anywhere; hyphens: auto; }
+  .mr-table { display: none; }
+  .mr-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+  .mr-row { padding: 12px 14px; border-radius: 14px; background: var(--nx-card); border: 1px solid var(--nx-border); }
+  .mr-row__top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .mr-row__name { min-width: 0; font-size: 15px; font-weight: 600; line-height: 1.3; color: var(--nx-text); overflow-wrap: break-word; hyphens: auto; }
+  .mr-row__value { flex: none; font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--nx-accent); }
+  .mr-row__bar { height: 6px; margin: 8px 0 6px; border-radius: 999px; background: var(--nx-sunken); overflow: hidden; }
+  .mr-row__bar > span { display: block; height: 100%; border-radius: inherit; background: var(--nx-accent); }
+  .mr-row__bar--ok > span { background: var(--nx-l-green-fg); }
+  .mr-row__meta { margin: 0; font-size: 13px; color: var(--nx-text-sec); font-variant-numeric: tabular-nums; }
 
   /* Folded filter blocks (nx_core.js adds the button and the class). */
   .nx-filter.nx-filter--folded { display: none; }
