@@ -17,7 +17,7 @@ Nexora is a Flask web application (Python 3, WSGI) deployed on Windows/IIS, whic
 - `ENVIRONMENT` (`INT`, `STAGING`, `PROD`, or `TEST` for pytest) selects the env file; `nx_lib/config.py` loads `env/{ENVIRONMENT}.env`. Sanitised templates: `env/*.env.example`.
 - **Local dev:** `.venv` via `uv venv && uv sync` (or `bootstrap.ps1`), `ENVIRONMENT=INT`, `.venv\Scripts\python.exe nx_main.py`. WSGI handler is `nx_main.app`. `requirements*.txt` are generated from `uv.lock` for the IIS deploy path — never install from them locally. Full setup: `CONTRIBUTING.md`.
 - **Production:** IIS + HttpPlatformHandler → `waitress` (32 threads). `web.config` is the whole hosting contract — it starts waitress, sets `ENVIRONMENT=PROD` / `PYTHONPATH`, trusts `X-Forwarded-For`, logs stdout to `var/logs/system/waitress-stdout*`. Note `path="*"`: **waitress serves `/static`, not IIS**. See `docs/howto/iis.md`. (`wfastcgi` retired in v3.2.3.)
-- **Hosted envs (SYAPP01):** `dev-nexora.sydoc.ch` (any branch push, `INT`, INT DBs) · `staging-nexora.sydoc.ch` (`main` + 01:30 nightly, or Actions → Deploy → Run workflow on `main`; `STAGING`, nightly PROD-copy DBs `nexora_STAGING`/`Generali_STAGING` on PRDSQL01) · `nexora.sydoc.ch` (`v*` tag, `PROD`). One ngrok agent fronts all three (`docs/howto/ngrok.md`); host setup `ops/setup-env.ps1`; DB refresh `ops/staging-refresh.sql`. Cloudflare Tunnel is parked (`docs/howto/cloudflare-tunnel.md`). `IS_PROD` is true for `STAGING` too.
+- **Hosted envs (SYAPP01):** one dev host per developer (`stop-taking-my-gitrunner-nexora.sydoc.ch` = slot `dev-ben`, `prod-but-not-really-nexora.sydoc.ch` = `dev-gruoss`; any branch push, slot mapped from the pusher's GitHub login in `deploy.yml`, #431) or the shared `dev-nexora.sydoc.ch` for anyone unmapped (`INT`, INT DBs) · `staging-nexora.sydoc.ch` (`main` + 01:30 nightly, or Actions → Deploy → Run workflow on `main`; `STAGING`, nightly PROD-copy DBs `nexora_STAGING`/`Generali_STAGING` on PRDSQL01) · `nexora.sydoc.ch` (`v*` tag, `PROD`). One ngrok agent fronts them all (`docs/howto/ngrok.md`); host setup `ops/setup-env.ps1`; DB refresh `ops/staging-refresh.sql`. Cloudflare Tunnel is parked (`docs/howto/cloudflare-tunnel.md`). `IS_PROD` is true for `STAGING` too.
 
 ## Databases
 
@@ -56,7 +56,7 @@ SQLAlchemy engines with pyodbc, defined in `nx_lib/db.py`. Credentials come from
 
 ## Deploy artifacts
 
-`deploy-env.yml` (reusable, called per environment by `deploy.yml`) mirrors the repo to the target folder (`D:\sydoc\nexora`, `-staging`, `-dev`) with `robocopy /MIR` after stopping that folder's app pool. Runtime needs only `nx_main.py`, `nx_lib/`, `templates/`, `static/`, `translations/`, `web.config`.
+`deploy-env.yml` (reusable, called per environment by `deploy.yml`) mirrors the repo to the target folder (`D:\sydoc\nexora`, `-staging`, `-dev`, `-dev-<who>`) with `robocopy /MIR` after stopping that folder's app pool. Runtime needs only `nx_main.py`, `nx_lib/`, `templates/`, `static/`, `translations/`, `web.config`.
 
 **Rule:** committing a new top-level file or directory the running app does **not** need? Add it to the robocopy exclude list in `deploy-env.yml` — `/XF` for files, `/XD` for directories. `/MIR` would otherwise sync it into prod.
 
