@@ -135,7 +135,7 @@ def test_finance_page_renders_every_section_shell(admin_client):
     assert 'class="nx-app nx-sydoc"' in html
     assert ">August<" in html  # the headline's month word
     assert "month=2026-07" in html  # the previous-month link
-    assert "export.csv?month=2026-08" in html
+    assert "export.xlsx?month=2026-08" in html
 
 
 def test_finance_page_ignores_a_garbage_month(admin_client):
@@ -325,6 +325,21 @@ def test_a_closed_month_serves_its_snapshot_and_reports_live_drift(
     assert body["closed"] is None and body["blocks"][0]["figures"][0]["value"] == 9
 
 
+def test_export_is_also_an_excel_download(admin_client, fake_registry):
+    import io
+
+    from openpyxl import load_workbook
+
+    resp = admin_client.get("/api/finance/export.xlsx?month=2026-09")
+    assert resp.status_code == 200
+    assert 'filename="sydoc-finance-2026-09.xlsx"' in resp.headers["Content-Disposition"]
+    assert resp.headers["Cache-Control"] == "no-store"
+    ws = load_workbook(io.BytesIO(resp.data)).active
+    values = [[c.value for c in row] for row in ws.iter_rows()]
+    # The same flat rows as the CSV: client, section, basis, kind, ..., value.
+    assert any(r[0] == "Elektro-Material" and r[3] == "figure" and 150 in r for r in values)
+
+
 # ---- the BPS hours export -------------------------------------------------
 
 
@@ -375,7 +390,7 @@ def test_bps_export_is_one_workbook_with_a_sheet_per_invoice(admin_client, bps_p
     assert wb.sheetnames[1:] == ["Privera Posteingang", "Privera Neuzugänge", "Aveniq"]
     aveniq = wb["Aveniq"]
     values = [c.value for c in aveniq[6]]
-    assert values[5:] == [0.3333, 0.5]  # booked, billed (rounded up to the quarter)
+    assert values[5:] == [0.5]  # billed only: 0.3333 booked, rounded up to the quarter
 
 
 def test_bps_export_one_invoice_as_pdf(admin_client, bps_payload):

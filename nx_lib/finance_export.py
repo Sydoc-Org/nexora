@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import Any
 
 from . import bps
+from .reporting.export import _safe_cell
 
 #: The package prefix of Privera's day-to-day streams: "Tagesgeschäft Invoice"
 #: is billed with "Invoice".
@@ -178,7 +179,7 @@ def workbook(items: list[Sheet], labels: dict[str, Any], month_label: str) -> by
     def title_rows(ws: Any, title: str) -> None:
         ws.append([labels["title"]])
         ws["A1"].font = Font(bold=True, size=14)
-        ws.append([title])
+        ws.append([_safe_cell(title)])
         ws["A2"].font = Font(bold=True, size=12)
         ws.append([month_label])
         ws.append([])
@@ -193,35 +194,28 @@ def workbook(items: list[Sheet], labels: dict[str, Any], month_label: str) -> by
         ws = first
         ws.title = _sheet_name(labels["overview"], taken)
         title_rows(ws, labels["overview"])
-        header(ws, [labels["invoice"], labels["bookings"], labels["hours"], labels["billed"]])
+        header(ws, [labels["invoice"], labels["bookings"], labels["billed"]])
         start = ws.max_row + 1
         for s in items:
-            ws.append([s.title, len(s.rows), float(s.hours), float(s.billed)])
+            ws.append([_safe_cell(s.title), len(s.rows), float(s.billed)])
         end = ws.max_row
-        ws.append(
-            [
-                labels["total"],
-                f"=SUM(B{start}:B{end})",
-                f"=SUM(C{start}:C{end})",
-                f"=SUM(D{start}:D{end})",
-            ]
-        )
+        ws.append([labels["total"], f"=SUM(B{start}:B{end})", f"=SUM(C{start}:C{end})"])
         for c in ws[ws.max_row]:
             c.font = bold
-        for row in ws.iter_rows(min_row=start, max_row=ws.max_row, min_col=3, max_col=4):
+        for row in ws.iter_rows(min_row=start, max_row=ws.max_row, min_col=3, max_col=3):
             for c in row:
                 c.number_format = hours_fmt
-        for col, width in zip("ABCD", (34, 12, 12, 16), strict=True):
+        for col, width in zip("ABC", (34, 12, 16), strict=True):
             ws.column_dimensions[col].width = width
         first = None
 
+    # Only the billed (rounded) hours: what the invoice charges (#408).
     columns = [
         (labels["date"], 12),
         (labels["package"], 24),
         (labels["task"], 24),
         (labels["person"], 22),
-        (labels["comment"], 60),
-        (labels["hours"], 10),
+        (labels["comment"], 64),
         (labels["billed"], 16),
     ]
     for s in items:
@@ -235,36 +229,24 @@ def workbook(items: list[Sheet], labels: dict[str, Any], month_label: str) -> by
         head_row = ws.max_row
         for r in s.rows:
             ws.append(
-                [r.date, r.package, r.task, r.person, r.comment, float(r.hours), float(r.billed)]
+                [r.date]
+                + [_safe_cell(v) for v in (r.package, r.task, r.person, r.comment)]
+                + [float(r.billed)]
             )
             ws.cell(ws.max_row, 1).number_format = "DD.MM.YYYY"
             ws.cell(ws.max_row, 5).alignment = Alignment(wrap_text=True, vertical="top")
-            for num_col in (6, 7):
-                ws.cell(ws.max_row, num_col).number_format = hours_fmt
+            ws.cell(ws.max_row, 6).number_format = hours_fmt
         end = ws.max_row
-        if s.rows:
-            ws.append(
-                [
-                    labels["total"],
-                    None,
-                    None,
-                    None,
-                    None,
-                    f"=SUM(F{head_row + 1}:F{end})",
-                    f"=SUM(G{head_row + 1}:G{end})",
-                ]
-            )
-        else:
-            ws.append([labels["total"], None, None, None, None, 0, 0])
+        total = f"=SUM(F{head_row + 1}:F{end})" if s.rows else 0
+        ws.append([labels["total"], None, None, None, None, total])
         for c in ws[ws.max_row]:
             c.font = bold
-        for num_col in (6, 7):
-            ws.cell(ws.max_row, num_col).number_format = hours_fmt
+        ws.cell(ws.max_row, 6).number_format = hours_fmt
         for i, (_, width) in enumerate(columns, start=1):
             ws.column_dimensions[get_column_letter(i)].width = width
         ws.freeze_panes = ws.cell(head_row + 1, 1)
         if s.rows:
-            ws.auto_filter.ref = f"A{head_row}:G{end}"
+            ws.auto_filter.ref = f"A{head_row}:F{end}"
     if first is not None:  # no invoice at all: one empty sheet that says so
         first.title = _sheet_name(labels["overview"], taken)
         title_rows(first, labels["empty"])
@@ -335,42 +317,32 @@ def pdf(items: list[Sheet], labels: dict[str, Any], month_label: str, number: An
         page_head(labels["overview"])
         doc.set_font(family, "", 10)
         with doc.table(
-            col_widths=(110, 30, 30, 40),
-            width=210,
+            col_widths=(120, 30, 40),
+            width=190,
             align="LEFT",
-            text_align=("LEFT", "RIGHT", "RIGHT", "RIGHT"),
+            text_align=("LEFT", "RIGHT", "RIGHT"),
             headings_style=head_style,
         ) as table:
-            table.row(
-                [
-                    text(labels["invoice"]),
-                    text(labels["bookings"]),
-                    text(labels["hours"]),
-                    text(labels["billed"]),
-                ]
-            )
+            table.row([text(labels["invoice"]), text(labels["bookings"]), text(labels["billed"])])
             for s in items:
-                table.row(
-                    [text(s.title), str(len(s.rows)), _hours(s.hours, fmt), _hours(s.billed, fmt)]
-                )
-            total = FontFace(emphasis="BOLD")
+                table.row([text(s.title), str(len(s.rows)), _hours(s.billed, fmt)])
             table.row(
                 [
                     text(labels["total"]),
                     str(sum(len(s.rows) for s in items)),
-                    _hours(sum((s.hours for s in items), Decimal(0)), fmt),
                     _hours(sum((s.billed for s in items), Decimal(0)), fmt),
                 ],
-                style=total,
+                style=FontFace(emphasis="BOLD"),
             )
     if not items:
         page_head(labels["empty"])
+    # Only the billed (rounded) hours: what the invoice charges (#408).
     for s in items:
         page_head(s.title)
         doc.set_font(family, "", 8.5)
         with doc.table(
-            col_widths=(20, 38, 34, 32, 102, 16, 31),
-            text_align=("LEFT", "LEFT", "LEFT", "LEFT", "LEFT", "RIGHT", "RIGHT"),
+            col_widths=(20, 40, 36, 34, 103, 40),
+            text_align=("LEFT", "LEFT", "LEFT", "LEFT", "LEFT", "RIGHT"),
             headings_style=head_style,
             repeat_headings=1,
             line_height=4.6,
@@ -378,7 +350,7 @@ def pdf(items: list[Sheet], labels: dict[str, Any], month_label: str, number: An
             table.row(
                 [
                     text(labels[k])
-                    for k in ("date", "package", "task", "person", "comment", "hours", "billed")
+                    for k in ("date", "package", "task", "person", "comment", "billed")
                 ]
             )
             for r in s.rows:
@@ -389,7 +361,6 @@ def pdf(items: list[Sheet], labels: dict[str, Any], month_label: str, number: An
                         text(r.task),
                         text(r.person),
                         text(r.comment),
-                        _hours(r.hours, fmt),
                         _hours(r.billed, fmt),
                     ]
                 )
@@ -400,7 +371,6 @@ def pdf(items: list[Sheet], labels: dict[str, Any], month_label: str, number: An
                     "",
                     "",
                     text(labels["bookings_n"](len(s.rows))),
-                    _hours(s.hours, fmt),
                     _hours(s.billed, fmt),
                 ],
                 style=FontFace(emphasis="BOLD"),

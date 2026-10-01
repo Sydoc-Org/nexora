@@ -32,7 +32,7 @@ identical on both pages.
 | Privera · Physische Zustellung | `privera_nachsendungen` | `ExportDatetime` | forwardings total / without TEC | per branch; forwarding type × branch |
 | Privera · Neuzugänge | `privera_neuzugaenge` | `JahrExport` + `MonatExportNr` | dossiers / registers / pages | per branch |
 | Frigemo | `frigemo` | `DCD` | imported/exported documents and pages, invoices, deleted | – |
-| Aveniq · Xpert | `xpert_stats` | `ExportDate` | documents, BFH new creditors, ZHAW workitems | per client, per source database; BFH and ZHAW per billed metric (`0144`) |
+| Aveniq · Xpert | `xpert_stats` | `ExportDate` | documents | per client; below it BFH (every metric) and ZHAW (every metric and dimension) side by side (`0144`) |
 | Bucherer · EasyTax | `bucherer_easytax` | `ImportTime` (imported, pages) / `ExportTime` (exported) | imported documents, pages, exported documents | – |
 | MediaMarkt | `mediamarkt_batches` | `ScanDate` | batches, pieces | per type (K/D/KA) |
 | Sydoc · Billable services | `bps_projects` | `Datum` | billable hours, billed hours (¼ h), billable bookings | every booking, per customer, with its comment; hours per task |
@@ -66,10 +66,14 @@ billed figure is summed from its rows, since no aggregate can round per row.
 
 **Xpert, BFH and ZHAW** are billed per metric of `dbo.Xpert_Stats`, so the
 section lists them one by one (a `Breakdown` with `where`, `then` and fixed
-`keys`, over the unfiltered `xpert_stats_count` measure of `0144`): BFH Total,
-NeueKreditoren, Uebrige, UEReproduzierte; ZHAW WorkItems, WorkItemsByEingang ·
-MAIL, WorkItemsByIsWithOrder · 0 and · 1. Every key shows, 0 when the month has
-none, and the list has no total (Total already is one).
+`keys`, over the unfiltered `xpert_stats_count` measure of `0144`). Nothing is
+filtered away: BFH shows every metric (Total, NeueKreditoren, NKReproduzierte,
+Uebrige, UEReproduzierte first, 0 when the month has none, then anything else),
+ZHAW every metric and dimension (Total, WorkItems, WorkItemsByEingang · MAIL /
+Scanner / (blank), WorkItemsByIsWithOrder · 0 / 1, then anything else). The
+lists have no total (Total already is one). `Breakdown.row` puts the per-client
+table on its own row and the two lists side by side below it; the BFH new
+creditors and ZHAW workitems figures are gone, as is the per-database table.
 
 The Reporting filter grammar only ANDs, so each rule group is its own row query
 and the groups are disjoint by construction; the figures come from separate
@@ -252,7 +256,9 @@ go-ahead first).
 
 ## Export and print
 
-- **CSV** (`/api/finance/export.csv?month=YYYY-MM`): every figure, every
+- **Excel** (`/api/finance/export.xlsx?month=YYYY-MM`, the band's *Excel*
+  button) and **CSV** (`/api/finance/export.csv`, no button any more, kept for
+  scripts): every figure, every
   breakdown and matrix cell and every billable booking of the month as one flat
   sheet, UTF-8 with BOM so Excel opens it directly; a booking's date, package,
   person and comment are in the `Detail` column. Sections that could not be
@@ -261,7 +267,8 @@ go-ahead first).
   *Export hours* box in the Billable services section): one sheet per invoice
   — per customer, Privera split into Posteingang, Invoice and Neuzugänge
   (`Bookings.split`; "Tagesgeschäft X" counts as X) — with date, package,
-  task, person, comment, booked and billed hours and a total. `sheet=all`
+  task, person, comment and the billed (rounded) hours with a total; the
+  booked hours stay on the page only. `sheet=all`
   (default) is one file behind an overview sheet / page, `sheet=<key>` one
   invoice, `files=separate` a `.zip` with one file per invoice. Built by
   `nx_lib/finance_export.py` (openpyxl, fpdf2 with matplotlib's DejaVu Sans

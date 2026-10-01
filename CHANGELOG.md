@@ -8,6 +8,18 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **Finance: Xpert shows every BFH and ZHAW metric** (#408): BFH lists all its
+  metrics (NKReproduzierte included), ZHAW every metric and dimension (intake
+  Scanner and blank included), side by side under the per-client table. The
+  per-database table and the BFH new creditors / ZHAW workitems figures are
+  removed.
+- **Finance: the month export is Excel** (#408): the band's *CSV* button is now
+  *Excel* (`GET /api/finance/export.xlsx`, same rows); the CSV route stays.
+- **Finance: the BPS hours export shows billed hours only** (#408): the Excel
+  and PDF list the rounded hours, not the booked ones.
+- **Finance: Privera per-branch tables take the full width** (#408): in
+  Posteingang and Physische Zustellung the matrix moves below the per-branch
+  table.
 - **One dev host per developer** (#431): a branch push now deploys to the
   pusher's own dev host (`stop-taking-my-gitrunner-nexora.sydoc.ch`, `prod-but-not-really-nexora.sydoc.ch`)
   instead of the single shared `dev-nexora.sydoc.ch`, so two people pushing at
