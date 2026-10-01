@@ -193,12 +193,16 @@ go-ahead first).
   counted in the totals. **Lines** loads the invoice's positions (quantity,
   unit, unit price, discount, total) for comparison with the figures below;
   **PDF** streams the invoice PDF through nexora (`no-store`).
-- **Linking contacts.** Invoices to Bexio contacts no client is linked to are
-  listed as *other invoices*. A holder of `finance.month.edit` links one to a
-  client from its dropdown (×, next to a linked contact, removes it). The link
-  is stored in `dbo.FinanceBexioContacts` (`0141`): one row per contact, so a
-  contact belongs to one client while a client may have several. A client can
-  only be linked in a month in which its contact has an invoice.
+- **Linked contacts only.** The panel shows and totals only invoices to Bexio
+  contacts linked to a Finance client; Sydoc's Bexio also bills customers nexora
+  has no figures for, and those are left out. The links are stored in
+  `dbo.FinanceBexioContacts` (`0141`): one row per contact, so a contact belongs
+  to one client while a client may have several (Aveniq is billed as Aveniq AG
+  and as Xpert Consulting AG). Migration `0143` seeds them for every client; a
+  new client or contact gets its link in a new migration. A holder of
+  `finance.month.edit` can remove a link (×, next to the contact); the
+  `POST /api/finance/bexio/link` route still exists but the page no longer
+  offers it.
 - **Live, not frozen.** The panel is not part of the month close: Bexio is the
   system of record for the invoice itself. Results are cached for five
   minutes in-process; **Refresh** bypasses the cache.
@@ -245,7 +249,7 @@ go-ahead first).
 | Parity fixes, `FinanceMonthClose`, `finance.month.edit` | `sql/_migrations/NexoraDB/0139_finance_parity_and_close.sql`, `sql/test/schema.sql` |
 | Bexio client (read-only), window, reconciliation | `nx_lib/bexio.py` |
 | Bexio panel routes: panel, invoice lines, PDF, link / unlink | `nx_lib/views/finance_bexio.py`, `static/js/finance_bexio.js` |
-| `FinanceBexioContacts` | `sql/_migrations/NexoraDB/0141_finance_bexio_contacts.sql`, `sql/test/schema.sql` |
+| `FinanceBexioContacts` | `sql/_migrations/NexoraDB/0141_finance_bexio_contacts.sql` (table), `0143_finance_bexio_contact_links.sql` (links), `sql/test/schema.sql` |
 | Token check | `scripts/bexio-probe.py` |
 | Tests | `tests/unit/test_finance.py`, `tests/unit/test_bps.py`, `tests/unit/test_bexio.py`, `tests/integration/test_finance_routes.py`, `tests/integration/test_finance_bexio_routes.py` |
 

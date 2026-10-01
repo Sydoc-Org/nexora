@@ -6,6 +6,14 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **Finance: Bexio panel shows linked clients only** (#423): every Finance
+  client is linked to its Bexio contact(s) by migration `0143`, so nobody links
+  them by hand per environment, and invoices to contacts no client is linked to
+  (TCG Informatik AG, MobScan customers, ...) are no longer listed or counted
+  in the Bexio total. The *other invoices* list and its link dropdown are gone.
+
 ### Added
 
 - **Finance: invoiced in Bexio** (#423): a read-only panel on `/finance` lists

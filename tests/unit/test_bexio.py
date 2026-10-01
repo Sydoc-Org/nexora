@@ -251,22 +251,29 @@ def test_reconcile_states_per_client():
     privera = out["clients"][2]
     assert [c["name"] for c in privera["contacts"]] == ["Privera AG", "#4"]
     assert privera["totals"] == [{"currency": "CHF", "total": 50.0, "excl": 45.0, "count": 1}]
-    # Unlinked contact 9 lands in "others"; nothing linked leaks there.
-    assert [o["contact"] for o in out["others"]] == [{"id": 9, "name": "Stranger"}]
-    # Drafts and cancelled invoices are listed but never counted as billed.
-    assert out["totals"] == [{"currency": "CHF", "total": 250.0, "excl": 225.0, "count": 3}]
-    assert out["linkedTotals"] == [{"currency": "CHF", "total": 150.0, "excl": 135.0, "count": 2}]
-    assert out["drafts"] == 1 and out["count"] == 5
+    # Unlinked contact 9 is left out entirely; drafts and cancelled invoices
+    # are listed but never counted as billed.
+    assert out["totals"] == [{"currency": "CHF", "total": 150.0, "excl": 135.0, "count": 2}]
+    assert out["count"] == 4
+    assert out["drafts"] == 1
 
 
 def test_reconcile_linked_without_invoice_is_missing():
     out = bexio.reconcile(["Frigemo"], [bexio.Link("Frigemo", 5)], [], {})
     assert out["clients"][0]["state"] == bexio.MISSING
-    assert out["totals"] == [] and out["others"] == []
+    assert out["totals"] == [] and out["count"] == 0
+
+
+def test_reconcile_ignores_links_to_clients_not_on_the_page():
+    out = bexio.reconcile(["Frigemo"], [bexio.Link("Gone", 1)], [_inv(1, 1)], {})
+    assert out["clients"][0]["state"] == bexio.UNLINKED
+    assert out["totals"] == [] and out["count"] == 0
 
 
 def test_reconcile_totals_split_by_currency():
-    out = bexio.reconcile([], [], [_inv(1, 1, currency="EUR"), _inv(2, 1)], {})
+    out = bexio.reconcile(
+        ["Frigemo"], [bexio.Link("Frigemo", 1)], [_inv(1, 1, currency="EUR"), _inv(2, 1)], {}
+    )
     assert [t["currency"] for t in out["totals"]] == ["CHF", "EUR"]
 
 

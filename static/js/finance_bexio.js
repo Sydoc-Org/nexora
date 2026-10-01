@@ -2,10 +2,10 @@
    arrive on window.NX_FINANCE.bexio (templates/js/_finance_js.html).
 
    Read-only against Bexio: the panel lists the invoices dated in the month
-   after the billed one (the server names the window), per Finance client,
-   then the invoices of contacts no client is linked to. Holders of
-   finance.month.edit link a contact to a client from that second list; that
-   link (dbo.FinanceBexioContacts) is the only thing nexora writes. */
+   after the billed one (the server names the window), per Finance client;
+   invoices to contacts no client is linked to are left out. The links live in
+   dbo.FinanceBexioContacts (seeded by migration 0143); holders of
+   finance.month.edit can remove one, the only thing nexora writes. */
 (function () {
     'use strict';
 
@@ -124,9 +124,8 @@
     function clientsTable(data, month) {
         const rows = data.clients.map(c => {
             if (c.state === 'unlinked') {
-                const hint = state.canLink ? ` <span class="nx-fin-bexio__hint">${esc(S.unlinkedHint)}</span>` : '';
                 return `<tr data-client-state="unlinked"><td>${clientLead(c)}</td>
-                    <td colspan="6"><span class="nx-label nx-label--gray nx-label--nodot">${esc(S.unlinked)}</span>${hint}</td></tr>`;
+                    <td colspan="6"><span class="nx-label nx-label--gray nx-label--nodot">${esc(S.unlinked)}</span></td></tr>`;
             }
             if (!c.invoices.length) {
                 return `<tr data-client-state="missing"><td>${clientLead(c)}</td>
@@ -138,36 +137,9 @@
             <div class="nx-fin-matrix" tabindex="0" role="region" aria-label="${esc(S.client)}">
               <table class="nx-table nx-fin-bexio__table">${head(S.client)}<tbody>${rows}</tbody>
                 <tfoot><tr><td>${esc(S.totalCol)}</td><td colspan="3"></td>
-                  <td class="nx-num">${esc(totalsText(data.linkedTotals, 'excl'))}</td>
-                  <td class="nx-num">${esc(totalsText(data.linkedTotals, 'total'))}</td><td></td></tr></tfoot>
+                  <td class="nx-num">${esc(totalsText(data.totals, 'excl'))}</td>
+                  <td class="nx-num">${esc(totalsText(data.totals, 'total'))}</td><td></td></tr></tfoot>
               </table>
-            </div>
-          </div>`;
-    }
-
-    function linkSelect(contactId) {
-        if (!state.canLink || !contactId) return '';
-        const options = state.clientNames.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
-        return `<select class="nx-select nx-fin-bexio__link" data-bexio-link="${contactId}"
-                    aria-label="${esc(S.linkTo)}" data-testid="finance-bexio-link-${contactId}">
-                  <option value="">${esc(S.linkTo)}</option>${options}</select>`;
-    }
-
-    function othersTable(data, month) {
-        if (!data.others.length) return '';
-        const rows = data.others.map(o => o.invoices.map((inv, i) => {
-            const lead = i === 0
-                ? `<span class="nx-fin-bexio__client">${esc(o.contact.name)}</span>${linkSelect(o.contact.id)}`
-                : '';
-            return invoiceRow(lead, inv, 7);
-        }).join('')).join('');
-        return `<div class="nx-fin-table nx-fin-table--wide" data-testid="finance-bexio-others">
-            <div class="nx-fin-table__head">
-              <span class="nx-eyebrow">${esc(fmt(S.others, { month }))}</span>
-              <span class="nx-fin-table__count">${esc(S.othersNote)}</span>
-            </div>
-            <div class="nx-fin-matrix" tabindex="0" role="region" aria-label="${esc(fmt(S.others, { month }))}">
-              <table class="nx-table nx-fin-bexio__table">${head(S.contact)}<tbody>${rows}</tbody></table>
             </div>
           </div>`;
     }
@@ -194,7 +166,7 @@
         if (!data.count) {
             parts.push(`<p class="nx-fin-empty"><i class="fas fa-inbox" aria-hidden="true"></i> ${esc(fmt(S.nothing, { month }))}</p>`);
         }
-        parts.push('<div class="nx-fin-block">' + clientsTable(data, month) + othersTable(data, month) + '</div>');
+        parts.push('<div class="nx-fin-block">' + clientsTable(data, month) + '</div>');
         body.innerHTML = parts.join('');
     }
 
@@ -288,20 +260,6 @@
             } else {
                 unlink.disabled = false;
             }
-        }
-    });
-
-    body.addEventListener('change', async function (e) {
-        const select = e.target.closest('[data-bexio-link]');
-        if (!select || !select.value) return;
-        select.disabled = true;
-        const ok = await post('/api/finance/bexio/link',
-            { client: select.value, contactId: Number(select.dataset.bexioLink) }, S.linkFailed);
-        if (ok) {
-            load(false);
-        } else {
-            select.disabled = false;
-            select.value = '';
         }
     });
 
