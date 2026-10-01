@@ -8,6 +8,14 @@
 
 html { overflow-y: auto; }
 
+/* Quiet text below the band. The design's #9ca3af (and --nx-text-meta, the
+   same value) is 2.4:1 on the page and fails WCAG AA at these 10-13px sizes;
+   #6b7280 is 4.8:1. On the ink band the light greys stay as designed. */
+:root { --nx-fin-quiet: #6b7280; }
+html.dark { --nx-fin-quiet: #94a3b8; }
+.nx-fin-section .nx-eyebrow, .nx-fin-divider .nx-eyebrow,
+.nx-fin-section .nx-table thead th { color: var(--nx-fin-quiet); }
+
 /* ---------- Jump index, flush at the bottom of the band ----------
    One row that never wraps. Where it does not fit it scrolls sideways
    (scrollbar hidden, edges faded) rather than cutting every label down to
@@ -55,11 +63,11 @@ html.dark .nx-sydoc-dot.nx-fin-dot--open { background: var(--nx-gain); }
 .nx-fin-group ~ .nx-fin-group { margin-top: 38px; }
 .nx-fin-group h2 {
   margin: 0; font-size: 12px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: .1em; color: var(--nx-text-meta);
+  letter-spacing: .1em; color: var(--nx-fin-quiet);
 }
 .nx-fin-group__count {
   font-family: var(--nx-mono); font-size: 11px; font-weight: 600;
-  color: #9ca3af; font-variant-numeric: tabular-nums;
+  color: var(--nx-fin-quiet); font-variant-numeric: tabular-nums;
 }
 .nx-fin-group__rule { flex: 1; height: 1px; background: var(--nx-border); }
 
@@ -73,12 +81,12 @@ html.dark .nx-sydoc-dot.nx-fin-dot--open { background: var(--nx-gain); }
 
 .nx-fin-id { min-width: 0; }
 .nx-fin-id__client { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -.02em; color: var(--nx-text); }
-.nx-fin-id__title { margin: 2px 0 0; font-size: 13px; font-weight: 500; color: var(--nx-text-meta); }
-.nx-fin-id__meta { margin: 8px 0 0; font-size: 11px; color: #9ca3af; font-variant-numeric: tabular-nums; }
+.nx-fin-id__title { margin: 2px 0 0; font-size: 13px; font-weight: 500; color: var(--nx-fin-quiet); }
+.nx-fin-id__meta { margin: 8px 0 0; font-size: 11px; color: var(--nx-fin-quiet); font-variant-numeric: tabular-nums; }
 .nx-fin-id__state { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
 .nx-fin-id__state:empty { display: none; }
 .nx-fin-id__note {
-  margin: 12px 0 0; font-size: 11.5px; line-height: 1.5; color: var(--nx-text-meta); text-wrap: pretty;
+  margin: 12px 0 0; font-size: 11.5px; line-height: 1.5; color: var(--nx-fin-quiet); text-wrap: pretty;
 }
 
 .nx-fin-bpsbtn {
@@ -105,7 +113,7 @@ html.dark .nx-fin-bpsbtn:hover { background: #1f2937; }
 }
 .nx-fin-lines__head {
   padding-bottom: 8px; border-bottom: 1px solid var(--nx-border);
-  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .09em; color: #9ca3af;
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .09em; color: var(--nx-fin-quiet);
 }
 .nx-fin-lines__head span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .nx-fin-lines__head span:not(:first-child) { text-align: right; }
@@ -117,7 +125,7 @@ html.dark .nx-fin-bpsbtn:hover { background: #1f2937; }
 }
 .nx-fin-line__prev {
   font-family: var(--nx-mono); font-variant-numeric: tabular-nums; text-align: right;
-  font-size: 13px; color: #9ca3af;
+  font-size: 13px; color: var(--nx-fin-quiet);
 }
 .nx-fin-line__change { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
 
@@ -142,7 +150,7 @@ html.dark .nx-fin-bpsbtn:hover { background: #1f2937; }
 }
 .nx-fin-table { min-width: 0; }
 .nx-fin-table__head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
-.nx-fin-table__count { font-size: 11px; color: #9ca3af; font-variant-numeric: tabular-nums; }
+.nx-fin-table__count { font-size: 11px; color: var(--nx-fin-quiet); font-variant-numeric: tabular-nums; }
 .nx-fin-table .nx-table thead th {
   background: transparent; padding: 6px 0 6px 10px; font-size: 10px;
   border-bottom: 1px solid var(--nx-border);
@@ -161,8 +169,8 @@ html.dark .nx-fin-bpsbtn:hover { background: #1f2937; }
 .nx-fin-table .nx-table td.nx-num, .nx-fin-table .nx-table th.nx-num { text-align: right; white-space: nowrap; }
 .nx-fin-table .nx-table td.nx-num { font-family: var(--nx-mono); font-variant-numeric: tabular-nums; }
 .nx-fin-section .nx-table th { font-family: var(--nx-font); }
-.nx-fin-table .nx-table td.nx-fin-muted { color: #9ca3af; }
-.nx-fin-table .nx-table tbody tr.is-blank td:first-child { color: var(--nx-text-meta); font-style: italic; }
+.nx-fin-table .nx-table td.nx-fin-muted { color: var(--nx-fin-quiet); }
+.nx-fin-table .nx-table tbody tr.is-blank td:first-child { color: var(--nx-fin-quiet); font-style: italic; }
 .nx-fin-table .nx-table tbody tr.is-more { display: none; }
 .nx-fin-table.is-expanded .nx-table tbody tr.is-more { display: table-row; }
 .nx-fin-table .nx-table tbody td a { color: inherit; text-decoration: none; }
@@ -175,7 +183,7 @@ html.dark .nx-fin-bpsbtn:hover { background: #1f2937; }
 }
 .nx-fin-share__fill { display: block; height: 100%; background: var(--nx-sydoc); border-radius: 2px; }
 .nx-fin-share__pct {
-  font-family: var(--nx-mono); font-variant-numeric: tabular-nums; font-size: 11.5px; color: var(--nx-text-meta);
+  font-family: var(--nx-mono); font-variant-numeric: tabular-nums; font-size: 11.5px; color: var(--nx-fin-quiet);
   width: 40px; text-align: right;
 }
 
@@ -188,7 +196,7 @@ html.dark .nx-fin-bpsbtn:hover { background: #1f2937; }
 
 /* ---------- Billable bookings: one timeline per customer ---------- */
 .nx-fin-divider { display: flex; align-items: baseline; gap: 12px; margin-top: 30px; }
-.nx-fin-divider__note { font-size: 11px; color: #9ca3af; }
+.nx-fin-divider__note { font-size: 11px; color: var(--nx-fin-quiet); }
 .nx-fin-divider__rule { flex: 1; height: 1px; background: var(--nx-border); align-self: center; }
 
 .nx-fin-tls { display: grid; gap: 28px; margin-top: 18px; }
@@ -197,7 +205,7 @@ html.dark .nx-fin-bpsbtn:hover { background: #1f2937; }
   padding-bottom: 10px; border-bottom: 1px solid var(--nx-border);
 }
 .nx-fin-tl__name { font-size: 14px; font-weight: 700; color: var(--nx-text); }
-.nx-fin-tl__count { font-size: 11px; color: #9ca3af; }
+.nx-fin-tl__count { font-size: 11px; color: var(--nx-fin-quiet); }
 .nx-fin-tl__spacer { flex: 1; }
 .nx-fin-tl__total {
   font-family: var(--nx-mono); font-variant-numeric: tabular-nums;
@@ -206,7 +214,7 @@ html.dark .nx-fin-bpsbtn:hover { background: #1f2937; }
 .nx-fin-tl__day { display: grid; grid-template-columns: 84px 18px minmax(0, 1fr); column-gap: 10px; }
 .nx-fin-tl__date { text-align: right; padding-top: 14px; display: flex; flex-direction: column; }
 .nx-fin-tl__date span:first-child { font-size: 12.5px; font-weight: 600; color: var(--nx-text); }
-.nx-fin-tl__wd { font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #9ca3af; }
+.nx-fin-tl__wd { font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--nx-fin-quiet); }
 .nx-fin-tl__rail { position: relative; display: flex; justify-content: center; }
 .nx-fin-tl__rail::before { content: ""; position: absolute; top: 0; bottom: 0; left: 50%; width: 1px; background: var(--nx-border); }
 .nx-fin-tl__rail span {
@@ -218,8 +226,8 @@ html.dark .nx-fin-bpsbtn:hover { background: #1f2937; }
   display: grid; grid-template-columns: minmax(0, 1fr) 72px; gap: 16px; align-items: baseline; padding: 6px 0;
 }
 .nx-fin-tl__comment { margin: 0; font-size: 13px; line-height: 1.45; color: var(--nx-text); text-wrap: pretty; overflow-wrap: anywhere; }
-.nx-fin-tl__comment.is-empty { color: #9ca3af; font-style: italic; }
-.nx-fin-tl__line { margin: 2px 0 0; font-size: 11.5px; color: #9ca3af; overflow-wrap: anywhere; }
+.nx-fin-tl__comment.is-empty { color: var(--nx-fin-quiet); font-style: italic; }
+.nx-fin-tl__line { margin: 2px 0 0; font-size: 11.5px; color: var(--nx-fin-quiet); overflow-wrap: anywhere; }
 .nx-fin-tl__hours {
   text-align: right; white-space: nowrap;
   font-family: var(--nx-mono); font-variant-numeric: tabular-nums; font-size: 13px; font-weight: 600; color: var(--nx-text);
@@ -233,11 +241,11 @@ html.dark .nx-fin-bpsbtn:hover { background: #1f2937; }
   display: flex; align-items: flex-start; gap: 8px; margin: 16px 0 0;
   font-size: var(--fs-meta); color: var(--nx-text-sec); max-width: 72ch;
 }
-.nx-fin-note i { color: var(--nx-text-meta); margin-top: 2px; }
+.nx-fin-note i { color: var(--nx-fin-quiet); margin-top: 2px; }
 
 /* Empty month, error, and loading states -- all inline, all borderless. */
 .nx-fin-empty {
-  margin-top: 12px; padding: 14px 0; font-size: 13px; color: var(--nx-text-meta);
+  margin-top: 12px; padding: 14px 0; font-size: 13px; color: var(--nx-fin-quiet);
   display: flex; align-items: center; gap: 10px;
 }
 .nx-fin-error {
@@ -279,11 +287,13 @@ html.dark .nx-fin-bpsbtn:hover { background: #1f2937; }
 .nx-fin-drift .nx-table { margin: 0 12px; width: calc(100% - 24px); }
 .nx-fin-drift .nx-table th, .nx-fin-drift .nx-table td { padding: 6px 10px; font-size: 12.5px; background: transparent; }
 .nx-fin-drift .nx-table td.nx-num, .nx-fin-drift .nx-table th.nx-num { text-align: right; font-variant-numeric: tabular-nums; }
-.nx-fin-drift__note { margin: 8px 12px 10px; font-size: var(--fs-micro); color: var(--nx-text-meta); }
+.nx-fin-drift__note { margin: 8px 12px 10px; font-size: var(--fs-micro); color: var(--nx-fin-quiet); }
 
 /* ---------- Matrix (register x branch) ---------- */
 .nx-fin-table--wide { grid-column: 1 / -1; }
-.nx-fin-matrix { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+/* position: relative keeps absolutely placed children (.nx-fin-sr) inside
+   the scroller; without it they widen the whole page. */
+.nx-fin-matrix { position: relative; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .nx-fin-matrix:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--nx-accent-soft); border-radius: 4px; }
 .nx-fin-matrix .nx-table { min-width: max-content; }
 .nx-fin-matrix .nx-table th, .nx-fin-matrix .nx-table td { white-space: nowrap; }
@@ -297,10 +307,10 @@ html.dark .nx-fin-bpsbtn:hover { background: #1f2937; }
 }
 .nx-fin-matrix .nx-table thead th.nx-fin-matrix__corner { position: sticky; left: 0; z-index: 2; background: var(--nx-page); }
 .nx-fin-matrix .nx-table tbody td { padding: 7px 10px; }
-.nx-fin-matrix .nx-table td.is-zero { color: var(--nx-text-meta); opacity: .5; }
+.nx-fin-matrix .nx-table td.is-zero { color: var(--nx-fin-quiet); opacity: .5; }
 .nx-fin-matrix .nx-fin-matrix__total { font-weight: 700; color: var(--nx-text); border-left: 1px solid var(--nx-border); }
 .nx-fin-matrix .nx-table tfoot th, .nx-fin-matrix .nx-table tfoot td { font-weight: 700; border-top: 1px solid var(--nx-border); }
-.nx-fin-matrix .nx-table tbody tr.is-blank th { color: var(--nx-text-meta); font-style: italic; }
+.nx-fin-matrix .nx-table tbody tr.is-blank th { color: var(--nx-fin-quiet); font-style: italic; }
 .nx-fin-matrix .nx-table tbody tr:hover th, .nx-fin-matrix .nx-table tbody tr:hover td { background: var(--nx-alt); }
 
 /* Stripes (a user preference) only paint <td>; give the sticky row-header
@@ -311,6 +321,11 @@ html.nx-stripes .nx-fin-matrix .nx-table tbody tr:nth-child(even) th {
 html.dark.nx-stripes .nx-fin-matrix .nx-table tbody tr:nth-child(even) th { background: #223046; }
 
 /* ---------- The Bexio invoice panel (#423), as a ledger row ---------- */
+/* Text for screen readers only (the Bexio table's action column head). */
+.nx-fin-sr {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
 .nx-fin-bexio__refresh { margin: 12px 0 0 -10px; }
 .nx-fin-bexio .nx-fin-table + .nx-fin-table { margin-top: 28px; }
 /* finance_bexio.js renders its totals as the shared KPI strip. */
@@ -324,9 +339,9 @@ html.dark.nx-stripes .nx-fin-matrix .nx-table tbody tr:nth-child(even) th { back
 .nx-fin-bexio__table td.nx-num { font-family: var(--nx-mono); }
 .nx-fin-bexio__client { font-weight: 600; color: var(--nx-text); }
 .nx-fin-bexio__contacts { display: flex; flex-wrap: wrap; gap: 4px 8px; margin-top: 2px; }
-.nx-fin-bexio__contact { display: inline-flex; align-items: center; gap: 2px; font-size: var(--fs-micro); color: var(--nx-text-meta); }
+.nx-fin-bexio__contact { display: inline-flex; align-items: center; gap: 2px; font-size: var(--fs-micro); color: var(--nx-fin-quiet); }
 .nx-fin-bexio__unlink {
-  border: none; background: none; color: var(--nx-text-meta); cursor: pointer;
+  border: none; background: none; color: var(--nx-fin-quiet); cursor: pointer;
   padding: 0 3px; font-size: 10px; border-radius: 3px;
 }
 .nx-fin-bexio__unlink:hover { color: var(--nx-danger); background: var(--nx-alt); }
@@ -334,10 +349,10 @@ html.dark.nx-stripes .nx-fin-matrix .nx-table tbody tr:nth-child(even) th { back
 .nx-fin-bexio__nr { font-family: var(--nx-mono); font-weight: 600; margin-right: 6px; white-space: nowrap; }
 .nx-fin-bexio__title { color: var(--nx-text-sec); }
 .nx-fin-bexio__date { white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--nx-text-sec); }
-.nx-fin-bexio__hint { margin-left: 8px; font-size: var(--fs-meta); color: var(--nx-text-meta); }
+.nx-fin-bexio__hint { margin-left: 8px; font-size: var(--fs-meta); color: var(--nx-fin-quiet); }
 .nx-fin-bexio__act { white-space: nowrap; text-align: right; }
 .nx-fin-bexio__actions { display: inline-flex; gap: 4px; }
-.nx-fin-bexio__inv.is-cancelled td { color: var(--nx-text-meta); }
+.nx-fin-bexio__inv.is-cancelled td { color: var(--nx-fin-quiet); }
 .nx-fin-bexio__inv.is-cancelled td.nx-num { text-decoration: line-through; }
 .nx-fin-bexio__link { margin-top: 6px; font-size: var(--fs-meta); max-width: 220px; display: block; }
 .nx-fin-bexio__lines > td { background: var(--nx-alt); padding: 10px 14px !important; }
@@ -346,7 +361,7 @@ html.dark.nx-stripes .nx-fin-matrix .nx-table tbody tr:nth-child(even) th { back
 .nx-fin-bexio__text { white-space: normal; }
 .nx-fin-bexio__sub td { font-weight: 600; }
 .nx-fin-bexio__textline td { color: var(--nx-text-sec); font-style: italic; }
-.nx-fin-bexio__open { display: flex; gap: 16px; margin: 8px 0 0; font-size: var(--fs-meta); color: var(--nx-text-meta); }
+.nx-fin-bexio__open { display: flex; gap: 16px; margin: 8px 0 0; font-size: var(--fs-meta); color: var(--nx-fin-quiet); }
 .nx-fin-bexio__open a { color: var(--nx-accent-hover); text-decoration: none; }
 .nx-fin-bexio__open a:hover { text-decoration: underline; }
 

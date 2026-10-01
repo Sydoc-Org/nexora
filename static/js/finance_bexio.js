@@ -118,7 +118,7 @@
         return `<thead><tr>
             <th>${esc(first)}</th><th>${esc(S.invoice)}</th><th>${esc(S.date)}</th>
             <th>${esc(S.statusCol)}</th><th class="nx-num">${esc(S.excl)}</th>
-            <th class="nx-num">${esc(S.totalCol)}</th><th></th></tr></thead>`;
+            <th class="nx-num">${esc(S.totalCol)}</th><th><span class="nx-fin-sr">${esc(S.actions)}</span></th></tr></thead>`;
     }
 
     function clientsTable(data, month) {
