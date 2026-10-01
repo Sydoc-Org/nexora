@@ -10,8 +10,8 @@ app pool answers 503 while the mirror runs, which is enough.
 |---|---|---|---|---|
 | `nexora.sydoc.ch` | `http://localhost:80` (IIS Default Web Site, `DefaultAppPool`) | `D:\sydoc\nexora` | `PROD` | push of a `v*` tag |
 | `staging-nexora.sydoc.ch` | `http://127.0.0.1:8082` (site `nexora-staging`) | `D:\sydoc\nexora-staging` | `STAGING` | merge to `main` + 01:30 nightly, or Run workflow on `main` |
-| `dev-ben-nexora.sydoc.ch` | `http://127.0.0.1:8083` (site `nexora-dev-ben`) | `D:\sydoc\nexora-dev-ben` | `INT` | any other branch push by `benstreich` |
-| `dev-gruoss-nexora.sydoc.ch` | `http://127.0.0.1:8084` (site `nexora-dev-gruoss`) | `D:\sydoc\nexora-dev-gruoss` | `INT` | any other branch push by `GRuoss` |
+| `stop-taking-my-gitrunner-nexora.sydoc.ch` | `http://127.0.0.1:8083` (site `nexora-dev-ben`) | `D:\sydoc\nexora-dev-ben` | `INT` | any other branch push by `benstreich` |
+| `prod-but-not-really-nexora.sydoc.ch` | `http://127.0.0.1:8084` (site `nexora-dev-gruoss`) | `D:\sydoc\nexora-dev-gruoss` | `INT` | any other branch push by `GRuoss` |
 | `dev-nexora.sydoc.ch` | `http://127.0.0.1:8081` (site `nexora-dev`) | `D:\sydoc\nexora-dev` | `INT` | any other branch push by anyone else (last push wins) |
 
 **Dev hosts are per developer (#431).** Each pusher has their own dev host, so two
@@ -32,8 +32,8 @@ databases, so a migration one person's branch applies is live for everyone.
 | `nexora` | `dzpsykqcwgqzfk1c.zgzyk2x2s1c7jrr8.ngrok-cname.com` |
 | `dev-nexora` | `3vvfskuc7isen9djp.zgzyk2x2s1c7jrr8.ngrok-cname.com` |
 | `staging-nexora` | `62ubvmwfstncuu83.zgzyk2x2s1c7jrr8.ngrok-cname.com` |
-| `dev-ben-nexora` | *(from the ngrok dashboard once the domain is reserved, #431)* |
-| `dev-gruoss-nexora` | *(from the ngrok dashboard once the domain is reserved, #431)* |
+| `stop-taking-my-gitrunner-nexora` | *(from the ngrok dashboard once the domain is reserved, #431)* |
+| `prod-but-not-really-nexora` | *(from the ngrok dashboard once the domain is reserved, #431)* |
 
 Cost: the pay-as-you-go plan bills each custom domain at $0.01 per active hour
 (≈ $7.30/month per always-on host); endpoints themselves are free.
@@ -75,8 +75,8 @@ RDP to SYAPP01, elevated PowerShell, once per environment:
 cd D:\sydoc\tools
 .\setup-env.ps1 -Name dev     -Port 8081 -Environment INT     -Hostname dev-nexora.sydoc.ch
 .\setup-env.ps1 -Name staging -Port 8082 -Environment STAGING -Hostname staging-nexora.sydoc.ch
-.\setup-env.ps1 -Name dev-ben    -Port 8083 -Environment INT -Hostname dev-ben-nexora.sydoc.ch
-.\setup-env.ps1 -Name dev-gruoss -Port 8084 -Environment INT -Hostname dev-gruoss-nexora.sydoc.ch
+.\setup-env.ps1 -Name dev-ben    -Port 8083 -Environment INT -Hostname stop-taking-my-gitrunner-nexora.sydoc.ch
+.\setup-env.ps1 -Name dev-gruoss -Port 8084 -Environment INT -Hostname prod-but-not-really-nexora.sydoc.ch
 ```
 
 (The script ships in the repo as `ops/setup-env.ps1`; copy it to `D:\sydoc\tools`
@@ -86,9 +86,10 @@ dev box: `python scripts/env-sync.py --push INT.env` / `--push STAGING.env`
 
 **Adding a developer's dev host** (#431), in this order:
 
-1. ngrok dashboard → *Domains* → reserve `dev-<who>-nexora.sydoc.ch`; add its
+1. ngrok dashboard → *Domains* → reserve the developer's hostname (any name,
+   it need not match the slot); add its
    CNAME at cyon (table above).
-2. On SYAPP01: `.\setup-env.ps1 -Name dev-<who> -Port <next free, 8085+> -Environment INT -Hostname dev-<who>-nexora.sydoc.ch`.
+2. On SYAPP01: `.\setup-env.ps1 -Name dev-<who> -Port <next free, 8085+> -Environment INT -Hostname <their-host>.sydoc.ch`.
 3. From a dev box: `python scripts/env-sync.py --push INT.env`.
 4. Add `'<github-login>' = 'dev-<who>'` to *Resolve dev slot* in `deploy.yml`,
    and a row to the tables here and in `docs/howto/iis.md`.

@@ -28,7 +28,7 @@ E2E browser tests are automatically retried up to twice on failure (armed in `te
 
 Push to `main` → GitHub Actions runs the `test` job → if green, the `deploy` job mirrors the repo to IIS on SYAPP01 and applies any pending SQL migrations. See `.github/workflows/deploy.yml` and `docs/howto/iis.md`.
 
-Changes land through a PR from a short-lived topic branch, never a direct push to `main` — by convention, since branch protection is unavailable on this repo's plan. Every merge to `main` deploys **staging** (`staging-nexora.sydoc.ch`); a `v*` tag push deploys **PROD**; every other branch push deploys the pusher's own **dev** host (`dev-ben-nexora.sydoc.ch`, `dev-gruoss-nexora.sydoc.ch`; anyone else `dev-nexora.sydoc.ch`). See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the branching, parallel-work and release rules.
+Changes land through a PR from a short-lived topic branch, never a direct push to `main` — by convention, since branch protection is unavailable on this repo's plan. Every merge to `main` deploys **staging** (`staging-nexora.sydoc.ch`); a `v*` tag push deploys **PROD**; every other branch push deploys the pusher's own **dev** host (`stop-taking-my-gitrunner-nexora.sydoc.ch`, `prod-but-not-really-nexora.sydoc.ch`; anyone else `dev-nexora.sydoc.ch`). See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the branching, parallel-work and release rules.
 
 ## Contributing
 

@@ -9,7 +9,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 
 - **One dev host per developer** (#431): a branch push now deploys to the
-  pusher's own dev host (`dev-ben-nexora.sydoc.ch`, `dev-gruoss-nexora.sydoc.ch`)
+  pusher's own dev host (`stop-taking-my-gitrunner-nexora.sydoc.ch`, `prod-but-not-really-nexora.sydoc.ch`)
   instead of the single shared `dev-nexora.sydoc.ch`, so two people pushing at
   the same time stop overwriting each other. The slot is mapped from the GitHub
   login in `deploy.yml`; unmapped pushers, and a developer whose host is not set
