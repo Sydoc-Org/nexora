@@ -69,6 +69,19 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Sydoc Controlling, backend** (#433): margin per client stream (BPS hours ×
+  rate + external costs against Bexio invoices excl. VAT), replacing
+  `Projektcontrolling_Betriebskosten.xlsx`. `GET /controlling` (band only until
+  the design lands), `GET /api/controlling/month`, `/trend`, `/export.xlsx`,
+  rates and external-cost endpoints. Permission `controlling.view` (Global
+  Admin); rates and costs are edited with `finance.month.edit`. Migrations
+  `0145` (`dbo.FinanceRates` seeded 85 CHF/h, `dbo.ControllingStreamProjects`)
+  and `0146` (`dbo.ControllingInvoiceStreams`, `dbo.ControllingCosts` seeded
+  with the workbook's Digi-Texx costs, `dbo.ControllingVendorStreams`). Bexio
+  invoices are assigned to a stream by their Bexio project, foreign currencies
+  are converted at Bexio's monthly rate, and supplier bills feed external
+  costs (`nx_lib/bexio.py`: `purchase_bills`, `exchange_rate`; invoices now
+  carry `projectId` and `currencyId`). `docs/howto/controlling.md`.
 - **Finance: BPS hours as Excel and PDF** (#408): `GET /api/finance/bps-export`
   and an *Export hours* box in the Billable services section. One sheet per
   invoice (per customer; Privera split into Posteingang, Invoice and

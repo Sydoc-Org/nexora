@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-01 13:49+0200\n"
+"POT-Creation-Date: 2026-10-01 18:30+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -16,6 +16,49 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
+
+#: nx_lib/controlling.py:227
+msgid ""
+"BPS has fewer hours than the controlling workbook for this month: the "
+"bookings were never in the timetool, so cost and margin are too "
+"favourable."
+msgstr ""
+
+#: nx_lib/controlling.py:540
+msgid "Unknown rate kind."
+msgstr ""
+
+#: nx_lib/controlling.py:542 nx_lib/controlling.py:568
+msgid "Unknown stream."
+msgstr ""
+
+#: nx_lib/controlling.py:546
+msgid "The rate must be a number."
+msgstr ""
+
+#: nx_lib/controlling.py:548
+msgid "The rate must be a positive number."
+msgstr ""
+
+#: nx_lib/controlling.py:558 nx_lib/controlling.py:576
+msgid "A month must read YYYY-MM."
+msgstr ""
+
+#: nx_lib/controlling.py:560
+msgid "'Valid to' is before 'valid from'."
+msgstr ""
+
+#: nx_lib/controlling.py:571
+msgid "Name the cost."
+msgstr ""
+
+#: nx_lib/controlling.py:580
+msgid "The amount must be a number."
+msgstr ""
+
+#: nx_lib/controlling.py:582
+msgid "The amount must not be 0."
+msgstr ""
 
 #: nx_lib/finance.py:259
 msgid ""
@@ -89,8 +132,8 @@ msgstr ""
 msgid "by date"
 msgstr ""
 
-#: nx_lib/finance.py:419 nx_lib/views/finance.py:422
-#: templates/js/_finance_js.html:80
+#: nx_lib/finance.py:419 nx_lib/views/controlling.py:638
+#: nx_lib/views/finance.py:422 templates/js/_finance_js.html:80
 msgid "Client"
 msgstr ""
 
@@ -130,8 +173,8 @@ msgid "by booking date"
 msgstr ""
 
 #: nx_lib/finance.py:515 nx_lib/reporting/catalog.py:255
-#: nx_lib/views/bps.py:194 nx_lib/views/finance.py:475
-#: templates/generali_additionalservices.html:148
+#: nx_lib/views/bps.py:194 nx_lib/views/controlling.py:653
+#: nx_lib/views/finance.py:475 templates/generali_additionalservices.html:148
 #: templates/generali_additionalservices.html:224
 #: templates/generali_additionalservices.html:282
 #: templates/generali_baseservices.html:135
@@ -154,7 +197,8 @@ msgstr ""
 msgid "Package"
 msgstr ""
 
-#: nx_lib/finance.py:518 nx_lib/views/bps.py:197 nx_lib/views/finance.py:477
+#: nx_lib/finance.py:518 nx_lib/views/bps.py:197
+#: nx_lib/views/controlling.py:639 nx_lib/views/finance.py:477
 #: templates/js/_bps_js.html:58
 msgid "Task"
 msgstr ""
@@ -164,7 +208,8 @@ msgstr ""
 msgid "Person"
 msgstr ""
 
-#: nx_lib/finance.py:520 nx_lib/views/bps.py:199 nx_lib/views/finance.py:472
+#: nx_lib/finance.py:520 nx_lib/views/bps.py:199
+#: nx_lib/views/controlling.py:640 nx_lib/views/finance.py:472
 #: templates/generali_additionalservices.html:160
 #: templates/generali_baseservices.html:138
 #: templates/generali_projectmanagement.html:125 templates/js/_bps_js.html:36
@@ -828,12 +873,14 @@ msgstr ""
 msgid "Unexpected error occurred"
 msgstr ""
 
-#: nx_lib/views/bps.py:34 nx_lib/views/finance.py:78
+#: nx_lib/views/bps.py:34 nx_lib/views/controlling.py:178
+#: nx_lib/views/finance.py:78
 #, python-format
 msgid "The reporting source %(code)s is not registered."
 msgstr ""
 
-#: nx_lib/views/bps.py:38 nx_lib/views/finance.py:86
+#: nx_lib/views/bps.py:38 nx_lib/views/controlling.py:182
+#: nx_lib/views/finance.py:86
 msgid "The source's database is not configured."
 msgstr ""
 
@@ -862,12 +909,239 @@ msgstr ""
 msgid "absence"
 msgstr ""
 
-#: nx_lib/views/core.py:65 templates/_header.html:325
+#: nx_lib/views/controlling.py:85
+msgid "The nexora database is not configured."
+msgstr ""
+
+#: nx_lib/views/controlling.py:151
+msgid "The BPS source does not match this page."
+msgstr ""
+
+#: nx_lib/views/controlling.py:156
+msgid "Could not read the BPS hours."
+msgstr ""
+
+#: nx_lib/views/controlling.py:262 nx_lib/views/finance_bexio.py:63
+msgid "Bexio is not configured on this server (BEXIO_PAT)."
+msgstr ""
+
+#: nx_lib/views/controlling.py:302 nx_lib/views/controlling.py:478
+msgid "Could not read the rates."
+msgstr ""
+
+#: nx_lib/views/controlling.py:307
+msgid "Could not read the external costs."
+msgstr ""
+
+#: nx_lib/views/controlling.py:525
+msgid "Could not save the rate."
+msgstr ""
+
+#: nx_lib/views/controlling.py:547
+msgid "Could not delete the rate."
+msgstr ""
+
+#: nx_lib/views/controlling.py:549
+msgid "No such rate."
+msgstr ""
+
+#: nx_lib/views/controlling.py:580
+msgid "Could not save the cost."
+msgstr ""
+
+#: nx_lib/views/controlling.py:600
+msgid "Could not delete the cost."
+msgstr ""
+
+#: nx_lib/views/controlling.py:602
+msgid "No such cost."
+msgstr ""
+
+#: nx_lib/views/controlling.py:633 templates/_header.html:162
+#: templates/controlling.html:37
+msgid "Sydoc Controlling"
+msgstr ""
+
+#: nx_lib/views/controlling.py:634 nx_lib/views/finance.py:468
+#: templates/_header.html:64
+msgid "Overview"
+msgstr ""
+
+#: nx_lib/views/controlling.py:635 nx_lib/views/finance.py:431
+msgid "Detail"
+msgstr ""
+
+#: nx_lib/views/controlling.py:636
+msgid "Hours by task"
+msgstr ""
+
+#: nx_lib/views/controlling.py:637
+msgid "Volumes"
+msgstr ""
+
+#: nx_lib/views/controlling.py:641
+msgid "Rate CHF/h"
+msgstr ""
+
+#: nx_lib/views/controlling.py:642
+msgid "Cost CHF"
+msgstr ""
+
+#: nx_lib/views/controlling.py:643
+msgid "Invoiced excl. VAT"
+msgstr ""
+
+#: nx_lib/views/controlling.py:644
+msgid "Invoiced incl. VAT"
+msgstr ""
+
+#: nx_lib/views/controlling.py:645
+msgid "Margin CHF"
+msgstr ""
+
+#: nx_lib/views/controlling.py:646
+msgid "Margin %"
+msgstr ""
+
+#: nx_lib/views/controlling.py:647
+msgid "Δ margin vs previous month"
+msgstr ""
+
+#: nx_lib/views/controlling.py:648 templates/js/_generali_dashboard_js.html:231
+#: templates/js/_generali_dashboard_js.html:321
+#: templates/workitems_overview.html:336
+msgid "Documents"
+msgstr ""
+
+#: nx_lib/views/controlling.py:649 nx_lib/views/finance.py:430
+#: templates/controlling.html:40 templates/finance.html:98
+msgid "Previous month"
+msgstr ""
+
+#: nx_lib/views/controlling.py:650 templates/_header.html:90
+#: templates/admin/admin_overview.html:168 templates/admin/logs.html:66
+#: templates/admin/logs.html:99 templates/admin/tenant_detail.html:209
+#: templates/admin/tenants_manage.html:93 templates/admin/user_detail.html:222
+#: templates/api_docs.html:189 templates/appearance.html:369
+#: templates/finance.html:106 templates/generali_importstatus.html:50
+#: templates/generali_importstatus.html:106
+#: templates/generali_reporting.html:116 templates/js/_finance_js.html:84
+#: templates/workitems_overview.html:352
+msgid "Status"
+msgstr ""
+
+#: nx_lib/views/controlling.py:651 nx_lib/views/finance.py:474
+#: templates/generali-dashboard.html:144 templates/generali_documents.html:36
+#: templates/js/_bps_js.html:27 templates/js/_finance_js.html:44
+#: templates/js/_finance_js.html:75 templates/js/_generali_dashboard_js.html:25
+#: templates/js/_reporting_js.html:50
+#: templates/js/_reporting_layouts_js.html:37
+#: templates/js/_reporting_simple_js.html:124
+#: templates/js/_reporting_viz_js.html:18 templates/prepared_documents.html:51
+msgid "Total"
+msgstr ""
+
+#: nx_lib/views/controlling.py:652 nx_lib/views/finance.py:469
+#: templates/hero.html:152 templates/js/_finance_js.html:81
+msgid "Invoice"
+msgstr ""
+
+#: nx_lib/views/controlling.py:654
+msgid "Position"
+msgstr ""
+
+#: nx_lib/views/controlling.py:655 templates/generali_pdqm.html:162
+#: templates/generali_pdqm.html:264 templates/generali_pdqm.html:335
+#: templates/js/_finance_js.html:94
+msgid "Quantity"
+msgstr ""
+
+#: nx_lib/views/controlling.py:656 templates/js/_finance_js.html:95
+msgid "Unit price"
+msgstr ""
+
+#: nx_lib/views/controlling.py:657 templates/generali_documents.html:246
+msgid "Amount"
+msgstr ""
+
+#: nx_lib/views/controlling.py:658
+msgid "Seconds per document (Validierung)"
+msgstr ""
+
+#: nx_lib/views/controlling.py:659
+msgid "Documents per hour"
+msgstr ""
+
+#: nx_lib/views/controlling.py:660
+msgid "Invoiced CHF per document"
+msgstr ""
+
+#: nx_lib/views/controlling.py:661
+msgid "FTE"
+msgstr ""
+
+#: nx_lib/views/controlling.py:662
+msgid "Unassigned invoices"
+msgstr ""
+
+#: nx_lib/views/controlling.py:663
+msgid "Hours on no stream"
+msgstr ""
+
+#: nx_lib/views/controlling.py:664
+msgid "External cost"
+msgstr ""
+
+#: nx_lib/views/controlling.py:665
+msgid "converted to CHF"
+msgstr ""
+
+#: nx_lib/views/controlling.py:666
+msgid "no hours booked"
+msgstr ""
+
+#: nx_lib/views/controlling.py:667
+msgid "external cost in a foreign currency"
+msgstr ""
+
+#: nx_lib/views/controlling.py:669
+msgid "invoiced"
+msgstr ""
+
+#: nx_lib/views/controlling.py:670
+msgid "draft only"
+msgstr ""
+
+#: nx_lib/views/controlling.py:671
+msgid "no invoice"
+msgstr ""
+
+#: nx_lib/views/controlling.py:672
+msgid "not linked"
+msgstr ""
+
+#: nx_lib/views/controlling.py:673
+msgid "foreign currency"
+msgstr ""
+
+#: nx_lib/views/controlling.py:674
+msgid "Bexio unavailable"
+msgstr ""
+
+#: nx_lib/views/controlling.py:676
+msgid "incomplete source"
+msgstr ""
+
+#: nx_lib/views/controlling.py:677
+msgid "no rate"
+msgstr ""
+
+#: nx_lib/views/core.py:65 templates/_header.html:326
 #: templates/_small_footer.html:28
 msgid "Terms of Service"
 msgstr ""
 
-#: nx_lib/views/core.py:77 templates/_header.html:329
+#: nx_lib/views/core.py:77 templates/_header.html:330
 #: templates/_small_footer.html:32
 msgid "Privacy Policy"
 msgstr ""
@@ -971,25 +1245,8 @@ msgstr ""
 msgid "Measure"
 msgstr ""
 
-#: nx_lib/views/finance.py:430 templates/finance.html:98
-msgid "Previous month"
-msgstr ""
-
-#: nx_lib/views/finance.py:431
-msgid "Detail"
-msgstr ""
-
 #: nx_lib/views/finance.py:467
 msgid "Sydoc BPS · billable hours"
-msgstr ""
-
-#: nx_lib/views/finance.py:468 templates/_header.html:64
-msgid "Overview"
-msgstr ""
-
-#: nx_lib/views/finance.py:469 templates/hero.html:152
-#: templates/js/_finance_js.html:81
-msgid "Invoice"
 msgstr ""
 
 #: nx_lib/views/finance.py:470 templates/js/_bps_js.html:19
@@ -1006,17 +1263,6 @@ msgstr[1] ""
 
 #: nx_lib/views/finance.py:473
 msgid "Billed (¼ h)"
-msgstr ""
-
-#: nx_lib/views/finance.py:474 templates/generali-dashboard.html:144
-#: templates/generali_documents.html:36 templates/js/_bps_js.html:27
-#: templates/js/_finance_js.html:44 templates/js/_finance_js.html:75
-#: templates/js/_generali_dashboard_js.html:25
-#: templates/js/_reporting_js.html:50
-#: templates/js/_reporting_layouts_js.html:37
-#: templates/js/_reporting_simple_js.html:124
-#: templates/js/_reporting_viz_js.html:18 templates/prepared_documents.html:51
-msgid "Total"
 msgstr ""
 
 #: nx_lib/views/finance.py:480
@@ -1050,10 +1296,6 @@ msgstr ""
 
 #: nx_lib/views/finance_bexio.py:40
 msgid "Could not read Bexio."
-msgstr ""
-
-#: nx_lib/views/finance_bexio.py:63
-msgid "Bexio is not configured on this server (BEXIO_PAT)."
 msgstr ""
 
 #: nx_lib/views/profile.py:79
@@ -2379,18 +2621,6 @@ msgstr ""
 msgid "Logs"
 msgstr ""
 
-#: templates/_header.html:90 templates/admin/admin_overview.html:168
-#: templates/admin/logs.html:66 templates/admin/logs.html:99
-#: templates/admin/tenant_detail.html:209
-#: templates/admin/tenants_manage.html:93 templates/admin/user_detail.html:222
-#: templates/api_docs.html:189 templates/appearance.html:369
-#: templates/finance.html:106 templates/generali_importstatus.html:50
-#: templates/generali_importstatus.html:106
-#: templates/generali_reporting.html:116 templates/js/_finance_js.html:84
-#: templates/workitems_overview.html:352
-msgid "Status"
-msgstr ""
-
 #: templates/_header.html:97
 msgid "Maintenance"
 msgstr ""
@@ -2440,111 +2670,111 @@ msgstr ""
 msgid "Sydoc BPS"
 msgstr ""
 
-#: templates/_header.html:270 templates/_header.html:272
+#: templates/_header.html:271 templates/_header.html:273
 #: templates/appearance.html:302 templates/appearance.html:307
 #: templates/js/_header_js.html:13
 msgid "Keep sidebar open"
 msgstr ""
 
-#: templates/_header.html:276 templates/js/_header_js.html:56
+#: templates/_header.html:277 templates/js/_header_js.html:56
 msgid "Toggle dark mode"
 msgstr ""
 
-#: templates/_header.html:278
+#: templates/_header.html:279
 msgid "Dark Mode"
 msgstr ""
 
-#: templates/_header.html:286 templates/profile.html:44
+#: templates/_header.html:287 templates/profile.html:44
 #: templates/profile.html:123
 msgid "Profile Picture"
 msgstr ""
 
-#: templates/_header.html:296
+#: templates/_header.html:297
 msgid "Your profile"
 msgstr ""
 
-#: templates/_header.html:300 templates/appearance.html:34
+#: templates/_header.html:301 templates/appearance.html:34
 #: templates/js/_header_js.html:57 templates/profile.html:75
 #: templates/profile.html:317
 msgid "Appearance"
 msgstr ""
 
-#: templates/_header.html:304 templates/js/_header_js.html:58
+#: templates/_header.html:305 templates/js/_header_js.html:58
 #: templates/whats_new.html:79
 msgid "What's New"
 msgstr ""
 
-#: templates/_header.html:309 templates/feedback.html:34
+#: templates/_header.html:310 templates/feedback.html:34
 #: templates/js/_header_js.html:59
 msgid "Feedback"
 msgstr ""
 
-#: templates/_header.html:316 templates/_header.html:395
-#: templates/_header.html:398
+#: templates/_header.html:317 templates/_header.html:396
+#: templates/_header.html:399
 msgid "Keyboard shortcuts"
 msgstr ""
 
-#: templates/_header.html:320 templates/_small_footer.html:36
+#: templates/_header.html:321 templates/_small_footer.html:36
 #: templates/reporting.html:86
 msgid "Help"
 msgstr ""
 
-#: templates/_header.html:335 templates/_header.html:377
+#: templates/_header.html:336 templates/_header.html:378
 msgid "Switch user"
 msgstr ""
 
-#: templates/_header.html:341 templates/js/_header_js.html:60
+#: templates/_header.html:342 templates/js/_header_js.html:60
 #: templates/profile.html:82
 msgid "Sign out"
 msgstr ""
 
-#: templates/_header.html:358
+#: templates/_header.html:359
 msgid "Command palette"
 msgstr ""
 
-#: templates/_header.html:362
+#: templates/_header.html:363
 msgid "Type a command or search..."
 msgstr ""
 
-#: templates/_header.html:367
+#: templates/_header.html:368
 msgid "navigate"
 msgstr ""
 
-#: templates/_header.html:368
+#: templates/_header.html:369
 msgid "open"
 msgstr ""
 
-#: templates/_header.html:369
+#: templates/_header.html:370
 msgid "close"
 msgstr ""
 
-#: templates/_header.html:381
+#: templates/_header.html:382
 msgid "Switch to user..."
 msgstr ""
 
-#: templates/_header.html:402 templates/admin/access_control.html:130
+#: templates/_header.html:403 templates/admin/access_control.html:130
 #: templates/admin/organization_detail.html:132
 #: templates/admin/tenant_detail.html:444
 msgid "Global"
 msgstr ""
 
-#: templates/_header.html:404
+#: templates/_header.html:405
 msgid "Open command palette"
 msgstr ""
 
-#: templates/_header.html:408
+#: templates/_header.html:409
 msgid "Show this shortcuts overlay"
 msgstr ""
 
-#: templates/_header.html:412
+#: templates/_header.html:413
 msgid "Close the open dialog or panel"
 msgstr ""
 
-#: templates/_header.html:417
+#: templates/_header.html:418
 msgid "Document viewer"
 msgstr ""
 
-#: templates/_header.html:419
+#: templates/_header.html:420
 msgid "Previous / next document page"
 msgstr ""
 
@@ -3118,9 +3348,9 @@ msgstr ""
 msgid "Export format"
 msgstr ""
 
-#: templates/_reporting_simple.html:184 templates/finance.html:85
-#: templates/reporting.html:411 templates/reporting.html:547
-#: templates/reporting.html:586
+#: templates/_reporting_simple.html:184 templates/controlling.html:30
+#: templates/finance.html:85 templates/reporting.html:411
+#: templates/reporting.html:547 templates/reporting.html:586
 msgid "Excel"
 msgstr ""
 
@@ -4385,6 +4615,18 @@ msgid ""
 "page."
 msgstr ""
 
+#: templates/controlling.html:9
+msgid "Sydoc Controlling - nexora"
+msgstr ""
+
+#: templates/controlling.html:26
+msgid "Controlling"
+msgstr ""
+
+#: templates/controlling.html:40 templates/finance.html:98
+msgid "Next month"
+msgstr ""
+
 #: templates/dashboard.html:9
 msgid "Dashboard - nexora"
 msgstr ""
@@ -4553,10 +4795,6 @@ msgstr ""
 
 #: templates/finance.html:88
 msgid "Print"
-msgstr ""
-
-#: templates/finance.html:98
-msgid "Next month"
 msgstr ""
 
 #: templates/finance.html:100
@@ -5195,10 +5433,6 @@ msgstr ""
 msgid "Lang"
 msgstr ""
 
-#: templates/generali_documents.html:246
-msgid "Amount"
-msgstr ""
-
 #: templates/generali_importstatus.html:8
 msgid "Data Import Status - nexora"
 msgstr ""
@@ -5345,11 +5579,6 @@ msgstr ""
 
 #: templates/generali_pdqm.html:137
 msgid "Total documents (filtered):"
-msgstr ""
-
-#: templates/generali_pdqm.html:162 templates/generali_pdqm.html:264
-#: templates/generali_pdqm.html:335 templates/js/_finance_js.html:94
-msgid "Quantity"
 msgstr ""
 
 #: templates/generali_pdqm.html:256 templates/generali_pdqm.html:327
@@ -6757,12 +6986,6 @@ msgstr ""
 
 #: templates/workitems_overview.html:334
 msgid "Table or document view"
-msgstr ""
-
-#: templates/js/_generali_dashboard_js.html:231
-#: templates/js/_generali_dashboard_js.html:321
-#: templates/workitems_overview.html:336
-msgid "Documents"
 msgstr ""
 
 #: templates/workitems_overview.html:353
@@ -9113,10 +9336,6 @@ msgstr ""
 
 #: templates/js/_finance_js.html:93
 msgid "Text"
-msgstr ""
-
-#: templates/js/_finance_js.html:95
-msgid "Unit price"
 msgstr ""
 
 #: templates/js/_finance_js.html:96

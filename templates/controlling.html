@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="{{ current_lang }}">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  {% include '_theme_prepaint.html' %}
+  <link rel="stylesheet" href="{{ static_v('css/nexora-ui.css') }}">
+  <title>{{ _("Sydoc Controlling - nexora") }}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous" />
+  <link rel="icon" type="image/x-icon" href="{{ static_v('images/favicon.ico') }}">
+</head>
+
+{# Backend-first shell (#433): the band and month navigation only. The page
+   body (summary, margin table, client blocks, task matrix, volumes, trend,
+   rates panel) is built from the design handoff; its data is
+   /api/controlling/month and /api/controlling/trend. #}
+<body class="nx-app nx-sydoc">
+  {% set active_page = 'controlling' %} {% include '_header.html' %}
+  {% import '_sydoc.html' as sydoc with context %}
+
+  <main class="nx-main">
+    <section class="nx-sydoc-band nx-rise" data-testid="controlling-band">
+      <div class="nx-sydoc-band__row1">
+        {{ sydoc.brand(_("Controlling")) }}
+        <span class="nx-sydoc-band__spacer"></span>
+        <div class="nx-sydoc-band__actions">
+          <a class="nx-sydoc-btn nx-sydoc-btn--ghost" href="{{ url_for('api_controlling_export', month=month) }}" data-testid="controlling-export">
+            <i class="fas fa-file-excel" aria-hidden="true"></i> {{ _("Excel") }}
+          </a>
+        </div>
+      </div>
+      <div class="nx-sydoc-band__row2">
+        <div>
+          {{ sydoc.headline(
+               _("Sydoc Controlling"), "controlling", month_name, month_year,
+               url_for('controlling', month=prev_month) if prev_month else None,
+               url_for('controlling', month=next_month) if next_month else None,
+               _("Previous month"), _("Next month"), "controlling-picker") }}
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+
+</html>

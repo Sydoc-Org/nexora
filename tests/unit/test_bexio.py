@@ -139,12 +139,14 @@ def test_normalize_invoice_derives_excl_vat_and_maps_status():
         "nr": "RE-00012",
         "title": "Invoice 12",
         "contactId": 7,
+        "projectId": None,
         "date": "2026-09-05",
         "due": "2026-10-05",
         "status": "paid",
         "total": 1077.0,
         "excl": 1000.0,
         "currency": "CHF",
+        "currencyId": 1,
     }
 
 
@@ -156,6 +158,11 @@ def test_normalize_invoice_tolerates_missing_and_odd_values():
     assert inv["total"] == 0.0 and inv["excl"] == 0.0
     assert inv["date"] == "2026-09-01"
     assert inv["contactId"] is None and inv["currency"] == ""
+    assert inv["projectId"] is None
+
+
+def test_normalize_invoice_carries_the_bexio_project():
+    assert bexio.normalize_invoice({**_raw(12, 7), "project_id": "10"})["projectId"] == 10
 
 
 def test_normalize_positions_keeps_lines_text_subtotals_and_discounts():

@@ -213,6 +213,63 @@ def currencies(*, fresh=False):
     return _cached(("currencies",), CONTACT_TTL, load, fresh=fresh)
 
 
+def purchase_bills(*, fresh=False):
+    """Every purchase bill (supplier invoice) in Bexio, raw (``/4.0/purchase/bills``).
+
+    Bexio pages them; Sydoc keeps a few hundred a year, so all of them are
+    read and cached rather than searched (the endpoint filters on little).
+    """
+
+    def load():
+        found = []
+        for page in range(1, MAX_PAGES + 1):
+            body = _request("GET", "/4.0/purchase/bills", params={"limit": PAGE_SIZE, "page": page})
+            if not isinstance(body, dict) or not isinstance(body.get("data"), list):
+                raise BexioError("Bexio returned an unexpected bill list.")
+            found.extend(body["data"])
+            count = (body.get("paging") or {}).get("page_count") or 1
+            if page >= count:
+                break
+        return found
+
+    return _cached(("bills",), CACHE_TTL, load, fresh=fresh)
+
+
+def normalize_bill(raw):
+    """What Controlling reads of one purchase bill: net amount (excl. VAT) and month."""
+    return {
+        "id": str(raw.get("id") or ""),
+        "nr": raw.get("document_no") or "",
+        "vendor": " ".join(str(raw.get("vendor") or "").split()),
+        "title": raw.get("title") or "",
+        "date": _date(raw.get("bill_date")),
+        "net": _money(_dec(raw.get("net"))),
+        "gross": _money(_dec(raw.get("gross"))),
+        "currency": raw.get("currency_code") or "",
+        "status": str(raw.get("status") or "").lower(),
+    }
+
+
+def exchange_rate(currency_id, date, *, fresh=False):
+    """CHF per one unit of ``currency_id`` in the month of ``date`` (ISO), as
+    Bexio states it (its monthly average), or None when Bexio has none.
+    Cached per currency and month: the rate of a past month does not move."""
+    currency_id = int(currency_id)
+    first = f"{str(date)[:7]}-01"
+
+    def load():
+        rows = _request(
+            "GET", f"/3.0/currencies/{currency_id}/exchange_rates", params={"date": first}
+        )
+        for r in rows if isinstance(rows, list) else []:
+            if (r.get("exchange_currency") or {}).get("name") == "CHF":
+                factor = _dec(r.get("factor_nr_to_ratio") or r.get("factor_nr"))
+                return factor if factor > 0 else None
+        return None
+
+    return _cached(("fx", currency_id, first), CONTACT_TTL, load, fresh=fresh)
+
+
 def invoice(invoice_id, *, fresh=False):
     """One invoice with its positions (the raw Bexio payload)."""
     invoice_id = int(invoice_id)
@@ -287,12 +344,15 @@ def normalize_invoice(raw, currency_codes=None):
         "nr": raw.get("document_nr") or "",
         "title": raw.get("title") or "",
         "contactId": int(raw["contact_id"]) if raw.get("contact_id") is not None else None,
+        # The Bexio project tells a customer's invoices apart (Controlling, #433).
+        "projectId": int(raw["project_id"]) if raw.get("project_id") is not None else None,
         "date": _date(raw.get("is_valid_from")),
         "due": _date(raw.get("is_valid_to")),
         "status": STATUS_KEYS.get(status_id, "other"),
         "total": _money(total),
         "excl": _money(total - taxes),
         "currency": (currency_codes or {}).get(currency_id, "") if currency_id else "",
+        "currencyId": int(currency_id) if currency_id is not None else None,
     }
 
 
