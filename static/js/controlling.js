@@ -38,6 +38,8 @@
         d = d == null ? 2 : d;
         return (Number(v) >= Math.pow(10, -d) / 2 ? '+' : '') + num(v, d);
     }
+    // A rate as the band writes it: 85, 72.50.
+    const rateNum = v => (v == null ? '—' : Number.isInteger(Number(v)) ? group(String(Number(v))) : num(v));
     function pct(v, d) {
         if (v == null) return '—';
         return (v < 0 ? MINUS : '') + Math.abs(v * 100).toFixed(d == null ? 1 : d) + '%';
@@ -52,6 +54,11 @@
         return (r > 0 ? '▲ +' : '▼ ' + MINUS) + Math.abs(r) + '%';
     }
     const dIcon = d => (d > 0 ? 'fas fa-arrow-trend-up' : d < 0 ? 'fas fa-arrow-trend-down' : 'fas fa-minus');
+    // A signed CHF change with its trend icon; "—" alone when there is nothing to compare.
+    function dHtml(d) {
+        if (d == null) return '<span class="nx-ctl-d is-flat">—</span>';
+        return `<span class="nx-ctl-d ${dClass(d, true)}"><i class="${dIcon(d)}" aria-hidden="true"></i>${esc(sgn(d))}</span>`;
+    }
     // Good/bad colour of a change: up is good for money in, bad for hours and cost.
     const dClass = (d, upGood) => (!d ? 'is-flat' : (d > 0) === upGood ? 'is-gain' : 'is-loss');
 
@@ -164,38 +171,51 @@
               `<span class="nx-ctl-summary__main ${o.cls || ''}">${esc(o.main)}<span class="nx-ctl-summary__suf">${esc(o.suf || '')}</span></span>` +
               `${o.after ? `<span class="nx-ctl-summary__after ${o.cls || ''}">${esc(o.after)}</span>` : ''}`;
         const delta = o.dT
-            ? `<p class="nx-ctl-summary__delta"><span class="nx-ctl-d ${o.dCls || 'is-flat'}"><i class="${o.dIcon || 'fas fa-minus'}" aria-hidden="true"></i>${esc(o.dT)}</span><span>${esc(o.dSub || '')}</span></p>`
+            ? `<p class="nx-ctl-summary__delta"><span class="nx-ctl-d ${o.dCls || 'is-flat'}">${o.dIcon ? `<i class="${o.dIcon}" aria-hidden="true"></i>` : ''}${esc(o.dT)}</span><span>${esc(o.dSub || '')}</span></p>`
             : '';
         return `<div class="nx-ctl-summary__cell" data-testid="controlling-kpi-${o.id}">` +
             `<p class="nx-ctl-eyebrow">${esc(o.label)}</p><p class="nx-ctl-summary__value">${value}</p>${delta}` +
             `${o.cap ? `<p class="nx-ctl-summary__cap">${esc(o.cap)}</p>` : ''}</div>`;
     }
     function rel(v, p, upGood, f) {
-        if (v == null || p == null) return { dT: '—', dSub: fmt(S.nothingToCompare, { month: CFG.prevShort }), dIcon: 'fas fa-minus' };
+        if (v == null || p == null) return { dT: '—', dSub: fmt(S.nothingToCompare, { month: CFG.prevShort }), dIcon: '' };
         const d = v - p;
+        if (!p && d) return { dT: '▲ ' + S.isNew, dSub: fmt(S.vsPrev, { month: CFG.prevShort, value: f(p) }), dIcon: '' };
         const r = p ? d / Math.abs(p) : 0;
         return {
             dT: (d > 0 ? '+' : d < 0 ? MINUS : '±') + Math.abs(r * 100).toFixed(1) + '%',
             dSub: fmt(S.vsPrev, { month: CFG.prevShort, value: f(p) }),
-            dCls: dClass(d, upGood),
+            // A running month is compared so far with a whole one: no good/bad colour.
+            dCls: M && M.state === 'running' ? 'is-flat' : dClass(d, upGood),
             dIcon: dIcon(d),
         };
     }
-    function renderSummary() {
+    function renderSummary(empty) {
         const el = document.getElementById('ctl-summary');
+        if (empty) {
+            const cap = fmt(S.nothingBooked, { month: CFG.monthLabel });
+            el.querySelector('[data-role="body"]').innerHTML = [
+                ['hours', S.totalHours], ['cost', S.cost], ['invoiced', S.invoicedExcl], ['margin', S.margin], ['documents', S.documents],
+            ].map(([id, label]) => kpi({ id, label, main: null, cap })).join('');
+            el.removeAttribute('aria-busy');
+            return;
+        }
         const T = M.totals.cur;
         const P = M.totals.prev;
         const running = M.state === 'running';
         const cells = [];
-        if (M.hoursError) {
+        if (T.hours == null) {
             cells.push(kpi({ id: 'hours', label: S.totalHours, main: null, dT: S.bpsUnavailable, dCls: 'is-loss', dIcon: 'fas fa-triangle-exclamation' }));
             cells.push(kpi({ id: 'cost', label: S.cost, main: null, dT: S.bpsUnavailable, dCls: 'is-loss', dIcon: 'fas fa-triangle-exclamation' }));
         } else {
             const [ha, hb] = num(T.hours, 1).split('.');
             cells.push(kpi({ id: 'hours', label: S.totalHours, main: ha, suf: '.' + hb, after: 'h', ...rel(T.hours, P && P.hours, false, v => num(v, 1) + ' h') }));
-            const c = money(T.cost || 0);
             const overrides = M.streams.filter(s => has(s.cur, 'override')).length;
-            cells.push(kpi({ id: 'cost', label: S.cost, pre: 'CHF', main: c.main, suf: c.suf, ...rel(T.cost, P && P.cost, false, v => num(v, 0)),
+            if (T.cost == null) {
+                cells.push(kpi({ id: 'cost', label: S.cost, main: null, cap: S.costUnknown }));
+            }
+            const c = money(T.cost || 0);
+            if (T.cost != null) cells.push(kpi({ id: 'cost', label: S.cost, pre: 'CHF', main: c.main, suf: c.suf, ...rel(T.cost, P && P.cost, false, v => num(v, 0)),
                 cap: overrides ? fmt(overrides === 1 ? S.oneOverride : S.nOverrides, { n: overrides }) : '' }));
         }
         if (running) {
@@ -223,7 +243,7 @@
                 const d = P && P.margin != null ? T.margin - P.margin : null;
                 cells.push(kpi({ id: 'margin', label: S.margin, pre: 'CHF', main: (T.margin > 0 ? '+' : '') + mm.main, suf: mm.suf,
                     after: pct(T.marginPct), cls: T.margin < 0 ? 'is-loss' : '',
-                    dT: d == null ? '—' : sgn(d, 0), dIcon: d == null ? 'fas fa-minus' : dIcon(d), dCls: d == null ? 'is-flat' : dClass(d, true),
+                    dT: d == null ? '—' : sgn(d, 0), dIcon: d == null ? '' : dIcon(d), dCls: d == null || running ? 'is-flat' : dClass(d, true),
                     dSub: d == null ? '' : fmt(S.vsPrev, { month: CFG.prevShort, value: sgn(P.margin, 0) }),
                     cap: fmt(S.ofStreams, { n: T.streamsWithMargin, total: T.streams }) }));
             }
@@ -260,6 +280,7 @@
         }
         if (c.hours == null) return { chip: chip('red', S.bpsUnavailable), text: S.needsHours };
         if (c.margin == null && has(c, 'no_rate')) return { chip: chip('amber', S.noRate), text: S.setRate };
+        if (c.margin == null && has(c, 'cost_unknown')) return { chip: chip('blue', S.foreign), text: S.costForeign };
         if (c.margin == null) return { chip: chip('gray', S.unknown), text: '' };
         return null;
     }
@@ -286,7 +307,7 @@
             const c = s.cur;
             const f = flagOf(c);
             const ic = invCells(c);
-            const rateNote = has(c, 'override') && c.rate != null ? `<span class="nx-ctl-margin__note">${esc(fmt(S.atRate, { rate: num(c.rate) }))}</span>` : '';
+            const rateNote = has(c, 'override') && c.rate != null ? `<span class="nx-ctl-margin__note">${esc(fmt(S.atRate, { rate: rateNum(c.rate) }))}</span>` : '';
             let tail;
             if (f) {
                 tail = `<span class="nx-ctl-margin__flag"><span class="nx-ctl-margin__flagtext">${esc(f.text)}</span>${f.chip}</span>`;
@@ -301,7 +322,7 @@
                 tail = `<span class="nx-ctl-margin__m"><span class="nx-ctl-mbar" aria-hidden="true"><span class="nx-ctl-mbar__zero"></span>` +
                     `<span class="nx-ctl-mbar__fill${loss}" style="${bar}"></span></span><span class="nx-ctl-num nx-ctl-margin__mv${loss}">${esc(sgn(c.margin))}</span></span>` +
                     `<span class="nx-ctl-num nx-ctl-margin__pct${loss}">${esc(pct(c.marginPct))}</span>` +
-                    `<span class="nx-ctl-margin__vs"><span class="nx-ctl-d ${d == null ? 'is-flat' : dClass(d, true)}"><i class="${d == null ? 'fas fa-minus' : dIcon(d)}" aria-hidden="true"></i>${esc(d == null ? '—' : sgn(d))}</span>` +
+                    `<span class="nx-ctl-margin__vs">${dHtml(d)}` +
                     `<span class="nx-ctl-margin__vsub">${prevM == null ? '' : esc(CFG.prevShort + ' ' + sgn(prevM))}</span></span>`;
             }
             return `<a class="nx-ctl-margin__row nx-ctl-margin__body" href="#ctl-c-${esc(s.key)}" data-open="${esc(s.key)}" data-testid="controlling-row-${esc(s.key)}">
@@ -326,7 +347,7 @@
             <span class="nx-ctl-num nx-ctl-margin__incl">${esc(T.invoicedIncl == null ? '—' : num(T.invoicedIncl))}</span>
             <span class="nx-ctl-num nx-ctl-margin__tm${tl}">${esc(T.margin == null ? '—' : sgn(T.margin))}</span>
             <span class="nx-ctl-num nx-ctl-margin__pct${tl}">${esc(pct(T.marginPct))}</span>
-            <span class="nx-ctl-margin__vs"><span class="nx-ctl-d ${d == null ? 'is-flat' : dClass(d, true)}"><i class="${d == null ? 'fas fa-minus' : dIcon(d)}" aria-hidden="true"></i>${esc(d == null ? '—' : sgn(d))}</span>` +
+            <span class="nx-ctl-margin__vs">${dHtml(d)}` +
             `<span class="nx-ctl-margin__vsub">${P && P.margin != null ? esc(CFG.prevShort + ' ' + sgn(P.margin)) : ''}</span></span>
             <span></span></div>`;
         const unassigned = M.unassigned.map(u => {
@@ -339,12 +360,14 @@
                 <span class="nx-ctl-unassigned__note">${esc(S.notInTotals)}</span>
               </div>`;
         }).join('');
+        const anyInc = M.streams.some(s => has(s.cur, 'incomplete'));
+        const anyMoved = M.streams.some(s => has(s.cur, 'moved'));
         const legend = `<div class="nx-ctl-legend">
-            <span><span class="nx-ctl-ring" aria-hidden="true"></span>${esc(S.incompleteTitle)}</span>
-            <span><i class="fas fa-code-compare nx-ctl-moved" aria-hidden="true"></i>${esc(S.movedLegend)}</span>
+            ${anyInc ? `<span><span class="nx-ctl-ring" aria-hidden="true"></span>${esc(S.incompleteTitle)}</span>` : ''}
+            ${anyMoved ? `<span><i class="fas fa-code-compare nx-ctl-moved" aria-hidden="true"></i>${esc(S.movedLegend)}</span>` : ''}
             <span>${esc(S.costLegend)}</span></div>`;
         const err = M.bexioError ? errorBox(fmt(S.bexioDown, { reason: M.bexioError }), null, 'month') : '';
-        const hoursErr = M.hoursError ? errorBox(fmt(S.bpsDown, { reason: M.hoursError }), null, 'month') : '';
+        const hoursErr = M.hoursError && !M.closed ? errorBox(fmt(S.bpsDown, { reason: M.hoursError }), null, 'month') : '';
         root.innerHTML = `${err}${hoursErr}<div class="nx-ctl-scroll"><div class="nx-ctl-margin">${head}${rows}${total}${unassigned}</div></div>${legend}`;
         root.removeAttribute('aria-busy');
     }
@@ -492,7 +515,7 @@
             const d = s.delta && s.delta.margin != null ? s.delta.margin : null;
             body = `<span class="nx-ctl-num nx-ctl-diff__value${loss}">${esc(sgn(c.margin))}</span>
                 <span class="nx-ctl-num nx-ctl-diff__pct${loss}">${esc(pct(c.marginPct))}</span>
-                <span class="nx-ctl-diff__delta"><span class="nx-ctl-d ${d == null ? 'is-flat' : dClass(d, true)}"><i class="${d == null ? 'fas fa-minus' : dIcon(d)}" aria-hidden="true"></i>${esc(d == null ? '—' : sgn(d))}</span>
+                <span class="nx-ctl-diff__delta">${dHtml(d)}
                 <span class="nx-ctl-quiet">${s.prev && s.prev.margin != null ? esc(CFG.prevShort + ' ' + sgn(s.prev.margin)) : ''}</span></span>`;
         } else {
             let msg = '';
@@ -504,6 +527,7 @@
             else if (c.state === 'foreign') msg = fmt(S.diffForeign, { amount: c.foreign.map(f => f.currency + ' ' + num(f.excl)).join(', ') });
             else if (c.state === 'unlinked') msg = S.diffUnlinked;
             else if (has(c, 'no_rate')) msg = S.diffNoRate;
+            else if (has(c, 'cost_unknown')) msg = S.diffCostForeign;
             body = `<span class="nx-ctl-diff__msg">${esc(msg)}</span>`;
         }
         const formula = c.margin != null ? `${num(c.invoiced)} ${MINUS} ${num(c.cost)}` : '';
@@ -543,6 +567,7 @@
         const out = [];
         if (has(c, 'incomplete')) out.push(chip('amber', S.bpsIncomplete, { dot: false, ring: true }));
         if (has(c, 'moved')) out.push(chip('amber', S.movedShort));
+        if (has(c, 'no_hours')) out.push(chip('amber', S.noHoursChip));
         const f = flagOf(c);
         if (f) out.push(f.chip);
         return out.join('');
@@ -558,8 +583,9 @@
         if (c.incomplete) note.push(c.incomplete);
         if (c.state === 'foreign') note.push(S.noteForeign);
         if (s.key === 'zhaw') note.push(S.noteXpert);
+        if (has(c, 'no_hours')) note.push(S.noteNoHours);
         const contacts = c.contacts && c.contacts.length ? c.contacts.join(', ') : S.noContactYet;
-        const rate = c.rate == null ? '—' : fmt(S.chfPerHour, { rate: num(c.rate) }) + (has(c, 'override') ? ' · ' + S.override : '');
+        const rate = c.rate == null ? '—' : fmt(S.chfPerHour, { rate: rateNum(c.rate) }) + (has(c, 'override') ? ' · ' + S.override : '');
         const docs = c.documents == null ? '—' : `${num(c.documents, 0)} ${s.unit}`;
         return `<section class="nx-ctl-client" id="ctl-c-${esc(s.key)}" data-key="${esc(s.key)}" data-testid="controlling-client-${esc(s.key)}">
             <button type="button" class="nx-ctl-client__head" aria-expanded="false" aria-controls="ctl-cd-${esc(s.key)}">
@@ -569,7 +595,7 @@
                 <span class="nx-ctl-client__cell nx-ctl-client__cell--h"><span class="nx-ctl-eyebrow">${esc(S.hours)}</span><span class="nx-ctl-num nx-ctl-strong">${esc(c.hours == null ? '—' : num(c.hours))}</span></span>
                 <span class="nx-ctl-client__cell nx-ctl-client__cell--m"><span class="nx-ctl-eyebrow">${esc(S.marginChf)}</span><span class="nx-ctl-num nx-ctl-strong${loss}">${c.margin != null ? marginT : '—' + (f ? ` <span class="nx-ctl-client__flagword">${esc(stripTags(f.chip))}</span>` : '')}</span></span>
                 <span class="nx-ctl-client__cell nx-ctl-client__cell--d"><span class="nx-ctl-eyebrow">${esc(fmt(S.vsShort, { month: CFG.prevShort }))}</span>
-                  <span class="nx-ctl-d ${d == null ? 'is-flat' : dClass(d, true)}"><i class="${d == null ? 'fas fa-minus' : dIcon(d)}" aria-hidden="true"></i>${esc(d == null ? '—' : sgn(d))}</span></span>
+                  ${dHtml(d)}</span>
                 <i class="fas fa-chevron-down nx-ctl-client__chev" aria-hidden="true"></i>
               </span>
             </button>
@@ -583,7 +609,7 @@
                 ${note.length ? `<p class="nx-fin-id__note">${esc(note.join(' '))}</p>` : ''}
               </div>
               <div class="nx-ctl-client__statement">
-                ${divider(S.aufwendungen, c.rate == null ? S.noRate : fmt(S.hoursTimesRate, { rate: num(c.rate) }))}
+                ${divider(S.aufwendungen, c.rate == null ? S.noRate : fmt(S.hoursTimesRate, { rate: rateNum(c.rate) }))}
                 ${tasksHtml(s)}
                 ${divider(S.debitor, fmt(S.invoicesDated, { month: CFG.invoiceMonth }))}
                 ${debitorHtml(s)}
@@ -674,7 +700,7 @@
             const w = v ? (v / max) * 100 : 0;
             return `<div class="nx-ctl-vol__row"><span class="nx-ctl-vol__name">${esc(s.label)}</span>
                 <span class="nx-ctl-vol__share"><span class="nx-ctl-vol__track"><span style="width:${w.toFixed(1)}%"></span></span><span class="nx-ctl-num nx-ctl-quiet">${esc(v ? pct(v / sum, 0) : '')}</span></span>
-                <span class="nx-ctl-num nx-ctl-strong">${esc(failed.has(s.key) ? '—' : v == null ? '—' : num(v, 0))}</span>
+                <span class="nx-ctl-num nx-ctl-strong" title="${esc(failed.has(s.key) && v != null ? S.docsFrozen : '')}">${esc(v == null ? '—' : num(v, 0))}</span>
                 <span class="nx-ctl-quiet">${esc(s.unit)}</span>
                 <span class="nx-ctl-num nx-ctl-quiet">${esc(p == null ? '—' : num(p, 0))}</span>
                 <span class="nx-fin-delta">${esc(finDelta(v, p))}</span></div>`;
@@ -705,7 +731,7 @@
         M = res.data;
         const empty = !M.hoursError && M.totals.cur.hours === 0 &&
             M.streams.every(s => !(s.cur.invoices || []).length) && !M.unassigned.length;
-        renderSummary();
+        renderSummary(empty);
         if (empty) {
             const line = `<div class="nx-ctl-empty"><i class="fas fa-inbox" aria-hidden="true"></i><span>${esc(fmt(S.emptyMonth, { month: CFG.monthLabel, invoices: CFG.invoiceMonth }))}</span></div>`;
             document.getElementById('ctl-margin').innerHTML = line;
@@ -800,7 +826,7 @@
         if (state !== 'running' && out) notes.push(fmt(out === 1 ? S.notInMarginOne : S.notInMargin, { n: out }));
         const left = ((i + 0.5) / n) * 100;
         const flip = i > n * 0.62;
-        return `<div class="nx-ctl-tip" style="left:${left.toFixed(2)}%;transform:${flip ? 'translateX(calc(-100% - 14px))' : 'translateX(14px)'}" role="status">
+        return `<div class="nx-ctl-tip" style="left:${left.toFixed(2)}%;transform:${flip ? 'translateX(calc(-100% - 14px))' : 'translateX(14px)'}" aria-hidden="true">
             <p class="nx-ctl-tip__title">${esc(TR.labels[i])} · ${esc(stateLabel)}</p>${rows}
             ${notes.length ? `<p class="nx-ctl-tip__note">${esc(notes.join(' · '))}</p>` : ''}</div>`;
     }
@@ -972,7 +998,7 @@
             form = null;
             await load();
             loadMonth(false);
-            loadTrend(true);
+            loadTrend(false);
         }
         async function remove() {
             const res = await window.NX.apiSafe(`${API}api/controlling/rates/${form.id}`, { method: 'DELETE' });
@@ -980,7 +1006,7 @@
             form = null;
             await load();
             loadMonth(false);
-            loadTrend(true);
+            loadTrend(false);
         }
         body.addEventListener('click', async e => {
             const add = e.target.closest('[data-add]');
@@ -996,13 +1022,15 @@
                 const r = rates.find(x => x.id === Number(edit.dataset.edit));
                 form = { scope: r.kind === 'fte_day_hours' ? 'fte' : r.stream ? 'override' : 'default', id: r.id, stream: r.stream, value: String(r.value), from: r.from, to: r.to || '' };
                 render();
+                const first = body.querySelector('.nx-ctl-rates__form input, .nx-ctl-rates__form select');
+                if (first) first.focus();
             } else if (act) {
-                if (act.dataset.act === 'cancel') { form = null; render(); }
+                if (act.dataset.act === 'cancel') { form = null; render(); root.querySelector('[data-role="rates-close"]').focus(); }
                 if (act.dataset.act === 'save') save();
                 if (act.dataset.act === 'delete') remove();
             } else if (delcost) {
                 const res = await window.NX.apiSafe(`${API}api/controlling/costs/${delcost.dataset.delcost}`, { method: 'DELETE' });
-                if (res.ok) { loadMonth(false); loadTrend(true); }
+                if (res.ok) { loadMonth(false); loadTrend(false); }
             }
         });
         function onKey(e) {
@@ -1010,6 +1038,8 @@
             if (e.key !== 'Tab') return;
             const items = Array.from(root.querySelectorAll(FOCUSABLE)).filter(x => x.offsetParent !== null);
             if (!items.length) return;
+            // A re-render may have removed the focused button: bring focus back in.
+            if (!root.contains(document.activeElement)) { e.preventDefault(); items[0].focus(); return; }
             if (e.shiftKey && document.activeElement === items[0]) { e.preventDefault(); items[items.length - 1].focus(); }
             else if (!e.shiftKey && document.activeElement === items[items.length - 1]) { e.preventDefault(); items[0].focus(); }
         }

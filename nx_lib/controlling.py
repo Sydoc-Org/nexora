@@ -561,7 +561,10 @@ def check_rate(kind, stream_key, value, valid_from, valid_to):
     if stream_key not in (None, "") and stream_key not in STREAMS_BY_KEY:
         raise ValueError(N_("Unknown stream."))
     try:
-        amount = Decimal(str(value)).quantize(CENT, rounding=ROUND_HALF_UP)
+        amount = Decimal(str(value))
+        if not amount.is_finite():
+            raise ValueError("not finite")
+        amount = amount.quantize(CENT, rounding=ROUND_HALF_UP)
     except Exception as e:
         raise ValueError(N_("The rate must be a number.")) from e
     if amount <= 0 or amount >= Decimal("100000000"):
@@ -608,7 +611,10 @@ def check_cost(month, stream_key, label, amount):
     except (ValueError, TypeError) as e:
         raise ValueError(N_("A month must read YYYY-MM.")) from e
     try:
-        value = Decimal(str(amount)).quantize(CENT, rounding=ROUND_HALF_UP)
+        value = Decimal(str(amount))
+        if not value.is_finite():
+            raise ValueError("not finite")
+        value = value.quantize(CENT, rounding=ROUND_HALF_UP)
     except Exception as e:
         raise ValueError(N_("The amount must be a number.")) from e
     if value == 0 or abs(value) >= Decimal("10000000000"):
@@ -831,7 +837,17 @@ def stream_month(stream, year, month, inp, translate=lambda s: s):
     snap = (inp.frozen.get(mk) or {}).get("streams", {}).get(stream.key)
     if snap is None:
         return live
-    cell = dict(snap)
+    # Defaults first: a snapshot written by an older release may lack a key.
+    cell = {
+        **{k: None for k in SNAPSHOT_KEYS},
+        "tasks": {},
+        "foreign": [],
+        "externalCosts": [],
+        "contacts": [],
+        "flags": [],
+        "kpis": {},
+        **snap,
+    }
     cell["frozen"] = True
     cell["invoices"] = live["invoices"]
     cell["contacts"] = live["contacts"] or snap.get("contacts") or []

@@ -763,3 +763,45 @@ def test_stream_descriptor_carries_the_block_heading():
         "dossiers",
     )
     assert controlling.stream_descriptor(STREAMS_BY_KEY["compass"])["nav"] == "Compass"
+
+
+# --------------------------------------------------------------------------
+# QA review (#433): edge cases that used to 500
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("bad", ["NaN", "Infinity", "-inf"])
+def test_non_finite_numbers_are_rejected_not_500(bad):
+    with pytest.raises(ValueError, match=re.escape("The rate must be a number.")):
+        controlling.check_rate("hourly", None, bad, "2025-01", None)
+    with pytest.raises(ValueError, match=re.escape("The amount must be a number.")):
+        controlling.check_cost("2025-09", "compass", "x", bad)
+
+
+def test_an_older_snapshot_missing_keys_still_serves():
+    inp = _inputs()
+    inp.frozen = {
+        "2025-09": {"streams": {"compass": {"hours": 10.0, "state": "invoiced", "invoiced": 100.0}}}
+    }
+    c = controlling.stream_month(STREAMS_BY_KEY["compass"], 2025, 9, inp)
+    assert c["frozen"] and c["tasks"] == {} and c["foreign"] == [] and c["documents"] is None
+    t = controlling.trend_payload([(2025, 9)], inp)
+    assert t["totals"][0]["hours"] is not None
+
+
+def test_export_without_bps_hours_still_builds():
+    labels = {
+        k: k
+        for k in (
+            "title overview detail tasks volumes stream task hours rate cost invoiced invoiced_incl "
+            "margin margin_pct delta_margin documents previous state total invoice date position "
+            "quantity unit_price amount seconds_per_doc docs_per_hour chf_per_doc fte unassigned "
+            "unmapped incomplete no_rate external override moved bps_error no_hours cost_unknown"
+        ).split()
+    }
+    labels["states"] = {}
+    inp = _inputs()
+    inp.hours_error = "down"
+    payload = controlling.month_payload(2025, 9, inp)
+    assert payload["tasks"] is None
+    assert controlling_export.workbook(payload, labels, "September 2025")[:2] == b"PK"

@@ -68,7 +68,8 @@
                             _("Previous month"), _("Next month"), "ctl-picker") }}
           <p class="nx-sydoc-hint">
             {% if state == 'running' %}{{ _("This month is still running: hours grow until it ends, and its invoices are dated next month.") }}
-            {% elif state == 'closed' %}{{ _("Figures as frozen at the close. Bexio is read live; where an invoice has changed since, the client says so.") }}
+            {% elif state == 'closed' and closed %}{{ _("Figures as frozen at the close. Bexio is read live; where an invoice has changed since, the client says so.") }}
+            {% elif state == 'closed' %}{{ _("Closed in Sydoc Finance, but its Controlling figures could not be frozen at the time: they are shown live.") }}
             {% else %}{{ _("BPS hours × rate against what was invoiced in Bexio, each compared with the month before.") }}{% endif %}
           </p>
         </div>

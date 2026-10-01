@@ -28,9 +28,15 @@ PCT = "0.0%"
 COUNT = "#,##0"
 
 
-def _or_state(value, cell, labels):
+def _or_state(value, cell, labels, key="excl"):
+    """A figure, or what stands in for it: the amount in its own currency for a
+    foreign-currency month, else the state ("no invoice", ...)."""
     if value is not None:
         return value
+    if cell.get("state") == "foreign" and cell.get("foreign"):
+        return ", ".join(
+            f"{f['currency']} {f[key]:,.2f}".replace(",", "'") for f in cell["foreign"]
+        )
     return labels["states"].get(cell.get("state"), "")
 
 
@@ -98,7 +104,9 @@ def workbook(payload: dict, labels: dict[str, Any], month_label: str) -> bytes:
                 c["hours"],
                 c["cost"],
                 _or_state(c["invoiced"], c, labels),
-                c["invoicedIncl"],
+                _or_state(c["invoicedIncl"], c, labels, "total")
+                if c["state"] == "foreign"
+                else c["invoicedIncl"],
                 c["margin"],
                 c["marginPct"],
                 (s.get("delta") or {}).get("margin"),
@@ -227,7 +235,14 @@ def workbook(payload: dict, labels: dict[str, Any], month_label: str) -> bytes:
     # ---- Hours by task --------------------------------------------------
     ws = wb.create_sheet(labels["tasks"][:31])
     title(ws, labels["tasks"])
-    m = payload["tasks"]
+    m = payload["tasks"] or {
+        "tasks": [],
+        "streams": [],
+        "cells": [],
+        "taskTotals": [],
+        "streamTotals": [],
+        "total": None,
+    }
     names = {s["key"]: s["label"] for s in payload["streams"]}
     header(ws, [labels["task"], *[names.get(k, k) for k in m["streams"]], labels["total"]])
     for task, row, total in zip(m["tasks"], m["cells"], m["taskTotals"], strict=True):
