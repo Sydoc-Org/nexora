@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-01 11:26+0200\n"
+"POT-Creation-Date: 2026-10-01 13:35+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -14,7 +14,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: nx_lib/finance.py:256
+#: nx_lib/finance.py:259
 msgid ""
 "EM_Invoice is still edited after a month ends: a re-exported document "
 "moves to the month of its new export date. Close the month once it is "
@@ -27,17 +27,17 @@ msgstr ""
 "bleiben, wie sie verrechnet wurden. Verrechnet werden nur die Kanäle Opex"
 " und E-Mail."
 
-#: nx_lib/finance.py:263 nx_lib/finance.py:297 nx_lib/finance.py:319
-#: nx_lib/finance.py:340 nx_lib/finance.py:463
+#: nx_lib/finance.py:266 nx_lib/finance.py:300 nx_lib/finance.py:322
+#: nx_lib/finance.py:343 nx_lib/finance.py:467
 msgid "by export date"
 msgstr "nach Exportdatum"
 
-#: nx_lib/finance.py:265 templates/generali_documents.html:92
+#: nx_lib/finance.py:268 templates/generali_documents.html:92
 #: templates/generali_documents.html:155 templates/generali_documents.html:239
 msgid "Channel"
 msgstr "Kanal"
 
-#: nx_lib/finance.py:275
+#: nx_lib/finance.py:278
 msgid ""
 "Counted by upload date, whatever the document date: that is the set the "
 "invoice bills. Rows without a workitem that repeat a barcode (74 in "
@@ -48,11 +48,11 @@ msgstr ""
 "wiederholen (74 im August 2026), werden mitgezählt, wie in der "
 "Arbeitsmappe."
 
-#: nx_lib/finance.py:281
+#: nx_lib/finance.py:284
 msgid "by upload date"
 msgstr "nach Upload-Datum"
 
-#: nx_lib/finance.py:292
+#: nx_lib/finance.py:295
 msgid ""
 "The export date of this source is text, so the month is matched on its "
 "'.MM.yyyy' part."
@@ -60,30 +60,30 @@ msgstr ""
 "Das Exportdatum dieser Quelle ist Text, der Monat wird deshalb über den "
 "Teil '.MM.yyyy' gefunden."
 
-#: nx_lib/finance.py:300 nx_lib/finance.py:305 nx_lib/finance.py:343
-#: nx_lib/finance.py:349 nx_lib/finance.py:377
+#: nx_lib/finance.py:303 nx_lib/finance.py:308 nx_lib/finance.py:346
+#: nx_lib/finance.py:352 nx_lib/finance.py:380
 msgid "Branch"
 msgstr "Niederlassung"
 
-#: nx_lib/finance.py:303
+#: nx_lib/finance.py:306
 msgid "Register"
 msgstr "Register"
 
-#: nx_lib/finance.py:326
+#: nx_lib/finance.py:329
 msgid "Mandant"
 msgstr "Mandant"
 
-#: nx_lib/finance.py:327 templates/admin/user_detail.html:124
+#: nx_lib/finance.py:330 templates/admin/user_detail.html:124
 #: templates/bps.html:48 templates/reporting.html:361
 #: templates/reporting_metrics.html:41 templates/reporting_metrics.html:53
 msgid "Source"
 msgstr "Quelle"
 
-#: nx_lib/finance.py:346
+#: nx_lib/finance.py:349
 msgid "Forwarding type"
 msgstr "Art der Nachsendung"
 
-#: nx_lib/finance.py:361
+#: nx_lib/finance.py:364
 msgid ""
 "A dossier registered under two branches is counted in both, exactly as "
 "the workbook counts it."
@@ -91,44 +91,40 @@ msgstr ""
 "Ein Dossier, das unter zwei Niederlassungen erfasst ist, wird in beiden "
 "gezählt – genau wie in der Arbeitsmappe."
 
-#: nx_lib/finance.py:369
+#: nx_lib/finance.py:372
 msgid "by export year and month"
 msgstr "nach Exportjahr und -monat"
 
-#: nx_lib/finance.py:389 nx_lib/finance.py:409
+#: nx_lib/finance.py:392 nx_lib/finance.py:412
 msgid "by date"
 msgstr "nach Datum"
 
-#: nx_lib/finance.py:416 nx_lib/views/finance.py:395
+#: nx_lib/finance.py:416 nx_lib/views/finance.py:409
 #: templates/js/_finance_js.html:80
 msgid "Client"
 msgstr "Kunde"
 
-#: nx_lib/finance.py:418
-msgid "Source database"
-msgstr "Quelldatenbank"
-
-#: nx_lib/finance.py:459
+#: nx_lib/finance.py:463
 msgid "by import date"
 msgstr "nach Importdatum"
 
-#: nx_lib/finance.py:475
+#: nx_lib/finance.py:479
 msgid "by scan date"
 msgstr "nach Scandatum"
 
-#: nx_lib/finance.py:477
+#: nx_lib/finance.py:481
 msgid "Type (K/D/KA)"
 msgstr "Typ (K/D/KA)"
 
-#: nx_lib/finance.py:485
+#: nx_lib/finance.py:489
 msgid "Billable services"
 msgstr "Verrechenbare Leistungen"
 
-#: nx_lib/finance.py:486
+#: nx_lib/finance.py:490
 msgid "Services"
 msgstr "Leistungen"
 
-#: nx_lib/finance.py:491
+#: nx_lib/finance.py:495
 msgid ""
 "Every billable booking of the BPS timetool on the customers of this page,"
 " singly and with its comment: Support (verrechenbar, extern "
@@ -147,12 +143,12 @@ msgstr ""
 "Stunden, aufgeschlüsselt nach Aufgabe, Kunde und Person, zeigt die Seite "
 "Sydoc BPS."
 
-#: nx_lib/finance.py:501
+#: nx_lib/finance.py:505
 msgid "by booking date"
 msgstr "nach Buchungsdatum"
 
-#: nx_lib/finance.py:508 nx_lib/reporting/catalog.py:255
-#: nx_lib/views/bps.py:194 nx_lib/views/finance.py:439
+#: nx_lib/finance.py:512 nx_lib/reporting/catalog.py:255
+#: nx_lib/views/bps.py:194 nx_lib/views/finance.py:453
 #: templates/generali_additionalservices.html:148
 #: templates/generali_additionalservices.html:224
 #: templates/generali_additionalservices.html:282
@@ -168,53 +164,57 @@ msgstr "nach Buchungsdatum"
 msgid "Date"
 msgstr "Datum"
 
-#: nx_lib/finance.py:509 nx_lib/views/bps.py:195 templates/js/_bps_js.html:59
+#: nx_lib/finance.py:513 nx_lib/views/bps.py:195 templates/js/_bps_js.html:59
 msgid "Customer"
 msgstr "Kunde"
 
-#: nx_lib/finance.py:510 nx_lib/views/bps.py:196 nx_lib/views/finance.py:440
+#: nx_lib/finance.py:514 nx_lib/views/bps.py:196 nx_lib/views/finance.py:454
 msgid "Package"
 msgstr "Projektpaket"
 
-#: nx_lib/finance.py:511 nx_lib/views/bps.py:197 nx_lib/views/finance.py:441
+#: nx_lib/finance.py:515 nx_lib/views/bps.py:197 nx_lib/views/finance.py:455
 #: templates/js/_bps_js.html:58
 msgid "Task"
 msgstr "Aufgabe"
 
-#: nx_lib/finance.py:512 nx_lib/views/bps.py:198 nx_lib/views/finance.py:442
+#: nx_lib/finance.py:516 nx_lib/views/bps.py:198 nx_lib/views/finance.py:456
 #: templates/js/_bps_js.html:60
 msgid "Person"
 msgstr "Person"
 
-#: nx_lib/finance.py:513 nx_lib/views/bps.py:199 nx_lib/views/finance.py:436
+#: nx_lib/finance.py:517 nx_lib/views/bps.py:199 nx_lib/views/finance.py:450
 #: templates/generali_additionalservices.html:160
 #: templates/generali_baseservices.html:138
 #: templates/generali_projectmanagement.html:125 templates/js/_bps_js.html:36
 msgid "Hours"
 msgstr "Stunden"
 
-#: nx_lib/finance.py:514 nx_lib/views/bps.py:201 nx_lib/views/finance.py:443
+#: nx_lib/finance.py:518 nx_lib/views/bps.py:201 nx_lib/views/finance.py:457
 #: templates/generali_projectmanagement.html:126
 #: templates/generali_projectmanagement.html:207
 #: templates/generali_projectmanagement.html:246
 msgid "Comment"
 msgstr "Kommentar"
 
-#: nx_lib/finance.py:885
+#: nx_lib/finance.py:898
 msgid "Billable hours"
 msgstr "Verrechenbare Stunden"
 
-#: nx_lib/finance.py:891
+#: nx_lib/finance.py:904
 msgid "Billed hours (rounded up to ¼ h)"
 msgstr "Verrechnete Stunden (auf ¼ h aufgerundet)"
 
-#: nx_lib/finance.py:897 templates/js/_finance_js.html:48
+#: nx_lib/finance.py:910 templates/js/_finance_js.html:48
 msgid "Billable bookings"
 msgstr "Verrechenbare Buchungen"
 
-#: nx_lib/finance.py:906
+#: nx_lib/finance.py:919
 msgid "Billed"
 msgstr "Verrechnet"
+
+#: nx_lib/finance.py:968 templates/js/_finance_js.html:45
+msgid "(blank)"
+msgstr "(leer)"
 
 #: nx_lib/octo.py:358
 msgid "Error fetching activity instance"
@@ -1109,7 +1109,7 @@ msgstr "Unbekannter Monat."
 msgid "A month can only be closed once it has ended."
 msgstr "Ein Monat kann erst abgeschlossen werden, wenn er vorbei ist."
 
-#: nx_lib/views/finance.py:329 nx_lib/views/finance.py:355
+#: nx_lib/views/finance.py:329 nx_lib/views/finance.py:354
 #: templates/js/_finance_js.html:66
 msgid "Could not close the month."
 msgstr "Der Monat konnte nicht abgeschlossen werden."
@@ -1125,78 +1125,78 @@ msgstr ""
 "Der Monat kann nicht abgeschlossen werden, solange ein Abschnitt nicht "
 "gelesen werden kann: %(names)s"
 
-#: nx_lib/views/finance.py:370 nx_lib/views/finance.py:379
+#: nx_lib/views/finance.py:384 nx_lib/views/finance.py:393
 #: templates/js/_finance_js.html:67
 msgid "Could not reopen the month."
 msgstr "Der Monat konnte nicht wieder geöffnet werden."
 
-#: nx_lib/views/finance.py:383
+#: nx_lib/views/finance.py:397
 msgid "This month is not closed."
 msgstr "Dieser Monat ist nicht abgeschlossen."
 
-#: nx_lib/views/finance.py:396
+#: nx_lib/views/finance.py:410
 msgid "Section"
 msgstr "Abschnitt"
 
-#: nx_lib/views/finance.py:397
+#: nx_lib/views/finance.py:411
 msgid "Month basis"
 msgstr "Monatsbasis"
 
-#: nx_lib/views/finance.py:398 templates/reporting_sources.html:41
+#: nx_lib/views/finance.py:412 templates/reporting_sources.html:41
 #: templates/reporting_sources.html:52 templates/reporting_sources.html:64
 msgid "Kind"
 msgstr "Art"
 
-#: nx_lib/views/finance.py:399
+#: nx_lib/views/finance.py:413
 msgid "Dimension"
 msgstr "Dimension"
 
-#: nx_lib/views/finance.py:400
+#: nx_lib/views/finance.py:414
 msgid "Group"
 msgstr "Gruppe"
 
-#: nx_lib/views/finance.py:401 templates/js/_reporting_simple_js.html:151
+#: nx_lib/views/finance.py:415 templates/js/_reporting_simple_js.html:151
 msgid "Measure"
 msgstr "Kennzahl"
 
-#: nx_lib/views/finance.py:403 templates/finance.html:98
+#: nx_lib/views/finance.py:417 templates/finance.html:98
 msgid "Previous month"
 msgstr "Vormonat"
 
-#: nx_lib/views/finance.py:404
+#: nx_lib/views/finance.py:418
 msgid "Detail"
 msgstr "Detail"
 
-#: nx_lib/views/finance.py:431
+#: nx_lib/views/finance.py:445
 msgid "Sydoc BPS · billable hours"
 msgstr "Sydoc BPS · verrechenbare Stunden"
 
-#: nx_lib/views/finance.py:432 templates/_header.html:64
+#: nx_lib/views/finance.py:446 templates/_header.html:64
 msgid "Overview"
 msgstr "Übersicht"
 
-#: nx_lib/views/finance.py:433 templates/hero.html:152
+#: nx_lib/views/finance.py:447 templates/hero.html:152
 #: templates/js/_finance_js.html:81
 msgid "Invoice"
 msgstr "Rechnung"
 
-#: nx_lib/views/finance.py:434 templates/js/_bps_js.html:19
+#: nx_lib/views/finance.py:448 templates/js/_bps_js.html:19
 #: templates/js/_finance_js.html:56
 msgid "Bookings"
 msgstr "Buchungen"
 
-#: nx_lib/views/finance.py:435
+#: nx_lib/views/finance.py:449
 #, python-format
 msgid "%(num)d booking"
 msgid_plural "%(num)d bookings"
 msgstr[0] "%(num)d Buchung"
 msgstr[1] "%(num)d Buchungen"
 
-#: nx_lib/views/finance.py:437
+#: nx_lib/views/finance.py:451
 msgid "Billed (¼ h)"
 msgstr "Verrechnet (¼ h)"
 
-#: nx_lib/views/finance.py:438 templates/generali-dashboard.html:144
+#: nx_lib/views/finance.py:452 templates/generali-dashboard.html:144
 #: templates/generali_documents.html:36 templates/js/_bps_js.html:27
 #: templates/js/_finance_js.html:44 templates/js/_finance_js.html:75
 #: templates/js/_generali_dashboard_js.html:25
@@ -1207,16 +1207,16 @@ msgstr "Verrechnet (¼ h)"
 msgid "Total"
 msgstr "Gesamt"
 
-#: nx_lib/views/finance.py:444
+#: nx_lib/views/finance.py:458
 #, python-format
 msgid "No billable hours in %(month)s"
 msgstr "Keine verrechenbaren Stunden im %(month)s"
 
-#: nx_lib/views/finance.py:461
+#: nx_lib/views/finance.py:475
 msgid "Unknown export format."
 msgstr "Unbekanntes Exportformat."
 
-#: nx_lib/views/finance.py:473
+#: nx_lib/views/finance.py:487
 msgid "Nothing to export for this invoice."
 msgstr "Für diese Rechnung gibt es nichts zu exportieren."
 
@@ -9782,10 +9782,6 @@ msgstr "{n} Zeilen"
 msgid "Share of total"
 msgstr "Anteil"
 
-#: templates/js/_finance_js.html:45
-msgid "(blank)"
-msgstr "(leer)"
-
 #: templates/js/_finance_js.html:46
 #, python-brace-format
 msgid "Show all {n} rows"
@@ -13619,4 +13615,7 @@ msgstr "%(field)s wird beim Speichern vom angemeldeten Benutzer übernommen."
 
 #~ msgid "Unlink {name}"
 #~ msgstr "{name} lösen"
+
+#~ msgid "Source database"
+#~ msgstr "Quelldatenbank"
 

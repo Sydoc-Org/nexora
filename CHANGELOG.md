@@ -6,6 +6,14 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **Finance: Xpert shows every BFH and ZHAW metric** (#408): BFH lists all its
+  metrics (NKReproduzierte included), ZHAW every metric and dimension (intake
+  Scanner and blank included), side by side under the per-client table. The
+  per-database table and the BFH new creditors / ZHAW workitems figures are
+  removed.
+
 ## [3.4.0] - 2026-10-01
 
 ### Changed
