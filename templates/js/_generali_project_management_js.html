@@ -363,16 +363,16 @@
         storageKey: 'nx.generali.projectmanagement.quick',
         categories: null,
         buildBody: p => ({
-            forDate: p.date, category: PM_CATEGORY, effortInHours: p.hours, comment: p.comment || null,
+            forDate: p.date, category: PM_CATEGORY, effortInHours: p.amount, comment: p.comment || null,
         }),
-        recordKey: () => ({ cat: null, sub: null }),
+        recordPath: () => [],
         rowLabel: r => r.comment || PM_LABEL,
         pillLabel: p => p.comment || '',
-        fillFullForm: st => {
+        fillFullForm: p => {
             const dateEl = document.getElementById('addForDate');
-            if (st.date && dateEl._flatpickr) dateEl._flatpickr.setDate(st.date, false);
-            if (st.hours) document.getElementById('addEffortHours').value = String(st.hours);
-            if (st.comment) document.getElementById('addComment').value = st.comment;
+            if (p.date && dateEl._flatpickr) dateEl._flatpickr.setDate(p.date, false);
+            if (p.amount) document.getElementById('addEffortHours').value = String(p.amount);
+            if (p.comment) document.getElementById('addComment').value = p.comment;
         },
     });
 </script>

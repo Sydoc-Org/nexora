@@ -65,6 +65,7 @@ from .pdqm import (
     api_generali_pdqm_list,
     api_generali_pdqm_org_users,
     api_generali_pdqm_organizations,
+    api_generali_pdqm_undo,
     generali_pdqm,
     generali_pdqm_monthreport,
 )
@@ -132,6 +133,7 @@ __all__ = [
     "api_generali_pdqm_list",
     "api_generali_pdqm_org_users",
     "api_generali_pdqm_organizations",
+    "api_generali_pdqm_undo",
     "api_generali_projectmanagement_add",
     "api_generali_projectmanagement_delete",
     "api_generali_projectmanagement_edit",

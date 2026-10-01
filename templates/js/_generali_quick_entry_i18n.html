@@ -10,8 +10,9 @@
     pickBoth: {{ _("Pick a category and the hours.")|tojson }},
     nothingYet: {{ _("Nothing booked on this day yet.")|tojson }},
     failedToLoad: {{ _("Failed to load data. Please try again.")|tojson }},
-    // {hours} is filled in by the .js file
-    dayTotal: {{ _("Booked on this day: {hours} h")|tojson }},
-    monthTotal: {{ _("This month: {hours} h")|tojson }}
+    // {amount} is filled in by the .js file, unit included ("2.5 h", "12 pcs.")
+    dayTotal: {{ _("Booked on this day: {amount}")|tojson }},
+    monthTotal: {{ _("This month: {amount}")|tojson }},
+    pieces: {{ _("{count} pcs.")|tojson }}
   };
 </script>

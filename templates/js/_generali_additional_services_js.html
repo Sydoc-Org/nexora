@@ -465,21 +465,27 @@
         crud,
         openAddModal,
         storageKey: 'nx.generali.additionalservices.quick',
-        buildBody: p => ({ forDate: p.date, parentCategory: p.cat, subCategory: p.sub, effortInHours: p.hours }),
         categories: categoriesLoaded.then(() => Object.keys(categoriesData).sort().map(p => ({
             value: p,
             label: translationsMap[p] || p,
-            subs: (categoriesData[p] || []).map(sub => ({ value: sub, label: translationsMap[sub] || sub })),
+            fields: { parentCategory: p },
+            children: (categoriesData[p] || []).map(sub => ({
+                value: sub, label: translationsMap[sub] || sub, fields: { subCategory: sub },
+            })),
         }))),
-        recordKey: r => ({ cat: r.parentCategory, sub: r.subCategory || null }),
-        fillFullForm: st => {
+        buildBody: p => ({
+            forDate: p.date, parentCategory: p.fields.parentCategory,
+            subCategory: p.fields.subCategory || null, effortInHours: p.amount,
+        }),
+        recordPath: r => [r.parentCategory, r.subCategory].filter(Boolean),
+        fillFullForm: p => {
             const dateEl = document.getElementById('addForDate');
-            if (st.date && dateEl._flatpickr) dateEl._flatpickr.setDate(st.date, false);
-            if (st.cat) {
-                document.getElementById('addParentCategory').value = st.cat;
-                populateSubSelect(document.getElementById('addSubCategory'), st.cat, st.sub || '');
+            if (p.date && dateEl._flatpickr) dateEl._flatpickr.setDate(p.date, false);
+            if (p.fields.parentCategory) {
+                document.getElementById('addParentCategory').value = p.fields.parentCategory;
+                populateSubSelect(document.getElementById('addSubCategory'), p.fields.parentCategory, p.fields.subCategory || '');
             }
-            if (st.hours) document.getElementById('addEffortHours').value = String(st.hours);
+            if (p.amount) document.getElementById('addEffortHours').value = String(p.amount);
         },
     });
 </script>

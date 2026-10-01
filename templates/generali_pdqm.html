@@ -17,6 +17,7 @@
 </head>
 <body class="nx-app">
   {% set active_page = 'generali_pdqm' %}
+  {% import '_generali_quick_entry.html' as gq with context %}
   {% include '_header.html' %}
 
   <main class="nx-main">
@@ -49,6 +50,12 @@
         </a>
       </div>
     </div>
+
+    {% if can_add %}
+    {# Phone only: enter your own PDQM counts in a few taps (#354). See
+       templates/_generali_quick_entry.html. #}
+    {{ gq.quick_entry('generali-pdqm', url_for('generali_pdqm_monthreport'), with_subs=true, count=true) }}
+    {% endif %}
 
     <!-- Filter Bar -->
     <div class="nx-filter nx-rise-2">
@@ -375,6 +382,8 @@
       </div>
     </div>
   </div>
+
+  {% if can_add %}{{ gq.undo_pill('generali-pdqm') }}{% endif %}
 
   {% include 'js/_generali_user_filter_js.html' %}
   {% include 'js/_generali_pdqm_js.html' %}

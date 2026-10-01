@@ -1876,7 +1876,10 @@ html.dark .flatpickr-day:hover { background: var(--nx-alt); }
   .gq-quick__month::after { content: " ›"; color: var(--nx-text-meta); margin-left: 4px; }
   /* Additional Services: the subcategory list (up to 14 long names, one per
      row so they read in full) and "recently booked" shortcuts. */
-  .gq-quick__subs { display: grid; gap: 8px; }
+  /* One group per level below the first (PDQM: source, then reason), with
+     a little air between groups so the levels read apart. */
+  .gq-quick__subs { display: grid; gap: 14px; }
+  .gq-quick__level { display: grid; gap: 8px; }
   .gq-sub {
     min-height: 48px; padding: 10px 14px; border-radius: 12px; cursor: pointer; text-align: left;
     border: 1px solid var(--nx-border-strong); background: var(--nx-card); color: var(--nx-text);
@@ -1895,7 +1898,8 @@ html.dark .flatpickr-day:hover { background: var(--nx-alt); }
   /* Survey 29.09: nobody needs the Excel export on a phone. */
   [data-testid="generali-base-services-export-excel"],
   [data-testid="generali-additional-services-export-excel"],
-  [data-testid="generali-project-management-export-excel"] { display: none; }
+  [data-testid="generali-project-management-export-excel"],
+  [data-testid="generali-pdqm-export-excel"] { display: none; }
 
   /* Folded filter blocks (nx_core.js adds the button and the class). */
   .nx-filter.nx-filter--folded { display: none; }

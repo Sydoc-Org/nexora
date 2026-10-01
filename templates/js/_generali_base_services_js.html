@@ -407,14 +407,14 @@
         crud,
         openAddModal,
         storageKey: 'nx.generali.baseservices.quick',
-        buildBody: p => ({ forDate: p.date, category: p.cat, effortInHours: p.hours }),
-        categories: BASE_CATEGORIES.map(c => ({ value: c, label: c, subs: [] })),
-        recordKey: r => ({ cat: r.category, sub: null }),
-        fillFullForm: st => {
+        categories: BASE_CATEGORIES.map(c => ({ value: c, label: c, fields: { category: c } })),
+        buildBody: p => ({ forDate: p.date, ...p.fields, effortInHours: p.amount }),
+        recordPath: r => (r.category ? [r.category] : []),
+        fillFullForm: p => {
             const dateEl = document.getElementById('addForDate');
-            if (st.date && dateEl._flatpickr) dateEl._flatpickr.setDate(st.date, false);
-            if (st.cat) document.getElementById('addCategory').value = st.cat;
-            if (st.hours) document.getElementById('addEffortHours').value = String(st.hours);
+            if (p.date && dateEl._flatpickr) dateEl._flatpickr.setDate(p.date, false);
+            if (p.fields.category) document.getElementById('addCategory').value = p.fields.category;
+            if (p.amount) document.getElementById('addEffortHours').value = String(p.amount);
         },
     });
 </script>

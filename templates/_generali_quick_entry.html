@@ -1,6 +1,7 @@
-{#- Phone quick hours entry for the Generali effort pages (#354).
+{#- Phone quick entry for the Generali booking pages (#354).
 
-    One markup for Base Services and Additional Services; the behaviour is
+    One markup for Base Services, Additional Services, Project Management
+    and PDQM; the behaviour is
     static/js/generali_quick_entry.js, the look `.gq-*` in nexora-ui.css.
     Rendered hidden: the script shows it only on a touch phone, so desktop
     never sees it. Always books for the signed-in user -- booking for
@@ -8,16 +9,19 @@
 
       testid      data-testid prefix, e.g. "generali-base-services"
       month_url   the page's month report
-      with_subs   two-level categories (Additional Services): adds the
-                  "recently booked" row and the subcategory list
+      with_subs   nested categories (Additional Services, PDQM): adds the
+                  "recently booked" row and the lower-level lists
       with_category  false for a page without categories (Project
                   Management -- every row is "Project Effort")
       with_comment   adds an optional free-text comment (Project Management)
+      count       a document count instead of hours (PDQM): changes the
+                  amount heading and the -/+ labels; the presets and the
+                  formatting come from the page's mount() call
 -#}
-{% macro quick_entry(testid, month_url, with_subs=false, with_category=true, with_comment=false) %}
+{% macro quick_entry(testid, month_url, with_subs=false, with_category=true, with_comment=false, count=false) %}
 <section id="gqQuick" class="gq-quick" data-testid="{{ testid }}-quick" hidden>
   <div class="gq-quick__head">
-    <h2 class="gq-quick__title">{{ _("Book hours") }}</h2>
+    <h2 class="gq-quick__title">{{ _("Enter quantities") if count else _("Book hours") }}</h2>
     <span class="gq-quick__date" id="gqQuickDateLabel"></span>
   </div>
 
@@ -51,13 +55,14 @@
   </div>
   {% endif %}
 
-  <p class="gq-quick__label">{{ _("Hours") }}</p>
-  <div class="gq-quick__presets" id="gqQuickPresets" role="group" aria-label="{{ _('Hours') }}"></div>
+  {% set amount_label = _("Quantity") if count else _("Hours") %}
+  <p class="gq-quick__label">{{ amount_label }}</p>
+  <div class="gq-quick__presets" id="gqQuickPresets" role="group" aria-label="{{ amount_label }}"></div>
   <div class="gq-quick__stepper">
-    <button type="button" class="gq-step" id="gqQuickMinus" aria-label="{{ _('Half an hour less') }}"
+    <button type="button" class="gq-step" id="gqQuickMinus" aria-label="{{ _('One less') if count else _('Half an hour less') }}"
             data-testid="{{ testid }}-quick-minus"><i class="fas fa-minus"></i></button>
-    <output class="gq-quick__hours" id="gqQuickHours" data-testid="{{ testid }}-quick-hours">–</output>
-    <button type="button" class="gq-step" id="gqQuickPlus" aria-label="{{ _('Half an hour more') }}"
+    <output class="gq-quick__hours" id="gqQuickAmount" data-testid="{{ testid }}-quick-amount">–</output>
+    <button type="button" class="gq-step" id="gqQuickPlus" aria-label="{{ _('One more') if count else _('Half an hour more') }}"
             data-testid="{{ testid }}-quick-plus"><i class="fas fa-plus"></i></button>
   </div>
 
