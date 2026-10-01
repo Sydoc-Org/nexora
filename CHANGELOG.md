@@ -176,8 +176,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Late; tapping one saves the report. "More options" still opens the full form
   for another date or several KPIs. The server's own checks (one report per
   day and KPI, the add deadline) still apply and their message is shown.
-- **Undo after a one-tap report.** For ten seconds a "Saved · Undo" bar shows
-  what was just reported. New `POST /api/generali/reporting/<id>/undo`
+- **Undo after a one-tap report.** A small "Saved · On time | Undo" pill
+  above the tab bar, not a full-width bar. It fades out after six seconds (a
+  thin line along its bottom shows the time left), and at once on a tap
+  elsewhere or a finger scroll. New `POST /api/generali/reporting/<id>/undo`
   (`tenant.generali.reporting.add`): only the caller's own report, only within
   10 minutes (`UNDO_WINDOW_SECONDS`) — not a back door to deleting other
   people's reports. The add endpoint now also returns the new report's `id`.
