@@ -18,6 +18,30 @@
 The 11 commits below them are the BPS and shared-foundation work from 2026-09-30, rebased with new
 hashes. The top one is `7017a0f6`.
 
+## Update 2026-10-01 (later) — audit fixed, branches rejoined
+
+- **The branches are rejoined.** `nexora-2c` pushed `d1b71376` (BPS URL state, arrows, treemap) and
+  two handoff notes on `feat/427-sydoc-redesign`. They are cherry-picked onto `feat/427-finance`
+  (`d6059678`, `2cb9c499`, `db217745`), and the catalogs were re-joined with `merge_po.py d1b71376`.
+  **`feat/427-finance` now carries everything for #427.** `feat/427-sydoc-redesign` is superseded.
+  Don't open a PR from it.
+- **The browser audit is fixed** (`6ba1bf6d`, `737f61a3`):
+  - The picker overlay sat under the sidebar on both pages, because `.nx-main` is a stacking
+    context. `initPicker` now hoists the overlay to `<body>`.
+  - The jump index scrolls instead of cutting labels, in page order with Bexio first. BPS gets the
+    short label "Services".
+  - Hours always show one decimal.
+  - Empty breakdowns are hidden.
+  - Identity stacks above the lines below 1180px.
+  - Breakdowns scroll on phones.
+  - Contrast now passes AA through the page token `--nx-fin-quiet`. axe reports 0 violations, light
+    and dark.
+- **CI is green** on `737f61a3` (run 36827588464), and dev-nexora runs it.
+- **Next:** open the #427 PR from `feat/427-finance` when the owner says to. Then `/clean` the two
+  worktrees and delete `feat/427-sydoc-redesign` (per-turn opt-in).
+- **Not changed, and noted for the owner:** every past month in the picker reads "Open", because
+  nothing before the close feature was ever closed. Phone layout is usable but not designed.
+
 ## TL;DR
 
 - Finance is redesigned per design 1a: the ink band with the month headline, the jump index, the
