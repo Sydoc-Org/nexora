@@ -213,6 +213,57 @@ def currencies(*, fresh=False):
     return _cached(("currencies",), CONTACT_TTL, load, fresh=fresh)
 
 
+def purchase_bills(*, fresh=False):
+    """Every purchase bill (supplier invoice) in Bexio, raw (``/4.0/purchase/bills``).
+
+    Bexio pages them; Sydoc keeps a few hundred a year, so all of them are
+    read and cached rather than searched (the endpoint filters on little).
+    """
+
+    def load():
+        found = []
+        for page in range(1, MAX_PAGES + 1):
+            body = _request("GET", "/4.0/purchase/bills", params={"limit": PAGE_SIZE, "page": page})
+            if not isinstance(body, dict) or not isinstance(body.get("data"), list):
+                raise BexioError("Bexio returned an unexpected bill list.")
+            found.extend(body["data"])
+            count = (body.get("paging") or {}).get("page_count") or 1
+            if page >= count:
+                break
+        return found
+
+    return _cached(("bills",), CACHE_TTL, load, fresh=fresh)
+
+
+def normalize_bill(raw):
+    """What Controlling reads of one purchase bill: net amount (excl. VAT) and month."""
+    return {
+        "id": str(raw.get("id") or ""),
+        "nr": raw.get("document_no") or "",
+        "vendor": " ".join(str(raw.get("vendor") or "").split()),
+        "title": raw.get("title") or "",
+        "date": _date(raw.get("bill_date")),
+        "net": _money(_dec(raw.get("net"))),
+        "gross": _money(_dec(raw.get("gross"))),
+        "currency": raw.get("currency_code") or "",
+        "status": str(raw.get("status") or "").lower(),
+    }
+
+
+def project_name(project_id):
+    """The name of a Bexio project, or None when Bexio will not say (cached)."""
+    project_id = int(project_id)
+
+    def load():
+        try:
+            body = _request("GET", f"/2.0/pr_project/{project_id}")
+        except BexioError:
+            return None
+        return (body or {}).get("name") if isinstance(body, dict) else None
+
+    return _cached(("project", project_id), CONTACT_TTL, load)
+
+
 def invoice(invoice_id, *, fresh=False):
     """One invoice with its positions (the raw Bexio payload)."""
     invoice_id = int(invoice_id)
@@ -287,12 +338,15 @@ def normalize_invoice(raw, currency_codes=None):
         "nr": raw.get("document_nr") or "",
         "title": raw.get("title") or "",
         "contactId": int(raw["contact_id"]) if raw.get("contact_id") is not None else None,
+        # The Bexio project tells a customer's invoices apart (Controlling, #433).
+        "projectId": int(raw["project_id"]) if raw.get("project_id") is not None else None,
         "date": _date(raw.get("is_valid_from")),
         "due": _date(raw.get("is_valid_to")),
         "status": STATUS_KEYS.get(status_id, "other"),
         "total": _money(total),
         "excl": _money(total - taxes),
         "currency": (currency_codes or {}).get(currency_id, "") if currency_id else "",
+        "currencyId": int(currency_id) if currency_id is not None else None,
     }
 
 

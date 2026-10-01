@@ -111,6 +111,11 @@ when, `0139`). From then on:
 - the CSV export reads the snapshot too (`sydoc-finance-YYYY-MM-closed.csv`).
 
 **Reopen month** deletes the snapshot; close it again to freeze the new state.
+
+The same close freezes that month's **Sydoc Controlling** figures in
+`dbo.ControllingMonthClose`, and reopening deletes them (#433,
+`docs/howto/controlling.md`). If Controlling cannot read BPS or Bexio at that
+moment, the Finance close still succeeds and the Controlling month stays live.
 The running month cannot be closed. Labels in a snapshot are frozen in the
 closer's language.
 

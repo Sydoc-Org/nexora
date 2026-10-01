@@ -105,6 +105,8 @@ One line each; **the full detail lives in `docs/design/architecture-conventions.
 
 **Sydoc BPS** (`/bps`, `bps.view`, #415) shows every BPS timetool hour drilled down task › customer › person › booking; the billable-task rule lives once in `nx_lib/bps.py` and is shared with Finance. `docs/howto/bps.md`. The two pages are a mirrored pair; the shared band/picker is `templates/_sydoc.html` + `static/js/nx_sydoc.js`.
 
+**Sydoc Controlling** (`/controlling`, `controlling.view`, #433) is the margin per client stream: BPS hours × `dbo.FinanceRates` + external costs against Bexio invoices, which map to streams by **Bexio project** (`dbo.ControllingStreamProjects`, per-invoice overrides in `dbo.ControllingInvoiceStreams`). Pure rules in `nx_lib/controlling.py` (streams, Zupfen→Posteingang, the incomplete Privera 2025 months); the workbook it replaces is the truth. Finance's month close also freezes it (`dbo.ControllingMonthClose`); rates/costs need `controlling.rates.edit`. `docs/howto/controlling.md`.
+
 
 ## Testing & browser automation
 

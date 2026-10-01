@@ -159,6 +159,7 @@
                 {'perm': page_visibility.workitemsPagePerm, 'url': url_for('workitems_overview', tenant=''), 'icon': 'fa-layer-group',         'label': _('Global Workitems'),              'active': active_page == 'workitems_overview'},
                 {'perm': page_visibility.financePagePerm,   'url': url_for('finance'),             'icon': 'fa-file-invoice-dollar', 'label': _('Sydoc Finance'),          'active': active_page == 'finance',   'always': true},
                 {'perm': page_visibility.bpsPagePerm,       'url': url_for('bps'),                 'icon': 'fa-user-clock',          'label': _('Sydoc BPS'),              'active': active_page == 'bps',       'always': true},
+                {'perm': page_visibility.controllingPagePerm, 'url': url_for('controlling'),       'icon': 'fa-scale-balanced',      'label': _('Sydoc Controlling'),      'active': active_page == 'controlling', 'always': true},
             ] %}
 
             {# A user inside exactly ONE tenant reaches Dashboard/Workitems through

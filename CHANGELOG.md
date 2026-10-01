@@ -69,6 +69,21 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Sydoc Controlling** (#433): `/controlling`, the margin per client stream
+  (BPS hours × rate + external costs against Bexio invoices excl. VAT),
+  replacing `Projektcontrolling_Betriebskosten.xlsx`. Third Sydoc-branded page
+  (design `docs/design/design_handoff_sydoc_controlling`): month summary,
+  margin table with diverging bars and flags, per-client blocks with hours by
+  task, the Bexio invoice lines and the Differenz, a task × stream heat matrix
+  with FTE, document volumes, a trend since Jan 2025 and a rates drawer.
+  Invoices map to streams by Bexio project (per-invoice overrides possible);
+  invoices in EUR are shown, not converted and not summed; supplier bills
+  (Digi-Texx) feed external costs. Closing a month in Sydoc Finance freezes
+  its Controlling figures too (`scripts/controlling-freeze-months.py` freezes
+  the months closed before). Permissions `controlling.view` and
+  `controlling.rates.edit` (Global Admin); migrations `0145`–`0147`.
+  `nx_lib/bexio.py`: invoices carry `projectId`/`currencyId`; new
+  `purchase_bills`, `project_name`. `docs/howto/controlling.md`.
 - **Finance: BPS hours as Excel and PDF** (#408): `GET /api/finance/bps-export`
   and an *Export hours* box in the Billable services section. One sheet per
   invoice (per customer; Privera split into Posteingang, Invoice and

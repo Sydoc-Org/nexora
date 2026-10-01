@@ -139,6 +139,7 @@ def create_app():
         api_external,
         auth,
         bps,
+        controlling,
         core,
         dashboard,
         finance,
@@ -159,6 +160,7 @@ def create_app():
     finance.register_routes(app)  # /finance monthly accounting report (#408)
     finance_bexio.register_routes(app)  # /api/finance/bexio* invoice panel (#423)
     bps.register_routes(app)  # /bps BPS timetool hours drill-down (#415)
+    controlling.register_routes(app)  # /controlling margin per client stream (#433)
     workitems.register_routes(app)
     generali.register_routes(app)
     tenant.register_routes(app)  # /t/<tenant_code>/<page_key> generated tenant pages
