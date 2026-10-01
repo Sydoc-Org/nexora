@@ -8,6 +8,14 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Finance: invoiced in Bexio** (#423): a read-only panel on `/finance` lists
+  the Bexio invoices dated in the month after the billed one, per Finance
+  client, with status, amount excl. VAT and total, the invoice lines and the
+  PDF; flags clients with no linked contact, no invoice or only a draft, and
+  totals what was billed. Holders of `finance.month.edit` link Bexio contacts
+  to clients from the panel (`dbo.FinanceBexioContacts`, migration `0141`).
+  New env key `BEXIO_PAT` (unset disables the panel); `scripts/bexio-probe.py`
+  checks a token read-only. `docs/howto/finance.md`.
 - **BPS history from January 2025** (#424): the bpsuite feed starts on
   3 August 2026 and is truncated every morning, so older bookings were loaded
   once from a Projektbericht export into `SYDOC_Statistik.dbo.BPS_ProjectReportHistory`

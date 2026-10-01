@@ -275,3 +275,39 @@ html.nx-stripes .nx-fin-matrix .nx-table tbody tr:nth-child(even) th {
   background: color-mix(in srgb, var(--nx-alt) 55%, var(--nx-page));
 }
 html.dark.nx-stripes .nx-fin-matrix .nx-table tbody tr:nth-child(even) th { background: #223046; }
+
+/* The Bexio invoice panel (#423): same hairline section, money in mono. */
+.nx-fin-bexio__tile { background: var(--nx-l-green); color: var(--nx-l-green-fg); font-size: 13px; }
+.nx-fin-kpis .nx-kpi__value.nx-fin-bexio__value { font-size: 22px; letter-spacing: -.6px; font-family: var(--nx-mono); }
+.nx-fin-bexio__table td { vertical-align: top; }
+.nx-fin-bexio__table td.nx-num { font-family: var(--nx-mono); }
+.nx-fin-bexio__client { font-weight: 600; color: var(--nx-text); }
+.nx-fin-bexio__contacts { display: flex; flex-wrap: wrap; gap: 4px 8px; margin-top: 2px; }
+.nx-fin-bexio__contact { display: inline-flex; align-items: center; gap: 2px; font-size: var(--fs-micro); color: var(--nx-text-meta); }
+.nx-fin-bexio__unlink {
+  border: none; background: none; color: var(--nx-text-meta); cursor: pointer;
+  padding: 0 3px; font-size: 10px; border-radius: 3px;
+}
+.nx-fin-bexio__unlink:hover { color: var(--nx-danger); background: var(--nx-alt); }
+.nx-fin-bexio__unlink:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--nx-accent); }
+.nx-fin-bexio__nr { font-family: var(--nx-mono); font-weight: 600; margin-right: 6px; white-space: nowrap; }
+.nx-fin-bexio__title { color: var(--nx-text-sec); }
+.nx-fin-bexio__date { white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--nx-text-sec); }
+.nx-fin-bexio__hint { margin-left: 8px; font-size: var(--fs-meta); color: var(--nx-text-meta); }
+.nx-fin-bexio__act { white-space: nowrap; text-align: right; }
+.nx-fin-bexio__actions { display: inline-flex; gap: 4px; }
+.nx-fin-bexio__inv.is-cancelled td { color: var(--nx-text-meta); }
+.nx-fin-bexio__inv.is-cancelled td.nx-num { text-decoration: line-through; }
+.nx-fin-bexio__link { margin-top: 6px; font-size: var(--fs-meta); max-width: 220px; display: block; }
+.nx-fin-bexio__lines > td { background: var(--nx-alt); padding: 10px 14px !important; }
+.nx-fin-bexio__positions { margin: 0; }
+.nx-fin-bexio__positions td.nx-num { font-family: var(--nx-mono); white-space: nowrap; }
+.nx-fin-bexio__text { white-space: normal; }
+.nx-fin-bexio__sub td { font-weight: 600; }
+.nx-fin-bexio__textline td { color: var(--nx-text-sec); font-style: italic; }
+.nx-fin-bexio__open { display: flex; gap: 16px; margin: 8px 0 0; font-size: var(--fs-meta); color: var(--nx-text-meta); }
+.nx-fin-bexio__open a { color: var(--nx-accent-hover); text-decoration: none; }
+.nx-fin-bexio__open a:hover { text-decoration: underline; }
+@media print {
+  #fin-bexio-refresh, .nx-fin-bexio__actions, .nx-fin-bexio__link, .nx-fin-bexio__unlink { display: none !important; }
+}

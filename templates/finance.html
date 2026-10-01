@@ -133,6 +133,30 @@
     </div>
     {% endif %}
 
+    {# What was invoiced in Bexio for this month (#423), read live and
+       read-only; filled by finance_bexio.js from /api/finance/bexio. #}
+    <h2 class="nx-fin-group nx-rise-3">{{ _("Invoiced in Bexio") }}</h2>
+    <section class="nx-fin-section nx-fin-bexio" id="fin-bexio" aria-busy="true" data-testid="finance-bexio">
+      <div class="nx-fin-section__head">
+        <span class="nx-fin-section__tile nx-fin-bexio__tile" aria-hidden="true"><i class="fas fa-receipt"></i></span>
+        <div>
+          <h3 class="nx-fin-section__title">{{ _("Bexio invoices") }}</h3>
+          <p class="nx-fin-section__meta" data-role="meta">{{ _("Loading…") }}</p>
+        </div>
+        <span class="nx-fin-section__spacer"></span>
+        <button type="button" class="nx-btn nx-btn--ghost nx-btn--sm" id="fin-bexio-refresh" data-testid="finance-bexio-refresh">
+          <i class="fas fa-rotate" aria-hidden="true"></i> {{ _("Refresh") }}
+        </button>
+      </div>
+      <div data-role="body">
+        <div class="nx-fin-skel" aria-hidden="true">
+          <div class="nx-fin-skel__tile skeleton-shimmer"></div>
+          <div class="nx-fin-skel__tile skeleton-shimmer"></div>
+          <div class="nx-fin-skel__tile skeleton-shimmer"></div>
+        </div>
+      </div>
+    </section>
+
     <h2 class="nx-fin-group nx-rise-3">{{ _("Internal customers") }}</h2>
     {% for s in internal_sections %}{{ section_shell(s) }}{% endfor %}
 

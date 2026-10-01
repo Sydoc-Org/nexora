@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 10:45+0200\n"
+"POT-Creation-Date: 2026-09-30 17:31+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -100,6 +100,7 @@ msgid "by date"
 msgstr "nach Datum"
 
 #: nx_lib/finance.py:387 nx_lib/views/finance.py:342
+#: templates/js/_finance_js.html:61
 msgid "Client"
 msgstr "Kunde"
 
@@ -155,6 +156,7 @@ msgstr "nach Buchungsdatum"
 #: templates/generali_projectmanagement.html:185
 #: templates/generali_projectmanagement.html:236
 #: templates/generali_reporting.html:152 templates/js/_bps_js.html:38
+#: templates/js/_finance_js.html:64
 msgid "Date"
 msgstr "Datum"
 
@@ -189,11 +191,11 @@ msgstr "Stunden"
 msgid "Comment"
 msgstr "Kommentar"
 
-#: nx_lib/finance.py:740 templates/js/_bps_js.html:16
+#: nx_lib/finance.py:753 templates/js/_bps_js.html:16
 msgid "Billable hours"
 msgstr "Verrechenbare Stunden"
 
-#: nx_lib/finance.py:746
+#: nx_lib/finance.py:759
 msgid "Billable bookings"
 msgstr "Verrechenbare Buchungen"
 
@@ -1075,7 +1077,7 @@ msgstr "Ein unerwarteter Fehler ist aufgetreten"
 msgid "Backlog"
 msgstr "Rückstand"
 
-#: nx_lib/views/dashboard.py:944
+#: nx_lib/views/dashboard.py:944 templates/js/_finance_js.html:96
 msgid "Other"
 msgstr "Sonstige"
 
@@ -1148,6 +1150,50 @@ msgstr "Vormonat"
 #: nx_lib/views/finance.py:351
 msgid "Detail"
 msgstr "Detail"
+
+#: nx_lib/views/finance_bexio.py:34
+msgid "Bexio rejected the access token."
+msgstr "Bexio hat das Zugriffstoken abgelehnt."
+
+#: nx_lib/views/finance_bexio.py:35
+msgid "The access token has no permission to read invoices in Bexio."
+msgstr "Das Zugriffstoken darf in Bexio keine Rechnungen lesen."
+
+#: nx_lib/views/finance_bexio.py:36
+msgid "Not found in Bexio."
+msgstr "In Bexio nicht gefunden."
+
+#: nx_lib/views/finance_bexio.py:37
+msgid "Bexio's rate limit was hit; try again in a minute."
+msgstr ""
+"Das Anfragelimit von Bexio ist erreicht; bitte in einer Minute erneut "
+"versuchen."
+
+#: nx_lib/views/finance_bexio.py:39
+msgid "Could not read Bexio."
+msgstr "Bexio konnte nicht gelesen werden."
+
+#: nx_lib/views/finance_bexio.py:66
+msgid "Bexio is not configured on this server (BEXIO_PAT)."
+msgstr "Bexio ist auf diesem Server nicht konfiguriert (BEXIO_PAT)."
+
+#: nx_lib/views/finance_bexio.py:168 nx_lib/views/finance_bexio.py:202
+msgid "Unknown client or contact."
+msgstr "Unbekannter Kunde oder Kontakt."
+
+#: nx_lib/views/finance_bexio.py:170 nx_lib/views/finance_bexio.py:190
+#: templates/js/_finance_js.html:75
+msgid "Could not save the link."
+msgstr "Die Verknüpfung konnte nicht gespeichert werden."
+
+#: nx_lib/views/finance_bexio.py:204 nx_lib/views/finance_bexio.py:214
+#: templates/js/_finance_js.html:76
+msgid "Could not remove the link."
+msgstr "Die Verknüpfung konnte nicht entfernt werden."
+
+#: nx_lib/views/finance_bexio.py:218
+msgid "This contact is not linked."
+msgstr "Dieser Kontakt ist nicht verknüpft."
 
 #: nx_lib/views/profile.py:79
 msgid "Email Adress is not valid"
@@ -2555,7 +2601,8 @@ msgstr "Protokolle"
 #: templates/api_docs.html:189 templates/appearance.html:369
 #: templates/generali_importstatus.html:50
 #: templates/generali_importstatus.html:106
-#: templates/generali_reporting.html:116 templates/workitems_overview.html:352
+#: templates/generali_reporting.html:116 templates/js/_finance_js.html:66
+#: templates/workitems_overview.html:352
 msgid "Status"
 msgstr "Status"
 
@@ -2596,17 +2643,17 @@ msgstr "Globales Dashboard"
 msgid "Global Reporting"
 msgstr "Globales Reporting"
 
-#: templates/_header.html:159 templates/bps.html:31 templates/finance.html:55
+#: templates/_header.html:159 templates/workitems_overview.html:66
+msgid "Global Workitems"
+msgstr "Globale Workitems"
+
+#: templates/_header.html:160 templates/bps.html:31 templates/finance.html:55
 msgid "Sydoc Finance"
 msgstr "Sydoc Finance"
 
-#: templates/_header.html:160 templates/bps.html:25
+#: templates/_header.html:161 templates/bps.html:25
 msgid "Sydoc BPS"
 msgstr "Sydoc BPS"
-
-#: templates/_header.html:161 templates/workitems_overview.html:66
-msgid "Global Workitems"
-msgstr "Globale Workitems"
 
 #: templates/_header.html:270 templates/_header.html:272
 #: templates/appearance.html:302 templates/appearance.html:307
@@ -4769,7 +4816,8 @@ msgid "Show"
 msgstr "Anzeigen"
 
 #: templates/bps.html:61 templates/finance.html:29 templates/finance.html:107
-#: templates/js/_bps_js.html:11 templates/js/_finance_js.html:16
+#: templates/finance.html:144 templates/js/_bps_js.html:11
+#: templates/js/_finance_js.html:16
 #: templates/js/_generali_documents_js.html:148
 #: templates/js/_reporting_dashboard_js.html:64
 #: templates/js/_reporting_schema_js.html:6 templates/tenant/page.html:141
@@ -4877,7 +4925,7 @@ msgid "next in"
 msgstr "neu in"
 
 #: templates/admin/sessions.html:22 templates/dashboard.html:48
-#: templates/maintenance.html:154
+#: templates/finance.html:148 templates/maintenance.html:154
 msgid "Refresh"
 msgstr "Aktualisieren"
 
@@ -5093,15 +5141,23 @@ msgstr ""
 "dieser Monat genau diese Zahlen und vermerkt nur noch, wo die Live-Daten "
 "davon abweichen."
 
-#: templates/finance.html:136
+#: templates/finance.html:138
+msgid "Invoiced in Bexio"
+msgstr "In Bexio verrechnet"
+
+#: templates/finance.html:143
+msgid "Bexio invoices"
+msgstr "Bexio-Rechnungen"
+
+#: templates/finance.html:160
 msgid "Internal customers"
 msgstr "Interne Kunden"
 
-#: templates/finance.html:139
+#: templates/finance.html:163
 msgid "External clients"
 msgstr "Externe Kunden"
 
-#: templates/finance.html:142
+#: templates/finance.html:166
 msgid "Sydoc services"
 msgstr "Sydoc-Leistungen"
 
@@ -5211,7 +5267,7 @@ msgstr "Tägliches Verarbeitungsvolumen"
 
 #: templates/generali-dashboard.html:144 templates/generali_documents.html:36
 #: templates/js/_bps_js.html:29 templates/js/_finance_js.html:39
-#: templates/js/_generali_dashboard_js.html:25
+#: templates/js/_finance_js.html:57 templates/js/_generali_dashboard_js.html:25
 #: templates/js/_reporting_js.html:50
 #: templates/js/_reporting_layouts_js.html:37
 #: templates/js/_reporting_simple_js.html:124
@@ -5806,7 +5862,7 @@ msgid "Total documents (filtered):"
 msgstr "Dokumente gesamt (gefiltert):"
 
 #: templates/generali_pdqm.html:162 templates/generali_pdqm.html:264
-#: templates/generali_pdqm.html:335
+#: templates/generali_pdqm.html:335 templates/js/_finance_js.html:83
 msgid "Quantity"
 msgstr "Menge"
 
@@ -5834,7 +5890,7 @@ msgstr "Projektaufwand"
 #: templates/admin/maintenance.html:57
 #: templates/generali_projectmanagement.html:207
 #: templates/generali_projectmanagement.html:246
-#: templates/js/_workitems_overview_js.html:47
+#: templates/js/_finance_js.html:87 templates/js/_workitems_overview_js.html:47
 msgid "optional"
 msgstr "optional"
 
@@ -5964,7 +6020,7 @@ msgstr "Sicherer Zugang"
 msgid "Document Status"
 msgstr "Dokumentstatus"
 
-#: templates/hero.html:152
+#: templates/hero.html:152 templates/js/_finance_js.html:63
 msgid "Invoice"
 msgstr "Rechnung"
 
@@ -8863,7 +8919,7 @@ msgstr "Entität"
 
 #: templates/admin/tenant_detail.html:233
 #: templates/admin/tenant_detail.html:320
-#: templates/admin/tenant_detail.html:404
+#: templates/admin/tenant_detail.html:404 templates/js/_finance_js.html:90
 msgid "Draft"
 msgstr "Entwurf"
 
@@ -9549,6 +9605,144 @@ msgstr ""
 #: templates/js/_finance_js.html:47 templates/js/_reporting_ai_js.html:58
 msgid "Working…"
 msgstr "Arbeitet…"
+
+#: templates/js/_finance_js.html:53
+#, python-brace-format
+msgid "Invoices dated in {month}, read live from Bexio"
+msgstr "Rechnungen mit Datum im {month}, live aus Bexio gelesen"
+
+#: templates/js/_finance_js.html:54
+msgid ""
+"Bexio is not configured on this server. Set BEXIO_PAT to show the "
+"invoices here."
+msgstr ""
+"Bexio ist auf diesem Server nicht konfiguriert. Mit BEXIO_PAT erscheinen "
+"hier die Rechnungen."
+
+#: templates/js/_finance_js.html:55
+msgid "Invoiced"
+msgstr "Verrechnet"
+
+#: templates/js/_finance_js.html:56
+msgid "Excl. VAT"
+msgstr "Exkl. MWST"
+
+#: templates/js/_finance_js.html:58
+msgid "Invoices"
+msgstr "Rechnungen"
+
+#: templates/js/_finance_js.html:59
+msgid "Clients without an invoice"
+msgstr "Kunden ohne Rechnung"
+
+#: templates/js/_finance_js.html:60
+#, python-brace-format
+msgid "Drafts not yet issued: {n}"
+msgstr "Noch nicht ausgestellte Entwürfe: {n}"
+
+#: templates/js/_finance_js.html:62
+msgid "Bexio contact"
+msgstr "Bexio-Kontakt"
+
+#: templates/js/_finance_js.html:65
+msgid "Due"
+msgstr "Fällig"
+
+#: templates/js/_finance_js.html:67
+msgid "No Bexio contact linked"
+msgstr "Kein Bexio-Kontakt verknüpft"
+
+#: templates/js/_finance_js.html:68
+msgid "Link one from the other invoices below."
+msgstr "Verknüpfen Sie einen bei den übrigen Rechnungen unten."
+
+#: templates/js/_finance_js.html:69
+#, python-brace-format
+msgid "No invoice in {month}"
+msgstr "Keine Rechnung im {month}"
+
+#: templates/js/_finance_js.html:70
+msgid "Draft only"
+msgstr "Nur Entwurf"
+
+#: templates/js/_finance_js.html:71
+#, python-brace-format
+msgid "Other invoices in {month}"
+msgstr "Übrige Rechnungen im {month}"
+
+#: templates/js/_finance_js.html:72
+msgid "Invoices to Bexio contacts that no Finance client is linked to."
+msgstr "Rechnungen an Bexio-Kontakte, mit denen kein Finance-Kunde verknüpft ist."
+
+#: templates/js/_finance_js.html:73
+msgid "Link to client…"
+msgstr "Mit Kunde verknüpfen…"
+
+#: templates/js/_finance_js.html:74
+#, python-brace-format
+msgid "Unlink {name}"
+msgstr "{name} lösen"
+
+#: templates/js/_finance_js.html:77
+msgid "Lines"
+msgstr "Positionen"
+
+#: templates/js/_finance_js.html:78
+msgid "PDF"
+msgstr "PDF"
+
+#: templates/js/_finance_js.html:79
+msgid "Open in Bexio"
+msgstr "In Bexio öffnen"
+
+#: templates/js/_finance_js.html:80
+msgid "Could not load the invoice lines."
+msgstr "Die Rechnungspositionen konnten nicht geladen werden."
+
+#: templates/js/_finance_js.html:81
+msgid "This invoice has no lines."
+msgstr "Diese Rechnung hat keine Positionen."
+
+#: templates/js/_finance_js.html:82
+msgid "Text"
+msgstr "Text"
+
+#: templates/js/_finance_js.html:84
+msgid "Unit price"
+msgstr "Einzelpreis"
+
+#: templates/js/_finance_js.html:85
+msgid "Discount"
+msgstr "Rabatt"
+
+#: templates/js/_finance_js.html:86
+msgid "Subtotal"
+msgstr "Zwischentotal"
+
+#: templates/js/_finance_js.html:88
+#, python-brace-format
+msgid "No invoices in Bexio are dated in {month}."
+msgstr "In Bexio ist keine Rechnung im {month} datiert."
+
+#: templates/js/_finance_js.html:91
+msgid "Open"
+msgstr "Offen"
+
+#: templates/js/_finance_js.html:92
+msgid "Paid"
+msgstr "Bezahlt"
+
+#: templates/js/_finance_js.html:93
+msgid "Partly paid"
+msgstr "Teilweise bezahlt"
+
+#: templates/js/_finance_js.html:94
+msgid "Cancelled"
+msgstr "Storniert"
+
+#: templates/js/_finance_js.html:95
+msgid "Unpaid"
+msgstr "Unbezahlt"
 
 #: templates/js/_generali_additional_services_js.html:177
 #: templates/js/_generali_base_services_js.html:145

@@ -258,9 +258,9 @@ def _collect(config):
     if config["octo_domain"]:
         octo_key, octo_ok, octo_detail = _probe_octo(config["octo_domain"])
         results.append((octo_key, octo_key, octo_ok, octo_detail, None))
-    # Graph only. The Bexio probe went with the archived invoices page (#177) --
-    # nothing in the app calls Bexio any more, so an alert on it woke someone for
-    # a vendor no page depends on.
+    # Graph only. The Bexio probe went with the archived invoices page (#177);
+    # the Finance invoice panel (#423) reads Bexio again but degrades in place,
+    # so an outage there is no reason to page support (outage-monitor.md).
     probed = _probe_graph()  # None when Graph is not configured for this env
     if probed:
         key, ok, detail = probed
