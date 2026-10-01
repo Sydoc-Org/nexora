@@ -128,7 +128,7 @@ The old `/api/finance/bexio*` routes are gone.
 | Routes | `nx_lib/views/billing.py` |
 | Page, JS shim, behaviour, styles | `templates/billing.html`, `templates/js/_billing_js.html`, `static/js/billing.js`, `static/css/billing.css` (on top of `finance.css`, whose ledger rows, group heads and jump index it reuses) |
 | Permission | `sql/_migrations/NexoraDB/0147_billing_page.sql`, `sql/test/seed.sql` |
-| Sidebar group *Sydoc internal* (Finance, BPS, Billing, Controlling) | `templates/_header.html`, generic `data-nx-nav-group` wiring in `static/js/header.js` |
+| Sidebar group *Sydoc internal* (Finance, BPS, Billing) | `templates/_header.html`, generic `data-nx-nav-group` wiring in `static/js/header.js` |
 | Tests | `tests/unit/test_bexio.py`, `tests/unit/test_billing.py`, `tests/integration/test_billing_routes.py` |
 
 ## Gotchas
@@ -153,9 +153,9 @@ The old `/api/finance/bexio*` routes are gone.
 - **Shared CSS stays in `finance.css`.** The design suggested promoting the jump
   index, group heads and ledger rows into `nexora-ui.css` as `nx-sydoc-*`. The
   page loads `finance.css` instead, and `billing.css` adds the rest.
-- **Controlling is in the group** as a fourth item (#433 landed while this
-  was built), and the group is called *Sydoc internal*, not *Sydoc*: INT has a
-  tenant named Sydoc whose group would sit next to it.
+- **The group is called *Sydoc internal*,** not *Sydoc*: INT has a tenant
+  named Sydoc whose group would sit right next to it. Sydoc Controlling (#433)
+  joins it as a fourth item when it lands.
 - **No "paid {date}".** A Bexio invoice search carries no payment date, so the
   meta row shows the date, the due date and, for a partial payment, the paid
   and open amounts.

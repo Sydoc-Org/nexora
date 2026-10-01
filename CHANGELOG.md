@@ -27,9 +27,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   KPI row and the billable / other service / absence bar moved out of the dark
   header onto the page surface, themed with the page tokens.
 
-- **Sidebar: one *Sydoc internal* group** (#436) holds Finance, BPS, Billing and
-  Controlling. It replaces the flat *Sydoc Finance* / *Sydoc BPS* / *Sydoc
-  Controlling* entries.
+- **Sidebar: one *Sydoc internal* group** (#436) holds Finance, BPS and
+  Billing. It replaces the flat *Sydoc Finance* / *Sydoc BPS* entries.
 - **Finance: Xpert shows every BFH and ZHAW metric** (#408): BFH lists all its
   metrics (NKReproduzierte included), ZHAW every metric and dimension (intake
   Scanner and blank included), side by side under the per-client table. The
