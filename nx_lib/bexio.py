@@ -109,6 +109,7 @@ def _cached(key, ttl, loader, *, fresh=False):
         with _cache_lock:
             hit = _cache.get(key)
             if hit and hit[0] > now:
+                _cache.move_to_end(key)
                 return hit[1]
     value = loader()
     with _cache_lock:
@@ -189,7 +190,14 @@ def search_invoices(date_from, date_to, *, fresh=False, ttl=CACHE_TTL):
         {"field": "is_valid_from", "value": date_from, "criteria": ">="},
         {"field": "is_valid_from", "value": date_to, "criteria": "<="},
     ]
-    return _cached(("invoices", date_from, date_to), ttl, lambda: _search(criteria), fresh=fresh)
+    # The TTL is part of the key: the picker's year search (YEAR_TTL) must not
+    # stretch the expiry of a month read of the same window elsewhere.
+    key = (
+        ("invoices", date_from, date_to)
+        if ttl == CACHE_TTL
+        else ("invoices", date_from, date_to, ttl)
+    )
+    return _cached(key, ttl, lambda: _search(criteria), fresh=fresh)
 
 
 def search_outstanding(*, fresh=False):
@@ -219,7 +227,9 @@ def latest_before(contact_ids, date_from, *, fresh=False):
             ],
             params={"limit": 50, "order_by": "id_desc"},
         )
-        dated = [r for r in rows or [] if r.get("is_valid_from")]
+        if not isinstance(rows, list):
+            raise BexioError("Bexio returned an unexpected invoice list.")
+        dated = [r for r in rows if isinstance(r, dict) and r.get("is_valid_from")]
         return max(
             dated, key=lambda r: (str(r["is_valid_from"])[:10], r.get("id") or 0), default=None
         )
@@ -578,7 +588,10 @@ def outstanding(invoices, links, clients, names, today):
     for inv in invoices:
         if inv["status"] not in ("open", "partial", "unpaid"):
             continue
-        late = (day - dt.date.fromisoformat(inv["due"])).days if inv["due"] else 0
+        try:
+            late = (day - dt.date.fromisoformat(inv["due"])).days if inv["due"] else 0
+        except ValueError:
+            late = 0  # an unreadable due date is not overdue
         cid = inv["contactId"]
         rows.append(
             {

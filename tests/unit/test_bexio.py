@@ -558,3 +558,27 @@ def test_cache_is_bounded(monkeypatch):
     for i in range(5):
         bexio._cached(("k", i), 60, lambda i=i: i)
     assert len(bexio._cache) == 3
+
+
+def test_a_long_lived_year_search_does_not_share_the_month_cache_entry(http):
+    calls = []
+
+    def answer(json=None, params=None):
+        calls.append(json)
+        return FakeResponse(200, [])
+
+    http.routes[("POST", "/2.0/kb_invoice/search")] = answer
+    bexio.search_invoices("2026-01-01", "2026-12-31", ttl=bexio.YEAR_TTL)
+    bexio.search_invoices("2026-01-01", "2026-12-31")
+    assert len(calls) == 2  # two entries, each with its own expiry
+
+
+def test_outstanding_survives_an_unreadable_due_date():
+    out = bexio.outstanding([_owed(1, 1, "soon")], [], [], {}, "2026-10-01")
+    assert out["invoices"][0]["overdueDays"] == 0
+
+
+def test_latest_before_rejects_a_payload_that_is_not_a_list(http):
+    http.routes[("POST", "/2.0/kb_invoice/search")] = FakeResponse(200, {"error": "?"})
+    with pytest.raises(bexio.BexioError):
+        bexio.latest_before([7], "2026-09-01")

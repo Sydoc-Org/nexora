@@ -43,7 +43,15 @@
         const text = moneyFmt.format(Number(value) || 0);
         return currency ? `${currency} ${text}` : text;
     }
-    const dateText = iso => (iso ? window.NX.formatDate(iso) : '');
+    // dd.mm.yyyy in every language (the Swiss form, as in the design), not
+    // the browser's locale: an English browser would write 09/01/2026.
+    function dateText(iso) {
+        const [y, m, d] = String(iso || '').slice(0, 10).split('-');
+        return y && m && d ? `${d}.${m}.${y}` : '';
+    }
+    // "1 invoice" / "2 invoices": the shim carries both forms.
+    const plurals = new Intl.PluralRules(lang);
+    const plural = (n, one, other, vars) => fmt(plurals.select(Number(n)) === 'one' ? one : other, vars);
     const isHours = unit => HOUR_UNITS.has(String(unit || '').trim().toLowerCase());
     const figureValue = f => (f.unit === 'h' ? fmt(S.hoursUnit, { n: hoursFmt.format(Number(f.value) || 0) }) : intFmt.format(Number(f.value) || 0));
     const quantity = p => (isHours(p.unit) ? hoursFmt.format(p.amount) : qtyFmt.format(p.amount)) + (p.unit ? ` ${p.unit}` : '');
@@ -79,10 +87,13 @@
 
     function totalsHtml(data) {
         const counted = (data.totals || []).reduce((a, t) => a + t.count, 0);
-        const linked = data.clients.length;
-        const invoiced = data.clients.filter(c => c.state === 'invoiced').length;
+        // Like the picker (bexio.month_states): a client without a Bexio link
+        // cannot be checked, so it is in neither count.
+        const checked = data.clients.filter(c => c.state !== 'unlinked');
+        const linked = checked.length;
+        const invoiced = checked.filter(c => c.state === 'invoiced').length;
         const item = (key, value, small, testid) => `
-            <div data-testid="billing-total-${testid}"><span class="nx-bill-totals__k">${esc(key)}</span>
+            <div data-testid="billing-total-${esc(testid)}"><span class="nx-bill-totals__k">${esc(key)}</span>
               <span class="nx-bill-totals__v">${esc(value)}${small ? `<small>${esc(small)}</small>` : ''}</span></div>`;
         const foreign = (data.totals || []).filter(t => t.currency && t.currency !== 'CHF');
         const sub = [];
@@ -101,9 +112,13 @@
 
     function renderBand(data) {
         const box = document.getElementById('bill-totals');
+        const ok = Boolean(data && !data.error && data.configured);
         box.setAttribute('aria-busy', 'false');
-        box.innerHTML = data && !data.error && data.configured ? totalsHtml(data) : '';
-        const missing = new Set((data && data.clients || []).filter(c => c.state !== 'invoiced').map(c => c.key));
+        box.innerHTML = ok ? totalsHtml(data) : '';
+        // Without invoices the strip would be an empty dark gap.
+        box.hidden = !ok;
+        document.querySelector('.nx-bill-band__rule').hidden = !ok;
+        const missing = new Set((data && data.clients || []).filter(c => c.state === 'missing' || c.state === 'draft').map(c => c.key));
         document.querySelectorAll('[data-jump]').forEach(a => {
             const old = a.querySelector('.nx-bill-jump-dot');
             if (old) old.remove();
@@ -125,13 +140,20 @@
         const copy = f => Object.assign({}, f);
         if (!titled) {
             const s = sections[0];
-            return [{
+            const groups = [{
                 title: null,
-                error: s.error || bps.error || null,
+                error: s.error || null,
                 figures: (s.figures || []).map(copy).concat(hours.map(h => Object.assign(copy(h), { label: S.billedHours }))),
             }];
+            // The hours failing says so on its own, next to the figures that did load.
+            if (bps.error) groups.push({ title: S.billedHours, error: bps.error, figures: [] });
+            return groups;
         }
-        const groups = sections.map(s => ({ title: s.title || c.client, error: s.error || null, figures: (s.figures || []).map(copy) }));
+        const groups = sections.map((s, i) => ({
+            title: s.title || (c.titles || {})[c.sections[i]] || c.client,
+            error: s.error || null,
+            figures: (s.figures || []).map(copy),
+        }));
         if (hours.length || bps.error) groups.push({ title: S.billedHours, error: bps.error || null, figures: hours.map(copy) });
         return groups;
     }
@@ -141,12 +163,13 @@
     /* The ticks: a line's quantity that equals one of the client's figures
        exactly, hours against hours and counts against counts (a line without
        a unit may match either). A heuristic -- there is no line-to-figure
-       mapping -- and labelled as one. Cancelled invoices are not matched. */
+       mapping -- and labelled as one. Cancelled invoices and drafts are not matched. */
     function matchTicks(invoices, groups) {
         const figures = groups.flatMap(g => g.figures);
         const lines = new Map();
         invoices.forEach(inv => {
-            if (inv.status === 'cancelled') return;
+            // Only an invoice that counts bills anything (bexio.counts()).
+            if (inv.status === 'cancelled' || inv.status === 'draft') return;
             (inv.positions || []).forEach(p => {
                 if (p.kind !== 'line' || !p.amount) return;
                 const kind = isHours(p.unit) ? 'h' : (p.unit ? 'n' : null);
@@ -172,7 +195,7 @@
             ? (groups[0].error ? `<div class="nx-bill-figs__group">${errorHtml(groups[0].error, null, 'figures')}</div>`
                 : groups[0].figures.map(f => `<div class="nx-bill-figs__group">${row(f)}</div>`).join(''))
             : groups.map(g => `<div class="nx-bill-figs__group">
-                <p class="nx-bill-figs__title">${esc(g.title)}</p>
+                ${g.title ? `<p class="nx-bill-figs__title">${esc(g.title)}</p>` : ''}
                 ${g.error ? errorHtml(g.error, null, 'figures') : g.figures.map(row).join('')}</div>`).join('');
         const link = CFG.financeUrl
             ? `<a class="nx-bill-figs__link" href="${esc(CFG.financeUrl + '#fin-' + c.sections[0])}">${esc(S.breakdowns)} <i class="fas fa-arrow-right" aria-hidden="true"></i></a>`
@@ -299,9 +322,11 @@
         el.querySelector('[data-role="state"]').innerHTML = c ? stateHtml(c) : '';
         el.dataset.state = c ? c.state : 'unknown';
         if (!c) invoicesBox.innerHTML = '';
-        else if (c.invoices.length) invoicesBox.innerHTML = c.invoices.map(inv => invoiceHtml(inv, c, ticks)).join('');
-        else if (c.state === 'missing') invoicesBox.innerHTML = missingHtml(c);
-        else invoicesBox.innerHTML = '';
+        else {
+            // A missing client may still have a cancelled invoice: show both.
+            invoicesBox.innerHTML = (c.state === 'missing' ? missingHtml(c) : '') +
+                c.invoices.map(inv => invoiceHtml(inv, c, ticks)).join('');
+        }
         figuresBox.hidden = false;
         figuresBox.innerHTML = figuresHtml(desc, groups);
     }
@@ -323,7 +348,7 @@
         }
         const others = data.others || [];
         if (count) count.textContent = intFmt.format(others.length);
-        meta.textContent = fmt(S.othersMeta, { n: intFmt.format(others.length), month: CFG.monthLabel });
+        meta.textContent = plural(others.length, S.othersMeta1, S.othersMeta, { n: intFmt.format(others.length), month: CFG.monthLabel });
         if (!others.length) {
             body.innerHTML = `<p class="nx-fin-empty">${esc(fmt(S.noOthers, { month: CFG.monthLabel }))}</p>`;
             return;
@@ -377,23 +402,23 @@
         const totals = data.totals || [];
         const chfRow = totals.find(t => t.currency === 'CHF') || { open: 0, count: 0, overdue: 0, overdueCount: 0 };
         const tile = (label, value, sub, extra, testid) => `
-            <div class="nx-kpi" data-testid="billing-open-${testid}">
+            <div class="nx-kpi" data-testid="billing-open-${esc(testid)}">
               <p class="nx-kpi__label">${esc(label)}</p>
               <div class="nx-kpi__body"><div>
                 <p class="nx-kpi__value nx-fin-bexio__value${extra}">${esc(value)}</p>
                 <p class="nx-kpi__delta">${esc(sub)}</p>
               </div></div></div>`;
         const kpis = '<div class="nx-kpi-strip nx-fin-kpis">' +
-            tile(S.outstanding, money(chfRow.open, 'CHF'), fmt(S.nInvoices, { n: intFmt.format(chfRow.count) }), '', 'total') +
-            tile(S.overdue, money(chfRow.overdue, 'CHF'), fmt(S.nInvoices, { n: intFmt.format(chfRow.overdueCount) }), ' nx-bill-loss', 'overdue') +
+            tile(S.outstanding, money(chfRow.open, 'CHF'), plural(chfRow.count, S.nInvoices1, S.nInvoices, { n: intFmt.format(chfRow.count) }), '', 'total') +
+            tile(S.overdue, money(chfRow.overdue, 'CHF'), plural(chfRow.overdueCount, S.nInvoices1, S.nInvoices, { n: intFmt.format(chfRow.overdueCount) }), ' nx-bill-loss', 'overdue') +
             totals.filter(t => t.currency !== 'CHF').map(t => tile(fmt(S.inCurrency, { currency: t.currency || '?' }), money(t.open, t.currency),
-                fmt(S.nInvoicesOverdue, { n: intFmt.format(t.count), m: intFmt.format(t.overdueCount) }), '', 'cur-' + t.currency)).join('') +
+                plural(t.count, S.nInvoicesOverdue1, S.nInvoicesOverdue, { n: intFmt.format(t.count), m: intFmt.format(t.overdueCount) }), '', 'cur-' + t.currency)).join('') +
             '</div>';
         const rowsHtml = invoices.map(inv => {
             const who = inv.linked
                 ? `<span class="nx-fin-bexio__client">${esc(inv.client)}</span><span class="nx-bill-open__sub">${esc(inv.contact)}</span>`
                 : `<span class="nx-bill-open__contact">${esc(inv.contact)}</span><span class="nx-bill-open__sub">${esc(S.notLinked)}</span>`;
-            const late = inv.overdueDays ? `<span class="nx-bill-open__late">${esc(fmt(S.daysOverdue, { n: intFmt.format(inv.overdueDays) }))}</span>` : '';
+            const late = inv.overdueDays ? `<span class="nx-bill-open__late">${esc(plural(inv.overdueDays, S.daysOverdue1, S.daysOverdue, { n: intFmt.format(inv.overdueDays) }))}</span>` : '';
             return `<tr data-invoice="${inv.id}">
                 <td>${who}</td>
                 <td><span class="nx-fin-bexio__nr">${esc(inv.nr)}</span> <span class="nx-fin-bexio__title">${esc(inv.title)}</span></td>
@@ -418,7 +443,7 @@
         err.hidden = true;
         err.innerHTML = '';
         if (!data.configured) {
-            setStatus('failed', S.notConfigured);
+            setStatus('failed', S.notConfiguredShort);
             err.hidden = false;
             err.innerHTML = `<p class="nx-fin-note"><i class="fas fa-plug-circle-xmark" aria-hidden="true"></i><span>${esc(S.notConfigured)}</span></p>`;
         } else if (data.error) {
@@ -523,7 +548,8 @@
             if (states[year]) return;
             states[year] = {};
             const res = await window.NX.apiSafe(API + 'months?year=' + year);
-            if (res.ok && res.data && res.data.states) states[year] = res.data.states;
+            if (res.ok && res.data && res.data.states && !res.data.error) states[year] = res.data.states;
+            else delete states[year];  // try again on the next open
             if (year === viewYear && !picker.hidden) render();
         }
 

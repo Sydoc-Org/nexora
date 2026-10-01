@@ -34,9 +34,10 @@ September 2026. These invoices bill **August**, which is the Finance month
   - *Bills*: the billed month, closed (lock) or open.
   - *Source*: when Bexio was read (the cache time).
   - The totals: invoiced in CHF, excl. VAT, the number of invoices (with
-    drafts and cancelled invoices named apart), clients invoiced out of all
-    clients, and other currencies.
-  - The jump index. A client that was not invoiced gets an amber dot.
+    drafts and cancelled invoices named apart), clients invoiced out of the
+    clients with a Bexio link (as in the picker), and other currencies.
+  - The jump index. A linked client with no invoice that counts (missing or
+    draft only) gets an amber dot.
   - *Sydoc Finance* opens Finance on the billed month (only for
     `finance.view` holders). *Refresh* bypasses the caches.
 - **One row per Finance client** (`Section.client`, in Finance order; Sydoc's
@@ -58,8 +59,8 @@ September 2026. These invoices bill **August**, which is the Finance month
     export) are labelled *Billed hours (BPS)*.
 - **Ticks** (✓). An invoice line whose quantity **exactly equals** one of the
   client's figures gets a tick, and so does that figure. Hours match hours and
-  counts match counts; a line with no unit may match either. Cancelled invoices
-  are not matched. There is no line-to-figure mapping, so this is a
+  counts match counts; a line with no unit may match either. Cancelled and
+  draft invoices are not matched. There is no line-to-figure mapping, so this is a
   **heuristic** and the hint says so. The matching runs in `static/js/billing.js`
   (`matchTicks`) once both sides have loaded.
 - **Other Bexio contacts.** Invoices dated in the month to contacts that no

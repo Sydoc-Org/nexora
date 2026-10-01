@@ -16,11 +16,24 @@ table (dbo.FinanceBexioContacts, mirrored in sql/test/schema.sql; migrations
 set its rows, nothing in the app writes them).
 """
 
+import calendar
+import datetime as dt
+
 import pytest
 
 import nx_lib.views.billing as bv
 from nx_lib import bexio, config
 from nx_lib.db import engine_nexora_db
+
+# The page's default month (the previous one) and the month it bills: derived
+# from today, so the tests never fall out of the pickable range.
+_t = dt.date.today()
+_iy, _im = (_t.year, _t.month - 1) if _t.month > 1 else (_t.year - 1, 12)
+_by, _bm = (_iy, _im - 1) if _im > 1 else (_iy - 1, 12)
+MONTH = f"{_iy:04d}-{_im:02d}"
+FIRST = f"{MONTH}-01"
+LAST = f"{MONTH}-{calendar.monthrange(_iy, _im)[1]:02d}"
+BILLED = f"{_by:04d}-{_bm:02d}"
 
 CONTACT = 910001  # far outside any real Bexio id, so cleanup cannot hit a real link
 
@@ -136,18 +149,18 @@ def test_links_cannot_be_changed_and_the_old_panel_is_gone(admin_client, path):
 
 def test_panel_says_not_configured_without_a_token(admin_client, monkeypatch):
     monkeypatch.setattr(config, "BEXIO_PAT", None)
-    body = admin_client.get("/api/billing/month?month=2026-09").get_json()
+    body = admin_client.get(f"/api/billing/month?month={MONTH}").get_json()
     assert body["configured"] is False
-    assert body["window"]["from"] == "2026-09-01"
-    assert body["billed"]["month"] == "2026-08"
+    assert body["window"]["from"] == FIRST
+    assert body["billed"]["month"] == BILLED
     assert body["error"]
 
 
 def test_month_lists_the_invoices_dated_in_it(admin_client, bexio_on, clean_links):
-    body = admin_client.get("/api/billing/month?month=2026-09").get_json()
+    body = admin_client.get(f"/api/billing/month?month={MONTH}").get_json()
     assert body["configured"] is True and "canLink" not in body
-    assert bexio_on == [("search", "2026-09-01", "2026-09-30", False)]
-    assert body["window"]["to"] == "2026-09-30"
+    assert bexio_on == [("search", FIRST, LAST, False)]
+    assert body["window"]["to"] == LAST
     assert "Sydoc" not in [c["client"] for c in body["clients"]]
     assert all(c["state"] == "unlinked" for c in body["clients"])
     # The test contact is linked to no client: its invoice is listed apart,
@@ -159,7 +172,7 @@ def test_month_lists_the_invoices_dated_in_it(admin_client, bexio_on, clean_link
 
 
 def test_panel_refresh_bypasses_the_cache(admin_client, bexio_on, clean_links):
-    admin_client.get("/api/billing/month?month=2026-09&fresh=1")
+    admin_client.get(f"/api/billing/month?month={MONTH}&fresh=1")
     assert bexio_on[0][3] is True
 
 
@@ -169,7 +182,7 @@ def test_panel_survives_missing_contact_names(admin_client, bexio_on, clean_link
 
     monkeypatch.setattr(bexio, "contact_names", fail)
     link("Frigemo")
-    body = admin_client.get("/api/billing/month?month=2026-09").get_json()
+    body = admin_client.get(f"/api/billing/month?month={MONTH}").get_json()
     assert "error" not in body
     frigemo = next(c for c in body["clients"] if c["client"] == "Frigemo")
     assert frigemo["contacts"] == [{"id": CONTACT, "name": f"#{CONTACT}"}]
@@ -182,7 +195,7 @@ def test_panel_reports_a_bexio_failure_in_place(admin_client, monkeypatch):
         raise bexio.BexioError("Bexio rejected the access token.", status=401)
 
     monkeypatch.setattr(bexio, "search_invoices", fail)
-    resp = admin_client.get("/api/billing/month?month=2026-09")
+    resp = admin_client.get(f"/api/billing/month?month={MONTH}")
     assert resp.status_code == 200
     body = resp.get_json()
     assert body["configured"] is True and body["error"]
@@ -193,7 +206,7 @@ def test_panel_reports_a_bexio_failure_in_place(admin_client, monkeypatch):
 
 def test_a_linked_contact_counts_for_its_client(admin_client, bexio_on, clean_links):
     link("Frigemo")
-    body = admin_client.get("/api/billing/month?month=2026-09").get_json()
+    body = admin_client.get(f"/api/billing/month?month={MONTH}").get_json()
     frigemo = next(c for c in body["clients"] if c["client"] == "Frigemo")
     assert frigemo["state"] == "invoiced"
     assert frigemo["contacts"] == [{"id": CONTACT, "name": "Test Contact AG"}]
@@ -205,7 +218,7 @@ def test_a_linked_contact_counts_for_its_client(admin_client, bexio_on, clean_li
 
     # A contact belongs to one client: moving the row moves the invoice.
     link("Aveniq")
-    body = admin_client.get("/api/billing/month?month=2026-09").get_json()
+    body = admin_client.get(f"/api/billing/month?month={MONTH}").get_json()
     states = {c["client"]: c["state"] for c in body["clients"]}
     assert states["Aveniq"] == "invoiced" and states["Frigemo"] == "unlinked"
 
@@ -290,7 +303,7 @@ def test_view_module_uses_the_bexio_module_it_stubs():
 
 
 def test_page_renders_the_shells_and_the_sidebar_group(admin_client):
-    resp = admin_client.get("/billing?month=2026-09")
+    resp = admin_client.get(f"/billing?month={MONTH}")
     assert resp.status_code == 200
     html = resp.get_data(as_text=True)
     assert 'data-testid="billing-band"' in html
@@ -300,7 +313,7 @@ def test_page_renders_the_shells_and_the_sidebar_group(admin_client):
 
 
 def test_finance_no_longer_carries_the_bexio_panel(admin_client):
-    html = admin_client.get("/finance?month=2026-08").get_data(as_text=True)
+    html = admin_client.get(f"/finance?month={BILLED}").get_data(as_text=True)
     assert 'id="fin-bexio"' not in html and "finance_bexio.js" not in html
 
 
@@ -321,15 +334,15 @@ def test_a_missing_client_names_its_latest_invoice(
         }
 
     monkeypatch.setattr(bexio, "latest_before", latest)
-    body = admin_client.get("/api/billing/month?month=2026-09").get_json()
+    body = admin_client.get(f"/api/billing/month?month={MONTH}").get_json()
     frigemo = next(c for c in body["clients"] if c["client"] == "Frigemo")
     assert frigemo["state"] == "missing"
     assert frigemo["last"] == {"nr": "RE-9", "date": "2026-08-05", "status": "unpaid"}
-    assert seen == [([CONTACT], "2026-09-01")]
+    assert seen == [([CONTACT], FIRST)]
 
 
 def test_figures_of_an_unknown_section_are_404(admin_client):
-    assert admin_client.get("/api/billing/figures/nope?month=2026-09").status_code == 404
+    assert admin_client.get(f"/api/billing/figures/nope?month={MONTH}").status_code == 404
 
 
 def test_figures_read_the_billed_month(admin_client, monkeypatch):
@@ -347,9 +360,9 @@ def test_figures_read_the_billed_month(admin_client, monkeypatch):
 
     monkeypatch.setattr(bv, "_section_payload", payload)
     monkeypatch.setattr(bv, "_closed_safe", lambda month: {})
-    body = admin_client.get("/api/billing/figures/frigemo?month=2026-09").get_json()
-    assert calls == [("frigemo", 2026, 8)]
-    assert body["month"] == "2026-08" and body["closed"] is False
+    body = admin_client.get(f"/api/billing/figures/frigemo?month={MONTH}").get_json()
+    assert calls == [("frigemo", _by, _bm)]
+    assert body["month"] == BILLED and body["closed"] is False
     assert body["figures"] == [{"label": "Docs", "value": 7, "unit": None}]
 
 

@@ -74,6 +74,11 @@ def client_descriptors(translate=lambda s: s):
                 "nav": translate(first.nav) if first.nav else client,
                 "tile": client[:2],
                 "sections": keys,
+                # A section's own title, for its figure group when it fails to load.
+                "titles": {
+                    k: translate(SECTIONS_BY_KEY[k].title) if SECTIONS_BY_KEY[k].title else None
+                    for k in keys
+                },
             }
         )
     return out

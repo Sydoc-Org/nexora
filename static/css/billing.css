@@ -16,6 +16,7 @@
 .nx-bill-hint-tick i, .nx-bill-hint-tick .fa-check { font-size: 10px; color: #34d399; }
 .nx-bill-band__rule { height: 1px; border: none; background: rgba(255,255,255,.08); margin: 24px -30px 0; }
 .nx-bill-totals { margin-top: 22px; display: flex; align-items: flex-end; gap: 16px 48px; flex-wrap: wrap; min-height: 64px; }
+.nx-bill-totals[hidden], .nx-bill-band__rule[hidden] { display: none; }
 .nx-bill-skel { width: 360px; max-width: 100%; height: 48px; background: rgba(255,255,255,.08); }
 .nx-bill-totals__k { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: #7c8492; white-space: nowrap; }
 .nx-bill-totals__big {
@@ -163,6 +164,9 @@ html.dark .nx-bill-tick { color: #34d399; }
   .nx-bill-totals__big { font-size: 32px; }
   .nx-bill-lines { display: block; overflow-x: auto; }
   .nx-bill-lines th.nx-num { width: auto; }
+  /* The open list keeps what matters on a phone: who, which, due, status, open. */
+  .nx-bill-open .nx-table th:nth-child(3), .nx-bill-open .nx-table td:nth-child(3),
+  .nx-bill-open .nx-table th:nth-child(7), .nx-bill-open .nx-table td:nth-child(7) { display: none; }
 }
 
 /* ---------- Print: lines expanded, no buttons ---------- */
