@@ -69,6 +69,17 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **Sydoc Finance redesigned** (#427) as the Sydoc-branded pair of Sydoc
+  BPS: the same ink band, with the month as the headline, prev/next arrows
+  (inert at the oldest pickable month) and a month picker that shows which
+  months are closed, open or still running; a one-row jump index to every
+  section; each client a ledger row with its identity, source, state and note
+  on the left and statement lines on the right (this month, the month before,
+  a comparison bar and the change); the billable BPS bookings as a timeline
+  per customer, with a per-customer breakdown linking to it. The Bexio panel
+  is a ledger row too. Figures, month close, CSV and payloads are unchanged;
+  `Section.nav` gives a section its short jump-index label. Print now hides
+  the sidebar (its selector never matched) and prints every list expanded.
 - **Sydoc BPS redesigned** (#427) as the Sydoc-branded mirror of Finance
   (design 1a, `docs/design/design_handoff_sydoc_finance_bps/`): an ink header
   band with the Sydoc mark, the period as a headline with prev/next arrows and
@@ -78,7 +89,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   squarified **Treemap**, with the change against the previous period and the
   bookings of a leaf listed per day. The band, headline and picker are shared
   pieces (`templates/_sydoc.html`, `static/js/nx_sydoc.js`, `nx-sydoc-*` in
-  `nexora-ui.css`) that Finance will use too. The empty-period text now says
+  `nexora-ui.css`) that Finance uses too. The empty-period text now says
   the history starts in January 2025.
 
 - **Finance parity with the billing workbooks** (#415, migration `0139`):

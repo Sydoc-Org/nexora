@@ -103,7 +103,7 @@ One line each; **the full detail lives in `docs/design/architecture-conventions.
 
 **Sydoc Finance** (`/finance`, `finance.view`, #408) is the monthly accounting report over the registered billing sources: `nx_lib/finance.py` holds the per-client section spec and builds its SQL with the reporting `table` provider, so its figures are Reporting's measures by construction. Adding a client is one `Section` entry there; the code is internal-only (no row scoping). A month is **closed** once invoiced (`finance.month.edit`, snapshot in `dbo.FinanceMonthClose`) and then served frozen. A read-only panel shows what was invoiced in Bexio (`nx_lib/bexio.py`, `BEXIO_PAT`, contact links in `dbo.FinanceBexioContacts`, #423). `docs/howto/finance.md`.
 
-**Sydoc BPS** (`/bps`, `bps.view`, #415) shows every BPS timetool hour drilled down task › customer › person › booking; the billable-task rule lives once in `nx_lib/bps.py` and is shared with Finance. `docs/howto/bps.md`.
+**Sydoc BPS** (`/bps`, `bps.view`, #415) shows every BPS timetool hour drilled down task › customer › person › booking; the billable-task rule lives once in `nx_lib/bps.py` and is shared with Finance. `docs/howto/bps.md`. The two pages are a mirrored pair; the shared band/picker is `templates/_sydoc.html` + `static/js/nx_sydoc.js`.
 
 
 ## Testing & browser automation

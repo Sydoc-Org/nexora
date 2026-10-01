@@ -91,12 +91,39 @@ when, `0139`). From then on:
 The running month cannot be closed. Labels in a snapshot are frozen in the
 closer's language.
 
+## The page (#427)
+
+Finance and Sydoc BPS are a mirrored, Sydoc-branded pair (design 1a in
+`docs/design/design_handoff_sydoc_finance_bps/`). They share the ink band, the
+period headline and the picker shell (`templates/_sydoc.html`,
+`static/js/nx_sydoc.js`, the `nx-sydoc-*` rules in `nexora-ui.css`).
+
+- **Band:** the actions (close / reopen, CSV, print), the month as the headline
+  with prev/next arrows, the three-state hint, the month's status (running,
+  closed by whom, or open) and the load counter of the sections. A **jump
+  index** sits flush at its bottom: one row that never wraps, one item per
+  section (`Section.nav`, ellipsised when space runs out), then Bexio.
+- **Month picker** (the headline button): a year of months, each marked
+  closed (lock), open or running. The states are rendered server-side into the
+  shim (`months` in `NX_FINANCE`): one `SELECT DISTINCT Month` over
+  `dbo.FinanceMonthClose`. A month outside `month_options()` is disabled.
+- **Ledger rows:** each section is identity left (client, title, source and
+  basis, the live / closed / drift state, the section's note, and for BPS the
+  "All hours in Sydoc BPS" link) and statement lines right: the figure, this
+  month, the month before, and a comparison bar (this month as the fill, the
+  month before as an orange tick) with the change in neutral ink. Breakdowns
+  and the Privera matrix follow; tables collapse after 12 rows.
+- **Billable services:** the figures, hours per task and per customer (each
+  customer links to its list), then the bookings as a **timeline per
+  customer**, a stop per day, the first four shown, "Show all n" for the rest.
+
 ## How a month is selected
 
 - **Default month is the previous calendar month** — the one being invoiced.
   The current month can be picked but is flagged as still running; the future
   cannot. The month sits in the URL (`/finance?month=2026-08`), so a month is
-  linkable and the browser's back button works.
+  linkable and the browser's back button works. The prev arrow is inert at the
+  oldest pickable month, the next arrow at the current one.
 - A real date column is a **half-open range** `first <= x < first of next month`,
   bound as ISO strings (`'2026-08-01'`), which is what every Reporting date
   filter binds too. The legacy "SQL Server" ODBC driver on the hosts cannot bind
@@ -129,7 +156,9 @@ reopens a month.
 2. Add one `Section` to `SECTIONS` in `nx_lib/finance.py`: the source code, a
    `Period` (which column the month follows), the measure codes shown as figures
    and the dimensions to break them down by. `group` picks the run of the page
-   it appears in: `internal`, `external` or `services`.
+   it appears in: `internal`, `external` or `services`. `nav` is the short
+   label of the band's jump index; leave it out and the title (or else the
+   client) is used.
 3. `tests/unit/test_finance.py` reads the registry back out of the migrations
    and fails if a section names a column or a measure its source does not carry
    — run it. A misconfigured section also fails **loudly** at run time
@@ -195,8 +224,9 @@ go-ahead first).
   sheet, UTF-8 with BOM so Excel opens it directly; a booking's date, package,
   person and comment are in the `Detail` column. Sections that could not be
   read appear as an `error` line. A closed month exports its snapshot.
-- **Print** uses a print stylesheet: app chrome hidden, one section per block,
-  collapsed tables expanded.
+- **Print** uses a print stylesheet: sidebar, band actions, arrows, jump index
+  and the BPS link hidden, the month headline small and black, one section per
+  block, every collapsed table and timeline expanded.
 
 ## Files
 
@@ -206,6 +236,7 @@ go-ahead first).
 | Billable rule (shared with the BPS page) | `nx_lib/bps.py` |
 | Routes: page, section API, close / reopen, CSV | `nx_lib/views/finance.py` |
 | Page, JS shim, behaviour, styles | `templates/finance.html`, `templates/js/_finance_js.html`, `static/js/finance.js`, `static/css/finance.css` |
+| Band, headline, picker shared with BPS | `templates/_sydoc.html`, `static/js/nx_sydoc.js`, `nx-sydoc-*` in `static/css/nexora-ui.css` |
 | Permission + BPS measure | `sql/_migrations/NexoraDB/0138_finance_page.sql`, `sql/test/seed.sql` |
 | Parity fixes, `FinanceMonthClose`, `finance.month.edit` | `sql/_migrations/NexoraDB/0139_finance_parity_and_close.sql`, `sql/test/schema.sql` |
 | Bexio client (read-only), window, reconciliation | `nx_lib/bexio.py` |
@@ -228,5 +259,9 @@ go-ahead first).
 - The section API answers a failed source with HTTP 200 and an `error` field:
   the page renders the error where the figures would be. A 404 is only an
   unknown section key.
+- `_header.html` loads `nexora-ui.css` a second time, **after** `finance.css`.
+  An override of a `nx-sydoc-*` rule in `finance.css` therefore needs a more
+  specific selector (`body.nx-sydoc …`, `.nx-sydoc-dot.nx-fin-dot--open`) or it
+  silently loses.
 - The legacy ODBC driver returns `datetime2` as text: `ClosedAt` is parsed back
   in `views/finance.py` (`_as_datetime`), and shown in Swiss time.
