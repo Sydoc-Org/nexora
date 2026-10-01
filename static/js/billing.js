@@ -19,7 +19,7 @@
     const esc = window.NX.esc;
     const fmt = Sy.fmt;
     const lang = document.documentElement.lang || undefined;
-    const API = '/api/billing/';
+    const BILLING_API = '/api/billing/';  // NX.apiSafe adds API_PREFIX itself
 
     const moneyFmt = new Intl.NumberFormat(lang, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const qtyFmt = new Intl.NumberFormat(lang, { maximumFractionDigits: 3 });
@@ -462,7 +462,7 @@
 
     async function loadMonth(fresh) {
         setStatus('running', S.loading);
-        const res = await window.NX.apiSafe(API + 'month?month=' + encodeURIComponent(CFG.month) + (fresh ? '&fresh=1' : ''));
+        const res = await window.NX.apiSafe(BILLING_API + 'month?month=' + encodeURIComponent(CFG.month) + (fresh ? '&fresh=1' : ''));
         renderMonth(res.ok && res.data ? res.data : { configured: true, error: (res.data && res.data.error) || S.loadFailed, clients: [] });
     }
 
@@ -470,7 +470,7 @@
         state.figuresDone = false;
         const keys = clients.flatMap(c => c.sections).concat([BPS]);
         await Promise.all(keys.map(async key => {
-            const res = await window.NX.apiSafe(API + 'figures/' + encodeURIComponent(key) + '?month=' + encodeURIComponent(CFG.month));
+            const res = await window.NX.apiSafe(BILLING_API + 'figures/' + encodeURIComponent(key) + '?month=' + encodeURIComponent(CFG.month));
             state.figures[key] = res.ok && res.data ? res.data : { error: S.loadFailed, figures: [], hours: {} };
         }));
         state.figuresDone = true;
@@ -478,7 +478,7 @@
     }
 
     async function loadOutstanding(fresh) {
-        const res = await window.NX.apiSafe(API + 'outstanding' + (fresh ? '?fresh=1' : ''));
+        const res = await window.NX.apiSafe(BILLING_API + 'outstanding' + (fresh ? '?fresh=1' : ''));
         renderOutstanding(res.ok && res.data ? res.data : { configured: true, error: (res.data && res.data.error) || S.loadFailed });
     }
 
@@ -547,7 +547,7 @@
         async function loadYear(year) {
             if (states[year]) return;
             states[year] = {};
-            const res = await window.NX.apiSafe(API + 'months?year=' + year);
+            const res = await window.NX.apiSafe(BILLING_API + 'months?year=' + year);
             if (res.ok && res.data && res.data.states && !res.data.error) states[year] = res.data.states;
             else delete states[year];  // try again on the next open
             if (year === viewYear && !picker.hidden) render();
