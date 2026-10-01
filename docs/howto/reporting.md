@@ -1305,7 +1305,9 @@ PROD's collector fills `dbo.Frigemo_Statistic` with the vendor's column names
 and **`0137`** repoints the source and its measures there (#402,
 `tests/unit/test_frigemo_source.py` pins the columns). `0124` registers **Sydoc — Project Hours**
 (`bps_projects` over `dbo.BPS_ProjectReport`, the bpsuite Projektbericht export
-loaded by the `nx-sources/bps/bps_project_report.py` collector; measures `Hours`,
+loaded by the `nx-sources/bps/bps_project_report.py` collector; **`0142`** repoints it
+at the view `dbo.BPS_ProjectReportAll`, which adds the pre-feed history from
+January 2025 (#424, `docs/howto/bps.md`); measures `Hours`,
 `Bookings`, and `Absence hours` = hours where `Kunde = 'Absences'`). `0126` registers **MediaMarkt — Batches**
 (`mediamarkt_batches` over `SYDOC_Statistik.dbo.MediaMarkt_Batches`, the table behind the
 generated `/t/sydoc/mediamarkt` CRUD page; measures `Pieces scanned` = sum of

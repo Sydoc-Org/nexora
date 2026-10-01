@@ -163,7 +163,10 @@ def test_every_section_matches_its_registered_source(section):
             ), f"{section.key}: measure {code!r} not on {section.source}"
         for br in block.breakdowns:
             assert br.dim in fields, f"{section.key}: dimension {br.dim!r} not in catalog"
-            assert set(br.metrics) <= set(block.figures)
+            for code in br.metrics:
+                assert code in source_metrics, f"{section.key}: {code!r} not on {section.source}"
+            if not br.where:
+                assert set(br.metrics) <= set(block.figures)
 
 
 @pytest.mark.parametrize("section", SECTIONS, ids=[s.key for s in SECTIONS])
@@ -177,7 +180,7 @@ def test_every_section_builds_its_queries(section):
     if section.bookings:
         rules = len(section.bookings.rules)
         assert sum(1 for q in queries if q.kind == "bookings") == rules
-        assert sum(1 for q in queries if q.kind.startswith("bookings_")) == 2 * rules
+        assert sum(1 for q in queries if q.kind.startswith("bookings_")) == 3 * rules
     for q in queries:
         assert q.sql.startswith("SELECT TOP (")
         assert "?" * q.sql.count("?") == "?" * len(q.params)
@@ -275,10 +278,55 @@ def test_breakdown_can_narrow_its_columns():
 
 def test_xpert_breaks_documents_down_per_client_and_source_database():
     dims = {q.dim for q in _queries("xpert") if q.kind == "breakdown"}
-    assert dims == {"Client", "SourceDb"}
+    assert dims == {"Client", "SourceDb", "Metric|Client=BFH", "Metric|Client=ZHAW"}
     q = _first("xpert", "breakdown", "Client")
     assert "SUM(CASE WHEN [Metric] = ? THEN [Cnt] END) AS [xpert_stats_documents]" in q.sql
     assert q.params[0] == "Total"
+
+
+def test_xpert_lists_bfh_and_zhaw_per_metric():
+    """BFH and ZHAW are billed per metric; one table each, grouped by Metric
+    and Dimension, narrowed to the client."""
+    q = _first("xpert", "breakdown", "Metric|Client=ZHAW")
+    assert "SELECT TOP (1000) [Metric], [Dimension], SUM([Cnt]) AS [xpert_stats_count]" in q.sql
+    assert "[Client] = ?" in q.sql and q.params[-1] == "ZHAW"
+    assert "GROUP BY [Metric], [Dimension]" in q.sql
+
+
+def test_a_fixed_breakdown_lists_its_keys_in_order_with_zeros():
+    section = SECTIONS_BY_KEY["xpert"]
+    queries = _queries("xpert")
+    zhaw = [
+        ["WorkItemsByIsWithOrder", "1", 44],
+        ["WorkItems", None, 203],
+        ["WorkItemsByEingang", "MAIL", 203],
+        ["Total", None, 205],
+    ]
+    bfh = [["Total", None, 82], ["NKReproduzierte", None, 0], ["Uebrige", None, 79]]
+    rows = [
+        zhaw if q.dim == "Metric|Client=ZHAW" else bfh if q.dim == "Metric|Client=BFH" else []
+        for q in queries
+    ]
+    payload = assemble_section(
+        section, queries, rows, source_label=None, metric_label=str, translate=str
+    )
+    tables = {b["dim"]: b for b in payload["blocks"][0]["breakdowns"]}
+    z = tables["Metric|Client=ZHAW"]
+    assert [(r["key"], r["values"]) for r in z["rows"]] == [
+        ("WorkItems", [203]),
+        ("WorkItemsByEingang · MAIL", [203]),
+        ("WorkItemsByIsWithOrder · 0", [0]),
+        ("WorkItemsByIsWithOrder · 1", [44]),
+    ]
+    assert z["totals"] is None and z["label"] == "ZHAW"
+    b = tables["Metric|Client=BFH"]
+    assert [r["key"] for r in b["rows"]] == [
+        "Total",
+        "NeueKreditoren",
+        "Uebrige",
+        "UEReproduzierte",
+    ]
+    assert [r["values"][0] for r in b["rows"]] == [82, 0, 79, 0]
 
 
 def test_privera_mail_follows_the_workbooks_file_name_rule():
@@ -316,9 +364,13 @@ def test_bps_lists_billable_bookings_one_query_per_rule():
     )
     assert "[Aufgabe] IN (?,?,?,?,?,?) AND [Kunde] NOT IN (?,?)" in rows[0].sql
     assert rows[0].params[:2] == ["2026-09-01", "2026-10-01"]
-    assert rows[0].params[2:] == [*bps.BILLABLE_TASKS, *bps.INTERNAL_CUSTOMERS]
+    customers = [c for c, _ in SECTIONS_BY_KEY["bps"].bookings.customers]
+    assert rows[0].params[2:] == [*bps.BILLABLE_TASKS, *bps.INTERNAL_CUSTOMERS, *customers]
+    # Only customers the page bills: SSD's or Generali's hours stay on the BPS page.
+    assert "AND [Kunde] IN (" in rows[0].sql and "AND [Kunde] IN (" in rows[1].sql
+    assert "SSD_digital" not in customers and "Generali" not in customers
     assert "[Aufgabe] = ? AND [Kunde] = ? AND [Projektpaket] = ?" in rows[1].sql
-    assert rows[1].params[2:] == list(bps.PREPARATION)
+    assert rows[1].params[2:] == [*bps.PREPARATION, *customers]
     prev = next(q for q in queries if q.kind == "bookings_previous" and q.block == 1)
     assert prev.params[:2] == ["2026-08-01", "2026-09-01"]
     assert "SUM([Stunden])" in prev.sql and "COUNT(*)" in prev.sql
@@ -357,6 +409,12 @@ def test_bps_bookings_merge_group_per_customer_and_total_from_the_aggregates():
         (1, "bookings_figures"): [[Decimal("2"), 1]],
         (0, "bookings_previous"): [[Decimal("5"), 4]],
         (1, "bookings_previous"): [[None, 0]],
+        (0, "bookings_previous_rows"): [
+            [Decimal("0.1")],
+            [Decimal("1.9")],
+            [Decimal("2.5")],
+            [Decimal("0.5")],
+        ],
     }
     rows = [by_kind.get((q.block, q.kind), []) for q in queries]
     payload = assemble_section(
@@ -364,11 +422,17 @@ def test_bps_bookings_merge_group_per_customer_and_total_from_the_aggregates():
     )
     bk = payload["bookings"]
     assert payload["blocks"] == []
-    assert [f["value"] for f in bk["figures"]] == [4.0833, 3]
-    assert [f["prev"] for f in bk["figures"]] == [5, 4]
+    # Booked, billed (each booking up to the quarter: 1.3333 -> 1.5, 0.75, 2), count.
+    assert [f["code"] for f in bk["figures"]] == [
+        "billable_hours",
+        "billed_hours",
+        "billable_bookings",
+    ]
+    assert [f["value"] for f in bk["figures"]] == [4.0833, 4.25, 3]
+    assert [f["prev"] for f in bk["figures"]] == [5, 5.25, 4]
     assert [g["key"] for g in bk["groups"]] == ["Bucherer", "ISS", "Privera"]
     iss = bk["groups"][1]
-    assert iss["hours"] == 1.3333 and iss["count"] == 1
+    assert iss["hours"] == 1.3333 and iss["billed"] == 1.5 and iss["count"] == 1
     # Entities decoded, blanks trimmed, the doubled blank in a name collapsed.
     assert iss["rows"][0] == [
         "2026-08-04",
@@ -378,7 +442,9 @@ def test_bps_bookings_merge_group_per_customer_and_total_from_the_aggregates():
         "Anna Muster",
         1.3333,
         "CR & Test",
+        1.5,
     ]
+    assert bk["columns"][-1]["field"] == "billed"
     assert {t["key"]: t["hours"] for t in bk["by_task"]} == {
         "Change": 2.0833,
         "Vorbereitung Akten": 2,
@@ -639,3 +705,15 @@ def test_diff_payload_counts_a_figure_missing_on_one_side_as_zero():
         {"label": "Docs", "closed": 4, "live": 0},
         {"label": "New", "closed": 0, "live": 1},
     ]
+
+
+def test_every_section_has_a_short_nav_label():
+    labels = {d["key"]: d["nav"] for d in finance.section_descriptors()}
+    assert labels["privera_invoice"] == "Rechnungen"
+    assert labels["privera_nachsendungen"] == "Zustellung"
+    assert labels["compass"] == "Compass"
+    assert labels["xpert"] == "Xpert"
+    assert labels["bucherer"] == "EasyTax"
+    assert labels["frigemo"] == "Frigemo"  # no title: falls back to the client
+    assert labels["bps"] == "Services"  # translated by the view, like the title
+    assert all(labels.values())

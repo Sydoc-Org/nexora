@@ -63,6 +63,8 @@ MIN_COVERAGE = {
     # the storage-name -> engine resolver, both fully unit-tested.
     "workitems/tables.py": 100,
     "document_storage.py": 100,
+    # Finance invoice panel (#423): the read-only Bexio client, stubbed HTTP.
+    "bexio.py": 100,
 }
 
 

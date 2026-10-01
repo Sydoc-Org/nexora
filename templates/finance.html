@@ -13,100 +13,127 @@
   <link rel="icon" type="image/x-icon" href="{{ static_v('images/favicon.ico') }}">
 </head>
 
-<body class="nx-app">
+<body class="nx-app nx-sydoc">
   {% set active_page = 'finance' %} {% include '_header.html' %}
+  {% import '_sydoc.html' as sydoc with context %}
 
-  {# One section shell per client; static from the server, filled by finance.js
+  {# One ledger row per client; static from the server, filled by finance.js
      from /api/finance/section/<key> so a broken source shows its error in
-     place while the others render (#408). #}
+     place while the others render (#408). Identity left, statement right. #}
   {% macro section_shell(s) -%}
   <section class="nx-fin-section nx-fin-section--{{ s.group }}" id="fin-{{ s.key }}" data-key="{{ s.key }}"
            data-testid="finance-section-{{ s.key }}" aria-busy="true">
-    <div class="nx-fin-section__head">
-      <span class="nx-fin-section__tile" aria-hidden="true">{{ s.client[:2] }}</span>
-      <div>
-        <h3 class="nx-fin-section__title">{{ s.client }}{% if s.title %} <span class="nx-fin-section__sub">· {{ s.title }}</span>{% endif %}</h3>
-        <p class="nx-fin-section__meta" data-role="meta">{{ _("Loading…") }}</p>
-      </div>
-      <span class="nx-fin-section__spacer"></span>
+    <div class="nx-fin-id">
+      <h3 class="nx-fin-id__client">{{ s.client }}</h3>
+      {% if s.title %}<p class="nx-fin-id__title">{{ s.title }}</p>{% endif %}
+      <p class="nx-fin-id__meta" data-role="meta">{{ _("Loading…") }}</p>
+      <div class="nx-fin-id__state" data-role="state"></div>
+      <p class="nx-fin-id__note" data-role="note" hidden></p>
       {% if s.link and page_visibility.bpsPagePerm %}
       {# finance.js narrows the link to this month's dates. #}
-      <a class="nx-btn nx-btn--ghost nx-btn--sm" href="{{ url_for(s.link) }}"
+      <a class="nx-fin-bpsbtn" href="{{ url_for(s.link) }}"
          data-role="month-link" data-testid="finance-section-link-{{ s.key }}">
-        {{ _("All hours") }} <i class="fas fa-arrow-right" aria-hidden="true"></i>
+        {{ _("All hours in Sydoc BPS") }} <i class="fas fa-arrow-right" aria-hidden="true"></i>
       </a>
       {% endif %}
-      <span class="nx-fin-section__state" data-role="state"></span>
     </div>
-    <div data-role="body">
+    <div class="nx-fin-lines" data-role="body">
       <div class="nx-fin-skel" aria-hidden="true">
-        <div class="nx-fin-skel__tile skeleton-shimmer"></div>
-        <div class="nx-fin-skel__tile skeleton-shimmer"></div>
-        <div class="nx-fin-skel__tile skeleton-shimmer"></div>
+        <div class="nx-fin-skel__line skeleton-shimmer"></div>
+        <div class="nx-fin-skel__line skeleton-shimmer"></div>
+        <div class="nx-fin-skel__line skeleton-shimmer"></div>
       </div>
     </div>
   </section>
   {%- endmacro %}
 
-  <main class="nx-main">
-    <div class="nx-fin-head nx-rise">
-      <span class="nx-page-icon"><i class="fas fa-file-invoice-dollar"></i></span>
-      <div>
-        <h1 class="nx-title" data-testid="finance-title">{{ _("Sydoc Finance") }}</h1>
-        <p class="nx-fin-head__meta">{{ _("Monthly accounting figures per client, read from the same sources and measures as Reporting.") }}</p>
-      </div>
-      <div class="nx-fin-head__right">
-        {% if can_close %}
-        <button type="button" class="nx-btn nx-btn--sm {{ 'nx-btn--secondary' if closed else 'nx-btn--primary' }}"
-                id="fin-close-toggle" aria-expanded="false" aria-controls="fin-confirm"
-                data-action="{{ 'reopen' if closed else 'close' }}" data-testid="finance-close-toggle">
-          {% if closed %}<i class="fas fa-lock-open" aria-hidden="true"></i> {{ _("Reopen month") }}
-          {% else %}<i class="fas fa-lock" aria-hidden="true"></i> {{ _("Close month") }}{% endif %}
-        </button>
-        {% endif %}
-        <a class="nx-btn nx-btn--secondary nx-btn--sm" href="{{ url_for('api_finance_export', month=month) }}"
-           data-testid="finance-export-csv">
-          <i class="fas fa-file-csv" aria-hidden="true"></i> {{ _("CSV") }}
-        </a>
-        <button type="button" class="nx-btn nx-btn--secondary nx-btn--sm" id="fin-print" data-testid="finance-print">
-          <i class="fas fa-print" aria-hidden="true"></i> {{ _("Print") }}
-        </button>
-      </div>
-    </div>
+  {% macro group_head(label, count=None) -%}
+  <div class="nx-fin-group nx-rise-3">
+    <h2>{{ label }}</h2>
+    {% if count is not none %}<span class="nx-fin-group__count">{{ count }}</span>{% endif %}
+    <span class="nx-fin-group__rule" aria-hidden="true"></span>
+  </div>
+  {%- endmacro %}
 
-    <div class="nx-fin-filter nx-rise-2">
-      <label class="nx-eyebrow" for="fin-month">{{ _("Month") }}</label>
-      <div class="nx-fin-month" data-testid="finance-month">
-        <a class="nx-fin-month__nav" href="{{ url_for('finance', month=prev_month) }}"
-           aria-label="{{ _('Previous month') }}" data-testid="finance-month-prev"><i class="fas fa-chevron-left" aria-hidden="true"></i></a>
-        <select class="nx-fin-month__select" id="fin-month" name="month" data-testid="finance-month-select">
-          {% for m in months %}
-          <option value="{{ m.value }}"{% if m.value == month %} selected{% endif %}>{{ m.label }}</option>
-          {% endfor %}
-        </select>
-        {% if next_month %}
-        <a class="nx-fin-month__nav" href="{{ url_for('finance', month=next_month) }}"
-           aria-label="{{ _('Next month') }}" data-testid="finance-month-next"><i class="fas fa-chevron-right" aria-hidden="true"></i></a>
-        {% else %}
-        <span class="nx-fin-month__nav" aria-disabled="true" aria-label="{{ _('Next month') }}"><i class="fas fa-chevron-right" aria-hidden="true"></i></span>
-        {% endif %}
+  {% macro jump_items(sections) -%}
+  {% for s in sections %}
+  <a class="nx-fin-jump__item nx-fin-jump__item--{{ s.group }}" href="#fin-{{ s.key }}"
+     title="{{ s.client }}{% if s.title %} · {{ s.title }}{% endif %}">
+    <span class="nx-fin-jump__tile" aria-hidden="true">{{ s.client[:2] }}</span><span class="nx-fin-jump__label">{{ s.nav }}</span>
+  </a>
+  {% endfor %}
+  {%- endmacro %}
+
+  <main class="nx-main">
+    {# The ink band: brand and actions, the month as the headline, status,
+       and the jump index flush at its bottom. #}
+    <section class="nx-sydoc-band nx-sydoc-band--flush nx-rise" data-testid="finance-band">
+      <div class="nx-sydoc-band__row1">
+        {{ sydoc.brand(_("Accounting")) }}
+        <span class="nx-sydoc-band__spacer"></span>
+        <div class="nx-sydoc-band__actions">
+          {% if can_close %}
+          <button type="button" class="nx-sydoc-btn nx-sydoc-btn--primary"
+                  id="fin-close-toggle" aria-expanded="false" aria-controls="fin-confirm"
+                  data-action="{{ 'reopen' if closed else 'close' }}" data-testid="finance-close-toggle">
+            {% if closed %}<i class="fas fa-lock-open" aria-hidden="true"></i> {{ _("Reopen month") }}
+            {% else %}<i class="fas fa-lock" aria-hidden="true"></i> {{ _("Close month") }}{% endif %}
+          </button>
+          {% endif %}
+          <a class="nx-sydoc-btn nx-sydoc-btn--ghost" href="{{ url_for('api_finance_export', month=month) }}"
+             data-testid="finance-export-csv">
+            <i class="fas fa-file-csv" aria-hidden="true"></i> {{ _("CSV") }}
+          </a>
+          <button type="button" class="nx-sydoc-btn nx-sydoc-btn--ghost" id="fin-print" data-testid="finance-print">
+            <i class="fas fa-print" aria-hidden="true"></i> {{ _("Print") }}
+          </button>
+        </div>
       </div>
-      {% if closed %}
-      <span class="nx-label nx-label--indigo nx-label--nodot nx-fin-closed" data-testid="finance-closed-badge">
-        <i class="fas fa-lock" aria-hidden="true"></i>
-        {{ _("Closed %(when)s by %(who)s", when=closed.atLabel, who=closed.by) }}
-      </span>
-      {% endif %}
-      <span class="nx-fin-filter__hint">
-        {% if is_current_month %}{{ _("This month is still running; the figures grow until it closes.") }}
-        {% elif closed %}{{ _("Figures as frozen at the close. Where the live data has moved since, the section says so.") }}
-        {% else %}{{ _("Live figures, each compared with the month before. Close the month once it is invoiced to freeze them.") }}{% endif %}
-      </span>
-      <span class="nx-fin-filter__spacer"></span>
-      <span class="nx-fin-status" id="fin-status" role="status" data-testid="finance-status">
-        <span class="nx-live-dot"></span><span id="fin-status-text">{{ _("Loading…") }}</span>
-      </span>
-    </div>
+
+      <div class="nx-sydoc-band__row2">
+        <div class="nx-sydoc-band__lead">
+          {{ sydoc.headline(_("Sydoc Finance"), "finance", month_name, month_year,
+                            url_for('finance', month=prev_month) if prev_month else None,
+                            url_for('finance', month=next_month) if next_month else None,
+                            _("Previous month"), _("Next month"), "fin-picker") }}
+          <p class="nx-sydoc-hint">
+            {% if is_current_month %}{{ _("This month is still running; the figures grow until it closes.") }}
+            {% elif closed %}{{ _("Figures as frozen at the close. Where the live data has moved since, the section says so.") }}
+            {% else %}{{ _("Live figures, each compared with the month before. Close the month once it is invoiced to freeze them.") }}{% endif %}
+          </p>
+        </div>
+        <div class="nx-sydoc-stats">
+          <span class="nx-sydoc-stats__k">{{ _("Status") }}</span>
+          {% if is_current_month %}
+          <span class="nx-sydoc-stats__v"><span class="nx-sydoc-dot nx-sydoc-dot--running"></span>{{ _("Running") }}</span>
+          {% elif closed %}
+          <span class="nx-sydoc-stats__v" data-testid="finance-closed-badge">
+            <i class="fas fa-lock nx-fin-lock" aria-hidden="true"></i>
+            {{ _("Closed %(when)s by %(who)s", when=closed.atLabel, who=closed.by) }}
+          </span>
+          {% else %}
+          <span class="nx-sydoc-stats__v"><span class="nx-sydoc-dot nx-sydoc-dot--live"></span>{{ _("Open · live") }}</span>
+          {% endif %}
+          <span class="nx-sydoc-stats__k">{{ _("Sources") }}</span>
+          <span class="nx-sydoc-stats__v" id="fin-status" role="status" data-testid="finance-status">
+            <span class="nx-sydoc-dot nx-sydoc-dot--running" data-role="dot"></span><span id="fin-status-text">{{ _("Loading…") }}</span>
+          </span>
+        </div>
+      </div>
+
+      <nav class="nx-fin-jump" aria-label="{{ _('Sections') }}">
+        {# In page order: the Bexio panel comes first. #}
+        <a class="nx-fin-jump__item nx-fin-jump__item--bexio" href="#fin-bexio" title="{{ _('Bexio') }} · {{ _('Invoices') }}">
+          <span class="nx-fin-jump__tile" aria-hidden="true">Bx</span><span class="nx-fin-jump__label">{{ _("Bexio") }}</span>
+        </a>
+        <span class="nx-fin-jump__sep" aria-hidden="true"></span>
+        {{ jump_items(internal_sections) }}
+        <span class="nx-fin-jump__sep" aria-hidden="true"></span>
+        {{ jump_items(external_sections) }}
+        <span class="nx-fin-jump__sep" aria-hidden="true"></span>
+        {{ jump_items(service_sections) }}
+      </nav>
+    </section>
 
     {% if can_close %}
     {# In-page confirmation (the viewer has no confirm()); one panel serves
@@ -133,13 +160,47 @@
     </div>
     {% endif %}
 
-    <h2 class="nx-fin-group nx-rise-3">{{ _("Internal customers") }}</h2>
+    {# Month picker: the months with their close state. A pick is a
+       navigation to ?month=, as before; the URL stays the truth. #}
+    {{ sydoc.picker_open("fin-picker", _("Choose month"), "finance-period-picker") }}
+      <div data-month="{{ month }}" hidden></div>
+      {{ sydoc.year_switch(_("Previous year"), _("Next year")) }}
+      <div class="nx-sydoc-picker__grid" data-role="months"></div>
+      <div class="nx-sydoc-picker__legend">
+        <span><i class="fas fa-lock" aria-hidden="true"></i> {{ _("Closed, figures frozen") }}</span>
+        <span><span class="nx-sydoc-dot nx-fin-dot--open"></span> {{ _("Open, live") }}</span>
+        <span><span class="nx-sydoc-dot nx-sydoc-dot--running"></span> {{ _("Still running") }}</span>
+      </div>
+    {{ sydoc.picker_close() }}
+
+    {# What was invoiced in Bexio for this month (#423), read live and
+       read-only; filled by finance_bexio.js from /api/finance/bexio. #}
+    {{ group_head(_("Invoiced in Bexio")) }}
+    <section class="nx-fin-section nx-fin-bexio" id="fin-bexio" aria-busy="true" data-testid="finance-bexio">
+      <div class="nx-fin-id">
+        <h3 class="nx-fin-id__client">{{ _("Bexio") }}</h3>
+        <p class="nx-fin-id__title">{{ _("Invoices") }}</p>
+        <p class="nx-fin-id__meta" data-role="meta">{{ _("Loading…") }}</p>
+        <button type="button" class="nx-btn nx-btn--ghost nx-btn--sm nx-fin-bexio__refresh" id="fin-bexio-refresh" data-testid="finance-bexio-refresh">
+          <i class="fas fa-rotate" aria-hidden="true"></i> {{ _("Refresh") }}
+        </button>
+      </div>
+      <div class="nx-fin-lines" data-role="body">
+        <div class="nx-fin-skel" aria-hidden="true">
+          <div class="nx-fin-skel__line skeleton-shimmer"></div>
+          <div class="nx-fin-skel__line skeleton-shimmer"></div>
+          <div class="nx-fin-skel__line skeleton-shimmer"></div>
+        </div>
+      </div>
+    </section>
+
+    {{ group_head(_("Internal customers"), internal_sections|length) }}
     {% for s in internal_sections %}{{ section_shell(s) }}{% endfor %}
 
-    <h2 class="nx-fin-group nx-rise-3">{{ _("External clients") }}</h2>
+    {{ group_head(_("External clients"), external_sections|length) }}
     {% for s in external_sections %}{{ section_shell(s) }}{% endfor %}
 
-    <h2 class="nx-fin-group nx-rise-3">{{ _("Sydoc services") }}</h2>
+    {{ group_head(_("Sydoc services"), service_sections|length) }}
     {% for s in service_sections %}{{ section_shell(s) }}{% endfor %}
   </main>
 

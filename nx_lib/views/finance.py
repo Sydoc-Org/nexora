@@ -25,8 +25,9 @@ import json
 from zoneinfo import ZoneInfo
 
 from flask import Response, abort, current_app, jsonify, render_template, request, session
-from flask_babel import format_date, format_datetime, get_locale, gettext
+from flask_babel import format_date, format_datetime, format_decimal, get_locale, gettext, ngettext
 
+from .. import finance_export
 from ..db import engine_nexora_db
 from ..extensions import limiter
 from ..finance import (
@@ -168,6 +169,28 @@ def _closed_safe(month):
         return {}
 
 
+def _closed_months():
+    """Every month that has a close snapshot, as 'YYYY-MM' keys."""
+    if engine_nexora_db is None:
+        return set()
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT DISTINCT Month FROM dbo.FinanceMonthClose")
+        return {str(r[0]) for r in cur.fetchall()}
+    finally:
+        conn.close()
+
+
+def _closed_months_safe():
+    """_closed_months(), but a read failure degrades to 'none closed' (logged)."""
+    try:
+        return _closed_months()
+    except Exception as e:
+        current_app.logger.warning(f"finance: could not read the closed months: {e}")
+        return set()
+
+
 def _local(at):
     """ClosedAt is stored in UTC (SYSUTCDATETIME); Sydoc reads Swiss time."""
     return at.replace(tzinfo=dt.UTC).astimezone(LOCAL_TZ)
@@ -225,17 +248,36 @@ def finance():
     translate = gettext  # an alias, so pybabel does not extract the variable as a msgid
     for d in descriptors:
         d["title"] = translate(d["title"]) if d["title"] else None
+        d["nav"] = translate(d["nav"])
+    options = month_options(today)
+    option_keys = {key for key, _y, _m in options}
+    closed_months = _closed_months_safe()
+
+    def state(key, y, m):
+        if (y, m) == (today.year, today.month):
+            return "running"
+        return "closed" if key in closed_months else "open"
+
+    prev_key = month_key(prev_y, prev_m)
     return render_template(
         "finance.html",
         page_visibility=page_visibility(),
         month=month_key(year, month),
         month_label=_month_label(year, month),
-        prev_month=month_key(prev_y, prev_m),
+        month_name=format_date(dt.date(year, month, 1), "LLLL"),
+        month_year=str(year),
+        today=today.isoformat(),
+        prev_month_name=format_date(dt.date(prev_y, prev_m, 1), "LLLL"),
+        # Inert at the oldest pickable month, like next at the current one.
+        prev_month=prev_key if prev_key in option_keys else None,
         next_month=None if is_current else month_key(next_y, next_m),
         is_current_month=is_current,
         closed=_closed_info(_closed_safe(month_key(year, month))),
         can_close=has_permission("finance.month.edit") and not is_current,
-        months=[{"value": key, "label": _month_label(y, m)} for key, y, m in month_options(today)],
+        months=[
+            {"value": key, "label": _month_label(y, m), "state": state(key, y, m)}
+            for key, y, m in options
+        ],
         internal_sections=[d for d in descriptors if d["group"] == "internal"],
         external_sections=[d for d in descriptors if d["group"] == "external"],
         service_sections=[d for d in descriptors if d["group"] == "services"],
@@ -255,27 +297,38 @@ def api_finance_section(key):
     live["month"] = mkey
     if snapshot is None:
         live["closed"] = None
-        return jsonify(live)
+        return jsonify(_with_exports(section, live))
     payload = snapshot["payload"]
     payload["month"] = mkey
     payload["closed"] = _closed_info({key: snapshot})
     # None = the live figures could not be read, [] = nothing moved since the close.
     payload["live_diff"] = None if live.get("error") else diff_payload(payload, live)
-    return jsonify(payload)
+    return jsonify(_with_exports(section, payload))
 
 
-@require_permission("finance.month.edit")
-@limiter.limit("10 per minute")
-def api_finance_close():
-    ym, err = _month_to_close()
-    if err:
-        return err
-    year, month = ym
+def _with_exports(section, payload):
+    """The invoice sheets the BPS export offers for this payload (never stored
+    in a snapshot: they are derived from its bookings when served)."""
+    if section.bookings is not None and not payload.get("error"):
+        payload["exports"] = [
+            {"key": s.key, "title": s.title, "count": len(s.rows)}
+            for s in finance_export.sheets(payload, section.bookings)
+        ]
+    return payload
+
+
+def close_month(year, month, by):
+    """Snapshot every section of an ended month into dbo.FinanceMonthClose.
+
+    None when closed, else (message, HTTP status). Shared by the close
+    route and scripts/finance-close-months.py, which closes the months that
+    were invoiced before the page existed.
+    """
     mkey = month_key(year, month)
     if engine_nexora_db is None:
-        return jsonify({"error": gettext("Could not close the month.")}), 503
+        return gettext("Could not close the month."), 503
     if _closed(mkey):
-        return jsonify({"error": gettext("This month is already closed.")}), 409
+        return gettext("This month is already closed."), 409
     payloads = [_section_payload(s, year, month) for s in SECTIONS]
     failed = [p for p in payloads if p.get("error")]
     if failed:
@@ -283,8 +336,7 @@ def api_finance_close():
         message = gettext(
             "The month cannot be closed while a section cannot be read: %(names)s", names=names
         )
-        return jsonify({"error": message}), 409
-    by = _actor()
+        return message, 409
     conn = engine_nexora_db.raw_connection()
     try:
         cur = conn.cursor()
@@ -299,10 +351,25 @@ def api_finance_close():
     except Exception as e:
         conn.rollback()
         current_app.logger.error(f"finance: closing {mkey} failed: {e}")
-        return jsonify({"error": gettext("Could not close the month.")}), 500
+        return gettext("Could not close the month."), 500
     finally:
         conn.close()
     current_app.logger.info(f"finance: {mkey} closed by {by}")
+    return None
+
+
+@require_permission("finance.month.edit")
+@limiter.limit("10 per minute")
+def api_finance_close():
+    ym, err = _month_to_close()
+    if err:
+        return err
+    year, month = ym
+    error = close_month(year, month, _actor())
+    if error:
+        message, status = error
+        return jsonify({"error": message}), status
+    mkey = month_key(year, month)
     return jsonify({"ok": True, "month": mkey})
 
 
@@ -367,6 +434,89 @@ def api_finance_export():
     )
 
 
+BPS_EXPORT_FORMATS = {
+    "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "pdf": "application/pdf",
+}
+
+
+def _export_labels(month_label):
+    return {
+        "title": gettext("Sydoc BPS · billable hours"),
+        "overview": gettext("Overview"),
+        "invoice": gettext("Invoice"),
+        "bookings": gettext("Bookings"),
+        "bookings_n": lambda n: ngettext("%(num)d booking", "%(num)d bookings", n),
+        "hours": gettext("Hours"),
+        "billed": gettext("Billed (¼ h)"),
+        "total": gettext("Total"),
+        "date": gettext("Date"),
+        "package": gettext("Package"),
+        "task": gettext("Task"),
+        "person": gettext("Person"),
+        "comment": gettext("Comment"),
+        "empty": gettext("No billable hours in %(month)s", month=month_label),
+    }
+
+
+@require_permission("finance.view")
+@limiter.limit("20 per minute")
+def api_finance_bps_export():
+    """The billable BPS hours of a month as .xlsx or .pdf (#408).
+
+    ?sheet=all (default) is every invoice in one file -- one sheet (or PDF
+    section) each, behind an overview; ?sheet=<key> is that invoice alone;
+    ?files=separate with sheet=all is a .zip holding one file per invoice.
+    A closed month exports its snapshot, like the page shows it.
+    """
+    section = SECTIONS_BY_KEY["bps"]
+    fmt = request.args.get("format", "xlsx")
+    if fmt not in BPS_EXPORT_FORMATS:
+        return jsonify({"error": gettext("Unknown export format.")}), 400
+    year, month = parse_month(request.args.get("month"))
+    key = month_key(year, month)
+    snap = _closed_safe(key).get(section.key)
+    payload = snap["payload"] if snap else _section_payload(section, year, month)
+    if payload.get("error"):
+        return jsonify({"error": payload["error"]}), 503
+    sheets = finance_export.sheets(payload, section.bookings)
+    wanted = request.args.get("sheet") or "all"
+    if wanted != "all":
+        sheets = [s for s in sheets if s.key == wanted]
+        if not sheets:
+            return jsonify({"error": gettext("Nothing to export for this invoice.")}), 404
+    month_label = _month_label(year, month)
+    labels = _export_labels(month_label)
+
+    def render(items):
+        if fmt == "pdf":
+            return finance_export.pdf(
+                items,
+                labels,
+                month_label,
+                number=lambda v: format_decimal(v, format="#,##0.00"),
+            )
+        return finance_export.workbook(items, labels, month_label)
+
+    stem = f"sydoc-bps-{key}" + ("-closed" if snap else "")
+    if wanted == "all" and request.args.get("files") == "separate" and sheets:
+        body = finance_export.zipped([(f"{stem}-{s.key}.{fmt}", render([s])) for s in sheets])
+        name, mimetype = f"{stem}.zip", "application/zip"
+    else:
+        body = render(sheets)
+        suffix = "" if wanted == "all" else f"-{wanted}"
+        name, mimetype = f"{stem}{suffix}.{fmt}", BPS_EXPORT_FORMATS[fmt]
+    return Response(
+        body,
+        mimetype=mimetype,
+        headers={
+            "Content-Disposition": f'attachment; filename="{name}"',
+            # Private accounting data: never cache (tests/unit/test_static_v_lint.py).
+            "Cache-Control": "no-store",
+        },
+    )
+
+
 def register_routes(app):
     app.add_url_rule("/finance", endpoint="finance", view_func=finance)
     app.add_url_rule(
@@ -390,4 +540,9 @@ def register_routes(app):
         "/api/finance/export.csv",
         endpoint="api_finance_export",
         view_func=api_finance_export,
+    )
+    app.add_url_rule(
+        "/api/finance/bps-export",
+        endpoint="api_finance_bps_export",
+        view_func=api_finance_bps_export,
     )

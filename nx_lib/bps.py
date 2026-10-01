@@ -1,8 +1,9 @@
 """Sydoc BPS -- the hours booked in the BPS timetool, and which of them are billed (#415).
 
 Pure and DB-free, like nx_lib/finance.py. The timetool's export lands in
-SYDOC_Statistik.dbo.BPS_ProjectReport (the ``bps_projects`` reporting source,
-0124): one row per booking with customer (Kunde), project package
+SYDOC_Statistik.dbo.BPS_ProjectReport; the ``bps_projects`` reporting source
+(0124, repointed by 0142) reads the view dbo.BPS_ProjectReportAll, which adds
+the one-off history load before the feed's first date (#424): one row per booking with customer (Kunde), project package
 (Projektpaket), task (Aufgabe), person (Benutzer), date, hours and a comment.
 BPS has no billing flag; what is billed is a property of the task name, and
 it lives here, once, for both the Finance page (every billable booking,
@@ -19,7 +20,7 @@ from __future__ import annotations
 
 import datetime as dt
 import html
-from decimal import Decimal
+from decimal import ROUND_CEILING, Decimal
 
 from .reporting.semantic import resolve_metrics
 from .reporting.table_query import build_generic_query
@@ -41,6 +42,8 @@ INTERNAL_CUSTOMERS = ("sydoc", "sydoc intern")
 ABSENCES = "Absences"
 #: File preparation is billed only on Privera's new-dossier stream.
 PREPARATION = ("Vorbereitung Akten", "Privera", "Tagesgeschäft Neuzugänge")
+#: A booking is billed in quarter hours, each one rounded up on its own.
+BILLING_STEP = Decimal("0.25")
 
 BILLABLE_RULES = (
     (
@@ -82,6 +85,23 @@ def is_billable(task, customer, package):
     if _norm(task) in _BILLABLE_TASKS_N and _norm(customer) not in _INTERNAL_N:
         return True
     return (_norm(task), _norm(customer), _norm(package)) == tuple(_norm(p) for p in PREPARATION)
+
+
+def billed_hours(hours):
+    """The hours a booking is billed for: rounded up to the next quarter hour.
+
+    Each booking is rounded on its own (0.33 h -> 0.5 h), never the month's
+    sum; a booking already on a quarter stays as it is. Decimal throughout,
+    so 0.5 does not become 0.75 through float noise.
+    """
+    if hours is None:
+        return 0
+    value = Decimal(str(hours))
+    if value <= 0:
+        return 0
+    steps = (value / BILLING_STEP).to_integral_value(rounding=ROUND_CEILING)
+    billed = steps * BILLING_STEP
+    return int(billed) if billed == billed.to_integral_value() else float(billed)
 
 
 def category(task, customer, package):
@@ -142,6 +162,52 @@ def range_filters(first, last):
         {"field": "Datum", "op": "gte", "value": first.isoformat()},
         {"field": "Datum", "op": "lt", "value": (last + dt.timedelta(days=1)).isoformat()},
     ]
+
+
+def previous_range(first, last):
+    """The period a range is compared with ("vs. July").
+
+    Whole calendar months compare with as many months just before (August with
+    July, Jun-Aug with Mar-May); a month so far (1-29 Sep) with the same days
+    of the month before (1-29 Aug); anything else with as many days just before.
+    """
+    prev_last = first - dt.timedelta(days=1)
+    months = _whole_months(first, last)
+    if months:
+        return _add_months(first, -months), prev_last
+    if first.day == 1 and (first.year, first.month) == (last.year, last.month):
+        start = _add_months(first, -1)
+        return start, min(start + dt.timedelta(days=last.day - 1), prev_last)
+    return prev_last - dt.timedelta(days=(last - first).days), prev_last
+
+
+def next_range(first, last, today=None):
+    """The period after a range -- as many months (whole months) or days after
+    it -- or None when it would start after today. The end is not clamped, so
+    stepping keeps the period's shape (week 39 -> week 40, not 28-30 Sep);
+    the page clamps only the picker's date inputs, which stop at today."""
+    today = today or dt.date.today()
+    start = last + dt.timedelta(days=1)
+    if start > today:
+        return None
+    months = _whole_months(first, last)
+    if months:
+        end = _add_months(start, months) - dt.timedelta(days=1)
+    else:
+        end = start + dt.timedelta(days=(last - first).days)
+    return start, end
+
+
+def _add_months(first_of_month, n):
+    index = first_of_month.year * 12 + first_of_month.month - 1 + n
+    return dt.date(index // 12, index % 12 + 1, 1)
+
+
+def _whole_months(first, last):
+    """How many calendar months first..last covers exactly, else 0."""
+    if first.day != 1 or (last + dt.timedelta(days=1)).day != 1:
+        return 0
+    return (last.year - first.year) * 12 + last.month - first.month + 1
 
 
 # --------------------------------------------------------------------------
@@ -210,6 +276,59 @@ def entries_query(base_object, catalog, first, last, where):
         "sort": [{"field": "Datum", "dir": "asc"}, {"field": "Benutzer", "dir": "asc"}],
     }
     return build_generic_query(rd, base_object, catalog, row_cap=ENTRIES_ROW_CAP)
+
+
+MONTHS_ROW_CAP = 1000
+
+
+def months_query(base_object, catalog):
+    """Hours per calendar month over the whole history -- the period picker's cells."""
+    fields = _require(catalog, ("Datum", "Stunden"))
+    resolved = resolve_metrics([{"metric": "hours"}], _TOTALS, fields)
+    rd = {
+        "columns": [{"field": "Datum", "grain": "month"}],
+        "filters": [],
+        "metrics": [{"metric": "hours"}],
+        "sort": [],
+    }
+    return build_generic_query(
+        rd, base_object, catalog, row_cap=MONTHS_ROW_CAP, resolved_metrics=resolved
+    )
+
+
+_SPAN = {
+    "first": {"aggregation": "min", "base_field": "Datum", "filter": None},
+    "latest": {"aggregation": "max", "base_field": "Datum", "filter": None},
+}
+
+
+def span_query(base_object, catalog):
+    """The dates of the oldest and the newest booking in the source: where the
+    prev arrow stops, and how fresh the export is."""
+    fields = _require(catalog, ("Datum",))
+    metrics = [{"metric": "first"}, {"metric": "latest"}]
+    resolved = resolve_metrics(metrics, _SPAN, fields)
+    rd = {"columns": [], "filters": [], "metrics": metrics, "sort": []}
+    return build_generic_query(rd, base_object, catalog, row_cap=1, resolved_metrics=resolved)
+
+
+def span_payload(rows):
+    """[(min date, max date)] -> {'first': 'YYYY-MM-DD', 'latest': ...}, None for none."""
+    row = rows[0] if rows else (None, None)
+    return {
+        k: (_day(v) if v is not None else None)
+        for k, v in zip(("first", "latest"), row, strict=False)
+    }
+
+
+def months_payload(rows):
+    """[(month start, hours)] -> {'YYYY-MM': hours}, months without hours left out."""
+    out = {}
+    for r in rows:
+        value = _num(r[1])
+        if value and r[0] is not None:
+            out[_day(r[0])[:7]] = value
+    return out
 
 
 def _num(value):

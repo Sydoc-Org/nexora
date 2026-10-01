@@ -4,6 +4,7 @@ Routes covered:
 - GET /finance                          page (finance.view-gated)
 - GET /api/finance/section/<key>        one section's figures as JSON
 - GET /api/finance/export.csv           the whole month as CSV
+- GET /api/finance/bps-export           billable BPS hours as .xlsx / .pdf / .zip
 - POST /api/finance/close|reopen        freeze / unfreeze a month (#415)
 
 The test tier seeds finance.view (sql/test/seed.sql, TestAdmin holds every
@@ -90,7 +91,13 @@ def test_finance_anonymous_redirects_to_login(client):
 
 
 @pytest.mark.parametrize(
-    "path", ["/finance", "/api/finance/section/compass", "/api/finance/export.csv"]
+    "path",
+    [
+        "/finance",
+        "/api/finance/section/compass",
+        "/api/finance/export.csv",
+        "/api/finance/bps-export?month=2026-09",
+    ],
 )
 def test_finance_without_perm_returns_403(noperm_client, path):
     assert noperm_client.get(path).status_code == 403
@@ -123,7 +130,10 @@ def test_finance_page_renders_every_section_shell(admin_client):
         "bps",
     ):
         assert f'data-testid="finance-section-{key}"' in html
-    assert 'value="2026-08" selected' in html
+    assert 'data-month="2026-08"' in html  # the picker's selected month
+    assert 'data-testid="finance-period-button"' in html
+    assert 'class="nx-app nx-sydoc"' in html
+    assert ">August<" in html  # the headline's month word
     assert "month=2026-07" in html  # the previous-month link
     assert "export.csv?month=2026-08" in html
 
@@ -131,7 +141,14 @@ def test_finance_page_renders_every_section_shell(admin_client):
 def test_finance_page_ignores_a_garbage_month(admin_client):
     resp = admin_client.get("/finance?month=nope")
     assert resp.status_code == 200
-    assert 'data-testid="finance-month-select"' in resp.get_data(as_text=True)
+    assert 'data-testid="finance-period-button"' in resp.get_data(as_text=True)
+
+
+def test_finance_page_marks_closed_months_for_the_picker(admin_client, monkeypatch):
+    monkeypatch.setattr(fv, "_closed_months_safe", lambda: {"2026-07"})
+    html = admin_client.get("/finance?month=2026-08").get_data(as_text=True)
+    assert '"value": "2026-07"' in html
+    assert '"state": "closed"' in html
 
 
 def test_finance_page_is_reachable_from_the_sidebar(admin_client):
@@ -306,3 +323,93 @@ def test_a_closed_month_serves_its_snapshot_and_reports_live_drift(
     assert admin_client.post("/api/finance/reopen?month=2026-08").status_code == 404
     body = admin_client.get("/api/finance/section/compass?month=2026-08").get_json()
     assert body["closed"] is None and body["blocks"][0]["figures"][0]["value"] == 9
+
+
+# ---- the BPS hours export -------------------------------------------------
+
+
+def _bps_payload():
+    from nx_lib.finance import SECTIONS_BY_KEY
+
+    spec = SECTIONS_BY_KEY["bps"].bookings
+    cols = [{"field": f} for f in spec.columns] + [{"field": "billed"}]
+
+    def row(customer, package, hours):
+        return ["2026-09-02", customer, package, "Change", "Ben", hours, "Kommentar ä", 0]
+
+    return {
+        "key": "bps",
+        "error": None,
+        "bookings": {
+            "columns": cols,
+            "groups": [
+                {"key": "Aveniq", "rows": [row("Aveniq", "BFH", 0.3333)]},
+                {
+                    "key": "Privera",
+                    "rows": [
+                        row("Privera", "Tagesgeschäft Neuzugänge", 1),
+                        row("Privera", "Posteingang", 0.5),
+                    ],
+                },
+            ],
+        },
+    }
+
+
+@pytest.fixture()
+def bps_payload(monkeypatch):
+    monkeypatch.setattr(fv, "_section_payload", lambda section, y, m: _bps_payload())
+
+
+def test_bps_export_is_one_workbook_with_a_sheet_per_invoice(admin_client, bps_payload):
+    import io
+
+    from openpyxl import load_workbook
+
+    resp = admin_client.get("/api/finance/bps-export?month=2026-09&format=xlsx")
+    assert resp.status_code == 200
+    assert 'filename="sydoc-bps-2026-09.xlsx"' in resp.headers["Content-Disposition"]
+    assert resp.headers["Cache-Control"] == "no-store"
+    wb = load_workbook(io.BytesIO(resp.data))
+    # The overview, then the page's order: Privera before Aveniq, its streams split.
+    assert wb.sheetnames[1:] == ["Privera Posteingang", "Privera Neuzugänge", "Aveniq"]
+    aveniq = wb["Aveniq"]
+    values = [c.value for c in aveniq[6]]
+    assert values[5:] == [0.3333, 0.5]  # booked, billed (rounded up to the quarter)
+
+
+def test_bps_export_one_invoice_as_pdf(admin_client, bps_payload):
+    resp = admin_client.get(
+        "/api/finance/bps-export?month=2026-09&format=pdf&sheet=privera-neuzugaenge"
+    )
+    assert resp.status_code == 200
+    assert resp.mimetype == "application/pdf" and resp.data.startswith(b"%PDF")
+    assert "sydoc-bps-2026-09-privera-neuzugaenge.pdf" in resp.headers["Content-Disposition"]
+
+
+def test_bps_export_separate_files_come_as_a_zip(admin_client, bps_payload):
+    import io
+    import zipfile
+
+    resp = admin_client.get("/api/finance/bps-export?month=2026-09&format=pdf&files=separate")
+    assert resp.status_code == 200 and resp.mimetype == "application/zip"
+    names = zipfile.ZipFile(io.BytesIO(resp.data)).namelist()
+    assert names == [
+        "sydoc-bps-2026-09-privera-posteingang.pdf",
+        "sydoc-bps-2026-09-privera-neuzugaenge.pdf",
+        "sydoc-bps-2026-09-aveniq.pdf",
+    ]
+
+
+def test_bps_export_refuses_an_unknown_format_or_invoice(admin_client, bps_payload):
+    assert admin_client.get("/api/finance/bps-export?format=docx").status_code == 400
+    assert admin_client.get("/api/finance/bps-export?sheet=nope").status_code == 404
+
+
+def test_bps_section_lists_its_export_sheets(admin_client, bps_payload):
+    body = admin_client.get("/api/finance/section/bps?month=2026-09").get_json()
+    assert [e["key"] for e in body["exports"]] == [
+        "privera-posteingang",
+        "privera-neuzugaenge",
+        "aveniq",
+    ]

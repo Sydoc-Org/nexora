@@ -102,6 +102,18 @@
   --nx-violet-border: #ddd6fe;
   --nx-radius-lg: calc(var(--nx-radius-scale, 1) * 12px);
   --nx-radius-hero: calc(var(--nx-radius-scale, 1) * 16px);
+  /* Sydoc's own books (Finance, BPS) -- README of design_handoff_sydoc_finance_bps */
+  --nx-sydoc:           #e3633f;
+  --nx-sydoc-hover:     #ec7656;
+  --nx-sydoc-soft:      #f08a6c;
+  --nx-sydoc-ink-text:  #b2401f;
+  --nx-sydoc-band:      #111318;
+  --nx-sydoc-band-line: rgba(255,255,255,.08);
+  --nx-sydoc-band-ctl:  rgba(255,255,255,.14);
+  /* Small muted text on ink: the design's #6b7280 is 3.8:1 there, this is 4.9:1. */
+  --nx-sydoc-ink-muted: #7c8492;
+  --nx-gain:            #047857;
+  --nx-loss:            #b91c1c;
   --nx-card-hover-border: color-mix(in srgb, var(--nx-accent) 40%, white);
   --nx-card-hover-shadow: 0 8px 24px -8px color-mix(in srgb, var(--nx-accent) 18%, transparent);
 
@@ -135,6 +147,10 @@
 
 html.dark {
   --nx-page:        #0f172a;
+  --nx-sydoc-band:      #0b0d12;
+  --nx-sydoc-ink-text:  #f08a6c;
+  --nx-gain:            #34d399;
+  --nx-loss:            #f87171;
   --nx-card:        #1e293b;
   --nx-alt:         #273449;
   --nx-sunken:      #273449;
@@ -811,6 +827,8 @@ html.nx-motion-reduced *::after {
   content: ""; position: absolute; left: -8px; top: 50%; transform: translateY(-50%);
   width: 3px; height: 24px; border-radius: 0 3px 3px 0; background: var(--nx-brand-grad);
 }
+body.nx-sydoc .sidebar-nav-item--active::before { background: var(--nx-sydoc); }
+body.nx-app.nx-sydoc .nx-main { padding-top: 36px; }
 
 /* KPI stat icon chips (token-based so they adapt to dark mode) */
 .nx-stat__chip { width: 44px; height: 44px; border-radius: calc(var(--nx-radius-scale, 1) * 12px); flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
@@ -1183,6 +1201,212 @@ body.nx-app .reporting-shell {
 .perms-columns-row label { display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .perms-col-move { display: flex; gap: 0; flex: none; }
 .nx-btn:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+
+/* ---- Sydoc band + period picker (Finance, BPS) ----
+   Sydoc's own books share an ink header band, a period headline and a
+   month-picker modal, so the two pages read as a mirrored pair. Values are
+   the approved design 1a in docs/design/design_handoff_sydoc_finance_bps. */
+.nx-sydoc-band {
+  background: var(--nx-sydoc-band); border-radius: var(--nx-radius-hero);
+  color: #e5e7eb; overflow: hidden; padding: 22px 30px 26px;
+}
+.nx-sydoc-band--flush { padding: 22px 30px 0; }
+.nx-sydoc-band__row1 { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.nx-sydoc-mark {
+  width: 22px; height: 26px; flex-shrink: 0;
+  background: url("../images/sydoc-mark.png") center / contain no-repeat;
+}
+.nx-sydoc-eyebrow {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .12em;
+  color: var(--nx-sydoc-soft); white-space: nowrap;
+}
+.nx-sydoc-eyebrow--muted { color: var(--nx-sydoc-ink-muted); }
+.nx-sydoc-band__spacer { flex: 1; }
+.nx-sydoc-band__actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.nx-sydoc-btn {
+  display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 12px;
+  border-radius: 8px; border: 1px solid transparent; background: transparent;
+  font: inherit; font-size: 12.5px; font-weight: 600; white-space: nowrap;
+  text-decoration: none; cursor: pointer; color: #e5e7eb;
+  transition: background-color var(--nx-dur) var(--nx-ease), color var(--nx-dur) var(--nx-ease);
+}
+.nx-sydoc-btn i { color: #9ca3af; font-size: 12px; }
+.nx-sydoc-btn:focus-visible { outline: 2px solid var(--nx-sydoc-soft); outline-offset: 2px; }
+.nx-sydoc-btn--primary { background: var(--nx-sydoc); color: #111318; }
+.nx-sydoc-btn--primary i { color: inherit; }
+.nx-sydoc-btn--primary:hover { background: var(--nx-sydoc-hover); }
+.nx-sydoc-btn--ghost { border-color: var(--nx-sydoc-band-ctl); color: #e5e7eb; }
+.nx-sydoc-btn--ghost:hover { background: rgba(255,255,255,.06); }
+.nx-sydoc-btn--link { color: #d1d5db; }
+.nx-sydoc-btn--link:hover { background: rgba(255,255,255,.06); color: #fff; }
+.nx-sydoc-btn--ink { background: #111318; color: #fff; }
+.nx-sydoc-btn--ink:hover { background: #1f2937; }
+.nx-sydoc-btn--ink i { color: var(--nx-sydoc-soft); }
+
+.nx-sydoc-band__row2 { margin-top: 22px; display: flex; align-items: flex-end; gap: 40px; flex-wrap: wrap; }
+.nx-sydoc-band__lead { flex: 1 1 520px; min-width: 0; }
+.nx-sydoc-band__h1 { font-size: 14px; font-weight: 600; color: #9ca3af; letter-spacing: -.01em; margin: 0; }
+.nx-sydoc-headline { margin-top: 6px; display: flex; align-items: center; gap: 14px; }
+.nx-sydoc-nav {
+  width: 36px; height: 36px; border-radius: 99px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--nx-sydoc-band-ctl); background: transparent; color: #d1d5db;
+  font-size: 12px; text-decoration: none;
+  transition: background-color var(--nx-dur) var(--nx-ease);
+}
+.nx-sydoc-nav:hover { background: rgba(255,255,255,.08); color: #fff; }
+.nx-sydoc-nav:focus-visible { outline: 2px solid var(--nx-sydoc-soft); outline-offset: 2px; }
+.nx-sydoc-nav[aria-disabled="true"] { opacity: .35; pointer-events: none; }
+.nx-sydoc-period {
+  display: inline-flex; align-items: baseline; gap: 12px; white-space: nowrap;
+  border: none; background: none; padding: 0; margin: 0; font: inherit; cursor: pointer; min-width: 0;
+}
+.nx-sydoc-period:focus-visible { outline: 2px solid var(--nx-sydoc-soft); outline-offset: 4px; border-radius: 6px; }
+.nx-sydoc-period__main { font-size: 54px; font-weight: 600; letter-spacing: -2.2px; line-height: 1; color: #fff; }
+.nx-sydoc-period__year { font-size: 54px; font-weight: 400; letter-spacing: -2.2px; line-height: 1; color: #6b7280; font-variant-numeric: tabular-nums; }
+.nx-sydoc-period__chev { font-size: 14px; color: #6b7280; align-self: center; }
+.nx-sydoc-period:hover .nx-sydoc-period__chev { color: #d1d5db; }
+.nx-sydoc-hint { margin: 12px 0 0; font-size: 12.5px; line-height: 1.5; color: #9ca3af; max-width: 64ch; }
+
+/* Status grid: eyebrows on row 1, values on row 2. */
+.nx-sydoc-stats { display: grid; grid-template-rows: auto auto; grid-auto-flow: column; gap: 4px 36px; }
+.nx-sydoc-stats__k { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--nx-sydoc-ink-muted); white-space: nowrap; }
+.nx-sydoc-stats__v { font-size: 14px; font-weight: 600; color: #f3f4f6; white-space: nowrap; display: inline-flex; align-items: center; gap: 7px; font-variant-numeric: tabular-nums; }
+.nx-sydoc-stats__v.is-failed { color: var(--nx-danger); }
+.nx-sydoc-dot { width: 8px; height: 8px; border-radius: 99px; background: #6b7280; flex-shrink: 0; display: inline-block; }
+.nx-sydoc-dot--live { background: #34d399; }
+.nx-sydoc-dot--running { background: #f59e0b; }
+.nx-sydoc-dot--failed { background: var(--nx-danger); }
+
+/* Track switch: a segmented control on a grey track. */
+.nx-track { display: inline-flex; background: #f3f4f6; padding: 3px; border-radius: 10px; gap: 2px; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.nx-track::-webkit-scrollbar { display: none; }
+.nx-track__btn {
+  display: inline-flex; align-items: center; gap: 6px; height: 27px; padding: 0 11px;
+  border-radius: 7px; border: none; background: transparent; color: #636a76; /* #6b7280 is 4.4:1 on the track */
+  font: inherit; font-size: 11.5px; font-weight: 600; white-space: nowrap; cursor: pointer;
+}
+.nx-track__btn:hover { color: #1f2937; }
+.nx-track__btn.is-active, .nx-track__btn[aria-pressed="true"] { background: #fff; box-shadow: 0 1px 2px rgba(16,24,40,.1); color: #1f2937; }
+.nx-track__btn:focus-visible { outline: 2px solid var(--nx-accent); outline-offset: 1px; }
+html.dark .nx-track { background: var(--nx-alt); }
+html.dark .nx-track__btn { color: var(--nx-text-sec); }
+html.dark .nx-track__btn:hover { color: var(--nx-text); }
+html.dark .nx-track__btn.is-active, html.dark .nx-track__btn[aria-pressed="true"] { background: var(--nx-card); color: var(--nx-text); }
+
+/* Period picker modal */
+.nx-sydoc-picker {
+  position: fixed; inset: 0; z-index: var(--z-modal, 61);
+  background: rgba(17,19,24,.45);
+  display: flex; flex-direction: column; align-items: center; padding: 150px 16px 16px;
+  animation: nx-sydoc-fade 150ms var(--nx-ease);
+}
+.nx-sydoc-picker[hidden] { display: none; }
+@keyframes nx-sydoc-fade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .nx-sydoc-picker { animation: none; } }
+@media (max-height: 760px) { .nx-sydoc-picker { padding-top: 40px; } }
+.nx-sydoc-picker__panel {
+  background: var(--nx-card); color: var(--nx-text); border-radius: 14px;
+  box-shadow: 0 24px 64px rgba(16,24,40,.28), 0 0 0 1px rgba(16,24,40,.06);
+  width: 440px; max-width: calc(100vw - 32px); max-height: calc(100vh - 56px); overflow-y: auto;
+}
+.nx-sydoc-picker__panel--wide { width: 460px; }
+.nx-sydoc-picker__head { display: flex; align-items: center; padding: 16px 18px 14px; border-bottom: 1px solid var(--nx-divider); }
+.nx-sydoc-picker__title { flex: 1; margin: 0; font-size: 15px; font-weight: 700; letter-spacing: -.02em; color: var(--nx-text); }
+.nx-sydoc-picker__close {
+  width: 28px; height: 28px; border-radius: 7px; border: none; background: transparent;
+  color: var(--nx-text-meta); cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+}
+.nx-sydoc-picker__close:hover { background: var(--nx-divider); color: var(--nx-text); }
+.nx-sydoc-picker__section { padding: 14px 18px 0; }
+.nx-sydoc-picker__eyebrow { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--nx-text-meta); margin: 0 0 8px; }
+.nx-sydoc-picker__pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.nx-sydoc-picker__year { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px 6px; }
+.nx-sydoc-picker__year-btn {
+  width: 30px; height: 30px; border-radius: 99px; border: 1px solid var(--nx-border); background: var(--nx-card);
+  color: var(--nx-text-sec); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 11px;
+}
+.nx-sydoc-picker__year-btn:hover:not([disabled]) { background: var(--nx-alt); color: var(--nx-text); }
+.nx-sydoc-picker__year-btn[disabled] { opacity: .4; cursor: default; }
+.nx-sydoc-picker__year-num { font-size: 22px; font-weight: 600; letter-spacing: -.8px; font-variant-numeric: tabular-nums; color: var(--nx-text); }
+.nx-sydoc-picker__grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 14px 18px 0; padding-bottom: 16px; }
+.nx-sydoc-picker__cell {
+  height: 62px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--nx-border);
+  background: var(--nx-card); text-align: left; cursor: pointer; font: inherit;
+  display: flex; flex-direction: column; justify-content: space-between; min-width: 0;
+}
+.nx-sydoc-picker__grid--compact .nx-sydoc-picker__cell { height: 58px; }
+.nx-sydoc-picker__cell:hover:not([disabled]):not(.is-selected) { border-color: var(--nx-border-strong, #d1d5db); background: var(--nx-alt); }
+.nx-sydoc-picker__cell:focus-visible { outline: 2px solid var(--nx-sydoc); outline-offset: 2px; }
+.nx-sydoc-picker__cell-name { font-size: 14px; font-weight: 600; color: var(--nx-text); }
+.nx-sydoc-picker__cell-status {
+  font-size: 11px; color: var(--nx-text-meta); display: inline-flex; align-items: center; gap: 5px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums;
+}
+.nx-sydoc-picker__cell-status i { font-size: 9px; }
+.nx-sydoc-picker__cell-status .nx-sydoc-dot { width: 6px; height: 6px; }
+.nx-sydoc-picker__cell-status--closed { color: #9ca3af; }
+.nx-sydoc-picker__cell-status--open { color: #047857; }
+.nx-sydoc-picker__cell-status--open .nx-sydoc-dot { background: #047857; }
+.nx-sydoc-picker__cell-status--running { color: #b45309; }
+.nx-sydoc-picker__cell-status--running .nx-sydoc-dot { background: #f59e0b; }
+html.dark .nx-sydoc-picker__cell-status--open { color: var(--nx-gain); }
+html.dark .nx-sydoc-picker__cell-status--running { color: #fbbf24; }
+.nx-sydoc-picker__cell.is-selected { background: #111318; border-color: #111318; }
+.nx-sydoc-picker__cell.is-selected .nx-sydoc-picker__cell-name { color: #fff; }
+.nx-sydoc-picker__cell.is-selected .nx-sydoc-picker__cell-status { color: var(--nx-sydoc-soft); }
+.nx-sydoc-picker__cell.is-selected .nx-sydoc-picker__cell-status .nx-sydoc-dot { background: currentColor; }
+html.dark .nx-sydoc-picker__cell.is-selected { background: #0b0d12; border-color: var(--nx-sydoc-soft); }
+.nx-sydoc-picker__cell[disabled] { opacity: .4; cursor: default; }
+.nx-sydoc-picker__legend { display: flex; flex-wrap: wrap; gap: 14px; padding: 12px 18px 16px; font-size: 11px; color: var(--nx-text-sec); }
+.nx-sydoc-picker__legend span { display: inline-flex; align-items: center; gap: 5px; }
+.nx-sydoc-picker__foot { border-top: 1px solid var(--nx-divider); padding: 14px 18px 18px; display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+.nx-sydoc-picker__field { display: flex; flex-direction: column; gap: 4px; }
+.nx-sydoc-picker__field span { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--nx-text-meta); }
+.nx-sydoc-picker__field input {
+  height: 32px; border-radius: 7px; border: 1px solid var(--nx-border-strong, #d1d5db); padding: 0 8px;
+  font: inherit; font-size: 12.5px; font-variant-numeric: tabular-nums; background: var(--nx-card); color: var(--nx-text);
+}
+.nx-sydoc-pill {
+  height: 30px; padding: 0 12px; border-radius: 99px; border: 1px solid var(--nx-border);
+  background: var(--nx-card); color: #374151; font: inherit; font-size: 12px; font-weight: 600;
+  cursor: pointer; white-space: nowrap;
+}
+html.dark .nx-sydoc-pill { color: var(--nx-text-sec); }
+.nx-sydoc-pill:hover:not(.is-active) { background: var(--nx-alt); }
+.nx-sydoc-pill.is-active { background: #111318; border-color: #111318; color: #fff; }
+html.dark .nx-sydoc-pill.is-active { border-color: var(--nx-sydoc-soft); }
+
+@media (max-width: 1023px) {
+  .nx-sydoc-period__main, .nx-sydoc-period__year { font-size: 40px; letter-spacing: -1.6px; }
+  .nx-sydoc-band__row2 { gap: 20px; }
+}
+/* Print: no app chrome, the band as a light header, the headline small.
+   Here rather than in finance.css / bps.css: _header.html loads this sheet
+   again after the page's own, so equal-specificity page rules would lose. */
+@media print {
+  body.nx-sydoc #nexora-sidebar, body.nx-sydoc .sidebar-toggle-btn, body.nx-sydoc .sidebar-backdrop,
+  body.nx-sydoc .firefly-field, .nx-sydoc-band__actions, .nx-sydoc-nav, .nx-sydoc-period__chev,
+  .nx-sydoc-picker { display: none !important; }
+  body.nx-app.nx-sydoc { padding: 0 !important; background: #fff !important; }
+  body.nx-app.nx-sydoc .nx-main { padding: 0 !important; max-width: none !important; }
+  .nx-sydoc-band { background: #fff !important; border: 1px solid #d1d5db; padding: 14px 18px !important; }
+  .nx-sydoc-band :is(span, h1, p, b, small, div) { color: #111318 !important; }
+  .nx-sydoc-band .nx-sydoc-eyebrow, .nx-sydoc-band .nx-sydoc-stats__k { color: #4b5563 !important; }
+  .nx-sydoc-period__main, .nx-sydoc-period__year { font-size: 20px !important; letter-spacing: 0 !important; }
+  .nx-sydoc-band, .nx-sydoc-band * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+
+@media (max-width: 600px) {
+  .nx-sydoc-band, .nx-sydoc-band--flush { padding-left: 18px; padding-right: 18px; }
+  .nx-sydoc-period { gap: 6px; }
+  .nx-sydoc-period__main, .nx-sydoc-period__year { font-size: 28px; letter-spacing: -.8px; }
+  .nx-sydoc-headline { gap: 8px; }
+  .nx-sydoc-nav { width: 32px; height: 32px; }
+  .nx-sydoc-stats { gap: 4px 20px; }
+  .nx-sydoc-stats__v { white-space: normal; }
+}
 
 /* ============================================================
    11. DATE PICKER (flatpickr)

@@ -297,6 +297,19 @@ BEGIN
 END;
 GO
 
+-- Finance: Bexio contact -> Finance client links (mirrors 0141_finance_bexio_contacts.sql).
+IF OBJECT_ID(N'dbo.FinanceBexioContacts', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.FinanceBexioContacts (
+        ContactId INT           NOT NULL,
+        Client    NVARCHAR(100) NOT NULL,
+        LinkedAt  DATETIME2(0)  NOT NULL CONSTRAINT DF_FinanceBexioContacts_LinkedAt DEFAULT SYSUTCDATETIME(),
+        LinkedBy  NVARCHAR(100) NOT NULL,
+        CONSTRAINT PK_FinanceBexioContacts PRIMARY KEY (ContactId)
+    );
+END;
+GO
+
 -- DB-backed reporting source registry (mirrors 0010_reporting_sources_registry.sql).
 IF OBJECT_ID(N'dbo.ReportingSources', N'U') IS NULL
 BEGIN

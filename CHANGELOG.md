@@ -6,108 +6,6 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Added
-
-- **Sydoc BPS** (`/bps`, permission `bps.view`, #415): every hour booked in
-  the BPS timetool for a period -- KPIs (total / service / billable / absence
-  hours, bookings, people), hours per day stacked by category, and a
-  drill-down task › customer › person (or customer- / person-first) down to the
-  single booking with its comment; filters for billable only, absences and a
-  text filter; CSV of every booking. The billable-task rule lives once in
-  `nx_lib/bps.py` and is shared with the Finance page. Migration `0140`.
-  `docs/howto/bps.md`.
-- **Finance month close** (#415): *Close month* (`finance.month.edit`) freezes every
-  section of an invoiced month into `dbo.FinanceMonthClose`; a closed month is
-  served from the snapshot (CSV included) and only notes where the live data
-  has moved since -- EM re-exports and Compass re-uploads overwrite their date
-  after the workbook is refreshed, so live figures drift. *Reopen month*
-  deletes the snapshot. Migration `0139`.
-- **Finance**: the register × branch (Posteingang) and forwarding type × branch
-  (Physische Zustellung) matrices of the billed Privera sheets; the Sydoc
-  services section now lists every **billable** BPS booking singly with its
-  comment (Support verrechenbar / extern verrechenbar, Change, Change Request,
-  Professional Services, Projektmanagement, plus Vorbereitung Akten on Privera
-  Neuzugänge), grouped per customer, instead of hour totals.
-
-- **Sydoc Finance** (`/finance`, permission `finance.view`, #408): the monthly
-  accounting figures of every billed client on one page per month, instead
-  of walking the same numbers out of Reporting report by report. One section
-  per client -- the six #329 workbooks (Elektro-Material per channel, Compass,
-  Privera Posteingang / Rechnungseingang / Physische Zustellung / Neuzugänge
-  per branch, Mandant and source) plus Frigemo, Aveniq Xpert, Bucherer EasyTax
-  and MediaMarkt with what their collectors already deliver -- and the hours
-  Sydoc books in the BPS timetool, per task and per customer, with absences
-  split out (a new `bps_projects_service_hours` measure). Each figure is
-  compared with the month before; breakdown tables carry share and totals; a
-  source that is down shows its error in place. The page has no SQL of its
-  own: `nx_lib/finance.py` names registered sources and measures and builds
-  the queries with the reporting `table` provider, so a figure here **is**
-  the measure in Reporting. Month picker in the URL, CSV export, print
-  stylesheet. Migration `0138` creates the code, grants it to Global Admin
-  and registers the BPS measure; the code is internal-only (no row scoping).
-  `docs/howto/finance.md`.
-
-### Changed
-
-- **Finance parity with the billing workbooks** (#415, migration `0139`):
-  Privera *Documents by mail* now drops MAIL rows without a file name, as the
-  Rechnungseingang workbook's Mail pivot does (May / July / August 2026:
-  11,669 / 14,945 / 11,759 -- exact); MediaMarkt *Batches* counts only rows with
-  a piece count, so pre-typed placeholder batches no longer count. Reconciled
-  against the May-August 2026 workbooks: every Privera figure and matrix cell
-  exact; Elektro-Material and Compass definitions exact, their live data drifts
-  after the refresh (hence the month close).
-
-- **Generated tenant pages (`/t/<tenant>/<page>`) moved onto the slim design
-  system** — the look the Dashboard and the admin redesign already carry, and
-  the first migration of the one page that exists today, **MediaMarkt Batches**
-  (`/t/sydoc/mediamarkt`). Boxes became rules: the bordered `.nx-filter` panel
-  and the table card are gone, the filters sit directly on the page above a
-  hairline at one control height, and the table is framed by its header rule
-  and row dividers alone. The page head collapsed to one row — icon chip,
-  entity name, and a single meta line carrying the tenant and the live record
-  count instead of the tenant name plus a subtitle. Figures (`count`/`money`
-  columns) are right-aligned and tabular so they line up down the column, a
-  `flag` renders as a green check rather than a ✓ glyph, and row actions are
-  icon buttons that surface on row hover. Layout lives in the new
-  `static/css/tenant-page.css`; every component is reused, none invented.
-
-- **The Add/Edit modal became a side sheet.** It was a centred dialog over a 50%
-  black scrim; it is now the same right-hand `.adm-sheet` the redesigned admin
-  pages use, over a light scrim — the list stays readable behind the form.
-  Escape and a backdrop click close it.
-
-- **The add form now opens with the entry half-written.** Every `date` field
-  starts on today, and a hand-kept counter column opens on the next number with
-  a hint naming the last one used — for MediaMarkt, `BatchNo`, which runs as one
-  unbroken counter across years. Both stay editable. The counter is served by a
-  new read-only endpoint, `GET /api/t/<tenant>/<page>/next/<column>` (gated on
-  `tenant.<code>.edit`; the column must be a visible, non-id field with an
-  `identifier` or `count` role, or it 404s), backed by
-  `nx_lib/tenant/queries.py::build_next_value_query`.
-
-- **`DocType` on the MediaMarkt page is a dropdown** (`K` / `D` / `KA`) instead
-  of a free-text box. `dbo.TenantFields` carries no option list, so the choices —
-  and which column is the counter — are a hardcoded, commented map in
-  `templates/tenant/page.html`, keyed by tenant/page/column. Pages without an
-  entry are unaffected; the map moves into the registry the day a second page
-  needs one.
-
-### Fixed
-
-- **Deploy: a scheduled run can no longer cancel a merge's staging deploy**
-  (#419). The `test` job's concurrency group was per ref only, so the 03:00
-  e2e cron -- which GitHub ran six hours late on 2026-09-30 -- cancelled the
-  push run of #418 and with it `deploy-staging`, while the schedule run itself
-  does not deploy staging: the merge never reached staging and nothing said so.
-  The group is now per ref **and** event, so only a newer run of the same kind
-  supersedes one (successive pushes still do).
-- **Deploy: a manual "Run workflow" on `main` now redeploys staging.** The merge
-  of #410 never received its push event from GitHub, so staging stayed on the
-  release commit and the only ways to move it were the 01:30 nightly or another
-  code push. The dispatch keeps running the E2E tier first; dev and PROD
-  triggers are unchanged (#408).
-
 <!-- Everything below, down to the next release heading, is the phone view from
      feat/354-phone-tabbar. It is NOT on main: fold it in only when that branch merges. -->
 
@@ -986,6 +884,199 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   signed-in user, so none of it belonged in a cache anyway — this also stops
   a back-button press on a shared machine redisplaying the previous user's
   page after sign-out.
+
+## [3.4.0] - 2026-10-01
+
+### Changed
+
+- **Finance: BPS hours billed in quarter hours** (#408): every billable booking
+  is billed rounded up to the next quarter hour, each on its own. The page
+  shows booked and billed hours side by side: a *Billed hours* figure, a
+  *Billed* column per task and customer, and "0.33 h → 0.50 h" per booking.
+- **Finance: BPS lists only the page's customers** (#408): billable bookings on
+  customers Finance does not bill (SSD_digital, SSD_physisch, Generali, the
+  MobScan customers, ...) are no longer listed or counted; they stay on the
+  Sydoc BPS page.
+- **Finance: Xpert shows BFH and ZHAW per metric** (#408): BFH Total /
+  NeueKreditoren / Uebrige / UEReproduzierte and ZHAW WorkItems /
+  WorkItemsByEingang MAIL / WorkItemsByIsWithOrder 0 and 1, read from
+  `dbo.Xpert_Stats` through the new `xpert_stats_count` measure (migration
+  `0144`).
+
+- **Finance: Bexio links are fixed, totals CHF only** (#423): the × that removed
+  a client's Bexio contact is gone, along with the `POST /api/finance/bexio/link`
+  and `/unlink` routes; the links come from migrations only. The panel's
+  totals now sum CHF invoices only, since Bexio sends no exchange rate; an EUR
+  invoice is still listed in EUR.
+- **Finance: Bexio panel shows linked clients only** (#423): every Finance
+  client is linked to its Bexio contact(s) by migration `0143`, so nobody links
+  them by hand per environment, and invoices to contacts no client is linked to
+  (TCG Informatik AG, MobScan customers, ...) are no longer listed or counted
+  in the Bexio total. The *other invoices* list and its link dropdown are gone.
+- **Finance: figures line up with their headers** (#427): in the Bexio panel
+  and the other Finance matrices, header and total cells now have the same
+  right padding as the figures, which sat 10 px left of their column heading.
+
+### Added
+
+- **Finance: BPS hours as Excel and PDF** (#408): `GET /api/finance/bps-export`
+  and an *Export hours* box in the Billable services section. One sheet per
+  invoice (per customer; Privera split into Posteingang, Invoice and
+  Neuzugänge) with booked and billed hours, all in one file behind an overview,
+  each in its own file (`.zip`), or one invoice alone. Adds the `fpdf2`
+  dependency.
+- **Finance: close the past months in one go** (#408):
+  `scripts/finance-close-months.py --env PROD` snapshots every month of the
+  picker except the newest ended one, through the same `close_month()` as the
+  *Close month* button.
+
+- **Finance: invoiced in Bexio** (#423): a read-only panel on `/finance` lists
+  the Bexio invoices dated in the month after the billed one, per Finance
+  client, with status, amount excl. VAT and total, the invoice lines and the
+  PDF; flags clients with no linked contact, no invoice or only a draft, and
+  totals what was billed. Holders of `finance.month.edit` link Bexio contacts
+  to clients from the panel (`dbo.FinanceBexioContacts`, migration `0141`).
+  New env key `BEXIO_PAT` (unset disables the panel); `scripts/bexio-probe.py`
+  checks a token read-only. `docs/howto/finance.md`.
+- **`GET /api/bps/months`** (#427): hours per calendar month over the whole
+  BPS history, for the period picker; and `/api/bps/summary` now carries the
+  previous period's rows (`prev`) for the drill-down's gain/loss column.
+
+- **BPS history from January 2025** (#424): the bpsuite feed starts on
+  3 August 2026 and is truncated every morning, so older bookings were loaded
+  once from a Projektbericht export into `SYDOC_Statistik.dbo.BPS_ProjectReportHistory`
+  (72,080 bookings, 2025-01-03 … 2026-07-31) on PROD and INT. The view
+  `dbo.BPS_ProjectReportAll` joins it to the feed (history only before the
+  feed's first date), and migration `0142` repoints the `bps_projects` source
+  at it, so `/bps`, Reporting and Finance see the full history. Finance months
+  that are already closed keep their snapshot. See `docs/howto/bps.md`.
+- **Sydoc BPS** (`/bps`, permission `bps.view`, #415): every hour booked in
+  the BPS timetool for a period -- KPIs (total / service / billable / absence
+  hours, bookings, people), hours per day stacked by category, and a
+  drill-down task › customer › person (or customer- / person-first) down to the
+  single booking with its comment; filters for billable only, absences and a
+  text filter; CSV of every booking. The billable-task rule lives once in
+  `nx_lib/bps.py` and is shared with the Finance page. Migration `0140`.
+  `docs/howto/bps.md`.
+- **Finance month close** (#415): *Close month* (`finance.month.edit`) freezes every
+  section of an invoiced month into `dbo.FinanceMonthClose`; a closed month is
+  served from the snapshot (CSV included) and only notes where the live data
+  has moved since -- EM re-exports and Compass re-uploads overwrite their date
+  after the workbook is refreshed, so live figures drift. *Reopen month*
+  deletes the snapshot. Migration `0139`.
+- **Finance**: the register × branch (Posteingang) and forwarding type × branch
+  (Physische Zustellung) matrices of the billed Privera sheets; the Sydoc
+  services section now lists every **billable** BPS booking singly with its
+  comment (Support verrechenbar / extern verrechenbar, Change, Change Request,
+  Professional Services, Projektmanagement, plus Vorbereitung Akten on Privera
+  Neuzugänge), grouped per customer, instead of hour totals.
+
+- **Sydoc Finance** (`/finance`, permission `finance.view`, #408): the monthly
+  accounting figures of every billed client on one page per month, instead
+  of walking the same numbers out of Reporting report by report. One section
+  per client -- the six #329 workbooks (Elektro-Material per channel, Compass,
+  Privera Posteingang / Rechnungseingang / Physische Zustellung / Neuzugänge
+  per branch, Mandant and source) plus Frigemo, Aveniq Xpert, Bucherer EasyTax
+  and MediaMarkt with what their collectors already deliver -- and the hours
+  Sydoc books in the BPS timetool, per task and per customer, with absences
+  split out (a new `bps_projects_service_hours` measure). Each figure is
+  compared with the month before; breakdown tables carry share and totals; a
+  source that is down shows its error in place. The page has no SQL of its
+  own: `nx_lib/finance.py` names registered sources and measures and builds
+  the queries with the reporting `table` provider, so a figure here **is**
+  the measure in Reporting. Month picker in the URL, CSV export, print
+  stylesheet. Migration `0138` creates the code, grants it to Global Admin
+  and registers the BPS measure; the code is internal-only (no row scoping).
+  `docs/howto/finance.md`.
+
+### Changed
+
+- **Sydoc Finance redesigned** (#427) as the Sydoc-branded pair of Sydoc
+  BPS: the same ink band, with the month as the headline, prev/next arrows
+  (inert at the oldest pickable month) and a month picker that shows which
+  months are closed, open or still running; a one-row jump index to every
+  section; each client a ledger row with its identity, source, state and note
+  on the left and statement lines on the right (this month, the month before,
+  a comparison bar and the change); the billable BPS bookings as a timeline
+  per customer, with a per-customer breakdown linking to it. The Bexio panel
+  is a ledger row too. Figures, month close, CSV and payloads are unchanged;
+  `Section.nav` gives a section its short jump-index label. Print now hides
+  the sidebar (its selector never matched) and prints every list expanded.
+  The period picker of both pages now covers the sidebar: it rendered inside
+  `.nx-main`'s stacking context, under the nav, which stayed clickable.
+- **Sydoc BPS redesigned** (#427) as the Sydoc-branded mirror of Finance
+  (design 1a, `docs/design/design_handoff_sydoc_finance_bps/`): an ink header
+  band with the Sydoc mark, the period as a headline with prev/next arrows and
+  a picker (presets, months with their hours, a free range), totals and a
+  composition bar in the band, weekends shaded in the daily chart, and a
+  drill-down that zooms one level at a time as a **Table** (default) or a
+  squarified **Treemap**, with the change against the previous period and the
+  bookings of a leaf listed per day. The band, headline and picker are shared
+  pieces (`templates/_sydoc.html`, `static/js/nx_sydoc.js`, `nx-sydoc-*` in
+  `nexora-ui.css`) that Finance uses too. The empty-period text now says
+  the history starts in January 2025. The drill-down (order, zoom path,
+  filters, search) lives in the URL, so Back goes up a level and links are
+  shareable; the arrows step whole weeks / months and stop at the first
+  booking; the band shows the date of the latest booking.
+
+- **Finance parity with the billing workbooks** (#415, migration `0139`):
+  Privera *Documents by mail* now drops MAIL rows without a file name, as the
+  Rechnungseingang workbook's Mail pivot does (May / July / August 2026:
+  11,669 / 14,945 / 11,759 -- exact); MediaMarkt *Batches* counts only rows with
+  a piece count, so pre-typed placeholder batches no longer count. Reconciled
+  against the May-August 2026 workbooks: every Privera figure and matrix cell
+  exact; Elektro-Material and Compass definitions exact, their live data drifts
+  after the refresh (hence the month close).
+
+- **Generated tenant pages (`/t/<tenant>/<page>`) moved onto the slim design
+  system** — the look the Dashboard and the admin redesign already carry, and
+  the first migration of the one page that exists today, **MediaMarkt Batches**
+  (`/t/sydoc/mediamarkt`). Boxes became rules: the bordered `.nx-filter` panel
+  and the table card are gone, the filters sit directly on the page above a
+  hairline at one control height, and the table is framed by its header rule
+  and row dividers alone. The page head collapsed to one row — icon chip,
+  entity name, and a single meta line carrying the tenant and the live record
+  count instead of the tenant name plus a subtitle. Figures (`count`/`money`
+  columns) are right-aligned and tabular so they line up down the column, a
+  `flag` renders as a green check rather than a ✓ glyph, and row actions are
+  icon buttons that surface on row hover. Layout lives in the new
+  `static/css/tenant-page.css`; every component is reused, none invented.
+
+- **The Add/Edit modal became a side sheet.** It was a centred dialog over a 50%
+  black scrim; it is now the same right-hand `.adm-sheet` the redesigned admin
+  pages use, over a light scrim — the list stays readable behind the form.
+  Escape and a backdrop click close it.
+
+- **The add form now opens with the entry half-written.** Every `date` field
+  starts on today, and a hand-kept counter column opens on the next number with
+  a hint naming the last one used — for MediaMarkt, `BatchNo`, which runs as one
+  unbroken counter across years. Both stay editable. The counter is served by a
+  new read-only endpoint, `GET /api/t/<tenant>/<page>/next/<column>` (gated on
+  `tenant.<code>.edit`; the column must be a visible, non-id field with an
+  `identifier` or `count` role, or it 404s), backed by
+  `nx_lib/tenant/queries.py::build_next_value_query`.
+
+- **`DocType` on the MediaMarkt page is a dropdown** (`K` / `D` / `KA`) instead
+  of a free-text box. `dbo.TenantFields` carries no option list, so the choices —
+  and which column is the counter — are a hardcoded, commented map in
+  `templates/tenant/page.html`, keyed by tenant/page/column. Pages without an
+  entry are unaffected; the map moves into the registry the day a second page
+  needs one.
+
+### Fixed
+
+- **Deploy: a scheduled run can no longer cancel a merge's staging deploy**
+  (#419). The `test` job's concurrency group was per ref only, so the 03:00
+  e2e cron -- which GitHub ran six hours late on 2026-09-30 -- cancelled the
+  push run of #418 and with it `deploy-staging`, while the schedule run itself
+  does not deploy staging: the merge never reached staging and nothing said so.
+  The group is now per ref **and** event, so only a newer run of the same kind
+  supersedes one (successive pushes still do).
+- **Deploy: a manual "Run workflow" on `main` now redeploys staging.** The merge
+  of #410 never received its push event from GitHub, so staging stayed on the
+  release commit and the only ways to move it were the 01:30 nightly or another
+  code push. The dispatch keeps running the E2E tier first; dev and PROD
+  triggers are unchanged (#408).
 
 ## [3.3.0] - 2026-09-29
 
