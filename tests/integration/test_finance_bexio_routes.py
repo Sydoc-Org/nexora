@@ -110,8 +110,8 @@ def test_panel_reconciles_the_following_month(admin_client, bexio_on, clean_link
     assert body["window"]["to"] == "2026-09-30"
     assert "Sydoc" not in [c["client"] for c in body["clients"]]
     assert all(c["state"] == "unlinked" for c in body["clients"])
-    assert body["others"][0]["contact"] == {"id": CONTACT, "name": "Test Contact AG"}
-    assert body["totals"] == [{"currency": "CHF", "total": 1077.0, "excl": 1000.0, "count": 1}]
+    # The test contact is linked to no client, so its invoice is left out.
+    assert body["totals"] == [] and body["count"] == 0
 
 
 def test_panel_refresh_bypasses_the_cache(admin_client, bexio_on, clean_links):
@@ -124,9 +124,11 @@ def test_panel_survives_missing_contact_names(admin_client, bexio_on, clean_link
         raise bexio.BexioError("x", status=400)
 
     monkeypatch.setattr(bexio, "contact_names", fail)
+    admin_client.post("/api/finance/bexio/link", json={"client": "Frigemo", "contactId": CONTACT})
     body = admin_client.get("/api/finance/bexio?month=2026-08").get_json()
     assert "error" not in body
-    assert body["others"][0]["contact"] == {"id": CONTACT, "name": f"#{CONTACT}"}
+    frigemo = next(c for c in body["clients"] if c["client"] == "Frigemo")
+    assert frigemo["contacts"] == [{"id": CONTACT, "name": f"#{CONTACT}"}]
 
 
 def test_panel_reports_a_bexio_failure_in_place(admin_client, monkeypatch):
@@ -146,7 +148,7 @@ def test_panel_reports_a_bexio_failure_in_place(admin_client, monkeypatch):
 # ---- linking ---------------------------------------------------------------
 
 
-def test_link_moves_a_contact_from_others_to_its_client(admin_client, bexio_on, clean_links):
+def test_link_assigns_a_contact_to_its_client(admin_client, bexio_on, clean_links):
     resp = admin_client.post(
         "/api/finance/bexio/link", json={"client": "Frigemo", "contactId": CONTACT}
     )
@@ -155,7 +157,7 @@ def test_link_moves_a_contact_from_others_to_its_client(admin_client, bexio_on, 
     frigemo = next(c for c in body["clients"] if c["client"] == "Frigemo")
     assert frigemo["state"] == "invoiced"
     assert frigemo["contacts"] == [{"id": CONTACT, "name": "Test Contact AG"}]
-    assert body["others"] == []
+    assert body["totals"] == [{"currency": "CHF", "total": 1077.0, "excl": 1000.0, "count": 1}]
 
     # Relinking moves it: a contact belongs to one client.
     admin_client.post("/api/finance/bexio/link", json={"client": "Aveniq", "contactId": CONTACT})

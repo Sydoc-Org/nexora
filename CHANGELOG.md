@@ -6,6 +6,17 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **Finance: Bexio panel shows linked clients only** (#423): every Finance
+  client is linked to its Bexio contact(s) by migration `0143`, so nobody links
+  them by hand per environment, and invoices to contacts no client is linked to
+  (TCG Informatik AG, MobScan customers, ...) are no longer listed or counted
+  in the Bexio total. The *other invoices* list and its link dropdown are gone.
+- **Finance: figures line up with their headers** (#427): in the Bexio panel
+  and the other Finance matrices, header and total cells now have the same
+  right padding as the figures, which sat 10 px left of their column heading.
+
 ### Added
 
 - **Finance: invoiced in Bexio** (#423): a read-only panel on `/finance` lists
@@ -16,6 +27,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   to clients from the panel (`dbo.FinanceBexioContacts`, migration `0141`).
   New env key `BEXIO_PAT` (unset disables the panel); `scripts/bexio-probe.py`
   checks a token read-only. `docs/howto/finance.md`.
+- **`GET /api/bps/months`** (#427): hours per calendar month over the whole
+  BPS history, for the period picker; and `/api/bps/summary` now carries the
+  previous period's rows (`prev`) for the drill-down's gain/loss column.
+
 - **BPS history from January 2025** (#424): the bpsuite feed starts on
   3 August 2026 and is truncated every morning, so older bookings were loaded
   once from a Projektbericht export into `SYDOC_Statistik.dbo.BPS_ProjectReportHistory`
@@ -64,6 +79,34 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `docs/howto/finance.md`.
 
 ### Changed
+
+- **Sydoc Finance redesigned** (#427) as the Sydoc-branded pair of Sydoc
+  BPS: the same ink band, with the month as the headline, prev/next arrows
+  (inert at the oldest pickable month) and a month picker that shows which
+  months are closed, open or still running; a one-row jump index to every
+  section; each client a ledger row with its identity, source, state and note
+  on the left and statement lines on the right (this month, the month before,
+  a comparison bar and the change); the billable BPS bookings as a timeline
+  per customer, with a per-customer breakdown linking to it. The Bexio panel
+  is a ledger row too. Figures, month close, CSV and payloads are unchanged;
+  `Section.nav` gives a section its short jump-index label. Print now hides
+  the sidebar (its selector never matched) and prints every list expanded.
+  The period picker of both pages now covers the sidebar: it rendered inside
+  `.nx-main`'s stacking context, under the nav, which stayed clickable.
+- **Sydoc BPS redesigned** (#427) as the Sydoc-branded mirror of Finance
+  (design 1a, `docs/design/design_handoff_sydoc_finance_bps/`): an ink header
+  band with the Sydoc mark, the period as a headline with prev/next arrows and
+  a picker (presets, months with their hours, a free range), totals and a
+  composition bar in the band, weekends shaded in the daily chart, and a
+  drill-down that zooms one level at a time as a **Table** (default) or a
+  squarified **Treemap**, with the change against the previous period and the
+  bookings of a leaf listed per day. The band, headline and picker are shared
+  pieces (`templates/_sydoc.html`, `static/js/nx_sydoc.js`, `nx-sydoc-*` in
+  `nexora-ui.css`) that Finance uses too. The empty-period text now says
+  the history starts in January 2025. The drill-down (order, zoom path,
+  filters, search) lives in the URL, so Back goes up a level and links are
+  shareable; the arrows step whole weeks / months and stop at the first
+  booking; the band shows the date of the latest booking.
 
 - **Finance parity with the billing workbooks** (#415, migration `0139`):
   Privera *Documents by mail* now drops MAIL rows without a file name, as the

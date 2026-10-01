@@ -1,189 +1,272 @@
 /* ============================================================
-   Sydoc Finance (#408) — layout only, on the nexora-ui tokens.
-   Slim-console doctrine (docs/design/Dashboard_redesign/…/readme.md):
-   no cards, no shadows in the page flow. A section is a run of
-   hairlines: head row, KPI strip, breakdown tables. Every colour
-   rides --nx-*, so dark mode, the accent pick and tenant branding
-   apply for free; the shared components (.nx-kpi-strip, .nx-table,
-   .nx-btn, .nx-select, .nx-eyebrow) stay untouched in nexora-ui.css.
+   Sydoc Finance (#408, redesign #427) — layout only, on the nexora-ui
+   tokens. The ink band, the headline and the month picker are shared
+   with Sydoc BPS (nx-sydoc-* in nexora-ui.css). Below the band each
+   client is a ledger row: identity left, statement lines right.
+   Values: design 1a in docs/design/design_handoff_sydoc_finance_bps.
    ============================================================ */
 
 html { overflow-y: auto; }
 
-/* Row 1 — page head: icon tile, title + one muted line, actions right. */
-.nx-fin-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.nx-fin-head__meta {
-  font-size: var(--fs-meta); color: var(--nx-text-meta); margin: 2px 0 0;
-}
-.nx-fin-head__right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+/* Quiet text below the band. The design's #9ca3af (and --nx-text-meta, the
+   same value) is 2.4:1 on the page and fails WCAG AA at these 10-13px sizes;
+   #6b7280 is 4.8:1. On the ink band the light greys stay as designed. */
+:root { --nx-fin-quiet: #6b7280; }
+html.dark { --nx-fin-quiet: #94a3b8; }
+.nx-fin-section .nx-eyebrow, .nx-fin-divider .nx-eyebrow,
+.nx-fin-section .nx-table thead th { color: var(--nx-fin-quiet); }
 
-/* Row 2 — month filter row, closed by a rule. */
-.nx-fin-filter {
-  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-  margin-top: 18px; padding-bottom: 14px;
+/* ---------- Jump index, flush at the bottom of the band ----------
+   One row that never wraps. Where it does not fit it scrolls sideways
+   (scrollbar hidden, edges faded) rather than cutting every label down to
+   a letter, as the design's ellipsis did at 1440px with twelve entries. */
+.nx-fin-jump {
+  display: flex; flex-wrap: nowrap; align-items: center;
+  overflow-x: auto; overflow-y: hidden; scrollbar-width: none; overscroll-behavior-x: contain;
+  margin: 22px -30px 0; padding: 0 16px;
+  border-top: 1px solid var(--nx-sydoc-band-line);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 16px, #000 calc(100% - 28px), transparent);
+          mask-image: linear-gradient(90deg, transparent 0, #000 16px, #000 calc(100% - 28px), transparent);
+}
+.nx-fin-jump::-webkit-scrollbar { display: none; }
+.nx-fin-jump__item {
+  flex: 0 0 auto; height: 44px; padding: 0 7px;
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 500; color: #d1d5db; text-decoration: none;
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+  transition: color var(--nx-dur) var(--nx-ease), border-color var(--nx-dur) var(--nx-ease);
+}
+.nx-fin-jump__item:hover { color: #fff; border-bottom-color: var(--nx-sydoc); }
+.nx-fin-jump__item:focus-visible { outline: 2px solid var(--nx-sydoc-soft); outline-offset: -2px; border-radius: 4px; }
+.nx-fin-jump__label { white-space: nowrap; }
+.nx-fin-jump__tile {
+  width: 20px; height: 20px; border-radius: 6px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 9.5px; font-weight: 700;
+  background: rgba(129,140,248,.2); color: #c7d2fe;
+}
+.nx-fin-jump__item--external .nx-fin-jump__tile { background: rgba(96,165,250,.2); color: #bfdbfe; }
+.nx-fin-jump__item--services .nx-fin-jump__tile { background: rgba(227,99,63,.22); color: #f6b19c; }
+.nx-fin-jump__item--bexio .nx-fin-jump__tile { background: rgba(52,211,153,.18); color: #a7f3d0; }
+.nx-fin-jump__sep { width: 1px; height: 18px; background: rgba(255,255,255,.12); margin: 0 6px; flex-shrink: 0; }
+
+/* The band's closed stamp and the picker legend's "open" dot. _header.html
+   loads nexora-ui.css again after this sheet, so an override of one of its
+   nx-sydoc-* rules needs the extra class to win. */
+.nx-fin-lock { font-size: 11px; color: #9ca3af; }
+.nx-sydoc-dot.nx-fin-dot--open { background: #047857; }
+html.dark .nx-sydoc-dot.nx-fin-dot--open { background: var(--nx-gain); }
+#fin-status.is-failed .nx-sydoc-dot { background: var(--nx-danger); }
+
+/* ---------- Group headers ---------- */
+.nx-fin-group { display: flex; align-items: center; gap: 12px; margin-top: 34px; }
+.nx-fin-group ~ .nx-fin-group { margin-top: 38px; }
+.nx-fin-group h2 {
+  margin: 0; font-size: 12px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .1em; color: var(--nx-fin-quiet);
+}
+.nx-fin-group__count {
+  font-family: var(--nx-mono); font-size: 11px; font-weight: 600;
+  color: var(--nx-fin-quiet); font-variant-numeric: tabular-nums;
+}
+.nx-fin-group__rule { flex: 1; height: 1px; background: var(--nx-border); }
+
+/* ---------- One ledger row = one client / workbook ---------- */
+.nx-fin-section, .nx-fin-tl { scroll-margin-top: 20px; }
+.nx-fin-section {
+  display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 48px;
+  padding: 26px 0; border-bottom: 1px solid var(--nx-border);
+}
+.nx-fin-section:last-of-type, .nx-fin-section:has(+ .nx-fin-group) { border-bottom: none; }
+
+.nx-fin-id { min-width: 0; }
+.nx-fin-id__client { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -.02em; color: var(--nx-text); }
+.nx-fin-id__title { margin: 2px 0 0; font-size: 13px; font-weight: 500; color: var(--nx-fin-quiet); }
+.nx-fin-id__meta { margin: 8px 0 0; font-size: 11px; color: var(--nx-fin-quiet); font-variant-numeric: tabular-nums; }
+.nx-fin-id__state { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+.nx-fin-id__state:empty { display: none; }
+.nx-fin-id__note {
+  margin: 12px 0 0; font-size: 11.5px; line-height: 1.5; color: var(--nx-fin-quiet); text-wrap: pretty;
+}
+
+.nx-fin-bpsbtn {
+  margin-top: 14px; height: 30px; padding: 0 12px; border-radius: 8px;
+  display: inline-flex; align-items: center; gap: 7px;
+  background: #111318; color: #fff; font-size: 12px; font-weight: 600; text-decoration: none;
+  transition: background-color var(--nx-dur) var(--nx-ease);
+}
+.nx-fin-bpsbtn i { font-size: 11px; color: var(--nx-sydoc-soft); }
+.nx-fin-bpsbtn:hover { background: #1f2937; }
+.nx-fin-bpsbtn:focus-visible { outline: 2px solid var(--nx-sydoc); outline-offset: 2px; }
+html.dark .nx-fin-bpsbtn { background: #0b0d12; box-shadow: inset 0 0 0 1px var(--nx-border); }
+html.dark .nx-fin-bpsbtn:hover { background: #1f2937; }
+
+.nx-fin-lines { min-width: 0; }
+
+/* A block: one month basis. A second block (Bucherer) repeats the lines. */
+.nx-fin-block + .nx-fin-block { margin-top: 26px; }
+.nx-fin-block__basis { margin: 0 0 8px; }
+
+/* ---------- Statement lines ---------- */
+.nx-fin-lines__head, .nx-fin-line {
+  display: grid; grid-template-columns: minmax(0, 1fr) 150px 110px 170px; align-items: center; column-gap: 12px;
+}
+.nx-fin-lines__head {
+  padding-bottom: 8px; border-bottom: 1px solid var(--nx-border);
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .09em; color: var(--nx-fin-quiet);
+}
+.nx-fin-lines__head span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.nx-fin-lines__head span:not(:first-child) { text-align: right; }
+.nx-fin-line { padding: 12px 0; border-bottom: 1px solid var(--nx-divider); }
+.nx-fin-line__label { font-size: 13px; font-weight: 500; color: var(--nx-text); min-width: 0; }
+.nx-fin-line__value {
+  font-family: var(--nx-mono); font-variant-numeric: tabular-nums; text-align: right;
+  font-size: 17px; font-weight: 600; letter-spacing: -.5px; color: var(--nx-text);
+}
+.nx-fin-line__prev {
+  font-family: var(--nx-mono); font-variant-numeric: tabular-nums; text-align: right;
+  font-size: 13px; color: var(--nx-fin-quiet);
+}
+.nx-fin-line__change { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+
+.nx-fin-cmp {
+  position: relative; width: 64px; height: 6px; border-radius: 3px; flex-shrink: 0;
+  background: var(--nx-divider);
+}
+.nx-fin-cmp__fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--nx-text); }
+.nx-fin-cmp__prev { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--nx-sydoc); }
+
+.nx-fin-delta {
+  min-width: 48px; text-align: right; white-space: nowrap;
+  font-size: 12px; font-weight: 600; color: var(--nx-text); font-variant-numeric: tabular-nums;
+}
+.nx-fin-delta__word { display: inline-block; }
+.nx-fin-delta__word::first-letter { text-transform: uppercase; }
+
+/* ---------- Breakdowns ---------- */
+.nx-fin-tables {
+  display: grid; gap: 28px; margin-top: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+}
+.nx-fin-table { min-width: 0; }
+.nx-fin-table__head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+.nx-fin-table__count { font-size: 11px; color: var(--nx-fin-quiet); font-variant-numeric: tabular-nums; }
+.nx-fin-table .nx-table thead th {
+  background: transparent; padding: 6px 0 6px 10px; font-size: 10px;
   border-bottom: 1px solid var(--nx-border);
 }
-.nx-fin-filter__spacer { margin-left: auto; }
-.nx-fin-filter__hint { font-size: var(--fs-meta); color: var(--nx-text-meta); }
-
-/* The month control: ‹ [select] › as one bordered group, control height. */
-.nx-fin-month {
-  display: inline-flex; align-items: stretch; height: var(--ctl-h-lg);
-  border: 1px solid var(--nx-border-strong); border-radius: calc(var(--nx-radius-scale, 1) * 8px);
-  background: var(--nx-card); overflow: hidden;
+.nx-fin-table .nx-table th:first-child,
+.nx-fin-table .nx-table td:first-child { padding-left: 0; }
+.nx-fin-table .nx-table tbody td {
+  padding: 6px 0 6px 10px; font-size: 12.5px; border-bottom: 1px solid var(--nx-divider);
 }
-.nx-fin-month__nav {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 34px; color: var(--nx-text-sec); text-decoration: none; font-size: 12px;
-  transition: background-color var(--nx-dur) var(--nx-ease), color var(--nx-dur) var(--nx-ease);
-}
-.nx-fin-month__nav:hover { background: var(--nx-alt); color: var(--nx-text); }
-.nx-fin-month__nav:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--nx-accent); }
-.nx-fin-month__nav[aria-disabled="true"] { opacity: .35; pointer-events: none; }
-.nx-fin-month__select {
-  border: none; border-left: 1px solid var(--nx-border); border-right: 1px solid var(--nx-border);
-  border-radius: 0; background: var(--nx-card); color: var(--nx-text);
-  font-family: var(--nx-mono); font-variant-numeric: tabular-nums; font-size: var(--fs-control); font-weight: 600;
-  padding: 0 28px 0 12px; min-width: 190px; cursor: pointer;
-  -webkit-appearance: none; appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%239ca3af' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='3 4.5 6 7.5 9 4.5'/%3E%3C/svg%3E");
-  background-repeat: no-repeat; background-position: right 10px center; background-size: 12px;
-}
-.nx-fin-month__select:focus { outline: none; box-shadow: inset 0 0 0 2px var(--nx-accent); }
-
-/* Load status, right of the filter row. */
-.nx-fin-status {
-  display: inline-flex; align-items: center; gap: 6px;
-  font-size: var(--fs-meta); color: var(--nx-text-meta); font-variant-numeric: tabular-nums;
-}
-.nx-fin-status .nx-live-dot { background: var(--nx-warning); }
-.nx-fin-status.is-done .nx-live-dot { background: var(--nx-success); }
-.nx-fin-status.is-failed .nx-live-dot { background: var(--nx-danger); }
-
-/* Group label between the internal and external runs of sections. */
-.nx-fin-group {
-  display: flex; align-items: center; gap: 12px;
-  margin: 28px 0 0; font-size: var(--fs-eyebrow); font-weight: 700;
-  text-transform: uppercase; letter-spacing: .09em; color: var(--nx-text-meta);
-}
-.nx-fin-group::after { content: ""; flex: 1; border-top: 1px solid var(--nx-border); }
-
-/* ---------- One section = one client / workbook ---------- */
-.nx-fin-section { padding: 18px 0 8px; border-bottom: 1px solid var(--nx-border); }
-.nx-fin-section:last-child { border-bottom: none; }
-.nx-fin-section__head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.nx-fin-section__tile {
-  width: 32px; height: 32px; border-radius: calc(var(--nx-radius-scale, 1) * 9px); flex-shrink: 0;
-  display: inline-flex; align-items: center; justify-content: center;
-  font-size: 13px; font-weight: 700; letter-spacing: -.02em;
-  background: var(--nx-accent-tint); color: var(--nx-accent-hover);
-}
-.nx-fin-section--external .nx-fin-section__tile { background: var(--nx-l-blue); color: var(--nx-l-blue-fg); }
-.nx-fin-section--services .nx-fin-section__tile { background: var(--nx-l-amber); color: var(--nx-l-amber-fg); }
-.nx-fin-section__title {
-  font-size: var(--fs-title); font-weight: 700; letter-spacing: -0.02em;
-  color: var(--nx-text); margin: 0;
-}
-.nx-fin-section__sub { font-weight: 500; color: var(--nx-text-sec); }
-.nx-fin-section__meta {
-  font-size: var(--fs-micro); color: var(--nx-text-meta); margin: 2px 0 0;
-  font-variant-numeric: tabular-nums;
-}
-.nx-fin-section__spacer { margin-left: auto; }
-.nx-fin-section__state { display: inline-flex; align-items: center; gap: 8px; }
-
-/* A block: one month basis. A second block (Bucherer) repeats the strip. */
-.nx-fin-block { margin-top: 14px; }
-.nx-fin-block__basis { margin: 0 0 6px; }
-
-/* KPI strip: the shared .nx-kpi-strip, but sized by figure count instead
-   of a fixed four -- a one-figure section (Compass) must not stretch one
-   number across the page, a six-figure one (Frigemo) wraps to two rows. */
-.nx-fin-kpis { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
-.nx-fin-kpis .nx-kpi { padding: 14px 24px 14px; border-top: 1px solid var(--nx-divider); }
-.nx-fin-kpis .nx-kpi:first-child { border-left: none; }
-.nx-fin-kpis .nx-kpi__value { font-size: 28px; letter-spacing: -1.2px; }
-.nx-fin-kpis .nx-kpi__delta { color: var(--nx-text-sec); }
-.nx-fin-kpis .nx-kpi__delta--up::before   { content: "\25B2\00A0"; font-size: 8px; vertical-align: 1px; }
-.nx-fin-kpis .nx-kpi__delta--down::before { content: "\25BC\00A0"; font-size: 8px; vertical-align: 1px; }
-
-/* Breakdown tables: no wrapper card; side by side when a block has two. */
-.nx-fin-tables {
-  display: grid; gap: 28px; margin-top: 16px;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
-}
-.nx-fin-table__head {
-  display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px;
-}
-.nx-fin-table__count { font-size: var(--fs-micro); color: var(--nx-text-meta); font-variant-numeric: tabular-nums; }
-.nx-fin-table .nx-table thead th { background: transparent; padding: 8px 10px; }
-.nx-fin-table .nx-table thead th:first-child,
-.nx-fin-table .nx-table tbody td:first-child,
-.nx-fin-table .nx-table tfoot td:first-child { padding-left: 0; }
-.nx-fin-table .nx-table tbody td { padding: 8px 10px; font-size: 12.5px; }
-.nx-fin-table .nx-table tbody tr:last-child td { border-bottom: 1px solid var(--nx-divider); }
+.nx-fin-table .nx-table tbody td:first-child { max-width: 0; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nx-fin-table .nx-table tbody tr:hover { background: transparent; box-shadow: none; }
 .nx-fin-table .nx-table tfoot td {
-  padding: 9px 10px; font-size: 12.5px; font-weight: 600; color: var(--nx-text);
+  padding: 8px 0 6px 10px; font-size: 12.5px; font-weight: 600; color: var(--nx-text);
   border-top: 1px solid var(--nx-border);
 }
 .nx-fin-table .nx-table td.nx-num, .nx-fin-table .nx-table th.nx-num { text-align: right; white-space: nowrap; }
-.nx-fin-table .nx-table tbody tr.is-blank td:first-child { color: var(--nx-text-meta); font-style: italic; }
+.nx-fin-table .nx-table td.nx-num { font-family: var(--nx-mono); font-variant-numeric: tabular-nums; }
+.nx-fin-section .nx-table th { font-family: var(--nx-font); }
+.nx-fin-table .nx-table td.nx-fin-muted { color: var(--nx-fin-quiet); }
+.nx-fin-table .nx-table tbody tr.is-blank td:first-child { color: var(--nx-fin-quiet); font-style: italic; }
 .nx-fin-table .nx-table tbody tr.is-more { display: none; }
 .nx-fin-table.is-expanded .nx-table tbody tr.is-more { display: table-row; }
+.nx-fin-table .nx-table tbody td a { color: inherit; text-decoration: none; }
+.nx-fin-table .nx-table tbody td a:hover { color: var(--nx-sydoc-ink-text); text-decoration: underline; }
 
-/* Share cell: thin accent bar plus the percentage -- one hue, magnitude only. */
-.nx-fin-share { display: inline-flex; align-items: center; gap: 8px; justify-content: flex-end; min-width: 96px; }
+/* Share cell: a thin orange bar plus the percentage -- one hue, magnitude only. */
+.nx-fin-share { display: inline-flex; align-items: center; gap: 8px; justify-content: flex-end; }
 .nx-fin-share__bar {
-  width: 48px; height: 4px; border-radius: 2px; background: var(--nx-sunken); overflow: hidden; flex-shrink: 0;
+  width: 56px; height: 4px; border-radius: 2px; background: var(--nx-divider); overflow: hidden; flex-shrink: 0;
 }
-.nx-fin-share__fill { display: block; height: 100%; background: var(--nx-accent); border-radius: 2px; }
+.nx-fin-share__fill { display: block; height: 100%; background: var(--nx-sydoc); border-radius: 2px; }
 .nx-fin-share__pct {
-  font-family: var(--nx-mono); font-variant-numeric: tabular-nums; font-size: 11.5px; color: var(--nx-text-sec);
-  width: 42px; text-align: right;
+  font-family: var(--nx-mono); font-variant-numeric: tabular-nums; font-size: 11.5px; color: var(--nx-fin-quiet);
+  width: 40px; text-align: right;
 }
 
 .nx-fin-more {
-  background: transparent; border: none; padding: 8px 0 0; cursor: pointer;
-  font-family: var(--nx-font); font-size: var(--fs-meta); font-weight: 600; color: var(--nx-accent-hover);
+  background: transparent; border: none; padding: 8px 0 0; cursor: pointer; white-space: nowrap; flex-shrink: 0;
+  font-family: var(--nx-font); font-size: 11.5px; font-weight: 600; color: var(--nx-sydoc-ink-text);
 }
 .nx-fin-more:hover { text-decoration: underline; }
-.nx-fin-more:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--nx-accent-soft); border-radius: 4px; }
+.nx-fin-more:focus-visible { outline: 2px solid var(--nx-sydoc); outline-offset: 2px; border-radius: 4px; }
 
-/* Caveat line under a section's figures. */
+/* ---------- Billable bookings: one timeline per customer ---------- */
+.nx-fin-divider { display: flex; align-items: baseline; gap: 12px; margin-top: 30px; }
+.nx-fin-divider__note { font-size: 11px; color: var(--nx-fin-quiet); }
+.nx-fin-divider__rule { flex: 1; height: 1px; background: var(--nx-border); align-self: center; }
+
+.nx-fin-tls { display: grid; gap: 28px; margin-top: 18px; }
+.nx-fin-tl__head {
+  display: flex; align-items: baseline; gap: 10px;
+  padding-bottom: 10px; border-bottom: 1px solid var(--nx-border);
+}
+.nx-fin-tl__name { font-size: 14px; font-weight: 700; color: var(--nx-text); }
+.nx-fin-tl__count { font-size: 11px; color: var(--nx-fin-quiet); }
+.nx-fin-tl__spacer { flex: 1; }
+.nx-fin-tl__total {
+  font-family: var(--nx-mono); font-variant-numeric: tabular-nums;
+  font-size: 16px; font-weight: 600; letter-spacing: -.4px; color: var(--nx-text);
+}
+.nx-fin-tl__day { display: grid; grid-template-columns: 84px 18px minmax(0, 1fr); column-gap: 10px; }
+.nx-fin-tl__date { text-align: right; padding-top: 14px; display: flex; flex-direction: column; }
+.nx-fin-tl__date span:first-child { font-size: 12.5px; font-weight: 600; color: var(--nx-text); }
+.nx-fin-tl__wd { font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--nx-fin-quiet); }
+.nx-fin-tl__rail { position: relative; display: flex; justify-content: center; }
+.nx-fin-tl__rail::before { content: ""; position: absolute; top: 0; bottom: 0; left: 50%; width: 1px; background: var(--nx-border); }
+.nx-fin-tl__rail span {
+  position: relative; width: 9px; height: 9px; margin-top: 19px; border-radius: 99px;
+  background: var(--nx-page); border: 2px solid var(--nx-sydoc); box-sizing: border-box;
+}
+.nx-fin-tl__items { padding: 8px 0; min-width: 0; }
+.nx-fin-tl__item {
+  display: grid; grid-template-columns: minmax(0, 1fr) 72px; gap: 16px; align-items: baseline; padding: 6px 0;
+}
+.nx-fin-tl__comment { margin: 0; font-size: 13px; line-height: 1.45; color: var(--nx-text); text-wrap: pretty; overflow-wrap: anywhere; }
+.nx-fin-tl__comment.is-empty { color: var(--nx-fin-quiet); font-style: italic; }
+.nx-fin-tl__line { margin: 2px 0 0; font-size: 11.5px; color: var(--nx-fin-quiet); overflow-wrap: anywhere; }
+.nx-fin-tl__hours {
+  text-align: right; white-space: nowrap;
+  font-family: var(--nx-mono); font-variant-numeric: tabular-nums; font-size: 13px; font-weight: 600; color: var(--nx-text);
+}
+.nx-fin-tl:not(.is-expanded) .is-more { display: none; }
+.nx-fin-tl__foot { padding: 10px 0 0 112px; border-top: 1px solid var(--nx-divider); }
+.nx-fin-tl__foot .nx-fin-more { padding: 0; }
+
+/* Caveat line (the bookings cap). */
 .nx-fin-note {
-  display: flex; align-items: flex-start; gap: 8px; margin: 12px 0 0;
+  display: flex; align-items: flex-start; gap: 8px; margin: 16px 0 0;
   font-size: var(--fs-meta); color: var(--nx-text-sec); max-width: 72ch;
 }
-.nx-fin-note i { color: var(--nx-text-meta); margin-top: 2px; }
+.nx-fin-note i { color: var(--nx-fin-quiet); margin-top: 2px; }
 
 /* Empty month, error, and loading states -- all inline, all borderless. */
 .nx-fin-empty {
-  margin-top: 12px; padding: 14px 0; font-size: 13px; color: var(--nx-text-meta);
+  margin-top: 12px; padding: 14px 0; font-size: 13px; color: var(--nx-fin-quiet);
   display: flex; align-items: center; gap: 10px;
 }
 .nx-fin-error {
-  margin-top: 12px; padding: 12px 14px; border-radius: var(--nx-radius-sm);
+  margin-top: 4px; padding: 12px 14px; border-radius: var(--nx-radius-sm);
   background: var(--nx-l-red); color: var(--nx-l-red-fg); font-size: 13px;
   display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap;
 }
 .nx-fin-error__detail { font-family: var(--nx-mono); font-size: 11.5px; opacity: .85; word-break: break-word; flex-basis: 100%; }
 .nx-fin-error .nx-btn { margin-left: auto; }
-.nx-fin-skel { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 24px; margin-top: 14px; }
-.nx-fin-skel__tile { height: 58px; border-radius: 6px; }
+.nx-fin-skel { display: grid; gap: 14px; padding-top: 6px; }
+.nx-fin-skel__line { height: 22px; border-radius: 6px; }
 
 /* ---------- Month close (#415) ---------- */
-.nx-fin-closed { gap: 6px; }
-.nx-fin-closed i { font-size: 10px; }
-
-/* In-page confirmation, between the filter row and the sections. */
+/* In-page confirmation, directly under the band. */
 .nx-fin-confirm {
   display: flex; align-items: flex-start; gap: 14px; flex-wrap: wrap;
   margin-top: 14px; padding: 14px 16px;
-  border: 1px solid var(--nx-border-strong); border-left: 3px solid var(--nx-accent);
+  border: 1px solid var(--nx-border-strong); border-left: 3px solid var(--nx-sydoc);
   border-radius: var(--nx-radius-sm); background: var(--nx-card);
 }
-.nx-fin-confirm__icon { color: var(--nx-accent-hover); margin-top: 3px; }
+.nx-fin-confirm__icon { color: var(--nx-sydoc-ink-text); margin-top: 3px; }
 .nx-fin-confirm__text { flex: 1 1 320px; min-width: 0; }
 .nx-fin-confirm__title { margin: 0; font-size: 13.5px; font-weight: 700; color: var(--nx-text); }
 .nx-fin-confirm__body { margin: 4px 0 0; font-size: var(--fs-meta); color: var(--nx-text-sec); max-width: 72ch; }
@@ -192,7 +275,7 @@ html { overflow-y: auto; }
 
 /* Live-drift disclosure under a closed section. */
 .nx-fin-drift {
-  margin-top: 12px; border: 1px solid var(--nx-border); border-radius: var(--nx-radius-sm);
+  margin-top: 16px; border: 1px solid var(--nx-border); border-radius: var(--nx-radius-sm);
   background: var(--nx-alt);
 }
 .nx-fin-drift summary {
@@ -204,17 +287,19 @@ html { overflow-y: auto; }
 .nx-fin-drift .nx-table { margin: 0 12px; width: calc(100% - 24px); }
 .nx-fin-drift .nx-table th, .nx-fin-drift .nx-table td { padding: 6px 10px; font-size: 12.5px; background: transparent; }
 .nx-fin-drift .nx-table td.nx-num, .nx-fin-drift .nx-table th.nx-num { text-align: right; font-variant-numeric: tabular-nums; }
-.nx-fin-drift__note { margin: 8px 12px 10px; font-size: var(--fs-micro); color: var(--nx-text-meta); }
+.nx-fin-drift__note { margin: 8px 12px 10px; font-size: var(--fs-micro); color: var(--nx-fin-quiet); }
 
 /* ---------- Matrix (register x branch) ---------- */
 .nx-fin-table--wide { grid-column: 1 / -1; }
-.nx-fin-matrix { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+/* position: relative keeps absolutely placed children (.nx-fin-sr) inside
+   the scroller; without it they widen the whole page. */
+.nx-fin-matrix { position: relative; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .nx-fin-matrix:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--nx-accent-soft); border-radius: 4px; }
 .nx-fin-matrix .nx-table { min-width: max-content; }
 .nx-fin-matrix .nx-table th, .nx-fin-matrix .nx-table td { white-space: nowrap; }
-.nx-fin-matrix .nx-table td.nx-num, .nx-fin-matrix .nx-table th.nx-num {
-  text-align: right; font-variant-numeric: tabular-nums; font-family: var(--nx-mono); font-size: 12px;
-}
+.nx-fin-table .nx-fin-matrix .nx-table tbody td:first-child { max-width: none; width: auto; }
+.nx-fin-matrix .nx-table td.nx-num, .nx-fin-matrix .nx-table th.nx-num { text-align: right; }
+.nx-fin-matrix .nx-table td.nx-num { font-variant-numeric: tabular-nums; font-family: var(--nx-mono); font-size: 12px; }
 .nx-fin-matrix .nx-table tbody th, .nx-fin-matrix .nx-table tfoot th {
   position: sticky; left: 0; z-index: 1; background: var(--nx-page);
   text-align: left; font-weight: 500; font-size: 12.5px; color: var(--nx-text); padding: 7px 12px 7px 0;
@@ -222,52 +307,13 @@ html { overflow-y: auto; }
 }
 .nx-fin-matrix .nx-table thead th.nx-fin-matrix__corner { position: sticky; left: 0; z-index: 2; background: var(--nx-page); }
 .nx-fin-matrix .nx-table tbody td { padding: 7px 10px; }
-.nx-fin-matrix .nx-table td.is-zero { color: var(--nx-text-meta); opacity: .5; }
+/* Same right padding as the body cells, or right-aligned figures sit 10px left of their header and total. */
+.nx-fin-matrix .nx-table thead th, .nx-fin-matrix .nx-table tfoot td { padding-right: 10px; }
+.nx-fin-matrix .nx-table td.is-zero { color: var(--nx-fin-quiet); opacity: .5; }
 .nx-fin-matrix .nx-fin-matrix__total { font-weight: 700; color: var(--nx-text); border-left: 1px solid var(--nx-border); }
 .nx-fin-matrix .nx-table tfoot th, .nx-fin-matrix .nx-table tfoot td { font-weight: 700; border-top: 1px solid var(--nx-border); }
-.nx-fin-matrix .nx-table tbody tr.is-blank th { color: var(--nx-text-meta); font-style: italic; }
+.nx-fin-matrix .nx-table tbody tr.is-blank th { color: var(--nx-fin-quiet); font-style: italic; }
 .nx-fin-matrix .nx-table tbody tr:hover th, .nx-fin-matrix .nx-table tbody tr:hover td { background: var(--nx-alt); }
-
-/* ---------- Billable bookings (BPS) ---------- */
-.nx-fin-bookings { display: grid; gap: 22px; margin-top: 18px; }
-.nx-fin-bk__customer { font-size: 13px; font-weight: 700; color: var(--nx-text); }
-/* One table per customer: a fixed layout with the same column widths in every
-   table, so the columns line up down the whole section whatever each
-   customer's comments are. The comment column takes the rest. */
-.nx-fin-bk { width: 100%; table-layout: fixed; }
-.nx-fin-matrix .nx-fin-bk { min-width: 760px; }
-.nx-fin-bk__col--Datum        { width: 108px; }
-.nx-fin-bk__col--Projektpaket { width: 16%; }
-.nx-fin-bk__col--Aufgabe      { width: 17%; }
-.nx-fin-bk__col--Benutzer     { width: 15%; }
-.nx-fin-bk__col--Stunden      { width: 72px; }
-.nx-fin-matrix .nx-fin-bk th, .nx-fin-matrix .nx-fin-bk td {
-  white-space: normal; vertical-align: baseline; overflow-wrap: anywhere;
-}
-.nx-fin-matrix .nx-fin-bk td { font-family: inherit; }
-.nx-fin-matrix .nx-fin-bk td.nx-num { white-space: nowrap; font-family: var(--nx-mono); }
-.nx-fin-bk__date { white-space: nowrap !important; font-variant-numeric: tabular-nums; color: var(--nx-text-sec); }
-.nx-fin-bk__comment { color: var(--nx-text-sec); }
-.nx-fin-bk tbody tr.is-more { display: none; }
-.nx-fin-table.is-expanded .nx-fin-bk tbody tr.is-more { display: table-row; }
-
-/* Print: the report on paper, without the app chrome. */
-@media print {
-  .sidebar, .sidebar-toggle-btn, .firefly-field, .nx-fin-head__right, .nx-fin-filter, .nx-fin-more { display: none !important; }
-  body.nx-app, body.nx-app .nx-main { background: #fff; color: #000; padding: 0; max-width: none; }
-  .nx-fin-section { break-inside: avoid; page-break-inside: avoid; }
-  .nx-fin-table .nx-table tbody tr.is-more { display: table-row; }
-  .nx-fin-share__bar { display: none; }
-  .nx-fin-confirm, [data-role="month-link"] { display: none !important; }
-  .nx-fin-matrix { overflow: visible; }
-  .nx-fin-drift[open] summary ~ * { display: block; }
-}
-
-@media (max-width: 768px) {
-  .nx-fin-kpis .nx-kpi { padding: 12px 14px; }
-  .nx-fin-kpis .nx-kpi__value { font-size: 24px; }
-  .nx-fin-month__select { min-width: 150px; }
-}
 
 /* Stripes (a user preference) only paint <td>; give the sticky row-header
    <th> of a matrix the same step so a striped row reads as one band. */
@@ -276,16 +322,28 @@ html.nx-stripes .nx-fin-matrix .nx-table tbody tr:nth-child(even) th {
 }
 html.dark.nx-stripes .nx-fin-matrix .nx-table tbody tr:nth-child(even) th { background: #223046; }
 
-/* The Bexio invoice panel (#423): same hairline section, money in mono. */
-.nx-fin-bexio__tile { background: var(--nx-l-green); color: var(--nx-l-green-fg); font-size: 13px; }
-.nx-fin-kpis .nx-kpi__value.nx-fin-bexio__value { font-size: 22px; letter-spacing: -.6px; font-family: var(--nx-mono); }
+/* ---------- The Bexio invoice panel (#423), as a ledger row ---------- */
+/* Text for screen readers only (the Bexio table's action column head). */
+.nx-fin-sr {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+.nx-fin-bexio__refresh { margin: 12px 0 0 -10px; }
+.nx-fin-bexio .nx-fin-table + .nx-fin-table { margin-top: 28px; }
+/* finance_bexio.js renders its totals as the shared KPI strip. */
+.nx-kpi-strip.nx-fin-kpis { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.nx-kpi-strip.nx-fin-kpis .nx-kpi { border-top: none; }
+.nx-fin-kpis .nx-kpi { padding: 0 24px 14px; }
+.nx-fin-kpis .nx-kpi:first-child { border-left: none; padding-left: 0; }
+.nx-fin-kpis .nx-kpi__value.nx-fin-bexio__value { font-size: 17px; font-weight: 600; letter-spacing: -.5px; font-family: var(--nx-mono); }
+.nx-fin-bexio .nx-fin-table .nx-table tbody td:first-child { max-width: none; width: auto; white-space: normal; overflow: visible; }
 .nx-fin-bexio__table td { vertical-align: top; }
 .nx-fin-bexio__table td.nx-num { font-family: var(--nx-mono); }
 .nx-fin-bexio__client { font-weight: 600; color: var(--nx-text); }
 .nx-fin-bexio__contacts { display: flex; flex-wrap: wrap; gap: 4px 8px; margin-top: 2px; }
-.nx-fin-bexio__contact { display: inline-flex; align-items: center; gap: 2px; font-size: var(--fs-micro); color: var(--nx-text-meta); }
+.nx-fin-bexio__contact { display: inline-flex; align-items: center; gap: 2px; font-size: var(--fs-micro); color: var(--nx-fin-quiet); }
 .nx-fin-bexio__unlink {
-  border: none; background: none; color: var(--nx-text-meta); cursor: pointer;
+  border: none; background: none; color: var(--nx-fin-quiet); cursor: pointer;
   padding: 0 3px; font-size: 10px; border-radius: 3px;
 }
 .nx-fin-bexio__unlink:hover { color: var(--nx-danger); background: var(--nx-alt); }
@@ -293,10 +351,10 @@ html.dark.nx-stripes .nx-fin-matrix .nx-table tbody tr:nth-child(even) th { back
 .nx-fin-bexio__nr { font-family: var(--nx-mono); font-weight: 600; margin-right: 6px; white-space: nowrap; }
 .nx-fin-bexio__title { color: var(--nx-text-sec); }
 .nx-fin-bexio__date { white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--nx-text-sec); }
-.nx-fin-bexio__hint { margin-left: 8px; font-size: var(--fs-meta); color: var(--nx-text-meta); }
+.nx-fin-bexio__hint { margin-left: 8px; font-size: var(--fs-meta); color: var(--nx-fin-quiet); }
 .nx-fin-bexio__act { white-space: nowrap; text-align: right; }
 .nx-fin-bexio__actions { display: inline-flex; gap: 4px; }
-.nx-fin-bexio__inv.is-cancelled td { color: var(--nx-text-meta); }
+.nx-fin-bexio__inv.is-cancelled td { color: var(--nx-fin-quiet); }
 .nx-fin-bexio__inv.is-cancelled td.nx-num { text-decoration: line-through; }
 .nx-fin-bexio__link { margin-top: 6px; font-size: var(--fs-meta); max-width: 220px; display: block; }
 .nx-fin-bexio__lines > td { background: var(--nx-alt); padding: 10px 14px !important; }
@@ -305,9 +363,46 @@ html.dark.nx-stripes .nx-fin-matrix .nx-table tbody tr:nth-child(even) th { back
 .nx-fin-bexio__text { white-space: normal; }
 .nx-fin-bexio__sub td { font-weight: 600; }
 .nx-fin-bexio__textline td { color: var(--nx-text-sec); font-style: italic; }
-.nx-fin-bexio__open { display: flex; gap: 16px; margin: 8px 0 0; font-size: var(--fs-meta); color: var(--nx-text-meta); }
+.nx-fin-bexio__open { display: flex; gap: 16px; margin: 8px 0 0; font-size: var(--fs-meta); color: var(--nx-fin-quiet); }
 .nx-fin-bexio__open a { color: var(--nx-accent-hover); text-decoration: none; }
 .nx-fin-bexio__open a:hover { text-decoration: underline; }
+
+/* ---------- Narrow: identity above the lines ----------
+   Below ~1180px the 260px identity column leaves the four statement
+   columns too little room (the change column overflowed at 1024). */
+@media (max-width: 1179px) {
+  .nx-fin-section { grid-template-columns: 1fr; gap: 16px; }
+  .nx-fin-lines__head, .nx-fin-line { grid-template-columns: minmax(0, 1fr) 110px 80px 96px; }
+  .nx-fin-cmp { display: none; }
+}
+@media (max-width: 640px) {
+  .nx-fin-lines__head, .nx-fin-line { grid-template-columns: minmax(0, 1fr) 90px 80px; column-gap: 8px; }
+  .nx-fin-kpis .nx-kpi { padding-left: 0; border-left: none; }
+  /* A breakdown's columns do not fit a phone: scroll it, drop the bar. */
+  .nx-fin-table { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .nx-fin-share__bar { display: none; }
+  .nx-fin-lines__head span:nth-child(3), .nx-fin-line__prev { display: none; }
+  .nx-fin-tl__day { grid-template-columns: 56px 14px minmax(0, 1fr); }
+  .nx-fin-tl__foot { padding-left: 80px; }
+}
+
+/* ---------- Print: the report on paper, without the app chrome ---------- */
 @media print {
-  #fin-bexio-refresh, .nx-fin-bexio__actions, .nx-fin-bexio__link, .nx-fin-bexio__unlink { display: none !important; }
+  #nexora-sidebar, .sidebar-toggle-btn, .sidebar-backdrop, .firefly-field, .nx-fin-more { display: none !important; }
+  body.nx-app, body.nx-app .nx-main { background: #fff; color: #000; padding: 0 !important; max-width: none; }
+  .nx-sydoc-band .nx-sydoc-btn, .nx-sydoc-nav, .nx-fin-jump, .nx-sydoc-period__chev,
+  .nx-fin-bpsbtn, #fin-bexio-refresh, .nx-fin-confirm, .nx-sydoc-picker { display: none !important; }
+  /* body.nx-sydoc: nexora-ui.css loads again after this sheet (see above). */
+  body.nx-sydoc .nx-sydoc-band { background: none; color: #000; padding: 0; border-radius: 0; }
+  body.nx-sydoc .nx-sydoc-period__main, body.nx-sydoc .nx-sydoc-period__year { font-size: 20px; color: #000; letter-spacing: 0; }
+  body.nx-sydoc .nx-sydoc-band__h1, body.nx-sydoc .nx-sydoc-hint, body.nx-sydoc .nx-sydoc-stats__k,
+  body.nx-sydoc .nx-sydoc-stats__v, body.nx-sydoc .nx-sydoc-eyebrow { color: #000; }
+  .nx-fin-section { break-inside: avoid; page-break-inside: avoid; }
+  /* Every collapsed list prints expanded. */
+  .nx-fin-table .nx-table tbody tr.is-more { display: table-row !important; }
+  .nx-fin-tl .nx-fin-tl__day.is-more, .nx-fin-tl .nx-fin-tl__item.is-more { display: grid !important; }
+  .nx-fin-share__bar, .nx-fin-cmp { display: none; }
+  .nx-fin-matrix { overflow: visible; }
+  .nx-fin-drift[open] summary ~ * { display: block; }
+  .nx-fin-bexio__actions, .nx-fin-bexio__link, .nx-fin-bexio__unlink { display: none !important; }
 }

@@ -3,7 +3,8 @@
 The page is a shell with the period in the URL; one summary request returns
 hours and bookings per task / customer / package / person for the period
 (the browser builds the drill-down tree from it, in whichever order the
-reader picks), and each leaf loads its single bookings -- with their
+reader picks), plus the same rows for the period before it (the drill-down's
+gain/loss column) and the dates of the oldest and newest booking, and each leaf loads its single bookings -- with their
 comments -- on demand. The data is the registered ``bps_projects`` reporting
 source (0124), read through the same loader and query builder as Reporting
 and the Finance page; nx_lib/bps.py has the rules, this module only runs them.
@@ -14,7 +15,7 @@ scoping and the page names every employee, so the code is internal only.
 
 import datetime as dt
 
-from flask import Response, current_app, jsonify, render_template, request
+from flask import Response, current_app, jsonify, render_template, request, url_for
 from flask_babel import gettext
 
 from .. import bps
@@ -62,12 +63,20 @@ def _db_detail(exc):
 def bps_page():
     first, last = _range()
     today = dt.date.today()
+    prev_first, prev_last = bps.previous_range(first, last)
+    nxt = bps.next_range(first, last, today)
     return render_template(
         "bps.html",
         page_visibility=page_visibility(),
         range_from=first.isoformat(),
         range_to=last.isoformat(),
         today=today.isoformat(),
+        prev_href=url_for("bps", **{"from": prev_first.isoformat(), "to": prev_last.isoformat()}),
+        next_href=(
+            url_for("bps", **{"from": nxt[0].isoformat(), "to": nxt[1].isoformat()})
+            if nxt
+            else None
+        ),
         can_finance=has_permission("finance.view"),
         billable_tasks=list(bps.BILLABLE_TASKS),
         preparation=list(bps.PREPARATION),
@@ -81,6 +90,8 @@ def api_bps_summary():
     try:
         base_object, catalog, engine, label = _source()
         combos_q, days_q = bps.summary_queries(base_object, catalog, first, last)
+        prev_first, prev_last = bps.previous_range(first, last)
+        prev_q, _ = bps.summary_queries(base_object, catalog, prev_first, prev_last)
     except LookupError as e:
         return _error(str(e))
     except (bps.BpsSpecError, TableQueryError) as e:
@@ -89,13 +100,26 @@ def api_bps_summary():
     try:
         combos = _execute(engine, *combos_q)
         days = _execute(engine, *days_q)
+        prev_combos = _execute(engine, *prev_q)
     except Exception as e:
         current_app.logger.warning(f"bps: summary query failed: {e}")
         return _error(gettext("Could not read the source."), detail=_db_detail(e))
     payload = bps.summary_payload(combos, days, first, last)
+    prev = bps.summary_payload(prev_combos, [], prev_first, prev_last)
+    payload["prev"] = {"from": prev["from"], "to": prev["to"], "rows": prev["rows"]}
     payload["source"] = label
+    payload.update(_span(engine, base_object, catalog))
     payload["error"] = None
     return jsonify(payload)
+
+
+def _span(engine, base_object, catalog):
+    # Oldest / newest booking: a nicety, so a failure never fails the summary.
+    try:
+        return bps.span_payload(_execute(engine, *bps.span_query(base_object, catalog)))
+    except Exception as e:
+        current_app.logger.warning(f"bps: span query failed: {e}")
+        return {"first": None, "latest": None}
 
 
 @require_permission("bps.view")
@@ -131,6 +155,24 @@ def api_bps_entries():
     return jsonify(
         {"entries": entries, "truncated": len(rows) >= bps.ENTRIES_ROW_CAP, "error": None}
     )
+
+
+@require_permission("bps.view")
+@limiter.limit("60 per minute")
+def api_bps_months():
+    try:
+        base_object, catalog, engine, _label = _source()
+        sql, params = bps.months_query(base_object, catalog)
+    except LookupError as e:
+        return _error(str(e))
+    except (bps.BpsSpecError, TableQueryError) as e:
+        return _error(gettext("This page does not match its registered source."), detail=str(e))
+    try:
+        rows = _execute(engine, sql, params)
+    except Exception as e:
+        current_app.logger.warning(f"bps: months query failed: {e}")
+        return _error(gettext("Could not read the source."), detail=_db_detail(e))
+    return jsonify({"months": bps.months_payload(rows), "error": None})
 
 
 @require_permission("bps.view")
@@ -188,4 +230,5 @@ def register_routes(app):
     app.add_url_rule("/bps", endpoint="bps", view_func=bps_page)
     app.add_url_rule("/api/bps/summary", endpoint="api_bps_summary", view_func=api_bps_summary)
     app.add_url_rule("/api/bps/entries", endpoint="api_bps_entries", view_func=api_bps_entries)
+    app.add_url_rule("/api/bps/months", endpoint="api_bps_months", view_func=api_bps_months)
     app.add_url_rule("/api/bps/export.csv", endpoint="api_bps_export", view_func=api_bps_export)

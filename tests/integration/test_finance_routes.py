@@ -123,7 +123,10 @@ def test_finance_page_renders_every_section_shell(admin_client):
         "bps",
     ):
         assert f'data-testid="finance-section-{key}"' in html
-    assert 'value="2026-08" selected' in html
+    assert 'data-month="2026-08"' in html  # the picker's selected month
+    assert 'data-testid="finance-period-button"' in html
+    assert 'class="nx-app nx-sydoc"' in html
+    assert ">August<" in html  # the headline's month word
     assert "month=2026-07" in html  # the previous-month link
     assert "export.csv?month=2026-08" in html
 
@@ -131,7 +134,14 @@ def test_finance_page_renders_every_section_shell(admin_client):
 def test_finance_page_ignores_a_garbage_month(admin_client):
     resp = admin_client.get("/finance?month=nope")
     assert resp.status_code == 200
-    assert 'data-testid="finance-month-select"' in resp.get_data(as_text=True)
+    assert 'data-testid="finance-period-button"' in resp.get_data(as_text=True)
+
+
+def test_finance_page_marks_closed_months_for_the_picker(admin_client, monkeypatch):
+    monkeypatch.setattr(fv, "_closed_months_safe", lambda: {"2026-07"})
+    html = admin_client.get("/finance?month=2026-08").get_data(as_text=True)
+    assert '"value": "2026-07"' in html
+    assert '"state": "closed"' in html
 
 
 def test_finance_page_is_reachable_from_the_sidebar(admin_client):

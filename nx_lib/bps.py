@@ -145,6 +145,52 @@ def range_filters(first, last):
     ]
 
 
+def previous_range(first, last):
+    """The period a range is compared with ("vs. July").
+
+    Whole calendar months compare with as many months just before (August with
+    July, Jun-Aug with Mar-May); a month so far (1-29 Sep) with the same days
+    of the month before (1-29 Aug); anything else with as many days just before.
+    """
+    prev_last = first - dt.timedelta(days=1)
+    months = _whole_months(first, last)
+    if months:
+        return _add_months(first, -months), prev_last
+    if first.day == 1 and (first.year, first.month) == (last.year, last.month):
+        start = _add_months(first, -1)
+        return start, min(start + dt.timedelta(days=last.day - 1), prev_last)
+    return prev_last - dt.timedelta(days=(last - first).days), prev_last
+
+
+def next_range(first, last, today=None):
+    """The period after a range -- as many months (whole months) or days after
+    it -- or None when it would start after today. The end is not clamped, so
+    stepping keeps the period's shape (week 39 -> week 40, not 28-30 Sep);
+    the page clamps only the picker's date inputs, which stop at today."""
+    today = today or dt.date.today()
+    start = last + dt.timedelta(days=1)
+    if start > today:
+        return None
+    months = _whole_months(first, last)
+    if months:
+        end = _add_months(start, months) - dt.timedelta(days=1)
+    else:
+        end = start + dt.timedelta(days=(last - first).days)
+    return start, end
+
+
+def _add_months(first_of_month, n):
+    index = first_of_month.year * 12 + first_of_month.month - 1 + n
+    return dt.date(index // 12, index % 12 + 1, 1)
+
+
+def _whole_months(first, last):
+    """How many calendar months first..last covers exactly, else 0."""
+    if first.day != 1 or (last + dt.timedelta(days=1)).day != 1:
+        return 0
+    return (last.year - first.year) * 12 + last.month - first.month + 1
+
+
 # --------------------------------------------------------------------------
 # Queries and payloads of the BPS page
 # --------------------------------------------------------------------------
@@ -211,6 +257,59 @@ def entries_query(base_object, catalog, first, last, where):
         "sort": [{"field": "Datum", "dir": "asc"}, {"field": "Benutzer", "dir": "asc"}],
     }
     return build_generic_query(rd, base_object, catalog, row_cap=ENTRIES_ROW_CAP)
+
+
+MONTHS_ROW_CAP = 1000
+
+
+def months_query(base_object, catalog):
+    """Hours per calendar month over the whole history -- the period picker's cells."""
+    fields = _require(catalog, ("Datum", "Stunden"))
+    resolved = resolve_metrics([{"metric": "hours"}], _TOTALS, fields)
+    rd = {
+        "columns": [{"field": "Datum", "grain": "month"}],
+        "filters": [],
+        "metrics": [{"metric": "hours"}],
+        "sort": [],
+    }
+    return build_generic_query(
+        rd, base_object, catalog, row_cap=MONTHS_ROW_CAP, resolved_metrics=resolved
+    )
+
+
+_SPAN = {
+    "first": {"aggregation": "min", "base_field": "Datum", "filter": None},
+    "latest": {"aggregation": "max", "base_field": "Datum", "filter": None},
+}
+
+
+def span_query(base_object, catalog):
+    """The dates of the oldest and the newest booking in the source: where the
+    prev arrow stops, and how fresh the export is."""
+    fields = _require(catalog, ("Datum",))
+    metrics = [{"metric": "first"}, {"metric": "latest"}]
+    resolved = resolve_metrics(metrics, _SPAN, fields)
+    rd = {"columns": [], "filters": [], "metrics": metrics, "sort": []}
+    return build_generic_query(rd, base_object, catalog, row_cap=1, resolved_metrics=resolved)
+
+
+def span_payload(rows):
+    """[(min date, max date)] -> {'first': 'YYYY-MM-DD', 'latest': ...}, None for none."""
+    row = rows[0] if rows else (None, None)
+    return {
+        k: (_day(v) if v is not None else None)
+        for k, v in zip(("first", "latest"), row, strict=False)
+    }
+
+
+def months_payload(rows):
+    """[(month start, hours)] -> {'YYYY-MM': hours}, months without hours left out."""
+    out = {}
+    for r in rows:
+        value = _num(r[1])
+        if value and r[0] is not None:
+            out[_day(r[0])[:7]] = value
+    return out
 
 
 def _num(value):

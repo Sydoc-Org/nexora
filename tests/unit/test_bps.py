@@ -205,3 +205,108 @@ def test_entries_payload_cleans_and_categorises_each_booking():
             "category": "billable",
         }
     ]
+
+
+def test_previous_range_is_the_previous_month_for_a_whole_month():
+    assert bps.previous_range(dt.date(2026, 8, 1), dt.date(2026, 8, 31)) == (
+        dt.date(2026, 7, 1),
+        dt.date(2026, 7, 31),
+    )
+    assert bps.previous_range(dt.date(2026, 3, 1), dt.date(2026, 3, 31)) == (
+        dt.date(2026, 2, 1),
+        dt.date(2026, 2, 28),
+    )
+
+
+def test_previous_range_is_the_same_length_just_before_otherwise():
+    assert bps.previous_range(dt.date(2026, 9, 21), dt.date(2026, 9, 27)) == (
+        dt.date(2026, 9, 14),
+        dt.date(2026, 9, 20),
+    )
+    assert bps.previous_range(dt.date(2026, 6, 1), dt.date(2026, 8, 31)) == (
+        dt.date(2026, 3, 1),
+        dt.date(2026, 5, 31),
+    )
+
+
+def test_next_range_is_the_next_month_or_the_next_span_and_stops_at_today():
+    today = dt.date(2026, 9, 30)
+    assert bps.next_range(dt.date(2026, 8, 1), dt.date(2026, 8, 31), today) == (
+        dt.date(2026, 9, 1),
+        dt.date(2026, 9, 30),
+    )
+    assert bps.next_range(dt.date(2026, 9, 14), dt.date(2026, 9, 20), today) == (
+        dt.date(2026, 9, 21),
+        dt.date(2026, 9, 27),
+    )
+    assert bps.next_range(dt.date(2026, 9, 1), dt.date(2026, 9, 30), today) is None
+
+
+def test_months_query_sums_hours_per_calendar_month():
+    sql, params = bps.months_query("dbo.BPS_ProjectReportAll", CATALOG)
+    assert "DATEFROMPARTS(YEAR([Datum]), MONTH([Datum]), 1)" in sql
+    assert "GROUP BY" in sql and params == []
+
+
+def test_span_query_asks_for_the_oldest_and_newest_booking_dates():
+    sql, params = bps.span_query("dbo.BPS_ProjectReportAll", CATALOG)
+    assert "MIN([Datum])" in sql and "MAX([Datum])" in sql and params == []
+    assert bps.span_payload([(dt.date(2025, 1, 3), dt.datetime(2026, 9, 30, 0, 0))]) == {
+        "first": "2025-01-03",
+        "latest": "2026-09-30",
+    }
+    assert bps.span_payload([(None, None)]) == {"first": None, "latest": None}
+    assert bps.span_payload([]) == {"first": None, "latest": None}
+
+
+def test_months_payload_keys_by_yyyy_mm_and_drops_empty_months():
+    rows = [
+        (dt.date(2025, 1, 1), Decimal("12.5")),
+        (dt.date(2026, 8, 1), Decimal("1300.5")),
+        (dt.date(2026, 9, 1), None),
+        (None, Decimal("3")),
+    ]
+    assert bps.months_payload(rows) == {"2025-01": 12.5, "2026-08": 1300.5}
+
+
+def test_whole_month_spans_step_by_months_both_ways():
+    today = dt.date(2026, 9, 30)
+    assert bps.previous_range(dt.date(2026, 7, 1), dt.date(2026, 9, 30)) == (
+        dt.date(2026, 4, 1),
+        dt.date(2026, 6, 30),
+    )
+    assert bps.next_range(dt.date(2026, 3, 1), dt.date(2026, 5, 31), today) == (
+        dt.date(2026, 6, 1),
+        dt.date(2026, 8, 31),
+    )
+    assert bps.previous_range(dt.date(2025, 11, 1), dt.date(2026, 1, 31)) == (
+        dt.date(2025, 8, 1),
+        dt.date(2025, 10, 31),
+    )
+
+
+def test_next_range_keeps_the_shape_of_the_period():
+    today = dt.date(2026, 9, 30)
+    # Jun-Aug is followed by Sep-Nov and week 39 by week 40, even where they
+    # run past today; only a period that would start after today is refused.
+    assert bps.next_range(dt.date(2026, 6, 1), dt.date(2026, 8, 31), today) == (
+        dt.date(2026, 9, 1),
+        dt.date(2026, 11, 30),
+    )
+    assert bps.next_range(dt.date(2026, 9, 21), dt.date(2026, 9, 27), today) == (
+        dt.date(2026, 9, 28),
+        dt.date(2026, 10, 4),
+    )
+    assert bps.next_range(dt.date(2026, 9, 28), dt.date(2026, 10, 4), today) is None
+
+
+def test_a_month_so_far_compares_with_the_same_days_of_the_month_before():
+    assert bps.previous_range(dt.date(2026, 9, 1), dt.date(2026, 9, 29)) == (
+        dt.date(2026, 8, 1),
+        dt.date(2026, 8, 29),
+    )
+    # February has no 29th/30th: 1-30 Mar compares with all of February.
+    assert bps.previous_range(dt.date(2026, 3, 1), dt.date(2026, 3, 30)) == (
+        dt.date(2026, 2, 1),
+        dt.date(2026, 2, 28),
+    )

@@ -1,52 +1,77 @@
 {# #191 shim: only Jinja-rendered data and translated strings live here.
-   Behaviour is in static/js/bps.js (no url_for, no gettext there).
-   Placeholders are {name}, substituted by bps.js -- see _finance_js.html
-   for why gettext's own %(name)s cannot be used in a shim. #}
+   Behaviour is in static/js/bps.js (no url_for, no gettext there); the pure
+   drill-down logic in static/js/bps_view.js, the shared band and picker in
+   static/js/nx_sydoc.js. Placeholders are {name}, substituted by bps.js --
+   see _finance_js.html for why gettext's own %(name)s cannot be used in a shim. #}
 <script nonce="{{ csp_nonce() }}">
   window.NX_BPS = {
     from: {{ range_from|tojson }},
     to: {{ range_to|tojson }},
     today: {{ today|tojson }},
+    months: null,
     strings: {
       loading:      {{ _("Loading…") | tojson }},
-      loaded:       {{ _("{n} bookings · {from} – {to}") | tojson }},
+      bookingsLoaded: {{ _("{n} bookings loaded") | tojson }},
+      rangeText:    {{ _("{from} – {to}") | tojson }},
       failed:       {{ _("Could not read the source") | tojson }},
       totalHours:   {{ _("Total hours") | tojson }},
       serviceHours: {{ _("Service hours") | tojson }},
-      billable:     {{ _("Billable hours") | tojson }},
-      absence:      {{ _("Absence hours") | tojson }},
       bookings:     {{ _("Bookings") | tojson }},
       people:       {{ _("People") | tojson }},
       ofService:    {{ _("{pct} of service hours") | tojson }},
       ofTotal:      {{ _("{pct} of all hours") | tojson }},
       withHours:    {{ _("with service hours") | tojson }},
-      inPeriod:     {{ _("in the period") | tojson }},
       catBillable:  {{ _("Billable") | tojson }},
       catService:   {{ _("Other service") | tojson }},
       catAbsence:   {{ _("Absence") | tojson }},
-      partly:       {{ _("partly billable") | tojson }},
-      billableTag:  {{ _("billable") | tojson }},
       total:        {{ _("Total") | tojson }},
       h:            {{ _("{n} h") | tojson }},
       dayTotal:     {{ _("Total: {n} h") | tojson }},
-      chartMeta:    {{ _("{days} days · {n} h") | tojson }},
+      chartMeta:    {{ _("{days} days · {n} h · weekends shaded") | tojson }},
       nothing:      {{ _("No bookings match.") | tojson }},
-      emptyPeriod:  {{ _("Nothing was booked in this period. The BPS export starts on 3 August 2026.") | tojson }},
+      emptyPeriod:  {{ _("Nothing was booked in this period. The BPS history starts in January 2025.") | tojson }},
       entries:      {{ _("Loading bookings…") | tojson }},
       entriesFail:  {{ _("Could not load the bookings") | tojson }},
       entriesCut:   {{ _("Showing the first 5,000 bookings; export the CSV for all.") | tojson }},
-      colDate:      {{ _("Date") | tojson }},
-      colPackage:   {{ _("Package") | tojson }},
       colHours:     {{ _("Hours") | tojson }},
-      colComment:   {{ _("Comment") | tojson }},
-      expand:       {{ _("Show {name}") | tojson }},
       truncated:    {{ _("The period has more combinations than the page loads; narrow it for exact figures.") | tojson }},
+      weekLabel:    {{ _("Week {n}") | tojson }},
+      vsPrev:       {{ _("vs. {period}") | tojson }},
+      notBooked:    {{ _("not booked in {period}") | tojson }},
+      isNew:        {{ _("New") | tojson }},
+      split:        {{ _("Split") | tojson }},
+      showMore:     {{ _("Show {n} more") | tojson }},
+      showFewer:    {{ _("Show fewer") | tojson }},
+      noComment:    {{ _("No comment") | tojson }},
+      levelMeta:    {{ _("{items} · {h}") | tojson }},
+      leafMeta:     {{ _("{h} · {n} bookings") | tojson }},
+      nBookings:    {{ _("{n} bookings") | tojson }},
+      hintTable:    {{ _("Bar length is hours relative to the largest row; colours are its split. Click a row to zoom in.") | tojson }},
+      hintMap:      {{ _("Tile size is hours; the strip under each tile is its split. Click a tile to zoom in.") | tojson }},
+      noData:       {{ _("No data") | tojson }},
+      runningH:     {{ _("Running · {h}") | tojson }},
+      monthsFail:   {{ _("Could not load the hours per month") | tojson }},
+      moreTiles:    {{ _("+{n} more") | tojson }},
+      moreTitle:    {{ _("{n} smaller entries, {h} together. Opens the table, which lists every row.") | tojson }},
+      staleData:    {{ _("No newer bookings: the nightly BPS export may have stopped.") | tojson }},
       names: {
         Aufgabe:  {{ _("Task") | tojson }},
         Kunde:    {{ _("Customer") | tojson }},
         Benutzer: {{ _("Person") | tojson }}
+      },
+      allOf: {
+        Aufgabe:  {{ _("All tasks") | tojson }},
+        Kunde:    {{ _("All customers") | tojson }},
+        Benutzer: {{ _("All people") | tojson }}
+      },
+      plural: {
+        Aufgabe:  {{ _("{n} tasks") | tojson }},
+        Kunde:    {{ _("{n} customers") | tojson }},
+        Benutzer: {{ _("{n} people") | tojson }}
       }
     }
   };
 </script>
+<script src="{{ static_v('js/nx_sydoc.js') }}" nonce="{{ csp_nonce() }}" defer></script>
+<script src="{{ static_v('js/bps_view.js') }}" nonce="{{ csp_nonce() }}" defer></script>
 <script src="{{ static_v('js/bps.js') }}" nonce="{{ csp_nonce() }}" defer></script>

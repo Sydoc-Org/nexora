@@ -218,6 +218,8 @@ class Section:
     note: str | None = None
     bookings: Bookings | None = None
     link: str | None = None
+    # The short label of the page's jump index; falls back to title, then client.
+    nav: str | None = None
 
 
 SECTIONS = (
@@ -243,6 +245,7 @@ SECTIONS = (
     Section(
         key="compass",
         client="Compass Group",
+        nav="Compass",
         source="compass_invoice",
         note=N_(
             "Counted by upload date, whatever the document date: that is the set "
@@ -285,6 +288,7 @@ SECTIONS = (
         key="privera_invoice",
         client="Privera",
         title="Rechnungseingang",
+        nav="Rechnungen",
         source="privera_invoice",
         blocks=(
             Block(
@@ -305,6 +309,7 @@ SECTIONS = (
         key="privera_nachsendungen",
         client="Privera",
         title="Physische Zustellung",
+        nav="Zustellung",
         source="privera_nachsendungen",
         blocks=(
             Block(
@@ -427,6 +432,7 @@ SECTIONS = (
         key="bps",
         client="Sydoc",
         title=N_("Billable services"),
+        nav=N_("Services"),
         source=bps.SOURCE,
         group=SERVICES,
         link="bps",
@@ -484,6 +490,7 @@ def section_descriptors():
             "group": s.group,
             "source": s.source,
             "link": s.link,
+            "nav": s.nav or s.title or s.client,
         }
         for s in SECTIONS
     ]

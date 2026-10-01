@@ -1,0 +1,55 @@
+{# Shared pieces of Sydoc's own books (Finance, BPS): the ink band's brand row,
+   the period headline with its prev/next arrows, and the period-picker shell.
+   Import `with context` so _() is available:
+     {% import '_sydoc.html' as sydoc with context %}
+   Styles: the nx-sydoc-* section of static/css/nexora-ui.css.
+   Behaviour: static/js/nx_sydoc.js (window.NXSydoc). #}
+
+{% macro brand(second_eyebrow) -%}
+  <span class="nx-sydoc-mark" aria-hidden="true"></span>
+  <span class="nx-sydoc-eyebrow">{{ _("Sydoc internal") }}</span>
+  <span class="nx-sydoc-eyebrow nx-sydoc-eyebrow--muted">{{ second_eyebrow }}</span>
+{%- endmacro %}
+
+{% macro _nav(href, label, icon, testid) -%}
+  {% if href %}
+  <a class="nx-sydoc-nav" href="{{ href }}" aria-label="{{ label }}" title="{{ label }}" data-testid="{{ testid }}"><i class="fas {{ icon }}" aria-hidden="true"></i></a>
+  {% else %}
+  <span class="nx-sydoc-nav" aria-disabled="true" aria-label="{{ label }}" data-testid="{{ testid }}"><i class="fas {{ icon }}" aria-hidden="true"></i></span>
+  {% endif %}
+{%- endmacro %}
+
+{% macro headline(h1, testid, main, year, prev_href, next_href, prev_label, next_label, picker_id) -%}
+  <h1 class="nx-sydoc-band__h1" data-testid="{{ testid }}-title">{{ h1 }}</h1>
+  <div class="nx-sydoc-headline">
+    {{ _nav(prev_href, prev_label, "fa-chevron-left", testid ~ "-month-prev") }}
+    <button type="button" class="nx-sydoc-period" aria-haspopup="dialog" aria-controls="{{ picker_id }}" data-testid="{{ testid }}-period-button">
+      <span class="nx-sydoc-period__main" data-role="period-main">{{ main }}</span>
+      <span class="nx-sydoc-period__year" data-role="period-year">{{ year }}</span>
+      <i class="fas fa-chevron-down nx-sydoc-period__chev" aria-hidden="true"></i>
+    </button>
+    {{ _nav(next_href, next_label, "fa-chevron-right", testid ~ "-month-next") }}
+  </div>
+{%- endmacro %}
+
+{% macro picker_open(id, title, testid, wide=False) -%}
+<div class="nx-sydoc-picker" id="{{ id }}" hidden role="dialog" aria-modal="true" aria-labelledby="{{ id }}-title" data-testid="{{ testid }}">
+  <div class="nx-sydoc-picker__panel{% if wide %} nx-sydoc-picker__panel--wide{% endif %}">
+    <div class="nx-sydoc-picker__head">
+      <h2 class="nx-sydoc-picker__title" id="{{ id }}-title">{{ title }}</h2>
+      <button type="button" class="nx-sydoc-picker__close" data-role="picker-close" aria-label="{{ _('Close') }}"><i class="fas fa-xmark" aria-hidden="true"></i></button>
+    </div>
+{%- endmacro %}
+
+{% macro picker_close() -%}
+  </div>
+</div>
+{%- endmacro %}
+
+{% macro year_switch(prev_label, next_label) -%}
+    <div class="nx-sydoc-picker__year">
+      <button type="button" class="nx-sydoc-picker__year-btn" data-role="year-prev" aria-label="{{ prev_label }}"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
+      <span class="nx-sydoc-picker__year-num" data-role="year" aria-live="polite"></span>
+      <button type="button" class="nx-sydoc-picker__year-btn" data-role="year-next" aria-label="{{ next_label }}"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+    </div>
+{%- endmacro %}
