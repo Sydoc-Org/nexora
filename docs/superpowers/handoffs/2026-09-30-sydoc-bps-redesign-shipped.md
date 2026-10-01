@@ -117,3 +117,60 @@ Read this file, then the plan's **Task 21 onward**
 (`docs/superpowers/plans/2026-09-30-sydoc-finance-bps-redesign.md`) and the Finance part of
 `docs/design/design_handoff_sydoc_finance_bps/README.md`. First check `gh pr view 426`. If it is
 not merged, there is nothing to do on Finance yet.
+
+## Update 2026-10-01 — BPS polished after owner review (read this before Finance)
+
+Three more commits, all pushed and green in CI. `dev-nexora` runs `d1b71376`:
+
+- `ee49c3f0` fix(bps): keep the scroll put when zooming, label narrow tiles
+- `f13e692f` fix(bps): fix the UI issues a browser audit of the page found
+- `d1b71376` feat(bps): keep the drill-down in the URL, fix arrows and treemap
+
+**What changed in the shared pieces that Finance reuses:**
+
+- **Print rules** for both pages now live in the shared Sydoc block of `nexora-ui.css`, under
+  `@media print` with `body.nx-sydoc`. The sidebar is `#nexora-sidebar`; the old `.sidebar` rule in
+  `finance.css`'s print block never matched, so drop it in Task 26. Page sheets lose to the
+  header's second load of `nexora-ui.css` at equal specificity, so add page print rules with
+  `!important` or put them in the shared block.
+- **Contrast:** small grey text on the ink band uses the new `--nx-sydoc-ink-muted` (`#7c8492`)
+  instead of the design's `#6b7280`, which is 3.8:1 and fails AA. Inactive `.nx-track__btn` text
+  is `#636a76`. The 54px year keeps `#6b7280`, because large text only needs 3:1. Use these for
+  Finance's band eyebrows/keys. axe-core reports zero violations on `/bps`.
+- **`NXSydoc.periodHeadline(from, to, lang, weekLabel, todayIso)`** takes a 5th argument: a month
+  up to today reads as that month. A custom range uses `Intl…formatRange`, so it is
+  locale-correct ("4. – 19. Aug.").
+- **Phone:** the band's stats wrap, and `.nx-track` scrolls inside its own track. There is no
+  horizontal page scroll at 390 px. Check Finance's jump index at 390 px the same way.
+
+**BPS behaviour that Finance does not need to copy, for orientation:**
+
+- **Arrows:** they step by the period's own shape and are not clamped (week 39 › week 40). Only
+  the picker's date inputs are capped at today, via `[range_to, today]|min` in the template.
+  - Prev is inert once the period before would end before the oldest booking.
+  - `/api/bps/summary` returns `first` and `latest` from one MIN/MAX query (`bps.span_query`).
+- **The drill-down lives in the URL** (`order`, repeated `at`, `billable`, `absences`, `q`):
+  - Zooming pushes a history entry; other changes replace the current one.
+  - Prev/next and the picker carry the drill-down into the next period.
+  - `trimPath()` drops keys the new period lacks.
+- **The "Latest booking" stat** in the band turns amber after 4 days. On INT it shows **8 Sept
+  2026**: the INT BPS export is stale (an ops issue, not code).
+- **Treemap:** groups smaller than 56×50 px merge into a "+ n more" tile, which opens the table.
+
+**Open on BPS (owner's call, not started):**
+
+- A hint where the previous period predates January 2025 (year comparisons overstate growth).
+- An app-wide skip link (`_header.html`).
+- A CSV per drill-down.
+- Arrow keys in the picker grid.
+
+**Testing tips** (this session's scratchpad is gone, so recreate them):
+
+- Playwright's bundled Node at `C:\dev\nexora\.venv\Lib\site-packages\playwright\driver\node.exe`
+  runs the JS tests and `node --check`.
+- To run axe, inject axe-core from jsdelivr with `bypass_csp=True` in the browser context.
+- The dev server does **not** reload Python code. Restart it after changing views.
+- Move the mouse off the sidebar before screenshots, or it expands on hover.
+
+**Branch state:** `feat/427-sydoc-redesign` is pushed and has no PR yet. Finance still waits for
+PR #426 (#423). Resume at plan Task 21.
