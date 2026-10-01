@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-01 20:24+0200\n"
+"POT-Creation-Date: 2026-10-01 20:57+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -1130,7 +1130,7 @@ msgstr "Diese Seite passt nicht zu ihrer registrierten Quelle."
 msgid "Could not read the source."
 msgstr "Die Quelle konnte nicht gelesen werden."
 
-#: nx_lib/views/bps.py:200 templates/bps.html:133 templates/js/_bps_js.html:24
+#: nx_lib/views/bps.py:200 templates/bps.html:135 templates/js/_bps_js.html:24
 msgid "Billable"
 msgstr "Verrechenbar"
 
@@ -4044,7 +4044,7 @@ msgid "Copy"
 msgstr "Kopieren"
 
 #: templates/_reporting_simple.html:335
-#: templates/admin/organization_detail.html:214 templates/bps.html:127
+#: templates/admin/organization_detail.html:214 templates/bps.html:129
 #: templates/js/_reporting_layouts_js.html:57 templates/reporting.html:380
 #: templates/workitems_overview.html:335
 msgid "Table"
@@ -5182,12 +5182,12 @@ msgstr "Offen und unbezahlt"
 msgid "Choose month"
 msgstr "Monat wählen"
 
-#: templates/billing.html:129 templates/bps.html:79
+#: templates/billing.html:129 templates/bps.html:81
 #: templates/controlling.html:111 templates/finance.html:162
 msgid "Previous year"
 msgstr "Vorheriges Jahr"
 
-#: templates/billing.html:129 templates/bps.html:79
+#: templates/billing.html:129 templates/bps.html:81
 #: templates/controlling.html:111 templates/finance.html:162
 msgid "Next year"
 msgstr "Nächstes Jahr"
@@ -5279,58 +5279,63 @@ msgstr "Zeitraum"
 msgid "Latest booking"
 msgstr "Letzte Buchung"
 
-#: templates/bps.html:69
+#: templates/bps.html:59 templates/controlling.html:123
+#: templates/js/_bps_js.html:17 templates/js/_controlling_js.html:27
+msgid "Total hours"
+msgstr "Stunden total"
+
+#: templates/bps.html:71
 msgid "Choose period"
 msgstr "Zeitraum wählen"
 
-#: templates/bps.html:71 templates/reporting.html:214
+#: templates/bps.html:73 templates/reporting.html:214
 msgid "Quick"
 msgstr "Schnell"
 
-#: templates/bps.html:73 templates/js/_reporting_dashboard_js.html:29
+#: templates/bps.html:75 templates/js/_reporting_dashboard_js.html:29
 #: templates/js/_reporting_drill_js.html:28 templates/js/_reporting_js.html:11
 #: templates/js/_reporting_simple_js.html:51
 msgid "Last month"
 msgstr "Letzter Monat"
 
-#: templates/bps.html:74 templates/js/_reporting_dashboard_js.html:28
+#: templates/bps.html:76 templates/js/_reporting_dashboard_js.html:28
 #: templates/js/_reporting_drill_js.html:28 templates/js/_reporting_js.html:10
 #: templates/js/_reporting_simple_js.html:50
 #: templates/workitems_overview.html:164
 msgid "This month"
 msgstr "Dieser Monat"
 
-#: templates/bps.html:75 templates/js/_reporting_dashboard_js.html:27
+#: templates/bps.html:77 templates/js/_reporting_dashboard_js.html:27
 #: templates/js/_reporting_drill_js.html:27 templates/js/_reporting_js.html:9
 #: templates/js/_reporting_simple_js.html:67
 msgid "Last week"
 msgstr "Letzte Woche"
 
-#: templates/bps.html:76 templates/js/_reporting_dashboard_js.html:32
+#: templates/bps.html:78 templates/js/_reporting_dashboard_js.html:32
 #: templates/js/_reporting_drill_js.html:30 templates/js/_reporting_js.html:14
 #: templates/js/_reporting_simple_js.html:52
 msgid "Last 3 months"
 msgstr "Letzte 3 Monate"
 
-#: templates/bps.html:83 templates/generali-dashboard.html:77
+#: templates/bps.html:85 templates/generali-dashboard.html:77
 #: templates/js/_controlling_js.html:177
 msgid "From"
 msgstr "Von"
 
-#: templates/bps.html:87 templates/generali-dashboard.html:82
+#: templates/bps.html:89 templates/generali-dashboard.html:82
 #: templates/js/_controlling_js.html:178
 msgid "To"
 msgstr "Bis"
 
-#: templates/bps.html:91
+#: templates/bps.html:93
 msgid "Show range"
 msgstr "Zeitraum anzeigen"
 
-#: templates/bps.html:98
+#: templates/bps.html:100
 msgid "Hours per day"
 msgstr "Stunden pro Tag"
 
-#: templates/bps.html:101
+#: templates/bps.html:103
 msgid ""
 "Hours per day by billable, other service and absence; the table below "
 "lists the same hours."
@@ -5338,68 +5343,68 @@ msgstr ""
 "Stunden pro Tag nach verrechenbar, übriger Leistung und Abwesenheit; die "
 "Tabelle darunter listet dieselben Stunden."
 
-#: templates/bps.html:107
+#: templates/bps.html:109
 msgid "Drill-down"
 msgstr "Aufschlüsselung"
 
-#: templates/bps.html:108 templates/reporting_metrics.html:43
+#: templates/bps.html:110 templates/reporting_metrics.html:43
 #: templates/reporting_sources.html:54
 msgid "Order"
 msgstr "Reihenfolge"
 
-#: templates/bps.html:109
+#: templates/bps.html:111
 msgid "Task › Customer › Person"
 msgstr "Aufgabe › Kunde › Person"
 
-#: templates/bps.html:110
+#: templates/bps.html:112
 msgid "Customer › Task › Person"
 msgstr "Kunde › Aufgabe › Person"
 
-#: templates/bps.html:111
+#: templates/bps.html:113
 msgid "Person › Customer › Task"
 msgstr "Person › Kunde › Aufgabe"
 
-#: templates/bps.html:114
+#: templates/bps.html:116
 msgid "Billable only"
 msgstr "Nur verrechenbar"
 
-#: templates/bps.html:115
+#: templates/bps.html:117
 msgid "Hide absences"
 msgstr "Abwesenheiten ausblenden"
 
-#: templates/bps.html:118
+#: templates/bps.html:120
 msgid "Filter task, customer, person"
 msgstr "Aufgabe, Kunde, Person filtern"
 
-#: templates/bps.html:118
+#: templates/bps.html:120
 msgid "Filter task, customer, person…"
 msgstr "Aufgabe, Kunde, Person filtern…"
 
-#: templates/bps.html:122
+#: templates/bps.html:124
 msgid "Up one level"
 msgstr "Eine Ebene zurück"
 
-#: templates/bps.html:123
+#: templates/bps.html:125
 msgid "Drill-down path"
 msgstr "Pfad der Aufschlüsselung"
 
-#: templates/bps.html:126 templates/js/admin/_logs_js.html:90
+#: templates/bps.html:128 templates/js/admin/_logs_js.html:90
 msgid "View"
 msgstr "Anzeigen"
 
-#: templates/bps.html:128
+#: templates/bps.html:130
 msgid "Treemap"
 msgstr "Kacheln"
 
-#: templates/bps.html:134 templates/js/_bps_js.html:25
+#: templates/bps.html:136 templates/js/_bps_js.html:25
 msgid "Other service"
 msgstr "Übrige Leistung"
 
-#: templates/bps.html:135 templates/js/_bps_js.html:26
+#: templates/bps.html:137 templates/js/_bps_js.html:26
 msgid "Absence"
 msgstr "Abwesenheit"
 
-#: templates/bps.html:140
+#: templates/bps.html:142
 #, python-format
 msgid ""
 "Billable: %(tasks)s on customers (not sydoc / sydoc intern), plus "
@@ -5516,11 +5521,6 @@ msgstr "Abgeschlossen, Zahlen eingefroren"
 #: templates/controlling.html:115 templates/finance.html:166
 msgid "Open, live"
 msgstr "Offen, live"
-
-#: templates/controlling.html:123 templates/js/_bps_js.html:17
-#: templates/js/_controlling_js.html:27
-msgid "Total hours"
-msgstr "Stunden total"
 
 #: templates/controlling.html:123 templates/js/_controlling_js.html:28
 msgid "Cost"

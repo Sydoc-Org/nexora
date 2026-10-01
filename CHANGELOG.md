@@ -26,7 +26,6 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **BPS: totals and the composition bar sit below the ink band** (#415): the
   KPI row and the billable / other service / absence bar moved out of the dark
   header onto the page surface, themed with the page tokens.
-
 - **Sidebar: one *Sydoc internal* group** (#436) holds Finance, BPS, Billing
   and Controlling. It replaces the flat *Sydoc Finance* / *Sydoc BPS* / *Sydoc
   Controlling* entries.
