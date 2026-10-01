@@ -250,24 +250,18 @@ def normalize_bill(raw):
     }
 
 
-def exchange_rate(currency_id, date, *, fresh=False):
-    """CHF per one unit of ``currency_id`` in the month of ``date`` (ISO), as
-    Bexio states it (its monthly average), or None when Bexio has none.
-    Cached per currency and month: the rate of a past month does not move."""
-    currency_id = int(currency_id)
-    first = f"{str(date)[:7]}-01"
+def project_name(project_id):
+    """The name of a Bexio project, or None when Bexio will not say (cached)."""
+    project_id = int(project_id)
 
     def load():
-        rows = _request(
-            "GET", f"/3.0/currencies/{currency_id}/exchange_rates", params={"date": first}
-        )
-        for r in rows if isinstance(rows, list) else []:
-            if (r.get("exchange_currency") or {}).get("name") == "CHF":
-                factor = _dec(r.get("factor_nr_to_ratio") or r.get("factor_nr"))
-                return factor if factor > 0 else None
-        return None
+        try:
+            body = _request("GET", f"/2.0/pr_project/{project_id}")
+        except BexioError:
+            return None
+        return (body or {}).get("name") if isinstance(body, dict) else None
 
-    return _cached(("fx", currency_id, first), CONTACT_TTL, load, fresh=fresh)
+    return _cached(("project", project_id), CONTACT_TTL, load)
 
 
 def invoice(invoice_id, *, fresh=False):

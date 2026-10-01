@@ -1,22 +1,28 @@
 """Sydoc Controlling (#433): margin per client stream -- BPS hours x rate against Bexio.
 
-The page is a shell that knows the month; /api/controlling/month returns the
+The page renders its band from Jinja; /api/controlling/month returns the
 whole month (summary, per-stream detail with invoice lines, hours by task,
 volumes) and /api/controlling/trend the series since January 2025. The rules
-live in nx_lib/controlling.py; this module fetches the four inputs and runs
-them:
+live in nx_lib/controlling.py; this module fetches the inputs and runs them:
 
 * BPS hours through the registered ``bps_projects`` source (the BPS page's
-  loader and query builder);
-* the rates of dbo.FinanceRates and the stream <-> Bexio project map of
-  dbo.ControllingStreamProjects (0145);
+  loader and query builder) -- when BPS is down the hours are unknown, and
+  the rest of the page still renders;
+* the rates of dbo.FinanceRates, the stream <-> Bexio project map of
+  dbo.ControllingStreamProjects with the per-invoice overrides of
+  dbo.ControllingInvoiceStreams, and the external costs (dbo.ControllingCosts
+  plus Bexio purchase bills through dbo.ControllingVendorStreams);
 * the Bexio invoices, live (nx_lib/bexio.py, cached for five minutes);
 * the documents per stream through the Finance sections' registered sources,
-  or from the Finance month-close snapshot when the month is closed -- the
-  live count rides along where it moved since.
+  or from the Finance month-close snapshot.
 
-controlling.view is the whole gate (0145); rates are edited by
-finance.month.edit holders, the code that closes a Finance month.
+A month Sydoc Finance has closed is closed here too: Finance's close calls
+``close_month`` below, which freezes the Controlling figures in
+dbo.ControllingMonthClose (0147); reopening deletes them. A closed month is
+served from that snapshot, with the live Bexio invoices next to it.
+
+controlling.view is the whole gate (0145); rates and external costs are
+edited with controlling.rates.edit (0147).
 """
 
 import datetime as dt
@@ -26,7 +32,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 
 from flask import Response, current_app, jsonify, render_template, request, session
-from flask_babel import format_date, get_locale, gettext
+from flask_babel import format_date, format_datetime, get_locale, gettext
 
 from .. import bexio, controlling, controlling_export
 from ..controlling import EARLIEST, STREAMS, Inputs, month_key, shift_month
@@ -36,7 +42,7 @@ from ..reporting.semantic import MetricResolveError
 from ..reporting.table_query import TableQueryError, table_source_catalog
 from ..security import has_permission, page_visibility, require_permission
 from .bps import _source as _bps_source
-from .finance import _closed_months_safe
+from .finance import LOCAL_TZ, _as_datetime, _closed_months_safe
 from .finance_bexio import _links, _message
 from .reporting._shared import (
     _CURATED_ENGINES,
@@ -48,10 +54,11 @@ from .reporting._shared import (
 XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 POSITION_WORKERS = 6
 #: The trend reads ~20 months of every source (~10 s); it is cached this long
-#: per process (?fresh=1 bypasses it, a rate or cost change clears it).
+#: per process (?fresh=1 bypasses it, a rate, cost or close clears it).
 TREND_TTL = 300
 _trend_cache: dict = {}
 _trend_lock = threading.Lock()
+RATES_EDIT = "controlling.rates.edit"
 
 
 def _month_label(year, month):
@@ -92,6 +99,19 @@ def _nexora_rows(sql, params=()):
         conn.close()
 
 
+def _nexora_write(sql, params=()):
+    """Run one write; returns the row count."""
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(sql, params)
+        affected = cur.rowcount
+        conn.commit()
+        return affected
+    finally:
+        conn.close()
+
+
 def _rates():
     rows = _nexora_rows(
         "SELECT RateId, Kind, StreamKey, Value, ValidFrom, ValidTo, ChangedAt, ChangedBy "
@@ -114,12 +134,10 @@ def _invoice_overrides():
 
 def _manual_costs(months):
     (fy, fm), (ly, lm) = min(months), max(months)
-    first = dt.date(fy, fm, 1).isoformat()
-    last = dt.date(ly, lm, 1).isoformat()
     rows = _nexora_rows(
         "SELECT CostId, Month, StreamKey, Label, Amount, ChangedAt, ChangedBy "
         "FROM dbo.ControllingCosts WHERE Month >= ? AND Month <= ?",
-        (first, last),
+        (dt.date(fy, fm, 1).isoformat(), dt.date(ly, lm, 1).isoformat()),
     )
     return [controlling.normalize_cost(r) for r in rows]
 
@@ -142,19 +160,20 @@ def _bill_costs(months, fresh=False):
 
 
 def _hours(months):
+    """(Hours, error message or None) -- BPS down is a state of the page, not a 500."""
     try:
         base_object, catalog, engine, _label = _bps_source()
         sql, params = controlling.hours_query(base_object, catalog, min(months), max(months))
     except LookupError as e:
-        raise SourceError(str(e)) from e
+        return controlling.Hours(), str(e)
     except (controlling.ControllingSpecError, TableQueryError, ValueError) as e:
         current_app.logger.warning(f"controlling: BPS source is misconfigured: {e}")
-        raise SourceError(gettext("The BPS source does not match this page."), str(e)) from e
+        return controlling.Hours(), gettext("The BPS source does not match this page.")
     try:
-        return controlling.fold_hours(_execute(engine, sql, params))
+        return controlling.fold_hours(_execute(engine, sql, params)), None
     except Exception as e:
         current_app.logger.warning(f"controlling: BPS hours query failed: {e}")
-        raise SourceError(gettext("Could not read the BPS hours."), _detail(e)) from e
+        return controlling.Hours(), gettext("Could not read the BPS hours.")
 
 
 def _live_documents(months):
@@ -205,7 +224,7 @@ def _live_documents(months):
     return out, failed
 
 
-def _snapshots(month_keys):
+def _finance_snapshots(month_keys):
     """{month key: {finance section key: payload}} of the closed months asked for,
     only the sections a stream counts its documents with."""
     keys = sorted({s.documents.section for s in STREAMS if s.documents})
@@ -233,12 +252,12 @@ def _snapshots(month_keys):
 
 
 def _documents(months):
-    """(documents, live where it moved, closed month keys, streams that failed).
+    """(documents, live where it moved, streams that failed).
 
     A closed month counts what its Finance snapshot counted -- the figures it
     was invoiced on -- and keeps the live count next to it."""
     live, failed = _live_documents(months)
-    snaps = _snapshots([month_key(*ym) for ym in months])
+    snaps = _finance_snapshots([month_key(*ym) for ym in months])
     docs = dict(live)
     moved = {}
     for mk, sections in snaps.items():
@@ -254,7 +273,30 @@ def _documents(months):
             if key in live:
                 moved[key] = live[key]
             docs[key] = value
-    return docs, moved, set(snaps), failed
+    return docs, moved, failed
+
+
+def _frozen(month_keys):
+    """{month key: {snapshot, at, by}} of the asked months Controlling has frozen."""
+    if not month_keys:
+        return {}
+    marks = ",".join("?" * len(month_keys))
+    try:
+        rows = _nexora_rows(
+            "SELECT Month, Payload, ClosedAt, ClosedBy FROM dbo.ControllingMonthClose "
+            f"WHERE Month IN ({marks})",
+            tuple(month_keys),
+        )
+    except Exception as e:
+        current_app.logger.warning(f"controlling: could not read the month snapshots: {e}")
+        return {}
+    out = {}
+    for month, payload, at, by in rows:
+        try:
+            out[str(month)] = {"snapshot": json.loads(payload), "at": _as_datetime(at), "by": by}
+        except ValueError:
+            continue
+    return out
 
 
 def _invoices(months, fresh=False):
@@ -269,30 +311,23 @@ def _invoices(months, fresh=False):
     except bexio.BexioError as e:
         current_app.logger.warning(f"controlling: Bexio read {first}..{last} failed: {e}")
         return None, _message(e)
-    invoices = [bexio.normalize_invoice(r, codes) for r in raw]
-    for inv in invoices:
-        if inv["currency"] and inv["currency"] != controlling.HOME_CURRENCY and inv["date"]:
-            inv["fx"] = _fx(inv["currencyId"], inv["date"])
-    return invoices, None
+    return [bexio.normalize_invoice(r, codes) for r in raw], None
 
 
-def _fx(currency_id, date):
-    """Bexio's CHF rate for a foreign invoice's month; None (logged) when it has none."""
-    if currency_id is None:
-        return None
+def _contact_names(invoices):
+    ids = {i["contactId"] for i in invoices if i.get("contactId")}
     try:
-        return bexio.exchange_rate(currency_id, date)
+        return bexio.contact_names(ids)
     except bexio.BexioError as e:
-        current_app.logger.warning(
-            f"controlling: no Bexio rate for currency {currency_id} {date}: {e}"
-        )
-        return None
+        current_app.logger.warning(f"controlling: Bexio contact names unavailable: {e}")
+        return {}
 
 
-def _inputs(months, fresh=False):
-    """Inputs for `months`; raises SourceError when BPS or the rates cannot be read
-    (without them there is no page). Bexio and documents degrade per stream."""
-    hours = _hours(months)
+def _inputs(months, fresh=False, frozen=None):
+    """Inputs for `months`. Raises SourceError only when the rates or the
+    stream map cannot be read (without them there is no page); BPS, Bexio,
+    the bills and the documents degrade to a state of the page."""
+    hours, hours_error = _hours(months)
     try:
         rates = _rates()
         projects = _project_streams()
@@ -306,12 +341,19 @@ def _inputs(months, fresh=False):
     except Exception as e:
         current_app.logger.warning(f"controlling: vendor map unreadable: {e}")
         bills, costs_error = [], gettext("Could not read the external costs.")
-    docs, moved, closed, failed = _documents(months)
+    docs, moved, failed = _documents(months)
     invoices, error = _invoices(months, fresh)
-    by, unassigned = ({}, {})
+    by, unassigned, names = {}, {}, {}
     if invoices is not None:
         linked = {link.contact_id for link in _links()}
         by, unassigned = controlling.assign_invoices(invoices, projects, linked, overrides)
+        names = _contact_names(invoices)
+        for invs in unassigned.values():
+            for inv in invs:
+                if inv.get("projectId"):
+                    inv["projectName"] = bexio.project_name(inv["projectId"])
+    if frozen is None:
+        frozen = _frozen([month_key(*ym) for ym in months])
     inp = Inputs(
         hours=hours,
         rates=rates,
@@ -323,8 +365,11 @@ def _inputs(months, fresh=False):
         bexio_error=error,
         costs=controlling.fold_costs(manual + bills),
         costs_error=costs_error,
+        hours_error=hours_error,
+        frozen={mk: f["snapshot"] for mk, f in frozen.items()},
+        contacts=names,
     )
-    return inp, closed, failed
+    return inp, frozen, failed
 
 
 def _positions(invoices):
@@ -344,36 +389,96 @@ def _positions(invoices):
         return {i: lines for i, lines in pool.map(one, ids) if lines is not None}
 
 
-def _month_from_request():
-    year, month = controlling.parse_month(request.args.get("month"))
-    return year, month
+def _closed_stamp(frozen_month):
+    if not frozen_month:
+        return None
+    at = frozen_month["at"]
+    local = at.replace(tzinfo=dt.UTC).astimezone(LOCAL_TZ) if at else None
+    return {
+        "at": at.isoformat() if at else None,
+        "atLabel": format_date(local.date(), "dd.MM.yyyy") if local else "",
+        "atLong": format_datetime(local, "short", rebase=False) if local else "",
+        "by": frozen_month["by"],
+    }
+
+
+def _month_state(year, month, closed_keys, today=None):
+    today = today or dt.date.today()
+    if (year, month) == (today.year, today.month):
+        return "running"
+    return "closed" if month_key(year, month) in closed_keys else "open"
 
 
 def _build_month(year, month, fresh=False, with_positions=True):
     months = [ym for ym in (shift_month(year, month, -1), (year, month)) if ym >= EARLIEST]
-    inp, closed, failed = _inputs(months, fresh)
+    inp, frozen, failed = _inputs(months, fresh)
     mk = month_key(year, month)
     positions = {}
     if with_positions and inp.invoices is not None:
         current = [i for (m, _k), invs in inp.invoices.items() if m == mk for i in invs]
-        current += inp.unassigned.get(mk, [])
         positions = _positions(current)
     payload = controlling.month_payload(year, month, inp, gettext, positions)
-    today = dt.date.today()
+    window_from, window_to, window_ym = bexio.invoice_window(year, month)
     payload.update(
         label=_month_label(year, month),
-        state="running"
-        if (year, month) == (today.year, today.month)
-        else ("closed" if mk in closed else "open"),
+        state=_month_state(year, month, _closed_months_safe()),
+        closed=_closed_stamp(frozen.get(mk)),
         documentsFailed=failed,
         costsError=inp.costs_error,
-        window=dict(
-            zip(("from", "to"), bexio.invoice_window(year, month)[:2], strict=True),
-            label=_month_label(*bexio.invoice_window(year, month)[2]),
-        ),
+        window={"from": window_from, "to": window_to, "label": _month_label(*window_ym)},
         error=None,
     )
     return payload
+
+
+# --------------------------------------------------------------------------
+# Month close (called by Sydoc Finance's close and reopen)
+# --------------------------------------------------------------------------
+
+
+def close_month(year, month, by):
+    """Freeze the Controlling figures of a month Finance has just closed.
+
+    Never fails Finance's close: a source that is down (or an error) is
+    logged and the month is simply served live, as before. Returns True when
+    a snapshot was stored."""
+    mk = month_key(year, month)
+    try:
+        inp, _frozen_none, _failed = _inputs([(year, month)], fresh=True, frozen={})
+        snap = controlling.snapshot(year, month, inp)
+        down = controlling.snapshot_problems(snap)
+        if down:
+            current_app.logger.warning(
+                f"controlling: {mk} not frozen, sources down: {', '.join(down)}"
+            )
+            return False
+        _nexora_write("DELETE FROM dbo.ControllingMonthClose WHERE Month = ?", (mk,))
+        _nexora_write(
+            "INSERT INTO dbo.ControllingMonthClose (Month, Payload, ClosedBy) VALUES (?, ?, ?)",
+            (mk, json.dumps(snap, ensure_ascii=False, default=str), by),
+        )
+    except Exception as e:
+        current_app.logger.error(f"controlling: freezing {mk} failed: {e}")
+        return False
+    clear_trend_cache()
+    current_app.logger.info(f"controlling: {mk} frozen with the Finance close by {by}")
+    return True
+
+
+def reopen_month(year, month):
+    """Drop the frozen Controlling figures of a month Finance has reopened."""
+    mk = month_key(year, month)
+    try:
+        _nexora_write("DELETE FROM dbo.ControllingMonthClose WHERE Month = ?", (mk,))
+    except Exception as e:
+        current_app.logger.error(f"controlling: unfreezing {mk} failed: {e}")
+    clear_trend_cache()
+
+
+def clear_trend_cache():
+    """Drop the cached trends (a rate, a cost or a close changed)."""
+    with _trend_lock:
+        _trend_cache.clear()
 
 
 # --------------------------------------------------------------------------
@@ -381,40 +486,80 @@ def _build_month(year, month, fresh=False, with_positions=True):
 # --------------------------------------------------------------------------
 
 
+def _rate_summary(year, month):
+    """The band's Rate stat: the default CHF/h of the month, since when, and
+    how many stream overrides apply. None when the rates cannot be read."""
+    try:
+        rates = _rates()
+    except Exception as e:
+        current_app.logger.warning(f"controlling: rates unreadable for the band: {e}")
+        return None
+    value = controlling.rate_for(rates, controlling.HOURLY, None, year, month)
+    if value is None:
+        return {"value": None, "since": None, "overrides": 0}
+    first = dt.date(year, month, 1)
+    current = [
+        r
+        for r in rates
+        if r["kind"] == controlling.HOURLY
+        and r["stream"] is None
+        and r["from"] <= first
+        and (r["to"] is None or first <= r["to"])
+    ]
+    since = max(current, key=lambda r: r["from"])["from"] if current else None
+    overrides = sum(
+        1
+        for s in STREAMS
+        if controlling.rate_for(rates, controlling.HOURLY, s.key, year, month) != value
+    )
+    return {
+        "value": float(value),
+        "since": format_date(since, "MMM yyyy") if since else None,
+        "overrides": overrides,
+    }
+
+
 @require_permission("controlling.view")
 def controlling_page():
     today = dt.date.today()
-    year, month = _month_from_request()
+    year, month = controlling.parse_month(request.args.get("month"))
     is_current = (year, month) == (today.year, today.month)
     prev = shift_month(year, month, -1)
     nxt = shift_month(year, month, 1)
-    closed = _closed_months_safe()
+    closed_keys = _closed_months_safe()
     months = []
     ym = (today.year, today.month)
     while ym >= EARLIEST:
-        key = month_key(*ym)
-        state = (
-            "running"
-            if ym == (today.year, today.month)
-            else ("closed" if key in closed else "open")
+        months.append(
+            {
+                "value": month_key(*ym),
+                "label": _month_label(*ym),
+                "state": _month_state(ym[0], ym[1], closed_keys, today),
+            }
         )
-        months.append({"value": key, "label": _month_label(*ym), "state": state})
         ym = shift_month(*ym, -1)
+    mk = month_key(year, month)
+    state = _month_state(year, month, closed_keys, today)
+    window_ym = bexio.invoice_window(year, month)[2]
     return render_template(
         "controlling.html",
         page_visibility=page_visibility(),
-        month=month_key(year, month),
+        month=mk,
         month_label=_month_label(year, month),
         month_name=format_date(dt.date(year, month, 1), "LLLL"),
         month_year=str(year),
+        prev_month_name=format_date(dt.date(prev[0], prev[1], 1), "LLLL"),
+        prev_month_short=format_date(dt.date(prev[0], prev[1], 1), "MMM"),
         prev_month=month_key(*prev) if prev >= EARLIEST else None,
         next_month=None if is_current else month_key(*nxt),
-        is_current_month=is_current,
+        state=state,
+        closed=_closed_stamp(_frozen([mk]).get(mk)) if state == "closed" else None,
+        invoice_month=_month_label(*window_ym),
+        rate=_rate_summary(year, month),
+        today=today.isoformat(),
         months=months,
-        streams=[{"key": s.key, "label": s.label, "client": s.client} for s in STREAMS],
-        can_edit_rates=has_permission("finance.month.edit"),
-        can_finance=has_permission("finance.view"),
-        can_bps=has_permission("bps.view"),
+        streams=[controlling.stream_descriptor(s, gettext) for s in STREAMS],
+        can_edit_rates=has_permission(RATES_EDIT),
     )
 
 
@@ -426,7 +571,7 @@ def _error(e, status=200):
 @require_permission("controlling.view")
 @limiter.limit("60 per minute")
 def api_controlling_month():
-    year, month = _month_from_request()
+    year, month = controlling.parse_month(request.args.get("month"))
     try:
         payload = _build_month(year, month, fresh=request.args.get("fresh") == "1")
     except SourceError as e:
@@ -437,36 +582,33 @@ def api_controlling_month():
 @require_permission("controlling.view")
 @limiter.limit("30 per minute")
 def api_controlling_trend():
-    """Every month from January 2025 up to ?month (default: the previous month)."""
-    year, month = _month_from_request()
+    """Every month from January 2025 to the current one, the requested ?month marked."""
     fresh = request.args.get("fresh") == "1"
-    key = (month_key(year, month), str(get_locale()))
+    today = dt.date.today()
+    key = (month_key(today.year, today.month), str(get_locale()))
     now = time.monotonic()
     with _trend_lock:
         hit = _trend_cache.get(key)
     if hit and hit[0] > now and not fresh:
         return jsonify(hit[1])
-    months = controlling.months_between(EARLIEST, (year, month))
+    months = controlling.months_between(EARLIEST, (today.year, today.month))
     try:
-        inp, closed, _failed = _inputs(months, fresh=fresh)
+        inp, frozen, _failed = _inputs(months, fresh=fresh)
     except SourceError as e:
         return _error(e)
     payload = controlling.trend_payload(months, inp, gettext)
-    payload["closed"] = sorted(closed)
+    closed_keys = _closed_months_safe()
+    payload["states"] = [_month_state(y, m, closed_keys, today) for y, m in months]
+    payload["labels"] = [_month_label(y, m) for y, m in months]
     payload["bexioError"] = inp.bexio_error
+    payload["hoursError"] = inp.hours_error
     payload["error"] = None
-    if not inp.bexio_error and not inp.costs_error:
+    if not inp.bexio_error and not inp.costs_error and not inp.hours_error:
         with _trend_lock:
             _trend_cache[key] = (now + TREND_TTL, payload)
             while len(_trend_cache) > 16:
                 _trend_cache.pop(next(iter(_trend_cache)))
     return jsonify(payload)
-
-
-def clear_trend_cache():
-    """Drop the cached trends (a rate or a cost changed)."""
-    with _trend_lock:
-        _trend_cache.clear()
 
 
 @require_permission("controlling.view")
@@ -477,50 +619,68 @@ def api_controlling_rates():
     except Exception as e:
         current_app.logger.warning(f"controlling: rates unreadable: {e}")
         return jsonify({"error": gettext("Could not read the rates.")}), 503
+    payload = controlling.rates_payload(rates)
+    for r in payload:
+        at = _as_datetime(r["changedAt"]) if r["changedAt"] else None
+        r["changedLabel"] = format_date(at.date(), "dd.MM.yyyy") if at else ""
     return jsonify(
         {
-            "rates": controlling.rates_payload(rates),
+            "rates": payload,
             "streams": [{"key": s.key, "label": s.label} for s in STREAMS],
             "kinds": list(controlling.RATE_KINDS),
-            "canEdit": has_permission("finance.month.edit"),
+            "canEdit": has_permission(RATES_EDIT),
         }
     )
 
 
-@require_permission("finance.month.edit")
-@limiter.limit("20 per minute")
-def api_controlling_rate_add():
+def _rate_body(ignore_id=None):
+    """(clean values, None) or (None, error response) of a submitted rate."""
     body = request.get_json(silent=True) or {}
     try:
         kind, stream, value, start, end = controlling.check_rate(
-            body.get("kind"),
+            body.get("kind") or controlling.HOURLY,
             body.get("stream"),
             body.get("value"),
             body.get("from"),
             body.get("to"),
         )
+        clash = controlling.rate_overlap(_rates(), kind, stream, start, end, ignore_id)
     except ValueError as e:
-        return jsonify({"error": gettext(str(e))}), 400
+        return None, (jsonify({"error": gettext(str(e))}), 400)
+    except Exception as e:
+        current_app.logger.warning(f"controlling: rates unreadable: {e}")
+        return None, (jsonify({"error": gettext("Could not read the rates.")}), 503)
+    if clash:
+        message = gettext(
+            "Overlaps the rate valid %(start)s to %(end)s. Shorten that one first.",
+            start=clash["from"].isoformat()[:7],
+            end=clash["to"].isoformat()[:7] if clash["to"] else gettext("open"),
+        )
+        return None, (jsonify({"error": message}), 409)
+    return (kind, stream, value, start, end), None
+
+
+@require_permission(RATES_EDIT)
+@limiter.limit("20 per minute")
+def api_controlling_rate_add():
+    clean, err = _rate_body()
+    if err:
+        return err
+    kind, stream, value, start, end = clean
     try:
-        conn = engine_nexora_db.raw_connection()
-        try:
-            cur = conn.cursor()
-            # ISO strings, not dates: the legacy ODBC driver cannot bind a date (HYC00).
-            cur.execute(
-                "INSERT INTO dbo.FinanceRates (Kind, StreamKey, Value, ValidFrom, ValidTo, ChangedBy) "
-                "VALUES (?, ?, ?, ?, ?, ?)",
-                (
-                    kind,
-                    stream,
-                    str(value),
-                    start.isoformat(),
-                    end.isoformat() if end else None,
-                    _actor(),
-                ),
-            )
-            conn.commit()
-        finally:
-            conn.close()
+        # ISO strings, not dates: the legacy ODBC driver cannot bind a date (HYC00).
+        _nexora_write(
+            "INSERT INTO dbo.FinanceRates (Kind, StreamKey, Value, ValidFrom, ValidTo, ChangedBy) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (
+                kind,
+                stream,
+                str(value),
+                start.isoformat(),
+                end.isoformat() if end else None,
+                _actor(),
+            ),
+        )
     except Exception as e:
         current_app.logger.error(f"controlling: adding a rate failed: {e}")
         return jsonify({"error": gettext("Could not save the rate.")}), 500
@@ -531,18 +691,42 @@ def api_controlling_rate_add():
     return jsonify({"ok": True})
 
 
-@require_permission("finance.month.edit")
+@require_permission(RATES_EDIT)
+@limiter.limit("20 per minute")
+def api_controlling_rate_edit(rate_id):
+    clean, err = _rate_body(ignore_id=int(rate_id))
+    if err:
+        return err
+    kind, stream, value, start, end = clean
+    try:
+        affected = _nexora_write(
+            "UPDATE dbo.FinanceRates SET Kind = ?, StreamKey = ?, Value = ?, ValidFrom = ?, "
+            "ValidTo = ?, ChangedBy = ?, ChangedAt = SYSUTCDATETIME() WHERE RateId = ?",
+            (
+                kind,
+                stream,
+                str(value),
+                start.isoformat(),
+                end.isoformat() if end else None,
+                _actor(),
+                int(rate_id),
+            ),
+        )
+    except Exception as e:
+        current_app.logger.error(f"controlling: editing rate {rate_id} failed: {e}")
+        return jsonify({"error": gettext("Could not save the rate.")}), 500
+    if not affected:
+        return jsonify({"error": gettext("No such rate.")}), 404
+    clear_trend_cache()
+    current_app.logger.info(f"controlling: rate {rate_id} edited by {_actor()}")
+    return jsonify({"ok": True})
+
+
+@require_permission(RATES_EDIT)
 @limiter.limit("20 per minute")
 def api_controlling_rate_delete(rate_id):
     try:
-        conn = engine_nexora_db.raw_connection()
-        try:
-            cur = conn.cursor()
-            cur.execute("DELETE FROM dbo.FinanceRates WHERE RateId = ?", (int(rate_id),))
-            affected = cur.rowcount
-            conn.commit()
-        finally:
-            conn.close()
+        affected = _nexora_write("DELETE FROM dbo.FinanceRates WHERE RateId = ?", (int(rate_id),))
     except Exception as e:
         current_app.logger.error(f"controlling: deleting rate {rate_id} failed: {e}")
         return jsonify({"error": gettext("Could not delete the rate.")}), 500
@@ -553,7 +737,7 @@ def api_controlling_rate_delete(rate_id):
     return jsonify({"ok": True})
 
 
-@require_permission("finance.month.edit")
+@require_permission(RATES_EDIT)
 @limiter.limit("20 per minute")
 def api_controlling_cost_add():
     """An external cost of a stream month (e.g. a supplier billed outside Bexio)."""
@@ -565,17 +749,11 @@ def api_controlling_cost_add():
     except ValueError as e:
         return jsonify({"error": gettext(str(e))}), 400
     try:
-        conn = engine_nexora_db.raw_connection()
-        try:
-            cur = conn.cursor()
-            cur.execute(
-                "INSERT INTO dbo.ControllingCosts (Month, StreamKey, Label, Amount, ChangedBy) "
-                "VALUES (?, ?, ?, ?, ?)",
-                (month.isoformat(), stream, label, str(amount), _actor()),
-            )
-            conn.commit()
-        finally:
-            conn.close()
+        _nexora_write(
+            "INSERT INTO dbo.ControllingCosts (Month, StreamKey, Label, Amount, ChangedBy) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (month.isoformat(), stream, label, str(amount), _actor()),
+        )
     except Exception as e:
         current_app.logger.error(f"controlling: adding a cost failed: {e}")
         return jsonify({"error": gettext("Could not save the cost.")}), 500
@@ -584,18 +762,13 @@ def api_controlling_cost_add():
     return jsonify({"ok": True})
 
 
-@require_permission("finance.month.edit")
+@require_permission(RATES_EDIT)
 @limiter.limit("20 per minute")
 def api_controlling_cost_delete(cost_id):
     try:
-        conn = engine_nexora_db.raw_connection()
-        try:
-            cur = conn.cursor()
-            cur.execute("DELETE FROM dbo.ControllingCosts WHERE CostId = ?", (int(cost_id),))
-            affected = cur.rowcount
-            conn.commit()
-        finally:
-            conn.close()
+        affected = _nexora_write(
+            "DELETE FROM dbo.ControllingCosts WHERE CostId = ?", (int(cost_id),)
+        )
     except Exception as e:
         current_app.logger.error(f"controlling: deleting cost {cost_id} failed: {e}")
         return jsonify({"error": gettext("Could not delete the cost.")}), 500
@@ -610,7 +783,7 @@ def api_controlling_cost_delete(cost_id):
 @limiter.limit("20 per minute")
 def api_controlling_export():
     """The whole month as .xlsx: overview, per-stream detail, hours by task, volumes."""
-    year, month = _month_from_request()
+    year, month = controlling.parse_month(request.args.get("month"))
     try:
         payload = _build_month(year, month)
     except SourceError as e:
@@ -663,7 +836,9 @@ def _export_labels():
         "unassigned": gettext("Unassigned invoices"),
         "unmapped": gettext("Hours on no stream"),
         "external": gettext("External cost"),
-        "converted": gettext("converted to CHF"),
+        "override": gettext("override rate"),
+        "moved": gettext("live data moved"),
+        "bps_error": gettext("BPS unavailable"),
         "no_hours": gettext("no hours booked"),
         "cost_unknown": gettext("external cost in a foreign currency"),
         "states": {
@@ -695,6 +870,12 @@ def register_routes(app):
         endpoint="api_controlling_rate_add",
         view_func=api_controlling_rate_add,
         methods=["POST"],
+    )
+    app.add_url_rule(
+        "/api/controlling/rates/<int:rate_id>",
+        endpoint="api_controlling_rate_edit",
+        view_func=api_controlling_rate_edit,
+        methods=["PUT"],
     )
     app.add_url_rule(
         "/api/controlling/rates/<int:rate_id>",

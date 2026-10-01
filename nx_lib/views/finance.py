@@ -355,6 +355,11 @@ def close_month(year, month, by):
     finally:
         conn.close()
     current_app.logger.info(f"finance: {mkey} closed by {by}")
+    # Sydoc Controlling freezes its figures with the same close (#433); it
+    # never fails this one -- a month it cannot read stays live there.
+    from .controlling import close_month as controlling_close
+
+    controlling_close(year, month, by)
     return None
 
 
@@ -395,6 +400,9 @@ def api_finance_reopen():
         conn.close()
     if not affected:
         return jsonify({"error": gettext("This month is not closed.")}), 404
+    from .controlling import reopen_month as controlling_reopen
+
+    controlling_reopen(*ym)
     current_app.logger.info(f"finance: {mkey} reopened by {_actor()}")
     return jsonify({"ok": True, "month": mkey})
 

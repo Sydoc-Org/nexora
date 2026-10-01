@@ -314,14 +314,15 @@ def test_assign_invoices_by_project_and_billed_month():
 @pytest.mark.parametrize(
     "invoices, linked, expected",
     [
-        ([], False, (UNLINKED, None, None, False)),
-        ([], True, (MISSING, None, None, False)),
-        ([_inv(1, "2025-10-01", 10, 100.0, status="draft")], True, (DRAFT, None, None, False)),
-        ([_inv(1, "2025-10-01", 10, 100.0, currency="EUR")], True, (FOREIGN, None, None, False)),
+        ([], False, (UNLINKED, None, None)),
+        ([], True, (MISSING, None, None)),
+        ([_inv(1, "2025-10-01", 10, 100.0, status="draft")], True, (DRAFT, None, None)),
+        # EUR is not converted: the month is FOREIGN, out of every total.
+        ([_inv(1, "2025-10-01", 10, 100.0, currency="EUR")], True, (FOREIGN, None, None)),
         (
-            [{**_inv(1, "2025-10-01", 10, 100.0, 108.1, currency="EUR"), "fx": Decimal("0.9447")}],
+            [_inv(1, "2025-10-01", 10, 100.0, currency="EUR"), _inv(2, "2025-10-01", 10, 5.0)],
             True,
-            (INVOICED, Decimal("94.47"), Decimal("102.12"), True),
+            (FOREIGN, None, None),
         ),
         (
             [
@@ -329,12 +330,12 @@ def test_assign_invoices_by_project_and_billed_month():
                 _inv(2, "2025-10-01", 10, 50.0, 54.05, status="draft"),
             ],
             True,
-            (INVOICED, Decimal("100.0"), Decimal("108.1"), False),
+            (INVOICED, Decimal("100.0"), Decimal("108.1")),
         ),
         (
             [_inv(1, "2025-10-01", 10, 100.0, 108.1, currency="")],
             True,
-            (INVOICED, Decimal("100.0"), Decimal("108.1"), False),
+            (INVOICED, Decimal("100.0"), Decimal("108.1")),
         ),
     ],
 )
@@ -672,3 +673,93 @@ def test_0146_excludes_only_projects_0145_mapped():
     }
     assert excluded == {6, 46, 73}
     assert excluded <= mapped
+
+
+# --------------------------------------------------------------------------
+# Design review (0147): foreign currency, drafts, BPS down, snapshots, rates
+# --------------------------------------------------------------------------
+
+
+def test_foreign_and_draft_amounts_are_shown_not_summed():
+    invs = [
+        _inv(1, "2025-10-06", 43, 18260.67, 19739.78, currency="EUR"),
+        _inv(2, "2025-10-08", 43, 585.02, 632.4),
+    ]
+    assert controlling.foreign_totals(invs) == [
+        {"currency": "EUR", "excl": 18260.67, "total": 19739.78}
+    ]
+    drafts = [_inv(3, "2025-10-01", 10, 757.9, 819.29, status="draft")]
+    assert controlling.draft_totals(drafts) == (Decimal("757.9"), Decimal("819.29"))
+    inp = _inputs()
+    inp.invoices[("2025-09", "privera_invoice")] = drafts
+    c = controlling.stream_month(STREAMS_BY_KEY["privera_invoice"], 2025, 9, inp)
+    assert c["state"] == DRAFT and c["draft"] == 757.9 and c["margin"] is None
+
+
+def test_bps_down_leaves_hours_unknown_not_zero():
+    inp = _inputs()
+    inp.hours_error = "Could not read the BPS hours."
+    c = controlling.stream_month(STREAMS_BY_KEY["privera_posteingang"], 2025, 9, inp)
+    assert c["hours"] is None and c["cost"] is None and c["margin"] is None
+    assert c["invoiced"] == 20000.0 and "bps_error" in c["flags"]
+    p = controlling.month_payload(2025, 9, inp)
+    assert p["tasks"] is None and p["hoursError"] and p["totals"]["cur"]["hours"] is None
+
+
+def test_override_rate_is_flagged():
+    inp = _inputs()
+    inp.rates = [*RATES, _rate(9, 72, "2025-01-01", stream="privera_posteingang")]
+    c = controlling.stream_month(STREAMS_BY_KEY["privera_posteingang"], 2025, 9, inp)
+    assert c["rate"] == 72.0 and "override" in c["flags"]
+
+
+def test_snapshot_freezes_figures_and_flags_live_drift():
+    inp = _inputs()
+    snap = controlling.snapshot(2025, 9, inp)
+    assert controlling.snapshot_problems(snap) == []
+    frozen = snap["streams"]["privera_posteingang"]
+    assert frozen["invoiced"] == 20000.0 and frozen["invoiceIds"] == [1]
+    assert "invoices" not in frozen
+    # Later: a rate change and a corrected invoice do not move the closed month.
+    later = _inputs()
+    later.rates = [_rate(1, 99, "2025-01-01"), RATES[1]]
+    later.invoices[("2025-09", "privera_posteingang")][0]["excl"] = 20500.0
+    later.frozen = {"2025-09": snap}
+    c = controlling.stream_month(STREAMS_BY_KEY["privera_posteingang"], 2025, 9, later)
+    assert c["frozen"] and c["rate"] == 85.0 and c["invoiced"] == 20000.0
+    assert "moved" in c["flags"] and c["live"]["invoiced"] == 20500.0
+    assert c["invoices"][0]["excl"] == 20500.0  # the lines stay live
+
+
+def test_snapshot_problems_name_the_sources_down():
+    inp = _inputs(invoices=False)
+    inp.hours_error = "x"
+    assert controlling.snapshot_problems(controlling.snapshot(2025, 9, inp)) == ["BPS", "Bexio"]
+
+
+def test_rate_overlap_per_scope():
+    rates = [
+        _rate(1, 85, "2025-01-01", "2025-12-01"),
+        _rate(2, 72, "2026-01-01", stream="mediamarkt"),
+    ]
+    d = dt.date
+    assert controlling.rate_overlap(rates, "hourly", None, d(2025, 6, 1), None)["id"] == 1
+    assert controlling.rate_overlap(rates, "hourly", None, d(2026, 1, 1), None) is None
+    assert (
+        controlling.rate_overlap(rates, "hourly", "mediamarkt", d(2025, 1, 1), d(2025, 12, 1))
+        is None
+    )
+    assert controlling.rate_overlap(rates, "hourly", "mediamarkt", d(2027, 1, 1), None)["id"] == 2
+    # Editing a row does not clash with itself.
+    assert controlling.rate_overlap(rates, "hourly", None, d(2025, 1, 1), None, ignore_id=1) is None
+
+
+def test_stream_descriptor_carries_the_block_heading():
+    d = controlling.stream_descriptor(STREAMS_BY_KEY["privera_neuzugaenge"])
+    assert (d["client"], d["title"], d["nav"], d["unit"]) == (
+        "Privera",
+        "Neuzugänge",
+        "Neuzugänge",
+        "dossiers",
+    )
+    assert controlling.stream_descriptor(STREAMS_BY_KEY["compass"])["nav"] == "Compass"

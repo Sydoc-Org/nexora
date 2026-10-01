@@ -54,9 +54,9 @@ UNLINKED = bexio.UNLINKED
 FOREIGN = "foreign"
 ERROR = "error"
 
-#: Sydoc reports in CHF. An invoice in another currency (Bucherer bills in EUR)
-#: is converted at Bexio's own rate for its month (``fx`` on the invoice, set
-#: by the view); without a rate the month is FOREIGN and shows no amount.
+#: Sydoc reports in CHF. An issued invoice in another currency (Bucherer bills
+#: in EUR) is not converted: the month is FOREIGN, its amount is shown in its
+#: own currency and left out of every total (#433 design review).
 HOME_CURRENCY = "CHF"
 
 #: The task whose hours the per-document KPIs divide (the workbook's "Zeit pro Dok").
@@ -101,6 +101,10 @@ class Documents:
         return self.finance_section.blocks[self.block].period
 
 
+#: The default unit of a stream's documents.
+DOCUMENTS = N_("documents")
+
+
 @dataclass(frozen=True)
 class Stream:
     """One row of the page: one sheet of the workbook.
@@ -108,8 +112,11 @@ class Stream:
     `hours` lists the BPS (customer, project package) pairs booked on the
     stream; a package of None takes every package of that customer that no
     other stream names. Aveniq's packages (BFH, ZHAW, HAP, ...) are its
-    DocProStar mandants and belong to no stream, as in the workbook. `client` is the Finance client (its Bexio contacts
-    decide which unassigned invoices are reported).
+    DocProStar mandants and belong to no stream, as in the workbook.
+
+    `client` and `title` are the block heading ("Privera" + "Posteingang"),
+    `nav` the short label of the task matrix, `unit` (a msgid) what the
+    documents count.
     """
 
     key: str
@@ -117,6 +124,9 @@ class Stream:
     client: str
     hours: tuple[tuple[str, str | None], ...]
     documents: Documents | None = None
+    title: str | None = None
+    nav: str | None = None
+    unit: str = DOCUMENTS
 
 
 STREAMS = (
@@ -131,6 +141,7 @@ STREAMS = (
         key="compass",
         label="Compass Group",
         client="Compass Group",
+        nav="Compass",
         hours=(("CompassGroup", None),),
         documents=Documents("compass", "compass_documents"),
     ),
@@ -138,6 +149,8 @@ STREAMS = (
         key="privera_posteingang",
         label="Privera Posteingang",
         client="Privera",
+        title="Posteingang",
+        nav="Posteingang",
         hours=(("Privera", "Posteingang"), ("Privera", "Tagesgeschäft Posteingang")),
         documents=Documents("privera_posteingang", "privera_posteingang_documents"),
     ),
@@ -145,6 +158,8 @@ STREAMS = (
         key="privera_invoice",
         label="Privera Rechnungseingang",
         client="Privera",
+        title="Rechnungseingang",
+        nav="Rechnungen",
         hours=(("Privera", "Invoice"), ("Privera", "Tagesgeschäft Invoice")),
         documents=Documents("privera_invoice", "privera_documents"),
     ),
@@ -152,8 +167,11 @@ STREAMS = (
         key="privera_neuzugaenge",
         label="Privera Neuzugänge",
         client="Privera",
+        title="Neuzugänge",
+        nav="Neuzugänge",
         hours=(("Privera", "Neuzugänge"), ("Privera", "Tagesgeschäft Neuzugänge")),
         documents=Documents("privera_neuzugaenge", "privera_neuzugaenge_dossiers"),
+        unit=N_("dossiers"),
     ),
     Stream(
         key="frigemo",
@@ -165,7 +183,8 @@ STREAMS = (
     Stream(
         key="zhaw",
         label="ZHAW",
-        client="Aveniq",
+        client="ZHAW",
+        title=N_("via Xpert"),
         hours=(("ZHAW", None),),
         documents=Documents(
             "xpert",
@@ -176,7 +195,7 @@ STREAMS = (
     Stream(
         key="bfh",
         label="BFH",
-        client="Aveniq",
+        client="BFH",
         hours=(("BFH", None),),
         documents=Documents(
             "xpert",
@@ -197,6 +216,7 @@ STREAMS = (
         client="MediaMarkt",
         hours=(("MediaMarkt", None),),
         documents=Documents("mediamarkt", "mediamarkt_pieces"),
+        unit=N_("pieces"),
     ),
 )
 
@@ -561,6 +581,19 @@ def check_rate(kind, stream_key, value, valid_from, valid_to):
     return kind, (stream_key or None), amount, start, end
 
 
+def rate_overlap(rates, kind, stream_key, start, end, ignore_id=None):
+    """The first rate of the same kind and scope (default or one stream) whose
+    validity overlaps start..end (None = open-ended), or None. Two rows of one
+    scope must not overlap: the page edits a period, it does not stack them."""
+    far = dt.date.max
+    for r in sorted(rates, key=lambda r: r["from"]):
+        if r["id"] == ignore_id or r["kind"] != kind or r["stream"] != (stream_key or None):
+            continue
+        if r["from"] <= (end or far) and start <= (r["to"] or far):
+            return r
+    return None
+
+
 def check_cost(month, stream_key, label, amount):
     """Validate an external cost the page submits; (first of month, stream, label,
     amount) or raises ValueError(msgid)."""
@@ -701,37 +734,51 @@ def _is_home(inv):
     return (inv.get("currency") or HOME_CURRENCY) == HOME_CURRENCY
 
 
-def chf(inv, key):
-    """An invoice amount in CHF: as is, or converted with its ``fx``; None
-    when it is foreign and Bexio gave no rate."""
-    if _is_home(inv):
-        return _dec(inv[key])
-    if inv.get("fx") is None:
-        return None
-    return (_dec(inv[key]) * _dec(inv["fx"])).quantize(CENT, rounding=ROUND_HALF_UP)
+def _sums(invoices):
+    """(excl, incl) of invoices, Decimal."""
+    excl = sum((_dec(i["excl"]) for i in invoices), Decimal(0))
+    incl = sum((_dec(i["total"]) for i in invoices), Decimal(0))
+    return excl, incl
 
 
 def invoice_state(invoices, linked):
-    """(state, excl, incl, converted) of a stream month's invoices.
+    """(state, excl, incl) of a stream month's invoices.
 
     excl/incl are the CHF totals of the issued invoices (Decimal), None
-    unless the state is INVOICED; `converted` says a foreign-currency invoice
-    was converted into them. A foreign invoice without a rate makes the
-    month FOREIGN: its amount cannot be added up honestly.
+    unless the state is INVOICED. An issued invoice in another currency makes
+    the month FOREIGN: its amount cannot be added up honestly.
     """
     if not linked:
-        return UNLINKED, None, None, False
+        return UNLINKED, None, None
     issued = [i for i in invoices if bexio.counts(i)]
     if issued:
-        excl = [chf(i, "excl") for i in issued]
-        incl = [chf(i, "total") for i in issued]
-        if any(v is None for v in excl):
-            return FOREIGN, None, None, False
-        converted = any(not _is_home(i) for i in issued)
-        return INVOICED, sum(excl, Decimal(0)), sum(incl, Decimal(0)), converted
+        if any(not _is_home(i) for i in issued):
+            return FOREIGN, None, None
+        excl, incl = _sums(issued)
+        return INVOICED, excl, incl
     if any(i.get("status") == "draft" for i in invoices):
-        return DRAFT, None, None, False
-    return MISSING, None, None, False
+        return DRAFT, None, None
+    return MISSING, None, None
+
+
+def foreign_totals(invoices):
+    """[{currency, excl, total}] of the issued foreign-currency invoices."""
+    by: dict[str, list] = {}
+    for i in invoices:
+        if bexio.counts(i) and not _is_home(i):
+            by.setdefault(i["currency"], []).append(i)
+    return [
+        {"currency": c, "excl": _money(_sums(v)[0]), "total": _money(_sums(v)[1])}
+        for c, v in sorted(by.items())
+    ]
+
+
+def draft_totals(invoices):
+    """(excl, incl) of the draft invoices in CHF, or (None, None) without one."""
+    drafts = [i for i in invoices if i.get("status") == "draft" and _is_home(i)]
+    if not drafts:
+        return None, None
+    return _sums(drafts)
 
 
 # --------------------------------------------------------------------------
@@ -768,42 +815,79 @@ class Inputs:
     bexio_error: str | None = None
     costs: dict = field(default_factory=dict)  # fold_costs(); external costs per stream month
     costs_error: str | None = None  # the Bexio bills could not be read
+    hours_error: str | None = None  # BPS could not be read: hours unknown, not 0
+    frozen: dict = field(default_factory=dict)  # {month key: snapshot()} of closed months
+    contacts: dict = field(default_factory=dict)  # {Bexio contact id: name}
 
 
 def stream_month(stream, year, month, inp, translate=lambda s: s):
-    """One stream in one month: hours, cost, invoiced, margin, documents, KPIs."""
+    """One stream in one month: hours, cost, invoiced, margin, documents, KPIs.
+
+    A closed month answers with its snapshot (the figures it was closed with)
+    and keeps the live invoices next to it: their lines, and -- when Bexio
+    now differs from the close -- the live amount (`live`, flag `moved`)."""
     mk = month_key(year, month)
-    tasks = inp.hours.tasks(mk, stream.key)
-    hours = sum(tasks.values(), Decimal(0))
+    live = _live_cell(stream, year, month, inp, translate)
+    snap = (inp.frozen.get(mk) or {}).get("streams", {}).get(stream.key)
+    if snap is None:
+        return live
+    cell = dict(snap)
+    cell["frozen"] = True
+    cell["invoices"] = live["invoices"]
+    cell["contacts"] = live["contacts"] or snap.get("contacts") or []
+    note = incomplete_note(stream.key, year, month)
+    cell["incomplete"] = translate(note) if note else None
+    flags = [f for f in snap.get("flags") or [] if f != "moved"]
+    if live["state"] != ERROR and (
+        live["state"] != snap.get("state") or live["invoiced"] != snap.get("invoiced")
+    ):
+        flags.append("moved")
+        cell["live"] = {k: live[k] for k in ("state", "invoiced", "invoicedIncl", "foreign")}
+    cell["flags"] = flags
+    return cell
+
+
+def _live_cell(stream, year, month, inp, translate):
+    mk = month_key(year, month)
+    tasks = {} if inp.hours_error else inp.hours.tasks(mk, stream.key)
+    hours = None if inp.hours_error else sum(tasks.values(), Decimal(0))
     rate = rate_for(inp.rates, HOURLY, stream.key, year, month)
-    hours_cost = (hours * rate).quantize(CENT, rounding=ROUND_HALF_UP) if rate is not None else None
+    default = rate_for(inp.rates, HOURLY, None, year, month)
+    hours_cost = (
+        (hours * rate).quantize(CENT, rounding=ROUND_HALF_UP)
+        if rate is not None and hours is not None
+        else None
+    )
     externals = inp.costs.get((mk, stream.key), [])
     external = sum((_dec(c["amount"]) for c in externals if c["amount"] is not None), Decimal(0))
     unknown_cost = any(c["amount"] is None for c in externals)
     cost = hours_cost + external if hours_cost is not None and not unknown_cost else None
-    converted = False
     if inp.invoices is None:
         state, excl, incl, invoices = ERROR, None, None, []
     else:
         invoices = inp.invoices.get((mk, stream.key), [])
-        state, excl, incl, converted = invoice_state(invoices, stream.key in inp.linked_streams)
+        state, excl, incl = invoice_state(invoices, stream.key in inp.linked_streams)
+    draft_excl, draft_incl = draft_totals(invoices) if state == DRAFT else (None, None)
     margin = excl - cost if excl is not None and cost is not None else None
     docs = inp.documents.get((mk, stream.key)) if stream.documents else None
-    live = inp.documents_live.get((mk, stream.key))
+    docs_live = inp.documents_live.get((mk, stream.key))
     validation = tasks.get(VALIDATION_TASK, Decimal(0))
     flags = []
+    if inp.hours_error:
+        flags.append("bps_error")
     if rate is None:
         flags.append("no_rate")
-    if converted:
-        flags.append("converted")
+    elif default is not None and rate != default:
+        flags.append("override")
     if unknown_cost:
         flags.append("cost_unknown")
-    if not hours and state in (INVOICED, DRAFT):
+    if hours is not None and not hours and state in (INVOICED, DRAFT):
         # Invoiced work with no hour booked: a 100 % margin would mislead.
         flags.append("no_hours")
     note = incomplete_note(stream.key, year, month)
     if note:
         flags.append("incomplete")
+    contacts = sorted({inp.contacts.get(i.get("contactId")) for i in invoices} - {None})
     return {
         "month": mk,
         "hours": _hours(hours),
@@ -818,29 +902,95 @@ def stream_month(stream, year, month, inp, translate=lambda s: s):
         "state": state,
         "invoiced": _money(excl),
         "invoicedIncl": _money(incl),
+        "draft": _money(draft_excl),
+        "draftIncl": _money(draft_incl),
+        "foreign": foreign_totals(invoices),
         "margin": _money(margin),
         "marginPct": _ratio(margin, excl),
         "documents": docs,
-        "documentsLive": live if live is not None and live != docs else None,
+        "documentsLive": docs_live if docs_live is not None and docs_live != docs else None,
         "kpis": {
             "secondsPerDocument": _ratio(validation * 3600, docs, 1) if validation else None,
             "documentsPerHour": _ratio(docs, hours, 2) if hours else None,
             "chfPerDocument": _ratio(excl, docs, 4),
         },
-        "validationHours": _hours(validation),
+        "validationHours": _hours(validation) if hours is not None else None,
         "invoices": [_invoice_brief(i) for i in invoices],
+        "contacts": contacts,
         "flags": flags,
         "incomplete": translate(note) if note else None,
     }
 
 
+#: What a month-close snapshot keeps of a stream month (the invoices stay live).
+SNAPSHOT_KEYS = (
+    "month",
+    "hours",
+    "tasks",
+    "rate",
+    "hoursCost",
+    "externalCosts",
+    "cost",
+    "state",
+    "invoiced",
+    "invoicedIncl",
+    "draft",
+    "draftIncl",
+    "foreign",
+    "margin",
+    "marginPct",
+    "documents",
+    "kpis",
+    "validationHours",
+    "contacts",
+    "flags",
+)
+
+
+def snapshot(year, month, inp):
+    """The Controlling figures of a month as Finance's close freezes them:
+    every stream's cell without its invoice list (Bexio stays live) and the
+    unassigned invoices. JSON-ready."""
+    mk = month_key(year, month)
+    streams = {}
+    for s in STREAMS:
+        cell = _live_cell(s, year, month, inp, lambda m: m)
+        streams[s.key] = {k: cell[k] for k in SNAPSHOT_KEYS}
+        streams[s.key]["invoiceIds"] = [i["id"] for i in cell["invoices"]]
+    return {
+        "month": mk,
+        "streams": streams,
+        "unassigned": [_invoice_brief(i) for i in inp.unassigned.get(mk, [])],
+    }
+
+
+def snapshot_problems(snap):
+    """Why a snapshot should not be taken: the sources that were down."""
+    out = []
+    for cell in snap["streams"].values():
+        if "bps_error" in cell["flags"]:
+            out.append("BPS")
+        if cell["state"] == ERROR:
+            out.append("Bexio")
+    return sorted(set(out))
+
+
 def _invoice_brief(inv):
-    keep = ("id", "nr", "title", "date", "status", "total", "excl", "currency", "projectId")
+    keep = (
+        "id",
+        "nr",
+        "title",
+        "date",
+        "status",
+        "total",
+        "excl",
+        "currency",
+        "projectId",
+        "contactId",
+    )
     out = {k: inv.get(k) for k in keep}
-    if not _is_home(inv):
-        out["fx"] = float(inv["fx"]) if inv.get("fx") is not None else None
-        out["exclChf"] = _money(chf(inv, "excl"))
-        out["totalChf"] = _money(chf(inv, "total"))
+    if inv.get("projectName"):
+        out["projectName"] = inv["projectName"]
     return out
 
 
@@ -856,7 +1006,7 @@ def totals(cells, year, month, rates):
     with_margin = [c for c in cells if c["margin"] is not None]
     invoiced = _sum(with_margin, "invoiced")
     margin = _sum(with_margin, "margin")
-    hours = _sum(cells, "hours") or 0
+    hours = _sum(cells, "hours")
     day_hours = rate_for(rates, FTE_DAY_HOURS, None, year, month)
     capacity = day_hours * working_days(year, month) if day_hours else None
     return {
@@ -869,7 +1019,7 @@ def totals(cells, year, month, rates):
         "documents": _sum([c for c in cells if c["documents"] is not None], "documents"),
         "streams": len(cells),
         "streamsWithMargin": len(with_margin),
-        "fte": _ratio(hours, capacity, 2) if capacity else None,
+        "fte": _ratio(hours, capacity, 2) if capacity and hours is not None else None,
         "fteCapacity": _hours(capacity),
         "workingDays": working_days(year, month),
     }
@@ -921,9 +1071,7 @@ def month_payload(year, month, inp, translate=lambda s: s, positions=None):
             prev_cells[s.key] = before
         streams.append(
             {
-                "key": s.key,
-                "label": s.label,
-                "client": s.client,
+                **stream_descriptor(s, translate),
                 "cur": cur,
                 "prev": before,
                 "delta": _delta(cur, before),
@@ -941,10 +1089,24 @@ def month_payload(year, month, inp, translate=lambda s: s, positions=None):
             if prev_cells
             else None,
         },
-        "tasks": task_matrix(cur_cells),
+        "tasks": None if inp.hours_error and mk not in inp.frozen else task_matrix(cur_cells),
         "unassigned": [_invoice_brief(i) for i in inp.unassigned.get(mk, [])],
-        "unmapped": unmapped_payload(inp.hours, mk),
+        "unmapped": [] if inp.hours_error else unmapped_payload(inp.hours, mk),
         "bexioError": inp.bexio_error,
+        "hoursError": inp.hours_error,
+    }
+
+
+def stream_descriptor(s, translate=lambda m: m):
+    """The static part of a stream the page renders before any data."""
+    return {
+        "key": s.key,
+        "label": s.label,
+        "client": s.client,
+        "title": translate(s.title) if s.title else None,
+        "nav": s.nav or s.label,
+        "unit": translate(s.unit),
+        "bps": " · ".join(c + (f" › {p}" if p else "") for c, p in s.hours),  # noqa: RUF001
     }
 
 
@@ -983,7 +1145,7 @@ def trend_payload(months, inp, translate=lambda s: s):
                     )
                 }
             )
-        series.append({"key": s.key, "label": s.label, "points": points})
+        series.append({"key": s.key, "label": s.label, "nav": s.nav or s.label, "points": points})
     month_totals = []
     for i, (y, m) in enumerate(months):
         cells: list[dict] = [dict(sr["points"][i], invoicedIncl=None, tasks={}) for sr in series]

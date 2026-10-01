@@ -8,16 +8,39 @@ between them is the margin. The page replaces the hand-filled
 which had one sheet per stream plus an Overview tab with one column per month.
 Details:
 
-- issue: #433
-- permission: `controlling.view` (Global Admin only, like `finance.view`)
-- migrations: `0145` (permission, rates, Bexio project map) and `0146`
-  (corrections from reconciling against the workbook)
+- issue: #433; design: `docs/design/design_handoff_sydoc_controlling/` (turn 1a)
+- permissions: `controlling.view` reads the page, `controlling.rates.edit` edits
+  rates and external costs (both Global Admin only, like `finance.view`)
+- migrations: `0145` (permission, rates, Bexio project map), `0146`
+  (corrections from reconciling against the workbook) and `0147`
+  (`controlling.rates.edit`, the month-close snapshot)
 - the third page of Sydoc's own books, next to Sydoc Finance
   (`docs/howto/finance.md`) and Sydoc BPS (`docs/howto/bps.md`)
 
-> **Status:** the backend is complete; the page body follows the design handoff.
-> Until it lands, `templates/controlling.html` is only the band with month
-> navigation and the Excel export.
+**Files:** rules in `nx_lib/controlling.py` (pure), routes in
+`nx_lib/views/controlling.py`, the workbook export in
+`nx_lib/controlling_export.py`. The page is `templates/controlling.html` with its
+shim `templates/js/_controlling_js.html`, behaviour in `static/js/controlling.js`
+and layout in `static/css/controlling.css`. It also loads `finance.css` for the
+shared ledger pieces.
+
+**Page, top to bottom:**
+
+1. **Band:** Excel, Print and Rates buttons; month headline and picker; Status
+   and Rate stats.
+2. **Month summary:** hours, cost, invoiced, margin and documents, each with
+   its change against the previous month.
+3. **Margin by client:** one row per stream with a diverging margin bar, flags,
+   unassigned invoices and a total row.
+4. **Per-client blocks:** one open at a time. Each holds the hours and cost by
+   task (*Aufwendungen nach Tätigkeit*), the Bexio invoice lines
+   (*Debitor-Positionen*), the difference (*Differenz*) and per-unit figures.
+5. **Hours by task:** a task × stream heat matrix with an FTE row.
+6. **Document volumes.**
+7. **Trend:** total margin, hours and documents per month, plus one small chart
+   per stream, with a shared hover.
+8. **Rates drawer:** default rate, per-stream overrides, hours per FTE day and
+   the month's external costs.
 
 ## Streams
 
@@ -71,10 +94,32 @@ Bexio project tells them apart. Where Bexio tagged an invoice with the wrong
 project, add a row to `ControllingInvoiceStreams` through a migration. 0146 seeds
 RE-26780, a Rechnungseingang support invoice on the Posteingang project.
 
-Foreign currencies are converted. Bucherer is billed mostly in EUR. Such an
-invoice is converted at Bexio's own monthly rate
-(`/3.0/currencies/{id}/exchange_rates`), and the month is flagged `converted`.
-Only when Bexio has no rate is the month `foreign`, with no amount.
+**Foreign currencies are not converted** (design review). Bucherer is billed
+mostly in EUR. An issued invoice in another currency makes the stream month
+`foreign`:
+
+- the amount shows in its own currency (`foreign`);
+- the month gets no margin;
+- the amount stays out of every total.
+
+## Month close
+
+A month that Sydoc Finance closes is closed here too.
+`views/finance.close_month` calls `views/controlling.close_month`, which
+freezes every stream's figures (hours, tasks, rate, cost, invoiced amounts,
+margin, documents) as one JSON row in `dbo.ControllingMonthClose`.
+`controlling.snapshot` builds that row.
+
+- **Reopening** the month in Finance deletes the row.
+- **A source down at close time** (BPS or Bexio) means no snapshot. Finance's
+  close still succeeds, and the month stays live here. This is logged.
+- **A closed month is served from the snapshot.** Rate changes and corrected
+  invoices no longer move it. The Bexio invoice lines stay live. Where Bexio's
+  amount now differs from the snapshot, the stream gets the `moved` flag, its
+  live figures appear in `live`, and the page shows Finance's drift note.
+- **Months Finance closed before 0147** have no snapshot.
+  `scripts/controlling-freeze-months.py --env <ENV> [--dry-run]` freezes them.
+  It can be re-run safely.
 
 ## States and flags (never a silent 0)
 
@@ -86,7 +131,7 @@ Each stream month has a `state` that says whether it has an amount:
 | `draft` | only drafts so far |
 | `missing` | no invoice yet |
 | `unlinked` | no Bexio project is mapped to the stream |
-| `foreign` | a foreign-currency invoice with no rate |
+| `foreign` | an issued invoice in another currency (shown, not converted, not summed) |
 | `error` | Bexio could not be read |
 
 Margin is only computed for `invoiced`. It also needs a valid rate (`no_rate`
@@ -95,8 +140,14 @@ flag otherwise) and a known external cost (`cost_unknown` flag otherwise).
 Other flags:
 
 - `incomplete`: see above.
-- `converted`: an amount was converted from a foreign currency.
+- `override`: a per-stream rate applies.
 - `no_hours`: invoiced, but nothing booked.
+- `bps_error`: BPS could not be read. Hours, cost and margin are unknown, but
+  the invoices still show.
+- `moved`: a closed month whose Bexio amount changed since the close.
+
+A draft-only month carries the draft amount (`draft`), which the page shows as
+"+x if issued as drafted".
 
 Lists reported next to the table:
 
@@ -111,11 +162,11 @@ Totals add up only the streams that have a margin, and say how many those are
 | Route | Gate | What |
 |---|---|---|
 | `GET /controlling?month=YYYY-MM` | `controlling.view` | the page (default: the previous month; earliest Jan 2025) |
-| `GET /api/controlling/month?month=` | `controlling.view` | the whole month: streams (`cur`, `prev`, `delta`, invoices with lines), `totals`, `tasks` (task × stream matrix + FTE), `unassigned`, `unmapped`, `costsError`, `bexioError`. `fresh=1` bypasses the Bexio cache |
-| `GET /api/controlling/trend?month=` | `controlling.view` | per stream and month since Jan 2025, plus monthly totals; cached 5 min per process |
+| `GET /api/controlling/month?month=` | `controlling.view` | the whole month: `streams` (`cur`, `prev`, `delta`, invoices with lines), `totals`, `tasks` (task × stream matrix + FTE; `null` when BPS is down), `unassigned`, `unmapped`, `state`, `closed`, `bexioError`, `hoursError`, `costsError`. `fresh=1` bypasses the Bexio cache |
+| `GET /api/controlling/trend` | `controlling.view` | per stream and month from Jan 2025 to the current month, plus monthly totals and month states; cached 5 min per process |
 | `GET /api/controlling/rates` | `controlling.view` | the rate rows |
-| `POST /api/controlling/rates` · `DELETE /api/controlling/rates/<id>` | `finance.month.edit` | add (`{kind, stream?, value, from, to?}`) / delete a rate. To change a rate from a month on, add a row starting that month |
-| `POST /api/controlling/costs` · `DELETE /api/controlling/costs/<id>` | `finance.month.edit` | add (`{month, stream, label, amount}`) / delete a manual external cost |
+| `POST /api/controlling/rates` · `PUT`/`DELETE /api/controlling/rates/<id>` | `controlling.rates.edit` | add / edit (`{kind, stream?, value, from, to?}`) / delete a rate. Periods of one scope must not overlap (409); to change a rate from a month on, end the old row and add a new one |
+| `POST /api/controlling/costs` · `DELETE /api/controlling/costs/<id>` | `controlling.rates.edit` | add (`{month, stream, label, amount}`) / delete a manual external cost |
 | `GET /api/controlling/export.xlsx?month=` | `controlling.view` | Overview, Detail, Hours by task, Volumes |
 
 ## Reconciliation against the workbook
