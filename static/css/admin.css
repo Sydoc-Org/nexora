@@ -858,6 +858,12 @@ body.nx-admin #locked-accounts-wrap {
   .log-preset,
   .save-preset-btn { min-height: 44px; }
 
+  /* The overview's environment switch (the admin redesign's .adm-seg, from
+     main): 29px buttons inside a fixed-height pill. Let the pill grow and the
+     buttons reach the 44px target. */
+  .adm-seg { height: auto; }
+  .adm-seg__btn { min-height: 44px; min-width: 44px; padding: 0 12px; }
+
   /* The overview's two standalone quick links were 355x21 -- wide enough to
      hit but thin. They are the only plain text links on these pages that act
      as primary controls. */

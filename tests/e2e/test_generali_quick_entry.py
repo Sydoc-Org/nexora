@@ -21,6 +21,7 @@ Two things the TEST environment does not have, and how this file gets them:
 """
 
 import json
+import re
 from datetime import date
 
 import pytest
@@ -166,9 +167,17 @@ PAGES = {
 }
 
 
+def _api(table):
+    """Every URL of one table's API family: the list, /<id>, /<id>/undo,
+    /categories, /orgUsers... A glob like `**/api/generali/pdqm**` does NOT do
+    this -- Playwright's `**` only spans path segments when it stands alone, so
+    the sub-paths slipped through to the real server (no Generali DB: 500)."""
+    return re.compile(rf"/api/generali/{table}(?:[/?]|$)")
+
+
 def _open(page, base, table):
     fake = FakeGenerali(table)
-    page.route(f"**/api/generali/{table}**", fake.handle)
+    page.route(_api(table), fake.handle)
     _login(page, base, ADMIN)
     _clear_permission_cache(page, base)
     page.goto(f"{base}{PAGES[table]}")
@@ -269,7 +278,7 @@ def test_quick_entry_needs_the_last_category_level(nexora_server, touch_page, ge
 
 def test_quick_entry_never_shows_on_a_narrow_desktop(nexora_server, mouse_page, generali_booker):
     page = mouse_page
-    page.route("**/api/generali/baseservices**", FakeGenerali("baseservices").handle)
+    page.route(_api("baseservices"), FakeGenerali("baseservices").handle)
     _login(page, nexora_server, ADMIN)
     _clear_permission_cache(page, nexora_server)
     page.goto(f"{nexora_server}/generali/baseServices")
