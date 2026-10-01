@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import datetime as dt
 import html
-from decimal import Decimal
+from decimal import ROUND_CEILING, Decimal
 
 from .reporting.semantic import resolve_metrics
 from .reporting.table_query import build_generic_query
@@ -42,6 +42,8 @@ INTERNAL_CUSTOMERS = ("sydoc", "sydoc intern")
 ABSENCES = "Absences"
 #: File preparation is billed only on Privera's new-dossier stream.
 PREPARATION = ("Vorbereitung Akten", "Privera", "Tagesgeschäft Neuzugänge")
+#: A booking is billed in quarter hours, each one rounded up on its own.
+BILLING_STEP = Decimal("0.25")
 
 BILLABLE_RULES = (
     (
@@ -83,6 +85,23 @@ def is_billable(task, customer, package):
     if _norm(task) in _BILLABLE_TASKS_N and _norm(customer) not in _INTERNAL_N:
         return True
     return (_norm(task), _norm(customer), _norm(package)) == tuple(_norm(p) for p in PREPARATION)
+
+
+def billed_hours(hours):
+    """The hours a booking is billed for: rounded up to the next quarter hour.
+
+    Each booking is rounded on its own (0.33 h -> 0.5 h), never the month's
+    sum; a booking already on a quarter stays as it is. Decimal throughout,
+    so 0.5 does not become 0.75 through float noise.
+    """
+    if hours is None:
+        return 0
+    value = Decimal(str(hours))
+    if value <= 0:
+        return 0
+    steps = (value / BILLING_STEP).to_integral_value(rounding=ROUND_CEILING)
+    billed = steps * BILLING_STEP
+    return int(billed) if billed == billed.to_integral_value() else float(billed)
 
 
 def category(task, customer, package):

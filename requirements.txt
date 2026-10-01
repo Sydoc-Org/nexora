@@ -24,6 +24,8 @@ contourpy==1.3.3
     # via matplotlib
 cycler==0.12.1
     # via matplotlib
+defusedxml==0.7.1
+    # via fpdf2
 deprecated==1.3.1
     # via limits
 et-xmlfile==2.0.0
@@ -49,7 +51,11 @@ flask-talisman==1.1.0
 flask-wtf==1.2.2
     # via nexora
 fonttools==4.63.0
-    # via matplotlib
+    # via
+    #   fpdf2
+    #   matplotlib
+fpdf2==2.8.9
+    # via nexora
 greenlet==3.1.1 ; platform_machine == 'AMD64' or platform_machine == 'WIN32' or platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'ppc64le' or platform_machine == 'win32' or platform_machine == 'x86_64'
     # via sqlalchemy
 idna==3.16
@@ -97,6 +103,7 @@ packaging==26.2
     #   matplotlib
 pillow==12.3.0
     # via
+    #   fpdf2
     #   matplotlib
     #   nexora
 prompt-toolkit==3.0.51

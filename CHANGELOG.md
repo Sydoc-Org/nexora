@@ -8,6 +8,20 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **Finance: BPS hours billed in quarter hours** (#408): every billable booking
+  is billed rounded up to the next quarter hour, each on its own. The page
+  shows booked and billed hours side by side: a *Billed hours* figure, a
+  *Billed* column per task and customer, and "0.33 h → 0.50 h" per booking.
+- **Finance: BPS lists only the page's customers** (#408): billable bookings on
+  customers Finance does not bill (SSD_digital, SSD_physisch, Generali, the
+  MobScan customers, ...) are no longer listed or counted; they stay on the
+  Sydoc BPS page.
+- **Finance: Xpert shows BFH and ZHAW per metric** (#408): BFH Total /
+  NeueKreditoren / Uebrige / UEReproduzierte and ZHAW WorkItems /
+  WorkItemsByEingang MAIL / WorkItemsByIsWithOrder 0 and 1, read from
+  `dbo.Xpert_Stats` through the new `xpert_stats_count` measure (migration
+  `0144`).
+
 - **Finance: Bexio links are fixed, totals CHF only** (#423): the × that removed
   a client's Bexio contact is gone, along with the `POST /api/finance/bexio/link`
   and `/unlink` routes; the links come from migrations only. The panel's
@@ -23,6 +37,17 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   right padding as the figures, which sat 10 px left of their column heading.
 
 ### Added
+
+- **Finance: BPS hours as Excel and PDF** (#408): `GET /api/finance/bps-export`
+  and an *Export hours* box in the Billable services section. One sheet per
+  invoice (per customer; Privera split into Posteingang, Invoice and
+  Neuzugänge) with booked and billed hours, all in one file behind an overview,
+  each in its own file (`.zip`), or one invoice alone. Adds the `fpdf2`
+  dependency.
+- **Finance: close the past months in one go** (#408):
+  `scripts/finance-close-months.py --env PROD` snapshots every month of the
+  picker except the newest ended one, through the same `close_month()` as the
+  *Close month* button.
 
 - **Finance: invoiced in Bexio** (#423): a read-only panel on `/finance` lists
   the Bexio invoices dated in the month after the billed one, per Finance

@@ -32,10 +32,10 @@ identical on both pages.
 | Privera · Physische Zustellung | `privera_nachsendungen` | `ExportDatetime` | forwardings total / without TEC | per branch; forwarding type × branch |
 | Privera · Neuzugänge | `privera_neuzugaenge` | `JahrExport` + `MonatExportNr` | dossiers / registers / pages | per branch |
 | Frigemo | `frigemo` | `DCD` | imported/exported documents and pages, invoices, deleted | – |
-| Aveniq · Xpert | `xpert_stats` | `ExportDate` | documents, BFH new creditors, ZHAW workitems | per client, per source database |
+| Aveniq · Xpert | `xpert_stats` | `ExportDate` | documents, BFH new creditors, ZHAW workitems | per client, per source database; BFH and ZHAW per billed metric (`0144`) |
 | Bucherer · EasyTax | `bucherer_easytax` | `ImportTime` (imported, pages) / `ExportTime` (exported) | imported documents, pages, exported documents | – |
 | MediaMarkt | `mediamarkt_batches` | `ScanDate` | batches, pieces | per type (K/D/KA) |
-| Sydoc · Billable services | `bps_projects` | `Datum` | billable hours, billable bookings | every booking, per customer, with its comment; hours per task |
+| Sydoc · Billable services | `bps_projects` | `Datum` | billable hours, billed hours (¼ h), billable bookings | every booking, per customer, with its comment; hours per task |
 
 The first six are the #329 workbooks (internal customers); the next four are
 the external clients whose collectors already fill a Statistics table — what
@@ -51,6 +51,25 @@ BPS page):
   `Change Request`, `Professional Services`, `Projektmanagement` on any customer
   except `sydoc` / `sydoc intern`;
 - plus `Vorbereitung Akten`, but only on `Privera` · `Tagesgeschäft Neuzugänge`.
+
+Only the **customers of this page** are listed (`Bookings.customers` in
+`nx_lib/finance.py`, BPS name → page client: `Elektro Material`, `CompassGroup`,
+`Privera`, `Frigemo`, `Aveniq`, `Bucherer`, `MediaMarkt`); billable work for
+anyone else (SSD, Generali, the MobScan customers) stays on the BPS page. A new
+billed client needs its BPS name added there.
+
+Each booking is **billed rounded up to the quarter hour**, on its own
+(`bps.billed_hours`: 0.33 h → 0.5 h, 0.25 h stays). The page shows both: a
+*Billed hours* figure next to the booked one, a *Billed* column in the task and
+customer tables, and "0.33 h → 0.50 h" on every booking. The previous month's
+billed figure is summed from its rows, since no aggregate can round per row.
+
+**Xpert, BFH and ZHAW** are billed per metric of `dbo.Xpert_Stats`, so the
+section lists them one by one (a `Breakdown` with `where`, `then` and fixed
+`keys`, over the unfiltered `xpert_stats_count` measure of `0144`): BFH Total,
+NeueKreditoren, Uebrige, UEReproduzierte; ZHAW WorkItems, WorkItemsByEingang ·
+MAIL, WorkItemsByIsWithOrder · 0 and · 1. Every key shows, 0 when the month has
+none, and the list has no total (Total already is one).
 
 The Reporting filter grammar only ANDs, so each rule group is its own row query
 and the groups are disjoint by construction; the figures come from separate
@@ -90,6 +109,12 @@ when, `0139`). From then on:
 **Reopen month** deletes the snapshot; close it again to freeze the new state.
 The running month cannot be closed. Labels in a snapshot are frozen in the
 closer's language.
+
+The months invoiced before the page existed are closed in one go with
+`scripts/finance-close-months.py --env PROD` (`--dry-run` first): every month of
+the picker except the newest ended one (`--keep 1`, or `--until YYYY-MM`),
+already-closed months skipped, labels in German (`--lang`). It calls the same
+`close_month()` as the button.
 
 ## The page (#427)
 
@@ -232,6 +257,16 @@ go-ahead first).
   sheet, UTF-8 with BOM so Excel opens it directly; a booking's date, package,
   person and comment are in the `Detail` column. Sections that could not be
   read appear as an `error` line. A closed month exports its snapshot.
+- **BPS hours** (`/api/finance/bps-export?month=YYYY-MM&format=xlsx|pdf`, the
+  *Export hours* box in the Billable services section): one sheet per invoice
+  — per customer, Privera split into Posteingang, Invoice and Neuzugänge
+  (`Bookings.split`; "Tagesgeschäft X" counts as X) — with date, package,
+  task, person, comment, booked and billed hours and a total. `sheet=all`
+  (default) is one file behind an overview sheet / page, `sheet=<key>` one
+  invoice, `files=separate` a `.zip` with one file per invoice. Built by
+  `nx_lib/finance_export.py` (openpyxl, fpdf2 with matplotlib's DejaVu Sans
+  for Unicode); a closed month exports its snapshot, and the billed hours are
+  recomputed from the booked ones so an older snapshot exports the same way.
 - **Print** uses a print stylesheet: sidebar, band actions, arrows, jump index
   and the BPS link hidden, the month headline small and black, one section per
   block, every collapsed table and timeline expanded.
@@ -242,7 +277,10 @@ go-ahead first).
 |---|---|
 | Spec, month arithmetic, query building, payload, snapshot diff | `nx_lib/finance.py` (pure, DB-free) |
 | Billable rule (shared with the BPS page) | `nx_lib/bps.py` |
-| Routes: page, section API, close / reopen, CSV | `nx_lib/views/finance.py` |
+| Routes: page, section API, close / reopen, CSV, BPS export | `nx_lib/views/finance.py` |
+| BPS hours as Excel / PDF / zip | `nx_lib/finance_export.py` |
+| Closing the past months | `scripts/finance-close-months.py` |
+| Xpert count measure | `sql/_migrations/NexoraDB/0144_xpert_stats_count_metric.sql` |
 | Page, JS shim, behaviour, styles | `templates/finance.html`, `templates/js/_finance_js.html`, `static/js/finance.js`, `static/css/finance.css` |
 | Band, headline, picker shared with BPS | `templates/_sydoc.html`, `static/js/nx_sydoc.js`, `nx-sydoc-*` in `static/css/nexora-ui.css` |
 | Permission + BPS measure | `sql/_migrations/NexoraDB/0138_finance_page.sql`, `sql/test/seed.sql` |
@@ -251,7 +289,7 @@ go-ahead first).
 | Bexio panel routes: panel, invoice lines, PDF, link / unlink | `nx_lib/views/finance_bexio.py`, `static/js/finance_bexio.js` |
 | `FinanceBexioContacts` | `sql/_migrations/NexoraDB/0141_finance_bexio_contacts.sql` (table), `0143_finance_bexio_contact_links.sql` (links), `sql/test/schema.sql` |
 | Token check | `scripts/bexio-probe.py` |
-| Tests | `tests/unit/test_finance.py`, `tests/unit/test_bps.py`, `tests/unit/test_bexio.py`, `tests/integration/test_finance_routes.py`, `tests/integration/test_finance_bexio_routes.py` |
+| Tests | `tests/unit/test_finance.py`, `tests/unit/test_finance_export.py`, `tests/unit/test_bps.py`, `tests/unit/test_bexio.py`, `tests/integration/test_finance_routes.py`, `tests/integration/test_finance_bexio_routes.py` |
 
 ## Gotchas
 

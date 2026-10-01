@@ -37,7 +37,7 @@
         return Number.isInteger(n) ? numberFmt.format(n) : decimalFmt.format(n);
     }
     // Hours always show their place, so "2,0" lines up under "3,7".
-    const HOURS = new Set(['hours', 'billable_hours']);
+    const HOURS = new Set(['hours', 'billed', 'billable_hours', 'billed_hours']);
     const hrs = v => decimalFmt.format(Number(v) || 0);
     const val = (code, v) => (HOURS.has(code) ? hrs(v) : num(v));
 
@@ -153,13 +153,16 @@
 
     // A vertical breakdown: key, its measures, the share of the first one.
     // `br.href(row, i)` turns the key into a link; `br.muted` greys a column.
+    // A fixed list (`totals` null: Xpert's BFH/ZHAW metrics) is items of one
+    // count, not parts of a whole -- no share and no total row.
     function breakdownHtml(br, sectionKey) {
         const cols = br.columns;
-        const lead = br.totals[0] || 0;
+        const fixed = !br.totals;
+        const lead = fixed ? 0 : (br.totals[0] || 0);
         const muted = i => (br.muted && br.muted.includes(i) ? ' nx-fin-muted' : '');
         const head = `<th>${esc(br.label)}</th>` +
             cols.map(c => `<th class="nx-num text-right">${esc(c.label)}</th>`).join('') +
-            `<th class="nx-num text-right">${esc(S.share)}</th>`;
+            (fixed ? '' : `<th class="nx-num text-right">${esc(S.share)}</th>`);
         const body = br.rows.map((r, i) => {
             const more = i >= COLLAPSE_AFTER ? ' is-more' : '';
             const blank = r.key === null ? ' is-blank' : '';
@@ -168,9 +171,9 @@
             return `<tr class="${more}${blank}">` +
                 `<td>${key}</td>` +
                 r.values.map((v, j) => `<td class="nx-num${muted(j)}">${esc(val(cols[j].code, v))}</td>`).join('') +
-                `<td class="nx-num">${shareHtml(r.values[0], lead)}</td></tr>`;
+                (fixed ? '</tr>' : `<td class="nx-num">${shareHtml(r.values[0], lead)}</td></tr>`);
         }).join('');
-        const foot = `<tr><td>${esc(S.total)}</td>` +
+        const foot = fixed ? '' : `<tr><td>${esc(S.total)}</td>` +
             br.totals.map((v, j) => `<td class="nx-num${muted(j)}">${esc(val(cols[j].code, v))}</td>`).join('') +
             `<td class="nx-num">${br.rows.length ? shareHtml(lead, lead) : ''}</td></tr>`;
         const more = br.rows.length > COLLAPSE_AFTER
@@ -179,13 +182,13 @@
         return `
           <div class="nx-fin-table" data-testid="finance-breakdown-${esc(sectionKey)}-${esc(br.dim)}">
             <div class="nx-fin-table__head">
-              <span class="nx-eyebrow">${esc(fmt(S.per, { dim: br.label }))}</span>
+              <span class="nx-eyebrow">${esc(fixed ? br.label : fmt(S.per, { dim: br.label }))}</span>
               <span class="nx-fin-table__count">${esc(fmt(S.rows, { n: num(br.rows.length) }))}</span>
             </div>
             <table class="nx-table" aria-label="${esc(fmt(S.per, { dim: br.label }))}">
               <thead><tr>${head}</tr></thead>
               <tbody>${body}</tbody>
-              <tfoot>${foot}</tfoot>
+              ${foot ? `<tfoot>${foot}</tfoot>` : ''}
             </table>
             ${more}
           </div>`;
@@ -237,6 +240,7 @@
     // booking its comment, what it was booked on, and its hours. The first
     // few show; the rest open with "Show all n".
     function timelineHtml(g, i, idx, hoursField, sectionKey) {
+        const billedOf = r => ('billed' in idx ? Number(r[idx.billed]) || 0 : null);
         const field = (r, f) => (f in idx ? r[idx[f]] : null);
         const days = [];
         g.rows.forEach(r => {
@@ -256,7 +260,7 @@
                       <p class="nx-fin-tl__comment${comment ? '' : ' is-empty'}">${esc(comment || S.noComment)}</p>
                       <p class="nx-fin-tl__line">${esc(line)}</p>
                     </div>
-                    <span class="nx-fin-tl__hours">${esc(fmt(S.hoursUnit, { n: hoursFmt.format(Number(field(r, hoursField)) || 0) }))}</span>
+                    <span class="nx-fin-tl__hours">${hoursPairHtml(Number(field(r, hoursField)) || 0, billedOf(r), hoursFmt)}</span>
                   </div>`;
             }).join('');
             const date = d.day ? utcDate(d.day) : null;
@@ -275,29 +279,73 @@
               <span class="nx-fin-tl__name">${esc(g.key === null ? S.blank : g.key)}</span>
               <span class="nx-fin-tl__count">${esc(fmt(S.bookings, { n: num(g.count) }))}</span>
               <span class="nx-fin-tl__spacer"></span>
-              <span class="nx-fin-tl__total">${esc(fmt(S.hoursUnit, { n: hrs(g.hours) }))}</span>
+              <span class="nx-fin-tl__total">${hoursPairHtml(g.hours, 'billed' in g ? g.billed : null, decimalFmt)}</span>
             </div>
             ${body}
             ${more}
           </div>`;
     }
 
+    // Booked hours, and what is billed for them (rounded up to the quarter
+    // hour) when that differs: "0.33 h -> 0.50 h". A closed month from before
+    // the rounding has no billed value and shows the booked hours alone.
+    function hoursPairHtml(hours, billed, f) {
+        const raw = esc(fmt(S.hoursUnit, { n: f.format(hours) }));
+        if (billed === null || billed === undefined || Math.abs(billed - hours) < 1e-9) {
+            return billed === null || billed === undefined ? raw : `<span class="nx-fin-billed">${raw}</span>`;
+        }
+        return `<span class="nx-fin-raw" title="${esc(S.bookedTitle)}">${raw}</span>` +
+            `<span class="nx-fin-arrow" aria-hidden="true">→</span>` +
+            `<span class="nx-fin-billed" title="${esc(S.billedTitle)}">${esc(fmt(S.hoursUnit, { n: f.format(billed) }))}</span>`;
+    }
+
     // Billable bookings (BPS): the figures, hours per task and per customer,
     // then every booking per customer as on the invoice.
-    function bookingsHtml(bk, sectionKey) {
+    // The hours export (#408): every invoice in one file (a sheet each), each
+    // in its own file (a .zip), or one invoice alone -- as Excel or PDF.
+    function exportHtml(exports) {
+        if (!exports || !exports.length) return '';
+        const one = exports.map(e => `<option value="${esc(e.key)}">${esc(e.title)} · ${esc(fmt(S.bookings, { n: num(e.count) }))}</option>`).join('');
+        return `
+          <div class="nx-fin-export" data-testid="finance-bps-export">
+            <span class="nx-eyebrow">${esc(S.exportHours)}</span>
+            <select class="nx-fin-export__pick" aria-label="${esc(S.exportHours)}" data-role="bps-export-sheet">
+              <option value="all">${esc(S.exportAll)}</option>
+              <option value="separate">${esc(S.exportSeparate)}</option>
+              <optgroup label="${esc(S.exportOne)}">${one}</optgroup>
+            </select>
+            <a class="nx-sydoc-btn nx-sydoc-btn--ink" data-role="bps-export" data-format="xlsx" href="#" data-testid="finance-bps-export-xlsx">
+              <i class="fas fa-file-excel" aria-hidden="true"></i> Excel</a>
+            <a class="nx-sydoc-btn nx-sydoc-btn--ink" data-role="bps-export" data-format="pdf" href="#" data-testid="finance-bps-export-pdf">
+              <i class="fas fa-file-pdf" aria-hidden="true"></i> PDF</a>
+          </div>`;
+    }
+
+    function exportUrl(format, pick) {
+        const q = new URLSearchParams({ month: CFG.month, format });
+        if (pick === 'separate') q.set('files', 'separate');
+        else q.set('sheet', pick || 'all');
+        return `${window.API_PREFIX}api/finance/bps-export?${q.toString()}`;
+    }
+
+    function bookingsHtml(bk, sectionKey, exports) {
         const cols = bk.columns;
         const idx = {};
         cols.forEach((c, i) => { idx[c.field] = i; });
         const hoursCol = cols.find(c => c.numeric);
-        const parts = [linesHtml(bk.figures)];
+        const billedCol = cols.find(c => c.field === 'billed');
+        const parts = [linesHtml(bk.figures), exportHtml(exports)];
         if (!bk.groups.length) {
             parts.push(emptyHtml());
             return parts.join('');
         }
-        const valueCols = [
-            { code: 'hours', label: hoursCol ? hoursCol.label : '' },
-            { code: 'count', label: S.bookingsCol },
-        ];
+        const valueCols = [{ code: 'hours', label: hoursCol ? hoursCol.label : '' }]
+            .concat(billedCol ? [{ code: 'billed', label: billedCol.label }] : [])
+            .concat([{ code: 'count', label: S.bookingsCol }]);
+        // [hours, billed?, count] of a task or customer group, and their sums.
+        const values = t => [t.hours].concat(billedCol ? [t.billed || 0] : []).concat([t.count]);
+        const sums = list => valueCols.map((c, j) => list.reduce((a, t) => a + values(t)[j], 0));
+        const countCol = [valueCols.length - 1];
         const tables = [];
         if (bk.by_task && bk.by_task.length) {
             const taskCol = cols.find(c => c.field === 'Aufgabe');
@@ -305,12 +353,9 @@
                 dim: 'Aufgabe',
                 label: taskCol ? taskCol.label : '',
                 columns: valueCols,
-                muted: [1],
-                rows: bk.by_task.map(t => ({ key: t.key, values: [t.hours, t.count] })),
-                totals: [
-                    bk.by_task.reduce((a, t) => a + t.hours, 0),
-                    bk.by_task.reduce((a, t) => a + t.count, 0),
-                ],
+                muted: countCol,
+                rows: bk.by_task.map(t => ({ key: t.key, values: values(t) })),
+                totals: sums(bk.by_task),
             }, sectionKey));
         }
         const customerCol = cols.find(c => c.field === bk.group_by);
@@ -318,15 +363,12 @@
             dim: bk.group_by,
             label: customerCol ? customerCol.label : '',
             columns: valueCols,
-            muted: [1],
+            muted: countCol,
             href: (r, i) => `#fin-bk-${i}`,
-            rows: bk.groups.map(g => ({ key: g.key, values: [g.hours, g.count] })),
-            totals: [
-                bk.groups.reduce((a, g) => a + g.hours, 0),
-                bk.groups.reduce((a, g) => a + g.count, 0),
-            ],
+            rows: bk.groups.map(g => ({ key: g.key, values: values(g) })),
+            totals: sums(bk.groups),
         }, sectionKey));
-        parts.push('<div class="nx-fin-tables">' + tables.join('') + '</div>');
+        parts.push('<div class="nx-fin-tables nx-fin-tables--wide">' + tables.join('') + '</div>');
         parts.push(`<div class="nx-fin-divider"><span class="nx-eyebrow">${esc(S.billableBookings)}</span>` +
             `<span class="nx-fin-divider__note">${esc(S.oneListPer)}</span><span class="nx-fin-divider__rule"></span></div>`);
         parts.push('<div class="nx-fin-tls">' +
@@ -381,7 +423,7 @@
             parts.push('</div>');
         });
         if (p.bookings) {
-            parts.push('<div class="nx-fin-block">' + bookingsHtml(p.bookings, p.key) + '</div>');
+            parts.push('<div class="nx-fin-block">' + bookingsHtml(p.bookings, p.key, p.exports) + '</div>');
         }
         if (p.closed) parts.push(driftHtml(p.live_diff));
         return parts.join('');
@@ -485,6 +527,12 @@
 
     // Delegated: retry a failed section, expand a collapsed table or timeline.
     document.addEventListener('click', function (e) {
+        const download = e.target.closest('[data-role="bps-export"]');
+        if (download) {
+            const pick = download.closest('.nx-fin-export').querySelector('[data-role="bps-export-sheet"]');
+            download.setAttribute('href', exportUrl(download.dataset.format, pick ? pick.value : 'all'));
+            return; // the browser follows the fresh href
+        }
         const retry = e.target.closest('[data-retry]');
         if (retry) {
             const section = retry.closest('.nx-fin-section');

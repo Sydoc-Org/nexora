@@ -21,6 +21,7 @@ IMPORT_TO_DIST = {
     "PIL": "pillow",
     "dotenv": "python-dotenv",
     "magic": "python-magic-bin",
+    "fpdf": "fpdf2",
     "markdown_it": "markdown-it-py",
     "psycopg2": "psycopg2-binary",
 }
