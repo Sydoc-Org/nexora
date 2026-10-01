@@ -232,8 +232,9 @@ git push origin v3.2.5
 ```
 
 The tag **is** the PROD deploy (#338): `main` deploys **staging**
-(`staging-nexora.sydoc.ch`), any other branch push deploys **dev**
-(`dev-nexora.sydoc.ch`), and the `v*` tag push runs the tests and deploys PROD.
+(`staging-nexora.sydoc.ch`), any other branch push deploys the pusher's own
+**dev** host (`dev-<who>-nexora.sydoc.ch`, #431; unmapped pushers share
+`dev-nexora.sydoc.ch`), and the `v*` tag push runs the tests and deploys PROD.
 Until someone tags, PROD keeps running the previous release — so tag promptly
 after merging release-worthy work. `git diff v3.2.4..v3.2.5` is exactly what
 moved on PROD. Hosts, ports and folders: `docs/howto/ngrok.md`.

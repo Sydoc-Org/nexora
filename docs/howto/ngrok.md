@@ -1,8 +1,8 @@
-# ngrok setup (SYAPP01) — three endpoints
+# ngrok setup (SYAPP01) — one endpoint per host
 
-One ngrok agent (Windows service `ngrok`) on SYAPP01 fronts all three hosted
-environments (#338). It reads `D:\sydoc\nexora\ngrok.yaml`, which is **not** in
-git (it holds the authtoken) and is in `deploy-env.yml`'s robocopy `/XF` list, so
+One ngrok agent (Windows service `ngrok`) on SYAPP01 fronts every hosted
+environment (#338): PROD, staging and the dev hosts. It reads
+`D:\sydoc\nexora\ngrok.yaml`, which is **not** in git (it holds the authtoken) and is in `deploy-env.yml`'s robocopy `/XF` list, so
 deploys never touch it. Deploys also never stop the service any more: a stopped
 app pool answers 503 while the mirror runs, which is enough.
 
@@ -10,7 +10,17 @@ app pool answers 503 while the mirror runs, which is enough.
 |---|---|---|---|---|
 | `nexora.sydoc.ch` | `http://localhost:80` (IIS Default Web Site, `DefaultAppPool`) | `D:\sydoc\nexora` | `PROD` | push of a `v*` tag |
 | `staging-nexora.sydoc.ch` | `http://127.0.0.1:8082` (site `nexora-staging`) | `D:\sydoc\nexora-staging` | `STAGING` | merge to `main` + 01:30 nightly, or Run workflow on `main` |
-| `dev-nexora.sydoc.ch` | `http://127.0.0.1:8081` (site `nexora-dev`) | `D:\sydoc\nexora-dev` | `INT` | any other branch push (last push wins) |
+| `dev-ben-nexora.sydoc.ch` | `http://127.0.0.1:8083` (site `nexora-dev-ben`) | `D:\sydoc\nexora-dev-ben` | `INT` | any other branch push by `benstreich` |
+| `dev-gruoss-nexora.sydoc.ch` | `http://127.0.0.1:8084` (site `nexora-dev-gruoss`) | `D:\sydoc\nexora-dev-gruoss` | `INT` | any other branch push by `GRuoss` |
+| `dev-nexora.sydoc.ch` | `http://127.0.0.1:8081` (site `nexora-dev`) | `D:\sydoc\nexora-dev` | `INT` | any other branch push by anyone else (last push wins) |
+
+**Dev hosts are per developer (#431).** Each pusher has their own dev host, so two
+people pushing at once no longer overwrite each other. The test job's *Resolve dev
+slot* step in `.github/workflows/deploy.yml` maps the GitHub login to a slot; anyone
+unmapped (bots, occasional contributors) lands on the shared `dev-nexora`, and so
+does a mapped developer whose folder does not exist yet (with a warning on the run).
+Each slot deploys in its own concurrency group. All dev hosts share the INT
+databases, so a migration one person's branch applies is live for everyone.
 
 ## DNS (cyon)
 
@@ -22,6 +32,8 @@ app pool answers 503 while the mirror runs, which is enough.
 | `nexora` | `dzpsykqcwgqzfk1c.zgzyk2x2s1c7jrr8.ngrok-cname.com` |
 | `dev-nexora` | `3vvfskuc7isen9djp.zgzyk2x2s1c7jrr8.ngrok-cname.com` |
 | `staging-nexora` | `62ubvmwfstncuu83.zgzyk2x2s1c7jrr8.ngrok-cname.com` |
+| `dev-ben-nexora` | *(from the ngrok dashboard once the domain is reserved, #431)* |
+| `dev-gruoss-nexora` | *(from the ngrok dashboard once the domain is reserved, #431)* |
 
 Cost: the pay-as-you-go plan bills each custom domain at $0.01 per active hour
 (≈ $7.30/month per always-on host); endpoints themselves are free.
@@ -63,11 +75,25 @@ RDP to SYAPP01, elevated PowerShell, once per environment:
 cd D:\sydoc\tools
 .\setup-env.ps1 -Name dev     -Port 8081 -Environment INT     -Hostname dev-nexora.sydoc.ch
 .\setup-env.ps1 -Name staging -Port 8082 -Environment STAGING -Hostname staging-nexora.sydoc.ch
+.\setup-env.ps1 -Name dev-ben    -Port 8083 -Environment INT -Hostname dev-ben-nexora.sydoc.ch
+.\setup-env.ps1 -Name dev-gruoss -Port 8084 -Environment INT -Hostname dev-gruoss-nexora.sydoc.ch
 ```
 
 (The script ships in the repo as `ops/setup-env.ps1`; copy it to `D:\sydoc\tools`
 first — `tools\` is outside the deploy mirror.) Then push the env file from a
-dev box: `python scripts/env-sync.py --push INT.env` / `--push STAGING.env`.
+dev box: `python scripts/env-sync.py --push INT.env` / `--push STAGING.env`
+(`--push INT.env` writes every `nexora-dev*` folder it finds).
+
+**Adding a developer's dev host** (#431), in this order:
+
+1. ngrok dashboard → *Domains* → reserve `dev-<who>-nexora.sydoc.ch`; add its
+   CNAME at cyon (table above).
+2. On SYAPP01: `.\setup-env.ps1 -Name dev-<who> -Port <next free, 8085+> -Environment INT -Hostname dev-<who>-nexora.sydoc.ch`.
+3. From a dev box: `python scripts/env-sync.py --push INT.env`.
+4. Add `'<github-login>' = 'dev-<who>'` to *Resolve dev slot* in `deploy.yml`,
+   and a row to the tables here and in `docs/howto/iis.md`.
+
+Until step 4 merges, that developer's pushes keep landing on the shared host.
 
 ## Service commands
 
