@@ -1,0 +1,79 @@
+{#- Phone quick hours entry for the Generali effort pages (#354).
+
+    One markup for Base Services and Additional Services; the behaviour is
+    static/js/generali_quick_entry.js, the look `.gq-*` in nexora-ui.css.
+    Rendered hidden: the script shows it only on a touch phone, so desktop
+    never sees it. Always books for the signed-in user -- booking for
+    someone else stays in the page's full form ("More options").
+
+      testid      data-testid prefix, e.g. "generali-base-services"
+      month_url   the page's month report
+      with_subs   two-level categories (Additional Services): adds the
+                  "recently booked" row and the subcategory list
+-#}
+{% macro quick_entry(testid, month_url, with_subs=false) %}
+<section id="gqQuick" class="gq-quick" data-testid="{{ testid }}-quick" hidden>
+  <div class="gq-quick__head">
+    <h2 class="gq-quick__title">{{ _("Book hours") }}</h2>
+    <span class="gq-quick__date" id="gqQuickDateLabel"></span>
+  </div>
+
+  <div class="gq-quick__days" role="group" aria-label="{{ _('Date') }}">
+    <button type="button" class="gq-chip" data-day="0" data-testid="{{ testid }}-quick-today">{{ _("Today") }}</button>
+    <button type="button" class="gq-chip" data-day="1" data-testid="{{ testid }}-quick-yesterday">{{ _("Yesterday") }}</button>
+    <input type="text" id="gqQuickDate" class="gq-chip gq-chip--date" readonly
+           placeholder="{{ _('Other day') }}" aria-label="{{ _('Other day') }}"
+           data-testid="{{ testid }}-quick-date">
+  </div>
+
+  {% if with_subs %}
+  <div id="gqQuickRecentWrap" hidden>
+    <p class="gq-quick__label">{{ _("Recently booked") }}</p>
+    <div class="gq-quick__recent" id="gqQuickRecent" role="group" aria-label="{{ _('Recently booked') }}"
+         data-testid="{{ testid }}-quick-recent"></div>
+  </div>
+  {% endif %}
+
+  <p class="gq-quick__label">{{ _("Category") }}</p>
+  <div class="gq-quick__cats" id="gqQuickCats" role="group" aria-label="{{ _('Category') }}"
+       data-testid="{{ testid }}-quick-categories"></div>
+
+  {% if with_subs %}
+  <div id="gqQuickSubsWrap" hidden>
+    <p class="gq-quick__label">{{ _("Sub Category") }}</p>
+    <div class="gq-quick__subs" id="gqQuickSubs" role="group" aria-label="{{ _('Sub Category') }}"
+         data-testid="{{ testid }}-quick-subcategories"></div>
+  </div>
+  {% endif %}
+
+  <p class="gq-quick__label">{{ _("Hours") }}</p>
+  <div class="gq-quick__presets" id="gqQuickPresets" role="group" aria-label="{{ _('Hours') }}"></div>
+  <div class="gq-quick__stepper">
+    <button type="button" class="gq-step" id="gqQuickMinus" aria-label="{{ _('Half an hour less') }}"
+            data-testid="{{ testid }}-quick-minus"><i class="fas fa-minus"></i></button>
+    <output class="gq-quick__hours" id="gqQuickHours" data-testid="{{ testid }}-quick-hours">–</output>
+    <button type="button" class="gq-step" id="gqQuickPlus" aria-label="{{ _('Half an hour more') }}"
+            data-testid="{{ testid }}-quick-plus"><i class="fas fa-plus"></i></button>
+  </div>
+
+  <p class="gq-quick__error" id="gqQuickError" role="alert" hidden></p>
+  <button type="button" class="nx-btn nx-btn--primary gq-quick__save" id="gqQuickSave" disabled
+          data-testid="{{ testid }}-quick-save">{{ _("Save") }}</button>
+  <button type="button" class="gq-quick__more" id="gqQuickMore"
+          data-testid="{{ testid }}-quick-more">{{ _("More options") }}</button>
+
+  <div class="gq-quick__mine" id="gqQuickMine" data-testid="{{ testid }}-quick-mine"></div>
+  <a class="gq-quick__month" id="gqQuickMonth" href="{{ month_url }}"
+     data-testid="{{ testid }}-quick-month" hidden></a>
+</section>
+{% endmacro %}
+
+{#- The "Saved · Undo" pill (static/js/undo_pill.js). Outside <main>, so it
+    can sit fixed above the tab bar. -#}
+{% macro undo_pill(testid) %}
+<div id="gqUndo" class="nx-undo" role="status" data-testid="{{ testid }}-undo" hidden>
+  <span class="nx-undo__text"></span>
+  <button type="button" class="nx-undo__btn" data-testid="{{ testid }}-undo-btn">{{ _("Undo") }}</button>
+  <span class="nx-undo__time" aria-hidden="true"></span>
+</div>
+{% endmacro %}

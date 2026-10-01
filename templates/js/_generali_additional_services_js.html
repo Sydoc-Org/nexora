@@ -58,7 +58,7 @@
     }
 
     function loadCategories() {
-        fetch(API_PREFIX + 'api/generali/attendance/categories?locale={{ current_lang }}', {headers: {
+        return fetch(API_PREFIX + 'api/generali/attendance/categories?locale={{ current_lang }}', {headers: {
                 'X-CSRFToken': csrfToken
                 }})
             .then(r => r.json())
@@ -443,9 +443,44 @@
         });
     });
 
-    loadCategories();
+    // Kept: the phone quick entry below waits on the same request.
+    const categoriesLoaded = loadCategories();
     loadOrganizations();
     nxUserFilter.init(API_PREFIX + 'api/generali/attendance/filterUsers', applyFiltersSoon);
     {% if can_add %}loadOrgUsers();{% endif %}
     crud.loadRecords(1);
 </script>
+{% if can_add %}
+{% include 'js/_generali_quick_entry_i18n.html' %}
+<script src="{{ static_v('js/undo_pill.js') }}"></script>
+<script src="{{ static_v('js/generali_quick_entry.js') }}"></script>
+<script nonce="{{ csp_nonce() }}">
+    // Phone quick entry (#354) -- templates/_generali_quick_entry.html.
+    // Two-level categories from dbo.EffortCategories, labels translated the
+    // same way as the dropdowns above.
+    NX.generaliQuickEntry.mount({
+        api: API_PREFIX + 'api/generali/attendance',
+        userId: {{ userid|tojson }},
+        i18n: window.NX_I18N_QUICK_ENTRY,
+        crud,
+        openAddModal,
+        storageKey: 'nx.generali.additionalservices.quick',
+        twoLevel: true,
+        categories: categoriesLoaded.then(() => Object.keys(categoriesData).sort().map(p => ({
+            value: p,
+            label: translationsMap[p] || p,
+            subs: (categoriesData[p] || []).map(sub => ({ value: sub, label: translationsMap[sub] || sub })),
+        }))),
+        recordKey: r => ({ cat: r.parentCategory, sub: r.subCategory || null }),
+        fillFullForm: st => {
+            const dateEl = document.getElementById('addForDate');
+            if (st.date && dateEl._flatpickr) dateEl._flatpickr.setDate(st.date, false);
+            if (st.cat) {
+                document.getElementById('addParentCategory').value = st.cat;
+                populateSubSelect(document.getElementById('addSubCategory'), st.cat, st.sub || '');
+            }
+            if (st.hours) document.getElementById('addEffortHours').value = String(st.hours);
+        },
+    });
+</script>
+{% endif %}

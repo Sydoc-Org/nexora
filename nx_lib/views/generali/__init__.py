@@ -30,6 +30,7 @@ from .attendance import (
     api_generali_attendance_list,
     api_generali_attendance_org_users,
     api_generali_attendance_organizations,
+    api_generali_attendance_undo,
     generali_additional_services,
     generali_additionalservices_monthreport,
 )
@@ -109,6 +110,7 @@ __all__ = [
     "api_generali_attendance_list",
     "api_generali_attendance_org_users",
     "api_generali_attendance_organizations",
+    "api_generali_attendance_undo",
     "api_generali_baseservices_add",
     "api_generali_baseservices_delete",
     "api_generali_baseservices_undo",

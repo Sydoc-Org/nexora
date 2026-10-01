@@ -393,33 +393,29 @@
     loadOrganizations();
     nxUserFilter.init(API_PREFIX + 'api/generali/baseservices/filterUsers', applyFiltersSoon);
     crud.loadRecords(1);
-    // generali_base_services_phone.js reads these; both are block-scoped
-    // consts here, so hand them over explicitly rather than relying on the
-    // shared global lexical scope.
-    window.NX_GENERALI_BASE_SERVICES = { crud, categories: BASE_CATEGORIES, openAddModal: {% if can_add %}openAddModal{% else %}null{% endif %} };
 </script>
 {% if can_add %}
-<script nonce="{{ csp_nonce() }}">
-  // Jinja-rendered data and strings for static/js/generali_base_services_phone.js
-  // (#191: only behaviour lives in the .js file; Babel extracts from here).
-  window.NX_BASE_SERVICES_QUICK = {
-    userId: {{ userid|tojson }},
-    i18n: {
-      today: {{ _("Today")|tojson }},
-      yesterday: {{ _("Yesterday")|tojson }},
-      saved: {{ _("Saved")|tojson }},
-      saveFailed: {{ _("Error saving record.")|tojson }},
-      networkError: {{ _("Network error.")|tojson }},
-      undone: {{ _("Undone. The entry was removed.")|tojson }},
-      pickBoth: {{ _("Pick a category and the hours.")|tojson }},
-      nothingYet: {{ _("Nothing booked on this day yet.")|tojson }},
-      failedToLoad: {{ _("Failed to load data. Please try again.")|tojson }},
-      // {hours} is filled in by the .js file
-      dayTotal: {{ _("Booked on this day: {hours} h")|tojson }},
-      monthTotal: {{ _("This month: {hours} h")|tojson }}
-    }
-  };
-</script>
+{% include 'js/_generali_quick_entry_i18n.html' %}
 <script src="{{ static_v('js/undo_pill.js') }}"></script>
-<script src="{{ static_v('js/generali_base_services_phone.js') }}"></script>
+<script src="{{ static_v('js/generali_quick_entry.js') }}"></script>
+<script nonce="{{ csp_nonce() }}">
+    // Phone quick entry (#354) -- templates/_generali_quick_entry.html.
+    NX.generaliQuickEntry.mount({
+        api: API_PREFIX + 'api/generali/baseservices',
+        userId: {{ userid|tojson }},
+        i18n: window.NX_I18N_QUICK_ENTRY,
+        crud,
+        openAddModal,
+        storageKey: 'nx.generali.baseservices.quick',
+        twoLevel: false,
+        categories: BASE_CATEGORIES.map(c => ({ value: c, label: c, subs: [] })),
+        recordKey: r => ({ cat: r.category, sub: null }),
+        fillFullForm: st => {
+            const dateEl = document.getElementById('addForDate');
+            if (st.date && dateEl._flatpickr) dateEl._flatpickr.setDate(st.date, false);
+            if (st.cat) document.getElementById('addCategory').value = st.cat;
+            if (st.hours) document.getElementById('addEffortHours').value = String(st.hours);
+        },
+    });
+</script>
 {% endif %}

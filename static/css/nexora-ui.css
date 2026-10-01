@@ -1805,68 +1805,91 @@ html.dark .flatpickr-day:hover { background: var(--nx-alt); }
     .nx-undo__time { animation: none; display: none; }
   }
 
-  /* Base Services quick hours entry (#354) -- the phone board above the
-     list. Same visual language as Reporting's "Today": big cards, 44px+
+  /* Generali quick hours entry (#354, templates/_generali_quick_entry.html) --
+     the phone board above the list on Base Services and Additional
+     Services. Same visual language as Reporting's "Today": big cards, 44px+
      targets, pressed state carried by aria-pressed so it reads to a screen
      reader too. */
-  .bs-quick { margin: 0 0 22px; }
-  .bs-quick__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 12px; }
-  .bs-quick__title { margin: 0; font-size: 22px; font-weight: 700; color: var(--nx-text); }
-  .bs-quick__date { font-size: 15px; color: var(--nx-text-sec); font-variant-numeric: tabular-nums; }
-  .bs-quick__label { margin: 16px 0 8px; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--nx-text-meta); }
+  .gq-quick { margin: 0 0 22px; }
+  .gq-quick__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 12px; }
+  .gq-quick__title { margin: 0; font-size: 22px; font-weight: 700; color: var(--nx-text); }
+  .gq-quick__date { font-size: 15px; color: var(--nx-text-sec); font-variant-numeric: tabular-nums; }
+  .gq-quick__label { margin: 16px 0 8px; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--nx-text-meta); }
   /* One row each at 320px: three day chips, five hour presets. */
-  .bs-quick__days { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-  .bs-quick__presets { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
-  .bs-chip {
+  .gq-quick__days { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .gq-quick__presets { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+  .gq-chip {
     min-width: 0; min-height: 44px; padding: 0 8px; border-radius: 999px; cursor: pointer;
     border: 1px solid var(--nx-border-strong); background: var(--nx-card); color: var(--nx-text);
     font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums;
   }
-  .bs-chip[aria-pressed="true"], .bs-chip.is-on {
+  .gq-chip[aria-pressed="true"], .gq-chip.is-on {
     background: var(--nx-accent); border-color: var(--nx-accent); color: var(--nx-on-accent);
   }
-  .bs-chip:disabled { opacity: 0.45; cursor: default; }
+  .gq-chip:disabled { opacity: 0.45; cursor: default; }
   /* The "Other day" chip is the flatpickr input itself. */
-  .bs-chip--date { width: 100%; text-align: center; text-overflow: ellipsis; }
-  .bs-chip--date::placeholder { color: var(--nx-text-sec); opacity: 1; }
-  .bs-chip--date.is-on::placeholder { color: var(--nx-on-accent); }
-  .bs-quick__cats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-  .bs-cat {
-    min-height: 64px; padding: 10px 12px; border-radius: 14px; cursor: pointer; text-align: left;
+  .gq-chip--date { width: 100%; text-align: center; text-overflow: ellipsis; }
+  .gq-chip--date::placeholder { color: var(--nx-text-sec); opacity: 1; }
+  .gq-chip--date.is-on::placeholder { color: var(--nx-on-accent); }
+  .gq-quick__cats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  /* 14px with 10px padding: "Versandmanagement", the longest single word
+     in the Additional Services list, fits a half-width button at 360px
+     without breaking mid-word where the browser cannot hyphenate. */
+  .gq-cat {
+    min-height: 64px; padding: 10px; border-radius: 14px; cursor: pointer; text-align: left;
     border: 1px solid var(--nx-border-strong); background: var(--nx-card); color: var(--nx-text);
-    font-size: 15px; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere;
+    font-size: 14px; font-weight: 600; line-height: 1.25; overflow-wrap: break-word; hyphens: auto;
   }
-  .bs-cat[aria-pressed="true"] {
+  .gq-cat[aria-pressed="true"] {
     border-color: var(--nx-accent); background: var(--nx-accent-tint); color: var(--nx-l-indigo-fg, var(--nx-text));
     box-shadow: inset 0 0 0 1px var(--nx-accent);
   }
-  .bs-quick__stepper { display: flex; align-items: center; justify-content: center; gap: 18px; margin: 12px 0 0; }
-  .bs-step {
+  .gq-quick__stepper { display: flex; align-items: center; justify-content: center; gap: 18px; margin: 12px 0 0; }
+  .gq-step {
     width: 52px; height: 52px; border-radius: 50%; cursor: pointer; font-size: 18px;
     border: 1px solid var(--nx-border-strong); background: var(--nx-card); color: var(--nx-text);
   }
-  .bs-step:disabled { opacity: 0.4; cursor: default; }
-  .bs-quick__hours { min-width: 4.5em; text-align: center; font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--nx-text); }
-  .bs-quick__error { margin: 12px 0 0; color: var(--nx-danger); font-size: 14px; }
-  .bs-quick__save { width: 100%; min-height: 52px; margin: 16px 0 0; font-size: 17px; justify-content: center; }
-  .bs-quick__more {
+  .gq-step:disabled { opacity: 0.4; cursor: default; }
+  .gq-quick__hours { min-width: 4.5em; text-align: center; font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--nx-text); }
+  .gq-quick__error { margin: 12px 0 0; color: var(--nx-danger); font-size: 14px; }
+  .gq-quick__save { width: 100%; min-height: 52px; margin: 16px 0 0; font-size: 17px; justify-content: center; }
+  .gq-quick__more {
     display: block; margin: 6px auto 0; min-height: 44px; padding: 0 12px; border: 0; background: none; cursor: pointer;
     color: var(--nx-accent); font-size: 15px; font-weight: 600;
   }
-  .bs-quick__mine { margin: 14px 0 0; padding: 12px 14px; border-radius: 14px; background: var(--nx-sunken); }
-  .bs-mine__empty, .bs-mine__total { margin: 0; font-size: 14px; color: var(--nx-text-sec); }
-  .bs-mine__total { font-weight: 600; color: var(--nx-text); }
-  .bs-mine__list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
-  .bs-mine__row { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; color: var(--nx-text); }
-  .bs-mine__cat { min-width: 0; overflow-wrap: anywhere; }
-  .bs-mine__h { flex: none; font-weight: 600; font-variant-numeric: tabular-nums; }
-  .bs-quick__month {
+  .gq-quick__mine { margin: 14px 0 0; padding: 12px 14px; border-radius: 14px; background: var(--nx-sunken); }
+  .gq-mine__empty, .gq-mine__total { margin: 0; font-size: 14px; color: var(--nx-text-sec); }
+  .gq-mine__total { font-weight: 600; color: var(--nx-text); }
+  .gq-mine__list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+  .gq-mine__row { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; color: var(--nx-text); }
+  .gq-mine__cat { min-width: 0; overflow-wrap: break-word; hyphens: auto; }
+  .gq-mine__h { flex: none; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .gq-quick__month {
     display: flex; align-items: center; min-height: 44px; margin: 6px 0 0;
     font-size: 15px; font-weight: 600; color: var(--nx-accent); text-decoration: none;
   }
-  .bs-quick__month::after { content: " ›"; color: var(--nx-text-meta); margin-left: 4px; }
+  .gq-quick__month::after { content: " ›"; color: var(--nx-text-meta); margin-left: 4px; }
+  /* Additional Services: the subcategory list (up to 14 long names, one per
+     row so they read in full) and "recently booked" shortcuts. */
+  .gq-quick__subs { display: grid; gap: 8px; }
+  .gq-sub {
+    min-height: 48px; padding: 10px 14px; border-radius: 12px; cursor: pointer; text-align: left;
+    border: 1px solid var(--nx-border-strong); background: var(--nx-card); color: var(--nx-text);
+    font-size: 15px; line-height: 1.3; overflow-wrap: break-word; hyphens: auto;
+  }
+  .gq-quick__recent { display: grid; gap: 8px; }
+  .gq-recent {
+    min-height: 44px; padding: 8px 14px; border-radius: 12px; cursor: pointer; text-align: left;
+    border: 1px dashed var(--nx-accent); background: var(--nx-card); color: var(--nx-text);
+    font-size: 14px; font-weight: 600; line-height: 1.3; overflow-wrap: break-word; hyphens: auto;
+  }
+  .gq-sub[aria-pressed="true"], .gq-recent[aria-pressed="true"] {
+    border-style: solid; border-color: var(--nx-accent); background: var(--nx-accent-tint);
+    color: var(--nx-l-indigo-fg, var(--nx-text)); box-shadow: inset 0 0 0 1px var(--nx-accent);
+  }
   /* Survey 29.09: nobody needs the Excel export on a phone. */
-  [data-testid="generali-base-services-export-excel"] { display: none; }
+  [data-testid="generali-base-services-export-excel"],
+  [data-testid="generali-additional-services-export-excel"] { display: none; }
 
   /* Folded filter blocks (nx_core.js adds the button and the class). */
   .nx-filter.nx-filter--folded { display: none; }

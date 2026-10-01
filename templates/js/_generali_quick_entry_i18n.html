@@ -1,0 +1,17 @@
+<script nonce="{{ csp_nonce() }}">
+  // Strings for static/js/generali_quick_entry.js (#354, #191: behaviour in
+  // the .js file, translations here where Babel extracts them). Shared by
+  // the Base Services and Additional Services pages.
+  window.NX_I18N_QUICK_ENTRY = {
+    saved: {{ _("Saved")|tojson }},
+    saveFailed: {{ _("Error saving record.")|tojson }},
+    networkError: {{ _("Network error.")|tojson }},
+    undone: {{ _("Undone. The entry was removed.")|tojson }},
+    pickBoth: {{ _("Pick a category and the hours.")|tojson }},
+    nothingYet: {{ _("Nothing booked on this day yet.")|tojson }},
+    failedToLoad: {{ _("Failed to load data. Please try again.")|tojson }},
+    // {hours} is filled in by the .js file
+    dayTotal: {{ _("Booked on this day: {hours} h")|tojson }},
+    monthTotal: {{ _("This month: {hours} h")|tojson }}
+  };
+</script>

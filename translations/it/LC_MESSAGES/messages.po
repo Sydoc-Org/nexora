@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-01 10:35+0200\n"
+"POT-Creation-Date: 2026-10-01 11:12+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -141,13 +141,13 @@ msgid "by booking date"
 msgstr "per data di registrazione"
 
 #: nx_lib/finance.py:449 nx_lib/reporting/catalog.py:255
-#: nx_lib/views/bps.py:152 templates/generali_additionalservices.html:148
-#: templates/generali_additionalservices.html:224
-#: templates/generali_additionalservices.html:282
-#: templates/generali_baseservices.html:70
-#: templates/generali_baseservices.html:182
-#: templates/generali_baseservices.html:244
-#: templates/generali_baseservices.html:290
+#: nx_lib/views/bps.py:152 templates/_generali_quick_entry.html:21
+#: templates/generali_additionalservices.html:155
+#: templates/generali_additionalservices.html:231
+#: templates/generali_additionalservices.html:289
+#: templates/generali_baseservices.html:143
+#: templates/generali_baseservices.html:205
+#: templates/generali_baseservices.html:251
 #: templates/generali_documents.html:222 templates/generali_pdqm.html:157
 #: templates/generali_pdqm.html:223 templates/generali_pdqm.html:294
 #: templates/generali_projectmanagement.html:123
@@ -174,11 +174,11 @@ msgstr "Attività"
 msgid "Person"
 msgstr "Persona"
 
-#: nx_lib/finance.py:454 nx_lib/views/bps.py:157 templates/bps.html:109
-#: templates/generali_additionalservices.html:160
-#: templates/generali_baseservices.html:82
-#: templates/generali_baseservices.html:83
-#: templates/generali_baseservices.html:185
+#: nx_lib/finance.py:454 nx_lib/views/bps.py:157
+#: templates/_generali_quick_entry.html:49
+#: templates/_generali_quick_entry.html:50 templates/bps.html:109
+#: templates/generali_additionalservices.html:167
+#: templates/generali_baseservices.html:146
 #: templates/generali_projectmanagement.html:125 templates/js/_bps_js.html:40
 msgid "Hours"
 msgstr "Ore"
@@ -2518,6 +2518,91 @@ msgstr "Impossibile aggiornare la pianificazione"
 msgid "Could not delete schedule"
 msgstr "Impossibile eliminare la pianificazione"
 
+#: templates/_generali_quick_entry.html:17
+msgid "Book hours"
+msgstr "Registra ore"
+
+#: templates/_generali_quick_entry.html:22 templates/admin/logs.html:28
+#: templates/admin/status.html:202 templates/generali_reporting.html:68
+#: templates/js/_reporting_dashboard_js.html:24
+#: templates/js/_reporting_drill_js.html:26 templates/js/_reporting_js.html:6
+#: templates/js/_reporting_simple_js.html:64
+#: templates/workitems_overview.html:160
+msgid "Today"
+msgstr "Oggi"
+
+#: templates/_generali_quick_entry.html:23
+#: templates/js/_reporting_dashboard_js.html:25
+#: templates/js/_reporting_drill_js.html:26 templates/js/_reporting_js.html:7
+#: templates/js/_reporting_simple_js.html:65
+#: templates/workitems_overview.html:161
+msgid "Yesterday"
+msgstr "Ieri"
+
+#: templates/_generali_quick_entry.html:25
+msgid "Other day"
+msgstr "Altro giorno"
+
+#: templates/_generali_quick_entry.html:31
+#: templates/_generali_quick_entry.html:32
+msgid "Recently booked"
+msgstr "Registrate di recente"
+
+#: templates/_generali_quick_entry.html:37
+#: templates/_generali_quick_entry.html:38 templates/feedback.html:57
+#: templates/feedback.html:58 templates/generali_baseservices.html:79
+#: templates/generali_baseservices.html:145
+#: templates/generali_baseservices.html:210
+#: templates/generali_baseservices.html:256
+#: templates/generali_monthreport.html:132
+#: templates/generali_projectmanagement.html:190
+#: templates/generali_reporting.html:90 templates/generali_reporting.html:173
+#: templates/js/_reporting_viz_js.html:12
+msgid "Category"
+msgstr "Categoria"
+
+#: templates/_generali_quick_entry.html:43
+#: templates/_generali_quick_entry.html:44
+#: templates/generali_additionalservices.html:90
+#: templates/generali_additionalservices.html:164
+#: templates/generali_additionalservices.html:248
+#: templates/generali_additionalservices.html:306
+#: templates/generali_pdqm.html:91 templates/generali_pdqm.html:161
+#: templates/generali_pdqm.html:252 templates/generali_pdqm.html:323
+msgid "Sub Category"
+msgstr "Sottocategoria"
+
+#: templates/_generali_quick_entry.html:52
+msgid "Half an hour less"
+msgstr "Mezz'ora in meno"
+
+#: templates/_generali_quick_entry.html:55
+msgid "Half an hour more"
+msgstr "Mezz'ora in più"
+
+#: templates/_generali_quick_entry.html:61 templates/_reporting_simple.html:198
+#: templates/_reporting_simple.html:296 templates/admin/access_control.html:240
+#: templates/admin/maintenance.html:114 templates/admin/permissions.html:119
+#: templates/generali_additionalservices.html:331
+#: templates/generali_baseservices.html:281 templates/generali_pdqm.html:348
+#: templates/generali_projectmanagement.html:259
+#: templates/generali_reporting.html:368
+#: templates/js/_generali_reporting_js.html:37 templates/reporting.html:405
+#: templates/reporting.html:606 templates/reporting_metrics.html:78
+#: templates/reporting_sources.html:88 templates/tenant/page.html:223
+msgid "Save"
+msgstr "Salva"
+
+#: templates/_generali_quick_entry.html:63
+#: templates/generali_reporting.html:236
+msgid "More options"
+msgstr "Altre opzioni"
+
+#: templates/_generali_quick_entry.html:76
+#: templates/generali_reporting.html:245
+msgid "Undo"
+msgstr "Annulla"
+
 #: templates/_header.html:34 templates/js/_reporting_simple_js.html:61
 #: templates/reporting.html:476
 msgid "Filters"
@@ -2624,10 +2709,10 @@ msgstr "Reporting globale"
 
 #: templates/_header.html:212 templates/admin/organization_detail.html:325
 #: templates/generali-dashboard.html:72 templates/generali-dashboard.html:73
-#: templates/generali_additionalservices.html:51
 #: templates/generali_additionalservices.html:52
-#: templates/generali_baseservices.html:51
-#: templates/generali_baseservices.html:52 templates/generali_documents.html:44
+#: templates/generali_additionalservices.html:53
+#: templates/generali_baseservices.html:52
+#: templates/generali_baseservices.html:53 templates/generali_documents.html:44
 #: templates/generali_documents.html:45
 #: templates/generali_projectmanagement.html:51
 #: templates/generali_projectmanagement.html:52 templates/js/_header_js.html:42
@@ -3491,7 +3576,7 @@ msgid "So far"
 msgstr "Finora"
 
 #: templates/_reporting_simple.html:168 templates/appearance.html:37
-#: templates/js/_generali_base_services_js.html:410
+#: templates/js/_generali_quick_entry_i18n.html:6
 #: templates/js/_generali_reporting_js.html:57
 #: templates/js/_reporting_js.html:65
 #: templates/js/_reporting_metrics_js.html:135
@@ -3524,20 +3609,6 @@ msgstr "Formato di esportazione"
 #: templates/reporting.html:547 templates/reporting.html:586
 msgid "Excel"
 msgstr "Excel"
-
-#: templates/_reporting_simple.html:198 templates/_reporting_simple.html:296
-#: templates/admin/access_control.html:240 templates/admin/maintenance.html:114
-#: templates/admin/permissions.html:119
-#: templates/generali_additionalservices.html:324
-#: templates/generali_baseservices.html:94
-#: templates/generali_baseservices.html:320 templates/generali_pdqm.html:348
-#: templates/generali_projectmanagement.html:259
-#: templates/generali_reporting.html:368
-#: templates/js/_generali_reporting_js.html:37 templates/reporting.html:405
-#: templates/reporting.html:606 templates/reporting_metrics.html:78
-#: templates/reporting_sources.html:88 templates/tenant/page.html:223
-msgid "Save"
-msgstr "Salva"
 
 #: templates/_reporting_simple.html:202
 msgid "More actions"
@@ -3660,12 +3731,12 @@ msgstr "Testo dell'annotazione"
 #: templates/admin/organization_detail.html:372
 #: templates/admin/permissions.html:118 templates/admin/tenant_detail.html:197
 #: templates/admin/user_detail.html:78 templates/admin/user_detail.html:276
-#: templates/finance.html:128 templates/generali_additionalservices.html:261
-#: templates/generali_additionalservices.html:320
-#: templates/generali_additionalservices.html:345
-#: templates/generali_baseservices.html:269
-#: templates/generali_baseservices.html:316
-#: templates/generali_baseservices.html:341 templates/generali_pdqm.html:272
+#: templates/finance.html:128 templates/generali_additionalservices.html:268
+#: templates/generali_additionalservices.html:327
+#: templates/generali_additionalservices.html:352
+#: templates/generali_baseservices.html:230
+#: templates/generali_baseservices.html:277
+#: templates/generali_baseservices.html:302 templates/generali_pdqm.html:272
 #: templates/generali_pdqm.html:344 templates/generali_pdqm.html:369
 #: templates/generali_projectmanagement.html:215
 #: templates/generali_projectmanagement.html:255
@@ -5013,20 +5084,6 @@ msgstr ""
 "Includeremo automaticamente il tuo nome utente, questa pagina e la "
 "versione dell'app."
 
-#: templates/feedback.html:57 templates/feedback.html:58
-#: templates/generali_baseservices.html:78
-#: templates/generali_baseservices.html:79
-#: templates/generali_baseservices.html:118
-#: templates/generali_baseservices.html:184
-#: templates/generali_baseservices.html:249
-#: templates/generali_baseservices.html:295
-#: templates/generali_monthreport.html:132
-#: templates/generali_projectmanagement.html:190
-#: templates/generali_reporting.html:90 templates/generali_reporting.html:173
-#: templates/js/_reporting_viz_js.html:12
-msgid "Category"
-msgstr "Categoria"
-
 #: templates/admin/maintenance.html:61 templates/feedback.html:73
 msgid "Message"
 msgstr "Messaggio"
@@ -5220,8 +5277,8 @@ msgid "Document List"
 msgstr "Elenco documenti"
 
 #: templates/admin/permissions.html:45 templates/generali-dashboard.html:94
-#: templates/generali_additionalservices.html:122
-#: templates/generali_baseservices.html:157
+#: templates/generali_additionalservices.html:129
+#: templates/generali_baseservices.html:118
 #: templates/generali_documents.html:208
 #: templates/generali_importstatus.html:73 templates/generali_pdqm.html:130
 #: templates/generali_projectmanagement.html:98
@@ -5308,35 +5365,35 @@ msgstr "Canale di ingresso"
 msgid "Generali additional services - nexora"
 msgstr "Generali Servizi aggiuntivi - nexora"
 
-#: templates/generali_additionalservices.html:30
+#: templates/generali_additionalservices.html:31
 msgid "Generali Additional services"
 msgstr "Generali Servizi aggiuntivi"
 
-#: templates/generali_additionalservices.html:31
-#: templates/generali_baseservices.html:31
+#: templates/generali_additionalservices.html:32
+#: templates/generali_baseservices.html:32
 msgid "Daily effort tracking by category"
 msgstr "Monitoraggio giornaliero dello sforzo per categoria"
 
-#: templates/generali_additionalservices.html:38
 #: templates/generali_additionalservices.html:39
-#: templates/generali_additionalservices.html:200
+#: templates/generali_additionalservices.html:40
+#: templates/generali_additionalservices.html:207
 msgid "Add Attendance"
 msgstr "Aggiungi presenze"
 
-#: templates/generali_additionalservices.html:43
 #: templates/generali_additionalservices.html:44
-#: templates/generali_baseservices.html:43
-#: templates/generali_baseservices.html:44 templates/generali_pdqm.html:43
+#: templates/generali_additionalservices.html:45
+#: templates/generali_baseservices.html:44
+#: templates/generali_baseservices.html:45 templates/generali_pdqm.html:43
 #: templates/generali_pdqm.html:44 templates/generali_projectmanagement.html:43
 #: templates/generali_projectmanagement.html:44
 #: templates/generali_reporting.html:43 templates/generali_reporting.html:44
 msgid "Export Excel"
 msgstr "Esporta Excel"
 
-#: templates/generali_additionalservices.html:47
 #: templates/generali_additionalservices.html:48
-#: templates/generali_baseservices.html:47
+#: templates/generali_additionalservices.html:49
 #: templates/generali_baseservices.html:48
+#: templates/generali_baseservices.html:49
 #: templates/generali_monthreport.html:8 templates/generali_monthreport.html:27
 #: templates/generali_pdqm.html:47 templates/generali_pdqm.html:48
 #: templates/generali_projectmanagement.html:47
@@ -5345,8 +5402,8 @@ msgstr "Esporta Excel"
 msgid "Month Report"
 msgstr "Rapporto mensile"
 
-#: templates/generali_additionalservices.html:61
-#: templates/generali_baseservices.html:108
+#: templates/generali_additionalservices.html:68
+#: templates/generali_baseservices.html:69
 #: templates/generali_documents.html:166
 #: templates/generali_importstatus.html:40 templates/generali_pdqm.html:57
 #: templates/generali_projectmanagement.html:61
@@ -5354,8 +5411,8 @@ msgstr "Rapporto mensile"
 msgid "From Date"
 msgstr "Data inizio"
 
-#: templates/generali_additionalservices.html:66
-#: templates/generali_baseservices.html:113
+#: templates/generali_additionalservices.html:73
+#: templates/generali_baseservices.html:74
 #: templates/generali_documents.html:171
 #: templates/generali_importstatus.html:45 templates/generali_pdqm.html:62
 #: templates/generali_projectmanagement.html:66
@@ -5363,10 +5420,10 @@ msgstr "Data inizio"
 msgid "To Date"
 msgstr "Data fine"
 
-#: templates/generali_additionalservices.html:71
-#: templates/generali_additionalservices.html:154
-#: templates/generali_additionalservices.html:229
-#: templates/generali_additionalservices.html:287
+#: templates/generali_additionalservices.html:78
+#: templates/generali_additionalservices.html:161
+#: templates/generali_additionalservices.html:236
+#: templates/generali_additionalservices.html:294
 #: templates/generali_pdqm.html:67 templates/generali_pdqm.html:159
 #: templates/generali_pdqm.html:228 templates/generali_pdqm.html:299
 msgid "Parent Category"
@@ -5376,9 +5433,9 @@ msgstr "Categoria principale"
 #: templates/admin/access_control.html:61 templates/admin/logs.html:52
 #: templates/admin/logs.html:68 templates/admin/logs.html:76
 #: templates/admin/organizations.html:35 templates/admin/tenants_manage.html:37
-#: templates/generali_additionalservices.html:75
-#: templates/generali_additionalservices.html:87
-#: templates/generali_baseservices.html:122
+#: templates/generali_additionalservices.html:82
+#: templates/generali_additionalservices.html:94
+#: templates/generali_baseservices.html:83
 #: templates/generali_documents.html:139
 #: templates/generali_importstatus.html:54 templates/generali_pdqm.html:71
 #: templates/generali_pdqm.html:83 templates/generali_pdqm.html:95
@@ -5397,15 +5454,6 @@ msgstr "Categoria principale"
 msgid "All"
 msgstr "Tutti"
 
-#: templates/generali_additionalservices.html:83
-#: templates/generali_additionalservices.html:157
-#: templates/generali_additionalservices.html:241
-#: templates/generali_additionalservices.html:299
-#: templates/generali_pdqm.html:91 templates/generali_pdqm.html:161
-#: templates/generali_pdqm.html:252 templates/generali_pdqm.html:323
-msgid "Sub Category"
-msgstr "Sottocategoria"
-
 #: templates/admin/_organization_sheet.html:9
 #: templates/admin/_process_sheets.html:30
 #: templates/admin/access_control.html:59
@@ -5415,15 +5463,15 @@ msgstr "Sottocategoria"
 #: templates/admin/modals/_user_modals.html:61
 #: templates/admin/organizations.html:59 templates/admin/tenant_detail.html:76
 #: templates/admin/user_detail.html:65
-#: templates/generali_additionalservices.html:95
-#: templates/generali_baseservices.html:130 templates/generali_pdqm.html:103
+#: templates/generali_additionalservices.html:102
+#: templates/generali_baseservices.html:91 templates/generali_pdqm.html:103
 #: templates/generali_projectmanagement.html:71
 #: templates/generali_reporting.html:107
 msgid "Organization"
 msgstr "Organizzazione"
 
-#: templates/generali_additionalservices.html:99
-#: templates/generali_baseservices.html:134 templates/generali_pdqm.html:107
+#: templates/generali_additionalservices.html:106
+#: templates/generali_baseservices.html:95 templates/generali_pdqm.html:107
 #: templates/generali_projectmanagement.html:75
 #: templates/generali_reporting.html:111
 msgid "All Organizations"
@@ -5431,12 +5479,12 @@ msgstr "Tutte le organizzazioni"
 
 #: templates/admin/access_control.html:88 templates/admin/logs.html:97
 #: templates/admin/logs.html:129 templates/admin/organization_detail.html:86
-#: templates/generali_additionalservices.html:107
-#: templates/generali_additionalservices.html:151
-#: templates/generali_additionalservices.html:211
-#: templates/generali_baseservices.html:142
-#: templates/generali_baseservices.html:183
-#: templates/generali_baseservices.html:231 templates/generali_pdqm.html:115
+#: templates/generali_additionalservices.html:114
+#: templates/generali_additionalservices.html:158
+#: templates/generali_additionalservices.html:218
+#: templates/generali_baseservices.html:103
+#: templates/generali_baseservices.html:144
+#: templates/generali_baseservices.html:192 templates/generali_pdqm.html:115
 #: templates/generali_pdqm.html:158 templates/generali_pdqm.html:210
 #: templates/generali_projectmanagement.html:83
 #: templates/generali_projectmanagement.html:124
@@ -5445,36 +5493,36 @@ msgstr "Tutte le organizzazioni"
 msgid "User"
 msgstr "Utente"
 
-#: templates/generali_additionalservices.html:113
-#: templates/generali_baseservices.html:148 templates/generali_pdqm.html:121
+#: templates/generali_additionalservices.html:120
+#: templates/generali_baseservices.html:109 templates/generali_pdqm.html:121
 #: templates/generali_projectmanagement.html:89
 #: templates/generali_reporting.html:125
 msgid "All Users"
 msgstr "Tutti gli utenti"
 
-#: templates/generali_additionalservices.html:128
-#: templates/generali_baseservices.html:163
+#: templates/generali_additionalservices.html:135
+#: templates/generali_baseservices.html:124
 #: templates/generali_projectmanagement.html:104
 msgid "Total hours (filtered):"
 msgstr "Ore totali (filtrate):"
 
-#: templates/generali_additionalservices.html:163
-#: templates/generali_baseservices.html:186 templates/generali_pdqm.html:163
+#: templates/generali_additionalservices.html:170
+#: templates/generali_baseservices.html:147 templates/generali_pdqm.html:163
 #: templates/generali_projectmanagement.html:127
 msgid "Recorded At"
 msgstr "Registrato alle"
 
 #: templates/admin/access_control.html:92 templates/admin/maintenance.html:39
 #: templates/admin/sessions.html:53 templates/admin/sessions.html:69
-#: templates/generali_additionalservices.html:167
-#: templates/generali_baseservices.html:188 templates/generali_pdqm.html:165
+#: templates/generali_additionalservices.html:174
+#: templates/generali_baseservices.html:149 templates/generali_pdqm.html:165
 #: templates/generali_projectmanagement.html:129
 #: templates/generali_reporting.html:183 templates/tenant/page.html:134
 msgid "Actions"
 msgstr "Azioni"
 
-#: templates/generali_additionalservices.html:185
-#: templates/generali_baseservices.html:205
+#: templates/generali_additionalservices.html:192
+#: templates/generali_baseservices.html:166
 #: templates/generali_documents.html:279
 #: templates/generali_importstatus.html:124 templates/generali_pdqm.html:183
 #: templates/generali_projectmanagement.html:146
@@ -5482,8 +5530,8 @@ msgstr "Azioni"
 msgid "Showing"
 msgstr "Visualizzazione"
 
-#: templates/generali_additionalservices.html:187
-#: templates/generali_baseservices.html:207
+#: templates/generali_additionalservices.html:194
+#: templates/generali_baseservices.html:168
 #: templates/generali_documents.html:281
 #: templates/generali_importstatus.html:126 templates/generali_pdqm.html:185
 #: templates/generali_projectmanagement.html:148
@@ -5493,8 +5541,8 @@ msgstr "Visualizzazione"
 msgid "of"
 msgstr "di"
 
-#: templates/generali_additionalservices.html:189
-#: templates/generali_baseservices.html:209
+#: templates/generali_additionalservices.html:196
+#: templates/generali_baseservices.html:170
 #: templates/generali_documents.html:283
 #: templates/generali_importstatus.html:128 templates/generali_pdqm.html:187
 #: templates/generali_projectmanagement.html:150
@@ -5502,16 +5550,16 @@ msgstr "di"
 msgid "results"
 msgstr "risultati"
 
-#: templates/generali_additionalservices.html:215
-#: templates/generali_baseservices.html:235 templates/generali_pdqm.html:214
+#: templates/generali_additionalservices.html:222
+#: templates/generali_baseservices.html:196 templates/generali_pdqm.html:214
 #: templates/generali_projectmanagement.html:176
 msgid "Myself"
 msgstr "Io stesso"
 
-#: templates/generali_additionalservices.html:233
-#: templates/generali_additionalservices.html:291
-#: templates/generali_baseservices.html:253
-#: templates/generali_baseservices.html:299 templates/generali_pdqm.html:232
+#: templates/generali_additionalservices.html:240
+#: templates/generali_additionalservices.html:298
+#: templates/generali_baseservices.html:214
+#: templates/generali_baseservices.html:260 templates/generali_pdqm.html:232
 #: templates/generali_pdqm.html:303
 #: templates/js/_generali_additional_services_js.html:49
 #: templates/js/_generali_pdqm_js.html:35
@@ -5519,45 +5567,45 @@ msgstr "Io stesso"
 msgid "Select…"
 msgstr "Seleziona…"
 
-#: templates/generali_additionalservices.html:245
-#: templates/generali_additionalservices.html:303
+#: templates/generali_additionalservices.html:252
+#: templates/generali_additionalservices.html:310
 #: templates/generali_pdqm.html:244 templates/generali_pdqm.html:315
 #: templates/js/_generali_additional_services_js.html:30
 #: templates/js/_generali_pdqm_js.html:35
 msgid "Select parent first"
 msgstr "Seleziona prima la categoria principale"
 
-#: templates/generali_additionalservices.html:253
-#: templates/generali_additionalservices.html:311
-#: templates/generali_baseservices.html:261
-#: templates/generali_baseservices.html:307
+#: templates/generali_additionalservices.html:260
+#: templates/generali_additionalservices.html:318
+#: templates/generali_baseservices.html:222
+#: templates/generali_baseservices.html:268
 #: templates/generali_projectmanagement.html:202
 #: templates/generali_projectmanagement.html:241
 msgid "Effort (hours)"
 msgstr "Sforzo (ore)"
 
-#: templates/generali_additionalservices.html:265
-#: templates/generali_baseservices.html:273 templates/generali_pdqm.html:276
+#: templates/generali_additionalservices.html:272
+#: templates/generali_baseservices.html:234 templates/generali_pdqm.html:276
 #: templates/generali_projectmanagement.html:219
 #: templates/generali_reporting.html:285
 #: templates/js/_generali_reporting_js.html:34
 msgid "Submit"
 msgstr "Invia"
 
-#: templates/generali_additionalservices.html:275
+#: templates/generali_additionalservices.html:282
 msgid "Edit Attendance"
 msgstr "Modifica presenze"
 
-#: templates/generali_additionalservices.html:338
-#: templates/generali_baseservices.html:334 templates/generali_pdqm.html:362
+#: templates/generali_additionalservices.html:345
+#: templates/generali_baseservices.html:295 templates/generali_pdqm.html:362
 #: templates/generali_projectmanagement.html:273
 #: templates/generali_reporting.html:382
 msgid "Delete record"
 msgstr "Elimina voce"
 
 #: templates/admin/maintenance.html:127
-#: templates/generali_additionalservices.html:339
-#: templates/generali_baseservices.html:335 templates/generali_pdqm.html:363
+#: templates/generali_additionalservices.html:346
+#: templates/generali_baseservices.html:296 templates/generali_pdqm.html:363
 #: templates/generali_projectmanagement.html:274
 #: templates/generali_reporting.html:383
 #: templates/js/admin/_user_detail_js.html:267
@@ -5570,8 +5618,8 @@ msgstr "Questa azione non può essere annullata."
 #: templates/admin/organization_detail.html:252
 #: templates/admin/permissions.html:74 templates/admin/tenant_detail.html:51
 #: templates/admin/tenants_manage.html:220 templates/admin/user_detail.html:279
-#: templates/generali_additionalservices.html:349
-#: templates/generali_baseservices.html:345 templates/generali_pdqm.html:373
+#: templates/generali_additionalservices.html:356
+#: templates/generali_baseservices.html:306 templates/generali_pdqm.html:373
 #: templates/generali_projectmanagement.html:284
 #: templates/generali_reporting.html:393
 #: templates/js/_generali_additional_services_js.html:125
@@ -5600,13 +5648,13 @@ msgstr "Elimina"
 msgid "Generali Base Services - nexora"
 msgstr "Generali Servizi di base - nexora"
 
-#: templates/generali_baseservices.html:30
+#: templates/generali_baseservices.html:31
 msgid "Generali Base Services"
 msgstr "Generali Servizi di base"
 
-#: templates/generali_baseservices.html:38
 #: templates/generali_baseservices.html:39
-#: templates/generali_baseservices.html:220 templates/generali_pdqm.html:38
+#: templates/generali_baseservices.html:40
+#: templates/generali_baseservices.html:181 templates/generali_pdqm.html:38
 #: templates/generali_pdqm.html:39 templates/generali_pdqm.html:199
 #: templates/generali_projectmanagement.html:38
 #: templates/generali_projectmanagement.html:39
@@ -5614,55 +5662,10 @@ msgstr "Generali Servizi di base"
 msgid "Add Entry"
 msgstr "Aggiungi voce"
 
-#: templates/generali_baseservices.html:66
-msgid "Book hours"
-msgstr "Registra ore"
-
-#: templates/admin/logs.html:28 templates/admin/status.html:202
-#: templates/generali_baseservices.html:71 templates/generali_reporting.html:68
-#: templates/js/_generali_base_services_js.html:408
-#: templates/js/_reporting_dashboard_js.html:24
-#: templates/js/_reporting_drill_js.html:26 templates/js/_reporting_js.html:6
-#: templates/js/_reporting_simple_js.html:64
-#: templates/workitems_overview.html:160
-msgid "Today"
-msgstr "Oggi"
-
-#: templates/generali_baseservices.html:72
-#: templates/js/_generali_base_services_js.html:409
-#: templates/js/_reporting_dashboard_js.html:25
-#: templates/js/_reporting_drill_js.html:26 templates/js/_reporting_js.html:7
-#: templates/js/_reporting_simple_js.html:65
-#: templates/workitems_overview.html:161
-msgid "Yesterday"
-msgstr "Ieri"
-
-#: templates/generali_baseservices.html:74
-msgid "Other day"
-msgstr "Altro giorno"
-
-#: templates/generali_baseservices.html:85
-msgid "Half an hour less"
-msgstr "Mezz'ora in meno"
-
-#: templates/generali_baseservices.html:88
-msgid "Half an hour more"
-msgstr "Mezz'ora in più"
-
-#: templates/generali_baseservices.html:96
-#: templates/generali_reporting.html:236
-msgid "More options"
-msgstr "Altre opzioni"
-
-#: templates/generali_baseservices.html:283 templates/generali_pdqm.html:287
+#: templates/generali_baseservices.html:244 templates/generali_pdqm.html:287
 #: templates/generali_projectmanagement.html:229
 msgid "Edit Entry"
 msgstr "Modifica voce"
-
-#: templates/generali_baseservices.html:354
-#: templates/generali_reporting.html:245
-msgid "Undo"
-msgstr "Annulla"
 
 #: templates/generali_documents.html:8
 msgid "Generali Documents - nexora"
@@ -9752,11 +9755,11 @@ msgstr "Compila tutti i campi."
 #: templates/js/_generali_additional_services_js.html:381
 #: templates/js/_generali_base_services_js.html:254
 #: templates/js/_generali_base_services_js.html:319
-#: templates/js/_generali_base_services_js.html:411
 #: templates/js/_generali_pdqm_js.html:415
 #: templates/js/_generali_pdqm_js.html:518
 #: templates/js/_generali_project_management_js.html:211
 #: templates/js/_generali_project_management_js.html:276
+#: templates/js/_generali_quick_entry_i18n.html:7
 msgid "Error saving record."
 msgstr "Errore durante il salvataggio."
 
@@ -9764,11 +9767,11 @@ msgstr "Errore durante il salvataggio."
 #: templates/js/_generali_additional_services_js.html:387
 #: templates/js/_generali_base_services_js.html:260
 #: templates/js/_generali_base_services_js.html:325
-#: templates/js/_generali_base_services_js.html:412
 #: templates/js/_generali_pdqm_js.html:421
 #: templates/js/_generali_pdqm_js.html:524
 #: templates/js/_generali_project_management_js.html:217
 #: templates/js/_generali_project_management_js.html:282
+#: templates/js/_generali_quick_entry_i18n.html:8
 #: templates/js/admin/_sessions_js.html:185
 #: templates/js/admin/_sessions_js.html:214
 msgid "Network error."
@@ -9790,34 +9793,12 @@ msgstr "Eliminazione…"
 msgid "Error deleting record."
 msgstr "Errore durante l'eliminazione."
 
-#: templates/js/_generali_base_services_js.html:413
-msgid "Undone. The entry was removed."
-msgstr "Annullato. La voce è stata rimossa."
-
-#: templates/js/_generali_base_services_js.html:414
-msgid "Pick a category and the hours."
-msgstr "Scegli una categoria e le ore."
-
-#: templates/js/_generali_base_services_js.html:415
-msgid "Nothing booked on this day yet."
-msgstr "Nessuna ora registrata per questo giorno."
-
-#: templates/js/_generali_base_services_js.html:416
 #: templates/js/_generali_documents_js.html:66
+#: templates/js/_generali_quick_entry_i18n.html:12
 #: templates/js/_generali_reporting_js.html:12
 #: templates/js/_workitems_overview_js.html:25
 msgid "Failed to load data. Please try again."
 msgstr "Impossibile caricare i dati. Riprova."
-
-#: templates/js/_generali_base_services_js.html:418
-#, python-brace-format
-msgid "Booked on this day: {hours} h"
-msgstr "Registrate in questo giorno: {hours} h"
-
-#: templates/js/_generali_base_services_js.html:419
-#, python-brace-format
-msgid "This month: {hours} h"
-msgstr "Questo mese: {hours} h"
 
 #: templates/js/_generali_documents_js.html:78
 msgid "No documents found"
@@ -9870,6 +9851,28 @@ msgstr "Prova a modificare i filtri o l'intervallo di date."
 #: templates/js/_generali_import_status_js.html:215
 msgid "No imports found"
 msgstr "Nessuna importazione trovata"
+
+#: templates/js/_generali_quick_entry_i18n.html:9
+msgid "Undone. The entry was removed."
+msgstr "Annullato. La voce è stata rimossa."
+
+#: templates/js/_generali_quick_entry_i18n.html:10
+msgid "Pick a category and the hours."
+msgstr "Scegli una categoria e le ore."
+
+#: templates/js/_generali_quick_entry_i18n.html:11
+msgid "Nothing booked on this day yet."
+msgstr "Nessuna ora registrata per questo giorno."
+
+#: templates/js/_generali_quick_entry_i18n.html:14
+#, python-brace-format
+msgid "Booked on this day: {hours} h"
+msgstr "Registrate in questo giorno: {hours} h"
+
+#: templates/js/_generali_quick_entry_i18n.html:15
+#, python-brace-format
+msgid "This month: {hours} h"
+msgstr "Questo mese: {hours} h"
 
 #: templates/js/_generali_reporting_js.html:16
 msgid "Prev"
