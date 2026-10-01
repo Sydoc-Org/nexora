@@ -6,6 +6,17 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **One dev host per developer** (#431): a branch push now deploys to the
+  pusher's own dev host (`stop-taking-my-gitrunner-nexora.sydoc.ch`, `prod-but-not-really-nexora.sydoc.ch`)
+  instead of the single shared `dev-nexora.sydoc.ch`, so two people pushing at
+  the same time stop overwriting each other. The slot is mapped from the GitHub
+  login in `deploy.yml`; unmapped pushers, and a developer whose host is not set
+  up yet, still land on the shared host. `ops/setup-env.ps1` accepts
+  `-Name dev-<who>`, and `scripts/env-sync.py --push INT.env` writes every dev
+  host's folder.
+
 ## [3.4.0] - 2026-10-01
 
 ### Changed
