@@ -4,11 +4,11 @@ Routes covered:
 - GET  /api/finance/bexio                        the panel for a month
 - GET  /api/finance/bexio/invoice/<id>           one invoice with its lines
 - GET  /api/finance/bexio/invoice/<id>/pdf       its PDF
-- POST /api/finance/bexio/link|unlink            client <-> contact links
 
 Bexio itself is never called: the nx_lib.bexio network functions are stubbed,
-so these tests pin the view's contract, the gates and the link table
-(dbo.FinanceBexioContacts, mirrored in sql/test/schema.sql).
+so these tests pin the view's contract, the gates and how it reads the link
+table (dbo.FinanceBexioContacts, mirrored in sql/test/schema.sql; migrations
+set its rows, nothing in the app writes them).
 """
 
 import pytest
@@ -50,24 +50,33 @@ def bexio_on(monkeypatch):
     return calls
 
 
+def _sql(statement, *params):
+    conn = engine_nexora_db.raw_connection()
+    try:
+        conn.cursor().execute(statement, params)
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def link(client):
+    """Link the test contact the way a migration does: straight into the table."""
+    _sql("DELETE FROM dbo.FinanceBexioContacts WHERE ContactId = ?", CONTACT)
+    _sql(
+        "INSERT INTO dbo.FinanceBexioContacts (ContactId, Client, LinkedBy) VALUES (?, ?, 'test')",
+        CONTACT,
+        client,
+    )
+
+
 @pytest.fixture()
 def clean_links():
-    """The routes commit through their own connections, so cleanup commits too
+    """The route reads through its own connection, so setup and cleanup commit
     (the transaction-scoped db_conn fixture would roll back -- or block)."""
-
-    def purge():
-        conn = engine_nexora_db.raw_connection()
-        try:
-            conn.cursor().execute(
-                "DELETE FROM dbo.FinanceBexioContacts WHERE ContactId = ?", (CONTACT,)
-            )
-            conn.commit()
-        finally:
-            conn.close()
-
-    purge()
+    purge = "DELETE FROM dbo.FinanceBexioContacts WHERE ContactId = ?"
+    _sql(purge, CONTACT)
     yield
-    purge()
+    _sql(purge, CONTACT)
 
 
 # ---- gates -----------------------------------------------------------------
@@ -88,8 +97,11 @@ def test_reads_without_finance_view_are_403(noperm_client, path):
 
 
 @pytest.mark.parametrize("path", ["/api/finance/bexio/link", "/api/finance/bexio/unlink"])
-def test_writes_without_month_edit_are_403(noperm_client, path):
-    assert noperm_client.post(path, json={"client": "Frigemo", "contactId": 1}).status_code == 403
+def test_links_cannot_be_changed_from_the_app(admin_client, path):
+    assert admin_client.post(path, json={"client": "Frigemo", "contactId": 1}).status_code in (
+        404,
+        405,
+    )
 
 
 # ---- the panel -------------------------------------------------------------
@@ -105,7 +117,7 @@ def test_panel_says_not_configured_without_a_token(admin_client, monkeypatch):
 
 def test_panel_reconciles_the_following_month(admin_client, bexio_on, clean_links):
     body = admin_client.get("/api/finance/bexio?month=2026-08").get_json()
-    assert body["configured"] is True and body["canLink"] is True
+    assert body["configured"] is True and "canLink" not in body
     assert bexio_on == [("search", "2026-09-01", "2026-09-30", False)]
     assert body["window"]["to"] == "2026-09-30"
     assert "Sydoc" not in [c["client"] for c in body["clients"]]
@@ -124,7 +136,7 @@ def test_panel_survives_missing_contact_names(admin_client, bexio_on, clean_link
         raise bexio.BexioError("x", status=400)
 
     monkeypatch.setattr(bexio, "contact_names", fail)
-    admin_client.post("/api/finance/bexio/link", json={"client": "Frigemo", "contactId": CONTACT})
+    link("Frigemo")
     body = admin_client.get("/api/finance/bexio?month=2026-08").get_json()
     assert "error" not in body
     frigemo = next(c for c in body["clients"] if c["client"] == "Frigemo")
@@ -142,55 +154,24 @@ def test_panel_reports_a_bexio_failure_in_place(admin_client, monkeypatch):
     assert resp.status_code == 200
     body = resp.get_json()
     assert body["configured"] is True and body["error"]
-    assert body["canLink"] is False
 
 
-# ---- linking ---------------------------------------------------------------
+# ---- links -----------------------------------------------------------------
 
 
-def test_link_assigns_a_contact_to_its_client(admin_client, bexio_on, clean_links):
-    resp = admin_client.post(
-        "/api/finance/bexio/link", json={"client": "Frigemo", "contactId": CONTACT}
-    )
-    assert resp.status_code == 200
+def test_a_linked_contact_counts_for_its_client(admin_client, bexio_on, clean_links):
+    link("Frigemo")
     body = admin_client.get("/api/finance/bexio?month=2026-08").get_json()
     frigemo = next(c for c in body["clients"] if c["client"] == "Frigemo")
     assert frigemo["state"] == "invoiced"
     assert frigemo["contacts"] == [{"id": CONTACT, "name": "Test Contact AG"}]
     assert body["totals"] == [{"currency": "CHF", "total": 1077.0, "excl": 1000.0, "count": 1}]
 
-    # Relinking moves it: a contact belongs to one client.
-    admin_client.post("/api/finance/bexio/link", json={"client": "Aveniq", "contactId": CONTACT})
+    # A contact belongs to one client: moving the row moves the invoice.
+    link("Aveniq")
     body = admin_client.get("/api/finance/bexio?month=2026-08").get_json()
     states = {c["client"]: c["state"] for c in body["clients"]}
     assert states["Aveniq"] == "invoiced" and states["Frigemo"] == "unlinked"
-
-    assert (
-        admin_client.post("/api/finance/bexio/unlink", json={"contactId": CONTACT}).status_code
-        == 200
-    )
-    assert (
-        admin_client.post("/api/finance/bexio/unlink", json={"contactId": CONTACT}).status_code
-        == 404
-    )
-
-
-@pytest.mark.parametrize(
-    "payload",
-    [
-        {"client": "Sydoc", "contactId": CONTACT},  # services name no client of their own
-        {"client": "Nobody", "contactId": CONTACT},
-        {"client": "Frigemo", "contactId": "x"},
-        {"client": "Frigemo", "contactId": 0},
-        {},
-    ],
-)
-def test_link_rejects_unknown_clients_and_bad_ids(admin_client, payload):
-    assert admin_client.post("/api/finance/bexio/link", json=payload).status_code == 400
-
-
-def test_unlink_rejects_a_bad_id(admin_client):
-    assert admin_client.post("/api/finance/bexio/unlink", json={}).status_code == 400
 
 
 # ---- one invoice -----------------------------------------------------------

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-01 08:53+0200\n"
+"POT-Creation-Date: 2026-10-01 10:32+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -143,7 +143,7 @@ msgstr ""
 #: templates/generali_projectmanagement.html:123
 #: templates/generali_projectmanagement.html:185
 #: templates/generali_projectmanagement.html:236
-#: templates/generali_reporting.html:152 templates/js/_finance_js.html:77
+#: templates/generali_reporting.html:152 templates/js/_finance_js.html:76
 msgid "Date"
 msgstr ""
 
@@ -894,7 +894,7 @@ msgstr ""
 msgid "Backlog"
 msgstr ""
 
-#: nx_lib/views/dashboard.py:944 templates/js/_finance_js.html:109
+#: nx_lib/views/dashboard.py:944 templates/js/_finance_js.html:101
 msgid "Other"
 msgstr ""
 
@@ -966,46 +966,28 @@ msgstr ""
 msgid "Detail"
 msgstr ""
 
-#: nx_lib/views/finance_bexio.py:34
+#: nx_lib/views/finance_bexio.py:35
 msgid "Bexio rejected the access token."
 msgstr ""
 
-#: nx_lib/views/finance_bexio.py:35
+#: nx_lib/views/finance_bexio.py:36
 msgid "The access token has no permission to read invoices in Bexio."
 msgstr ""
 
-#: nx_lib/views/finance_bexio.py:36
+#: nx_lib/views/finance_bexio.py:37
 msgid "Not found in Bexio."
 msgstr ""
 
-#: nx_lib/views/finance_bexio.py:37
+#: nx_lib/views/finance_bexio.py:38
 msgid "Bexio's rate limit was hit; try again in a minute."
 msgstr ""
 
-#: nx_lib/views/finance_bexio.py:39
+#: nx_lib/views/finance_bexio.py:40
 msgid "Could not read Bexio."
 msgstr ""
 
-#: nx_lib/views/finance_bexio.py:66
+#: nx_lib/views/finance_bexio.py:63
 msgid "Bexio is not configured on this server (BEXIO_PAT)."
-msgstr ""
-
-#: nx_lib/views/finance_bexio.py:173 nx_lib/views/finance_bexio.py:207
-msgid "Unknown client or contact."
-msgstr ""
-
-#: nx_lib/views/finance_bexio.py:175 nx_lib/views/finance_bexio.py:195
-#: templates/js/_finance_js.html:88
-msgid "Could not save the link."
-msgstr ""
-
-#: nx_lib/views/finance_bexio.py:209 nx_lib/views/finance_bexio.py:219
-#: templates/js/_finance_js.html:89
-msgid "Could not remove the link."
-msgstr ""
-
-#: nx_lib/views/finance_bexio.py:223
-msgid "This contact is not linked."
 msgstr ""
 
 #: nx_lib/views/profile.py:79
@@ -2342,7 +2324,7 @@ msgstr ""
 #: templates/api_docs.html:189 templates/appearance.html:369
 #: templates/finance.html:106 templates/generali_importstatus.html:50
 #: templates/generali_importstatus.html:106
-#: templates/generali_reporting.html:116 templates/js/_finance_js.html:79
+#: templates/generali_reporting.html:116 templates/js/_finance_js.html:78
 #: templates/workitems_overview.html:352
 msgid "Status"
 msgstr ""
@@ -5313,7 +5295,7 @@ msgid "Total documents (filtered):"
 msgstr ""
 
 #: templates/generali_pdqm.html:162 templates/generali_pdqm.html:264
-#: templates/generali_pdqm.html:335 templates/js/_finance_js.html:96
+#: templates/generali_pdqm.html:335 templates/js/_finance_js.html:88
 msgid "Quantity"
 msgstr ""
 
@@ -5341,8 +5323,7 @@ msgstr ""
 #: templates/admin/maintenance.html:57
 #: templates/generali_projectmanagement.html:207
 #: templates/generali_projectmanagement.html:246
-#: templates/js/_finance_js.html:100
-#: templates/js/_workitems_overview_js.html:47
+#: templates/js/_finance_js.html:92 templates/js/_workitems_overview_js.html:47
 msgid "optional"
 msgstr ""
 
@@ -5468,7 +5449,7 @@ msgstr ""
 msgid "Document Status"
 msgstr ""
 
-#: templates/hero.html:152 templates/js/_finance_js.html:76
+#: templates/hero.html:152 templates/js/_finance_js.html:75
 msgid "Invoice"
 msgstr ""
 
@@ -8241,7 +8222,7 @@ msgstr ""
 
 #: templates/admin/tenant_detail.html:233
 #: templates/admin/tenant_detail.html:320
-#: templates/admin/tenant_detail.html:404 templates/js/_finance_js.html:103
+#: templates/admin/tenant_detail.html:404 templates/js/_finance_js.html:95
 msgid "Draft"
 msgstr ""
 
@@ -8986,7 +8967,7 @@ msgstr ""
 msgid "Closed"
 msgstr ""
 
-#: templates/js/_finance_js.html:52 templates/js/_finance_js.html:104
+#: templates/js/_finance_js.html:52 templates/js/_finance_js.html:96
 msgid "Open"
 msgstr ""
 
@@ -9028,103 +9009,77 @@ msgstr ""
 msgid "Drafts not yet issued: {n}"
 msgstr ""
 
-#: templates/js/_finance_js.html:75
-msgid "Bexio contact"
-msgstr ""
-
-#: templates/js/_finance_js.html:78
+#: templates/js/_finance_js.html:77
 msgid "Due"
 msgstr ""
 
-#: templates/js/_finance_js.html:80
+#: templates/js/_finance_js.html:79
 msgid "No Bexio contact linked"
 msgstr ""
 
-#: templates/js/_finance_js.html:81
-msgid "Link one from the other invoices below."
-msgstr ""
-
-#: templates/js/_finance_js.html:82
+#: templates/js/_finance_js.html:80
 #, python-brace-format
 msgid "No invoice in {month}"
 msgstr ""
 
-#: templates/js/_finance_js.html:83
+#: templates/js/_finance_js.html:81
 msgid "Draft only"
 msgstr ""
 
-#: templates/js/_finance_js.html:84
-#, python-brace-format
-msgid "Other invoices in {month}"
-msgstr ""
-
-#: templates/js/_finance_js.html:85
-msgid "Invoices to Bexio contacts that no Finance client is linked to."
-msgstr ""
-
-#: templates/js/_finance_js.html:86
-msgid "Link to client…"
-msgstr ""
-
-#: templates/js/_finance_js.html:87
-#, python-brace-format
-msgid "Unlink {name}"
-msgstr ""
-
-#: templates/js/_finance_js.html:90
+#: templates/js/_finance_js.html:82
 msgid "Lines"
 msgstr ""
 
-#: templates/js/_finance_js.html:91
+#: templates/js/_finance_js.html:83
 msgid "PDF"
 msgstr ""
 
-#: templates/js/_finance_js.html:92
+#: templates/js/_finance_js.html:84
 msgid "Open in Bexio"
 msgstr ""
 
-#: templates/js/_finance_js.html:93
+#: templates/js/_finance_js.html:85
 msgid "Could not load the invoice lines."
 msgstr ""
 
-#: templates/js/_finance_js.html:94
+#: templates/js/_finance_js.html:86
 msgid "This invoice has no lines."
 msgstr ""
 
-#: templates/js/_finance_js.html:95
+#: templates/js/_finance_js.html:87
 msgid "Text"
 msgstr ""
 
-#: templates/js/_finance_js.html:97
+#: templates/js/_finance_js.html:89
 msgid "Unit price"
 msgstr ""
 
-#: templates/js/_finance_js.html:98
+#: templates/js/_finance_js.html:90
 msgid "Discount"
 msgstr ""
 
-#: templates/js/_finance_js.html:99
+#: templates/js/_finance_js.html:91
 msgid "Subtotal"
 msgstr ""
 
-#: templates/js/_finance_js.html:101
+#: templates/js/_finance_js.html:93
 #, python-brace-format
 msgid "No invoices in Bexio are dated in {month}."
 msgstr ""
 
-#: templates/js/_finance_js.html:105
+#: templates/js/_finance_js.html:97
 msgid "Paid"
 msgstr ""
 
-#: templates/js/_finance_js.html:106
+#: templates/js/_finance_js.html:98
 msgid "Partly paid"
 msgstr ""
 
-#: templates/js/_finance_js.html:107
+#: templates/js/_finance_js.html:99
 msgid "Cancelled"
 msgstr ""
 
-#: templates/js/_finance_js.html:108
+#: templates/js/_finance_js.html:100
 msgid "Unpaid"
 msgstr ""
 

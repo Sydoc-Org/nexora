@@ -4,8 +4,8 @@
    Read-only against Bexio: the panel lists the invoices dated in the month
    after the billed one (the server names the window), per Finance client;
    invoices to contacts no client is linked to are left out. The links live in
-   dbo.FinanceBexioContacts (seeded by migration 0143); holders of
-   finance.month.edit can remove one, the only thing nexora writes. */
+   dbo.FinanceBexioContacts (set by migration 0143) and are read-only here:
+   nexora writes nothing. */
 (function () {
     'use strict';
 
@@ -37,9 +37,11 @@
         return currency ? `${currency} ${text}` : text;
     }
 
+    // Totals are CHF only: Bexio sends no exchange rate with a foreign-currency
+    // invoice, so those are listed in their own currency but never summed in.
     function totalsText(totals, field) {
-        if (!totals || !totals.length) return money(0, '');
-        return totals.map(t => money(t[field], t.currency)).join(' · ');
+        const chf = (totals || []).find(t => t.currency === 'CHF');
+        return money(chf ? chf[field] : 0, 'CHF');
     }
 
     function statusHtml(status) {
@@ -100,14 +102,9 @@
 
     function contactsHtml(client) {
         if (!client.contacts.length) return '';
-        return '<span class="nx-fin-bexio__contacts">' + client.contacts.map(c => {
-            const unlink = state.canLink
-                ? ` <button type="button" class="nx-fin-bexio__unlink" data-bexio-unlink="${c.id}"
-                        aria-label="${esc(fmt(S.unlink, { name: c.name }))}" title="${esc(fmt(S.unlink, { name: c.name }))}">
-                      <i class="fas fa-xmark" aria-hidden="true"></i></button>`
-                : '';
-            return `<span class="nx-fin-bexio__contact">${esc(c.name)}${unlink}</span>`;
-        }).join('') + '</span>';
+        return '<span class="nx-fin-bexio__contacts">' +
+            client.contacts.map(c => `<span class="nx-fin-bexio__contact">${esc(c.name)}</span>`).join('') +
+            '</span>';
     }
 
     function clientLead(client) {
@@ -239,28 +236,9 @@
         }
     }
 
-    // ---- linking (finance.month.edit) -----------------------------------------
-    async function post(path, payload, failed) {
-        const res = await window.NX.apiSafe(path, { method: 'POST', body: JSON.stringify(payload) });
-        if (!res.ok) {
-            window.NX.toast((res.data && res.data.error) || failed, 'error');
-            return false;
-        }
-        return true;
-    }
-
-    body.addEventListener('click', async function (e) {
+    body.addEventListener('click', function (e) {
         const lines = e.target.closest('[data-bexio-lines]');
-        if (lines) { toggleLines(lines); return; }
-        const unlink = e.target.closest('[data-bexio-unlink]');
-        if (unlink) {
-            unlink.disabled = true;
-            if (await post('/api/finance/bexio/unlink', { contactId: Number(unlink.dataset.bexioUnlink) }, S.unlinkFailed)) {
-                load(false);
-            } else {
-                unlink.disabled = false;
-            }
-        }
+        if (lines) toggleLines(lines);
     });
 
     if (refresh) refresh.addEventListener('click', () => load(true));

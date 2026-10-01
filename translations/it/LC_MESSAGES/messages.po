@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-01 08:53+0200\n"
+"POT-Creation-Date: 2026-10-01 10:32+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -157,7 +157,7 @@ msgstr "per data di registrazione"
 #: templates/generali_projectmanagement.html:123
 #: templates/generali_projectmanagement.html:185
 #: templates/generali_projectmanagement.html:236
-#: templates/generali_reporting.html:152 templates/js/_finance_js.html:77
+#: templates/generali_reporting.html:152 templates/js/_finance_js.html:76
 msgid "Date"
 msgstr "Data"
 
@@ -1065,7 +1065,7 @@ msgstr "Si è verificato un errore imprevisto"
 msgid "Backlog"
 msgstr "Arretrato"
 
-#: nx_lib/views/dashboard.py:944 templates/js/_finance_js.html:109
+#: nx_lib/views/dashboard.py:944 templates/js/_finance_js.html:101
 msgid "Other"
 msgstr "Altro"
 
@@ -1139,47 +1139,29 @@ msgstr "Mese precedente"
 msgid "Detail"
 msgstr "Dettaglio"
 
-#: nx_lib/views/finance_bexio.py:34
+#: nx_lib/views/finance_bexio.py:35
 msgid "Bexio rejected the access token."
 msgstr "Bexio ha rifiutato il token di accesso."
 
-#: nx_lib/views/finance_bexio.py:35
+#: nx_lib/views/finance_bexio.py:36
 msgid "The access token has no permission to read invoices in Bexio."
 msgstr "Il token di accesso non ha il permesso di leggere le fatture in Bexio."
 
-#: nx_lib/views/finance_bexio.py:36
+#: nx_lib/views/finance_bexio.py:37
 msgid "Not found in Bexio."
 msgstr "Non trovato in Bexio."
 
-#: nx_lib/views/finance_bexio.py:37
+#: nx_lib/views/finance_bexio.py:38
 msgid "Bexio's rate limit was hit; try again in a minute."
 msgstr "È stato raggiunto il limite di richieste di Bexio; riprova tra un minuto."
 
-#: nx_lib/views/finance_bexio.py:39
+#: nx_lib/views/finance_bexio.py:40
 msgid "Could not read Bexio."
 msgstr "Impossibile leggere Bexio."
 
-#: nx_lib/views/finance_bexio.py:66
+#: nx_lib/views/finance_bexio.py:63
 msgid "Bexio is not configured on this server (BEXIO_PAT)."
 msgstr "Bexio non è configurato su questo server (BEXIO_PAT)."
-
-#: nx_lib/views/finance_bexio.py:173 nx_lib/views/finance_bexio.py:207
-msgid "Unknown client or contact."
-msgstr "Cliente o contatto sconosciuto."
-
-#: nx_lib/views/finance_bexio.py:175 nx_lib/views/finance_bexio.py:195
-#: templates/js/_finance_js.html:88
-msgid "Could not save the link."
-msgstr "Impossibile salvare il collegamento."
-
-#: nx_lib/views/finance_bexio.py:209 nx_lib/views/finance_bexio.py:219
-#: templates/js/_finance_js.html:89
-msgid "Could not remove the link."
-msgstr "Impossibile rimuovere il collegamento."
-
-#: nx_lib/views/finance_bexio.py:223
-msgid "This contact is not linked."
-msgstr "Questo contatto non è collegato."
 
 #: nx_lib/views/profile.py:79
 msgid "Email Adress is not valid"
@@ -2580,7 +2562,7 @@ msgstr "Registri"
 #: templates/api_docs.html:189 templates/appearance.html:369
 #: templates/finance.html:106 templates/generali_importstatus.html:50
 #: templates/generali_importstatus.html:106
-#: templates/generali_reporting.html:116 templates/js/_finance_js.html:79
+#: templates/generali_reporting.html:116 templates/js/_finance_js.html:78
 #: templates/workitems_overview.html:352
 msgid "Status"
 msgstr "Stato"
@@ -5920,7 +5902,7 @@ msgid "Total documents (filtered):"
 msgstr "Documenti totali (filtrati):"
 
 #: templates/generali_pdqm.html:162 templates/generali_pdqm.html:264
-#: templates/generali_pdqm.html:335 templates/js/_finance_js.html:96
+#: templates/generali_pdqm.html:335 templates/js/_finance_js.html:88
 msgid "Quantity"
 msgstr "Quantità"
 
@@ -5948,8 +5930,7 @@ msgstr "Sforzo di progetto"
 #: templates/admin/maintenance.html:57
 #: templates/generali_projectmanagement.html:207
 #: templates/generali_projectmanagement.html:246
-#: templates/js/_finance_js.html:100
-#: templates/js/_workitems_overview_js.html:47
+#: templates/js/_finance_js.html:92 templates/js/_workitems_overview_js.html:47
 msgid "optional"
 msgstr "opzionale"
 
@@ -6078,7 +6059,7 @@ msgstr "Accesso sicuro"
 msgid "Document Status"
 msgstr "Stato del documento"
 
-#: templates/hero.html:152 templates/js/_finance_js.html:76
+#: templates/hero.html:152 templates/js/_finance_js.html:75
 msgid "Invoice"
 msgstr "Fattura"
 
@@ -8958,7 +8939,7 @@ msgstr "entità"
 
 #: templates/admin/tenant_detail.html:233
 #: templates/admin/tenant_detail.html:320
-#: templates/admin/tenant_detail.html:404 templates/js/_finance_js.html:103
+#: templates/admin/tenant_detail.html:404 templates/js/_finance_js.html:95
 msgid "Draft"
 msgstr "Bozza"
 
@@ -9742,7 +9723,7 @@ msgstr "un elenco per cliente, come in fattura"
 msgid "Closed"
 msgstr "Chiuso"
 
-#: templates/js/_finance_js.html:52 templates/js/_finance_js.html:104
+#: templates/js/_finance_js.html:52 templates/js/_finance_js.html:96
 msgid "Open"
 msgstr "Aperta"
 
@@ -9788,103 +9769,77 @@ msgstr "Clienti senza fattura"
 msgid "Drafts not yet issued: {n}"
 msgstr "Bozze non ancora emesse: {n}"
 
-#: templates/js/_finance_js.html:75
-msgid "Bexio contact"
-msgstr "Contatto Bexio"
-
-#: templates/js/_finance_js.html:78
+#: templates/js/_finance_js.html:77
 msgid "Due"
 msgstr "Scadenza"
 
-#: templates/js/_finance_js.html:80
+#: templates/js/_finance_js.html:79
 msgid "No Bexio contact linked"
 msgstr "Nessun contatto Bexio collegato"
 
-#: templates/js/_finance_js.html:81
-msgid "Link one from the other invoices below."
-msgstr "Collegane uno dalle altre fatture qui sotto."
-
-#: templates/js/_finance_js.html:82
+#: templates/js/_finance_js.html:80
 #, python-brace-format
 msgid "No invoice in {month}"
 msgstr "Nessuna fattura in {month}"
 
-#: templates/js/_finance_js.html:83
+#: templates/js/_finance_js.html:81
 msgid "Draft only"
 msgstr "Solo bozza"
 
-#: templates/js/_finance_js.html:84
-#, python-brace-format
-msgid "Other invoices in {month}"
-msgstr "Altre fatture in {month}"
-
-#: templates/js/_finance_js.html:85
-msgid "Invoices to Bexio contacts that no Finance client is linked to."
-msgstr "Fatture a contatti Bexio a cui non è collegato alcun cliente Finance."
-
-#: templates/js/_finance_js.html:86
-msgid "Link to client…"
-msgstr "Collega al cliente…"
-
-#: templates/js/_finance_js.html:87
-#, python-brace-format
-msgid "Unlink {name}"
-msgstr "Scollega {name}"
-
-#: templates/js/_finance_js.html:90
+#: templates/js/_finance_js.html:82
 msgid "Lines"
 msgstr "Righe"
 
-#: templates/js/_finance_js.html:91
+#: templates/js/_finance_js.html:83
 msgid "PDF"
 msgstr "PDF"
 
-#: templates/js/_finance_js.html:92
+#: templates/js/_finance_js.html:84
 msgid "Open in Bexio"
 msgstr "Apri in Bexio"
 
-#: templates/js/_finance_js.html:93
+#: templates/js/_finance_js.html:85
 msgid "Could not load the invoice lines."
 msgstr "Impossibile caricare le righe della fattura."
 
-#: templates/js/_finance_js.html:94
+#: templates/js/_finance_js.html:86
 msgid "This invoice has no lines."
 msgstr "Questa fattura non ha righe."
 
-#: templates/js/_finance_js.html:95
+#: templates/js/_finance_js.html:87
 msgid "Text"
 msgstr "Testo"
 
-#: templates/js/_finance_js.html:97
+#: templates/js/_finance_js.html:89
 msgid "Unit price"
 msgstr "Prezzo unitario"
 
-#: templates/js/_finance_js.html:98
+#: templates/js/_finance_js.html:90
 msgid "Discount"
 msgstr "Sconto"
 
-#: templates/js/_finance_js.html:99
+#: templates/js/_finance_js.html:91
 msgid "Subtotal"
 msgstr "Subtotale"
 
-#: templates/js/_finance_js.html:101
+#: templates/js/_finance_js.html:93
 #, python-brace-format
 msgid "No invoices in Bexio are dated in {month}."
 msgstr "Nessuna fattura in Bexio è datata {month}."
 
-#: templates/js/_finance_js.html:105
+#: templates/js/_finance_js.html:97
 msgid "Paid"
 msgstr "Pagata"
 
-#: templates/js/_finance_js.html:106
+#: templates/js/_finance_js.html:98
 msgid "Partly paid"
 msgstr "Parzialmente pagata"
 
-#: templates/js/_finance_js.html:107
+#: templates/js/_finance_js.html:99
 msgid "Cancelled"
 msgstr "Annullata"
 
-#: templates/js/_finance_js.html:108
+#: templates/js/_finance_js.html:100
 msgid "Unpaid"
 msgstr "Non pagata"
 
@@ -13510,4 +13465,34 @@ msgstr "%(field)s viene impostato dall'utente connesso al salvataggio."
 
 #~ msgid "closed"
 #~ msgstr "chiuso"
+
+#~ msgid "Unknown client or contact."
+#~ msgstr "Cliente o contatto sconosciuto."
+
+#~ msgid "Could not save the link."
+#~ msgstr "Impossibile salvare il collegamento."
+
+#~ msgid "Could not remove the link."
+#~ msgstr "Impossibile rimuovere il collegamento."
+
+#~ msgid "This contact is not linked."
+#~ msgstr "Questo contatto non è collegato."
+
+#~ msgid "Bexio contact"
+#~ msgstr "Contatto Bexio"
+
+#~ msgid "Link one from the other invoices below."
+#~ msgstr "Collegane uno dalle altre fatture qui sotto."
+
+#~ msgid "Other invoices in {month}"
+#~ msgstr "Altre fatture in {month}"
+
+#~ msgid "Invoices to Bexio contacts that no Finance client is linked to."
+#~ msgstr "Fatture a contatti Bexio a cui non è collegato alcun cliente Finance."
+
+#~ msgid "Link to client…"
+#~ msgstr "Collega al cliente…"
+
+#~ msgid "Unlink {name}"
+#~ msgstr "Scollega {name}"
 
