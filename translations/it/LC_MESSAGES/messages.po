@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 18:30+0200\n"
+"POT-Creation-Date: 2026-10-01 07:39+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -14,7 +14,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: nx_lib/finance.py:230
+#: nx_lib/finance.py:232
 msgid ""
 "EM_Invoice is still edited after a month ends: a re-exported document "
 "moves to the month of its new export date. Close the month once it is "
@@ -26,17 +26,17 @@ msgstr ""
 "il mese una volta fatturato, così le cifre restano come fatturate. Sono "
 "fatturati solo i canali Opex ed e-mail."
 
-#: nx_lib/finance.py:237 nx_lib/finance.py:270 nx_lib/finance.py:291
-#: nx_lib/finance.py:311 nx_lib/finance.py:407
+#: nx_lib/finance.py:239 nx_lib/finance.py:273 nx_lib/finance.py:295
+#: nx_lib/finance.py:316 nx_lib/finance.py:412
 msgid "by export date"
 msgstr "per data di esportazione"
 
-#: nx_lib/finance.py:239 templates/generali_documents.html:92
+#: nx_lib/finance.py:241 templates/generali_documents.html:92
 #: templates/generali_documents.html:155 templates/generali_documents.html:239
 msgid "Channel"
 msgstr "Canale"
 
-#: nx_lib/finance.py:248
+#: nx_lib/finance.py:251
 msgid ""
 "Counted by upload date, whatever the document date: that is the set the "
 "invoice bills. Rows without a workitem that repeat a barcode (74 in "
@@ -47,11 +47,11 @@ msgstr ""
 " codice a barre (74 ad agosto 2026) vengono contate, come nella cartella "
 "di lavoro."
 
-#: nx_lib/finance.py:254
+#: nx_lib/finance.py:257
 msgid "by upload date"
 msgstr "per data di caricamento"
 
-#: nx_lib/finance.py:265
+#: nx_lib/finance.py:268
 msgid ""
 "The export date of this source is text, so the month is matched on its "
 "'.MM.yyyy' part."
@@ -59,30 +59,30 @@ msgstr ""
 "La data di esportazione di questa fonte è testo, quindi il mese viene "
 "individuato dalla parte '.MM.yyyy'."
 
-#: nx_lib/finance.py:273 nx_lib/finance.py:278 nx_lib/finance.py:314
-#: nx_lib/finance.py:320 nx_lib/finance.py:348
+#: nx_lib/finance.py:276 nx_lib/finance.py:281 nx_lib/finance.py:319
+#: nx_lib/finance.py:325 nx_lib/finance.py:353
 msgid "Branch"
 msgstr "Filiale"
 
-#: nx_lib/finance.py:276
+#: nx_lib/finance.py:279
 msgid "Register"
 msgstr "Registro"
 
-#: nx_lib/finance.py:298
+#: nx_lib/finance.py:302
 msgid "Mandant"
 msgstr "Mandante"
 
-#: nx_lib/finance.py:299 templates/admin/user_detail.html:124
+#: nx_lib/finance.py:303 templates/admin/user_detail.html:124
 #: templates/bps.html:48 templates/reporting.html:361
 #: templates/reporting_metrics.html:41 templates/reporting_metrics.html:53
 msgid "Source"
 msgstr "Origine"
 
-#: nx_lib/finance.py:317
+#: nx_lib/finance.py:322
 msgid "Forwarding type"
 msgstr "Tipo di inoltro"
 
-#: nx_lib/finance.py:332
+#: nx_lib/finance.py:337
 msgid ""
 "A dossier registered under two branches is counted in both, exactly as "
 "the workbook counts it."
@@ -90,39 +90,40 @@ msgstr ""
 "Un dossier registrato sotto due filiali viene contato in entrambe, "
 "esattamente come nella cartella di lavoro."
 
-#: nx_lib/finance.py:340
+#: nx_lib/finance.py:345
 msgid "by export year and month"
 msgstr "per anno e mese di esportazione"
 
-#: nx_lib/finance.py:360 nx_lib/finance.py:380
+#: nx_lib/finance.py:365 nx_lib/finance.py:385
 msgid "by date"
 msgstr "per data"
 
-#: nx_lib/finance.py:387 nx_lib/views/finance.py:342
+#: nx_lib/finance.py:392 nx_lib/views/finance.py:383
+#: templates/js/_finance_js.html:74
 msgid "Client"
 msgstr "Cliente"
 
-#: nx_lib/finance.py:389
+#: nx_lib/finance.py:394
 msgid "Source database"
 msgstr "Database di origine"
 
-#: nx_lib/finance.py:403
+#: nx_lib/finance.py:408
 msgid "by import date"
 msgstr "per data di importazione"
 
-#: nx_lib/finance.py:419
+#: nx_lib/finance.py:424
 msgid "by scan date"
 msgstr "per data di scansione"
 
-#: nx_lib/finance.py:421
+#: nx_lib/finance.py:426
 msgid "Type (K/D/KA)"
 msgstr "Tipo (K/D/KA)"
 
-#: nx_lib/finance.py:429
+#: nx_lib/finance.py:434
 msgid "Billable services"
 msgstr "Prestazioni fatturabili"
 
-#: nx_lib/finance.py:434
+#: nx_lib/finance.py:439
 msgid ""
 "Every billable booking of the BPS timetool, singly and with its comment: "
 "Support (verrechenbar, extern verrechenbar), Change, Change Request, "
@@ -136,11 +137,11 @@ msgstr ""
 "Vorbereitung Akten su Privera · Tagesgeschäft Neuzugänge. Tutte le ore, "
 "dettagliate per attività, cliente e persona, sono nella pagina Sydoc BPS."
 
-#: nx_lib/finance.py:442
+#: nx_lib/finance.py:447
 msgid "by booking date"
 msgstr "per data di registrazione"
 
-#: nx_lib/finance.py:449 nx_lib/reporting/catalog.py:255
+#: nx_lib/finance.py:454 nx_lib/reporting/catalog.py:255
 #: nx_lib/views/bps.py:184 templates/generali_additionalservices.html:148
 #: templates/generali_additionalservices.html:224
 #: templates/generali_additionalservices.html:282
@@ -152,45 +153,45 @@ msgstr "per data di registrazione"
 #: templates/generali_projectmanagement.html:123
 #: templates/generali_projectmanagement.html:185
 #: templates/generali_projectmanagement.html:236
-#: templates/generali_reporting.html:152
+#: templates/generali_reporting.html:152 templates/js/_finance_js.html:77
 msgid "Date"
 msgstr "Data"
 
-#: nx_lib/finance.py:450 nx_lib/views/bps.py:185 templates/js/_bps_js.html:56
+#: nx_lib/finance.py:455 nx_lib/views/bps.py:185 templates/js/_bps_js.html:56
 msgid "Customer"
 msgstr "Cliente"
 
-#: nx_lib/finance.py:451 nx_lib/views/bps.py:186
+#: nx_lib/finance.py:456 nx_lib/views/bps.py:186
 msgid "Package"
 msgstr "Pacchetto di progetto"
 
-#: nx_lib/finance.py:452 nx_lib/views/bps.py:187 templates/js/_bps_js.html:55
+#: nx_lib/finance.py:457 nx_lib/views/bps.py:187 templates/js/_bps_js.html:55
 msgid "Task"
 msgstr "Attività"
 
-#: nx_lib/finance.py:453 nx_lib/views/bps.py:188 templates/js/_bps_js.html:57
+#: nx_lib/finance.py:458 nx_lib/views/bps.py:188 templates/js/_bps_js.html:57
 msgid "Person"
 msgstr "Persona"
 
-#: nx_lib/finance.py:454 nx_lib/views/bps.py:189
+#: nx_lib/finance.py:459 nx_lib/views/bps.py:189
 #: templates/generali_additionalservices.html:160
 #: templates/generali_baseservices.html:138
 #: templates/generali_projectmanagement.html:125 templates/js/_bps_js.html:36
 msgid "Hours"
 msgstr "Ore"
 
-#: nx_lib/finance.py:455 nx_lib/views/bps.py:191
+#: nx_lib/finance.py:460 nx_lib/views/bps.py:191
 #: templates/generali_projectmanagement.html:126
 #: templates/generali_projectmanagement.html:207
 #: templates/generali_projectmanagement.html:246
 msgid "Comment"
 msgstr "Commento"
 
-#: nx_lib/finance.py:740
+#: nx_lib/finance.py:759
 msgid "Billable hours"
 msgstr "Ore fatturabili"
 
-#: nx_lib/finance.py:746
+#: nx_lib/finance.py:765 templates/js/_finance_js.html:49
 msgid "Billable bookings"
 msgstr "Registrazioni fatturabili"
 
@@ -1060,7 +1061,7 @@ msgstr "Si è verificato un errore imprevisto"
 msgid "Backlog"
 msgstr "Arretrato"
 
-#: nx_lib/views/dashboard.py:944
+#: nx_lib/views/dashboard.py:944 templates/js/_finance_js.html:109
 msgid "Other"
 msgstr "Altro"
 
@@ -1068,71 +1069,113 @@ msgstr "Altro"
 msgid "This section does not match its registered source."
 msgstr "Questa sezione non corrisponde alla sua fonte registrata."
 
-#: nx_lib/views/finance.py:203
+#: nx_lib/views/finance.py:225
 msgid "Unknown month."
 msgstr "Mese sconosciuto."
 
-#: nx_lib/views/finance.py:206
+#: nx_lib/views/finance.py:228
 msgid "A month can only be closed once it has ended."
 msgstr "Un mese può essere chiuso solo quando è terminato."
 
-#: nx_lib/views/finance.py:276 nx_lib/views/finance.py:302
-#: templates/js/_finance_js.html:48
+#: nx_lib/views/finance.py:317 nx_lib/views/finance.py:343
+#: templates/js/_finance_js.html:61
 msgid "Could not close the month."
 msgstr "Impossibile chiudere il mese."
 
-#: nx_lib/views/finance.py:278
+#: nx_lib/views/finance.py:319
 msgid "This month is already closed."
 msgstr "Questo mese è già chiuso."
 
-#: nx_lib/views/finance.py:284
+#: nx_lib/views/finance.py:325
 #, python-format
 msgid "The month cannot be closed while a section cannot be read: %(names)s"
 msgstr ""
 "Il mese non può essere chiuso finché una sezione non è leggibile: "
 "%(names)s"
 
-#: nx_lib/views/finance.py:317 nx_lib/views/finance.py:326
-#: templates/js/_finance_js.html:49
+#: nx_lib/views/finance.py:358 nx_lib/views/finance.py:367
+#: templates/js/_finance_js.html:62
 msgid "Could not reopen the month."
 msgstr "Impossibile riaprire il mese."
 
-#: nx_lib/views/finance.py:330
+#: nx_lib/views/finance.py:371
 msgid "This month is not closed."
 msgstr "Questo mese non è chiuso."
 
-#: nx_lib/views/finance.py:343
+#: nx_lib/views/finance.py:384
 msgid "Section"
 msgstr "Sezione"
 
-#: nx_lib/views/finance.py:344
+#: nx_lib/views/finance.py:385
 msgid "Month basis"
 msgstr "Base mensile"
 
-#: nx_lib/views/finance.py:345 templates/reporting_sources.html:41
+#: nx_lib/views/finance.py:386 templates/reporting_sources.html:41
 #: templates/reporting_sources.html:52 templates/reporting_sources.html:64
 msgid "Kind"
 msgstr "Tipo"
 
-#: nx_lib/views/finance.py:346
+#: nx_lib/views/finance.py:387
 msgid "Dimension"
 msgstr "Dimensione"
 
-#: nx_lib/views/finance.py:347
+#: nx_lib/views/finance.py:388
 msgid "Group"
 msgstr "Gruppo"
 
-#: nx_lib/views/finance.py:348 templates/js/_reporting_simple_js.html:151
+#: nx_lib/views/finance.py:389 templates/js/_reporting_simple_js.html:151
 msgid "Measure"
 msgstr "Misura"
 
-#: nx_lib/views/finance.py:350 templates/finance.html:81
+#: nx_lib/views/finance.py:391 templates/finance.html:98
 msgid "Previous month"
 msgstr "Mese precedente"
 
-#: nx_lib/views/finance.py:351
+#: nx_lib/views/finance.py:392
 msgid "Detail"
 msgstr "Dettaglio"
+
+#: nx_lib/views/finance_bexio.py:34
+msgid "Bexio rejected the access token."
+msgstr "Bexio ha rifiutato il token di accesso."
+
+#: nx_lib/views/finance_bexio.py:35
+msgid "The access token has no permission to read invoices in Bexio."
+msgstr "Il token di accesso non ha il permesso di leggere le fatture in Bexio."
+
+#: nx_lib/views/finance_bexio.py:36
+msgid "Not found in Bexio."
+msgstr "Non trovato in Bexio."
+
+#: nx_lib/views/finance_bexio.py:37
+msgid "Bexio's rate limit was hit; try again in a minute."
+msgstr "È stato raggiunto il limite di richieste di Bexio; riprova tra un minuto."
+
+#: nx_lib/views/finance_bexio.py:39
+msgid "Could not read Bexio."
+msgstr "Impossibile leggere Bexio."
+
+#: nx_lib/views/finance_bexio.py:66
+msgid "Bexio is not configured on this server (BEXIO_PAT)."
+msgstr "Bexio non è configurato su questo server (BEXIO_PAT)."
+
+#: nx_lib/views/finance_bexio.py:173 nx_lib/views/finance_bexio.py:207
+msgid "Unknown client or contact."
+msgstr "Cliente o contatto sconosciuto."
+
+#: nx_lib/views/finance_bexio.py:175 nx_lib/views/finance_bexio.py:195
+#: templates/js/_finance_js.html:88
+msgid "Could not save the link."
+msgstr "Impossibile salvare il collegamento."
+
+#: nx_lib/views/finance_bexio.py:209 nx_lib/views/finance_bexio.py:219
+#: templates/js/_finance_js.html:89
+msgid "Could not remove the link."
+msgstr "Impossibile rimuovere il collegamento."
+
+#: nx_lib/views/finance_bexio.py:223
+msgid "This contact is not linked."
+msgstr "Questo contatto non è collegato."
 
 #: nx_lib/views/profile.py:79
 msgid "Email Adress is not valid"
@@ -2531,9 +2574,10 @@ msgstr "Registri"
 #: templates/admin/tenant_detail.html:209
 #: templates/admin/tenants_manage.html:93 templates/admin/user_detail.html:222
 #: templates/api_docs.html:189 templates/appearance.html:369
-#: templates/generali_importstatus.html:50
+#: templates/finance.html:106 templates/generali_importstatus.html:50
 #: templates/generali_importstatus.html:106
-#: templates/generali_reporting.html:116 templates/workitems_overview.html:352
+#: templates/generali_reporting.html:116 templates/js/_finance_js.html:79
+#: templates/workitems_overview.html:352
 msgid "Status"
 msgstr "Stato"
 
@@ -2578,7 +2622,7 @@ msgstr "Reporting globale"
 msgid "Global Workitems"
 msgstr "Workitems globali"
 
-#: templates/_header.html:160 templates/bps.html:30 templates/finance.html:55
+#: templates/_header.html:160 templates/bps.html:30 templates/finance.html:95
 msgid "Sydoc Finance"
 msgstr "Sydoc Finance"
 
@@ -3321,8 +3365,8 @@ msgstr "Giorno"
 msgid "Week"
 msgstr "Settimana"
 
-#: templates/_reporting_simple.html:92 templates/finance.html:78
-#: templates/js/_reporting_js.html:24 templates/js/_reporting_simple_js.html:78
+#: templates/_reporting_simple.html:92 templates/js/_reporting_js.html:24
+#: templates/js/_reporting_simple_js.html:78
 msgid "Month"
 msgstr "Mese"
 
@@ -3576,7 +3620,7 @@ msgstr "Testo dell'annotazione"
 #: templates/admin/organization_detail.html:372
 #: templates/admin/permissions.html:118 templates/admin/tenant_detail.html:197
 #: templates/admin/user_detail.html:78 templates/admin/user_detail.html:276
-#: templates/finance.html:128 templates/generali_additionalservices.html:261
+#: templates/finance.html:153 templates/generali_additionalservices.html:261
 #: templates/generali_additionalservices.html:320
 #: templates/generali_additionalservices.html:345
 #: templates/generali_baseservices.html:222
@@ -4707,7 +4751,7 @@ msgstr "Sydoc BPS - nexora"
 msgid "BPS"
 msgstr "BPS"
 
-#: templates/bps.html:35 templates/finance.html:69
+#: templates/bps.html:35 templates/finance.html:85
 msgid "CSV"
 msgstr "CSV"
 
@@ -4731,8 +4775,9 @@ msgstr ""
 msgid "Period"
 msgstr "Periodo"
 
-#: templates/bps.html:50 templates/finance.html:29 templates/finance.html:107
-#: templates/js/_bps_js.html:13 templates/js/_finance_js.html:16
+#: templates/bps.html:50 templates/finance.html:29 templates/finance.html:119
+#: templates/finance.html:181 templates/js/_bps_js.html:13
+#: templates/js/_finance_js.html:19
 #: templates/js/_generali_documents_js.html:148
 #: templates/js/_reporting_dashboard_js.html:64
 #: templates/js/_reporting_schema_js.html:6 templates/tenant/page.html:141
@@ -4772,11 +4817,11 @@ msgstr "Settimana scorsa"
 msgid "Last 3 months"
 msgstr "Ultimi 3 mesi"
 
-#: templates/bps.html:77
+#: templates/bps.html:77 templates/finance.html:165
 msgid "Previous year"
 msgstr "Anno precedente"
 
-#: templates/bps.html:77
+#: templates/bps.html:77 templates/finance.html:165
 msgid "Next year"
 msgstr "Anno successivo"
 
@@ -4900,7 +4945,7 @@ msgid "next in"
 msgstr "prossimo tra"
 
 #: templates/admin/sessions.html:22 templates/dashboard.html:48
-#: templates/maintenance.html:154
+#: templates/finance.html:183 templates/maintenance.html:154
 msgid "Refresh"
 msgstr "Aggiorna"
 
@@ -5033,43 +5078,34 @@ msgid "Sydoc Finance - nexora"
 msgstr "Sydoc Finance - nexora"
 
 #: templates/finance.html:36
-msgid "All hours"
-msgstr "Tutte le ore"
+msgid "All hours in Sydoc BPS"
+msgstr "Tutte le ore in Sydoc BPS"
 
-#: templates/finance.html:56
-msgid ""
-"Monthly accounting figures per client, read from the same sources and "
-"measures as Reporting."
-msgstr ""
-"Cifre contabili mensili per cliente, lette dalle stesse fonti e misure "
-"del Reporting."
+#: templates/finance.html:72
+msgid "Accounting"
+msgstr "Contabilità"
 
-#: templates/finance.html:63 templates/finance.html:130
+#: templates/finance.html:79 templates/finance.html:155
 msgid "Reopen month"
 msgstr "Riapri il mese"
 
-#: templates/finance.html:64 templates/finance.html:130
+#: templates/finance.html:80 templates/finance.html:155
 msgid "Close month"
 msgstr "Chiudi il mese"
 
-#: templates/finance.html:72
+#: templates/finance.html:88
 msgid "Print"
 msgstr "Stampa"
 
-#: templates/finance.html:89 templates/finance.html:91
+#: templates/finance.html:98
 msgid "Next month"
 msgstr "Mese successivo"
 
-#: templates/finance.html:97
-#, python-format
-msgid "Closed %(when)s by %(who)s"
-msgstr "Chiuso il %(when)s da %(who)s"
-
-#: templates/finance.html:101
+#: templates/finance.html:100
 msgid "This month is still running; the figures grow until it closes."
 msgstr "Questo mese è ancora in corso; le cifre crescono fino alla chiusura."
 
-#: templates/finance.html:102
+#: templates/finance.html:101
 msgid ""
 "Figures as frozen at the close. Where the live data has moved since, the "
 "section says so."
@@ -5077,7 +5113,7 @@ msgstr ""
 "Cifre come congelate alla chiusura. Dove i dati in tempo reale sono "
 "cambiati da allora, la sezione lo indica."
 
-#: templates/finance.html:103
+#: templates/finance.html:102
 msgid ""
 "Live figures, each compared with the month before. Close the month once "
 "it is invoiced to freeze them."
@@ -5085,17 +5121,50 @@ msgstr ""
 "Cifre in tempo reale, ciascuna confrontata con il mese precedente. "
 "Chiudere il mese una volta fatturato per congelarle."
 
-#: templates/finance.html:119
+#: templates/finance.html:108 templates/generali_importstatus.html:56
+#: templates/js/_finance_js.html:54
+#: templates/js/_generali_import_status_js.html:16
+msgid "Running"
+msgstr "In corso"
+
+#: templates/finance.html:112
+#, python-format
+msgid "Closed %(when)s by %(who)s"
+msgstr "Chiuso il %(when)s da %(who)s"
+
+#: templates/finance.html:115
+msgid "Open · live"
+msgstr "Aperto · in tempo reale"
+
+#: templates/finance.html:117 templates/reporting.html:119
+msgid "Sources"
+msgstr "Sorgenti"
+
+#: templates/finance.html:124
+msgid "Sections"
+msgstr "Sezioni"
+
+#: templates/finance.html:130 templates/finance.html:131
+#: templates/finance.html:179
+msgid "Bexio"
+msgstr "Bexio"
+
+#: templates/finance.html:130 templates/finance.html:180
+#: templates/js/_finance_js.html:71
+msgid "Invoices"
+msgstr "Fatture"
+
+#: templates/finance.html:144
 #, python-format
 msgid "Reopen %(month)s?"
 msgstr "Riaprire %(month)s?"
 
-#: templates/finance.html:119
+#: templates/finance.html:144
 #, python-format
 msgid "Close %(month)s?"
 msgstr "Chiudere %(month)s?"
 
-#: templates/finance.html:122
+#: templates/finance.html:147
 msgid ""
 "The frozen figures are deleted and the page shows live data again. Close "
 "it again afterwards to freeze the new state."
@@ -5104,7 +5173,7 @@ msgstr ""
 "in tempo reale. Chiudere poi di nuovo il mese per congelare il nuovo "
 "stato."
 
-#: templates/finance.html:123
+#: templates/finance.html:148
 msgid ""
 "Every section is read now and frozen. From then on this month shows "
 "exactly these figures, and only notes where the live data moves away from"
@@ -5114,15 +5183,35 @@ msgstr ""
 "mostra esattamente queste cifre e segnala solo dove i dati in tempo reale"
 " se ne discostano."
 
-#: templates/finance.html:136
+#: templates/finance.html:163
+msgid "Choose month"
+msgstr "Scegli il mese"
+
+#: templates/finance.html:168
+msgid "Closed, figures frozen"
+msgstr "Chiuso, cifre congelate"
+
+#: templates/finance.html:169
+msgid "Open, live"
+msgstr "Aperto, in tempo reale"
+
+#: templates/finance.html:170
+msgid "Still running"
+msgstr "Ancora in corso"
+
+#: templates/finance.html:176
+msgid "Invoiced in Bexio"
+msgstr "Fatturato in Bexio"
+
+#: templates/finance.html:195
 msgid "Internal customers"
 msgstr "Clienti interni"
 
-#: templates/finance.html:139
+#: templates/finance.html:198
 msgid "External clients"
 msgstr "Clienti esterni"
 
-#: templates/finance.html:142
+#: templates/finance.html:201
 msgid "Sydoc services"
 msgstr "Prestazioni Sydoc"
 
@@ -5231,8 +5320,8 @@ msgid "Daily Processing Volume"
 msgstr "Volume di elaborazione giornaliero"
 
 #: templates/generali-dashboard.html:144 templates/generali_documents.html:36
-#: templates/js/_bps_js.html:27 templates/js/_finance_js.html:39
-#: templates/js/_generali_dashboard_js.html:25
+#: templates/js/_bps_js.html:27 templates/js/_finance_js.html:45
+#: templates/js/_finance_js.html:70 templates/js/_generali_dashboard_js.html:25
 #: templates/js/_reporting_js.html:50
 #: templates/js/_reporting_layouts_js.html:37
 #: templates/js/_reporting_simple_js.html:124
@@ -5697,11 +5786,6 @@ msgstr "Importazioni CSV nel database dei documenti"
 msgid "Success"
 msgstr "Successo"
 
-#: templates/generali_importstatus.html:56
-#: templates/js/_generali_import_status_js.html:16
-msgid "Running"
-msgstr "In corso"
-
 #: templates/generali_importstatus.html:57
 #: templates/js/_generali_import_status_js.html:17
 msgid "Failed"
@@ -5827,7 +5911,7 @@ msgid "Total documents (filtered):"
 msgstr "Documenti totali (filtrati):"
 
 #: templates/generali_pdqm.html:162 templates/generali_pdqm.html:264
-#: templates/generali_pdqm.html:335
+#: templates/generali_pdqm.html:335 templates/js/_finance_js.html:96
 msgid "Quantity"
 msgstr "Quantità"
 
@@ -5855,6 +5939,7 @@ msgstr "Sforzo di progetto"
 #: templates/admin/maintenance.html:57
 #: templates/generali_projectmanagement.html:207
 #: templates/generali_projectmanagement.html:246
+#: templates/js/_finance_js.html:100
 #: templates/js/_workitems_overview_js.html:47
 msgid "optional"
 msgstr "opzionale"
@@ -5984,7 +6069,7 @@ msgstr "Accesso sicuro"
 msgid "Document Status"
 msgstr "Stato del documento"
 
-#: templates/hero.html:152
+#: templates/hero.html:152 templates/js/_finance_js.html:76
 msgid "Invoice"
 msgstr "Fattura"
 
@@ -6497,10 +6582,6 @@ msgstr "Definizioni di report"
 #: templates/reporting.html:345
 msgid "Scheduled"
 msgstr "Pianificato"
-
-#: templates/reporting.html:119
-msgid "Sources"
-msgstr "Sorgenti"
 
 #: templates/reporting.html:122
 msgid "Manage data sources"
@@ -8868,7 +8949,7 @@ msgstr "entità"
 
 #: templates/admin/tenant_detail.html:233
 #: templates/admin/tenant_detail.html:320
-#: templates/admin/tenant_detail.html:404
+#: templates/admin/tenant_detail.html:404 templates/js/_finance_js.html:103
 msgid "Draft"
 msgstr "Bozza"
 
@@ -9300,7 +9381,7 @@ msgstr "Ore totali"
 msgid "Service hours"
 msgstr "Ore di prestazione"
 
-#: templates/js/_bps_js.html:19 templates/js/_finance_js.html:44
+#: templates/js/_bps_js.html:19 templates/js/_finance_js.html:57
 msgid "Bookings"
 msgstr "Registrazioni"
 
@@ -9322,7 +9403,7 @@ msgstr "{pct} di tutte le ore"
 msgid "with service hours"
 msgstr "con ore di prestazione"
 
-#: templates/js/_bps_js.html:28 templates/js/_finance_js.html:45
+#: templates/js/_bps_js.html:28 templates/js/_finance_js.html:58
 #, python-brace-format
 msgid "{n} h"
 msgstr "{n} h"
@@ -9391,11 +9472,11 @@ msgstr "Ripartizione"
 msgid "Show {n} more"
 msgstr "Mostra altri {n}"
 
-#: templates/js/_bps_js.html:44 templates/js/_finance_js.html:42
+#: templates/js/_bps_js.html:44 templates/js/_finance_js.html:55
 msgid "Show fewer"
 msgstr "Mostra meno"
 
-#: templates/js/_bps_js.html:45
+#: templates/js/_bps_js.html:45 templates/js/_finance_js.html:51
 msgid "No comment"
 msgstr "Nessun commento"
 
@@ -9409,7 +9490,7 @@ msgstr "{items} · {h}"
 msgid "{h} · {n} bookings"
 msgstr "{h} · {n} registrazioni"
 
-#: templates/js/_bps_js.html:48 templates/js/_finance_js.html:43
+#: templates/js/_bps_js.html:48 templates/js/_finance_js.html:56
 #, python-brace-format
 msgid "{n} bookings"
 msgstr "{n} registrazioni"
@@ -9510,51 +9591,51 @@ msgstr "Impossibile aggiornare il dashboard"
 msgid "Sending…"
 msgstr "Invio in corso…"
 
-#: templates/js/_finance_js.html:17
+#: templates/js/_finance_js.html:20
 #, python-brace-format
 msgid "{done} of {total} sections loaded"
 msgstr "{done} sezioni su {total} caricate"
 
-#: templates/js/_finance_js.html:18
+#: templates/js/_finance_js.html:21
 #, python-brace-format
 msgid "All {total} sections loaded"
 msgstr "Tutte le {total} sezioni caricate"
 
-#: templates/js/_finance_js.html:19
+#: templates/js/_finance_js.html:22
 #, python-brace-format
 msgid "{failed} of {total} sections could not be read"
 msgstr "{failed} sezioni su {total} non sono state lette"
 
-#: templates/js/_finance_js.html:20
+#: templates/js/_finance_js.html:23
 msgid "Could not load this section"
 msgstr "Impossibile caricare questa sezione"
 
-#: templates/js/_finance_js.html:21
+#: templates/js/_finance_js.html:24
 msgid "Retry"
 msgstr "Riprova"
 
-#: templates/js/_finance_js.html:22
+#: templates/js/_finance_js.html:25
 msgid "live figures"
 msgstr "cifre in tempo reale"
 
-#: templates/js/_finance_js.html:23
+#: templates/js/_finance_js.html:26
 msgid "closed"
 msgstr "chiuso"
 
-#: templates/js/_finance_js.html:24
+#: templates/js/_finance_js.html:27
 msgid "live data moved"
 msgstr "dati in tempo reale cambiati"
 
-#: templates/js/_finance_js.html:25
+#: templates/js/_finance_js.html:28
 msgid "live data unavailable"
 msgstr "dati in tempo reale non disponibili"
 
-#: templates/js/_finance_js.html:26
+#: templates/js/_finance_js.html:29
 #, python-brace-format
 msgid "The live data has moved since the close: {n} figures differ"
 msgstr "I dati in tempo reale sono cambiati dalla chiusura: {n} cifre differiscono"
 
-#: templates/js/_finance_js.html:27
+#: templates/js/_finance_js.html:30
 msgid ""
 "The frozen figures above are what was invoiced. Typical cause: documents "
 "re-exported after the month closed."
@@ -9562,66 +9643,87 @@ msgstr ""
 "Le cifre congelate sopra sono quelle fatturate. Causa tipica: documenti "
 "riesportati dopo la chiusura del mese."
 
-#: templates/js/_finance_js.html:28
+#: templates/js/_finance_js.html:31
 msgid "At close"
 msgstr "Alla chiusura"
 
-#: templates/js/_finance_js.html:29 templates/js/admin/_maintenance_js.html:42
+#: templates/js/_finance_js.html:32 templates/js/admin/_maintenance_js.html:42
 msgid "Live now"
 msgstr "Attivo ora"
 
-#: templates/js/_finance_js.html:30
+#: templates/js/_finance_js.html:33
 msgid "Difference"
 msgstr "Differenza"
 
-#: templates/js/_finance_js.html:31
+#: templates/js/_finance_js.html:34
 #, python-brace-format
 msgid "Nothing recorded in {month}"
 msgstr "Nessuna registrazione in {month}"
 
-#: templates/js/_finance_js.html:32
-msgid "vs. previous month"
-msgstr "vs mese precedente"
+#: templates/js/_finance_js.html:35
+msgid "Figure"
+msgstr "Cifra"
 
-#: templates/js/_finance_js.html:33
+#: templates/js/_finance_js.html:36
+msgid "Change"
+msgstr "Variazione"
+
+#: templates/js/_finance_js.html:39
 msgid "unchanged"
 msgstr "invariato"
 
-#: templates/js/_finance_js.html:34
+#: templates/js/_finance_js.html:40
 msgid "new"
 msgstr "nuovo"
 
-#: templates/js/_finance_js.html:35
+#: templates/js/_finance_js.html:41
 #, python-brace-format
 msgid "per {dim}"
 msgstr "per {dim}"
 
-#: templates/js/_finance_js.html:36
+#: templates/js/_finance_js.html:42
 #, python-brace-format
 msgid "{dim} by {across}"
 msgstr "{dim} per {across}"
 
-#: templates/js/_finance_js.html:37
+#: templates/js/_finance_js.html:43
 #: templates/js/_reporting_dashboard_js.html:71
 #: templates/js/_reporting_simple_js.html:149
 #, python-brace-format
 msgid "{n} rows"
 msgstr "{n} righe"
 
-#: templates/js/_finance_js.html:38
+#: templates/js/_finance_js.html:44
 msgid "Share of total"
 msgstr "Quota"
 
-#: templates/js/_finance_js.html:40
+#: templates/js/_finance_js.html:46
 msgid "(blank)"
 msgstr "(vuoto)"
 
-#: templates/js/_finance_js.html:41
+#: templates/js/_finance_js.html:47
 #, python-brace-format
 msgid "Show all {n} rows"
 msgstr "Mostra tutte le {n} righe"
 
-#: templates/js/_finance_js.html:46
+#: templates/js/_finance_js.html:48
+#, python-brace-format
+msgid "Show all {n}"
+msgstr "Mostra tutte le {n}"
+
+#: templates/js/_finance_js.html:50
+msgid "one list per customer, as on the invoice"
+msgstr "un elenco per cliente, come in fattura"
+
+#: templates/js/_finance_js.html:52
+msgid "Closed"
+msgstr "Chiuso"
+
+#: templates/js/_finance_js.html:53 templates/js/_finance_js.html:104
+msgid "Open"
+msgstr "Aperta"
+
+#: templates/js/_finance_js.html:59
 msgid ""
 "The list stops at 5,000 bookings; the totals above still count every one."
 " Export the CSV for the full list."
@@ -9629,9 +9731,139 @@ msgstr ""
 "L'elenco si ferma a 5.000 registrazioni; i totali sopra le contano "
 "comunque tutte. Esportare il CSV per l'elenco completo."
 
-#: templates/js/_finance_js.html:47 templates/js/_reporting_ai_js.html:58
+#: templates/js/_finance_js.html:60 templates/js/_reporting_ai_js.html:58
 msgid "Working…"
 msgstr "Elaborazione…"
+
+#: templates/js/_finance_js.html:66
+#, python-brace-format
+msgid "Invoices dated in {month}, read live from Bexio"
+msgstr "Fatture con data {month}, lette in tempo reale da Bexio"
+
+#: templates/js/_finance_js.html:67
+msgid ""
+"Bexio is not configured on this server. Set BEXIO_PAT to show the "
+"invoices here."
+msgstr ""
+"Bexio non è configurato su questo server. Imposta BEXIO_PAT per mostrare "
+"qui le fatture."
+
+#: templates/js/_finance_js.html:68
+msgid "Invoiced"
+msgstr "Fatturato"
+
+#: templates/js/_finance_js.html:69
+msgid "Excl. VAT"
+msgstr "IVA esclusa"
+
+#: templates/js/_finance_js.html:72
+msgid "Clients without an invoice"
+msgstr "Clienti senza fattura"
+
+#: templates/js/_finance_js.html:73
+#, python-brace-format
+msgid "Drafts not yet issued: {n}"
+msgstr "Bozze non ancora emesse: {n}"
+
+#: templates/js/_finance_js.html:75
+msgid "Bexio contact"
+msgstr "Contatto Bexio"
+
+#: templates/js/_finance_js.html:78
+msgid "Due"
+msgstr "Scadenza"
+
+#: templates/js/_finance_js.html:80
+msgid "No Bexio contact linked"
+msgstr "Nessun contatto Bexio collegato"
+
+#: templates/js/_finance_js.html:81
+msgid "Link one from the other invoices below."
+msgstr "Collegane uno dalle altre fatture qui sotto."
+
+#: templates/js/_finance_js.html:82
+#, python-brace-format
+msgid "No invoice in {month}"
+msgstr "Nessuna fattura in {month}"
+
+#: templates/js/_finance_js.html:83
+msgid "Draft only"
+msgstr "Solo bozza"
+
+#: templates/js/_finance_js.html:84
+#, python-brace-format
+msgid "Other invoices in {month}"
+msgstr "Altre fatture in {month}"
+
+#: templates/js/_finance_js.html:85
+msgid "Invoices to Bexio contacts that no Finance client is linked to."
+msgstr "Fatture a contatti Bexio a cui non è collegato alcun cliente Finance."
+
+#: templates/js/_finance_js.html:86
+msgid "Link to client…"
+msgstr "Collega al cliente…"
+
+#: templates/js/_finance_js.html:87
+#, python-brace-format
+msgid "Unlink {name}"
+msgstr "Scollega {name}"
+
+#: templates/js/_finance_js.html:90
+msgid "Lines"
+msgstr "Righe"
+
+#: templates/js/_finance_js.html:91
+msgid "PDF"
+msgstr "PDF"
+
+#: templates/js/_finance_js.html:92
+msgid "Open in Bexio"
+msgstr "Apri in Bexio"
+
+#: templates/js/_finance_js.html:93
+msgid "Could not load the invoice lines."
+msgstr "Impossibile caricare le righe della fattura."
+
+#: templates/js/_finance_js.html:94
+msgid "This invoice has no lines."
+msgstr "Questa fattura non ha righe."
+
+#: templates/js/_finance_js.html:95
+msgid "Text"
+msgstr "Testo"
+
+#: templates/js/_finance_js.html:97
+msgid "Unit price"
+msgstr "Prezzo unitario"
+
+#: templates/js/_finance_js.html:98
+msgid "Discount"
+msgstr "Sconto"
+
+#: templates/js/_finance_js.html:99
+msgid "Subtotal"
+msgstr "Subtotale"
+
+#: templates/js/_finance_js.html:101
+#, python-brace-format
+msgid "No invoices in Bexio are dated in {month}."
+msgstr "Nessuna fattura in Bexio è datata {month}."
+
+#: templates/js/_finance_js.html:105
+msgid "Paid"
+msgstr "Pagata"
+
+#: templates/js/_finance_js.html:106
+msgid "Partly paid"
+msgstr "Parzialmente pagata"
+
+#: templates/js/_finance_js.html:107
+msgid "Cancelled"
+msgstr "Annullata"
+
+#: templates/js/_finance_js.html:108
+msgid "Unpaid"
+msgstr "Non pagata"
 
 #: templates/js/_generali_additional_services_js.html:177
 #: templates/js/_generali_base_services_js.html:145
@@ -13213,4 +13445,43 @@ msgstr "%(field)s viene impostato dall'utente connesso al salvataggio."
 
 #~ msgid "billable"
 #~ msgstr "fatturabile"
+
+#~ msgid "All hours"
+#~ msgstr "Tutte le ore"
+
+#~ msgid ""
+#~ "Monthly accounting figures per client, "
+#~ "read from the same sources and "
+#~ "measures as Reporting."
+#~ msgstr ""
+#~ "Cifre contabili mensili per cliente, "
+#~ "lette dalle stesse fonti e misure "
+#~ "del Reporting."
+
+#~ msgid "vs. previous month"
+#~ msgstr "vs mese precedente"
+
+#~ msgid "Bexio invoices"
+#~ msgstr "Fatture Bexio"
+
+#~ msgid "{n} bookings · {from} – {to}"
+#~ msgstr "{n} registrazioni · {from} – {to}"
+
+#~ msgid "in the period"
+#~ msgstr "nel periodo"
+
+#~ msgid "{days} days · {n} h"
+#~ msgstr "{days} giorni · {n} h"
+
+#~ msgid ""
+#~ "Nothing was booked in this period. "
+#~ "The BPS export starts on 3 August"
+#~ " 2026."
+#~ msgstr ""
+#~ "In questo periodo non è stato "
+#~ "registrato nulla. L'esportazione BPS inizia"
+#~ " il 3 agosto 2026."
+
+#~ msgid "Show {name}"
+#~ msgstr "Mostra {name}"
 

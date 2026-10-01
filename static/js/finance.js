@@ -1,31 +1,35 @@
-/* Sydoc Finance (#408). Behaviour only -- strings and Jinja data arrive on
-   window.NX_FINANCE; see templates/js/_finance_js.html.
+/* Sydoc Finance (#408, redesign #427). Behaviour only -- strings and Jinja
+   data arrive on window.NX_FINANCE; see templates/js/_finance_js.html.
 
-   The page is a shell of section elements the server rendered. Every one
-   loads itself from /api/finance/section/<key>?month=YYYY-MM, in parallel,
-   so a source that is down shows its error in place while the rest render.
+   The page is a shell of ledger rows the server rendered. Every one loads
+   itself from /api/finance/section/<key>?month=YYYY-MM, in parallel, so a
+   source that is down shows its error in place while the rest render.
    Numbers are formatted in the page's locale; identity (which client, which
-   measure) is always text, never colour, and the only colour on a figure is
-   the accent bar that carries a share -- one hue, magnitude only. */
+   measure) is always text, never colour. A figure is a statement line: this
+   month, the month before, and a comparison bar in neutral ink -- the only
+   colour is Sydoc orange marking the previous month and carrying a share. */
 (function () {
     'use strict';
 
     const CFG = window.NX_FINANCE;
     const S = CFG.strings;
+    const Sy = window.NXSydoc;
     const esc = window.NX.esc;
     const lang = document.documentElement.lang || undefined;
     const COLLAPSE_AFTER = 12;
+    const BOOKINGS_SHOWN = 4;
 
     const numberFmt = new Intl.NumberFormat(lang);
     const decimalFmt = new Intl.NumberFormat(lang, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    const hoursFmt = new Intl.NumberFormat(lang, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const pctFmt = new Intl.NumberFormat(lang, { style: 'percent', maximumFractionDigits: 1 });
     const deltaFmt = new Intl.NumberFormat(lang, { style: 'percent', maximumFractionDigits: 0, signDisplay: 'always' });
+    // Swiss English writes "3 Aug", like the band's dates (nx_sydoc.js).
+    const dateLoc = !lang || lang === 'en' ? 'en-GB' : lang;
+    const dayFmt = new Intl.DateTimeFormat(dateLoc, { day: 'numeric', month: 'short', timeZone: 'UTC' });
+    const weekdayFmt = new Intl.DateTimeFormat(dateLoc, { weekday: 'short', timeZone: 'UTC' });
 
-    // The shim's strings carry {name} placeholders (gettext's own %(name)s
-    // cannot survive Jinja's _(), which always runs `rv % variables`).
-    function fmt(str, vars) {
-        return String(str).replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m));
-    }
+    const fmt = Sy.fmt;
 
     // Counts are integers; hours (BPS) carry a fraction and read best to one place.
     function num(v) {
@@ -33,19 +37,10 @@
         return Number.isInteger(n) ? numberFmt.format(n) : decimalFmt.format(n);
     }
 
-    // ---- month picker: a change is a navigation, the month lives in the URL ----
-    const select = document.getElementById('fin-month');
-    if (select) {
-        select.addEventListener('change', function () {
-            const url = new URL(window.location.href);
-            url.searchParams.set('month', select.value);
-            window.location.assign(url.toString());
-        });
-    }
     const printBtn = document.getElementById('fin-print');
     if (printBtn) printBtn.addEventListener('click', function () { window.print(); });
 
-    // "All hours" links open the BPS page on this month's dates.
+    // "All hours in Sydoc BPS" opens the BPS page on this month's dates.
     (function () {
         const [y, m] = CFG.month.split('-').map(Number);
         const last = new Date(Date.UTC(y, m, 0)).getUTCDate();
@@ -59,32 +54,91 @@
         });
     })();
 
+    // ---- month picker: a pick is a navigation, the month lives in the URL ----
+    (function () {
+        const picker = document.getElementById('fin-picker');
+        if (!picker) return;
+        const byKey = {};
+        (CFG.months || []).forEach(m => { byKey[m.value] = m; });
+        const years = (CFG.months || []).map(m => Number(m.value.slice(0, 4)));
+        const minYear = Math.min(...years);
+        const maxYear = Math.max(...years);
+        let viewYear = Number(CFG.month.slice(0, 4));
+        const grid = picker.querySelector('[data-role="months"]');
+
+        const STATUS = {
+            closed: () => `<span class="nx-sydoc-picker__cell-status nx-sydoc-picker__cell-status--closed"><i class="fas fa-lock" aria-hidden="true"></i>${esc(S.closedShort)}</span>`,
+            open: () => `<span class="nx-sydoc-picker__cell-status nx-sydoc-picker__cell-status--open"><span class="nx-sydoc-dot"></span>${esc(S.openShort)}</span>`,
+            running: () => `<span class="nx-sydoc-picker__cell-status nx-sydoc-picker__cell-status--running"><span class="nx-sydoc-dot"></span>${esc(S.running)}</span>`,
+        };
+
+        function render() {
+            picker.querySelector('[data-role="year"]').textContent = String(viewYear);
+            picker.querySelector('[data-role="year-prev"]').disabled = viewYear <= minYear;
+            picker.querySelector('[data-role="year-next"]').disabled = viewYear >= maxYear;
+            grid.innerHTML = Sy.monthCells(viewYear, CFG.today, lang).map(c => {
+                const m = byKey[c.key];
+                const selected = c.key === CFG.month;
+                const status = m ? STATUS[m.state]() : '<span class="nx-sydoc-picker__cell-status"></span>';
+                return `<button type="button" class="nx-sydoc-picker__cell${selected ? ' is-selected' : ''}" data-month="${c.key}"` +
+                    `${m ? ` aria-label="${esc(m.label)}"` : ' disabled'}${selected ? ' aria-current="true"' : ''}>` +
+                    `<span class="nx-sydoc-picker__cell-name">${esc(c.name)}</span>${status}</button>`;
+            }).join('');
+        }
+
+        grid.addEventListener('click', e => {
+            const cell = e.target.closest('[data-month]');
+            if (!cell || cell.disabled) return;
+            const url = new URL(window.location.href);
+            url.searchParams.set('month', cell.dataset.month);
+            window.location.assign(url.toString());
+        });
+        picker.querySelector('[data-role="year-prev"]').addEventListener('click', () => { viewYear -= 1; render(); });
+        picker.querySelector('[data-role="year-next"]').addEventListener('click', () => { viewYear += 1; render(); });
+        Sy.initPicker({
+            root: picker,
+            opener: document.querySelector('[data-testid="finance-period-button"]'),
+            onOpen: () => { viewYear = Number(CFG.month.slice(0, 4)); render(); },
+        });
+    })();
+
     // ---- rendering ----------------------------------------------------------
+    // Neutral ink: the arrow says the direction, the colour says nothing.
     function deltaHtml(value, prev) {
         value = Number(value) || 0;
         prev = Number(prev) || 0;
-        if (value === prev) {
-            return `<p class="nx-kpi__delta">${esc(S.unchanged)} <span>${esc(S.vsPrev)}</span></p>`;
-        }
-        if (prev === 0) {
-            return `<p class="nx-kpi__delta nx-kpi__delta--up">${esc(S.isNew)} <span>${esc(S.vsPrev)}</span></p>`;
-        }
+        // The msgids are lower case ("unchanged", "new"); CSS capitalises the word.
+        const word = w => `<span class="nx-fin-delta__word">${esc(w)}</span>`;
+        if (value === prev) return `<span class="nx-fin-delta">${word(S.unchanged)}</span>`;
+        if (prev === 0) return `<span class="nx-fin-delta">▲ ${word(S.isNew)}</span>`;
         const ratio = (value - prev) / prev;
-        const dir = ratio > 0 ? 'up' : 'down';
-        return `<p class="nx-kpi__delta nx-kpi__delta--${dir}">${esc(deltaFmt.format(ratio))} <span>${esc(S.vsPrev)}</span></p>`;
+        return `<span class="nx-fin-delta">${ratio > 0 ? '▲' : '▼'} ${esc(deltaFmt.format(ratio))}</span>`;
     }
 
-    function figuresHtml(figures) {
-        return '<div class="nx-kpi-strip nx-fin-kpis">' + figures.map(f => `
-            <div class="nx-kpi" data-testid="finance-figure-${esc(f.code)}">
-              <p class="nx-kpi__label">${esc(f.label)}</p>
-              <div class="nx-kpi__body">
-                <div>
-                  <p class="nx-kpi__value" data-value="${esc(f.value)}">${esc(num(f.value))}</p>
-                  ${deltaHtml(f.value, f.prev)}
-                </div>
-              </div>
-            </div>`).join('') + '</div>';
+    // This month as a fill, last month as an orange tick on the same scale.
+    function cmpHtml(value, prev) {
+        value = Math.max(0, Number(value) || 0);
+        prev = Math.max(0, Number(prev) || 0);
+        const max = Math.max(value, prev);
+        if (!max) return '<span class="nx-fin-cmp" aria-hidden="true"></span>';
+        const fill = (value / max) * 100;
+        const mark = (prev / max) * 100;
+        return `<span class="nx-fin-cmp" aria-hidden="true"><span class="nx-fin-cmp__fill" style="width:${fill.toFixed(1)}%"></span>` +
+            `<span class="nx-fin-cmp__prev" style="left:calc(${mark.toFixed(1)}% - 1px)"></span></span>`;
+    }
+
+    function linesHtml(figures) {
+        const head = `<div class="nx-fin-lines__head">
+              <span>${esc(S.figure)}</span><span>${esc(S.monthName)}</span>
+              <span>${esc(S.prevMonthName)}</span><span>${esc(S.change)}</span>
+            </div>`;
+        return head + figures.map(f => `
+            <div class="nx-fin-line" data-testid="finance-figure-${esc(f.code)}">
+              <span class="nx-fin-line__label">${esc(f.label)}</span>
+              <span class="nx-fin-line__value" data-value="${esc(f.value)}">${esc(num(f.value))}</span>
+              <span class="nx-fin-line__prev">${esc(num(f.prev))}</span>
+              <span class="nx-fin-line__change">${cmpHtml(f.value, f.prev)}${deltaHtml(f.value, f.prev)}</span>
+            </div>`).join('');
     }
 
     function shareHtml(value, total) {
@@ -93,22 +147,27 @@
         return `<span class="nx-fin-share"><span class="nx-fin-share__bar" aria-hidden="true"><span class="nx-fin-share__fill" style="width:${width.toFixed(1)}%"></span></span><span class="nx-fin-share__pct">${esc(pctFmt.format(share))}</span></span>`;
     }
 
+    // A vertical breakdown: key, its measures, the share of the first one.
+    // `br.href(row, i)` turns the key into a link; `br.muted` greys a column.
     function breakdownHtml(br, sectionKey) {
         const cols = br.columns;
         const lead = br.totals[0] || 0;
+        const muted = i => (br.muted && br.muted.includes(i) ? ' nx-fin-muted' : '');
         const head = `<th>${esc(br.label)}</th>` +
             cols.map(c => `<th class="nx-num text-right">${esc(c.label)}</th>`).join('') +
             `<th class="nx-num text-right">${esc(S.share)}</th>`;
         const body = br.rows.map((r, i) => {
             const more = i >= COLLAPSE_AFTER ? ' is-more' : '';
             const blank = r.key === null ? ' is-blank' : '';
+            const keyText = r.key === null ? esc(S.blank) : esc(r.key);
+            const key = br.href ? `<a href="${esc(br.href(r, i))}">${keyText}</a>` : keyText;
             return `<tr class="${more}${blank}">` +
-                `<td>${r.key === null ? esc(S.blank) : esc(r.key)}</td>` +
-                r.values.map(v => `<td class="nx-num">${esc(num(v))}</td>`).join('') +
+                `<td>${key}</td>` +
+                r.values.map((v, j) => `<td class="nx-num${muted(j)}">${esc(num(v))}</td>`).join('') +
                 `<td class="nx-num">${shareHtml(r.values[0], lead)}</td></tr>`;
         }).join('');
         const foot = `<tr><td>${esc(S.total)}</td>` +
-            br.totals.map(v => `<td class="nx-num">${esc(num(v))}</td>`).join('') +
+            br.totals.map((v, j) => `<td class="nx-num${muted(j)}">${esc(num(v))}</td>`).join('') +
             `<td class="nx-num">${br.rows.length ? shareHtml(lead, lead) : ''}</td></tr>`;
         const more = br.rows.length > COLLAPSE_AFTER
             ? `<button type="button" class="nx-fin-more" data-more="${br.rows.length}">${esc(fmt(S.showAll, { n: num(br.rows.length) }))}</button>`
@@ -161,82 +220,114 @@
           </div>`;
     }
 
-    function dateText(iso) {
-        return iso ? window.NX.formatDate(iso) : '';
+    function emptyHtml() {
+        return `<p class="nx-fin-empty"><i class="fas fa-inbox" aria-hidden="true"></i> ${esc(fmt(S.empty, { month: CFG.monthLabel }))}</p>`;
     }
 
-    // Billable bookings (BPS): one table per customer with a subtotal, every
-    // booking a line with its comment -- the invoice lists them singly.
+    function utcDate(iso) {
+        const [y, m, d] = String(iso).slice(0, 10).split('-').map(Number);
+        return new Date(Date.UTC(y, m - 1, d));
+    }
+
+    // One customer's bookings as a timeline: a day per stop on the rail, each
+    // booking its comment, what it was booked on, and its hours. The first
+    // few show; the rest open with "Show all n".
+    function timelineHtml(g, i, idx, hoursField, sectionKey) {
+        const field = (r, f) => (f in idx ? r[idx[f]] : null);
+        const days = [];
+        g.rows.forEach(r => {
+            const day = String(field(r, 'Datum') || '').slice(0, 10);
+            const last = days[days.length - 1];
+            if (last && last.day === day) last.rows.push(r); else days.push({ day, rows: [r] });
+        });
+        let n = 0;
+        const body = days.map(d => {
+            const firstIndex = n;
+            const items = d.rows.map(r => {
+                const more = n++ >= BOOKINGS_SHOWN ? ' is-more' : '';
+                const comment = field(r, 'Beschreibung');
+                const line = ['Aufgabe', 'Projektpaket', 'Benutzer'].map(f => field(r, f)).filter(Boolean).join(' · ');
+                return `<div class="nx-fin-tl__item${more}">
+                    <div>
+                      <p class="nx-fin-tl__comment${comment ? '' : ' is-empty'}">${esc(comment || S.noComment)}</p>
+                      <p class="nx-fin-tl__line">${esc(line)}</p>
+                    </div>
+                    <span class="nx-fin-tl__hours">${esc(fmt(S.hoursUnit, { n: hoursFmt.format(Number(field(r, hoursField)) || 0) }))}</span>
+                  </div>`;
+            }).join('');
+            const date = d.day ? utcDate(d.day) : null;
+            return `<div class="nx-fin-tl__day${firstIndex >= BOOKINGS_SHOWN ? ' is-more' : ''}">
+                <div class="nx-fin-tl__date">${date ? `<span>${esc(dayFmt.format(date))}</span><span class="nx-fin-tl__wd">${esc(weekdayFmt.format(date))}</span>` : ''}</div>
+                <div class="nx-fin-tl__rail" aria-hidden="true"><span></span></div>
+                <div class="nx-fin-tl__items">${items}</div>
+              </div>`;
+        }).join('');
+        const more = g.rows.length > BOOKINGS_SHOWN
+            ? `<div class="nx-fin-tl__foot"><button type="button" class="nx-fin-more" data-more="${g.rows.length}" data-label="all-n">${esc(fmt(S.showAllN, { n: num(g.rows.length) }))}</button></div>`
+            : '';
+        return `
+          <div class="nx-fin-tl" id="fin-bk-${i}" data-testid="finance-bookings-${esc(sectionKey)}">
+            <div class="nx-fin-tl__head">
+              <span class="nx-fin-tl__name">${esc(g.key === null ? S.blank : g.key)}</span>
+              <span class="nx-fin-tl__count">${esc(fmt(S.bookings, { n: num(g.count) }))}</span>
+              <span class="nx-fin-tl__spacer"></span>
+              <span class="nx-fin-tl__total">${esc(fmt(S.hoursUnit, { n: num(g.hours) }))}</span>
+            </div>
+            ${body}
+            ${more}
+          </div>`;
+    }
+
+    // Billable bookings (BPS): the figures, hours per task and per customer,
+    // then every booking per customer as on the invoice.
     function bookingsHtml(bk, sectionKey) {
         const cols = bk.columns;
         const idx = {};
         cols.forEach((c, i) => { idx[c.field] = i; });
-        const shown = cols.filter(c => c.field !== bk.group_by);
-        const parts = [figuresHtml(bk.figures)];
+        const hoursCol = cols.find(c => c.numeric);
+        const parts = [linesHtml(bk.figures)];
         if (!bk.groups.length) {
-            parts.push(`<p class="nx-fin-empty"><i class="fas fa-inbox" aria-hidden="true"></i> ${esc(fmt(S.empty, { month: CFG.monthLabel }))}</p>`);
+            parts.push(emptyHtml());
             return parts.join('');
         }
+        const valueCols = [
+            { code: 'hours', label: hoursCol ? hoursCol.label : '' },
+            { code: 'count', label: S.bookingsCol },
+        ];
+        const tables = [];
         if (bk.by_task && bk.by_task.length) {
-            // Hours per task as the same vertical breakdown table every other
-            // section uses (label, hours, bookings, share, total row).
             const taskCol = cols.find(c => c.field === 'Aufgabe');
-            const hoursCol = cols.find(c => c.numeric);
-            const perTask = {
+            tables.push(breakdownHtml({
                 dim: 'Aufgabe',
                 label: taskCol ? taskCol.label : '',
-                columns: [
-                    { code: 'hours', label: hoursCol ? hoursCol.label : '' },
-                    { code: 'count', label: S.bookingsCol },
-                ],
+                columns: valueCols,
+                muted: [1],
                 rows: bk.by_task.map(t => ({ key: t.key, values: [t.hours, t.count] })),
                 totals: [
                     bk.by_task.reduce((a, t) => a + t.hours, 0),
                     bk.by_task.reduce((a, t) => a + t.count, 0),
                 ],
-            };
-            parts.push('<div class="nx-fin-tables">' + breakdownHtml(perTask, sectionKey) + '</div>');
+            }, sectionKey));
         }
-        parts.push('<div class="nx-fin-bookings">');
-        bk.groups.forEach(g => {
-            const head = shown.map(c => `<th scope="col"${c.numeric ? ' class="nx-num"' : ''}>${esc(c.label)}</th>`).join('');
-            const body = g.rows.map((r, i) => {
-                const more = i >= COLLAPSE_AFTER ? ' class="is-more"' : '';
-                return `<tr${more}>` + shown.map(c => {
-                    const v = r[idx[c.field]];
-                    if (c.numeric) return `<td class="nx-num">${esc(num(v))}</td>`;
-                    if (c.field === 'Datum') return `<td class="nx-fin-bk__date">${esc(dateText(v))}</td>`;
-                    if (c.field === 'Beschreibung') return `<td class="nx-fin-bk__comment">${esc(v || '')}</td>`;
-                    return `<td>${esc(v === null ? '' : v)}</td>`;
-                }).join('') + '</tr>';
-            }).join('');
-            const hoursCol = shown.findIndex(c => c.numeric);
-            const foot = '<tr>' + shown.map((c, i) => {
-                if (i === 0) return `<td>${esc(S.total)}</td>`;
-                if (i === hoursCol) return `<td class="nx-num">${esc(num(g.hours))}</td>`;
-                return '<td></td>';
-            }).join('') + '</tr>';
-            const more = g.rows.length > COLLAPSE_AFTER
-                ? `<button type="button" class="nx-fin-more" data-more="${g.rows.length}">${esc(fmt(S.showAll, { n: num(g.rows.length) }))}</button>`
-                : '';
-            parts.push(`
-              <div class="nx-fin-table nx-fin-table--wide" data-testid="finance-bookings-${esc(sectionKey)}">
-                <div class="nx-fin-table__head">
-                  <span class="nx-fin-bk__customer">${esc(g.key === null ? S.blank : g.key)}</span>
-                  <span class="nx-fin-table__count">${esc(fmt(S.hoursUnit, { n: num(g.hours) }))} · ${esc(fmt(S.bookings, { n: num(g.count) }))}</span>
-                </div>
-                <div class="nx-fin-matrix" tabindex="0" role="region" aria-label="${esc(g.key || S.blank)}">
-                  <table class="nx-table nx-fin-bk">
-                    <colgroup>${shown.map(c => `<col class="nx-fin-bk__col--${esc(c.field)}">`).join('')}</colgroup>
-                    <thead><tr>${head}</tr></thead>
-                    <tbody>${body}</tbody>
-                    <tfoot>${foot}</tfoot>
-                  </table>
-                </div>
-                ${more}
-              </div>`);
-        });
-        parts.push('</div>');
+        const customerCol = cols.find(c => c.field === bk.group_by);
+        tables.push(breakdownHtml({
+            dim: bk.group_by,
+            label: customerCol ? customerCol.label : '',
+            columns: valueCols,
+            muted: [1],
+            href: (r, i) => `#fin-bk-${i}`,
+            rows: bk.groups.map(g => ({ key: g.key, values: [g.hours, g.count] })),
+            totals: [
+                bk.groups.reduce((a, g) => a + g.hours, 0),
+                bk.groups.reduce((a, g) => a + g.count, 0),
+            ],
+        }, sectionKey));
+        parts.push('<div class="nx-fin-tables">' + tables.join('') + '</div>');
+        parts.push(`<div class="nx-fin-divider"><span class="nx-eyebrow">${esc(S.billableBookings)}</span>` +
+            `<span class="nx-fin-divider__note">${esc(S.oneListPer)}</span><span class="nx-fin-divider__rule"></span></div>`);
+        parts.push('<div class="nx-fin-tls">' +
+            bk.groups.map((g, i) => timelineHtml(g, i, idx, hoursCol ? hoursCol.field : '', sectionKey)).join('') +
+            '</div>');
         if (bk.truncated) {
             parts.push(`<p class="nx-fin-note"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i><span>${esc(S.truncated)}</span></p>`);
         }
@@ -272,9 +363,9 @@
             if (p.blocks.length > 1) {
                 parts.push(`<p class="nx-eyebrow nx-fin-block__basis">${esc(block.basis)}</p>`);
             }
-            parts.push(figuresHtml(block.figures));
+            parts.push(linesHtml(block.figures));
             if (!anything) {
-                parts.push(`<p class="nx-fin-empty"><i class="fas fa-inbox" aria-hidden="true"></i> ${esc(fmt(S.empty, { month: CFG.monthLabel }))}</p>`);
+                parts.push(emptyHtml());
             } else if (block.breakdowns.length) {
                 parts.push('<div class="nx-fin-tables">' +
                     block.breakdowns.map(b => (b.kind === 'matrix' ? matrixHtml(b, p.key) : breakdownHtml(b, p.key))).join('') +
@@ -286,9 +377,6 @@
             parts.push('<div class="nx-fin-block">' + bookingsHtml(p.bookings, p.key) + '</div>');
         }
         if (p.closed) parts.push(driftHtml(p.live_diff));
-        if (p.note) {
-            parts.push(`<p class="nx-fin-note"><i class="fas fa-circle-info" aria-hidden="true"></i><span>${esc(p.note)}</span></p>`);
-        }
         return parts.join('');
     }
 
@@ -317,25 +405,33 @@
         const el = document.getElementById('fin-status');
         const text = document.getElementById('fin-status-text');
         if (!el || !text) return;
+        const dot = el.querySelector('[data-role="dot"]');
         el.classList.remove('is-done', 'is-failed');
+        let kind = 'running';
         if (status.done < status.total) {
             text.textContent = fmt(S.loaded, { done: status.done, total: status.total });
-            return;
-        }
-        if (status.failed) {
+        } else if (status.failed) {
             el.classList.add('is-failed');
+            kind = 'failed';
             text.textContent = fmt(S.someFailed, { failed: status.failed, total: status.total });
         } else {
             el.classList.add('is-done');
+            kind = 'live';
             text.textContent = fmt(S.allLoaded, { total: status.total });
         }
+        if (dot) dot.className = `nx-sydoc-dot nx-sydoc-dot--${kind}`;
     }
 
     function render(section, payload) {
         const body = section.querySelector('[data-role="body"]');
         const meta = section.querySelector('[data-role="meta"]');
         const state = section.querySelector('[data-role="state"]');
+        const note = section.querySelector('[data-role="note"]');
         section.setAttribute('aria-busy', 'false');
+        if (payload.note && note) {
+            note.textContent = payload.note;
+            note.hidden = false;
+        }
         if (payload.error) {
             section.dataset.state = 'error';
             meta.textContent = payload.source && payload.source.label ? payload.source.label : payload.source.code;
@@ -380,7 +476,7 @@
         }));
     }
 
-    // Delegated: retry a failed section, expand a collapsed table.
+    // Delegated: retry a failed section, expand a collapsed table or timeline.
     document.addEventListener('click', function (e) {
         const retry = e.target.closest('[data-retry]');
         if (retry) {
@@ -397,10 +493,11 @@
         }
         const more = e.target.closest('.nx-fin-more');
         if (more) {
-            const table = more.closest('.nx-fin-table');
-            if (!table) return;
-            const expanded = table.classList.toggle('is-expanded');
-            more.textContent = expanded ? S.showFewer : fmt(S.showAll, { n: num(more.dataset.more) });
+            const list = more.closest('.nx-fin-table, .nx-fin-tl');
+            if (!list) return;
+            const expanded = list.classList.toggle('is-expanded');
+            const all = more.dataset.label === 'all-n' ? S.showAllN : S.showAll;
+            more.textContent = expanded ? S.showFewer : fmt(all, { n: num(more.dataset.more) });
         }
     });
 

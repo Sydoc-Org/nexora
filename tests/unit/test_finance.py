@@ -639,3 +639,15 @@ def test_diff_payload_counts_a_figure_missing_on_one_side_as_zero():
         {"label": "Docs", "closed": 4, "live": 0},
         {"label": "New", "closed": 0, "live": 1},
     ]
+
+
+def test_every_section_has_a_short_nav_label():
+    labels = {d["key"]: d["nav"] for d in finance.section_descriptors()}
+    assert labels["privera_invoice"] == "Rechnungen"
+    assert labels["privera_nachsendungen"] == "Zustellung"
+    assert labels["compass"] == "Compass"
+    assert labels["xpert"] == "Xpert"
+    assert labels["bucherer"] == "EasyTax"
+    assert labels["frigemo"] == "Frigemo"  # no title: falls back to the client
+    assert labels["bps"] == "Billable services"  # the title, translated by the view
+    assert all(labels.values())

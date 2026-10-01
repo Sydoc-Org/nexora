@@ -168,6 +168,28 @@ def _closed_safe(month):
         return {}
 
 
+def _closed_months():
+    """Every month that has a close snapshot, as 'YYYY-MM' keys."""
+    if engine_nexora_db is None:
+        return set()
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT DISTINCT Month FROM dbo.FinanceMonthClose")
+        return {str(r[0]) for r in cur.fetchall()}
+    finally:
+        conn.close()
+
+
+def _closed_months_safe():
+    """_closed_months(), but a read failure degrades to 'none closed' (logged)."""
+    try:
+        return _closed_months()
+    except Exception as e:
+        current_app.logger.warning(f"finance: could not read the closed months: {e}")
+        return set()
+
+
 def _local(at):
     """ClosedAt is stored in UTC (SYSUTCDATETIME); Sydoc reads Swiss time."""
     return at.replace(tzinfo=dt.UTC).astimezone(LOCAL_TZ)
@@ -225,17 +247,36 @@ def finance():
     translate = gettext  # an alias, so pybabel does not extract the variable as a msgid
     for d in descriptors:
         d["title"] = translate(d["title"]) if d["title"] else None
+        d["nav"] = translate(d["nav"])
+    options = month_options(today)
+    option_keys = {key for key, _y, _m in options}
+    closed_months = _closed_months_safe()
+
+    def state(key, y, m):
+        if (y, m) == (today.year, today.month):
+            return "running"
+        return "closed" if key in closed_months else "open"
+
+    prev_key = month_key(prev_y, prev_m)
     return render_template(
         "finance.html",
         page_visibility=page_visibility(),
         month=month_key(year, month),
         month_label=_month_label(year, month),
-        prev_month=month_key(prev_y, prev_m),
+        month_name=format_date(dt.date(year, month, 1), "LLLL"),
+        month_year=str(year),
+        today=today.isoformat(),
+        prev_month_name=format_date(dt.date(prev_y, prev_m, 1), "LLLL"),
+        # Inert at the oldest pickable month, like next at the current one.
+        prev_month=prev_key if prev_key in option_keys else None,
         next_month=None if is_current else month_key(next_y, next_m),
         is_current_month=is_current,
         closed=_closed_info(_closed_safe(month_key(year, month))),
         can_close=has_permission("finance.month.edit") and not is_current,
-        months=[{"value": key, "label": _month_label(y, m)} for key, y, m in month_options(today)],
+        months=[
+            {"value": key, "label": _month_label(y, m), "state": state(key, y, m)}
+            for key, y, m in options
+        ],
         internal_sections=[d for d in descriptors if d["group"] == "internal"],
         external_sections=[d for d in descriptors if d["group"] == "external"],
         service_sections=[d for d in descriptors if d["group"] == "services"],

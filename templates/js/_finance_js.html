@@ -11,6 +11,9 @@
     month: {{ month|tojson }},
     monthLabel: {{ month_label|tojson }},
     closed: {{ closed|tojson }},
+    // The picker's months, newest first, each with its close state.
+    months: {{ months|tojson }},
+    today: {{ today|tojson }},
     sections: {{ (internal_sections + external_sections + service_sections)|map(attribute='key')|list|tojson }},
     strings: {
       loading:        {{ _("Loading…") | tojson }},
@@ -29,7 +32,10 @@
       liveNow:        {{ _("Live now") | tojson }},
       difference:     {{ _("Difference") | tojson }},
       empty:          {{ _("Nothing recorded in {month}") | tojson }},
-      vsPrev:         {{ _("vs. previous month") | tojson }},
+      figure:         {{ _("Figure") | tojson }},
+      change:         {{ _("Change") | tojson }},
+      monthName:      {{ month_name | tojson }},
+      prevMonthName:  {{ prev_month_name | tojson }},
       unchanged:      {{ _("unchanged") | tojson }},
       isNew:          {{ _("new") | tojson }},
       per:            {{ _("per {dim}") | tojson }},
@@ -39,6 +45,13 @@
       total:          {{ _("Total") | tojson }},
       blank:          {{ _("(blank)") | tojson }},
       showAll:        {{ _("Show all {n} rows") | tojson }},
+      showAllN:       {{ _("Show all {n}") | tojson }},
+      billableBookings: {{ _("Billable bookings") | tojson }},
+      oneListPer:     {{ _("one list per customer, as on the invoice") | tojson }},
+      noComment:      {{ _("No comment") | tojson }},
+      closedShort:    {{ _("Closed") | tojson }},
+      openShort:      {{ _("Open") | tojson }},
+      running:        {{ _("Running") | tojson }},
       showFewer:      {{ _("Show fewer") | tojson }},
       bookings:       {{ _("{n} bookings") | tojson }},
       bookingsCol:    {{ _("Bookings") | tojson }},
@@ -98,5 +111,6 @@
     }
   };
 </script>
+<script src="{{ static_v('js/nx_sydoc.js') }}" nonce="{{ csp_nonce() }}" defer></script>
 <script src="{{ static_v('js/finance.js') }}" nonce="{{ csp_nonce() }}" defer></script>
 <script src="{{ static_v('js/finance_bexio.js') }}" nonce="{{ csp_nonce() }}" defer></script>
