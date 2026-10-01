@@ -1,6 +1,6 @@
 name: Deploy
 # Three hosted environments (#338):
-#   any branch push  -> fast tests -> deploy DEV     (D:\sydoc\nexora-dev[-<who>], ENVIRONMENT=INT; per pusher, #431)
+#   any branch push  -> fast tests -> deploy DEV     (D:\sydoc\nexora-dev-<who>, ENVIRONMENT=INT; the pusher's own host, #431)
 #   push to main     -> fast tests -> deploy STAGING (D:\sydoc\nexora-staging, ENVIRONMENT=STAGING)
 #   v* tag push      -> fast tests -> deploy PROD    (D:\sydoc\nexora,         ENVIRONMENT=PROD)
 # The deploy steps live in deploy-env.yml (reusable); the callers are at the
@@ -57,8 +57,9 @@ jobs:
       # Which dev host a branch push lands on (#431): one per developer, so two
       # people pushing at once stop overwriting each other's deploy. Keyed on
       # the pusher's GitHub login (github.actor stays the original pusher on a
-      # re-run). Anyone not listed -- bots, occasional contributors -- gets the
-      # shared `dev` slot. Adding a developer: one line here, then
+      # re-run). There is no shared dev host any more: a pusher not listed here
+      # -- a bot, an occasional contributor -- gets tests but no dev deploy
+      # (empty slot; deploy-dev skips). Adding a developer: one line here, then
       # ops/setup-env.ps1 on SYAPP01 (docs/howto/ngrok.md -> Adding a host).
       # Resolved here so the map lives in one place: deploy-dev's `with:` and
       # `concurrency:` can read `needs`, but not env.
@@ -71,14 +72,15 @@ jobs:
             'GRuoss'     = 'dev-gruoss'
           }
           $slot = $slots['${{ github.actor }}']
-          if (-not $slot) { $slot = 'dev' }
-          # This runner IS SYAPP01. A mapped slot whose host was never set up
-          # falls back to the shared one rather than failing the deploy.
-          if (-not (Test-Path "D:\sydoc\nexora-$slot")) {
-            Write-Host "::warning::D:\sydoc\nexora-$slot does not exist (run ops/setup-env.ps1) -- deploying to the shared dev host instead."
-            $slot = 'dev'
+          if (-not $slot) {
+            Write-Host "::notice::${{ github.actor }} has no dev host (deploy.yml -> Resolve dev slot) -- skipping the dev deploy."
+            $slot = ''
+          } elseif (-not (Test-Path "D:\sydoc\nexora-$slot")) {
+            # This runner IS SYAPP01, so it can see whether the host exists.
+            Write-Host "::warning::D:\sydoc\nexora-$slot does not exist (run ops/setup-env.ps1) -- skipping the dev deploy."
+            $slot = ''
           }
-          Write-Host "${{ github.actor }} -> $slot"
+          Write-Host "${{ github.actor }} -> '$slot'"
           "slot=$slot" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding ascii
 
       - name: Install Python deps
@@ -216,10 +218,11 @@ jobs:
   # dev = whatever topic branch its pusher pushed last (#338), one host per
   # developer (#431); the slot comes from the test job's "Resolve dev slot"
   # step. Each slot queues on its own, so one person's deploy never waits
-  # behind -- or overwrites -- another's.
+  # behind -- or overwrites -- another's. An empty slot (unmapped pusher, or a
+  # host not set up) skips the deploy.
   deploy-dev:
     needs: test
-    if: github.event_name == 'push' && github.ref_type == 'branch' && github.ref != 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref_type == 'branch' && github.ref != 'refs/heads/main' && needs.test.outputs.dev_slot != ''
     concurrency:
       group: ${{ needs.test.outputs.dev_slot }}-deploy
       cancel-in-progress: false
