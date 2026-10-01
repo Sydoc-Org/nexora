@@ -49,6 +49,8 @@
           <span class="nx-sydoc-stats__v" id="bps-status" role="status" data-testid="bps-status">
             <span class="nx-sydoc-dot nx-sydoc-dot--running" data-role="dot"></span><span id="bps-status-text">{{ _("Loading…") }}</span>
           </span>
+          <span class="nx-sydoc-stats__k">{{ _("Latest booking") }}</span>
+          <span class="nx-sydoc-stats__v" id="bps-latest" data-testid="bps-latest">–</span>
         </div>
       </div>
 
@@ -79,12 +81,13 @@
       <form class="nx-sydoc-picker__foot" id="bps-period" method="get" action="{{ url_for('bps') }}" data-testid="bps-period">
         <label class="nx-sydoc-picker__field">
           <span>{{ _("From") }}</span>
-          <input type="date" name="from" id="bps-from" value="{{ range_from }}" max="{{ today }}" required data-testid="bps-from">
+          <input type="date" name="from" id="bps-from" value="{{ [range_from, today]|min }}" max="{{ today }}" required data-testid="bps-from">
         </label>
         <label class="nx-sydoc-picker__field">
           <span>{{ _("To") }}</span>
-          <input type="date" name="to" id="bps-to" value="{{ range_to }}" max="{{ today }}" required data-testid="bps-to">
+          <input type="date" name="to" id="bps-to" value="{{ [range_to, today]|min }}" max="{{ today }}" required data-testid="bps-to">
         </label>
+        <span hidden data-role="drill-params"></span>
         <button type="submit" class="nx-sydoc-btn nx-sydoc-btn--ink">{{ _("Show range") }}</button>
       </form>
     {{ sydoc.picker_close() }}

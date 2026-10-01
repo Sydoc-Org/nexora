@@ -71,7 +71,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   bookings of a leaf listed per day. The band, headline and picker are shared
   pieces (`templates/_sydoc.html`, `static/js/nx_sydoc.js`, `nx-sydoc-*` in
   `nexora-ui.css`) that Finance will use too. The empty-period text now says
-  the history starts in January 2025.
+  the history starts in January 2025. The drill-down (order, zoom path,
+  filters, search) lives in the URL, so Back goes up a level and links are
+  shareable; the arrows step whole weeks / months and stop at the first
+  booking; the band shows the date of the latest booking.
 
 - **Finance parity with the billing workbooks** (#415, migration `0139`):
   Privera *Documents by mail* now drops MAIL rows without a file name, as the

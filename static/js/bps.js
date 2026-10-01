@@ -424,46 +424,78 @@
 
     const MAP_H = 440;
     const GAP = 4;
+    // A tile smaller than this (px²) cannot carry a label; the tail of such
+    // groups is merged into one "+ n more" tile that opens the table.
+    const MIN_TILE = 56 * 50;
     function mapHtml(levelTotal) {
         const box = document.getElementById('bps-drill');
         const W = Math.max(200, box.clientWidth);
-        const rects = V.squarify(groups.map(g => ({ h: g.hours })), W + GAP, MAP_H + GAP);
+        const area = (W * MAP_H) / (levelTotal || 1);
+        let shown = groups.filter(g => g.hours * area >= MIN_TILE);
+        // The "+ n more" tile must be big enough to read too: it takes in the
+        // smallest shown groups until it is.
+        const tailHours = () => groups.slice(shown.length).reduce((a, g) => a + g.hours, 0);
+        while (shown.length > 1 && shown.length < groups.length && tailHours() * area < MIN_TILE * 1.6) {
+            shown = shown.slice(0, -1);
+        }
+        const tail = groups.slice(shown.length);
+        let rest = null;
+        if (tail.length >= 2) {
+            rest = tail.reduce((a, g) => {
+                ['hours', 'billable', 'service', 'absence', 'count', 'prev'].forEach(k => { a[k] += g[k]; });
+                return a;
+            }, { rest: tail.length, hours: 0, billable: 0, service: 0, absence: 0, count: 0, prev: 0 });
+        } else {
+            shown = groups;
+        }
+        const items = rest ? shown.concat([rest]) : shown;
+        const rects = V.squarify(items.map(g => ({ h: g.hours })), W + GAP, MAP_H + GAP);
         const period = prevName();
         const tiles = rects.map(r => {
-            const g = groups[r.i];
+            const g = items[r.i];
             const w = r.w - GAP;
             const h = r.h - GAP;
+            const pos = `left:${r.x.toFixed(1)}px;top:${r.y.toFixed(1)}px;width:${Math.max(0, w).toFixed(1)}px;height:${Math.max(0, h).toFixed(1)}px`;
+            if (g.rest) {
+                const more = fmt(S.moreTiles, { n: intFmt.format(g.rest) });
+                const tip = fmt(S.moreTitle, { n: intFmt.format(g.rest), h: hUnit(hours(g.hours)) });
+                return `<button type="button" class="nx-bps-tile nx-bps-tile--rest" data-rest="1" title="${esc(tip)}" aria-label="${esc(tip)}" style="${pos}">
+                    <span class="nx-bps-tile__text nx-bps-tile__text--compact"><span class="nx-bps-tile__name">${esc(more)}</span>${h >= 48 ? `<span class="nx-bps-tile__h">${esc(hUnit(hours(g.hours)))}</span>` : ''}</span>
+                  </button>`;
+            }
             const big = w > 220 && h > 110;
             const title = `${label(g.key)} · ${hUnit(hours(g.hours))} · ${fmt(S.nBookings, { n: intFmt.format(g.count) })}`;
             let text = '';
             // Narrow tall tiles still get a label, set vertically; small
             // squarish ones a compact one; only slivers rely on the tooltip.
             const vertical = w <= 70 && w >= 22 && h >= 90;
-            const compact = !vertical && w <= 70 && w > 40 && h > 40;
+            const compact = !vertical && w > 40 && h >= 46 && (w <= 70 || h < 58);
             if (vertical || compact) {
                 text = `<span class="nx-bps-tile__text nx-bps-tile__text--${vertical ? 'vertical' : 'compact'}">
                     <span class="nx-bps-tile__name">${esc(label(g.key))}</span>
                     <span class="nx-bps-tile__h">${esc(hours(g.hours))}</span>
                   </span>`;
-            } else if (w > 70 && h > 46) {
+            } else if (w > 70 && h >= 58) {
                 let pill = '';
-                if (w > 110 && h > 70) {
+                if (w > 110 && h > 76) {
                     const d = V.delta(g.hours, g.prev);
                     if (d.dir === 'new') pill = `<span class="nx-bps-tile__pill is-up">↗ ${esc(S.isNew)}</span>`;
                     else if (d.ratio !== null) {
                         const arrow = d.dir === 'up' ? '↗' : d.dir === 'down' ? '↘' : '→';
                         const cls = d.dir === 'up' ? 'is-up' : d.dir === 'down' ? 'is-down' : 'is-flat';
-                        pill = `<span class="nx-bps-tile__pill ${cls}">${arrow} ${esc(signed(Math.round(d.ratio * 100), n => `${n}%`))} ${esc(fmt(S.vsPrev, { period }))}</span>`;
+                        // "vs. July" only where it fits; the tooltip names the period anyway.
+                        const vs = w > 220 ? ` ${esc(fmt(S.vsPrev, { period }))}` : '';
+                        pill = `<span class="nx-bps-tile__pill ${cls}" title="${esc(fmt(S.vsPrev, { period }))}">${arrow} ${esc(signed(Math.round(d.ratio * 100), n => `${n}%`))}${vs}</span>`;
                     }
                 }
                 text = `<span class="nx-bps-tile__text">
                     <span class="nx-bps-tile__name">${esc(label(g.key))}</span>
-                    <span class="nx-bps-tile__h">${esc(hours(g.hours))}<small>${esc(hUnit('').trim())} · ${esc(pct(g.hours, levelTotal))}</small></span>
+                    <span class="nx-bps-tile__h">${esc(hours(g.hours))}<small>${esc(hUnit('').trim())}${w > 110 ? ` · ${esc(pct(g.hours, levelTotal))}` : ''}</small></span>
                     ${pill}
                   </span>`;
             }
-            return `<button type="button" class="nx-bps-tile nx-bps-tile--${g.cat}${big ? ' nx-bps-tile--big' : ''}" data-zoom="${r.i}" title="${esc(title)}" aria-label="${esc(title)}"
-                style="left:${r.x.toFixed(1)}px;top:${r.y.toFixed(1)}px;width:${Math.max(0, w).toFixed(1)}px;height:${Math.max(0, h).toFixed(1)}px">
+            return `<button type="button" class="nx-bps-tile nx-bps-tile--${g.cat}${big ? ' nx-bps-tile--big' : ''}" data-zoom="${groups.indexOf(g)}" title="${esc(title)}" aria-label="${esc(title)}"
+                style="${pos}">
                 ${text}<span class="nx-bps-tile__strip" aria-hidden="true">${splitSegs(g, 'nx-bps-tile__seg')}</span>
               </button>`;
         }).join('');
@@ -593,6 +625,7 @@
         const came = state.path.length > target ? state.path[target] : undefined;
         state.path.length = target;
         state.openDays.clear();
+        writeUrl(true);
         render(true);
         const i = groups.findIndex(g => g.key === came);
         const row = i >= 0 && document.querySelector(`#bps-drill [data-zoom="${i}"]`);
@@ -611,12 +644,17 @@
             if (again) again.focus();
             return;
         }
+        if (e.target.closest('[data-rest]')) {
+            setView('table');
+            return;
+        }
         const z = e.target.closest('[data-zoom]');
         if (!z) return;
         const g = groups[Number(z.dataset.zoom)];
         if (!g) return;
         state.path.push(g.key);
         state.openDays.clear();
+        writeUrl(true);
         render(true);
     });
     document.getElementById('bps-crumbs').addEventListener('click', e => {
@@ -634,29 +672,40 @@
     });
 
     // ---- toolbar -------------------------------------------------------------
+    function syncControls() {
+        const order = state.order.join(',');
+        document.querySelectorAll('#bps-order [data-order]').forEach(b => {
+            b.classList.toggle('is-active', b.dataset.order === order);
+            b.setAttribute('aria-pressed', b.dataset.order === order ? 'true' : 'false');
+        });
+        document.getElementById('bps-billable-only').setAttribute('aria-pressed', state.billableOnly ? 'true' : 'false');
+        document.getElementById('bps-hide-absences').setAttribute('aria-pressed', state.hideAbsences ? 'true' : 'false');
+        const search = document.getElementById('bps-search');
+        if (search.value !== state.query) search.value = state.query;
+    }
     document.querySelectorAll('#bps-order [data-order]').forEach(btn => {
         btn.addEventListener('click', () => {
-            document.querySelectorAll('#bps-order [data-order]').forEach(b => {
-                b.classList.toggle('is-active', b === btn);
-                b.setAttribute('aria-pressed', b === btn ? 'true' : 'false');
-            });
             state.order = btn.dataset.order.split(',');
             state.path = [];
+            syncControls();
+            writeUrl(false);
             render();
         });
     });
+    function setView(view) {
+        state.view = view;
+        try { window.localStorage.setItem('nx.bps.view', state.view); } catch (e) { /* private mode */ }
+        render();
+    }
     document.querySelectorAll('#bps-view [data-view]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            state.view = btn.dataset.view;
-            try { window.localStorage.setItem('nx.bps.view', state.view); } catch (e) { /* private mode */ }
-            render();
-        });
+        btn.addEventListener('click', () => setView(btn.dataset.view));
     });
     function chip(id, key) {
         const el = document.getElementById(id);
         el.addEventListener('click', () => {
             state[key] = !state[key];
-            el.setAttribute('aria-pressed', state[key] ? 'true' : 'false');
+            syncControls();
+            writeUrl(false);
             render();
         });
     }
@@ -668,6 +717,7 @@
         searchTimer = setTimeout(() => {
             state.query = e.target.value;
             state.path = [];
+            writeUrl(false);
             render();
         }, 150);
     });
@@ -706,10 +756,129 @@
         labels.style.gridTemplateColumns = comp.cols;
         labels.innerHTML = comp.labels;
         drawChart();
+        trimPath();
         render();
         setStatus(fmt(S.bookingsLoaded, { n: intFmt.format(p.totals.count) }), 'live');
+        showLatest(p.latest);
+        limitPrev(p.first);
         if (p.truncated) showError({ error: S.truncated });
     }
 
+    // ---- the drill-down lives in the URL ---------------------------------------
+    // ?order=customer&at=Generali&at=Anna%20Muster&billable=1&absences=1&q=...
+    // A zoom pushes a history entry (Back goes up a level); order, filters and
+    // search replace the current one. Prev/next and the picker carry the same
+    // drill-down into the next period; trimPath() cuts keys that period lacks.
+    const ORDERS = {
+        task: ['Aufgabe', 'Kunde', 'Benutzer'],
+        customer: ['Kunde', 'Aufgabe', 'Benutzer'],
+        person: ['Benutzer', 'Kunde', 'Aufgabe'],
+    };
+    const DRILL_KEYS = ['order', 'at', 'billable', 'absences', 'q'];
+    const keyText = k => (k === null || k === undefined ? '' : String(k));
+
+    function readUrl() {
+        const q = new URL(window.location.href).searchParams;
+        state.order = (ORDERS[q.get('order')] || ORDERS.task).slice();
+        state.path = q.getAll('at').slice(0, state.order.length);
+        state.billableOnly = q.get('billable') === '1';
+        state.hideAbsences = q.get('absences') !== '1';
+        state.query = q.get('q') || '';
+        state.openDays.clear();
+        syncControls();
+    }
+
+    function drillParams() {
+        const out = new URLSearchParams();
+        const first = PARAM[state.order[0]];
+        if (first !== 'task') out.set('order', first);
+        state.path.forEach(k => out.append('at', keyText(k)));
+        if (state.billableOnly) out.set('billable', '1');
+        if (!state.hideAbsences) out.set('absences', '1');
+        if (state.query.trim()) out.set('q', state.query.trim());
+        return out;
+    }
+
+    function withDrill(href) {
+        const u = new URL(href, window.location.href);
+        DRILL_KEYS.forEach(k => u.searchParams.delete(k));
+        drillParams().forEach((v, k) => u.searchParams.append(k, v));
+        return u.pathname + u.search;
+    }
+
+    const navLinks = Array.from(document.querySelectorAll('a.nx-sydoc-nav'));
+    navLinks.forEach(a => { a.dataset.base = a.getAttribute('href'); });
+    const drillInputs = form.querySelector('[data-role="drill-params"]');
+
+    function syncLinks() {
+        navLinks.forEach(a => a.setAttribute('href', withDrill(a.dataset.base)));
+        drillInputs.innerHTML = '';
+        drillParams().forEach((v, k) => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = k;
+            input.value = v;
+            drillInputs.appendChild(input);
+        });
+    }
+
+    function writeUrl(push) {
+        const next = withDrill(window.location.href);
+        if (next !== window.location.pathname + window.location.search) {
+            window.history[push ? 'pushState' : 'replaceState']({ bps: true }, '', next);
+        }
+        syncLinks();
+    }
+
+    // Keys from a link or another period that this one lacks are cut, so the
+    // reader lands on the deepest level that exists. URL keys are text: they
+    // are swapped for the data's own key (a blank '' may be null there).
+    function trimPath() {
+        for (let depth = 0; depth < state.path.length; depth++) {
+            const level = V.level(visibleRows(), visiblePrev(), state.order, state.path.slice(0, depth));
+            const hit = level.find(g => keyText(g.key) === keyText(state.path[depth]));
+            if (!hit) {
+                state.path.length = depth;
+                writeUrl(false);
+                return;
+            }
+            state.path[depth] = hit.key;
+        }
+    }
+
+    window.addEventListener('popstate', () => {
+        readUrl();
+        syncLinks();
+        if (state.loaded) {
+            trimPath();
+            render(true);
+        }
+    });
+
+    // ---- data freshness: the BPS export reloads every morning ------------------
+    function showLatest(latest) {
+        const el = document.getElementById('bps-latest');
+        if (!el || !latest) return;
+        const age = Math.round((today - utc(latest)) / 86400000);
+        const stale = age > 4; // longer than a long weekend
+        el.innerHTML = `<span class="nx-sydoc-dot nx-sydoc-dot--${stale ? 'running' : 'live'}"></span>${esc(dayMonthYear.format(utc(latest)))}`;
+        el.title = stale ? S.staleData : '';
+    }
+
+    // The prev arrow stops at the period before the first booking: going
+    // further back only finds empty months.
+    function limitPrev(first) {
+        const a = document.querySelector('a[data-testid="bps-month-prev"]');
+        if (!a || !first) return;
+        const to = new URL(a.dataset.base, window.location.href).searchParams.get('to');
+        if (to && to < first) {
+            navLinks.splice(navLinks.indexOf(a), 1);
+            a.removeAttribute('href');
+            a.setAttribute('aria-disabled', 'true');
+        }
+    }
+
+    readUrl();
+    syncLinks();
     load();
 })();
