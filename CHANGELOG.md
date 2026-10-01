@@ -8,6 +8,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **BPS: totals and the composition bar sit below the ink band** (#415): the
+  KPI row and the billable / other service / absence bar moved out of the dark
+  header onto the page surface, themed with the page tokens.
+
 - **Finance: Xpert shows every BFH and ZHAW metric** (#408): BFH lists all its
   metrics (NKReproduzierte included), ZHAW every metric and dimension (intake
   Scanner and blank included), side by side under the per-client table. The
