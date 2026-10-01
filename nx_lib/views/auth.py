@@ -55,6 +55,10 @@ def _record_active_session(user_id):
     # Stamped on every login path; the dashboard shows it once (issue #146).
     session["login_at"] = datetime.now()
     session["show_login_note"] = True
+    # Signed-cookie sessions (INT) are browser-session cookies unless marked
+    # permanent; PROD/staging already are (SESSION_PERMANENT). Permanent makes
+    # PERMANENT_SESSION_LIFETIME apply everywhere (#437).
+    session.permanent = True
     try:
         import uuid as _uuid
 

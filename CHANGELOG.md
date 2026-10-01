@@ -6,6 +6,17 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Security
+
+- **Staging and the dev hosts are IP-restricted** (#437): an ngrok `restrict-ips`
+  policy lets only the Sydoc egress IP (`62.171.102.169`) through; PROD stays
+  public. `ops/setup-env.ps1` gains `-AllowCidr` and writes the policy for new
+  hosts. See `docs/howto/ngrok.md` → *IP restriction*.
+- **Staging and the dev hosts keep you logged in** (#437): behind that allowlist
+  a login lasts until the browser drops the cookie (sliding, 3650 days) instead
+  of 24 hours, and staging no longer logs everyone out at the nightly DB
+  refresh. PROD keeps its 24-hour session.
+
 ### Changed
 
 - **Finance: Xpert shows every BFH and ZHAW metric** (#408): BFH lists all its

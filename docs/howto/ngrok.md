@@ -54,15 +54,55 @@ endpoints:
     url: https://stop-taking-my-gitrunner-nexora.sydoc.ch
     upstream:
       url: http://127.0.0.1:8083
+    traffic_policy:          # IP allowlist, non-PROD only (#437)
+      on_http_request:
+        - actions:
+            - type: restrict-ips
+              config:
+                enforce: true
+                allow:
+                  - 62.171.102.169/32
   - name: nexora-dev-gruoss
     url: https://prod-but-not-really-nexora.sydoc.ch
     upstream:
       url: http://127.0.0.1:8084
+    traffic_policy:          # IP allowlist, non-PROD only (#437)
+      on_http_request:
+        - actions:
+            - type: restrict-ips
+              config:
+                enforce: true
+                allow:
+                  - 62.171.102.169/32
   - name: nexora-staging
     url: https://staging-nexora.sydoc.ch
     upstream:
       url: http://127.0.0.1:8082
+    traffic_policy:          # IP allowlist, non-PROD only (#437)
+      on_http_request:
+        - actions:
+            - type: restrict-ips
+              config:
+                enforce: true
+                allow:
+                  - 62.171.102.169/32
 ```
+
+## IP restriction (non-PROD)
+
+Staging and the dev hosts answer only the Sydoc egress IP `62.171.102.169`
+(#437). The `restrict-ips` policy above runs at the ngrok edge, so any other
+caller gets ngrok's 403 and never reaches IIS. PROD has no allowlist and stays
+public. Nothing automated calls the public non-PROD hostnames: deploys run on the
+SYAPP01 runner against the local folders. So the allowlist cannot break CI.
+
+To change the allowlist, edit the `allow:` list of **each** non-PROD endpoint in
+`D:\sydoc
+exora
+grok.yaml` and run `Restart-Service ngrok`. Restarting drops
+every host for a few seconds, PROD included. Also update `-AllowCidr`'s default in
+`ops/setup-env.ps1` and this page, so the next host gets the same allowlist.
+Check from outside the allowlist (phone on mobile data): you should see a 403.
 
 `ops/setup-env.ps1` appends the dev/staging entries (idempotent) and restarts
 the service; it assumes `endpoints:` is the last top-level key. The upstream must

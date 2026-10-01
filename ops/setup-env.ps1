@@ -27,6 +27,10 @@
   ngrok.yaml note: `endpoints:` must stay the LAST top-level key for the
   append to land inside the list (true today). The file holds the authtoken;
   this script never prints it.
+
+  Non-PROD hosts are IP-restricted at the ngrok edge (#437): the endpoint gets a
+  `restrict-ips` traffic policy allowing only -AllowCidr (default: the Sydoc
+  egress IP). Everyone else gets ngrok's 403 before IIS sees the request.
 #>
 param(
   [Parameter(Mandatory)][ValidatePattern('^(staging|dev-[a-z]+)$')] [string]$Name,
@@ -41,7 +45,7 @@ $ErrorActionPreference = 'Stop'
 if ($PSVersionTable.PSVersion.Major -ge 6) {
   Write-Host 'Re-launching in Windows PowerShell 5.1 (IIS: drive is not available in pwsh)...'
   & "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File $PSCommandPath `
-      -Name $Name -Port $Port -Environment $Environment -Hostname $Hostname -NgrokConfig $NgrokConfig
+      -Name $Name -Port $Port -Environment $Environment -Hostname $Hostname -NgrokConfig $NgrokConfig -AllowCidr ($AllowCidr -join ',')
   exit $LASTEXITCODE
 }
 Import-Module WebAdministration
@@ -91,12 +95,22 @@ if (-not ((Get-MpPreference).ExclusionPath -contains "$dir\var")) { Add-MpPrefer
 # 7. ngrok endpoint, appended once
 $yaml = Get-Content $NgrokConfig -Raw
 if ($yaml -notmatch [regex]::Escape("url: https://$Hostname")) {
+  # -AllowCidr arrives as one comma-joined string after the 5.1 re-launch
+  $allow = ($AllowCidr -split ',' | ForEach-Object { "                  - $($_.Trim())" }) -join "`r`n"
   $block = @"
 
   - name: nexora-$Name
     url: https://$Hostname
     upstream:
       url: http://127.0.0.1:$Port
+    traffic_policy:
+      on_http_request:
+        - actions:
+            - type: restrict-ips
+              config:
+                enforce: true
+                allow:
+$allow
 "@
   Add-Content -Path $NgrokConfig -Value $block -Encoding UTF8
   Restart-Service ngrok

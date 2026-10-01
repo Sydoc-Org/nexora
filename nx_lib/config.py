@@ -24,7 +24,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 # ops/cleanup/prune_active_sessions.py to derive its retention window. It lives
 # here rather than inline in create_app() so the cleanup cannot fall out of step
 # with it: a cleanup that deletes rows younger than a live session would log
-# people out (#227).
+# people out (#227). PROD (and TEST) value; staging and INT override it below,
+# once ENVIRONMENT is known.
 SESSION_LIFETIME = timedelta(hours=24)
 
 # Grace added on top of SESSION_LIFETIME before an ActiveSessions row is pruned.
@@ -99,6 +100,16 @@ DOTENV_KEYS = frozenset(os.environ) - _pre_dotenv_keys
 # STAGING is a public, prod-shaped host (#338): same CSP, /nexora prefix,
 # filesystem sessions and /dev/* lockout as PROD.
 IS_PROD = os.environ.get("ENVIRONMENT") in ("PROD", "STAGING")
+IS_STAGING = os.environ.get("ENVIRONMENT") == "STAGING"
+
+# Staging and the dev hosts are IP-restricted at the ngrok edge (#437), so a
+# login there lasts until the browser drops the cookie: log in once per browser.
+# The session slides (refreshed on every request), and browsers cap a cookie at
+# ~400 days, so in practice it never ends for anyone who visits within a year.
+# PROD keeps 24 hours. The cleanup jobs that read SESSION_LIFETIME run on PROD.
+LONG_LIVED_SESSIONS = os.environ.get("ENVIRONMENT") in ("INT", "STAGING")
+if LONG_LIVED_SESSIONS:
+    SESSION_LIFETIME = timedelta(days=3650)
 
 # /terms and /privacy are still a draft awaiting management sign-off (#260).
 # They are live on dev and staging so they can be reviewed there, and off on
