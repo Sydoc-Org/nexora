@@ -148,6 +148,8 @@ html.dark .nx-fin-bpsbtn:hover { background: #1f2937; }
   display: grid; gap: 28px; margin-top: 20px;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
 }
+/* Hours, billed, bookings and share: four figures want more room. */
+.nx-fin-tables--wide { grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); }
 .nx-fin-table { min-width: 0; }
 .nx-fin-table__head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
 .nx-fin-table__count { font-size: 11px; color: var(--nx-fin-quiet); font-variant-numeric: tabular-nums; }
@@ -223,7 +225,7 @@ html.dark .nx-fin-bpsbtn:hover { background: #1f2937; }
 }
 .nx-fin-tl__items { padding: 8px 0; min-width: 0; }
 .nx-fin-tl__item {
-  display: grid; grid-template-columns: minmax(0, 1fr) 72px; gap: 16px; align-items: baseline; padding: 6px 0;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: baseline; padding: 6px 0;
 }
 .nx-fin-tl__comment { margin: 0; font-size: 13px; line-height: 1.45; color: var(--nx-text); text-wrap: pretty; overflow-wrap: anywhere; }
 .nx-fin-tl__comment.is-empty { color: var(--nx-fin-quiet); font-style: italic; }
@@ -232,6 +234,20 @@ html.dark .nx-fin-bpsbtn:hover { background: #1f2937; }
   text-align: right; white-space: nowrap;
   font-family: var(--nx-mono); font-variant-numeric: tabular-nums; font-size: 13px; font-weight: 600; color: var(--nx-text);
 }
+/* The BPS hours export: which invoices, then Excel or PDF. */
+.nx-fin-export {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  margin: 14px 0 4px; padding: 10px 12px; border: 1px solid var(--nx-border); border-radius: 10px;
+}
+.nx-fin-export .nx-eyebrow { margin-right: 4px; }
+.nx-fin-export__pick {
+  min-width: 0; max-width: 100%; padding: 6px 8px; font: inherit; font-size: 13px;
+  color: var(--nx-text); background: var(--nx-page); border: 1px solid var(--nx-border); border-radius: 8px;
+}
+/* Booked -> billed hours (each booking rounded up to the quarter hour). */
+.nx-fin-raw { color: var(--nx-fin-quiet); font-weight: 400; }
+.nx-fin-arrow { margin: 0 4px; color: var(--nx-fin-quiet); font-weight: 400; }
+.nx-fin-billed { color: var(--nx-text); }
 .nx-fin-tl:not(.is-expanded) .is-more { display: none; }
 .nx-fin-tl__foot { padding: 10px 0 0 112px; border-top: 1px solid var(--nx-divider); }
 .nx-fin-tl__foot .nx-fin-more { padding: 0; }
@@ -383,7 +399,7 @@ html.dark.nx-stripes .nx-fin-matrix .nx-table tbody tr:nth-child(even) th { back
   #nexora-sidebar, .sidebar-toggle-btn, .sidebar-backdrop, .firefly-field, .nx-fin-more { display: none !important; }
   body.nx-app, body.nx-app .nx-main { background: #fff; color: #000; padding: 0 !important; max-width: none; }
   .nx-sydoc-band .nx-sydoc-btn, .nx-sydoc-nav, .nx-fin-jump, .nx-sydoc-period__chev,
-  .nx-fin-bpsbtn, #fin-bexio-refresh, .nx-fin-confirm, .nx-sydoc-picker { display: none !important; }
+  .nx-fin-bpsbtn, .nx-fin-export, #fin-bexio-refresh, .nx-fin-confirm, .nx-sydoc-picker { display: none !important; }
   /* body.nx-sydoc: nexora-ui.css loads again after this sheet (see above). */
   body.nx-sydoc .nx-sydoc-band { background: none; color: #000; padding: 0; border-radius: 0; }
   body.nx-sydoc .nx-sydoc-period__main, body.nx-sydoc .nx-sydoc-period__year { font-size: 20px; color: #000; letter-spacing: 0; }

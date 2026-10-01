@@ -310,3 +310,21 @@ def test_a_month_so_far_compares_with_the_same_days_of_the_month_before():
         dt.date(2026, 2, 1),
         dt.date(2026, 2, 28),
     )
+
+
+@pytest.mark.parametrize(
+    ("hours", "billed"),
+    [
+        (0, 0),
+        (None, 0),
+        (Decimal("0.0167"), 0.25),
+        (Decimal("0.25"), 0.25),
+        (Decimal("0.3333"), 0.5),
+        (0.5, 0.5),
+        (Decimal("0.7501"), 1),
+        (Decimal("2"), 2),
+        (Decimal("2.0833"), 2.25),
+    ],
+)
+def test_a_booking_is_billed_rounded_up_to_the_quarter_hour(hours, billed):
+    assert bps.billed_hours(hours) == billed
