@@ -1082,76 +1082,26 @@
     // known, so one of two big buttons saves the report. Same POST as the full
     // form sends for a single entry; the server still enforces one report per
     // day and KPI and the add deadline, and its message is shown if it refuses.
-    // "Saved · Undo" for a few seconds after a one-tap report, so a wrong tap
-    // is easy to take back. The server only lets the reporter undo their own
-    // report, within 10 minutes (UNDO_WINDOW_SECONDS in reporting.py) -- the
-    // pill is just the shortcut, so it can go quickly. It fades out on its
-    // own, and at once on a tap anywhere else or a finger scroll (touchmove, not
-    // scroll: the list reload after a save can scroll the page by itself).
-    const UNDO_SHOW_MS = 6000;
-    const UNDO_AFTER_MS = 2500;  // how long "Undone." stays up
-    let undoTimer = null;
-    function hideUndo() {
-        const bar = document.getElementById('rpUndo');
-        clearTimeout(undoTimer);
-        document.removeEventListener('pointerdown', onUndoOutside, true);
-        document.removeEventListener('touchmove', hideUndo, true);
-        if (!bar || bar.hidden) return;
-        bar.classList.add('is-leaving');
-        setTimeout(() => { bar.hidden = true; bar.classList.remove('is-leaving'); }, 220);
-    }
-    function onUndoOutside(e) {
-        const bar = document.getElementById('rpUndo');
-        if (bar && !bar.contains(e.target)) hideUndo();
-    }
-    function startUndoClock(bar, ms) {
-        clearTimeout(undoTimer);
-        const time = bar.querySelector('.rp-undo__time');
-        if (time) {
-            // Restart the countdown line: drop the animation, force a reflow, put it back.
-            time.style.animation = 'none';
-            void time.offsetWidth;
-            time.style.animation = '';
-            bar.style.setProperty('--rp-undo-ms', `${ms}ms`);
-        }
-        undoTimer = setTimeout(hideUndo, ms);
-    }
+    // "Saved · Undo" after a one-tap report, so a wrong tap is easy to take
+    // back. The pill's timing lives in static/js/undo_pill.js (shared with
+    // Base Services). The server only lets the reporter undo their own report,
+    // within 10 minutes (UNDO_WINDOW_SECONDS in reporting.py).
     function showUndo(done) {
-        const bar = document.getElementById('rpUndo');
-        if (!bar) return;
-        const text = bar.querySelector('.rp-undo__text');
-        const btn = bar.querySelector('.rp-undo__btn');
-        text.textContent = `${I18N.reported} · ${done.ontime ? I18N.onTime : I18N.late}`;
-        text.title = done.name || '';
-        btn.hidden = !done.id;
-        btn.disabled = false;
-        btn.onclick = async () => {
-            btn.disabled = true;
-            clearTimeout(undoTimer);
-            try {
+        NX.undoPill.show(document.getElementById('rpUndo'), {
+            text: `${I18N.reported} · ${done.ontime ? I18N.onTime : I18N.late}`,
+            title: done.name || '',
+            failText: I18N.saveFailed,
+            undo: done.id ? async () => {
                 const res = await fetch(`${API_PREFIX}api/generali/reporting/${done.id}/undo`, {
                     method: 'POST', headers: { 'X-CSRFToken': csrfToken }
                 });
                 const data = await res.json().catch(() => ({}));
                 if (!data.success) throw new Error(data.error || I18N.saveFailed);
-                text.textContent = I18N.undone;
                 fetchRecords(1);
                 loadToday();
-            } catch (e) {
-                text.textContent = e.message || I18N.saveFailed;
-            }
-            btn.hidden = true;
-            startUndoClock(bar, UNDO_AFTER_MS);
-        };
-        bar.classList.remove('is-leaving');
-        bar.hidden = false;
-        startUndoClock(bar, UNDO_SHOW_MS);
-        // Armed on the next tick, so the tap that saved the report does not
-        // count as a tap outside and close the pill straight away.
-        setTimeout(() => {
-            document.addEventListener('pointerdown', onUndoOutside, true);
-            document.addEventListener('touchmove', hideUndo, { capture: true, passive: true, once: true });
-        }, 0);
+                return I18N.undone;
+            } : null,
+        });
     }
 
     const quick = document.getElementById('rpQuick');

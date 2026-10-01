@@ -54,6 +54,53 @@
       </div>
     </div>
 
+    {% if can_add %}
+    {# Phone only: book your own hours in a few taps (#354, survey 29.09 --
+       "Zeiterfassung fuer Basisleistungen" was the one thing that had to work
+       on a phone). Rendered hidden; generali_base_services_phone.js fills and
+       shows it only on a touch phone, so desktop never sees it. Always books
+       for the signed-in user; booking for someone else stays in the full form
+       ("More options"). #}
+    <section id="bsQuick" class="bs-quick" data-testid="generali-base-services-quick" hidden>
+      <div class="bs-quick__head">
+        <h2 class="bs-quick__title">{{ _("Book hours") }}</h2>
+        <span class="bs-quick__date" id="bsQuickDateLabel"></span>
+      </div>
+
+      <div class="bs-quick__days" role="group" aria-label="{{ _('Date') }}">
+        <button type="button" class="bs-chip" data-day="0" data-testid="generali-base-services-quick-today">{{ _("Today") }}</button>
+        <button type="button" class="bs-chip" data-day="1" data-testid="generali-base-services-quick-yesterday">{{ _("Yesterday") }}</button>
+        <input type="text" id="bsQuickDate" class="bs-chip bs-chip--date" readonly
+               placeholder="{{ _('Other day') }}" aria-label="{{ _('Other day') }}"
+               data-testid="generali-base-services-quick-date">
+      </div>
+
+      <p class="bs-quick__label">{{ _("Category") }}</p>
+      <div class="bs-quick__cats" id="bsQuickCats" role="group" aria-label="{{ _('Category') }}"
+           data-testid="generali-base-services-quick-categories"></div>
+
+      <p class="bs-quick__label">{{ _("Hours") }}</p>
+      <div class="bs-quick__presets" id="bsQuickPresets" role="group" aria-label="{{ _('Hours') }}"></div>
+      <div class="bs-quick__stepper">
+        <button type="button" class="bs-step" id="bsQuickMinus" aria-label="{{ _('Half an hour less') }}"
+                data-testid="generali-base-services-quick-minus"><i class="fas fa-minus"></i></button>
+        <output class="bs-quick__hours" id="bsQuickHours" data-testid="generali-base-services-quick-hours">–</output>
+        <button type="button" class="bs-step" id="bsQuickPlus" aria-label="{{ _('Half an hour more') }}"
+                data-testid="generali-base-services-quick-plus"><i class="fas fa-plus"></i></button>
+      </div>
+
+      <p class="bs-quick__error" id="bsQuickError" role="alert" hidden></p>
+      <button type="button" class="nx-btn nx-btn--primary bs-quick__save" id="bsQuickSave" disabled
+              data-testid="generali-base-services-quick-save">{{ _("Save") }}</button>
+      <button type="button" class="bs-quick__more" id="bsQuickMore"
+              data-testid="generali-base-services-quick-more">{{ _("More options") }}</button>
+
+      <div class="bs-quick__mine" id="bsQuickMine" data-testid="generali-base-services-quick-mine"></div>
+      <a class="bs-quick__month" id="bsQuickMonth" href="{{ url_for('generali_baseservices_monthreport') }}"
+         data-testid="generali-base-services-quick-month" hidden></a>
+    </section>
+    {% endif %}
+
     <!-- Filter Bar -->
     <div class="nx-filter mb-6">
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -300,6 +347,14 @@
       </div>
     </div>
   </div>
+
+  {% if can_add %}
+  <div id="bsUndo" class="nx-undo" role="status" data-testid="generali-base-services-undo" hidden>
+    <span class="nx-undo__text"></span>
+    <button type="button" class="nx-undo__btn" data-testid="generali-base-services-undo-btn">{{ _("Undo") }}</button>
+    <span class="nx-undo__time" aria-hidden="true"></span>
+  </div>
+  {% endif %}
 
   {% include 'js/_generali_user_filter_js.html' %}
   {% include 'js/_generali_base_services_js.html' %}

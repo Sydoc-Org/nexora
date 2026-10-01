@@ -1770,9 +1770,9 @@ html.dark .flatpickr-day:hover { background: var(--nx-alt); }
   /* "Saved · Undo" after a one-tap report: a small pill above the tab bar,
      not a full-width bar. It fades out on its own (the line along the
      bottom shows how long is left), and goes at once on a tap elsewhere or a
-     scroll -- generali_reporting.js owns the timing. The Undo button keeps
+     scroll -- static/js/undo_pill.js owns the timing. The Undo button keeps
      a 44px hit area even though the pill itself reads small. */
-  .rp-undo:not([hidden]) {
+  .nx-undo:not([hidden]) {
     position: fixed; left: 50%; z-index: var(--z-modal, 61);
     bottom: calc(var(--nx-tabbar-h, 64px) + 12px + var(--nx-sa-bottom, env(safe-area-inset-bottom, 0px)));
     transform: translateX(-50%);
@@ -1780,30 +1780,93 @@ html.dark .flatpickr-day:hover { background: var(--nx-alt); }
     max-width: min(340px, calc(100vw - 32px)); padding: 0 4px 0 14px;
     border-radius: 999px; overflow: hidden;
     background: var(--nx-text); color: var(--nx-card); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
-    animation: rpUndoIn 180ms ease-out;
+    animation: nxUndoIn 180ms ease-out;
     transition: opacity 220ms ease, transform 220ms ease;
   }
-  .rp-undo.is-leaving { opacity: 0; transform: translate(-50%, 8px); }
-  .rp-undo__text {
+  .nx-undo.is-leaving { opacity: 0; transform: translate(-50%, 8px); }
+  .nx-undo__text {
     min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     font-size: 14px; font-weight: 500; line-height: 1.2; padding: 10px 0;
   }
-  .rp-undo__btn {
+  .nx-undo__btn {
     flex: none; min-height: 44px; padding: 0 12px; border: 0; border-radius: 999px; cursor: pointer;
     background: color-mix(in srgb, currentColor 14%, transparent); color: inherit; font-size: 14px; font-weight: 700;
   }
-  .rp-undo__btn:active { background: color-mix(in srgb, currentColor 26%, transparent); }
-  .rp-undo__time {
+  .nx-undo__btn:active { background: color-mix(in srgb, currentColor 26%, transparent); }
+  .nx-undo__time {
     position: absolute; left: 0; bottom: 0; height: 2px; width: 100%;
     background: currentColor; opacity: 0.45; transform-origin: left;
-    animation: rpUndoTime var(--rp-undo-ms, 6000ms) linear forwards;
+    animation: nxUndoTime var(--nx-undo-ms, 6000ms) linear forwards;
   }
-  @keyframes rpUndoIn { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translateX(-50%); } }
-  @keyframes rpUndoTime { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+  @keyframes nxUndoIn { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translateX(-50%); } }
+  @keyframes nxUndoTime { from { transform: scaleX(1); } to { transform: scaleX(0); } }
   @media (prefers-reduced-motion: reduce) {
-    .rp-undo:not([hidden]) { animation: none; transition: none; }
-    .rp-undo__time { animation: none; display: none; }
+    .nx-undo:not([hidden]) { animation: none; transition: none; }
+    .nx-undo__time { animation: none; display: none; }
   }
+
+  /* Base Services quick hours entry (#354) -- the phone board above the
+     list. Same visual language as Reporting's "Today": big cards, 44px+
+     targets, pressed state carried by aria-pressed so it reads to a screen
+     reader too. */
+  .bs-quick { margin: 0 0 22px; }
+  .bs-quick__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 12px; }
+  .bs-quick__title { margin: 0; font-size: 22px; font-weight: 700; color: var(--nx-text); }
+  .bs-quick__date { font-size: 15px; color: var(--nx-text-sec); font-variant-numeric: tabular-nums; }
+  .bs-quick__label { margin: 16px 0 8px; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--nx-text-meta); }
+  /* One row each at 320px: three day chips, five hour presets. */
+  .bs-quick__days { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .bs-quick__presets { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+  .bs-chip {
+    min-width: 0; min-height: 44px; padding: 0 8px; border-radius: 999px; cursor: pointer;
+    border: 1px solid var(--nx-border-strong); background: var(--nx-card); color: var(--nx-text);
+    font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums;
+  }
+  .bs-chip[aria-pressed="true"], .bs-chip.is-on {
+    background: var(--nx-accent); border-color: var(--nx-accent); color: var(--nx-on-accent);
+  }
+  .bs-chip:disabled { opacity: 0.45; cursor: default; }
+  /* The "Other day" chip is the flatpickr input itself. */
+  .bs-chip--date { width: 100%; text-align: center; text-overflow: ellipsis; }
+  .bs-chip--date::placeholder { color: var(--nx-text-sec); opacity: 1; }
+  .bs-chip--date.is-on::placeholder { color: var(--nx-on-accent); }
+  .bs-quick__cats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .bs-cat {
+    min-height: 64px; padding: 10px 12px; border-radius: 14px; cursor: pointer; text-align: left;
+    border: 1px solid var(--nx-border-strong); background: var(--nx-card); color: var(--nx-text);
+    font-size: 15px; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere;
+  }
+  .bs-cat[aria-pressed="true"] {
+    border-color: var(--nx-accent); background: var(--nx-accent-tint); color: var(--nx-l-indigo-fg, var(--nx-text));
+    box-shadow: inset 0 0 0 1px var(--nx-accent);
+  }
+  .bs-quick__stepper { display: flex; align-items: center; justify-content: center; gap: 18px; margin: 12px 0 0; }
+  .bs-step {
+    width: 52px; height: 52px; border-radius: 50%; cursor: pointer; font-size: 18px;
+    border: 1px solid var(--nx-border-strong); background: var(--nx-card); color: var(--nx-text);
+  }
+  .bs-step:disabled { opacity: 0.4; cursor: default; }
+  .bs-quick__hours { min-width: 4.5em; text-align: center; font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--nx-text); }
+  .bs-quick__error { margin: 12px 0 0; color: var(--nx-danger); font-size: 14px; }
+  .bs-quick__save { width: 100%; min-height: 52px; margin: 16px 0 0; font-size: 17px; justify-content: center; }
+  .bs-quick__more {
+    display: block; margin: 6px auto 0; min-height: 44px; padding: 0 12px; border: 0; background: none; cursor: pointer;
+    color: var(--nx-accent); font-size: 15px; font-weight: 600;
+  }
+  .bs-quick__mine { margin: 14px 0 0; padding: 12px 14px; border-radius: 14px; background: var(--nx-sunken); }
+  .bs-mine__empty, .bs-mine__total { margin: 0; font-size: 14px; color: var(--nx-text-sec); }
+  .bs-mine__total { font-weight: 600; color: var(--nx-text); }
+  .bs-mine__list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+  .bs-mine__row { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; color: var(--nx-text); }
+  .bs-mine__cat { min-width: 0; overflow-wrap: anywhere; }
+  .bs-mine__h { flex: none; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .bs-quick__month {
+    display: flex; align-items: center; min-height: 44px; margin: 6px 0 0;
+    font-size: 15px; font-weight: 600; color: var(--nx-accent); text-decoration: none;
+  }
+  .bs-quick__month::after { content: " ›"; color: var(--nx-text-meta); margin-left: 4px; }
+  /* Survey 29.09: nobody needs the Excel export on a phone. */
+  [data-testid="generali-base-services-export-excel"] { display: none; }
 
   /* Folded filter blocks (nx_core.js adds the button and the class). */
   .nx-filter.nx-filter--folded { display: none; }

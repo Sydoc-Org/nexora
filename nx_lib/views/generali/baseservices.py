@@ -122,6 +122,8 @@ BASESERVICES = CrudTable(
     filter_users_label="Generali BaseServices",
     monthreport_url="/generali/baseServices/monthreport",
     monthreport_endpoint="generali_baseservices_monthreport",
+    # The phone quick entry offers "Undo" for a few seconds after saving.
+    undo=True,
     monthreport=CrudMonthReport(
         section="baseservices",
         section_title="Generali Base Services",
@@ -182,6 +184,7 @@ api_generali_baseservices_list = BASESERVICES.views["list"]
 api_generali_baseservices_add = BASESERVICES.views["add"]
 api_generali_baseservices_edit = BASESERVICES.views["edit"]
 api_generali_baseservices_delete = BASESERVICES.views["delete"]
+api_generali_baseservices_undo = BASESERVICES.views["undo"]
 generali_baseservices_monthreport = BASESERVICES.views["monthreport"]
 
 for _name, _fn in (
@@ -192,6 +195,7 @@ for _name, _fn in (
     ("api_generali_baseservices_add", api_generali_baseservices_add),
     ("api_generali_baseservices_edit", api_generali_baseservices_edit),
     ("api_generali_baseservices_delete", api_generali_baseservices_delete),
+    ("api_generali_baseservices_undo", api_generali_baseservices_undo),
     ("generali_baseservices_monthreport", generali_baseservices_monthreport),
 ):
     _fn.__name__ = _name

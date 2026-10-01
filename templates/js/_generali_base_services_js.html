@@ -393,4 +393,33 @@
     loadOrganizations();
     nxUserFilter.init(API_PREFIX + 'api/generali/baseservices/filterUsers', applyFiltersSoon);
     crud.loadRecords(1);
+    // generali_base_services_phone.js reads these; both are block-scoped
+    // consts here, so hand them over explicitly rather than relying on the
+    // shared global lexical scope.
+    window.NX_GENERALI_BASE_SERVICES = { crud, categories: BASE_CATEGORIES, openAddModal: {% if can_add %}openAddModal{% else %}null{% endif %} };
 </script>
+{% if can_add %}
+<script nonce="{{ csp_nonce() }}">
+  // Jinja-rendered data and strings for static/js/generali_base_services_phone.js
+  // (#191: only behaviour lives in the .js file; Babel extracts from here).
+  window.NX_BASE_SERVICES_QUICK = {
+    userId: {{ userid|tojson }},
+    i18n: {
+      today: {{ _("Today")|tojson }},
+      yesterday: {{ _("Yesterday")|tojson }},
+      saved: {{ _("Saved")|tojson }},
+      saveFailed: {{ _("Error saving record.")|tojson }},
+      networkError: {{ _("Network error.")|tojson }},
+      undone: {{ _("Undone. The entry was removed.")|tojson }},
+      pickBoth: {{ _("Pick a category and the hours.")|tojson }},
+      nothingYet: {{ _("Nothing booked on this day yet.")|tojson }},
+      failedToLoad: {{ _("Failed to load data. Please try again.")|tojson }},
+      // {hours} is filled in by the .js file
+      dayTotal: {{ _("Booked on this day: {hours} h")|tojson }},
+      monthTotal: {{ _("This month: {hours} h")|tojson }}
+    }
+  };
+</script>
+<script src="{{ static_v('js/undo_pill.js') }}"></script>
+<script src="{{ static_v('js/generali_base_services_phone.js') }}"></script>
+{% endif %}

@@ -42,6 +42,7 @@ from .baseservices import (
     api_generali_baseservices_list,
     api_generali_baseservices_org_users,
     api_generali_baseservices_organizations,
+    api_generali_baseservices_undo,
     generali_base_services,
     generali_baseservices_monthreport,
 )
@@ -110,6 +111,7 @@ __all__ = [
     "api_generali_attendance_organizations",
     "api_generali_baseservices_add",
     "api_generali_baseservices_delete",
+    "api_generali_baseservices_undo",
     "api_generali_baseservices_edit",
     "api_generali_baseservices_filter_users",
     "api_generali_baseservices_list",
