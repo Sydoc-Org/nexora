@@ -16,6 +16,14 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   to clients from the panel (`dbo.FinanceBexioContacts`, migration `0141`).
   New env key `BEXIO_PAT` (unset disables the panel); `scripts/bexio-probe.py`
   checks a token read-only. `docs/howto/finance.md`.
+- **BPS history from January 2025** (#424): the bpsuite feed starts on
+  3 August 2026 and is truncated every morning, so older bookings were loaded
+  once from a Projektbericht export into `SYDOC_Statistik.dbo.BPS_ProjectReportHistory`
+  (72,080 bookings, 2025-01-03 … 2026-07-31) on PROD and INT. The view
+  `dbo.BPS_ProjectReportAll` joins it to the feed (history only before the
+  feed's first date), and migration `0142` repoints the `bps_projects` source
+  at it, so `/bps`, Reporting and Finance see the full history. Finance months
+  that are already closed keep their snapshot. See `docs/howto/bps.md`.
 - **Sydoc BPS** (`/bps`, permission `bps.view`, #415): every hour booked in
   the BPS timetool for a period -- KPIs (total / service / billable / absence
   hours, bookings, people), hours per day stacked by category, and a

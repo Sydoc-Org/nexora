@@ -1,8 +1,9 @@
 """Sydoc BPS -- the hours booked in the BPS timetool, and which of them are billed (#415).
 
 Pure and DB-free, like nx_lib/finance.py. The timetool's export lands in
-SYDOC_Statistik.dbo.BPS_ProjectReport (the ``bps_projects`` reporting source,
-0124): one row per booking with customer (Kunde), project package
+SYDOC_Statistik.dbo.BPS_ProjectReport; the ``bps_projects`` reporting source
+(0124, repointed by 0142) reads the view dbo.BPS_ProjectReportAll, which adds
+the one-off history load before the feed's first date (#424): one row per booking with customer (Kunde), project package
 (Projektpaket), task (Aufgabe), person (Benutzer), date, hours and a comment.
 BPS has no billing flag; what is billed is a property of the task name, and
 it lives here, once, for both the Finance page (every billable booking,
