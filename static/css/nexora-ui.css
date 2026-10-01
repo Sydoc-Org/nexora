@@ -1249,6 +1249,7 @@ html.dark .nx-sydoc-picker__cell-status--running { color: #fbbf24; }
 .nx-sydoc-picker__cell.is-selected { background: #111318; border-color: #111318; }
 .nx-sydoc-picker__cell.is-selected .nx-sydoc-picker__cell-name { color: #fff; }
 .nx-sydoc-picker__cell.is-selected .nx-sydoc-picker__cell-status { color: var(--nx-sydoc-soft); }
+.nx-sydoc-picker__cell.is-selected .nx-sydoc-picker__cell-status .nx-sydoc-dot { background: currentColor; }
 html.dark .nx-sydoc-picker__cell.is-selected { background: #0b0d12; border-color: var(--nx-sydoc-soft); }
 .nx-sydoc-picker__cell[disabled] { opacity: .4; cursor: default; }
 .nx-sydoc-picker__legend { display: flex; flex-wrap: wrap; gap: 14px; padding: 12px 18px 16px; font-size: 11px; color: var(--nx-text-sec); }

@@ -47,10 +47,10 @@
   </section>
   {%- endmacro %}
 
-  {% macro group_head(label, count) -%}
+  {% macro group_head(label, count=None) -%}
   <div class="nx-fin-group nx-rise-3">
     <h2>{{ label }}</h2>
-    <span class="nx-fin-group__count">{{ count }}</span>
+    {% if count is not none %}<span class="nx-fin-group__count">{{ count }}</span>{% endif %}
     <span class="nx-fin-group__rule" aria-hidden="true"></span>
   </div>
   {%- endmacro %}
@@ -122,14 +122,16 @@
       </div>
 
       <nav class="nx-fin-jump" aria-label="{{ _('Sections') }}">
+        {# In page order: the Bexio panel comes first. #}
+        <a class="nx-fin-jump__item nx-fin-jump__item--bexio" href="#fin-bexio" title="{{ _('Bexio') }} · {{ _('Invoices') }}">
+          <span class="nx-fin-jump__tile" aria-hidden="true">Bx</span><span class="nx-fin-jump__label">{{ _("Bexio") }}</span>
+        </a>
+        <span class="nx-fin-jump__sep" aria-hidden="true"></span>
         {{ jump_items(internal_sections) }}
         <span class="nx-fin-jump__sep" aria-hidden="true"></span>
         {{ jump_items(external_sections) }}
         <span class="nx-fin-jump__sep" aria-hidden="true"></span>
         {{ jump_items(service_sections) }}
-        <a class="nx-fin-jump__item nx-fin-jump__item--services" href="#fin-bexio" title="{{ _('Bexio') }} · {{ _('Invoices') }}">
-          <span class="nx-fin-jump__tile" aria-hidden="true">Bx</span><span class="nx-fin-jump__label">{{ _("Bexio") }}</span>
-        </a>
       </nav>
     </section>
 
@@ -173,7 +175,7 @@
 
     {# What was invoiced in Bexio for this month (#423), read live and
        read-only; filled by finance_bexio.js from /api/finance/bexio. #}
-    {{ group_head(_("Invoiced in Bexio"), 1) }}
+    {{ group_head(_("Invoiced in Bexio")) }}
     <section class="nx-fin-section nx-fin-bexio" id="fin-bexio" aria-busy="true" data-testid="finance-bexio">
       <div class="nx-fin-id">
         <h3 class="nx-fin-id__client">{{ _("Bexio") }}</h3>

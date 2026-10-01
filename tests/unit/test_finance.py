@@ -649,5 +649,5 @@ def test_every_section_has_a_short_nav_label():
     assert labels["xpert"] == "Xpert"
     assert labels["bucherer"] == "EasyTax"
     assert labels["frigemo"] == "Frigemo"  # no title: falls back to the client
-    assert labels["bps"] == "Billable services"  # the title, translated by the view
+    assert labels["bps"] == "Services"  # translated by the view, like the title
     assert all(labels.values())

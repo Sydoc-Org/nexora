@@ -8,14 +8,21 @@
 
 html { overflow-y: auto; }
 
-/* ---------- Jump index, flush at the bottom of the band ---------- */
+/* ---------- Jump index, flush at the bottom of the band ----------
+   One row that never wraps. Where it does not fit it scrolls sideways
+   (scrollbar hidden, edges faded) rather than cutting every label down to
+   a letter, as the design's ellipsis did at 1440px with twelve entries. */
 .nx-fin-jump {
-  display: flex; flex-wrap: nowrap; align-items: center; overflow: hidden;
+  display: flex; flex-wrap: nowrap; align-items: center;
+  overflow-x: auto; overflow-y: hidden; scrollbar-width: none; overscroll-behavior-x: contain;
   margin: 22px -30px 0; padding: 0 16px;
   border-top: 1px solid var(--nx-sydoc-band-line);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 16px, #000 calc(100% - 28px), transparent);
+          mask-image: linear-gradient(90deg, transparent 0, #000 16px, #000 calc(100% - 28px), transparent);
 }
+.nx-fin-jump::-webkit-scrollbar { display: none; }
 .nx-fin-jump__item {
-  flex: 0 1 auto; min-width: 0; height: 44px; padding: 0 7px;
+  flex: 0 0 auto; height: 44px; padding: 0 7px;
   display: inline-flex; align-items: center; gap: 6px;
   font-size: 12px; font-weight: 500; color: #d1d5db; text-decoration: none;
   border-bottom: 2px solid transparent; margin-bottom: -1px;
@@ -23,7 +30,7 @@ html { overflow-y: auto; }
 }
 .nx-fin-jump__item:hover { color: #fff; border-bottom-color: var(--nx-sydoc); }
 .nx-fin-jump__item:focus-visible { outline: 2px solid var(--nx-sydoc-soft); outline-offset: -2px; border-radius: 4px; }
-.nx-fin-jump__label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.nx-fin-jump__label { white-space: nowrap; }
 .nx-fin-jump__tile {
   width: 20px; height: 20px; border-radius: 6px; flex-shrink: 0;
   display: inline-flex; align-items: center; justify-content: center;
@@ -32,6 +39,7 @@ html { overflow-y: auto; }
 }
 .nx-fin-jump__item--external .nx-fin-jump__tile { background: rgba(96,165,250,.2); color: #bfdbfe; }
 .nx-fin-jump__item--services .nx-fin-jump__tile { background: rgba(227,99,63,.22); color: #f6b19c; }
+.nx-fin-jump__item--bexio .nx-fin-jump__tile { background: rgba(52,211,153,.18); color: #a7f3d0; }
 .nx-fin-jump__sep { width: 1px; height: 18px; background: rgba(255,255,255,.12); margin: 0 6px; flex-shrink: 0; }
 
 /* The band's closed stamp and the picker legend's "open" dot. _header.html
@@ -56,6 +64,7 @@ html.dark .nx-sydoc-dot.nx-fin-dot--open { background: var(--nx-gain); }
 .nx-fin-group__rule { flex: 1; height: 1px; background: var(--nx-border); }
 
 /* ---------- One ledger row = one client / workbook ---------- */
+.nx-fin-section, .nx-fin-tl { scroll-margin-top: 20px; }
 .nx-fin-section {
   display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 48px;
   padding: 26px 0; border-bottom: 1px solid var(--nx-border);
@@ -92,12 +101,13 @@ html.dark .nx-fin-bpsbtn:hover { background: #1f2937; }
 
 /* ---------- Statement lines ---------- */
 .nx-fin-lines__head, .nx-fin-line {
-  display: grid; grid-template-columns: minmax(0, 1fr) 150px 110px 170px; align-items: center;
+  display: grid; grid-template-columns: minmax(0, 1fr) 150px 110px 170px; align-items: center; column-gap: 12px;
 }
 .nx-fin-lines__head {
   padding-bottom: 8px; border-bottom: 1px solid var(--nx-border);
   font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .09em; color: #9ca3af;
 }
+.nx-fin-lines__head span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .nx-fin-lines__head span:not(:first-child) { text-align: right; }
 .nx-fin-line { padding: 12px 0; border-bottom: 1px solid var(--nx-divider); }
 .nx-fin-line__label { font-size: 13px; font-weight: 500; color: var(--nx-text); min-width: 0; }
@@ -148,9 +158,9 @@ html.dark .nx-fin-bpsbtn:hover { background: #1f2937; }
   padding: 8px 0 6px 10px; font-size: 12.5px; font-weight: 600; color: var(--nx-text);
   border-top: 1px solid var(--nx-border);
 }
-.nx-fin-table .nx-table td.nx-num, .nx-fin-table .nx-table th.nx-num {
-  text-align: right; white-space: nowrap; font-family: var(--nx-mono); font-variant-numeric: tabular-nums;
-}
+.nx-fin-table .nx-table td.nx-num, .nx-fin-table .nx-table th.nx-num { text-align: right; white-space: nowrap; }
+.nx-fin-table .nx-table td.nx-num { font-family: var(--nx-mono); font-variant-numeric: tabular-nums; }
+.nx-fin-section .nx-table th { font-family: var(--nx-font); }
 .nx-fin-table .nx-table td.nx-fin-muted { color: #9ca3af; }
 .nx-fin-table .nx-table tbody tr.is-blank td:first-child { color: var(--nx-text-meta); font-style: italic; }
 .nx-fin-table .nx-table tbody tr.is-more { display: none; }
@@ -278,9 +288,8 @@ html.dark .nx-fin-bpsbtn:hover { background: #1f2937; }
 .nx-fin-matrix .nx-table { min-width: max-content; }
 .nx-fin-matrix .nx-table th, .nx-fin-matrix .nx-table td { white-space: nowrap; }
 .nx-fin-table .nx-fin-matrix .nx-table tbody td:first-child { max-width: none; width: auto; }
-.nx-fin-matrix .nx-table td.nx-num, .nx-fin-matrix .nx-table th.nx-num {
-  text-align: right; font-variant-numeric: tabular-nums; font-family: var(--nx-mono); font-size: 12px;
-}
+.nx-fin-matrix .nx-table td.nx-num, .nx-fin-matrix .nx-table th.nx-num { text-align: right; }
+.nx-fin-matrix .nx-table td.nx-num { font-variant-numeric: tabular-nums; font-family: var(--nx-mono); font-size: 12px; }
 .nx-fin-matrix .nx-table tbody th, .nx-fin-matrix .nx-table tfoot th {
   position: sticky; left: 0; z-index: 1; background: var(--nx-page);
   text-align: left; font-weight: 500; font-size: 12.5px; color: var(--nx-text); padding: 7px 12px 7px 0;
@@ -302,9 +311,11 @@ html.nx-stripes .nx-fin-matrix .nx-table tbody tr:nth-child(even) th {
 html.dark.nx-stripes .nx-fin-matrix .nx-table tbody tr:nth-child(even) th { background: #223046; }
 
 /* ---------- The Bexio invoice panel (#423), as a ledger row ---------- */
-.nx-fin-bexio__refresh { margin-top: 12px; }
+.nx-fin-bexio__refresh { margin: 12px 0 0 -10px; }
+.nx-fin-bexio .nx-fin-table + .nx-fin-table { margin-top: 28px; }
 /* finance_bexio.js renders its totals as the shared KPI strip. */
-.nx-kpi-strip.nx-fin-kpis { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+.nx-kpi-strip.nx-fin-kpis { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.nx-kpi-strip.nx-fin-kpis .nx-kpi { border-top: none; }
 .nx-fin-kpis .nx-kpi { padding: 0 24px 14px; }
 .nx-fin-kpis .nx-kpi:first-child { border-left: none; padding-left: 0; }
 .nx-fin-kpis .nx-kpi__value.nx-fin-bexio__value { font-size: 17px; font-weight: 600; letter-spacing: -.5px; font-family: var(--nx-mono); }
@@ -339,14 +350,20 @@ html.dark.nx-stripes .nx-fin-matrix .nx-table tbody tr:nth-child(even) th { back
 .nx-fin-bexio__open a { color: var(--nx-accent-hover); text-decoration: none; }
 .nx-fin-bexio__open a:hover { text-decoration: underline; }
 
-/* ---------- Narrow: identity above the lines ---------- */
-@media (max-width: 1023px) {
+/* ---------- Narrow: identity above the lines ----------
+   Below ~1180px the 260px identity column leaves the four statement
+   columns too little room (the change column overflowed at 1024). */
+@media (max-width: 1179px) {
   .nx-fin-section { grid-template-columns: 1fr; gap: 16px; }
-  .nx-fin-lines__head, .nx-fin-line { grid-template-columns: minmax(0, 1fr) 110px 90px 70px; }
+  .nx-fin-lines__head, .nx-fin-line { grid-template-columns: minmax(0, 1fr) 110px 80px 96px; }
   .nx-fin-cmp { display: none; }
 }
 @media (max-width: 640px) {
-  .nx-fin-lines__head, .nx-fin-line { grid-template-columns: minmax(0, 1fr) 90px 70px; }
+  .nx-fin-lines__head, .nx-fin-line { grid-template-columns: minmax(0, 1fr) 90px 80px; column-gap: 8px; }
+  .nx-fin-kpis .nx-kpi { padding-left: 0; border-left: none; }
+  /* A breakdown's columns do not fit a phone: scroll it, drop the bar. */
+  .nx-fin-table { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .nx-fin-share__bar { display: none; }
   .nx-fin-lines__head span:nth-child(3), .nx-fin-line__prev { display: none; }
   .nx-fin-tl__day { grid-template-columns: 56px 14px minmax(0, 1fr); }
   .nx-fin-tl__foot { padding-left: 80px; }

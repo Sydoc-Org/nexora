@@ -101,9 +101,13 @@ period headline and the picker shell (`templates/_sydoc.html`,
 - **Band:** the actions (close / reopen, CSV, print), the month as the headline
   with prev/next arrows, the three-state hint, the month's status (running,
   closed by whom, or open) and the load counter of the sections. A **jump
-  index** sits flush at its bottom: one row that never wraps, one item per
-  section (`Section.nav`, ellipsised when space runs out), then Bexio.
-- **Month picker** (the headline button): a year of months, each marked
+  index** sits flush at its bottom, in page order: Bexio, then one item per
+  section (`Section.nav`). It never wraps; where it does not fit it scrolls
+  sideways with faded edges. (The design's ellipsis cut every label down to a
+  letter or two with twelve entries at 1440px.)
+- **Month picker** (the headline button, a modal; `NXSydoc.initPicker` moves
+  it to `<body>` because `.nx-main` is a stacking context that would keep it
+  under the sidebar): a year of months, each marked
   closed (lock), open or running. The states are rendered server-side into the
   shim (`months` in `NX_FINANCE`): one `SELECT DISTINCT Month` over
   `dbo.FinanceMonthClose`. A month outside `month_options()` is disabled.

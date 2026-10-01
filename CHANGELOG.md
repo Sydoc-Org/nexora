@@ -80,6 +80,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   is a ledger row too. Figures, month close, CSV and payloads are unchanged;
   `Section.nav` gives a section its short jump-index label. Print now hides
   the sidebar (its selector never matched) and prints every list expanded.
+  The period picker of both pages now covers the sidebar: it rendered inside
+  `.nx-main`'s stacking context, under the nav, which stayed clickable.
 - **Sydoc BPS redesigned** (#427) as the Sydoc-branded mirror of Finance
   (design 1a, `docs/design/design_handoff_sydoc_finance_bps/`): an ink header
   band with the Sydoc mark, the period as a headline with prev/next arrows and

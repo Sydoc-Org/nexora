@@ -432,6 +432,7 @@ SECTIONS = (
         key="bps",
         client="Sydoc",
         title=N_("Billable services"),
+        nav=N_("Services"),
         source=bps.SOURCE,
         group=SERVICES,
         link="bps",

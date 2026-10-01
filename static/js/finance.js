@@ -36,6 +36,10 @@
         const n = Number(v) || 0;
         return Number.isInteger(n) ? numberFmt.format(n) : decimalFmt.format(n);
     }
+    // Hours always show their place, so "2,0" lines up under "3,7".
+    const HOURS = new Set(['hours', 'billable_hours']);
+    const hrs = v => decimalFmt.format(Number(v) || 0);
+    const val = (code, v) => (HOURS.has(code) ? hrs(v) : num(v));
 
     const printBtn = document.getElementById('fin-print');
     if (printBtn) printBtn.addEventListener('click', function () { window.print(); });
@@ -135,8 +139,8 @@
         return head + figures.map(f => `
             <div class="nx-fin-line" data-testid="finance-figure-${esc(f.code)}">
               <span class="nx-fin-line__label">${esc(f.label)}</span>
-              <span class="nx-fin-line__value" data-value="${esc(f.value)}">${esc(num(f.value))}</span>
-              <span class="nx-fin-line__prev">${esc(num(f.prev))}</span>
+              <span class="nx-fin-line__value" data-value="${esc(f.value)}">${esc(val(f.code, f.value))}</span>
+              <span class="nx-fin-line__prev">${esc(val(f.code, f.prev))}</span>
               <span class="nx-fin-line__change">${cmpHtml(f.value, f.prev)}${deltaHtml(f.value, f.prev)}</span>
             </div>`).join('');
     }
@@ -163,11 +167,11 @@
             const key = br.href ? `<a href="${esc(br.href(r, i))}">${keyText}</a>` : keyText;
             return `<tr class="${more}${blank}">` +
                 `<td>${key}</td>` +
-                r.values.map((v, j) => `<td class="nx-num${muted(j)}">${esc(num(v))}</td>`).join('') +
+                r.values.map((v, j) => `<td class="nx-num${muted(j)}">${esc(val(cols[j].code, v))}</td>`).join('') +
                 `<td class="nx-num">${shareHtml(r.values[0], lead)}</td></tr>`;
         }).join('');
         const foot = `<tr><td>${esc(S.total)}</td>` +
-            br.totals.map((v, j) => `<td class="nx-num${muted(j)}">${esc(num(v))}</td>`).join('') +
+            br.totals.map((v, j) => `<td class="nx-num${muted(j)}">${esc(val(cols[j].code, v))}</td>`).join('') +
             `<td class="nx-num">${br.rows.length ? shareHtml(lead, lead) : ''}</td></tr>`;
         const more = br.rows.length > COLLAPSE_AFTER
             ? `<button type="button" class="nx-fin-more" data-more="${br.rows.length}">${esc(fmt(S.showAll, { n: num(br.rows.length) }))}</button>`
@@ -271,7 +275,7 @@
               <span class="nx-fin-tl__name">${esc(g.key === null ? S.blank : g.key)}</span>
               <span class="nx-fin-tl__count">${esc(fmt(S.bookings, { n: num(g.count) }))}</span>
               <span class="nx-fin-tl__spacer"></span>
-              <span class="nx-fin-tl__total">${esc(fmt(S.hoursUnit, { n: num(g.hours) }))}</span>
+              <span class="nx-fin-tl__total">${esc(fmt(S.hoursUnit, { n: hrs(g.hours) }))}</span>
             </div>
             ${body}
             ${more}
@@ -366,10 +370,13 @@
             parts.push(linesHtml(block.figures));
             if (!anything) {
                 parts.push(emptyHtml());
-            } else if (block.breakdowns.length) {
-                parts.push('<div class="nx-fin-tables">' +
-                    block.breakdowns.map(b => (b.kind === 'matrix' ? matrixHtml(b, p.key) : breakdownHtml(b, p.key))).join('') +
-                    '</div>');
+            } else {
+                const shown = block.breakdowns.filter(b => (b.kind === 'matrix' ? b.row_keys : b.rows).length > 0);
+                if (shown.length) {
+                    parts.push('<div class="nx-fin-tables">' +
+                        shown.map(b => (b.kind === 'matrix' ? matrixHtml(b, p.key) : breakdownHtml(b, p.key))).join('') +
+                        '</div>');
+                }
             }
             parts.push('</div>');
         });
@@ -443,7 +450,7 @@
         meta.textContent = metaText(payload);
         if (payload.closed) {
             const moved = payload.live_diff && payload.live_diff.length;
-            state.innerHTML = `<span class="nx-label nx-label--indigo nx-label--nodot"><i class="fas fa-lock" aria-hidden="true"></i> ${esc(S.closed)}</span>` +
+            state.innerHTML = `<span class="nx-label nx-label--indigo nx-label--nodot"><i class="fas fa-lock" aria-hidden="true"></i> ${esc(S.closedShort)}</span>` +
                 (moved ? ` <span class="nx-label nx-label--amber">${esc(S.drifted)}</span>` : '') +
                 (payload.live_diff === null ? ` <span class="nx-label nx-label--gray">${esc(S.liveUnknown)}</span>` : '');
         } else {

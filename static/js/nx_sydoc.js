@@ -108,6 +108,9 @@
         const root = opts.root;
         const opener = opts.opener;
         if (!root || !opener) return null;
+        // .nx-main is a stacking context (z-index: 1), so an overlay inside it
+        // stays under the sidebar however high its own z-index: hoist it.
+        if (root.parentElement !== document.body) document.body.appendChild(root);
         const panel = root.querySelector('.nx-sydoc-picker__panel') || root;
 
         function onKey(e) {
