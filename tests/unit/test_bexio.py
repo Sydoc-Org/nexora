@@ -1,4 +1,4 @@
-"""nx_lib.bexio: the read-only Bexio client behind the Finance invoice panel (#423).
+"""nx_lib.bexio: the read-only Bexio client behind Sydoc Billing (#423, #436).
 
 The pure half (window, normalization, reconciliation) is tested on literal
 payloads shaped like Bexio's. The network half runs against a stubbed
@@ -145,6 +145,10 @@ def test_normalize_invoice_derives_excl_vat_and_maps_status():
         "status": "paid",
         "total": 1077.0,
         "excl": 1000.0,
+        "vat": 77.0,
+        "vatRate": None,
+        "paid": 0.0,
+        "open": 1077.0,  # no remaining-payments field: nothing is known paid
         "currency": "CHF",
         "currencyId": 1,
     }
@@ -258,8 +262,10 @@ def test_reconcile_states_per_client():
     privera = out["clients"][2]
     assert [c["name"] for c in privera["contacts"]] == ["Privera AG", "#4"]
     assert privera["totals"] == [{"currency": "CHF", "total": 50.0, "excl": 45.0, "count": 1}]
-    # Unlinked contact 9 is left out entirely; drafts and cancelled invoices
-    # are listed but never counted as billed.
+    # Unlinked contact 9 is listed apart (others), outside every total; drafts
+    # and cancelled invoices are listed but never counted as billed.
+    assert [(o["nr"], o["contact"]) for o in out["others"]] == [("RE-14", "Stranger")]
+    assert out["cancelled"] == 1
     assert out["totals"] == [{"currency": "CHF", "total": 150.0, "excl": 135.0, "count": 2}]
     assert out["count"] == 4
     assert out["drafts"] == 1
@@ -289,6 +295,118 @@ def test_billed_clients_are_distinct_and_exclude_sydoc_services():
     assert len(clients) == len(set(clients))
     assert "Privera" in clients and "Sydoc" not in clients
     assert clients[0] == "Elektro-Material"
+
+
+def test_normalize_invoice_reads_payments_and_the_vat_rate():
+    raw = {
+        **_raw(12, 7, status=bexio.PARTIAL),
+        "total_received_payments": "400.00",
+        "total_remaining_payments": "677.0000",
+        "taxs": [{"percentage": "8.10", "value": "77.00"}],
+    }
+    inv = bexio.normalize_invoice(raw)
+    assert (inv["paid"], inv["open"], inv["vat"], inv["vatRate"]) == (400.0, 677.0, 77.0, 8.1)
+    two = {**raw, "taxs": [{"percentage": "8.10"}, {"percentage": "2.60"}]}
+    assert bexio.normalize_invoice(two)["vatRate"] is None
+
+
+# ---- outstanding ----------------------------------------------------------------
+
+
+def _owed(id_, contact, due, open_=100.0, status="open", currency="CHF"):
+    return {**_inv(id_, contact, status=status, currency=currency), "due": due, "open": open_}
+
+
+def test_outstanding_sorts_by_due_and_counts_overdue_per_currency():
+    invoices = [
+        _owed(1, 1, "2026-10-20"),
+        _owed(2, 9, "2026-08-14", open_=50.0, status="unpaid"),
+        _owed(3, 1, "2026-09-30", open_=25.0, status="partial"),
+        _owed(4, 1, "2026-09-01", open_=7.0, currency="EUR"),
+        _inv(5, 1, status="paid"),  # not owed: dropped
+    ]
+    out = bexio.outstanding(
+        invoices, [bexio.Link("Frigemo", 1)], ["Frigemo"], {9: "Stranger AG"}, "2026-10-01"
+    )
+    assert [r["id"] for r in out["invoices"]] == [2, 4, 3, 1]
+    stranger = out["invoices"][0]
+    assert stranger["linked"] is False and stranger["contact"] == "Stranger AG"
+    assert stranger["overdueDays"] == 48
+    assert out["invoices"][-1]["client"] == "Frigemo" and out["invoices"][-1]["overdueDays"] == 0
+    # CHF first, nothing converted; an invoice due today is not overdue.
+    assert out["totals"] == [
+        {"currency": "CHF", "open": 175.0, "count": 3, "overdue": 75.0, "overdueCount": 2},
+        {"currency": "EUR", "open": 7.0, "count": 1, "overdue": 7.0, "overdueCount": 1},
+    ]
+    assert out["overdue"] == 3
+
+
+def test_outstanding_ignores_links_to_clients_not_on_the_page():
+    out = bexio.outstanding(
+        [_owed(1, 1, None)], [bexio.Link("Gone", 1)], ["Frigemo"], {}, "2026-10-01"
+    )
+    assert out["invoices"][0]["linked"] is False and out["invoices"][0]["overdueDays"] == 0
+
+
+# ---- picker month states ----------------------------------------------------------
+
+
+def test_month_states_per_invoice_month():
+    links = [bexio.Link("Frigemo", 1), bexio.Link("Aveniq", 2), bexio.Link("Aveniq", 3)]
+    invoices = [
+        _inv(1, 1, date="2026-08-03"),
+        _inv(2, 3, date="2026-08-04"),  # Aveniq's second contact counts for it
+        _inv(3, 1, date="2026-09-03"),
+        _inv(4, 2, date="2026-09-03", status="draft"),  # a draft is not invoiced
+        _inv(5, 2, date="2026-10-01"),
+    ]
+    clients = ["Frigemo", "Aveniq", "Privera"]  # Privera has no link: not checked
+    states = bexio.month_states(invoices, links, clients, 2026, "2026-10-01")
+    assert states["2026-08"] == "all"
+    assert states["2026-09"] == "missing:1"
+    assert states["2026-01"] == "missing:2"
+    assert states["2026-10"] == "running"
+    assert "2026-11" not in states and len(states) == 10
+
+
+# ---- network: the new reads ---------------------------------------------------------
+
+
+def test_search_outstanding_filters_by_owed_status(http):
+    http.routes[("POST", "/2.0/kb_invoice/search")] = FakeResponse(200, [_raw(1, 7)])
+    assert [r["id"] for r in bexio.search_outstanding()] == [1]
+    assert http.calls[-1]["json"] == [
+        {"field": "kb_item_status_id", "value": ["8", "16", "31"], "criteria": "in"}
+    ]
+
+
+def test_latest_before_takes_the_latest_date_not_the_highest_id(http):
+    http.routes[("POST", "/2.0/kb_invoice/search")] = FakeResponse(
+        200, [_raw(9, 7, date="2026-07-01"), _raw(8, 7, date="2026-08-05"), _raw(7, 7, date=None)]
+    )
+    assert bexio.latest_before([7], "2026-09-01")["id"] == 8
+    assert http.calls[-1]["params"]["order_by"] == "id_desc"
+    assert bexio.latest_before([], "2026-09-01") is None
+
+
+def test_invoices_reads_in_parallel_and_keeps_a_failure_per_invoice(monkeypatch):
+    def one(invoice_id, fresh=False):
+        if invoice_id == 2:
+            raise bexio.BexioError("x", status=500)
+        return {"id": invoice_id}
+
+    monkeypatch.setattr(bexio, "invoice", one)
+    got = bexio.invoices([3, 1, 2, 1])
+    assert got[1] == {"id": 1} and got[3] == {"id": 3}
+    assert isinstance(got[2], bexio.BexioError)
+    assert bexio.invoices([]) == {}
+
+
+def test_read_at_records_when_a_window_was_read(http):
+    http.routes[("POST", "/2.0/kb_invoice/search")] = FakeResponse(200, [])
+    assert bexio.read_at("2026-09-01", "2026-09-30") is None
+    bexio.search_invoices("2026-09-01", "2026-09-30")
+    assert bexio.read_at("2026-09-01", "2026-09-30") is not None
 
 
 # ---- network ------------------------------------------------------------------
@@ -440,3 +558,27 @@ def test_cache_is_bounded(monkeypatch):
     for i in range(5):
         bexio._cached(("k", i), 60, lambda i=i: i)
     assert len(bexio._cache) == 3
+
+
+def test_a_long_lived_year_search_does_not_share_the_month_cache_entry(http):
+    calls = []
+
+    def answer(json=None, params=None):
+        calls.append(json)
+        return FakeResponse(200, [])
+
+    http.routes[("POST", "/2.0/kb_invoice/search")] = answer
+    bexio.search_invoices("2026-01-01", "2026-12-31", ttl=bexio.YEAR_TTL)
+    bexio.search_invoices("2026-01-01", "2026-12-31")
+    assert len(calls) == 2  # two entries, each with its own expiry
+
+
+def test_outstanding_survives_an_unreadable_due_date():
+    out = bexio.outstanding([_owed(1, 1, "soon")], [], [], {}, "2026-10-01")
+    assert out["invoices"][0]["overdueDays"] == 0
+
+
+def test_latest_before_rejects_a_payload_that_is_not_a_list(http):
+    http.routes[("POST", "/2.0/kb_invoice/search")] = FakeResponse(200, {"error": "?"})
+    with pytest.raises(bexio.BexioError):
+        bexio.latest_before([7], "2026-09-01")
