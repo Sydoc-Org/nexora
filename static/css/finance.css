@@ -307,6 +307,8 @@ html.dark .nx-fin-bpsbtn:hover { background: #1f2937; }
 }
 .nx-fin-matrix .nx-table thead th.nx-fin-matrix__corner { position: sticky; left: 0; z-index: 2; background: var(--nx-page); }
 .nx-fin-matrix .nx-table tbody td { padding: 7px 10px; }
+/* Same right padding as the body cells, or right-aligned figures sit 10px left of their header and total. */
+.nx-fin-matrix .nx-table thead th, .nx-fin-matrix .nx-table tfoot td { padding-right: 10px; }
 .nx-fin-matrix .nx-table td.is-zero { color: var(--nx-fin-quiet); opacity: .5; }
 .nx-fin-matrix .nx-fin-matrix__total { font-weight: 700; color: var(--nx-text); border-left: 1px solid var(--nx-border); }
 .nx-fin-matrix .nx-table tfoot th, .nx-fin-matrix .nx-table tfoot td { font-weight: 700; border-top: 1px solid var(--nx-border); }

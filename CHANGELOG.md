@@ -13,6 +13,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   them by hand per environment, and invoices to contacts no client is linked to
   (TCG Informatik AG, MobScan customers, ...) are no longer listed or counted
   in the Bexio total. The *other invoices* list and its link dropdown are gone.
+- **Finance: figures line up with their headers** (#427): in the Bexio panel
+  and the other Finance matrices, header and total cells now have the same
+  right padding as the figures, which sat 10 px left of their column heading.
 
 ### Added
 
