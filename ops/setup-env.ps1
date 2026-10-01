@@ -4,8 +4,13 @@
   ELEVATED PowerShell on the server (5.1 or pwsh -- it re-launches itself in 5.1),
   once per environment:
 
-    .\setup-env.ps1 -Name dev     -Port 8081 -Environment INT     -Hostname dev-nexora.sydoc.ch
-    .\setup-env.ps1 -Name staging -Port 8082 -Environment STAGING -Hostname staging-nexora.sydoc.ch
+    .\setup-env.ps1 -Name dev        -Port 8081 -Environment INT     -Hostname dev-nexora.sydoc.ch
+    .\setup-env.ps1 -Name staging    -Port 8082 -Environment STAGING -Hostname staging-nexora.sydoc.ch
+    .\setup-env.ps1 -Name dev-ben    -Port 8083 -Environment INT     -Hostname stop-taking-my-gitrunner-nexora.sydoc.ch
+    .\setup-env.ps1 -Name dev-gruoss -Port 8084 -Environment INT     -Hostname prod-but-not-really-nexora.sydoc.ch
+
+  dev-<who> are the per-developer dev hosts (#431); the slot a push lands on is
+  mapped from the pusher's GitHub login in deploy.yml ("Resolve dev slot").
 
 .DESCRIPTION
   Creates D:\sydoc\nexora-<Name> with its var\ tree and root .env selector, an
@@ -24,7 +29,7 @@
   this script never prints it.
 #>
 param(
-  [Parameter(Mandatory)][ValidateSet('dev', 'staging')] [string]$Name,
+  [Parameter(Mandatory)][ValidatePattern('^(staging|dev(-[a-z]+)?)$')] [string]$Name,
   [Parameter(Mandatory)][int]$Port,
   [Parameter(Mandatory)][ValidateSet('INT', 'STAGING')] [string]$Environment,
   [Parameter(Mandatory)][string]$Hostname,

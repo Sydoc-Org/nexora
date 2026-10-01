@@ -276,9 +276,9 @@ def test_breakdown_can_narrow_its_columns():
     assert "privera_mail_documents" not in q.sql
 
 
-def test_xpert_breaks_documents_down_per_client_and_source_database():
+def test_xpert_breaks_documents_down_per_client_then_bfh_and_zhaw():
     dims = {q.dim for q in _queries("xpert") if q.kind == "breakdown"}
-    assert dims == {"Client", "SourceDb", "Metric|Client=BFH", "Metric|Client=ZHAW"}
+    assert dims == {"Client", "Metric|Client=BFH", "Metric|Client=ZHAW"}
     q = _first("xpert", "breakdown", "Client")
     assert "SUM(CASE WHEN [Metric] = ? THEN [Cnt] END) AS [xpert_stats_documents]" in q.sql
     assert q.params[0] == "Total"
@@ -293,16 +293,18 @@ def test_xpert_lists_bfh_and_zhaw_per_metric():
     assert "GROUP BY [Metric], [Dimension]" in q.sql
 
 
-def test_a_fixed_breakdown_lists_its_keys_in_order_with_zeros():
+def test_xpert_lists_every_metric_known_ones_first():
     section = SECTIONS_BY_KEY["xpert"]
     queries = _queries("xpert")
     zhaw = [
         ["WorkItemsByIsWithOrder", "1", 44],
         ["WorkItems", None, 203],
-        ["WorkItemsByEingang", "MAIL", 203],
+        ["WorkItemsByEingang", "MAIL", 3674],
+        ["WorkItemsByEingang", None, 302],
+        ["WorkItemsByEingang", "Fax", 1],
         ["Total", None, 205],
     ]
-    bfh = [["Total", None, 82], ["NKReproduzierte", None, 0], ["Uebrige", None, 79]]
+    bfh = [["Total", None, 82], ["NKReproduzierte", None, 21], ["Neu", None, 0]]
     rows = [
         zhaw if q.dim == "Metric|Client=ZHAW" else bfh if q.dim == "Metric|Client=BFH" else []
         for q in queries
@@ -312,21 +314,31 @@ def test_a_fixed_breakdown_lists_its_keys_in_order_with_zeros():
     )
     tables = {b["dim"]: b for b in payload["blocks"][0]["breakdowns"]}
     z = tables["Metric|Client=ZHAW"]
+    # Every metric and dimension shows: the known ones first (0 when absent),
+    # then the rest; a blank intake reads "(blank)" next to MAIL and Scanner.
     assert [(r["key"], r["values"]) for r in z["rows"]] == [
+        ("Total", [205]),
         ("WorkItems", [203]),
-        ("WorkItemsByEingang · MAIL", [203]),
+        ("WorkItemsByEingang · MAIL", [3674]),
+        ("WorkItemsByEingang · Scanner", [0]),
+        ("WorkItemsByEingang · (blank)", [302]),
         ("WorkItemsByIsWithOrder · 0", [0]),
         ("WorkItemsByIsWithOrder · 1", [44]),
+        ("WorkItemsByEingang · Fax", [1]),
     ]
     assert z["totals"] is None and z["label"] == "ZHAW"
+    # Per client on its own row, BFH and ZHAW side by side below it.
+    assert [b["row"] for b in payload["blocks"][0]["breakdowns"]] == [0, 1, 1]
     b = tables["Metric|Client=BFH"]
     assert [r["key"] for r in b["rows"]] == [
         "Total",
         "NeueKreditoren",
+        "NKReproduzierte",
         "Uebrige",
         "UEReproduzierte",
+        "Neu",
     ]
-    assert [r["values"][0] for r in b["rows"]] == [82, 0, 79, 0]
+    assert [r["values"][0] for r in b["rows"]] == [82, 0, 21, 0, 0, 0]
 
 
 def test_privera_mail_follows_the_workbooks_file_name_rule():

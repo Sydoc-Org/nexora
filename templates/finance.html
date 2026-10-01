@@ -80,9 +80,9 @@
             {% else %}<i class="fas fa-lock" aria-hidden="true"></i> {{ _("Close month") }}{% endif %}
           </button>
           {% endif %}
-          <a class="nx-sydoc-btn nx-sydoc-btn--ghost" href="{{ url_for('api_finance_export', month=month) }}"
-             data-testid="finance-export-csv">
-            <i class="fas fa-file-csv" aria-hidden="true"></i> {{ _("CSV") }}
+          <a class="nx-sydoc-btn nx-sydoc-btn--ghost" href="{{ url_for('api_finance_export_xlsx', month=month) }}"
+             data-testid="finance-export-xlsx">
+            <i class="fas fa-file-excel" aria-hidden="true"></i> {{ _("Excel") }}
           </a>
           <button type="button" class="nx-sydoc-btn nx-sydoc-btn--ghost" id="fin-print" data-testid="finance-print">
             <i class="fas fa-print" aria-hidden="true"></i> {{ _("Print") }}

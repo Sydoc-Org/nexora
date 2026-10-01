@@ -85,11 +85,19 @@ def test_workbook_has_an_overview_and_one_sheet_per_invoice():
         "Task",
         "Person",
         "Comment",
-        "Hours",
         "Billed (¼ h)",
     ]
-    assert [c.value for c in ws[6]][5:] == [0.3333, 0.5]
+    # Only the billed hours: 0.3333 booked is 0.5 on the invoice.
+    assert [c.value for c in ws[6]][5:] == [0.5]
     assert ws["F7"].value == "=SUM(F6:F6)"
+    assert [c.value for c in wb["Overview"][5]] == ["Invoice", "Bookings", "Billed (¼ h)"]
+
+
+def test_a_comment_that_looks_like_a_formula_stays_text():
+    row = _row("Frigemo", "fAPA", 1)
+    row[6] = "=HYPERLINK(1)"
+    wb = load_workbook(io.BytesIO(fx.workbook(fx.sheets(_payload(row), SPEC), LABELS, "Sep")))
+    assert wb["Frigemo"]["E6"].value == "'=HYPERLINK(1)"
 
 
 def test_one_invoice_has_no_overview_and_an_empty_month_still_downloads():

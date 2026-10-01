@@ -414,11 +414,17 @@
                 parts.push(emptyHtml());
             } else {
                 const shown = block.breakdowns.filter(b => (b.kind === 'matrix' ? b.row_keys : b.rows).length > 0);
-                if (shown.length) {
+                // One grid per `row` of the spec: a lone table spans the width.
+                const rows = [];
+                shown.forEach(b => {
+                    const r = b.row || 0;
+                    (rows[r] = rows[r] || []).push(b);
+                });
+                rows.filter(Boolean).forEach(list => {
                     parts.push('<div class="nx-fin-tables">' +
-                        shown.map(b => (b.kind === 'matrix' ? matrixHtml(b, p.key) : breakdownHtml(b, p.key))).join('') +
+                        list.map(b => (b.kind === 'matrix' ? matrixHtml(b, p.key) : breakdownHtml(b, p.key))).join('') +
                         '</div>');
-                }
+                });
             }
             parts.push('</div>');
         });

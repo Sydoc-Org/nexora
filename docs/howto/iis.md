@@ -30,18 +30,20 @@ request per process.)
    The app-pool identity must be able to write `D:\sydoc\nexora\var\`
    (waitress stdout log, sessions, CSV request logs) — same as before.
 
-## Three sites (#338)
+## Sites (#338, per-developer dev sites #431)
 
 | IIS site | app pool | binding | folder | `ENVIRONMENT` |
 |---|---|---|---|---|
 | Default Web Site | `DefaultAppPool` | `*:80` | `D:\sydoc\nexora` | `PROD` |
 | `nexora-staging` | `nexora-staging` | `127.0.0.1:8082` | `D:\sydoc\nexora-staging` | `STAGING` |
 | `nexora-dev` | `nexora-dev` | `127.0.0.1:8081` | `D:\sydoc\nexora-dev` | `INT` |
+| `nexora-dev-ben` | `nexora-dev-ben` | `127.0.0.1:8083` | `D:\sydoc\nexora-dev-ben` | `INT` |
+| `nexora-dev-gruoss` | `nexora-dev-gruoss` | `127.0.0.1:8084` | `D:\sydoc\nexora-dev-gruoss` | `INT` |
 
-`ops/setup-env.ps1` creates the two extra sites (loopback-only; ngrok is the only
+`ops/setup-env.ps1` creates the non-prod sites (loopback-only; ngrok is the only
 client — `docs/howto/ngrok.md`). The tracked `web.config` carries the PROD values;
 `deploy-env.yml` rewrites `ENVIRONMENT`, `PYTHONPATH` and `stdoutLogFile` after the
-mirror for the two non-prod folders (step *Patch web.config for this environment*).
+mirror for the non-prod folders (step *Patch web.config for this environment*).
 
 The deploy workflow (`.github/workflows/deploy-env.yml`, step *Preflight IIS host*)
 checks 1 and 2 **before** stopping the app pool, so a forgotten install aborts

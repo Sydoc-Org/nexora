@@ -45,7 +45,7 @@ from ..finance import (
     section_descriptors,
     shift_month,
 )
-from ..reporting.export import rows_to_csv
+from ..reporting.export import rows_to_csv, rows_to_xlsx
 from ..reporting.semantic import MetricResolveError
 from ..reporting.table_query import TableQueryError, table_source_catalog
 from ..security import has_permission, page_visibility, require_permission
@@ -402,6 +402,19 @@ def api_finance_reopen():
 @require_permission("finance.view")
 @limiter.limit("20 per minute")
 def api_finance_export():
+    """The whole month as CSV (kept for scripts; the page offers the .xlsx)."""
+    return _finance_export("csv")
+
+
+@require_permission("finance.view")
+@limiter.limit("20 per minute")
+def api_finance_export_xlsx():
+    """The whole month as .xlsx: the same flat sheet as the CSV, one row per
+    figure, breakdown and matrix cell and billable booking."""
+    return _finance_export("xlsx")
+
+
+def _finance_export(fmt):
     year, month = parse_month(request.args.get("month"))
     key = month_key(year, month)
     closed = _closed_safe(key)
@@ -423,11 +436,20 @@ def api_finance_export():
         payload = snap["payload"] if snap else _section_payload(section, year, month)
         rows.extend(export_rows(payload))
     suffix = "-closed" if closed else ""
+    if fmt == "xlsx":
+        body = rows_to_xlsx(
+            [{"field": c["field"], "header": c["header"]} for c in columns],
+            rows,
+            title=f"Sydoc Finance {_month_label(year, month)}",
+        )
+        mimetype = BPS_EXPORT_FORMATS["xlsx"]
+    else:
+        body, mimetype = rows_to_csv(columns, rows), "text/csv; charset=utf-8"
     return Response(
-        rows_to_csv(columns, rows),
-        mimetype="text/csv; charset=utf-8",
+        body,
+        mimetype=mimetype,
         headers={
-            "Content-Disposition": f'attachment; filename="sydoc-finance-{key}{suffix}.csv"',
+            "Content-Disposition": f'attachment; filename="sydoc-finance-{key}{suffix}.{fmt}"',
             # Private accounting data: never cache (tests/unit/test_static_v_lint.py).
             "Cache-Control": "no-store",
         },
@@ -540,6 +562,11 @@ def register_routes(app):
         "/api/finance/export.csv",
         endpoint="api_finance_export",
         view_func=api_finance_export,
+    )
+    app.add_url_rule(
+        "/api/finance/export.xlsx",
+        endpoint="api_finance_export_xlsx",
+        view_func=api_finance_export_xlsx,
     )
     app.add_url_rule(
         "/api/finance/bps-export",

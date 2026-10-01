@@ -172,8 +172,9 @@ class Breakdown:
     grammar) -- one client of a shared statistics table. A table with a
     `where` may show a measure that is not a figure of its block. `then`
     groups by a second column too (the row key reads "dim · then"), and
-    `keys` fixes the rows to exactly those (dim, then) pairs, in that order,
-    with 0 where the month has none: the list the invoice expects.
+    `keys` orders the list: those (dim, then) pairs first, 0 where the month
+    has none, then whatever else the month holds -- every metric shows, none
+    is filtered away.
     """
 
     dim: str
@@ -181,6 +182,8 @@ class Breakdown:
     metrics: tuple[str, ...] = ()
     across: str | None = None
     across_label: str | None = None
+    # Tables of one block sharing a `row` sit side by side; a new row starts below.
+    row: int = 0
     where: tuple[dict, ...] = ()
     then: str | None = None
     keys: tuple[tuple[str, str | None], ...] = ()
@@ -298,11 +301,13 @@ SECTIONS = (
                 figures=("privera_posteingang_documents",),
                 breakdowns=(
                     Breakdown("Niederlassung", N_("Branch")),
+                    # Below the per-branch table, which takes the full width.
                     Breakdown(
                         "Register",
                         N_("Register"),
                         across="Niederlassung",
                         across_label=N_("Branch"),
+                        row=1,
                     ),
                 ),
             ),
@@ -347,6 +352,7 @@ SECTIONS = (
                         metrics=("privera_nachsendungen_total",),
                         across="Niederlassung",
                         across_label=N_("Branch"),
+                        row=1,
                     ),
                 ),
             ),
@@ -407,26 +413,23 @@ SECTIONS = (
         blocks=(
             Block(
                 period=Period("range", "ExportDate", basis=N_("by date")),
-                figures=(
-                    "xpert_stats_documents",
-                    "xpert_stats_bfh_new_creditors",
-                    "xpert_stats_zhaw_workitems",
-                ),
+                # BFH's and ZHAW's own counts are in their tables below, not figures.
+                figures=("xpert_stats_documents",),
                 breakdowns=(
                     Breakdown("Client", N_("Client"), metrics=("xpert_stats_documents",)),
-                    Breakdown(
-                        "SourceDb", N_("Source database"), metrics=("xpert_stats_documents",)
-                    ),
-                    # The two clients billed per metric, as the invoice lists them.
+                    # The two clients billed per metric: every metric (and for
+                    # ZHAW every dimension) of the month, the known ones first.
                     Breakdown(
                         "Metric",
                         "BFH",
                         metrics=("xpert_stats_count",),
+                        row=1,
                         where=({"field": "Client", "op": "eq", "value": "BFH"},),
                         then="Dimension",
                         keys=(
                             ("Total", None),
                             ("NeueKreditoren", None),
+                            ("NKReproduzierte", None),
                             ("Uebrige", None),
                             ("UEReproduzierte", None),
                         ),
@@ -435,11 +438,15 @@ SECTIONS = (
                         "Metric",
                         "ZHAW",
                         metrics=("xpert_stats_count",),
+                        row=1,
                         where=({"field": "Client", "op": "eq", "value": "ZHAW"},),
                         then="Dimension",
                         keys=(
+                            ("Total", None),
                             ("WorkItems", None),
                             ("WorkItemsByEingang", "MAIL"),
+                            ("WorkItemsByEingang", "Scanner"),
+                            ("WorkItemsByEingang", None),
                             ("WorkItemsByIsWithOrder", "0"),
                             ("WorkItemsByIsWithOrder", "1"),
                         ),
@@ -751,12 +758,14 @@ def _key(value):
     return None if value is None else str(value)
 
 
-def _breakdown_rows(rows, width=1, keys=()):
+def _breakdown_rows(rows, width=1, keys=(), blank=None):
     """Grouped rows -> [{key, values}], dropping groups that counted nothing.
 
     `width` is the number of key columns at the front of a row; a two-column
-    key reads "first · second" (the second left out when blank). With `keys`
-    the rows are exactly those key tuples, in that order, 0 where missing.
+    key reads "first · second" (the second left out when blank, or shown as
+    `blank` when the same first value also has a non-blank second). With
+    `keys` nothing is dropped: those key tuples come first, in that order and
+    0 where the month has none, then every other key found, sorted.
     """
     found: dict[tuple, list] = {}
     for row in rows:
@@ -769,14 +778,21 @@ def _breakdown_rows(rows, width=1, keys=()):
     measures = max((len(v) for v in found.values()), default=1)
     if keys:
         order = [tuple(k) + (None,) * (width - len(k)) for k in keys]
-        pairs = [(k, found.get(k) or [0] * measures) for k in order]
+        rest = sorted(
+            (k for k in found if k not in order),
+            key=lambda k: tuple((v is None, (v or "").casefold()) for v in k),
+        )
+        pairs = [(k, found.get(k) or [0] * measures) for k in order + rest]
     else:
         pairs = [(k, v) for k, v in found.items() if any(v)]
-    return [{"key": _label(k), "values": v} for k, v in pairs]
+    split = {k[0] for k, _ in pairs if len(k) > 1 and k[1] not in (None, "")}
+    return [{"key": _label(k, blank if k[0] in split else None), "values": v} for k, v in pairs]
 
 
-def _label(key):
+def _label(key, blank=None):
     parts = [k for k in key if k not in (None, "")]
+    if blank and len(key) > 1 and key[1] in (None, ""):
+        parts.append(blank)
     if not parts:
         return None
     return " · ".join(parts)
@@ -938,6 +954,7 @@ def assemble_section(section, queries, rows_by_query, *, source_label, metric_la
                 breakdowns.append(
                     {
                         "kind": "matrix",
+                        "row": br.row,
                         "dim": br.dim,
                         "across": br.across,
                         "label": translate(br.label),
@@ -951,6 +968,7 @@ def assemble_section(section, queries, rows_by_query, *, source_label, metric_la
                 by_key.get((index, "breakdown", breakdown_id(br)), []),
                 width=2 if br.then else 1,
                 keys=br.keys,
+                blank=translate(N_("(blank)")),
             )
             # A fixed list is items of one total, not parts that add up.
             totals = (
@@ -961,6 +979,7 @@ def assemble_section(section, queries, rows_by_query, *, source_label, metric_la
             breakdowns.append(
                 {
                     "kind": "table",
+                    "row": br.row,
                     "dim": breakdown_id(br),
                     "label": translate(br.label),
                     "columns": [{"code": c, "label": metric_label(c)} for c in codes],
