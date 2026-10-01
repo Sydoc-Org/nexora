@@ -14,9 +14,9 @@ So the useful check is three-way:
   "forgot to add it when deploying" bug.
 * **local** -- `env/PROD.env` in this checkout.
 * **server** -- `\\\\syapp01\\d$\\sydoc\\<folder>\\env\\<file>`: the prod folder for
-  PROD.env / CONFLUENCE.env, `nexora-dev` for INT.env, `nexora-staging` for
-  STAGING.env (#338). `--push INT.env` also lands in every per-developer
-  `nexora-dev-<who>` folder (#431); the drift report checks `nexora-dev`.
+  PROD.env / CONFLUENCE.env, `nexora-staging` for STAGING.env (#338). INT.env
+  feeds the per-developer dev hosts (#431): `--push INT.env` lands in every
+  `nexora-dev-<who>` folder; the drift report and `--pull` use `nexora-dev-ben`.
 
 Run it by hand once per deploy that touched an env key -- right before or right
 after. It is deliberately not automated and not a hook: it reports, you decide.
@@ -69,12 +69,14 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 LOCAL_ENV_DIR = REPO_ROOT / "env"
 _SERVER = Path(r"\\syapp01\d$\sydoc")
 # file -> the deploy folder that owns it on SYAPP01. PROD and the Confluence
-# sync live in the prod folder; INT.env feeds the dev host and STAGING.env the
-# staging host (#338). TEST.env is dev/CI-side only.
+# sync live in the prod folder; STAGING.env feeds the staging host (#338).
+# INT.env feeds every per-developer dev host (#431, see push_targets); the one
+# listed here is the copy the drift report and --pull read. TEST.env is
+# dev/CI-side only.
 MANAGED = {
     "PROD.env": _SERVER / "nexora" / "env",
     "CONFLUENCE.env": _SERVER / "nexora" / "env",
-    "INT.env": _SERVER / "nexora-dev" / "env",
+    "INT.env": _SERVER / "nexora-dev-ben" / "env",
     "STAGING.env": _SERVER / "nexora-staging" / "env",
 }
 
@@ -86,15 +88,15 @@ def remote_path(name):
 def push_targets(name, server=None):
     """Every server copy a --push of `name` lands in.
 
-    INT.env feeds every dev host: the shared `nexora-dev` and the per-developer
-    `nexora-dev-<who>` ones (#431). They are found on the share rather than
-    listed here, so adding a developer's host needs no edit to this script.
-    Everything else has exactly one home, `remote_path()`.
+    INT.env feeds every per-developer dev host, `nexora-dev-<who>` (#431).
+    They are found on the share rather than listed here, so adding a
+    developer's host needs no edit to this script. Everything else has
+    exactly one home, `remote_path()`.
     """
     if name != "INT.env":
         return [remote_path(name)]
     server = _SERVER if server is None else server
-    found = sorted(d / "env" / name for d in server.glob("nexora-dev*") if (d / "env").is_dir())
+    found = sorted(d / "env" / name for d in server.glob("nexora-dev-*") if (d / "env").is_dir())
     return found or [remote_path(name)]
 
 
