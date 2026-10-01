@@ -10,7 +10,7 @@ Bexio panel that sat on Finance (#423).
 
 - Issue #436. Design: `docs/design/design_handoff_sydoc_billing/` (README and
   the `Sydoc Billing.dc.html` prototype).
-- Permission: `billing.view`. Migration `0147` grants it to every profile and
+- Permission: `billing.view`. Migration `0148` grants it to every profile and
   user override that holds `finance.view`.
 - Read-only against Bexio: `nx_lib/bexio.py` only searches and GETs. Prices and
   amounts are Bexio's; nexora keeps none.
@@ -127,8 +127,8 @@ The old `/api/finance/bexio*` routes are gone.
 | Invoice month ↔ billed month, client rows, figure reduction | `nx_lib/billing.py` (pure) |
 | Routes | `nx_lib/views/billing.py` |
 | Page, JS shim, behaviour, styles | `templates/billing.html`, `templates/js/_billing_js.html`, `static/js/billing.js`, `static/css/billing.css` (on top of `finance.css`, whose ledger rows, group heads and jump index it reuses) |
-| Permission | `sql/_migrations/NexoraDB/0147_billing_page.sql`, `sql/test/seed.sql` |
-| Sidebar group *Sydoc internal* (Finance, BPS, Billing) | `templates/_header.html`, generic `data-nx-nav-group` wiring in `static/js/header.js` |
+| Permission | `sql/_migrations/NexoraDB/0148_billing_page.sql`, `sql/test/seed.sql` |
+| Sidebar group *Sydoc internal* (Finance, BPS, Billing, Controlling) | `templates/_header.html`, generic `data-nx-nav-group` wiring in `static/js/header.js` |
 | Tests | `tests/unit/test_bexio.py`, `tests/unit/test_billing.py`, `tests/integration/test_billing_routes.py` |
 
 ## Gotchas
@@ -147,7 +147,7 @@ The old `/api/finance/bexio*` routes are gone.
 ## Where the build differs from the design
 
 - **Own permission.** The design assumed `finance.view`. Billing has
-  `billing.view` (`0147`), so the Finance figures come from Billing's own
+  `billing.view` (`0148`), so the Finance figures come from Billing's own
   `/api/billing/figures/<key>` rather than `/api/finance/section/<key>`, which
   is gated by `finance.view`.
 - **Shared CSS stays in `finance.css`.** The design suggested promoting the jump
@@ -155,7 +155,7 @@ The old `/api/finance/bexio*` routes are gone.
   page loads `finance.css` instead, and `billing.css` adds the rest.
 - **The group is called *Sydoc internal*,** not *Sydoc*: INT has a tenant
   named Sydoc whose group would sit right next to it. Sydoc Controlling (#433)
-  joins it as a fourth item when it lands.
+  is its fourth item.
 - **No "paid {date}".** A Bexio invoice search carries no payment date, so the
   meta row shows the date, the due date and, for a partial payment, the paid
   and open amounts.

@@ -185,6 +185,7 @@
                 {'perm': page_visibility.financePagePerm,     'url': url_for('finance'),     'icon': 'fa-file-invoice-dollar', 'label': _('Finance'),     'key': 'finance'},
                 {'perm': page_visibility.bpsPagePerm,         'url': url_for('bps'),         'icon': 'fa-user-clock',          'label': _('BPS'),         'key': 'bps'},
                 {'perm': page_visibility.billingPagePerm,     'url': url_for('billing'),     'icon': 'fa-receipt',             'label': _('Billing'),     'key': 'billing'},
+                {'perm': page_visibility.controllingPagePerm, 'url': url_for('controlling'), 'icon': 'fa-scale-balanced',      'label': _('Controlling'), 'key': 'controlling'},
             ] %}
             {% if sydoc_items|selectattr('perm')|list %}
             {% set sydoc_active = active_page in sydoc_items|map(attribute='key')|list %}

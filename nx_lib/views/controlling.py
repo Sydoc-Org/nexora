@@ -41,9 +41,9 @@ from ..extensions import limiter
 from ..reporting.semantic import MetricResolveError
 from ..reporting.table_query import TableQueryError, table_source_catalog
 from ..security import has_permission, page_visibility, require_permission
+from .billing import _links, _message
 from .bps import _source as _bps_source
 from .finance import LOCAL_TZ, _as_datetime, _closed_months_safe
-from .finance_bexio import _links, _message
 from .reporting._shared import (
     _CURATED_ENGINES,
     _execute,

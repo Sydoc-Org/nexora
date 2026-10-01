@@ -1,4 +1,4 @@
-"""Read-only Bexio client for Sydoc Billing (#423, #436).
+"""Read-only Bexio client for Sydoc Billing (#423, #436) and Controlling (#433).
 
 Bexio is Sydoc's accounting system: invoices are written and priced there.
 Sydoc Finance counts what to bill; this module reads what *was* billed, so

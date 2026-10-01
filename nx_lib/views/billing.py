@@ -10,7 +10,7 @@ Bexio contact belongs to which Finance client is fixed data in
 dbo.FinanceBexioContacts (0141), set by migrations (0143); nothing here
 writes it, so a link cannot be removed by a stray click.
 
-billing.view (0147) is the whole gate, including the Finance figures the page
+billing.view (0148) is the whole gate, including the Finance figures the page
 compares with (/api/billing/figures/<key>): the page names every client's
 invoices and reads the billing sources unscoped, so like finance.view it is
 never granted to a customer profile.

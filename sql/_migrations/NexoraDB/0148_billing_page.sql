@@ -1,4 +1,4 @@
--- 0147_billing_page.sql  (#436)
+-- 0148_billing_page.sql  (#436)
 -- Sydoc Billing (/billing): what was invoiced in Bexio, per Finance client,
 -- next to the Finance figures of the month each invoice bills, plus the
 -- invoices to unlinked contacts and everything still owed. It replaces the
