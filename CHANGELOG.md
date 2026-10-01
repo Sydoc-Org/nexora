@@ -6,6 +6,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [3.4.0] - 2026-10-01
+
 ### Changed
 
 - **Finance: BPS hours billed in quarter hours** (#408): every billable booking
