@@ -800,3 +800,68 @@ def test_log_every_request_skips_branding(app, tmp_path, monkeypatch):
 
     assert result is fake_response
     assert not list(tmp_path.rglob("nexora_logs.csv"))
+
+
+def _cursor_with_rowcounts(*counts):
+    """Cursor whose rowcount follows each execute() in turn (UPDATE, INSERT...)."""
+    cursor = MagicMock()
+    it = iter(counts)
+
+    def _execute(*_a, **_k):
+        cursor.rowcount = next(it)
+
+    cursor.execute.side_effect = _execute
+    return cursor
+
+
+def test_enforce_active_session_staging_recreates_row_lost_to_db_refresh(app):
+    """Staging's DB is restored from PROD nightly; a live session whose row was
+    wiped is re-registered, not logged out (#437)."""
+    fake_cursor = _cursor_with_rowcounts(0, 1)  # UPDATE misses, INSERT lands
+    fake_conn = MagicMock()
+    fake_conn.cursor.return_value = fake_cursor
+
+    with app.test_request_context("/dashboard"):
+        session["userid"] = 1001
+        session["_dev_sid"] = "sid-staging-refreshed"
+        with (
+            patch.object(hooks_mod._config, "IS_STAGING", True),
+            patch.object(hooks_mod, "engine_nexora_db") as mock_engine,
+        ):
+            mock_engine.raw_connection.return_value = fake_conn
+            assert _enforce_active_session() is None
+        assert session["userid"] == 1001
+    sql, params = fake_cursor.execute.call_args_list[1].args
+    assert sql.startswith("INSERT INTO ActiveSessions")
+    assert params == ("sid-staging-refreshed", 1001)
+
+
+def test_enforce_active_session_staging_logs_out_user_gone_from_db(app):
+    fake_cursor = _cursor_with_rowcounts(0, 0)  # no row, and no such user
+    fake_conn = MagicMock()
+    fake_conn.cursor.return_value = fake_cursor
+
+    with app.test_request_context("/dashboard"):
+        session["userid"] = 1001
+        session["_dev_sid"] = "sid-staging-gone"
+        with (
+            patch.object(hooks_mod._config, "IS_STAGING", True),
+            patch.object(hooks_mod, "engine_nexora_db") as mock_engine,
+        ):
+            mock_engine.raw_connection.return_value = fake_conn
+            assert _enforce_active_session() is not None
+        assert "userid" not in session
+
+
+def test_enforce_active_session_off_staging_never_recreates(app):
+    fake_cursor = _cursor_with_rowcounts(0)
+    fake_conn = MagicMock()
+    fake_conn.cursor.return_value = fake_cursor
+
+    with app.test_request_context("/dashboard"):
+        session["userid"] = 1001
+        session["_dev_sid"] = "sid-prod-revoked"
+        with patch.object(hooks_mod, "engine_nexora_db") as mock_engine:
+            mock_engine.raw_connection.return_value = fake_conn
+            assert _enforce_active_session() is not None
+    assert fake_cursor.execute.call_count == 1

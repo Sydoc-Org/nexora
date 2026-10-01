@@ -92,6 +92,20 @@ def _enforce_active_session():
             (str(sid),),
         )
         updated = cursor.rowcount
+        if not updated and _config.IS_STAGING:
+            # nexora_STAGING is restored from PROD every night (#338), which
+            # wipes staging's ActiveSessions; without this every staging login
+            # would end at 01:00 despite the long lifetime (#437). The session
+            # data survived, so treat it as a lost row and re-create it, as long
+            # as the user still exists. A force-logout also deletes the session
+            # data (best-effort, security.py), so a revoked session has no
+            # userid left to get this far.
+            cursor.execute(
+                "INSERT INTO ActiveSessions (SessionID, UserID)"
+                " SELECT ?, userID FROM Users WHERE userID = ?",
+                (str(sid), int(session["userid"])),
+            )
+            updated = cursor.rowcount
         conn.commit()
         cursor.close()
         conn.close()
