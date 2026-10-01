@@ -177,7 +177,8 @@
 
             {# Sydoc's own books (#436): one collapsible group, shown for
                single-tenant users too (like the flat entries it replaced).
-               Sub-item labels are short -- the group header says "Sydoc".
+               Sub-item labels are short -- the group header says "Sydoc internal"
+               (not plain "Sydoc": that is also a tenant group on INT).
                Open/closed persists through the generic data-nx-nav-group
                wiring in static/js/header.js (nexora-nav-sydocNavGroup). #}
             {% set sydoc_items = [
@@ -190,7 +191,7 @@
             <div class="sidebar-nav-group" id="sydocNavGroup" data-active="{{ 'true' if sydoc_active else 'false' }}" data-nx-nav-group="sydoc">
                 <button class="sidebar-nav-item sidebar-nav-group-header {{ 'sidebar-nav-item--active' if sydoc_active else '' }}" type="button" data-nx-nav-group="sydoc" data-testid="header-nav-sydoc-toggle">
                     <i class="fas fa-book sidebar-nav-icon"></i>
-                    <span class="sidebar-label [flex:1]!">{{ _('Sydoc') }}</span>
+                    <span class="sidebar-label [flex:1]!">{{ _('Sydoc internal') }}</span>
                     <i class="fas fa-chevron-right sidebar-label sidebar-generali-chevron"></i>
                 </button>
                 <div class="sidebar-nav-subitems">
