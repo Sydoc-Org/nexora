@@ -716,7 +716,7 @@
 
     // ---- month load ---------------------------------------------------------------
     async function loadMonth(fresh) {
-        const res = await window.NX.apiSafe(`${API}api/controlling/month?month=${encodeURIComponent(CFG.month)}${fresh ? '&fresh=1' : ''}`);
+        const res = await window.NX.apiSafe(`/api/controlling/month?month=${encodeURIComponent(CFG.month)}${fresh ? '&fresh=1' : ''}`);
         if (!res.ok || !res.data || res.data.error) {
             const msg = (res.data && res.data.error) || S.loadFailed;
             const detail = res.data && res.data.detail;
@@ -884,7 +884,7 @@
 
     async function loadTrend(fresh) {
         const root = document.getElementById('ctl-trend-body');
-        const res = await window.NX.apiSafe(`${API}api/controlling/trend${fresh ? '?fresh=1' : ''}`);
+        const res = await window.NX.apiSafe(`/api/controlling/trend${fresh ? '?fresh=1' : ''}`);
         if (!res.ok || !res.data || res.data.error) {
             root.innerHTML = errorBox((res.data && res.data.error) || S.loadFailed, res.data && res.data.detail, 'trend');
             root.removeAttribute('aria-busy');
@@ -968,7 +968,7 @@
                 `<p class="nx-ctl-rates__foot"><i class="fas fa-circle-info" aria-hidden="true"></i><span>${esc(S.ratesFoot)}</span></p>`;
         }
         async function load() {
-            const res = await window.NX.apiSafe(`${API}api/controlling/rates`);
+            const res = await window.NX.apiSafe(`/api/controlling/rates`);
             if (!res.ok || !res.data || res.data.error) {
                 body.innerHTML = errorBox((res.data && res.data.error) || S.loadFailed);
                 return;
@@ -983,11 +983,11 @@
             readForm();
             let res;
             if (form.scope === 'cost') {
-                res = await window.NX.apiSafe(`${API}api/controlling/costs`, { method: 'POST', body: JSON.stringify({ month: CFG.month, stream: form.stream, label: form.label, amount: String(form.value).replace(',', '.') }) });
+                res = await window.NX.apiSafe(`/api/controlling/costs`, { method: 'POST', body: JSON.stringify({ month: CFG.month, stream: form.stream, label: form.label, amount: String(form.value).replace(',', '.') }) });
             } else {
                 const kind = form.scope === 'fte' ? 'fte_day_hours' : 'hourly';
                 const payload = { kind, stream: form.scope === 'override' ? form.stream : null, value: String(form.value).replace(',', '.'), from: form.from, to: form.to || null };
-                const url = form.id ? `${API}api/controlling/rates/${form.id}` : `${API}api/controlling/rates`;
+                const url = form.id ? `/api/controlling/rates/${form.id}` : `/api/controlling/rates`;
                 res = await window.NX.apiSafe(url, { method: form.id ? 'PUT' : 'POST', body: JSON.stringify(payload) });
             }
             if (!res.ok) {
@@ -1001,7 +1001,7 @@
             loadTrend(false);
         }
         async function remove() {
-            const res = await window.NX.apiSafe(`${API}api/controlling/rates/${form.id}`, { method: 'DELETE' });
+            const res = await window.NX.apiSafe(`/api/controlling/rates/${form.id}`, { method: 'DELETE' });
             if (!res.ok) { form.error = (res.data && res.data.error) || S.saveFailed; render(); return; }
             form = null;
             await load();
@@ -1029,7 +1029,7 @@
                 if (act.dataset.act === 'save') save();
                 if (act.dataset.act === 'delete') remove();
             } else if (delcost) {
-                const res = await window.NX.apiSafe(`${API}api/controlling/costs/${delcost.dataset.delcost}`, { method: 'DELETE' });
+                const res = await window.NX.apiSafe(`/api/controlling/costs/${delcost.dataset.delcost}`, { method: 'DELETE' });
                 if (res.ok) { loadMonth(false); loadTrend(false); }
             }
         });
