@@ -135,7 +135,7 @@ period headline and the picker shell (`templates/_sydoc.html`,
 - **Band:** the actions (close / reopen, CSV, print), the month as the headline
   with prev/next arrows, the three-state hint, the month's status (running,
   closed by whom, or open) and the load counter of the sections. A **jump
-  index** sits flush at its bottom, in page order: Bexio, then one item per
+  index** sits flush at its bottom, in page order: one item per
   section (`Section.nav`). It never wraps; where it does not fit it scrolls
   sideways with faded edges. (The design's ellipsis cut every label down to a
   letter or two with twelve entries at 1440px.)
@@ -206,56 +206,18 @@ reopens a month.
    labels and the "by … date" basis strings are `N_()`-marked msgids in the spec
    — run `/nx-i18n` after changing them.
 
-## Invoiced in Bexio (#423)
+## What was invoiced: Sydoc Billing
 
-Above the client sections, a panel shows what was actually invoiced in
-**Bexio** for the month, so the counted figures and the billed amounts sit on
-one page. It is **read-only** against Bexio: `nx_lib/bexio.py` only searches and
-GETs; prices and amounts are Bexio's, nexora keeps none. Drafting invoices from
-the page is deliberately not built (it needs the invoicing process and a
-go-ahead first).
-
-- **Which invoices.** The invoice for billed month M is assumed to be dated
-  (`is_valid_from`) in month **M + 1**: the August page lists invoices dated in
-  September. One constant, `INVOICE_MONTH_OFFSET` in `nx_lib/bexio.py`; the
-  panel names the window it searched, so a wrong assumption is visible.
-- **Per client.** Each Finance client (`Section.client`, Sydoc's own services
-  excluded; they are billed on the customers' invoices) shows its invoices
-  with number, title, date, status, the amount excl. VAT (`total` minus
-  `total_taxes`) and the total, or a flag: *no Bexio contact linked*, *no invoice
-  in M + 1*, *draft only*. Drafts and cancelled invoices are listed but never
-  counted in the totals. Totals are **CHF only**: Bexio sends no exchange rate
-  with an invoice, so a foreign-currency one (Bucherer is sometimes billed in
-  EUR) is listed in its own currency but not added in. **Lines** loads the invoice's positions (quantity,
-  unit, unit price, discount, total) for comparison with the figures below;
-  **PDF** streams the invoice PDF through nexora (`no-store`).
-- **Linked contacts only.** The panel shows and totals only invoices to Bexio
-  contacts linked to a Finance client; Sydoc's Bexio also bills customers nexora
-  has no figures for, and those are left out. The links are stored in
-  `dbo.FinanceBexioContacts` (`0141`): one row per contact, so a contact belongs
-  to one client while a client may have several (Aveniq is billed as Aveniq AG
-  and as Xpert Consulting AG). Migration `0143` seeds them for every client; a
-  new client or contact gets its link in a new migration. The links are fixed:
-  the page only reads them and nexora has no route that changes them.
-- **Live, not frozen.** The panel is not part of the month close: Bexio is the
-  system of record for the invoice itself. Results are cached for five
-  minutes in-process; **Refresh** bypasses the cache.
-- **Token.** `BEXIO_PAT` in `env/<ENV>.env`. Unset, the panel says *not
-  configured* and nothing calls Bexio; a rejected token or a Bexio outage shows
-  its reason in the panel while the rest of the page renders. Check a token,
-  read-only, with:
-
-  ```
-  .venv\Scripts\python.exe scripts\bexio-probe.py INT
-  ```
-
-  It reports which of the endpoints the panel needs answer. It cannot tell
-  whether the token could also write; that is visible only in Bexio.
+What was invoiced in Bexio is not on this page any more. **Sydoc Billing**
+(`/billing`, `billing.view`, #436) lists each month's invoices with their lines
+next to this page's figures of the month they bill, plus the invoices to
+unlinked contacts and everything still owed: `docs/howto/billing.md`. It
+replaced the Bexio panel that sat at the top of Finance (#423).
 
 ## What the page does not do (yet)
 
-- It does not write invoices: the Bexio panel reads them, and matching an
-  invoice line to a figure is left to the reader.
+- It does not write invoices. Sydoc Billing reads them from Bexio and ticks an
+  invoice quantity that equals one of these figures (a heuristic).
 - Privera's *Mailbestellungen* (a hand-pasted Outlook export) has no source and
   is not on the page.
 
@@ -297,11 +259,8 @@ go-ahead first).
 | Band, headline, picker shared with BPS | `templates/_sydoc.html`, `static/js/nx_sydoc.js`, `nx-sydoc-*` in `static/css/nexora-ui.css` |
 | Permission + BPS measure | `sql/_migrations/NexoraDB/0138_finance_page.sql`, `sql/test/seed.sql` |
 | Parity fixes, `FinanceMonthClose`, `finance.month.edit` | `sql/_migrations/NexoraDB/0139_finance_parity_and_close.sql`, `sql/test/schema.sql` |
-| Bexio client (read-only), window, reconciliation | `nx_lib/bexio.py` |
-| Bexio panel routes: panel, invoice lines, PDF, link / unlink | `nx_lib/views/finance_bexio.py`, `static/js/finance_bexio.js` |
-| `FinanceBexioContacts` | `sql/_migrations/NexoraDB/0141_finance_bexio_contacts.sql` (table), `0143_finance_bexio_contact_links.sql` (links), `sql/test/schema.sql` |
-| Token check | `scripts/bexio-probe.py` |
-| Tests | `tests/unit/test_finance.py`, `tests/unit/test_finance_export.py`, `tests/unit/test_bps.py`, `tests/unit/test_bexio.py`, `tests/integration/test_finance_routes.py`, `tests/integration/test_finance_bexio_routes.py` |
+| Bexio, the invoices of a month (Sydoc Billing) | `docs/howto/billing.md` |
+| Tests | `tests/unit/test_finance.py`, `tests/unit/test_finance_export.py`, `tests/unit/test_bps.py`, `tests/unit/test_bexio.py`, `tests/integration/test_finance_routes.py` |
 
 ## Gotchas
 

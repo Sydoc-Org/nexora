@@ -1,19 +1,20 @@
-"""Read-only Bexio client for the Sydoc Finance invoice panel (#423).
+"""Read-only Bexio client for Sydoc Billing (#423, #436) and Controlling (#433).
 
 Bexio is Sydoc's accounting system: invoices are written and priced there.
-The Finance page counts what to bill; this module reads what *was* billed, so
-the two can be read side by side. It never writes to Bexio -- every call is a
+Sydoc Finance counts what to bill; this module reads what *was* billed, so
+the two can be read side by side on the Billing page. It never writes to Bexio -- every call is a
 GET or a search POST (Bexio's search endpoints take their criteria as a POST
 body but change nothing).
 
 Two halves:
 
-* **Network** (``search_invoices``, ``contact_names``, ``invoice``,
-  ``invoice_pdf``, ``currencies``): thin wrappers over the REST API with a
-  short in-process cache, raising ``BexioError`` with a reader-facing reason.
+* **Network** (``search_invoices``, ``search_outstanding``, ``latest_before``,
+  ``contact_names``, ``invoice``, ``invoices``, ``invoice_pdf``, ``currencies``):
+  thin wrappers over the REST API with a short in-process cache, raising
+  ``BexioError`` with a reader-facing reason.
 * **Pure** (``invoice_window``, ``normalize_invoice``, ``normalize_positions``,
-  ``reconcile``): turn Bexio's payloads into what the page renders. No Flask,
-  no network, unit-tested directly.
+  ``reconcile``, ``outstanding``, ``month_states``): turn Bexio's payloads into
+  what the page renders. No Flask, no network, unit-tested directly.
 
 The token is ``BEXIO_PAT``; unset means ``configured()`` is False and nothing
 here touches the network. It is read from ``nx_lib.config`` at call time so a
@@ -29,6 +30,7 @@ import re
 import threading
 import time
 from collections import OrderedDict
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 
@@ -38,8 +40,10 @@ API = "https://api.bexio.com"
 TIMEOUT = 15
 PAGE_SIZE = 500
 MAX_PAGES = 10
-CACHE_TTL = 300  # seconds; the panel's Refresh button bypasses it
+CACHE_TTL = 300  # seconds; the page's Refresh button bypasses it
 CONTACT_TTL = 3600
+YEAR_TTL = 1800  # the picker's month states: one search over a whole year
+FETCH_WORKERS = 4  # invoices read in parallel for their lines
 
 # The invoice for billed month M is dated in month M + INVOICE_MONTH_OFFSET.
 # An assumption until accounting confirms it (#423); the page names the window
@@ -62,7 +66,10 @@ STATUS_KEYS = {
     UNPAID: "unpaid",
 }
 
-# Client states on the panel.
+# What is still owed: open, partly paid, unpaid (Billing's "Open and unpaid").
+OUTSTANDING = (PENDING, PARTIAL, UNPAID)
+
+# Client states on the page.
 INVOICED = "invoiced"
 DRAFT_ONLY = "draft"
 MISSING = "missing"
@@ -105,11 +112,18 @@ def _cached(key, ttl, loader, *, fresh=False):
                 return hit[1]
     value = loader()
     with _cache_lock:
-        _cache[key] = (now + ttl, value)
+        _cache[key] = (now + ttl, value, dt.datetime.now(dt.UTC))
         _cache.move_to_end(key)
         while len(_cache) > _CACHE_MAX:
             _cache.popitem(last=False)
     return value
+
+
+def read_at(date_from, date_to):
+    """When the invoices of that window were last read from Bexio (UTC), or None."""
+    with _cache_lock:
+        hit = _cache.get(("invoices", date_from, date_to))
+    return hit[2] if hit else None
 
 
 def clear_cache():
@@ -151,30 +165,66 @@ def _request(method, path, *, json=None, params=None):
         raise BexioError("Bexio returned an unreadable answer.") from e
 
 
-def search_invoices(date_from, date_to, *, fresh=False):
+def _search(criteria, *, order_by="id"):
+    """Every invoice matching ``criteria`` (Bexio's search grammar), paged."""
+    found = []
+    for page in range(MAX_PAGES):
+        batch = _request(
+            "POST",
+            "/2.0/kb_invoice/search",
+            json=criteria,
+            params={"limit": PAGE_SIZE, "offset": page * PAGE_SIZE, "order_by": order_by},
+        )
+        if not isinstance(batch, list):
+            raise BexioError("Bexio returned an unexpected invoice list.")
+        found.extend(batch)
+        if len(batch) < PAGE_SIZE:
+            break
+    return found
+
+
+def search_invoices(date_from, date_to, *, fresh=False, ttl=CACHE_TTL):
     """Every invoice dated ``date_from`` .. ``date_to`` (ISO dates, inclusive)."""
+    criteria = [
+        {"field": "is_valid_from", "value": date_from, "criteria": ">="},
+        {"field": "is_valid_from", "value": date_to, "criteria": "<="},
+    ]
+    return _cached(("invoices", date_from, date_to), ttl, lambda: _search(criteria), fresh=fresh)
+
+
+def search_outstanding(*, fresh=False):
+    """Every invoice with an amount still owed (open, partly paid, unpaid),
+    whatever its date."""
+    criteria = [
+        {"field": "kb_item_status_id", "value": [str(s) for s in OUTSTANDING], "criteria": "in"}
+    ]
+    return _cached(("outstanding",), CACHE_TTL, lambda: _search(criteria), fresh=fresh)
+
+
+def latest_before(contact_ids, date_from, *, fresh=False):
+    """The newest invoice to any of ``contact_ids`` dated before ``date_from``
+    (raw), or None. Bexio orders a search by id, not by date; ids follow
+    creation, so the newest 50 by id are read and the latest date wins."""
+    wanted = sorted({int(i) for i in contact_ids if i})
+    if not wanted:
+        return None
 
     def load():
-        criteria = [
-            {"field": "is_valid_from", "value": date_from, "criteria": ">="},
-            {"field": "is_valid_from", "value": date_to, "criteria": "<="},
-        ]
-        found = []
-        for page in range(MAX_PAGES):
-            batch = _request(
-                "POST",
-                "/2.0/kb_invoice/search",
-                json=criteria,
-                params={"limit": PAGE_SIZE, "offset": page * PAGE_SIZE, "order_by": "id"},
-            )
-            if not isinstance(batch, list):
-                raise BexioError("Bexio returned an unexpected invoice list.")
-            found.extend(batch)
-            if len(batch) < PAGE_SIZE:
-                break
-        return found
+        rows = _request(
+            "POST",
+            "/2.0/kb_invoice/search",
+            json=[
+                {"field": "contact_id", "value": [str(i) for i in wanted], "criteria": "in"},
+                {"field": "is_valid_from", "value": date_from, "criteria": "<"},
+            ],
+            params={"limit": 50, "order_by": "id_desc"},
+        )
+        dated = [r for r in rows or [] if r.get("is_valid_from")]
+        return max(
+            dated, key=lambda r: (str(r["is_valid_from"])[:10], r.get("id") or 0), default=None
+        )
 
-    return _cached(("invoices", date_from, date_to), CACHE_TTL, load, fresh=fresh)
+    return _cached(("latest", tuple(wanted), date_from), CACHE_TTL, load, fresh=fresh)
 
 
 def _contact_label(raw):
@@ -275,6 +325,24 @@ def invoice(invoice_id, *, fresh=False):
     )
 
 
+def invoices(invoice_ids, *, fresh=False):
+    """{id: raw invoice with positions} for several invoices, read in parallel
+    (each through ``invoice``'s cache). A failed read maps to its
+    ``BexioError``, so one bad invoice leaves the others' lines on the page."""
+    ids = sorted({int(i) for i in invoice_ids})
+    if not ids:
+        return {}
+
+    def one(invoice_id):
+        try:
+            return invoice(invoice_id, fresh=fresh)
+        except BexioError as e:
+            return e
+
+    with ThreadPoolExecutor(max_workers=min(FETCH_WORKERS, len(ids))) as pool:
+        return dict(zip(ids, pool.map(one, ids), strict=True))
+
+
 def invoice_pdf(invoice_id):
     """(pdf bytes, file name) of one invoice. Not cached: PDFs are large."""
     invoice_id = int(invoice_id)
@@ -326,13 +394,21 @@ def _date(value):
     return str(value)[:10] if value else None
 
 
+def _vat_rate(raw):
+    """The invoice's VAT rate in percent when it has exactly one, else None."""
+    rates = {_dec(t.get("percentage")) for t in raw.get("taxs") or [] if isinstance(t, dict)}
+    return float(rates.pop()) if len(rates) == 1 else None
+
+
 def normalize_invoice(raw, currency_codes=None):
-    """What the panel shows of one invoice. ``excl`` is ``total`` minus VAT,
-    derived rather than read, so it does not depend on the invoice's VAT mode."""
+    """What the page shows of one invoice. ``excl`` is ``total`` minus VAT,
+    derived rather than read, so it does not depend on the invoice's VAT mode.
+    ``open`` is what is still owed (Bexio's remaining payments)."""
     status_id = raw.get("kb_item_status_id")
     total = _dec(raw.get("total"))
     taxes = _dec(raw.get("total_taxes"))
     currency_id = raw.get("currency_id")
+    remaining = raw.get("total_remaining_payments")
     return {
         "id": int(raw["id"]),
         "nr": raw.get("document_nr") or "",
@@ -345,6 +421,11 @@ def normalize_invoice(raw, currency_codes=None):
         "status": STATUS_KEYS.get(status_id, "other"),
         "total": _money(total),
         "excl": _money(total - taxes),
+        "vat": _money(taxes),
+        "vatRate": _vat_rate(raw),
+        "paid": _money(_dec(raw.get("total_received_payments"))),
+        # A payload without the field (a search hit): nothing is known paid.
+        "open": _money(total if remaining in (None, "") else _dec(remaining)),
         "currency": (currency_codes or {}).get(currency_id, "") if currency_id else "",
         "currencyId": int(currency_id) if currency_id is not None else None,
     }
@@ -418,30 +499,40 @@ class Link:
     contact_id: int
 
 
+def _by_date(invoices):
+    return sorted(invoices, key=lambda i: (i["date"] or "", i["nr"]))
+
+
 def reconcile(clients, links, invoices, names):
-    """The panel: every Finance client with its linked contacts and invoices.
+    """The page: every Finance client with its linked contacts and invoices.
 
     ``clients`` -- Finance client names in page order.
     ``links`` -- ``Link`` rows (client -> Bexio contact id).
     ``invoices`` -- normalized invoices of the window.
     ``names`` -- {contact id: name}.
 
-    Only invoices to linked contacts are shown and totalled: Sydoc's Bexio also
-    bills customers nexora has no Finance figures for, and those are not this
-    page's business.
+    Only invoices to linked contacts are totalled: Sydoc's Bexio also bills
+    customers nexora has no Finance figures for. Those come back apart as
+    ``others`` (each with its contact's name), outside every total.
     """
     linked: dict[str, list] = {}
     for link in links:
         linked.setdefault(link.client, []).append(link.contact_id)
     claimed = {cid for client in clients for cid in linked.get(client, [])}
-    invoices = [i for i in invoices if i["contactId"] in claimed]
+    ordered = _by_date(invoices)
+    mine_all = [i for i in ordered if i["contactId"] in claimed]
+    others = [
+        {**i, "contact": names.get(i["contactId"], f"#{i['contactId']}")}
+        for i in ordered
+        if i["contactId"] not in claimed
+    ]
     by_contact: dict[int | None, list] = {}
-    for inv in sorted(invoices, key=lambda i: (i["date"] or "", i["nr"])):
+    for inv in mine_all:
         by_contact.setdefault(inv["contactId"], []).append(inv)
     rows = []
     for client in clients:
         ids = sorted(linked.get(client, []))
-        mine = [inv for cid in ids for inv in by_contact.get(cid, [])]
+        mine = _by_date(inv for cid in ids for inv in by_contact.get(cid, []))
         if not ids:
             state = UNLINKED
         elif any(counts(i) for i in mine):
@@ -461,7 +552,88 @@ def reconcile(clients, links, invoices, names):
         )
     return {
         "clients": rows,
-        "totals": totals(invoices),
-        "drafts": sum(1 for i in invoices if i["status"] == "draft"),
-        "count": len(invoices),
+        "others": others,
+        "othersTotals": totals(others),
+        "totals": totals(mine_all),
+        "drafts": sum(1 for i in mine_all if i["status"] == "draft"),
+        "cancelled": sum(1 for i in mine_all if i["status"] == "cancelled"),
+        "count": len(mine_all),
     }
+
+
+def outstanding(invoices, links, clients, names, today):
+    """Billing's "Open and unpaid": every invoice still owed, oldest due first.
+
+    ``invoices`` are normalized; ``today`` is an ISO date. A row names its
+    client when its contact is linked to one (else ``linked`` is False and the
+    contact names it). Totals stay per currency, CHF first -- nothing is
+    converted. Overdue means due before today.
+    """
+    owner: dict[int, str] = {}
+    for link in links:
+        if link.client in clients:
+            owner.setdefault(link.contact_id, link.client)
+    day = dt.date.fromisoformat(today)
+    rows = []
+    for inv in invoices:
+        if inv["status"] not in ("open", "partial", "unpaid"):
+            continue
+        late = (day - dt.date.fromisoformat(inv["due"])).days if inv["due"] else 0
+        cid = inv["contactId"]
+        rows.append(
+            {
+                **inv,
+                "client": owner.get(cid) if cid is not None else None,
+                "contact": names.get(cid, f"#{cid}") if cid is not None else "",
+                "linked": cid in owner,
+                "overdueDays": max(late, 0),
+            }
+        )
+    rows.sort(key=lambda r: (r["due"] or "9999-12-31", r["date"] or "", r["nr"]))
+    sums: dict[str, list] = {}
+    for r in rows:
+        acc = sums.setdefault(r["currency"], [Decimal(0), 0, Decimal(0), 0])
+        acc[0] += Decimal(str(r["open"]))
+        acc[1] += 1
+        if r["overdueDays"]:
+            acc[2] += Decimal(str(r["open"]))
+            acc[3] += 1
+    return {
+        "invoices": rows,
+        "totals": [
+            {"currency": c, "open": _money(o), "count": n, "overdue": _money(od), "overdueCount": k}
+            for c, (o, n, od, k) in sorted(sums.items(), key=lambda kv: (kv[0] != "CHF", kv[0]))
+        ],
+        "overdue": sum(1 for r in rows if r["overdueDays"]),
+    }
+
+
+def month_states(invoices, links, clients, year, today):
+    """{'YYYY-MM': 'running' | 'all' | 'missing:<n>'} for the invoice months of
+    ``year`` up to today's month -- the status line of the picker.
+
+    ``invoices`` are the normalized invoices dated in ``year``. A month is
+    'all' when every client with a linked contact has an invoice that counts
+    dated in it; a client without a link cannot be checked and is left out.
+    """
+    contacts: dict[str, set] = {}
+    for link in links:
+        if link.client in clients:
+            contacts.setdefault(link.client, set()).add(link.contact_id)
+    billed: dict[str, set] = {}
+    for inv in invoices:
+        if counts(inv) and inv["date"]:
+            billed.setdefault(inv["date"][:7], set()).add(inv["contactId"])
+    this = today[:7]
+    out = {}
+    for m in range(1, 13):
+        key = f"{year:04d}-{m:02d}"
+        if key > this:
+            break
+        if key == this:
+            out[key] = "running"
+            continue
+        got = billed.get(key, set())
+        missing = sum(1 for ids in contacts.values() if not ids & got)
+        out[key] = f"missing:{missing}" if missing else "all"
+    return out

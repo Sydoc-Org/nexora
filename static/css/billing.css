@@ -1,0 +1,175 @@
+/* ============================================================
+   Sydoc Billing (#436) — what Billing adds on top of finance.css, which
+   the page loads first: the ledger rows, group heads, jump index, tables
+   and error/skeleton states are Finance's. The ink band, headline and
+   picker are shared (nx-sydoc-* in nexora-ui.css).
+   Values: docs/design/design_handoff_sydoc_billing (README + prototype).
+   ============================================================ */
+
+/* Text for screen readers only (a table's action column head, a tick's reason). */
+.nx-fin-sr {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* ---------- Band ---------- */
+.nx-bill-hint-tick i, .nx-bill-hint-tick .fa-check { font-size: 10px; color: #34d399; }
+.nx-bill-band__rule { height: 1px; border: none; background: rgba(255,255,255,.08); margin: 24px -30px 0; }
+.nx-bill-totals { margin-top: 22px; display: flex; align-items: flex-end; gap: 16px 48px; flex-wrap: wrap; min-height: 64px; }
+.nx-bill-skel { width: 360px; max-width: 100%; height: 48px; background: rgba(255,255,255,.08); }
+.nx-bill-totals__k { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: #7c8492; white-space: nowrap; }
+.nx-bill-totals__big {
+  display: block; margin-top: 4px; font-size: 40px; font-weight: 600; letter-spacing: -1.6px; line-height: 1;
+  color: #fff; font-variant-numeric: tabular-nums;
+}
+.nx-bill-totals__big small { font-size: 18px; font-weight: 500; letter-spacing: 0; color: #7c8492; margin-left: 6px; }
+.nx-bill-totals__grid { display: flex; gap: 4px 40px; flex-wrap: wrap; }
+.nx-bill-totals__v {
+  display: block; margin-top: 4px; font-size: 20px; font-weight: 600; letter-spacing: -.6px;
+  color: #f3f4f6; font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.nx-bill-totals__v small { font-size: 12px; font-weight: 500; letter-spacing: 0; color: #9ca3af; margin-left: 8px; }
+
+.nx-fin-jump__item--bexio .nx-fin-jump__tile { background: rgba(52,211,153,.18); color: #a7f3d0; font-size: 9px; }
+.nx-bill-jump-dot.nx-sydoc-dot { width: 6px; height: 6px; margin-left: 2px; }
+
+/* Picker status lines: "All invoiced" / "n missing". */
+.nx-bill-cell--all, .nx-bill-legend--all i { color: #047857; }
+.nx-bill-cell--missing, .nx-bill-legend--missing i { color: #b45309; }
+html.dark .nx-bill-cell--all, html.dark .nx-bill-legend--all i { color: var(--nx-gain); }
+html.dark .nx-bill-cell--missing, html.dark .nx-bill-legend--missing i { color: #fbbf24; }
+
+.nx-bill-error { margin-top: 22px; }
+.nx-bill-group__note { font-size: 11px; color: var(--nx-fin-quiet); white-space: nowrap; }
+
+/* ---------- A client row: identity | invoices, figures below, full width ---------- */
+.nx-bill-client { row-gap: 0; }
+.nx-bill-invoices { min-width: 0; display: flex; flex-direction: column; gap: 26px; }
+.nx-bill-invoices:empty { display: none; }
+.nx-bill-figures { grid-column: 1 / -1; margin-top: 30px; min-width: 0; }
+
+/* One invoice. */
+.nx-bill-inv__head {
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  padding-bottom: 10px; border-bottom: 1px solid var(--nx-border);
+}
+.nx-bill-inv__head .nx-label { align-self: center; }
+.nx-bill-inv__nr { font-family: var(--nx-mono); font-size: 13px; font-weight: 700; color: var(--nx-text); }
+.nx-bill-inv__title { font-size: 13px; font-weight: 500; color: var(--nx-fin-quiet); }
+.nx-bill-inv__spacer { flex: 1; }
+.nx-bill-inv__total {
+  font-family: var(--nx-mono); font-size: 16px; font-weight: 600; letter-spacing: -.4px;
+  color: var(--nx-text); font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.nx-bill-inv.is-cancelled .nx-bill-inv__nr, .nx-bill-inv.is-cancelled .nx-bill-inv__total { color: var(--nx-fin-quiet); }
+.nx-bill-inv.is-cancelled .nx-bill-inv__total { text-decoration: line-through; }
+.nx-bill-inv__lines { margin-top: 2px; }
+.nx-bill-inv__lines[hidden] { display: none; }
+.nx-bill-inv__meta {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px 14px;
+  margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--nx-divider);
+  font-size: 11.5px; color: var(--nx-fin-quiet); font-variant-numeric: tabular-nums;
+}
+.nx-bill-inv__lines[hidden] + .nx-bill-inv__meta { border-top: none; }
+.nx-bill-inv__foreign { color: #92400e; font-weight: 500; }
+html.dark .nx-bill-inv__foreign { color: #fbbf24; }
+.nx-bill-inv__actions { display: inline-flex; gap: 4px; }
+
+/* Its lines. */
+.nx-bill-lines { width: 100%; border-collapse: collapse; }
+.nx-bill-lines th {
+  padding: 6px 0; text-align: left; font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .6px; color: var(--nx-fin-quiet); border-bottom: 1px solid var(--nx-border); white-space: nowrap;
+}
+.nx-bill-lines td { padding: 8px 0; font-size: 12.5px; color: var(--nx-text); border-bottom: 1px solid var(--nx-divider); vertical-align: top; }
+.nx-bill-lines th.nx-num, .nx-bill-lines td.nx-num { text-align: right; padding-left: 10px; }
+/* Fixed numeric columns, so the invoices of a client line up under each other. */
+.nx-bill-lines th.nx-num { width: 116px; }
+.nx-bill-lines td.nx-num {
+  font-family: var(--nx-mono); font-size: 12px; white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+.nx-bill-lines .nx-bill-lines__price { color: var(--nx-fin-quiet); }
+.nx-bill-lines tfoot td { border-bottom: none; padding: 3px 0; font-size: 12px; color: var(--nx-fin-quiet); }
+.nx-bill-lines tfoot tr:first-child td { padding-top: 12px; }
+.nx-bill-lines tfoot .nx-bill-lines__total td { font-size: 12.5px; font-weight: 600; color: var(--nx-text); padding-bottom: 8px; }
+.nx-fin-bexio__text { white-space: normal; }
+.nx-fin-bexio__sub td { font-weight: 600; }
+.nx-fin-bexio__textline td { color: var(--nx-text-sec); font-style: italic; }
+.nx-bill-tick { font-size: 10px; color: var(--nx-gain); margin-right: 6px; }
+html.dark .nx-bill-tick { color: #34d399; }
+
+/* A client without an invoice. */
+.nx-bill-missing {
+  margin: 0; padding-bottom: 10px; border-bottom: 1px solid var(--nx-border);
+  font-size: 13px; color: var(--nx-fin-quiet); display: flex; align-items: baseline; gap: 8px;
+}
+.nx-bill-missing__last { margin: 8px 0 0; font-size: 11.5px; color: var(--nx-fin-quiet); }
+.nx-bill-missing__nr { font-family: var(--nx-mono); font-weight: 600; color: var(--nx-text); }
+.nx-bill-missing__last a, .nx-bill-figs__link { font-weight: 600; color: var(--nx-sydoc-ink-text); text-decoration: none; }
+.nx-bill-missing__last a:hover, .nx-bill-figs__link:hover { text-decoration: underline; }
+
+/* The Finance figures of the billed month. */
+.nx-bill-figs__head {
+  display: flex; align-items: baseline; gap: 12px;
+  padding-bottom: 6px; border-bottom: 1px solid var(--nx-border);
+}
+.nx-bill-figs__head .nx-eyebrow { color: var(--nx-fin-quiet); }
+.nx-bill-figs__spacer { flex: 1; }
+.nx-bill-figs__link { font-size: 11.5px; white-space: nowrap; }
+.nx-bill-figs__link i { font-size: 10px; margin-left: 2px; }
+.nx-bill-figs__body { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0 32px; }
+.nx-bill-figs__title { margin: 10px 0 0; font-size: 11px; font-weight: 600; color: var(--nx-fin-quiet); }
+.nx-bill-figs__group .nx-fin-error { margin-top: 8px; }
+.nx-bill-fig {
+  display: flex; align-items: baseline; gap: 8px; padding: 5px 0;
+  border-bottom: 1px solid var(--nx-divider); font-size: 12.5px; color: var(--nx-text);
+}
+.nx-bill-fig__label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nx-bill-fig__value { font-family: var(--nx-mono); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.nx-bill-fig__tick { width: 12px; flex-shrink: 0; }
+.nx-bill-fig__tick .nx-bill-tick { margin: 0; }
+
+/* ---------- Other contacts / open and unpaid: the panel tables (#423) ---------- */
+.nx-kpi-strip.nx-fin-kpis { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 18px; }
+.nx-kpi-strip.nx-fin-kpis .nx-kpi { border-top: none; }
+.nx-fin-kpis .nx-kpi { padding: 0 24px 14px; }
+.nx-fin-kpis .nx-kpi:first-child { border-left: none; padding-left: 0; }
+.nx-fin-kpis .nx-kpi__value.nx-fin-bexio__value { font-size: 17px; font-weight: 600; letter-spacing: -.5px; font-family: var(--nx-mono); }
+.nx-fin-kpis .nx-kpi__value.nx-bill-loss { color: var(--nx-loss); }
+.nx-bill-other .nx-fin-table .nx-table tbody td:first-child,
+.nx-bill-open .nx-fin-table .nx-table tbody td:first-child { max-width: none; width: auto; white-space: normal; overflow: visible; }
+.nx-fin-bexio__table td { vertical-align: top; }
+/* Finance's matrix never wraps; these lists must fit the column instead. */
+.nx-bill-other .nx-fin-matrix .nx-table, .nx-bill-open .nx-fin-matrix .nx-table { min-width: 0; width: 100%; }
+.nx-bill-other .nx-fin-matrix .nx-table td, .nx-bill-open .nx-fin-matrix .nx-table td { white-space: normal; }
+.nx-bill-other .nx-fin-matrix .nx-table td.nx-num, .nx-bill-open .nx-fin-matrix .nx-table td.nx-num,
+.nx-fin-bexio__date { white-space: nowrap; }
+.nx-fin-bexio__table td.nx-num { font-family: var(--nx-mono); }
+.nx-fin-bexio__client { font-weight: 600; color: var(--nx-text); }
+.nx-fin-bexio__nr { font-family: var(--nx-mono); font-weight: 600; margin-right: 6px; white-space: nowrap; }
+.nx-fin-bexio__title { color: var(--nx-text-sec); }
+.nx-fin-bexio__date { white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--nx-text-sec); }
+.nx-fin-bexio__act { white-space: nowrap; text-align: right; }
+.nx-fin-bexio__inv.is-cancelled td { color: var(--nx-fin-quiet); }
+.nx-fin-bexio__inv.is-cancelled td.nx-num { text-decoration: line-through; }
+.nx-bill-open__contact { font-weight: 500; color: var(--nx-text); }
+.nx-bill-open__sub, .nx-bill-open__late { display: block; margin-top: 1px; font-size: 11px; color: var(--nx-fin-quiet); font-weight: 400; }
+.nx-bill-open__late { color: var(--nx-loss); font-weight: 600; }
+.nx-bill-open__open { font-weight: 600; }
+.nx-bill-open__total { color: var(--nx-fin-quiet); }
+
+@media (max-width: 640px) {
+  .nx-fin-kpis .nx-kpi { padding-left: 0; border-left: none; }
+  .nx-bill-totals__big { font-size: 32px; }
+  .nx-bill-lines { display: block; overflow-x: auto; }
+  .nx-bill-lines th.nx-num { width: auto; }
+}
+
+/* ---------- Print: lines expanded, no buttons ---------- */
+@media print {
+  #bill-refresh, .nx-bill-inv__actions, .nx-fin-bexio__act { display: none !important; }
+  .nx-bill-inv__lines[hidden] { display: block !important; }
+  .nx-bill-band__rule { background: #e5e7eb; margin: 14px 0 0; }
+  body.nx-sydoc .nx-bill-totals__big, body.nx-sydoc .nx-bill-totals__v { color: #000; }
+  .nx-bill-inv { break-inside: avoid; page-break-inside: avoid; }
+}

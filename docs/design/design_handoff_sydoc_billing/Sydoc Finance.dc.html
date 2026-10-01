@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#f9fafb;font-family:'Inter',system-ui,-apple-system,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}a:hover{color:#b2401f}
+button,select{font-family:inherit}
+@keyframes nx-spin{from{transform:perspective(300px) rotateX(64deg) rotateZ(0deg)}to{transform:perspective(300px) rotateX(64deg) rotateZ(360deg)}}
+@keyframes nx-spiral{0%{transform:translate(-2px,-2px) rotate(0deg) translateX(18px) rotate(0deg);opacity:.15}60%{opacity:.95}100%{transform:translate(-2px,-2px) rotate(540deg) translateX(6px) rotate(-540deg);opacity:0}}
+</style>
+</helmet>
+<div style="display:flex;flex-direction:column;min-height:100vh;background:#f9fafb;color:#1f2937;font-family:'Inter',system-ui,-apple-system,sans-serif;padding-left:{{ bodyPad }};transition:padding-left .28s cubic-bezier(.4,0,.2,1)">
+
+<aside onMouseEnter="{{ sbEnter }}" onMouseLeave="{{ sbLeave }}" style="position:fixed;left:0;top:0;height:100vh;width:{{ sbW }};z-index:40;display:flex;flex-direction:column;background:#ffffff;border-right:1px solid #f3f4f6;box-shadow:2px 0 8px rgba(0,0,0,0.04);overflow:hidden;transition:width .28s cubic-bezier(.4,0,.2,1)">
+  <div style="display:flex;align-items:center;height:64px;padding:0 12px;border-bottom:1px solid #f3f4f6;flex-shrink:0">
+    <a href="#" style="display:flex;align-items:center;gap:10px;white-space:nowrap;text-decoration:none">{{ logo }}{{ wordmark }}</a>
+  </div>
+  <nav style="flex:1;min-height:0;padding:12px 8px;display:flex;flex-direction:column;gap:2px;overflow-y:auto;overflow-x:hidden">
+    <button style="display:flex;align-items:center;gap:12px;padding:10px 8px;border-radius:8px;color:#57606a;font-size:.875rem;font-weight:500;width:100%;text-align:left;background:none;border:none;cursor:pointer;position:relative" style-hover="background:rgba(0,0,0,.05);color:#1f2328"><i class="fas fa-shield-halved" style="width:32px;height:32px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1rem"></i><span style="flex:1;opacity:{{ lbl }};white-space:nowrap;overflow:hidden;transition:opacity .18s ease">Admin</span><i class="fas fa-chevron-right" style="font-size:.65rem;opacity:{{ lbl }};transition:opacity .18s ease"></i></button>
+    <button style="display:flex;align-items:center;gap:12px;padding:10px 8px;border-radius:8px;color:#57606a;font-size:.875rem;font-weight:500;width:100%;text-align:left;background:none;border:none;cursor:pointer;position:relative" style-hover="background:rgba(0,0,0,.05);color:#1f2328"><i class="fas fa-code" style="width:32px;height:32px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1rem"></i><span style="flex:1;opacity:{{ lbl }};white-space:nowrap;overflow:hidden;transition:opacity .18s ease">Development</span><i class="fas fa-chevron-right" style="font-size:.65rem;opacity:{{ lbl }};transition:opacity .18s ease"></i></button>
+    <a href="#" style="display:flex;align-items:center;gap:12px;padding:10px 8px;border-radius:8px;color:#57606a;font-size:.875rem;font-weight:500;width:100%;position:relative" style-hover="background:rgba(0,0,0,.05);color:#1f2328"><i class="fas fa-gauge-high" style="width:32px;height:32px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1rem"></i><span style="opacity:{{ lbl }};white-space:nowrap;overflow:hidden;transition:opacity .18s ease">Global Dashboard</span></a>
+    <a href="#" style="display:flex;align-items:center;gap:12px;padding:10px 8px;border-radius:8px;color:#57606a;font-size:.875rem;font-weight:500;width:100%;position:relative" style-hover="background:rgba(0,0,0,.05);color:#1f2328"><i class="fas fa-chart-column" style="width:32px;height:32px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1rem"></i><span style="opacity:{{ lbl }};white-space:nowrap;overflow:hidden;transition:opacity .18s ease">Global Reporting</span></a>
+    <a href="#" style="display:flex;align-items:center;gap:12px;padding:10px 8px;border-radius:8px;color:#57606a;font-size:.875rem;font-weight:500;width:100%;position:relative" style-hover="background:rgba(0,0,0,.05);color:#1f2328"><i class="fas fa-layer-group" style="width:32px;height:32px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1rem"></i><span style="opacity:{{ lbl }};white-space:nowrap;overflow:hidden;transition:opacity .18s ease">Global Workitems</span></a>
+    <sc-if value="{{ isToday }}" hint-placeholder-val="{{ false }}">
+      <a href="#" style="display:flex;align-items:center;gap:12px;padding:10px 8px;border-radius:8px;color:#1f2328;background:rgba(0,0,0,.05);font-size:.875rem;font-weight:600;width:100%;position:relative"><span style="position:absolute;left:-8px;top:50%;transform:translateY(-50%);width:3px;height:20px;border-radius:0 2px 2px 0;background:#e3633f"></span><i class="fas fa-file-invoice-dollar" style="width:32px;height:32px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1rem"></i><span style="opacity:{{ lbl }};white-space:nowrap;overflow:hidden;transition:opacity .18s ease">Sydoc Finance</span></a>
+      <a href="#" style="display:flex;align-items:center;gap:12px;padding:10px 8px;border-radius:8px;color:#57606a;font-size:.875rem;font-weight:500;width:100%;position:relative" style-hover="background:rgba(0,0,0,.05);color:#1f2328"><i class="fas fa-user-clock" style="width:32px;height:32px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1rem"></i><span style="opacity:{{ lbl }};white-space:nowrap;overflow:hidden;transition:opacity .18s ease">Sydoc BPS</span></a>
+    </sc-if>
+    <sc-if value="{{ isNew }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <button onClick="{{ toggleSydoc }}" style="display:flex;align-items:center;gap:12px;padding:10px 8px;border-radius:8px;color:#1f2328;background:rgba(0,0,0,.05);font-size:.875rem;font-weight:600;width:100%;text-align:left;border:none;cursor:pointer;position:relative"><span style="position:absolute;left:-8px;top:50%;transform:translateY(-50%);width:3px;height:20px;border-radius:0 2px 2px 0;background:#e3633f"></span><i class="fas fa-book" style="width:32px;height:32px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1rem"></i><span style="flex:1;opacity:{{ lbl }};white-space:nowrap;overflow:hidden;transition:opacity .18s ease">Sydoc</span><i class="fas fa-chevron-right" style="font-size:.65rem;opacity:{{ lbl }};transform:{{ sydocChev }};transition:opacity .18s ease,transform .2s ease"></i></button>
+        <div style="display:flex;flex-direction:column;gap:2px;overflow:hidden;max-height:{{ sydocMax }};transition:max-height .25s ease">
+          <a href="#" style="display:flex;align-items:center;gap:12px;padding:10px 8px 10px 20px;border-radius:8px;color:#1f2328;background:rgba(0,0,0,.05);font-size:.875rem;font-weight:600;width:100%;position:relative"><span style="position:absolute;left:-8px;top:50%;transform:translateY(-50%);width:3px;height:20px;border-radius:0 2px 2px 0;background:#e3633f"></span><i class="fas fa-file-invoice-dollar" style="width:24px;height:24px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.8rem"></i><span style="opacity:{{ lbl }};white-space:nowrap;overflow:hidden;transition:opacity .18s ease">Finance</span></a>
+          <a href="#" style="display:flex;align-items:center;gap:12px;padding:10px 8px 10px 20px;border-radius:8px;color:#57606a;font-size:.875rem;font-weight:500;width:100%;position:relative" style-hover="background:rgba(0,0,0,.05);color:#1f2328"><i class="fas fa-user-clock" style="width:24px;height:24px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.8rem"></i><span style="opacity:{{ lbl }};white-space:nowrap;overflow:hidden;transition:opacity .18s ease">BPS</span></a>
+          <a href="Sydoc Billing.dc.html" style="display:flex;align-items:center;gap:12px;padding:10px 8px 10px 20px;border-radius:8px;color:#57606a;font-size:.875rem;font-weight:500;width:100%;position:relative" style-hover="background:rgba(0,0,0,.05);color:#1f2328"><i class="fas fa-receipt" style="width:24px;height:24px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.8rem"></i><span style="opacity:{{ lbl }};white-space:nowrap;overflow:hidden;transition:opacity .18s ease">Billing</span></a>
+        </div>
+      </div>
+    </sc-if>
+    <button style="display:flex;align-items:center;gap:12px;padding:10px 8px;border-radius:8px;color:#57606a;font-size:.875rem;font-weight:500;width:100%;text-align:left;background:none;border:none;cursor:pointer;position:relative" style-hover="background:rgba(0,0,0,.05);color:#1f2328"><i class="fas fa-building" style="width:32px;height:32px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1rem"></i><span style="flex:1;opacity:{{ lbl }};white-space:nowrap;overflow:hidden;transition:opacity .18s ease">Generali</span><i class="fas fa-chevron-right" style="font-size:.65rem;opacity:{{ lbl }};transition:opacity .18s ease"></i></button>
+  </nav>
+  <div style="flex-shrink:0;border-top:1px solid #f3f4f6;padding:8px;display:flex;flex-direction:column;gap:2px">
+    <button onClick="{{ togglePin }}" style="display:flex;align-items:center;gap:12px;padding:10px 8px;border-radius:8px;color:#57606a;font-size:.875rem;font-weight:500;width:100%;text-align:left;background:none;border:none;cursor:pointer" style-hover="background:rgba(0,0,0,.05);color:#1f2328"><i class="fas fa-thumbtack" style="width:32px;height:32px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1rem;color:{{ pinColor }};transform:{{ pinRot }}"></i><span style="opacity:{{ lbl }};white-space:nowrap;overflow:hidden;transition:opacity .18s ease">Keep sidebar open</span></button>
+    <button style="display:flex;align-items:center;gap:12px;padding:10px 8px;border-radius:8px;color:#57606a;font-size:.875rem;font-weight:500;width:100%;text-align:left;background:none;border:none;cursor:pointer" style-hover="background:rgba(61,108,122,.1);color:#3d6c7a"><i class="fas fa-moon" style="width:32px;height:32px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1rem;color:#3d6c7a"></i><span style="opacity:{{ lbl }};white-space:nowrap;overflow:hidden;transition:opacity .18s ease">Dark Mode</span></button>
+    <button style="display:flex;align-items:center;gap:12px;padding:10px 8px;border-radius:8px;width:100%;text-align:left;background:none;border:none;cursor:pointer" style-hover="background:rgba(0,0,0,.05)"><span style="width:32px;height:32px;flex-shrink:0;display:flex;align-items:center;justify-content:center;position:relative"><img src="assets/default-icon.png" alt="Profile Picture" style="width:28px;height:28px;border-radius:9999px;object-fit:cover"><span style="position:absolute;bottom:-1px;right:-1px;width:9px;height:9px;border-radius:9999px;background:#22c55e;border:2px solid #fff"></span></span><span style="opacity:{{ lbl }};white-space:nowrap;overflow:hidden;transition:opacity .18s ease;font-size:.8125rem;font-weight:600;color:#374151">M. Keller</span></button>
+  </div>
+</aside>
+
+<main style="flex:1 0 auto;width:100%;max-width:1600px;margin:0 auto;padding:36px 40px 28px;position:relative;z-index:1">
+
+  <section data-screen-label="Finance band" style="background:#111318;border-radius:16px;color:#e5e7eb;overflow:hidden;padding:22px 30px 0">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span style="width:22px;height:26px;flex-shrink:0;background:url('assets/sydoc-mark.png') center / contain no-repeat"></span>
+      <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#f08a6c;white-space:nowrap">Sydoc internal</span>
+      <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#7c8492;white-space:nowrap">Accounting</span>
+      <span style="flex:1"></span>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <sc-if value="{{ isOpenMonth }}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{ toggleConfirm }}" style="display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 12px;border-radius:8px;border:1px solid transparent;background:#e3633f;color:#111318;font-size:12.5px;font-weight:600;white-space:nowrap;cursor:pointer" style-hover="background:#ec7656"><i class="fas fa-lock" style="font-size:12px"></i>Close month</button>
+        </sc-if>
+        <sc-if value="{{ isClosedMonth }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ toggleConfirm }}" style="display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 12px;border-radius:8px;border:1px solid transparent;background:#e3633f;color:#111318;font-size:12.5px;font-weight:600;white-space:nowrap;cursor:pointer" style-hover="background:#ec7656"><i class="fas fa-lock-open" style="font-size:12px"></i>Reopen month</button>
+        </sc-if>
+        <a href="#" style="display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 12px;border-radius:8px;border:1px solid rgba(255,255,255,.14);background:transparent;color:#e5e7eb;font-size:12.5px;font-weight:600;white-space:nowrap" style-hover="background:rgba(255,255,255,.06);color:#e5e7eb"><i class="fas fa-file-excel" style="font-size:12px;color:#9ca3af"></i>Excel</a>
+        <button style="display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 12px;border-radius:8px;border:1px solid rgba(255,255,255,.14);background:transparent;color:#e5e7eb;font-size:12.5px;font-weight:600;white-space:nowrap;cursor:pointer" style-hover="background:rgba(255,255,255,.06)"><i class="fas fa-print" style="font-size:12px;color:#9ca3af"></i>Print</button>
+      </div>
+    </div>
+
+    <div style="margin-top:22px;display:flex;align-items:flex-end;gap:40px;flex-wrap:wrap">
+      <div style="flex:1 1 520px;min-width:0">
+        <h1 style="font-size:14px;font-weight:600;color:#9ca3af;letter-spacing:-.01em">Sydoc Finance</h1>
+        <div style="margin-top:6px;display:flex;align-items:center;gap:14px">
+          <button onClick="{{ prevMonth }}" aria-label="Previous month" style="width:36px;height:36px;border-radius:99px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.14);background:transparent;color:#d1d5db;font-size:12px;cursor:pointer;opacity:{{ prevOp }}" style-hover="background:rgba(255,255,255,.08);color:#fff"><i class="fas fa-chevron-left"></i></button>
+          <button onClick="{{ openPicker }}" style="display:inline-flex;align-items:baseline;gap:12px;white-space:nowrap;border:none;background:none;padding:0;cursor:pointer;min-width:0">
+            <span style="font-size:54px;font-weight:600;letter-spacing:-2.2px;line-height:1;color:#fff">{{ selName }}</span>
+            <span style="font-size:54px;font-weight:400;letter-spacing:-2.2px;line-height:1;color:#6b7280;font-variant-numeric:tabular-nums">{{ selYear }}</span>
+            <i class="fas fa-chevron-down" style="font-size:14px;color:#6b7280;align-self:center"></i>
+          </button>
+          <button onClick="{{ nextMonth }}" aria-label="Next month" style="width:36px;height:36px;border-radius:99px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.14);background:transparent;color:#d1d5db;font-size:12px;cursor:pointer;opacity:{{ nextOp }}" style-hover="background:rgba(255,255,255,.08);color:#fff"><i class="fas fa-chevron-right"></i></button>
+        </div>
+        <p style="margin:12px 0 0;font-size:12.5px;line-height:1.5;color:#9ca3af;max-width:64ch">
+          <sc-if value="{{ isRunning }}" hint-placeholder-val="{{ false }}">This month is still running; the figures grow until it closes.</sc-if>
+          <sc-if value="{{ isClosedMonth }}" hint-placeholder-val="{{ false }}">Figures as frozen at the close. Where the live data has moved since, the section says so.</sc-if>
+          <sc-if value="{{ isOpenMonth }}" hint-placeholder-val="{{ true }}">Live figures, each compared with the month before. Close the month once it is invoiced to freeze them.</sc-if>
+        </p>
+      </div>
+      <div style="display:grid;grid-template-rows:auto auto;grid-auto-flow:column;gap:4px 36px">
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#7c8492;white-space:nowrap">Status</span>
+        <span style="font-size:14px;font-weight:600;color:#f3f4f6;white-space:nowrap;display:inline-flex;align-items:center;gap:7px;font-variant-numeric:tabular-nums">
+          <sc-if value="{{ isRunning }}" hint-placeholder-val="{{ false }}"><span style="width:8px;height:8px;border-radius:99px;background:#f59e0b;flex-shrink:0;display:inline-block"></span>Running</sc-if>
+          <sc-if value="{{ isClosedMonth }}" hint-placeholder-val="{{ false }}"><i class="fas fa-lock" style="font-size:11px;color:#9ca3af"></i>{{ closedLabel }}</sc-if>
+          <sc-if value="{{ isOpenMonth }}" hint-placeholder-val="{{ true }}"><span style="width:8px;height:8px;border-radius:99px;background:#34d399;flex-shrink:0;display:inline-block"></span>Open · live</sc-if>
+        </span>
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#7c8492;white-space:nowrap">Sources</span>
+        <span style="font-size:14px;font-weight:600;color:#f3f4f6;white-space:nowrap;display:inline-flex;align-items:center;gap:7px;font-variant-numeric:tabular-nums"><span style="width:8px;height:8px;border-radius:99px;background:#34d399;flex-shrink:0;display:inline-block"></span>All 11 sections loaded</span>
+      </div>
+    </div>
+
+    <nav aria-label="Sections" style="display:flex;flex-wrap:nowrap;align-items:center;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;margin:22px -30px 0;padding:0 16px;border-top:1px solid rgba(255,255,255,.08);mask-image:linear-gradient(90deg,transparent 0,#000 16px,#000 calc(100% - 28px),transparent)">
+      <sc-for list="{{ jump }}" as="j" hint-placeholder-count="12">
+        <sc-if value="{{ j.isSep }}" hint-placeholder-val="{{ false }}"><span style="width:1px;height:18px;background:rgba(255,255,255,.12);margin:0 6px;flex-shrink:0"></span></sc-if>
+        <sc-if value="{{ j.isItem }}" hint-placeholder-val="{{ true }}"><a href="{{ j.href }}" title="{{ j.title }}" style="flex:0 0 auto;height:44px;padding:0 7px;display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:#d1d5db;border-bottom:2px solid transparent;margin-bottom:-1px" style-hover="color:#fff;border-bottom-color:#e3633f"><span style="width:20px;height:20px;border-radius:6px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:700;background:{{ j.tileBg }};color:{{ j.tileFg }}">{{ j.tile }}</span><span style="white-space:nowrap">{{ j.label }}</span></a></sc-if>
+      </sc-for>
+    </nav>
+  </section>
+
+  <sc-if value="{{ confirmOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-top:14px;padding:14px 16px;border:1px solid #d1d5db;border-left:3px solid #e3633f;border-radius:7px;background:#ffffff">
+      <i class="{{ confirmIcon }}" style="color:#b2401f;margin-top:3px"></i>
+      <div style="flex:1 1 320px;min-width:0">
+        <p style="font-size:13.5px;font-weight:700;color:#1f2937">{{ confirmTitle }}</p>
+        <p style="margin-top:4px;font-size:11.5px;color:#6b7280;max-width:72ch">{{ confirmBody }}</p>
+      </div>
+      <div style="display:flex;gap:8px;align-self:center">
+        <button onClick="{{ toggleConfirm }}" style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:7px;font-size:12px;font-weight:500;border:1px solid #d1d5db;background:#ffffff;color:#1f2937;cursor:pointer" style-hover="background:#f9fafb">Cancel</button>
+        <button onClick="{{ confirmGo }}" style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:7px;font-size:12px;font-weight:500;border:1px solid transparent;background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);color:#fff;cursor:pointer;box-shadow:0 2px 8px -2px rgba(79,70,229,.45)">{{ confirmGoLabel }}</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isToday }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;align-items:center;gap:12px;margin-top:34px">
+      <h2 style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#6b7280">Invoiced in Bexio</h2>
+      <span style="flex:1;height:1px;background:#e5e7eb"></span>
+    </div>
+    <section id="fin-bexio" data-screen-label="Bexio panel (today)" style="display:flex;flex-wrap:wrap;gap:16px 48px;padding:26px 0">
+      <div style="flex:0 0 260px;min-width:0">
+        <h3 style="font-size:18px;font-weight:700;letter-spacing:-.02em;color:#1f2937">Bexio</h3>
+        <p style="margin-top:2px;font-size:13px;font-weight:500;color:#6b7280">Invoices</p>
+        <p style="margin-top:8px;font-size:11px;color:#6b7280;font-variant-numeric:tabular-nums">Invoices dated in {{ bxWindow }}, read live from Bexio</p>
+        <button style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;margin:12px 0 0 -10px;border-radius:7px;font-size:12px;font-weight:500;border:1px solid transparent;background:transparent;color:#6b7280;cursor:pointer" style-hover="background:#f9fafb;color:#1f2937"><i class="fas fa-rotate"></i> Refresh</button>
+      </div>
+      <div style="flex:1 1 690px;min-width:0">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));border-bottom:1px solid #e5e7eb">
+          <sc-for list="{{ bxKpis }}" as="k" hint-placeholder-count="4">
+            <div style="padding:0 24px 14px {{ k.pl }};border-left:{{ k.bl }};min-width:0">
+              <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af">{{ k.label }}</p>
+              <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-top:10px"><div>
+                <p style="font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:17px;font-weight:600;letter-spacing:-.5px;line-height:1;color:#1f2937">{{ k.value }}</p>
+                <sc-if value="{{ k.hasSub }}" hint-placeholder-val="{{ false }}"><p style="margin-top:6px;font-size:11px;font-weight:600;color:#9ca3af">{{ k.sub }}</p></sc-if>
+              </div></div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="position:relative;overflow-x:auto">
+          <div style="display:grid;grid-template-columns:minmax(140px,auto) minmax(max-content,1fr) auto auto auto auto auto;min-width:max-content">
+            <span style="padding:6px 10px 6px 0;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:#6b7280;border-bottom:1px solid #e5e7eb;white-space:nowrap">Client</span>
+            <span style="padding:6px 10px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:#6b7280;border-bottom:1px solid #e5e7eb;white-space:nowrap">Invoice</span>
+            <span style="padding:6px 10px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:#6b7280;border-bottom:1px solid #e5e7eb;white-space:nowrap">Date</span>
+            <span style="padding:6px 10px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:#6b7280;border-bottom:1px solid #e5e7eb;white-space:nowrap">Status</span>
+            <span style="padding:6px 10px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:#6b7280;border-bottom:1px solid #e5e7eb;white-space:nowrap;text-align:right">Excl. VAT</span>
+            <span style="padding:6px 10px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:#6b7280;border-bottom:1px solid #e5e7eb;white-space:nowrap;text-align:right">Total</span>
+            <span style="padding:6px 10px;border-bottom:1px solid #e5e7eb"></span>
+            <sc-for list="{{ bxRows }}" as="r" hint-placeholder-count="7">
+              <div style="display:contents">
+                <div style="padding:7px 10px 7px 0;font-size:12.5px;border-bottom:{{ r.bb }}">
+                  <sc-if value="{{ r.showLead }}" hint-placeholder-val="{{ true }}"><span style="font-weight:600;color:#1f2937">{{ r.client }}</span><span style="display:flex;flex-wrap:wrap;gap:4px 8px;margin-top:2px"><sc-for list="{{ r.contacts }}" as="ct" hint-placeholder-count="1"><span style="font-size:11px;color:#6b7280">{{ ct.name }}</span></sc-for></span></sc-if>
+                </div>
+                <sc-if value="{{ r.isInv }}" hint-placeholder-val="{{ true }}">
+                  <div style="padding:7px 10px;font-size:12.5px;white-space:nowrap;border-bottom:{{ r.bb }}"><span style="font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-weight:600;margin-right:6px">{{ r.nr }}</span><span style="color:#6b7280">{{ r.title }}</span></div>
+                  <div style="padding:7px 10px;font-size:12.5px;white-space:nowrap;color:#6b7280;font-variant-numeric:tabular-nums;border-bottom:{{ r.bb }}">{{ r.date }}</div>
+                  <div style="padding:7px 10px;border-bottom:{{ r.bb }}"><span style="display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:500;line-height:1.6;background:{{ r.pillBg }};color:{{ r.pillFg }}"><span style="width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.85"></span>{{ r.statusT }}</span></div>
+                  <div style="padding:7px 10px;text-align:right;white-space:nowrap;font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:12px;border-bottom:{{ r.bb }}">{{ r.exclT }}</div>
+                  <div style="padding:7px 10px;text-align:right;white-space:nowrap;font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:12px;border-bottom:{{ r.bb }}">{{ r.totalT }}</div>
+                  <div style="padding:7px 10px;text-align:right;white-space:nowrap;border-bottom:{{ r.bb }}"><span style="display:inline-flex;gap:4px">
+                    <button onClick="{{ r.toggle }}" style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:7px;font-size:12px;font-weight:500;border:1px solid transparent;background:transparent;color:#6b7280;cursor:pointer" style-hover="background:#f9fafb;color:#1f2937"><i class="fas fa-list"></i> Lines</button>
+                    <a href="#" style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:7px;font-size:12px;font-weight:500;color:#6b7280" style-hover="background:#f9fafb;color:#1f2937"><i class="fas fa-file-pdf"></i> PDF</a>
+                  </span></div>
+                </sc-if>
+                <sc-if value="{{ r.isFlag }}" hint-placeholder-val="{{ false }}">
+                  <div style="grid-column:span 6;padding:7px 10px;border-bottom:{{ r.bb }}"><span style="display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:500;line-height:1.6;background:#fef3c7;color:#92400e"><span style="width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.85"></span>{{ r.flag }}</span></div>
+                </sc-if>
+                <sc-if value="{{ r.linesOpen }}" hint-placeholder-val="{{ false }}">
+                  <div style="grid-column:1 / -1;background:#f9fafb;padding:10px 14px;border-bottom:1px solid #f3f4f6">
+                    <div style="display:grid;grid-template-columns:minmax(0,1fr) auto auto auto auto">
+                      <span style="padding:6px 10px 6px 0;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:#6b7280;border-bottom:1px solid #e5e7eb">Text</span>
+                      <span style="padding:6px 10px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:#6b7280;border-bottom:1px solid #e5e7eb;text-align:right">Quantity</span>
+                      <span style="padding:6px 10px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:#6b7280;border-bottom:1px solid #e5e7eb;text-align:right">Unit price</span>
+                      <span style="padding:6px 10px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:#6b7280;border-bottom:1px solid #e5e7eb;text-align:right">Discount</span>
+                      <span style="padding:6px 10px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:#6b7280;border-bottom:1px solid #e5e7eb;text-align:right;white-space:nowrap">Total CHF</span>
+                      <sc-for list="{{ r.lines }}" as="l" hint-placeholder-count="3">
+                        <div style="display:contents">
+                          <span style="padding:7px 10px 7px 0;font-size:12.5px;border-bottom:{{ l.bb }}">{{ l.text }}</span>
+                          <span style="padding:7px 10px;text-align:right;white-space:nowrap;font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-size:12px;border-bottom:{{ l.bb }}">{{ l.qtyT }}</span>
+                          <span style="padding:7px 10px;text-align:right;white-space:nowrap;font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-size:12px;border-bottom:{{ l.bb }}">{{ l.priceT }}</span>
+                          <span style="padding:7px 10px;border-bottom:{{ l.bb }}"></span>
+                          <span style="padding:7px 10px;text-align:right;white-space:nowrap;font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-size:12px;border-bottom:{{ l.bb }}">{{ l.totalT }}</span>
+                        </div>
+                      </sc-for>
+                      <span style="grid-column:span 4;padding:8px 10px 6px 0;font-size:12.5px;font-weight:600;border-top:1px solid #e5e7eb">Excl. VAT</span>
+                      <span style="padding:8px 10px 6px;text-align:right;white-space:nowrap;font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-size:12px;font-weight:600;border-top:1px solid #e5e7eb">{{ r.exclT }}</span>
+                      <span style="grid-column:span 4;padding:4px 10px 6px 0;font-size:12.5px;font-weight:600">Total</span>
+                      <span style="padding:4px 10px 6px;text-align:right;white-space:nowrap;font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-size:12px;font-weight:600">{{ r.totalT }}</span>
+                    </div>
+                    <p style="display:flex;gap:16px;margin-top:8px;font-size:11.5px;color:#6b7280"><a href="#" style="color:#4338ca" style-hover="color:#4338ca;text-decoration:underline"><i class="fas fa-arrow-up-right-from-square"></i> Open in Bexio</a><span>Due {{ r.due }}</span></p>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
+            <span style="padding:8px 10px 6px 0;font-size:12.5px;font-weight:700;color:#1f2937;border-top:1px solid #e5e7eb">Total</span>
+            <span style="grid-column:span 3;border-top:1px solid #e5e7eb"></span>
+            <span style="padding:8px 10px 6px;text-align:right;white-space:nowrap;font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:12px;font-weight:700;color:#1f2937;border-top:1px solid #e5e7eb">{{ bxExcl }}</span>
+            <span style="padding:8px 10px 6px;text-align:right;white-space:nowrap;font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:12px;font-weight:700;color:#1f2937;border-top:1px solid #e5e7eb">{{ bxTotal }}</span>
+            <span style="border-top:1px solid #e5e7eb"></span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </sc-if>
+
+  <sc-for list="{{ groups }}" as="g" hint-placeholder-count="2">
+    <div style="display:flex;align-items:center;gap:12px;margin-top:{{ g.top }}">
+      <h2 style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#6b7280">{{ g.label }}</h2>
+      <span style="font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-size:11px;font-weight:600;color:#6b7280;font-variant-numeric:tabular-nums">{{ g.count }}</span>
+      <span style="flex:1;height:1px;background:#e5e7eb"></span>
+    </div>
+    <sc-for list="{{ g.sections }}" as="s" hint-placeholder-count="3">
+      <section id="fin-{{ s.key }}" style="display:flex;flex-wrap:wrap;gap:16px 48px;padding:26px 0;border-bottom:{{ s.border }};scroll-margin-top:20px">
+        <div style="flex:0 0 260px;min-width:0">
+          <h3 style="font-size:18px;font-weight:700;letter-spacing:-.02em;color:#1f2937">{{ s.client }}</h3>
+          <sc-if value="{{ s.hasTitle }}" hint-placeholder-val="{{ false }}"><p style="margin-top:2px;font-size:13px;font-weight:500;color:#6b7280">{{ s.title }}</p></sc-if>
+          <p style="margin-top:8px;font-size:11px;color:#6b7280;font-variant-numeric:tabular-nums">{{ s.meta }}</p>
+          <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px">
+            <sc-if value="{{ pillLive }}" hint-placeholder-val="{{ true }}"><span style="display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:500;line-height:1.6;background:#d1fae5;color:#065f46"><span style="width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.85"></span>live figures</span></sc-if>
+            <sc-if value="{{ pillClosed }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:500;line-height:1.6;background:#eef2ff;color:#4338ca"><i class="fas fa-lock" style="font-size:10px"></i> Closed</span></sc-if>
+          </div>
+          <sc-if value="{{ s.hasNote }}" hint-placeholder-val="{{ false }}"><p style="margin-top:12px;font-size:11.5px;line-height:1.5;color:#6b7280;text-wrap:pretty">{{ s.note }}</p></sc-if>
+        </div>
+        <div style="flex:1 1 690px;min-width:0">
+          <sc-for list="{{ s.blocks }}" as="b" hint-placeholder-count="1">
+            <div style="margin-top:{{ b.top }}">
+              <sc-if value="{{ b.showBasis }}" hint-placeholder-val="{{ false }}"><p style="margin:0 0 8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#6b7280">{{ b.basis }}</p></sc-if>
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) 150px 110px 170px;align-items:center;column-gap:12px;padding-bottom:8px;border-bottom:1px solid #e5e7eb;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#6b7280">
+                <span>Figure</span><span style="text-align:right">{{ selName }}</span><span style="text-align:right">{{ prevName }}</span><span style="text-align:right">Change</span>
+              </div>
+              <sc-for list="{{ b.figures }}" as="f" hint-placeholder-count="2">
+                <div style="display:grid;grid-template-columns:minmax(0,1fr) 150px 110px 170px;align-items:center;column-gap:12px;padding:12px 0;border-bottom:1px solid #f3f4f6">
+                  <span style="font-size:13px;font-weight:500;color:#1f2937;min-width:0">{{ f.label }}</span>
+                  <span style="font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-variant-numeric:tabular-nums;text-align:right;font-size:17px;font-weight:600;letter-spacing:-.5px;color:#1f2937">{{ f.valueT }}</span>
+                  <span style="font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-variant-numeric:tabular-nums;text-align:right;font-size:13px;color:#6b7280">{{ f.prevT }}</span>
+                  <span style="display:flex;align-items:center;justify-content:flex-end;gap:10px">
+                    <span style="position:relative;width:64px;height:6px;border-radius:3px;flex-shrink:0;background:#f3f4f6"><span style="position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:#1f2937;width:{{ f.fillW }}"></span><span style="position:absolute;top:-3px;bottom:-3px;width:2px;background:#e3633f;left:{{ f.prevL }}"></span></span>
+                    <span style="min-width:48px;text-align:right;white-space:nowrap;font-size:12px;font-weight:600;color:#1f2937;font-variant-numeric:tabular-nums">{{ f.deltaT }}</span>
+                  </span>
+                </div>
+              </sc-for>
+              <sc-for list="{{ b.tableRows }}" as="tr" hint-placeholder-count="1">
+                <div style="display:grid;gap:28px;margin-top:20px;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))">
+                  <sc-for list="{{ tr.tables }}" as="t" hint-placeholder-count="1">
+                    <div style="min-width:0;grid-column:{{ t.span }}">
+                      <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:4px">
+                        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#6b7280">{{ t.eyebrow }}</span>
+                        <span style="font-size:11px;color:#6b7280;font-variant-numeric:tabular-nums">{{ t.countT }}</span>
+                      </div>
+                      <sc-if value="{{ t.isTable }}" hint-placeholder-val="{{ true }}">
+                        <div style="display:grid;grid-template-columns:{{ t.grid }}">
+                          <sc-for list="{{ t.head }}" as="h" hint-placeholder-count="3">
+                            <span style="padding:6px 0 6px {{ h.pl }};text-align:{{ h.align }};font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:#6b7280;border-bottom:1px solid #e5e7eb;white-space:nowrap">{{ h.t }}</span>
+                          </sc-for>
+                          <sc-for list="{{ t.body }}" as="r" hint-placeholder-count="4">
+                            <div style="display:contents">
+                              <span style="padding:6px 0;font-size:12.5px;color:{{ r.keyColor }};font-style:{{ r.keyStyle }};border-bottom:{{ r.bb }};min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.key }}</span>
+                              <sc-for list="{{ r.vals }}" as="v" hint-placeholder-count="1">
+                                <span style="padding:6px 0 6px 10px;text-align:right;white-space:nowrap;font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;color:{{ v.color }};border-bottom:{{ r.bb }}">{{ v.t }}</span>
+                              </sc-for>
+                              <sc-if value="{{ r.hasShare }}" hint-placeholder-val="{{ true }}">
+                                <span style="padding:6px 0 6px 10px;border-bottom:{{ r.bb }};display:flex;align-items:center;justify-content:flex-end;gap:8px"><span style="width:56px;height:4px;border-radius:2px;background:#f3f4f6;overflow:hidden;flex-shrink:0"><span style="display:block;height:100%;background:#e3633f;border-radius:2px;width:{{ r.w }}"></span></span><span style="font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:11.5px;color:#6b7280;width:40px;text-align:right">{{ r.pct }}</span></span>
+                              </sc-if>
+                            </div>
+                          </sc-for>
+                          <sc-if value="{{ t.hasFoot }}" hint-placeholder-val="{{ true }}">
+                            <span style="padding:8px 0 6px;font-size:12.5px;font-weight:600;color:#1f2937;border-top:1px solid #e5e7eb">Total</span>
+                            <sc-for list="{{ t.footVals }}" as="v" hint-placeholder-count="1">
+                              <span style="padding:8px 0 6px 10px;text-align:right;white-space:nowrap;font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;font-weight:600;color:{{ v.color }};border-top:1px solid #e5e7eb">{{ v.t }}</span>
+                            </sc-for>
+                            <span style="padding:8px 0 6px 10px;border-top:1px solid #e5e7eb;display:flex;align-items:center;justify-content:flex-end;gap:8px"><span style="width:56px;height:4px;border-radius:2px;background:#f3f4f6;overflow:hidden;flex-shrink:0"><span style="display:block;height:100%;width:100%;background:#e3633f;border-radius:2px"></span></span><span style="font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-size:11.5px;color:#6b7280;width:40px;text-align:right;font-weight:600">100%</span></span>
+                          </sc-if>
+                        </div>
+                      </sc-if>
+                      <sc-if value="{{ t.isMatrix }}" hint-placeholder-val="{{ false }}">
+                        <div style="position:relative;overflow-x:auto">
+                          <div style="display:grid;grid-template-columns:{{ t.grid }};min-width:max-content">
+                            <span style="position:sticky;left:0;z-index:2;background:#f9fafb;padding:6px 10px 6px 0;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:#6b7280;border-bottom:1px solid #e5e7eb;white-space:nowrap">{{ t.corner }}</span>
+                            <sc-for list="{{ t.cols }}" as="c" hint-placeholder-count="6">
+                              <span style="padding:6px 10px;text-align:right;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:#6b7280;border-bottom:1px solid #e5e7eb;white-space:nowrap">{{ c.t }}</span>
+                            </sc-for>
+                            <span style="padding:6px 10px;text-align:right;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#1f2937;border-bottom:1px solid #e5e7eb;border-left:1px solid #e5e7eb;white-space:nowrap">Total</span>
+                            <sc-for list="{{ t.rows }}" as="r" hint-placeholder-count="4">
+                              <div style="display:contents">
+                                <span style="position:sticky;left:0;z-index:1;background:#f9fafb;padding:7px 12px 7px 0;font-size:12.5px;font-weight:500;color:#1f2937;border-bottom:1px solid #f3f4f6;white-space:nowrap">{{ r.key }}</span>
+                                <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="6">
+                                  <span style="padding:7px 10px;text-align:right;white-space:nowrap;font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:12px;color:{{ c.color }};opacity:{{ c.op }};border-bottom:{{ r.bb }}">{{ c.t }}</span>
+                                </sc-for>
+                                <span style="padding:7px 10px;text-align:right;white-space:nowrap;font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:12px;font-weight:700;color:#1f2937;border-left:1px solid #e5e7eb;border-bottom:{{ r.bb }}">{{ r.totalT }}</span>
+                              </div>
+                            </sc-for>
+                            <span style="position:sticky;left:0;z-index:1;background:#f9fafb;padding:7px 12px 7px 0;font-size:12.5px;font-weight:700;color:#1f2937;border-top:1px solid #e5e7eb;border-bottom:1px solid #f3f4f6">Total</span>
+                            <sc-for list="{{ t.foot }}" as="c" hint-placeholder-count="6">
+                              <span style="padding:8px 10px 6px;text-align:right;white-space:nowrap;font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:12px;font-weight:700;color:#1f2937;border-top:1px solid #e5e7eb">{{ c.t }}</span>
+                            </sc-for>
+                            <span style="padding:8px 10px 6px;text-align:right;white-space:nowrap;font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:12px;font-weight:700;color:#1f2937;border-top:1px solid #e5e7eb;border-left:1px solid #e5e7eb">{{ t.totalT }}</span>
+                          </div>
+                        </div>
+                      </sc-if>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-for>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+    </sc-for>
+  </sc-for>
+
+  <div style="display:flex;align-items:center;gap:12px;margin-top:38px">
+    <h2 style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#6b7280">Sydoc services</h2>
+    <span style="font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-size:11px;font-weight:600;color:#6b7280">1</span>
+    <span style="flex:1;height:1px;background:#e5e7eb"></span>
+  </div>
+  <section id="fin-bps" data-screen-label="Billable services" style="display:flex;flex-wrap:wrap;gap:16px 48px;padding:26px 0;scroll-margin-top:20px">
+    <div style="flex:0 0 260px;min-width:0">
+      <h3 style="font-size:18px;font-weight:700;letter-spacing:-.02em;color:#1f2937">Sydoc</h3>
+      <p style="margin-top:2px;font-size:13px;font-weight:500;color:#6b7280">Billable services</p>
+      <p style="margin-top:8px;font-size:11px;color:#6b7280">Sydoc — Project Hours · by booking date</p>
+      <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px">
+        <sc-if value="{{ pillLive }}" hint-placeholder-val="{{ true }}"><span style="display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:500;line-height:1.6;background:#d1fae5;color:#065f46"><span style="width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.85"></span>live figures</span></sc-if>
+        <sc-if value="{{ pillClosed }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:500;line-height:1.6;background:#eef2ff;color:#4338ca"><i class="fas fa-lock" style="font-size:10px"></i> Closed</span></sc-if>
+      </div>
+      <p style="margin-top:12px;font-size:11.5px;line-height:1.5;color:#6b7280;text-wrap:pretty">Every billable booking of the BPS timetool on the customers of this page, singly and with its comment: Support (verrechenbar, extern verrechenbar), Change, Change Request, Professional Services and Projektmanagement, plus Vorbereitung Akten on Privera · Tagesgeschäft Neuzugänge. Each booking is billed rounded up to the quarter hour; both the booked and the billed hours are shown. All hours, drilled down per task, customer and person, are on the Sydoc BPS page.</p>
+      <a href="#" style="margin-top:14px;height:30px;padding:0 12px;border-radius:8px;display:inline-flex;align-items:center;gap:7px;background:#111318;color:#fff;font-size:12px;font-weight:600" style-hover="background:#1f2937;color:#fff">All hours in Sydoc BPS <i class="fas fa-arrow-right" style="font-size:11px;color:#f08a6c"></i></a>
+    </div>
+    <div style="flex:1 1 690px;min-width:0">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 150px 110px 170px;align-items:center;column-gap:12px;padding-bottom:8px;border-bottom:1px solid #e5e7eb;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#6b7280">
+        <span>Figure</span><span style="text-align:right">{{ selName }}</span><span style="text-align:right">{{ prevName }}</span><span style="text-align:right">Change</span>
+      </div>
+      <sc-for list="{{ bpsFigures }}" as="f" hint-placeholder-count="3">
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 150px 110px 170px;align-items:center;column-gap:12px;padding:12px 0;border-bottom:1px solid #f3f4f6">
+          <span style="font-size:13px;font-weight:500;color:#1f2937;min-width:0">{{ f.label }}</span>
+          <span style="font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-variant-numeric:tabular-nums;text-align:right;font-size:17px;font-weight:600;letter-spacing:-.5px;color:#1f2937">{{ f.valueT }}</span>
+          <span style="font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-variant-numeric:tabular-nums;text-align:right;font-size:13px;color:#6b7280">{{ f.prevT }}</span>
+          <span style="display:flex;align-items:center;justify-content:flex-end;gap:10px">
+            <span style="position:relative;width:64px;height:6px;border-radius:3px;flex-shrink:0;background:#f3f4f6"><span style="position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:#1f2937;width:{{ f.fillW }}"></span><span style="position:absolute;top:-3px;bottom:-3px;width:2px;background:#e3633f;left:{{ f.prevL }}"></span></span>
+            <span style="min-width:48px;text-align:right;white-space:nowrap;font-size:12px;font-weight:600;color:#1f2937;font-variant-numeric:tabular-nums">{{ f.deltaT }}</span>
+          </span>
+        </div>
+      </sc-for>
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:14px 0 4px;padding:10px 12px;border:1px solid #e5e7eb;border-radius:10px">
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#6b7280;margin-right:4px">Export hours</span>
+        <select aria-label="Export hours" style="min-width:0;max-width:100%;padding:6px 8px;font-size:13px;color:#1f2937;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px">
+          <option>All invoices in one file</option>
+          <option>All invoices, one file each (.zip)</option>
+          <optgroup label="One invoice">
+            <option>Privera · Posteingang · 61 bookings</option>
+            <option>Privera · Invoice · 74 bookings</option>
+            <option>Privera · Neuzugänge · 166 bookings</option>
+            <option>Elektro-Material · 204 bookings</option>
+            <option>Bucherer · 82 bookings</option>
+            <option>Frigemo · 183 bookings</option>
+            <option>Compass Group · 78 bookings</option>
+            <option>MediaMarkt · 48 bookings</option>
+            <option>Aveniq · 96 bookings</option>
+          </optgroup>
+        </select>
+        <a href="#" style="display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 12px;border-radius:8px;background:#111318;color:#fff;font-size:12.5px;font-weight:600;white-space:nowrap" style-hover="background:#1f2937;color:#fff"><i class="fas fa-file-excel" style="font-size:12px;color:#f08a6c"></i> Excel</a>
+        <a href="#" style="display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 12px;border-radius:8px;background:#111318;color:#fff;font-size:12.5px;font-weight:600;white-space:nowrap" style-hover="background:#1f2937;color:#fff"><i class="fas fa-file-pdf" style="font-size:12px;color:#f08a6c"></i> PDF</a>
+      </div>
+      <div style="display:grid;gap:28px;margin-top:20px;grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr))">
+        <sc-for list="{{ bpsTables }}" as="t" hint-placeholder-count="2">
+          <div style="min-width:0">
+            <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:4px">
+              <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#6b7280">{{ t.eyebrow }}</span>
+              <span style="font-size:11px;color:#6b7280;font-variant-numeric:tabular-nums">{{ t.countT }}</span>
+            </div>
+            <div style="display:grid;grid-template-columns:{{ t.grid }}">
+              <sc-for list="{{ t.head }}" as="h" hint-placeholder-count="5">
+                <span style="padding:6px 0 6px {{ h.pl }};text-align:{{ h.align }};font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:#6b7280;border-bottom:1px solid #e5e7eb;white-space:nowrap">{{ h.t }}</span>
+              </sc-for>
+              <sc-for list="{{ t.body }}" as="r" hint-placeholder-count="7">
+                <div style="display:contents">
+                  <span style="padding:6px 0;font-size:12.5px;color:#1f2937;border-bottom:{{ r.bb }};min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><sc-if value="{{ r.isLink }}" hint-placeholder-val="{{ false }}"><a href="{{ r.href }}" style="color:inherit" style-hover="color:#b2401f;text-decoration:underline">{{ r.key }}</a></sc-if><sc-if value="{{ r.notLink }}" hint-placeholder-val="{{ true }}">{{ r.key }}</sc-if></span>
+                  <sc-for list="{{ r.vals }}" as="v" hint-placeholder-count="3">
+                    <span style="padding:6px 0 6px 10px;text-align:right;white-space:nowrap;font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;color:{{ v.color }};border-bottom:{{ r.bb }}">{{ v.t }}</span>
+                  </sc-for>
+                  <span style="padding:6px 0 6px 10px;border-bottom:{{ r.bb }};display:flex;align-items:center;justify-content:flex-end;gap:8px"><span style="width:56px;height:4px;border-radius:2px;background:#f3f4f6;overflow:hidden;flex-shrink:0"><span style="display:block;height:100%;background:#e3633f;border-radius:2px;width:{{ r.w }}"></span></span><span style="font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:11.5px;color:#6b7280;width:40px;text-align:right">{{ r.pct }}</span></span>
+                </div>
+              </sc-for>
+              <span style="padding:8px 0 6px;font-size:12.5px;font-weight:600;color:#1f2937;border-top:1px solid #e5e7eb">Total</span>
+              <sc-for list="{{ t.footVals }}" as="v" hint-placeholder-count="3">
+                <span style="padding:8px 0 6px 10px;text-align:right;white-space:nowrap;font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;font-weight:600;color:{{ v.color }};border-top:1px solid #e5e7eb">{{ v.t }}</span>
+              </sc-for>
+              <span style="padding:8px 0 6px 10px;border-top:1px solid #e5e7eb;display:flex;align-items:center;justify-content:flex-end;gap:8px"><span style="width:56px;height:4px;border-radius:2px;background:#f3f4f6;overflow:hidden;flex-shrink:0"><span style="display:block;height:100%;width:100%;background:#e3633f;border-radius:2px"></span></span><span style="font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-size:11.5px;color:#6b7280;width:40px;text-align:right;font-weight:600">100%</span></span>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:flex;align-items:baseline;gap:12px;margin-top:30px">
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#6b7280">Billable bookings</span>
+        <span style="font-size:11px;color:#6b7280">one list per customer, as on the invoice</span>
+        <span style="flex:1;height:1px;background:#e5e7eb;align-self:center"></span>
+      </div>
+      <div style="display:grid;gap:28px;margin-top:18px">
+        <sc-for list="{{ timelines }}" as="g" hint-placeholder-count="3">
+          <div id="{{ g.id }}" style="scroll-margin-top:20px">
+            <div style="display:flex;align-items:baseline;gap:10px;padding-bottom:10px;border-bottom:1px solid #e5e7eb">
+              <span style="font-size:14px;font-weight:700;color:#1f2937">{{ g.key }}</span>
+              <span style="font-size:11px;color:#6b7280">{{ g.countT }}</span>
+              <span style="flex:1"></span>
+              <span style="font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:16px;font-weight:600;letter-spacing:-.4px;white-space:nowrap"><span style="color:#6b7280;font-weight:400">{{ g.rawT }}</span><span style="margin:0 4px;color:#6b7280;font-weight:400">→</span><span style="color:#1f2937">{{ g.billedT }}</span></span>
+            </div>
+            <sc-for list="{{ g.days }}" as="d" hint-placeholder-count="3">
+              <div style="display:grid;grid-template-columns:84px 18px minmax(0,1fr);column-gap:10px">
+                <div style="text-align:right;padding-top:14px;display:flex;flex-direction:column">
+                  <span style="font-size:12.5px;font-weight:600;color:#1f2937">{{ d.day }}</span>
+                  <span style="font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#6b7280">{{ d.wd }}</span>
+                </div>
+                <div style="position:relative;display:flex;justify-content:center"><span style="position:absolute;top:0;bottom:0;left:50%;width:1px;background:#e5e7eb"></span><span style="position:relative;width:9px;height:9px;margin-top:19px;border-radius:99px;background:#f9fafb;border:2px solid #e3633f"></span></div>
+                <div style="padding:8px 0;min-width:0">
+                  <sc-for list="{{ d.items }}" as="r" hint-placeholder-count="1">
+                    <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:baseline;padding:6px 0">
+                      <div>
+                        <p style="font-size:13px;line-height:1.45;color:{{ r.cColor }};font-style:{{ r.cStyle }};text-wrap:pretty;overflow-wrap:anywhere">{{ r.comment }}</p>
+                        <p style="margin-top:2px;font-size:11.5px;color:#6b7280;overflow-wrap:anywhere">{{ r.line }}</p>
+                      </div>
+                      <span style="text-align:right;white-space:nowrap;font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:13px;font-weight:600;color:#1f2937"><sc-if value="{{ r.pair }}" hint-placeholder-val="{{ false }}"><span style="color:#6b7280;font-weight:400">{{ r.rawT }}</span><span style="margin:0 4px;color:#6b7280;font-weight:400">→</span></sc-if><span>{{ r.billedT }}</span></span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-for>
+            <sc-if value="{{ g.hasMore }}" hint-placeholder-val="{{ true }}">
+              <div style="padding:10px 0 0 112px;border-top:1px solid #f3f4f6"><button onClick="{{ g.toggle }}" style="background:transparent;border:none;padding:0;cursor:pointer;white-space:nowrap;font-size:11.5px;font-weight:600;color:#b2401f" style-hover="text-decoration:underline">{{ g.moreT }}</button></div>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+</main>
+
+<sc-if value="{{ pickerOpen }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closePicker }}" style="position:fixed;inset:0;z-index:61;background:rgba(17,19,24,.45);display:flex;flex-direction:column;align-items:center;padding:150px 16px 16px">
+    <div onClick="{{ stop }}" role="dialog" aria-label="Choose month" style="background:#ffffff;color:#1f2937;border-radius:14px;box-shadow:0 24px 64px rgba(16,24,40,.28),0 0 0 1px rgba(16,24,40,.06);width:440px;max-width:calc(100vw - 32px);max-height:calc(100vh - 56px);overflow-y:auto">
+      <div style="display:flex;align-items:center;padding:16px 18px 14px;border-bottom:1px solid #f3f4f6">
+        <h2 style="flex:1;font-size:15px;font-weight:700;letter-spacing:-.02em;color:#1f2937">Choose month</h2>
+        <button onClick="{{ closePicker }}" aria-label="Close" style="width:28px;height:28px;border-radius:7px;border:none;background:transparent;color:#9ca3af;cursor:pointer;display:inline-flex;align-items:center;justify-content:center" style-hover="background:#f3f4f6;color:#1f2937"><i class="fas fa-xmark"></i></button>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px 6px">
+        <button onClick="{{ prevYear }}" aria-label="Previous year" style="width:30px;height:30px;border-radius:99px;border:1px solid #e5e7eb;background:#ffffff;color:#6b7280;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:11px;opacity:{{ prevYearOp }}" style-hover="background:#f9fafb;color:#1f2937"><i class="fas fa-chevron-left"></i></button>
+        <span style="font-size:22px;font-weight:600;letter-spacing:-.8px;font-variant-numeric:tabular-nums;color:#1f2937">{{ viewYear }}</span>
+        <button onClick="{{ nextYear }}" aria-label="Next year" style="width:30px;height:30px;border-radius:99px;border:1px solid #e5e7eb;background:#ffffff;color:#6b7280;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:11px;opacity:{{ nextYearOp }}" style-hover="background:#f9fafb;color:#1f2937"><i class="fas fa-chevron-right"></i></button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 18px 0;padding-bottom:16px">
+        <sc-for list="{{ monthCells }}" as="c" hint-placeholder-count="12">
+          <button onClick="{{ c.pick }}" style="height:62px;padding:10px 12px;border-radius:10px;border:1px solid {{ c.border }};background:{{ c.bg }};text-align:left;cursor:{{ c.cursor }};opacity:{{ c.op }};display:flex;flex-direction:column;justify-content:space-between;min-width:0">
+            <span style="font-size:14px;font-weight:600;color:{{ c.fg }}">{{ c.name }}</span>
+            <span style="font-size:11px;color:{{ c.sub }};display:inline-flex;align-items:center;gap:5px;white-space:nowrap;overflow:hidden">
+              <sc-if value="{{ c.isLock }}" hint-placeholder-val="{{ false }}"><i class="fas fa-lock" style="font-size:9px"></i></sc-if>
+              <sc-if value="{{ c.isDot }}" hint-placeholder-val="{{ false }}"><span style="width:6px;height:6px;border-radius:99px;background:{{ c.dot }};display:inline-block"></span></sc-if>{{ c.status }}
+            </span>
+          </button>
+        </sc-for>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:14px;padding:12px 18px 16px;font-size:11px;color:#6b7280">
+        <span style="display:inline-flex;align-items:center;gap:5px"><i class="fas fa-lock"></i> Closed, figures frozen</span>
+        <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:99px;background:#047857;display:inline-block"></span> Open, live</span>
+        <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:99px;background:#f59e0b;display:inline-block"></span> Still running</span>
+      </div>
+    </div>
+  </div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;version&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;new&quot;,&quot;today&quot;],&quot;default&quot;:&quot;new&quot;,&quot;tsType&quot;:&quot;'new' | 'today'&quot;},&quot;sidebar&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;collapsed&quot;,&quot;pinned&quot;],&quot;default&quot;:&quot;collapsed&quot;,&quot;tsType&quot;:&quot;'collapsed' | 'pinned'&quot;}}">
+class Component extends DCLogic {
+  state = { hover: false, pinned: null, sydocOpen: true, picker: false, viewYear: null, sel: null, confirm: false, closedNow: false, tl: {}, bx: {} };
+
+  componentDidUpdate(prev) {
+    if (prev.sidebar !== this.props.sidebar && this.state.pinned !== null) this.setState({ pinned: null });
+  }
+
+  logo() {
+    if (this._logo) return this._logo;
+    const e = React.createElement, A = '#4f46e5';
+    const ab = s => Object.assign({ position: 'absolute' }, s);
+    const spark = (l, t, d) => e('i', { key: l, style: ab({ width: 3, height: 3, borderRadius: '50%', left: l, top: t, background: '#4338ca', boxShadow: `0 0 9px color-mix(in srgb, ${A} 90%, transparent)`, animation: `nx-spiral 10s linear ${d} infinite`, opacity: .85 }) });
+    this._logo = e('div', { style: { position: 'relative', width: 38, height: 38, flexShrink: 0, transform: 'translateZ(0)', zIndex: 1 } },
+      e('div', { style: ab({ inset: -8, borderRadius: '50%', background: 'radial-gradient(55% 55% at 50% 50%, rgba(0,0,0,.08), rgba(0,0,0,0) 70%)', filter: 'blur(8px)', opacity: .7 }) }),
+      e('div', { style: ab({ inset: 0, borderRadius: '50%', background: 'radial-gradient(circle at 50% 50%, #000 0%, #000 35%, rgba(0,0,0,.7) 45%, rgba(67,56,202,0) 60%)', boxShadow: '0 0 20px rgba(0,0,0,.4), inset 0 0 10px rgba(0,0,0,.8), 0 3px 6px rgba(17,24,39,.14), 0 12px 24px rgba(17,24,39,.10)' }) }),
+      e('div', { style: ab({ inset: 0, borderRadius: '50%', background: `radial-gradient(closest-side, transparent calc(50% - 2px), color-mix(in srgb, ${A} 78%, white) calc(50% - 2px), color-mix(in srgb, ${A} 85%, transparent) calc(50% - 1px), color-mix(in srgb, ${A} 55%, transparent) 50%, transparent 52%)`, filter: 'blur(.6px) saturate(130%)', opacity: .95 }) }),
+      e('div', { style: ab({ inset: -3, transform: 'perspective(300px) rotateX(64deg)', animation: 'nx-spin 25s linear infinite', backfaceVisibility: 'hidden' }) },
+        e('div', { style: ab({ inset: 4, borderRadius: '50%', background: `conic-gradient(from 0deg, color-mix(in srgb, ${A} 0%, transparent) 0deg, color-mix(in srgb, ${A} 12%, transparent) 12deg, color-mix(in srgb, ${A} 28%, transparent) 60deg, color-mix(in srgb, #7c3aed 50%, transparent) 110deg, color-mix(in srgb, ${A} 32%, transparent) 180deg, color-mix(in srgb, ${A} 14%, transparent) 300deg, color-mix(in srgb, ${A} 0%, transparent) 360deg)`, WebkitMask: 'radial-gradient(circle at 50% 50%, transparent 30%, black 31%)', mask: 'radial-gradient(circle at 50% 50%, transparent 30%, black 31%)', filter: 'blur(.5px) saturate(120%)', boxShadow: `0 1px 6px rgba(17,24,39,.12), 0 10px 18px rgba(17,24,39,.08), inset 0 0 28px color-mix(in srgb, ${A} 38%, transparent)` }) }),
+        e('div', { style: ab({ inset: -2, borderRadius: '50%', background: `radial-gradient(60% 60% at 50% 50%, color-mix(in srgb, ${A} 18%, transparent), transparent 70%)`, WebkitMask: 'radial-gradient(circle at 50% 50%, transparent 48%, black 60%)', mask: 'radial-gradient(circle at 50% 50%, transparent 48%, black 60%)', filter: 'blur(2.2px)', opacity: .95 }) })),
+      e('div', { style: ab({ inset: 0 }) }, spark('50%', '6%', '-.1s'), spark('12%', '44%', '-.7s')));
+    return this._logo;
+  }
+
+  wordmark(op) {
+    const e = React.createElement;
+    return e('div', { style: { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', opacity: op, transition: 'opacity .18s ease' } },
+      e('span', { style: { fontSize: '1.05rem', fontWeight: 600, letterSpacing: '-.025em', lineHeight: 1.2, background: 'linear-gradient(90deg, #0b0b12, #111827 35%, #4f46e5)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' } }, 'nexora'),
+      e('span', { style: { fontSize: '.6rem', fontWeight: 600, letterSpacing: '-.025em', lineHeight: 1.333, marginTop: 1, color: '#1f2937' } }, 'powered by sydoc'));
+  }
+
+  renderVals() {
+    const st = this.state;
+    const isToday = (this.props.version ?? 'new') === 'today';
+    const pinned = st.pinned ?? ((this.props.sidebar ?? 'collapsed') === 'pinned');
+    const exp = pinned || st.hover;
+
+    const nf = new Intl.NumberFormat('en');
+    const d1 = new Intl.NumberFormat('en', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    const d2 = new Intl.NumberFormat('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const pctF = new Intl.NumberFormat('en', { style: 'percent', maximumFractionDigits: 1 });
+    const dF = new Intl.NumberFormat('en', { style: 'percent', maximumFractionDigits: 0, signDisplay: 'always' });
+    const num = v => Number.isInteger(v) ? nf.format(v) : d1.format(v);
+
+    // month model: index = year*12 + month0
+    const NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const FIRST = 2023 * 12 + 8, NOW = 2026 * 12 + 9;
+    const sel = st.sel ?? NOW - 1;
+    const sy = Math.floor(sel / 12), sm = sel % 12;
+    const stateOf = i => i === NOW ? 'running' : i === NOW - 1 ? (st.closedNow ? 'closed' : 'open') : 'closed';
+    const mState = stateOf(sel);
+    const closedLabel = sel === NOW - 1 ? 'Closed 01.10.2026 by M. Keller'
+      : `Closed 02.${String(((sel + 1) % 12) + 1).padStart(2, '0')}.${Math.floor((sel + 1) / 12)} by M. Keller`;
+    const go = i => { if (i >= FIRST && i <= NOW) this.setState({ sel: i, picker: false, confirm: false }); };
+    const viewYear = st.viewYear ?? sy;
+
+    const fig = (label, v, p, h) => {
+      const f = x => h ? d1.format(x) : num(x);
+      const max = Math.max(v, p);
+      let deltaT;
+      if (v === p) deltaT = 'Unchanged';
+      else if (p === 0) deltaT = '▲ New';
+      else { const r = (v - p) / p; deltaT = (r > 0 ? '▲ ' : '▼ ') + dF.format(r); }
+      return { label, valueT: f(v), prevT: f(p), deltaT, fillW: max ? (v / max * 100).toFixed(1) + '%' : '0%', prevL: max ? `calc(${(p / max * 100).toFixed(1)}% - 1px)` : '0px' };
+    };
+    const bb = (i, n) => i === n - 1 ? 'none' : '1px solid #f3f4f6';
+    const table = (label, cols, rows, o = {}) => {
+      const fixed = !!o.fixed, hours = o.hours || [], muted = o.muted || [];
+      const fv = (j, v) => hours.includes(j) ? d1.format(v) : num(v);
+      const totals = cols.map((c, j) => rows.reduce((a, r) => a + r[1][j], 0));
+      const lead = totals[0];
+      return {
+        isTable: true, isMatrix: false, span: 'auto',
+        eyebrow: fixed ? label : 'Per ' + label, countT: rows.length + ' rows',
+        grid: 'minmax(0,1fr)' + ' auto'.repeat(cols.length + (fixed ? 0 : 1)),
+        head: [{ t: label, align: 'left', pl: '0' }].concat(cols.map(c => ({ t: c, align: 'right', pl: '10px' }))).concat(fixed ? [] : [{ t: 'Share of total', align: 'right', pl: '10px' }]),
+        body: rows.map(([key, vals], i) => ({
+          key: key ?? '(blank)', keyColor: key === null ? '#6b7280' : '#1f2937', keyStyle: key === null ? 'italic' : 'normal',
+          isLink: !!o.href, notLink: !o.href, href: o.href ? o.href(i) : '#',
+          vals: vals.map((v, j) => ({ t: fv(j, v), color: muted.includes(j) ? '#6b7280' : '#1f2937' })),
+          hasShare: !fixed, w: lead ? (vals[0] / lead * 100).toFixed(1) + '%' : '0%', pct: pctF.format(lead ? vals[0] / lead : 0),
+          bb: bb(i, rows.length),
+        })),
+        hasFoot: !fixed, footVals: totals.map((v, j) => ({ t: fv(j, v), color: muted.includes(j) ? '#6b7280' : '#1f2937' })),
+      };
+    };
+    const BR = ['Bern', 'Zürich', 'Basel', 'Luzern', 'St. Gallen', 'Lausanne'];
+    const matrix = (label, across, measure, colKeys, rows) => {
+      const colTotals = colKeys.map((_, j) => rows.reduce((a, r) => a + r[1][j], 0));
+      return {
+        isTable: false, isMatrix: true, span: '1 / -1',
+        eyebrow: `${label} by ${across}`, countT: measure, corner: label,
+        grid: `repeat(${colKeys.length + 2}, minmax(max-content, 1fr))`,
+        cols: colKeys.map(t => ({ t })),
+        rows: rows.map(([key, cells], i) => ({ key, bb: bb(i, rows.length), totalT: num(cells.reduce((a, b) => a + b, 0)),
+          cells: cells.map(v => ({ t: v ? num(v) : '·', color: v ? '#1f2937' : '#6b7280', op: v ? 1 : .5 })) })),
+        foot: colTotals.map(v => ({ t: num(v) })), totalT: num(colTotals.reduce((a, b) => a + b, 0)),
+      };
+    };
+
+    const SEC = [
+      { key: 'elektro_material', client: 'Elektro-Material', g: 'internal', meta: 'EM Invoice · by export date',
+        note: 'EM_Invoice is still edited after a month ends: a re-exported document moves to the month of its new export date. Close the month once it is invoiced so its figures stay as billed. Only the Opex and e-mail channels are billed.',
+        blocks: [{ figures: [fig('Documents', 4812, 4590), fig('Images out', 11204, 10870), fig('Order positions', 38915, 40102)],
+          tables: [[table('Channel', ['Documents', 'Images out', 'Order positions'], [['Opex', [2904, 6760, 23480]], ['E-Mail', [1488, 3470, 12050]], ['Scan', [312, 730, 2540]], ['EDI', [108, 244, 845]]])]] }] },
+      { key: 'compass', client: 'Compass Group', nav: 'Compass', g: 'internal', meta: 'Compass Invoice · by upload date',
+        note: 'Counted by upload date, whatever the document date: that is the set the invoice bills. Rows without a workitem that repeat a barcode (74 in August 2026) are counted, as the workbook counts them.',
+        blocks: [{ figures: [fig('Documents', 1236, 1301)], tables: [] }] },
+      { key: 'privera_posteingang', client: 'Privera', title: 'Posteingang', g: 'internal', meta: 'Privera Posteingang · by export date',
+        note: "The export date of this source is text, so the month is matched on its '.MM.yyyy' part.",
+        blocks: [{ figures: [fig('Documents', 9420, 9015)], tables: [
+          [table('Branch', ['Documents'], [['Bern', [2318]], ['Zürich', [2104]], ['Basel', [1622]], ['Luzern', [1290]], ['St. Gallen', [1107]], ['Lausanne', [979]]])],
+          [matrix('Register', 'Branch', 'Documents', BR, [['Kreditoren', [1104, 1010, 802, 640, 548, 486]], ['Mieter', [612, 548, 410, 322, 276, 244]], ['Verträge', [318, 286, 214, 170, 146, 128]], ['Versicherungen', [196, 172, 130, 104, 92, 80]], ['Diverses', [88, 88, 66, 54, 45, 41]]])]] }] },
+      { key: 'privera_invoice', client: 'Privera', title: 'Rechnungseingang', nav: 'Rechnungen', g: 'internal', meta: 'Privera Invoice · by export date',
+        blocks: [{ figures: [fig('Documents', 6318, 6102), fig('E-mail documents', 2140, 2011), fig('eBill documents', 1877, 1790)], tables: [[
+          table('Mandant', ['Documents', 'E-mail documents', 'eBill documents'], [['PRI-100', [2410, 820, 702]], ['PRI-220', [1698, 574, 506]], ['PRI-310', [1206, 410, 360]], ['PRI-450', [1004, 336, 309]]]),
+          table('Source', ['Documents'], [['Scan', [2301]], ['E-Mail', [2140]], ['eBill', [1877]]])]] }] },
+      { key: 'privera_nachsendungen', client: 'Privera', title: 'Physische Zustellung', nav: 'Zustellung', g: 'internal', meta: 'Privera Nachsendungen · by export date',
+        blocks: [{ figures: [fig('Deliveries', 842, 905), fig('Without TEC', 611, 660)], tables: [
+          [table('Branch', ['Deliveries', 'Without TEC'], [['Bern', [214, 158]], ['Zürich', [198, 141]], ['Basel', [152, 112]], ['Luzern', [118, 86]], ['St. Gallen', [92, 66]], ['Lausanne', [68, 48]]])],
+          [matrix('Forwarding type', 'Branch', 'Deliveries', BR, [['Nachsendung', [150, 139, 106, 83, 64, 48]], ['Rücksendung', [40, 37, 29, 22, 18, 13]], ['Einschreiben', [24, 22, 17, 13, 10, 7]]])]] }] },
+      { key: 'privera_neuzugaenge', client: 'Privera', title: 'Neuzugänge', g: 'internal', meta: 'Privera Neuzugänge · by export year and month',
+        note: 'A dossier registered under two branches is counted in both, exactly as the workbook counts it.',
+        blocks: [{ figures: [fig('Dossiers', 128, 117), fig('Registers', 1904, 1766), fig('Pages', 41230, 38804)], tables: [[
+          table('Branch', ['Dossiers', 'Registers', 'Pages'], [['Bern', [34, 506, 10940]], ['Zürich', [31, 462, 10010]], ['Basel', [24, 356, 7720]], ['Luzern', [18, 268, 5800]], ['St. Gallen', [12, 178, 3850]], ['Lausanne', [9, 134, 2910]]])]] }] },
+      { key: 'frigemo', client: 'Frigemo', g: 'external', meta: 'Frigemo · by date',
+        blocks: [{ figures: [fig('Imported documents', 3120, 2988), fig('Exported documents', 3094, 2970), fig('Imported pages', 8412, 8105), fig('Exported pages', 8366, 8080), fig('Invoices', 2710, 2655), fig('Deleted', 26, 18)], tables: [] }] },
+      { key: 'xpert', client: 'Aveniq', title: 'Xpert', g: 'external', meta: 'Xpert Statistics · by date',
+        blocks: [{ figures: [fig('Documents', 5402, 5120)], tables: [
+          [table('Client', ['Documents'], [['BFH', [2204]], ['ZHAW', [1986]], ['FHNW', [1212]]])],
+          [table('BFH', ['Count'], [['Total', [2204]], ['NeueKreditoren', [38]], ['NKReproduzierte', [6]], ['Uebrige', [2146]], ['UEReproduzierte', [14]]], { fixed: true }),
+           table('ZHAW', ['Count'], [['Total', [1986]], ['WorkItems', [612]], ['WorkItemsByEingang · MAIL', [388]], ['WorkItemsByEingang · Scanner', [224]], ['WorkItemsByIsWithOrder · 0', [401]], ['WorkItemsByIsWithOrder · 1', [211]]], { fixed: true })]] }] },
+      { key: 'bucherer', client: 'Bucherer', title: 'EasyTax', g: 'external', meta: 'Bucherer EasyTax · by import date · by export date',
+        blocks: [{ basis: 'by import date', figures: [fig('Imported', 1480, 1392), fig('Pages', 2960, 2801)], tables: [] },
+                 { basis: 'by export date', figures: [fig('Exported', 1466, 1380)], tables: [] }] },
+      { key: 'mediamarkt', client: 'MediaMarkt', g: 'external', meta: 'MediaMarkt Batches · by scan date',
+        blocks: [{ figures: [fig('Batches', 214, 230), fig('Pieces', 18420, 19210)], tables: [[
+          table('Type (K/D/KA)', ['Batches', 'Pieces'], [['K', [122, 10480]], ['D', [71, 6120]], ['KA', [21, 1820]]])]] }] },
+    ];
+    const shape = list => list.map((s, i) => ({
+      key: s.key, client: s.client, title: s.title || '', hasTitle: !!s.title, meta: s.meta, note: s.note || '', hasNote: !!s.note,
+      border: i === list.length - 1 ? 'none' : '1px solid #e5e7eb',
+      blocks: s.blocks.map((b, j) => ({ top: j ? '26px' : '0', showBasis: s.blocks.length > 1, basis: b.basis || '', figures: b.figures, tableRows: b.tables.map(tables => ({ tables })) })),
+    }));
+    const internal = SEC.filter(s => s.g === 'internal'), external = SEC.filter(s => s.g === 'external');
+    const groups = [
+      { label: 'Internal customers', count: internal.length, top: isToday ? '38px' : '34px', sections: shape(internal) },
+      { label: 'External clients', count: external.length, top: '38px', sections: shape(external) },
+    ];
+
+    const TILE = { internal: ['rgba(129,140,248,.2)', '#c7d2fe'], external: ['rgba(96,165,250,.2)', '#bfdbfe'], services: ['rgba(227,99,63,.22)', '#f6b19c'], bexio: ['rgba(52,211,153,.18)', '#a7f3d0'] };
+    const item = (href, tile, label, title, kind) => ({ isItem: true, isSep: false, href, tile, label, title, tileBg: TILE[kind][0], tileFg: TILE[kind][1] });
+    const sep = { isItem: false, isSep: true };
+    const jump = []
+      .concat(isToday ? [item('#fin-bexio', 'Bx', 'Bexio', 'Bexio · Invoices', 'bexio'), sep] : [])
+      .concat(internal.map(s => item('#fin-' + s.key, s.client.slice(0, 2), s.nav || s.title || s.client, s.client + (s.title ? ' · ' + s.title : ''), 'internal')))
+      .concat([sep]).concat(external.map(s => item('#fin-' + s.key, s.client.slice(0, 2), s.nav || s.title || s.client, s.client + (s.title ? ' · ' + s.title : ''), 'external')))
+      .concat([sep, item('#fin-bps', 'Sy', 'Services', 'Sydoc · Billable services', 'services')]);
+
+    // Billable services
+    const bpsFigures = [fig('Billable hours', 742.0, 705.5, true), fig('Billed hours', 782.0, 744.5, true), fig('Billable bookings', 992, 948)];
+    const TASKS = [['Professional Services', [214.5, 219.0, 188]], ['Support (verrechenbar)', [176.0, 198.5, 402]], ['Change Request', [138.5, 141.0, 96]], ['Vorbereitung Akten', [92.0, 96.5, 164]], ['Change', [71.5, 73.0, 58]], ['Projektmanagement', [32.5, 34.5, 51]], ['Support (extern verrechenbar)', [17.0, 19.5, 33]]];
+    const BK = [
+      ['Privera', 301, 188.0, 201.0, [['2026-09-01', 'Vorbereitung Akten', 'Tagesgeschäft Neuzugänge', 'M. Keller', 3.5, 3.5, 'Dossiers Bern sortiert und vorbereitet'], ['2026-09-01', 'Support (verrechenbar)', 'Rechnungseingang', 'S. Brunner', 0.33, 0.5, 'Mandant PRI-220: Kreditor-Mapping korrigiert'], ['2026-09-02', 'Vorbereitung Akten', 'Tagesgeschäft Neuzugänge', 'L. Meier', 4.0, 4.0, 'Neuzugänge Zürich, 2 Kisten'], ['2026-09-07', 'Change Request', 'Rechnungseingang', 'M. Keller', 6.0, 6.0, 'CR-114 neues Feld Kostenstelle im Export'], ['2026-09-10', 'Vorbereitung Akten', 'Tagesgeschäft Neuzugänge', 'M. Keller', 3.75, 3.75, ''], ['2026-09-15', 'Support (verrechenbar)', 'Posteingang', 'S. Brunner', 0.75, 0.75, 'Niederlassung Basel: Scanner-Profil']]],
+      ['Elektro-Material', 204, 121.5, 129.0, [['2026-09-02', 'Support (extern verrechenbar)', 'Invoice', 'T. Graf', 1.5, 1.5, 'Opex-Kanal: fehlende Positionen nachgeladen'], ['2026-09-03', 'Change', 'Invoice', 'T. Graf', 4.0, 4.0, 'Validierungsregel Rabattzeilen'], ['2026-09-03', 'Support (verrechenbar)', 'Invoice', 'S. Brunner', 0.2, 0.25, 'Rückfrage Buchhaltung'], ['2026-09-08', 'Professional Services', 'Invoice', 'R. Frei', 8.0, 8.0, 'Workshop E-Mail-Kanal'], ['2026-09-14', 'Support (verrechenbar)', 'Invoice', 'T. Graf', 1.0, 1.0, '']]],
+      ['Bucherer', 82, 104.5, 108.0, [['2026-09-01', 'Professional Services', 'EasyTax', 'R. Frei', 6.0, 6.0, 'Anbindung neues Steuerformular DE'], ['2026-09-04', 'Support (verrechenbar)', 'EasyTax', 'L. Meier', 0.4, 0.5, 'Import vom 03.09. hing'], ['2026-09-09', 'Change Request', 'EasyTax', 'R. Frei', 5.5, 5.5, 'CR-31 EUR-Belege getrennt exportieren'], ['2026-09-16', 'Support (verrechenbar)', 'EasyTax', 'L. Meier', 1.25, 1.25, 'Seitenzählung korrigiert'], ['2026-09-22', 'Projektmanagement', 'EasyTax', 'R. Frei', 1.0, 1.0, 'Statusmeeting']]],
+      ['Frigemo', 183, 103.0, 109.5, [['2026-09-02', 'Professional Services', 'Kreditoren', 'L. Meier', 6.5, 6.5, 'Onboarding Filiale Luzern'], ['2026-09-07', 'Support (verrechenbar)', 'Kreditoren', 'L. Meier', 1.0, 1.0, 'Exportfehler DCD 05.09.'], ['2026-09-11', 'Change', 'Kreditoren', 'T. Graf', 3.0, 3.0, 'Löschlauf angepasst'], ['2026-09-11', 'Support (verrechenbar)', 'Kreditoren', 'S. Brunner', 0.1, 0.25, ''], ['2026-09-18', 'Professional Services', 'Kreditoren', 'L. Meier', 4.5, 4.5, 'Schulung Kreditorenteam']]],
+      ['Compass Group', 78, 96.0, 99.5, [['2026-09-01', 'Support (verrechenbar)', 'Invoice', 'S. Brunner', 0.5, 0.5, 'Doppelte Barcodes geprüft'], ['2026-09-04', 'Change', 'Invoice', 'T. Graf', 2.5, 2.5, 'Upload-Ordner pro Region'], ['2026-09-09', 'Professional Services', 'Invoice', 'R. Frei', 7.0, 7.0, 'Rollout Region West'], ['2026-09-15', 'Support (verrechenbar)', 'Invoice', 'S. Brunner', 0.6, 0.75, 'Login-Problem Region Ost'], ['2026-09-21', 'Projektmanagement', 'Invoice', 'R. Frei', 1.5, 1.5, '']]],
+      ['MediaMarkt', 48, 71.0, 74.0, [['2026-09-03', 'Professional Services', 'Batches', 'T. Graf', 5.0, 5.0, 'Neue Belegart KA eingeführt'], ['2026-09-08', 'Support (verrechenbar)', 'Batches', 'L. Meier', 0.8, 1.0, 'Batch 2209 ohne Scan-Datum'], ['2026-09-14', 'Change', 'Batches', 'T. Graf', 3.0, 3.0, 'Stückzählung pro Typ'], ['2026-09-24', 'Support (verrechenbar)', 'Batches', 'L. Meier', 0.5, 0.5, '']]],
+      ['Aveniq', 96, 58.0, 61.0, [['2026-09-02', 'Projektmanagement', 'Xpert', 'R. Frei', 1.5, 1.5, 'Abstimmung ZHAW Workitems'], ['2026-09-08', 'Support (extern verrechenbar)', 'Xpert', 'S. Brunner', 2.25, 2.25, 'BFH neue Kreditoren nicht synchronisiert'], ['2026-09-10', 'Change', 'Xpert', 'T. Graf', 3.0, 3.0, 'ZHAW Eingang MAIL getrennt zählen'], ['2026-09-17', 'Support (verrechenbar)', 'Xpert', 'S. Brunner', 0.3, 0.5, ''], ['2026-09-23', 'Professional Services', 'Xpert', 'R. Frei', 4.0, 4.0, 'Workshop FHNW']]],
+    ];
+    const bpsTables = [
+      table('Task', ['Hours', 'Billed', 'Bookings'], TASKS, { hours: [0, 1], muted: [2] }),
+      table('Customer', ['Hours', 'Billed', 'Bookings'], BK.map(g => [g[0], [g[2], g[3], g[1]]]), { hours: [0, 1], muted: [2], href: i => '#fin-bk-' + i }),
+    ];
+    const dayF = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+    const wdF = new Intl.DateTimeFormat('en-GB', { weekday: 'short', timeZone: 'UTC' });
+    const timelines = BK.map(([key, count, raw, billed, rows], i) => {
+      const open = !!st.tl[key];
+      const shown = open ? rows : rows.slice(0, 4);
+      const days = [];
+      shown.forEach(([date, task, pkg, person, h, b, comment]) => {
+        let d = days[days.length - 1];
+        if (!d || d.iso !== date) {
+          const [y, m, dd] = date.split('-').map(Number);
+          const dt = new Date(Date.UTC(y, m - 1, dd));
+          d = { iso: date, day: dayF.format(dt), wd: wdF.format(dt), items: [] };
+          days.push(d);
+        }
+        d.items.push({ comment: comment || 'No comment', cColor: comment ? '#1f2937' : '#6b7280', cStyle: comment ? 'normal' : 'italic',
+          line: [task, pkg, person].join(' · '), pair: Math.abs(h - b) > 1e-9, rawT: d2.format(h) + ' h', billedT: d2.format(b) + ' h' });
+      });
+      return { id: 'fin-bk-' + i, key, countT: count + ' bookings', rawT: d1.format(raw) + ' h', billedT: d1.format(billed) + ' h', days,
+        hasMore: count > 4, moreT: open ? 'Show fewer' : 'Show all ' + nf.format(count),
+        toggle: () => this.setState(s => ({ tl: { ...s.tl, [key]: !s.tl[key] } })) };
+    });
+
+    // Bexio panel (today): invoices dated in the month after the selected one
+    const wi = sel + 1;
+    const bxWindow = NAMES[wi % 12] + ' ' + Math.floor(wi / 12);
+    const money = (v, c = 'CHF') => c + ' ' + d2.format(v);
+    const TONE = { open: ['#dbeafe', '#1e40af', 'Open'], draft: ['#f3f4f6', '#4b5563', 'Draft'], paid: ['#d1fae5', '#065f46', 'Paid'] };
+    const BX = [
+      { client: 'Elektro-Material', contacts: ['Elektro-Material AG'], inv: { id: 478, nr: 'RE-2026-0478', title: 'Verarbeitung September 2026', date: '01.10.2026', due: '31.10.2026', status: 'open', excl: 8975.90, total: 9702.95,
+        lines: [['Belege Opex und E-Mail', '4,392 Stk', '0.95', 4172.40], ['Bilder Ausgang', '11,204 Stk', '0.05', 560.20], ['Bestellpositionen', '38,915 Stk', '0.02', 778.30], ['Support und Change', '21 h', '165.00', 3465.00]] } },
+      { client: 'Compass Group', contacts: ['Compass Group (Schweiz) AG'], inv: { id: 479, nr: 'RE-2026-0479', title: 'Verarbeitung September 2026', date: '01.10.2026', due: '31.10.2026', status: 'draft', excl: 2225.70, total: 2405.98,
+        lines: [['Verarbeitung Rechnungen', '1,236 Stk', '1.20', 1483.20], ['Support', '4.5 h', '165.00', 742.50]] } },
+      { client: 'Privera', contacts: ['Privera AG'], inv: { id: 480, nr: 'RE-2026-0480', title: 'Posteingang und Zustellung September 2026', date: '01.10.2026', due: '31.10.2026', status: 'open', excl: 8245.80, total: 8913.71,
+        lines: [['Posteingang Dokumente', '9,420 Stk', '0.60', 5652.00], ['Physische Zustellung', '842 Stk', '2.50', 2105.00], ['Zuschlag ohne TEC', '611 Stk', '0.80', 488.80]] } },
+      { client: 'Frigemo', contacts: ['Frigemo AG'] },
+      { client: 'Aveniq', contacts: ['Aveniq AG', 'Xpert Consulting AG'] },
+      { client: 'Bucherer', contacts: ['Bucherer AG'] },
+      { client: 'MediaMarkt', contacts: ['Media Markt Schweiz AG'] },
+    ];
+    const bxRows = BX.map((c, i) => {
+      const r = { client: c.client, contacts: c.contacts.map(name => ({ name })), showLead: true, bb: i === BX.length - 1 ? 'none' : '1px solid #f3f4f6' };
+      if (!c.inv) return Object.assign(r, { isInv: false, isFlag: true, flag: 'No invoice in ' + bxWindow, linesOpen: false });
+      const v = c.inv, t = TONE[v.status];
+      return Object.assign(r, { isInv: true, isFlag: false, nr: v.nr, title: v.title, date: v.date, due: v.due, statusT: t[2], pillBg: t[0], pillFg: t[1],
+        exclT: money(v.excl), totalT: money(v.total), linesOpen: !!st.bx[v.id],
+        lines: v.lines.map((l, j) => ({ text: l[0], qtyT: l[1], priceT: l[2], totalT: d2.format(l[3]), bb: j === v.lines.length - 1 ? 'none' : '1px solid #f3f4f6' })),
+        toggle: () => this.setState(s => ({ bx: { ...s.bx, [v.id]: !s.bx[v.id] } })) });
+    });
+    const bxKpis = [['Invoiced', 'CHF 18,616.66', ''], ['Excl. VAT', 'CHF 17,221.70', ''], ['Invoices', '2', 'Drafts not yet issued: 1'], ['Clients without an invoice', '5', '']]
+      .map(([label, value, sub], i) => ({ label, value, sub, hasSub: !!sub, pl: i ? '24px' : '0', bl: i ? '1px solid #f3f4f6' : 'none' }));
+
+    // picker
+    const monthCells = SHORT.map((name, m) => {
+      const i = viewYear * 12 + m, off = i < FIRST || i > NOW, s = off ? null : stateOf(i), selected = i === sel;
+      return {
+        name, status: off ? '' : s === 'closed' ? 'Closed' : s === 'open' ? 'Open' : 'Running',
+        isLock: s === 'closed', isDot: s === 'open' || s === 'running', dot: selected ? 'currentColor' : s === 'open' ? '#047857' : '#f59e0b',
+        pick: () => { if (!off) go(i); },
+        cursor: off ? 'default' : 'pointer', op: off ? .4 : 1,
+        bg: selected ? '#111318' : '#ffffff', border: selected ? '#111318' : '#e5e7eb', fg: selected ? '#ffffff' : '#1f2937',
+        sub: selected ? '#f08a6c' : s === 'open' ? '#047857' : s === 'running' ? '#b45309' : '#9ca3af',
+      };
+    });
+
+    const selLabel = NAMES[sm] + ' ' + sy;
+    return {
+      logo: this.logo(), wordmark: this.wordmark(exp ? 1 : 0),
+      isToday, isNew: !isToday,
+      bodyPad: exp ? '220px' : '100px', sbW: exp ? '220px' : '64px', lbl: exp ? 1 : 0,
+      sydocMax: exp && st.sydocOpen ? '200px' : '0px', sydocChev: st.sydocOpen ? 'rotate(90deg)' : 'none',
+      pinColor: pinned ? '#4f46e5' : 'inherit', pinRot: pinned ? 'rotate(-45deg)' : 'none',
+      sbEnter: () => this.setState({ hover: true }), sbLeave: () => this.setState({ hover: false }),
+      togglePin: () => this.setState({ pinned: !pinned }), toggleSydoc: () => this.setState(s => ({ sydocOpen: !s.sydocOpen })),
+      selName: NAMES[sm], selYear: sy, prevName: NAMES[(sm + 11) % 12],
+      isRunning: mState === 'running', isOpenMonth: mState === 'open', isClosedMonth: mState === 'closed', closedLabel,
+      pillLive: mState !== 'closed', pillClosed: mState === 'closed',
+      prevMonth: () => go(sel - 1), nextMonth: () => go(sel + 1), prevOp: sel <= FIRST ? .35 : 1, nextOp: sel >= NOW ? .35 : 1,
+      jump, groups, bpsFigures, bpsTables, timelines,
+      bxWindow, bxRows, bxKpis, bxExcl: 'CHF 17,221.70', bxTotal: 'CHF 18,616.66',
+      confirmOpen: st.confirm, toggleConfirm: () => this.setState(s => ({ confirm: !s.confirm })),
+      confirmIcon: mState === 'closed' ? 'fas fa-lock-open' : 'fas fa-lock',
+      confirmTitle: (mState === 'closed' ? 'Reopen ' : 'Close ') + selLabel + '?',
+      confirmBody: mState === 'closed' ? 'The frozen figures are deleted and the page shows live data again. Close it again afterwards to freeze the new state.' : 'Every section is read now and frozen. From then on this month shows exactly these figures, and only notes where the live data moves away from them.',
+      confirmGoLabel: mState === 'closed' ? 'Reopen month' : 'Close month',
+      confirmGo: () => this.setState({ confirm: false, closedNow: sel === NOW - 1 ? mState !== 'closed' : st.closedNow }),
+      pickerOpen: st.picker, openPicker: () => this.setState({ picker: true, viewYear: sy }), closePicker: () => this.setState({ picker: false }),
+      stop: e => e.stopPropagation(), viewYear, monthCells,
+      prevYear: () => { if (viewYear > 2023) this.setState({ viewYear: viewYear - 1 }); },
+      nextYear: () => { if (viewYear < 2026) this.setState({ viewYear: viewYear + 1 }); },
+      prevYearOp: viewYear > 2023 ? 1 : .4, nextYearOp: viewYear < 2026 ? 1 : .4,
+    };
+  }
+}
+</script>
+</body>
+</html>

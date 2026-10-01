@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#f9fafb;font-family:'Inter',system-ui,-apple-system,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}a:hover{color:#b2401f}
+button,select{font-family:inherit}
+@keyframes nx-spin{from{transform:perspective(300px) rotateX(64deg) rotateZ(0deg)}to{transform:perspective(300px) rotateX(64deg) rotateZ(360deg)}}
+@keyframes nx-spiral{0%{transform:translate(-2px,-2px) rotate(0deg) translateX(18px) rotate(0deg);opacity:.15}60%{opacity:.95}100%{transform:translate(-2px,-2px) rotate(540deg) translateX(6px) rotate(-540deg);opacity:0}}
+</style>
+</helmet>
+<div style="display:flex;flex-direction:column;min-height:100vh;background:#f9fafb;color:#1f2937;font-family:'Inter',system-ui,-apple-system,sans-serif;padding-left:{{ bodyPad }};transition:padding-left .28s cubic-bezier(.4,0,.2,1)">
+
+<aside onMouseEnter="{{ sbEnter }}" onMouseLeave="{{ sbLeave }}" style="position:fixed;left:0;top:0;height:100vh;width:{{ sbW }};z-index:40;display:flex;flex-direction:column;background:#ffffff;border-right:1px solid #f3f4f6;box-shadow:2px 0 8px rgba(0,0,0,0.04);overflow:hidden;transition:width .28s cubic-bezier(.4,0,.2,1)">
+  <div style="display:flex;align-items:center;height:64px;padding:0 12px;border-bottom:1px solid #f3f4f6;flex-shrink:0">
+    <a href="#" style="display:flex;align-items:center;gap:10px;white-space:nowrap;text-decoration:none">{{ logo }}{{ wordmark }}</a>
+  </div>
+  <nav style="flex:1;min-height:0;padding:12px 8px;display:flex;flex-direction:column;gap:2px;overflow-y:auto;overflow-x:hidden">
+    <button style="display:flex;align-items:center;gap:12px;padding:10px 8px;border-radius:8px;color:#57606a;font-size:.875rem;font-weight:500;width:100%;text-align:left;background:none;border:none;cursor:pointer;position:relative" style-hover="background:rgba(0,0,0,.05);color:#1f2328"><i class="fas fa-shield-halved" style="width:32px;height:32px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1rem"></i><span style="flex:1;opacity:{{ lbl }};white-space:nowrap;overflow:hidden;transition:opacity .18s ease">Admin</span><i class="fas fa-chevron-right" style="font-size:.65rem;opacity:{{ lbl }};transition:opacity .18s ease"></i></button>
+    <button style="display:flex;align-items:center;gap:12px;padding:10px 8px;border-radius:8px;color:#57606a;font-size:.875rem;font-weight:500;width:100%;text-align:left;background:none;border:none;cursor:pointer;position:relative" style-hover="background:rgba(0,0,0,.05);color:#1f2328"><i class="fas fa-code" style="width:32px;height:32px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1rem"></i><span style="flex:1;opacity:{{ lbl }};white-space:nowrap;overflow:hidden;transition:opacity .18s ease">Development</span><i class="fas fa-chevron-right" style="font-size:.65rem;opacity:{{ lbl }};transition:opacity .18s ease"></i></button>
+    <a href="#" style="display:flex;align-items:center;gap:12px;padding:10px 8px;border-radius:8px;color:#57606a;font-size:.875rem;font-weight:500;width:100%;position:relative" style-hover="background:rgba(0,0,0,.05);color:#1f2328"><i class="fas fa-gauge-high" style="width:32px;height:32px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1rem"></i><span style="opacity:{{ lbl }};white-space:nowrap;overflow:hidden;transition:opacity .18s ease">Global Dashboard</span></a>
+    <a href="#" style="display:flex;align-items:center;gap:12px;padding:10px 8px;border-radius:8px;color:#57606a;font-size:.875rem;font-weight:500;width:100%;position:relative" style-hover="background:rgba(0,0,0,.05);color:#1f2328"><i class="fas fa-chart-column" style="width:32px;height:32px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1rem"></i><span style="opacity:{{ lbl }};white-space:nowrap;overflow:hidden;transition:opacity .18s ease">Global Reporting</span></a>
+    <a href="#" style="display:flex;align-items:center;gap:12px;padding:10px 8px;border-radius:8px;color:#57606a;font-size:.875rem;font-weight:500;width:100%;position:relative" style-hover="background:rgba(0,0,0,.05);color:#1f2328"><i class="fas fa-layer-group" style="width:32px;height:32px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1rem"></i><span style="opacity:{{ lbl }};white-space:nowrap;overflow:hidden;transition:opacity .18s ease">Global Workitems</span></a>
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <button onClick="{{ toggleSydoc }}" style="display:flex;align-items:center;gap:12px;padding:10px 8px;border-radius:8px;color:#1f2328;background:rgba(0,0,0,.05);font-size:.875rem;font-weight:600;width:100%;text-align:left;border:none;cursor:pointer;position:relative"><span style="position:absolute;left:-8px;top:50%;transform:translateY(-50%);width:3px;height:20px;border-radius:0 2px 2px 0;background:#e3633f"></span><i class="fas fa-book" style="width:32px;height:32px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1rem"></i><span style="flex:1;opacity:{{ lbl }};white-space:nowrap;overflow:hidden;transition:opacity .18s ease">Sydoc</span><i class="fas fa-chevron-right" style="font-size:.65rem;opacity:{{ lbl }};transform:{{ sydocChev }};transition:opacity .18s ease,transform .2s ease"></i></button>
+      <div style="display:flex;flex-direction:column;gap:2px;overflow:hidden;max-height:{{ sydocMax }};transition:max-height .25s ease">
+        <a href="Sydoc Finance.dc.html" style="display:flex;align-items:center;gap:12px;padding:10px 8px 10px 20px;border-radius:8px;color:#57606a;font-size:.875rem;font-weight:500;width:100%;position:relative" style-hover="background:rgba(0,0,0,.05);color:#1f2328"><i class="fas fa-file-invoice-dollar" style="width:24px;height:24px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.8rem"></i><span style="opacity:{{ lbl }};white-space:nowrap;overflow:hidden;transition:opacity .18s ease">Finance</span></a>
+        <a href="#" style="display:flex;align-items:center;gap:12px;padding:10px 8px 10px 20px;border-radius:8px;color:#57606a;font-size:.875rem;font-weight:500;width:100%;position:relative" style-hover="background:rgba(0,0,0,.05);color:#1f2328"><i class="fas fa-user-clock" style="width:24px;height:24px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.8rem"></i><span style="opacity:{{ lbl }};white-space:nowrap;overflow:hidden;transition:opacity .18s ease">BPS</span></a>
+        <a href="#" style="display:flex;align-items:center;gap:12px;padding:10px 8px 10px 20px;border-radius:8px;color:#1f2328;background:rgba(0,0,0,.05);font-size:.875rem;font-weight:600;width:100%;position:relative"><span style="position:absolute;left:-8px;top:50%;transform:translateY(-50%);width:3px;height:20px;border-radius:0 2px 2px 0;background:#e3633f"></span><i class="fas fa-receipt" style="width:24px;height:24px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.8rem"></i><span style="opacity:{{ lbl }};white-space:nowrap;overflow:hidden;transition:opacity .18s ease">Billing</span></a>
+      </div>
+    </div>
+    <button style="display:flex;align-items:center;gap:12px;padding:10px 8px;border-radius:8px;color:#57606a;font-size:.875rem;font-weight:500;width:100%;text-align:left;background:none;border:none;cursor:pointer;position:relative" style-hover="background:rgba(0,0,0,.05);color:#1f2328"><i class="fas fa-building" style="width:32px;height:32px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1rem"></i><span style="flex:1;opacity:{{ lbl }};white-space:nowrap;overflow:hidden;transition:opacity .18s ease">Generali</span><i class="fas fa-chevron-right" style="font-size:.65rem;opacity:{{ lbl }};transition:opacity .18s ease"></i></button>
+  </nav>
+  <div style="flex-shrink:0;border-top:1px solid #f3f4f6;padding:8px;display:flex;flex-direction:column;gap:2px">
+    <button onClick="{{ togglePin }}" style="display:flex;align-items:center;gap:12px;padding:10px 8px;border-radius:8px;color:#57606a;font-size:.875rem;font-weight:500;width:100%;text-align:left;background:none;border:none;cursor:pointer" style-hover="background:rgba(0,0,0,.05);color:#1f2328"><i class="fas fa-thumbtack" style="width:32px;height:32px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1rem;color:{{ pinColor }};transform:{{ pinRot }}"></i><span style="opacity:{{ lbl }};white-space:nowrap;overflow:hidden;transition:opacity .18s ease">Keep sidebar open</span></button>
+    <button style="display:flex;align-items:center;gap:12px;padding:10px 8px;border-radius:8px;color:#57606a;font-size:.875rem;font-weight:500;width:100%;text-align:left;background:none;border:none;cursor:pointer" style-hover="background:rgba(61,108,122,.1);color:#3d6c7a"><i class="fas fa-moon" style="width:32px;height:32px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1rem;color:#3d6c7a"></i><span style="opacity:{{ lbl }};white-space:nowrap;overflow:hidden;transition:opacity .18s ease">Dark Mode</span></button>
+    <button style="display:flex;align-items:center;gap:12px;padding:10px 8px;border-radius:8px;width:100%;text-align:left;background:none;border:none;cursor:pointer" style-hover="background:rgba(0,0,0,.05)"><span style="width:32px;height:32px;flex-shrink:0;display:flex;align-items:center;justify-content:center;position:relative"><img src="assets/default-icon.png" alt="Profile Picture" style="width:28px;height:28px;border-radius:9999px;object-fit:cover"><span style="position:absolute;bottom:-1px;right:-1px;width:9px;height:9px;border-radius:9999px;background:#22c55e;border:2px solid #fff"></span></span><span style="opacity:{{ lbl }};white-space:nowrap;overflow:hidden;transition:opacity .18s ease;font-size:.8125rem;font-weight:600;color:#374151">M. Keller</span></button>
+  </div>
+</aside>
+
+<main style="flex:1 0 auto;width:100%;max-width:1600px;margin:0 auto;padding:36px 40px 28px;position:relative;z-index:1">
+
+  <section data-screen-label="Billing band" style="background:#111318;border-radius:16px;color:#e5e7eb;overflow:hidden;padding:22px 30px 0">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span style="width:22px;height:26px;flex-shrink:0;background:url('assets/sydoc-mark.png') center / contain no-repeat"></span>
+      <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#f08a6c;white-space:nowrap">Sydoc internal</span>
+      <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#7c8492;white-space:nowrap">Billing</span>
+      <span style="flex:1"></span>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <a href="Sydoc Finance.dc.html" style="display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 12px;border-radius:8px;border:1px solid transparent;color:#d1d5db;font-size:12.5px;font-weight:600;white-space:nowrap" style-hover="background:rgba(255,255,255,.06);color:#fff"><i class="fas fa-file-invoice-dollar" style="font-size:12px;color:#9ca3af"></i>Sydoc Finance</a>
+        <button onClick="{{ refresh }}" style="display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 12px;border-radius:8px;border:1px solid rgba(255,255,255,.14);background:transparent;color:#e5e7eb;font-size:12.5px;font-weight:600;white-space:nowrap;cursor:pointer" style-hover="background:rgba(255,255,255,.06)"><i class="fas fa-rotate" style="font-size:12px;color:#9ca3af"></i>Refresh</button>
+      </div>
+    </div>
+
+    <div style="margin-top:22px;display:flex;align-items:flex-end;gap:40px;flex-wrap:wrap">
+      <div style="flex:1 1 520px;min-width:0">
+        <h1 style="font-size:14px;font-weight:600;color:#9ca3af;letter-spacing:-.01em">Sydoc Billing</h1>
+        <div style="margin-top:6px;display:flex;align-items:center;gap:14px">
+          <button onClick="{{ prevMonth }}" aria-label="Previous month" style="width:36px;height:36px;border-radius:99px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.14);background:transparent;color:#d1d5db;font-size:12px;cursor:pointer;opacity:{{ prevOp }}" style-hover="background:rgba(255,255,255,.08);color:#fff"><i class="fas fa-chevron-left"></i></button>
+          <button onClick="{{ openPicker }}" style="display:inline-flex;align-items:baseline;gap:12px;white-space:nowrap;border:none;background:none;padding:0;cursor:pointer;min-width:0">
+            <span style="font-size:54px;font-weight:600;letter-spacing:-2.2px;line-height:1;color:#fff">{{ selName }}</span>
+            <span style="font-size:54px;font-weight:400;letter-spacing:-2.2px;line-height:1;color:#6b7280;font-variant-numeric:tabular-nums">{{ selYear }}</span>
+            <i class="fas fa-chevron-down" style="font-size:14px;color:#6b7280;align-self:center"></i>
+          </button>
+          <button onClick="{{ nextMonth }}" aria-label="Next month" style="width:36px;height:36px;border-radius:99px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.14);background:transparent;color:#d1d5db;font-size:12px;cursor:pointer;opacity:{{ nextOp }}" style-hover="background:rgba(255,255,255,.08);color:#fff"><i class="fas fa-chevron-right"></i></button>
+        </div>
+        <p style="margin:12px 0 0;font-size:12.5px;line-height:1.5;color:#9ca3af;max-width:64ch">Invoices dated in {{ selName }}, read live from Bexio, each next to the {{ billedName }} figures from Sydoc Finance that it bills.<sc-if value="{{ ticks }}" hint-placeholder-val="{{ true }}"> <i class="fas fa-check" style="font-size:10px;color:#34d399"></i> marks a quantity that equals one of those figures.</sc-if></p>
+      </div>
+      <div style="display:grid;grid-template-rows:auto auto;grid-auto-flow:column;gap:4px 36px">
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#7c8492;white-space:nowrap">Bills</span>
+        <span style="font-size:14px;font-weight:600;color:#f3f4f6;white-space:nowrap;display:inline-flex;align-items:center;gap:7px">
+          <sc-if value="{{ billedClosed }}" hint-placeholder-val="{{ true }}"><i class="fas fa-lock" style="font-size:11px;color:#9ca3af"></i></sc-if>
+          <sc-if value="{{ billedOpen }}" hint-placeholder-val="{{ false }}"><span style="width:8px;height:8px;border-radius:99px;background:#34d399;display:inline-block"></span></sc-if>{{ billedLabel }}
+        </span>
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#7c8492;white-space:nowrap">Source</span>
+        <span style="font-size:14px;font-weight:600;color:#f3f4f6;white-space:nowrap;display:inline-flex;align-items:center;gap:7px;font-variant-numeric:tabular-nums"><span style="width:8px;height:8px;border-radius:99px;background:#34d399;display:inline-block"></span>Bexio, read {{ readAt }}</span>
+      </div>
+    </div>
+
+    <hr style="height:1px;border:none;background:rgba(255,255,255,.08);margin:24px -30px 0">
+    <div style="margin-top:22px;display:flex;align-items:flex-end;gap:16px 48px;flex-wrap:wrap">
+      <div>
+        <span style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#7c8492;white-space:nowrap">Invoiced</span>
+        <span style="display:block;margin-top:4px;font-size:40px;font-weight:600;letter-spacing:-1.6px;line-height:1;color:#fff;font-variant-numeric:tabular-nums">45,174.38<small style="font-size:18px;font-weight:500;letter-spacing:0;color:#7c8492;margin-left:6px">CHF</small></span>
+      </div>
+      <div style="display:flex;gap:4px 40px;flex-wrap:wrap">
+        <div><span style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#7c8492;white-space:nowrap">Excl. VAT</span><span style="display:block;margin-top:4px;font-size:20px;font-weight:600;letter-spacing:-.6px;color:#f3f4f6;font-variant-numeric:tabular-nums;white-space:nowrap">41,789.44<small style="font-size:12px;font-weight:500;letter-spacing:0;color:#9ca3af;margin-left:8px">CHF</small></span></div>
+        <div><span style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#7c8492;white-space:nowrap">Invoices</span><span style="display:block;margin-top:4px;font-size:20px;font-weight:600;letter-spacing:-.6px;color:#f3f4f6;font-variant-numeric:tabular-nums;white-space:nowrap">7<small style="font-size:12px;font-weight:500;letter-spacing:0;color:#9ca3af;margin-left:8px">1 draft, 1 cancelled</small></span></div>
+        <div><span style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#7c8492;white-space:nowrap">Clients invoiced</span><span style="display:block;margin-top:4px;font-size:20px;font-weight:600;letter-spacing:-.6px;color:#f3f4f6;font-variant-numeric:tabular-nums;white-space:nowrap">5 of 7<small style="font-size:12px;font-weight:500;letter-spacing:0;color:#9ca3af;margin-left:8px">2 without an invoice</small></span></div>
+        <div><span style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#7c8492;white-space:nowrap">Other currencies</span><span style="display:block;margin-top:4px;font-size:20px;font-weight:600;letter-spacing:-.6px;color:#f3f4f6;font-variant-numeric:tabular-nums;white-space:nowrap">2,035.41<small style="font-size:12px;font-weight:500;letter-spacing:0;color:#9ca3af;margin-left:8px">EUR, not in the totals</small></span></div>
+      </div>
+    </div>
+
+    <nav aria-label="Sections" style="display:flex;flex-wrap:nowrap;align-items:center;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;margin:22px -30px 0;padding:0 16px;border-top:1px solid rgba(255,255,255,.08);mask-image:linear-gradient(90deg,transparent 0,#000 16px,#000 calc(100% - 28px),transparent)">
+      <sc-for list="{{ jump }}" as="j" hint-placeholder-count="10">
+        <sc-if value="{{ j.isSep }}" hint-placeholder-val="{{ false }}"><span style="width:1px;height:18px;background:rgba(255,255,255,.12);margin:0 6px;flex-shrink:0"></span></sc-if>
+        <sc-if value="{{ j.isItem }}" hint-placeholder-val="{{ true }}"><a href="{{ j.href }}" title="{{ j.title }}" style="flex:0 0 auto;height:44px;padding:0 7px;display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:#d1d5db;border-bottom:2px solid transparent;margin-bottom:-1px" style-hover="color:#fff;border-bottom-color:#e3633f"><span style="width:20px;height:20px;border-radius:6px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:700;background:{{ j.tileBg }};color:{{ j.tileFg }}"><sc-if value="{{ j.hasIcon }}" hint-placeholder-val="{{ false }}"><i class="{{ j.icon }}"></i></sc-if>{{ j.tile }}</span><span style="white-space:nowrap">{{ j.label }}</span><sc-if value="{{ j.flag }}" hint-placeholder-val="{{ false }}"><span title="Not invoiced" style="width:6px;height:6px;border-radius:99px;background:#f59e0b;display:inline-block"></span></sc-if></a></sc-if>
+      </sc-for>
+    </nav>
+  </section>
+
+  <sc-for list="{{ groups }}" as="g" hint-placeholder-count="2">
+    <div style="display:flex;align-items:center;gap:12px;margin-top:{{ g.top }}">
+      <h2 style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#6b7280">{{ g.label }}</h2>
+      <span style="font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-size:11px;font-weight:600;color:#6b7280;font-variant-numeric:tabular-nums">{{ g.count }}</span>
+      <span style="flex:1;height:1px;background:#e5e7eb"></span>
+    </div>
+    <sc-for list="{{ g.clients }}" as="c" hint-placeholder-count="3">
+      <section id="{{ c.id }}" style="display:flex;flex-wrap:wrap;gap:16px 48px;padding:26px 0;border-bottom:{{ c.border }};scroll-margin-top:20px">
+        <div style="flex:0 0 260px;min-width:0">
+          <h3 style="font-size:18px;font-weight:700;letter-spacing:-.02em;color:#1f2937">{{ c.client }}</h3>
+          <p style="margin-top:2px;font-size:13px;font-weight:500;color:#6b7280">{{ c.contacts }}</p>
+          <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px">
+            <span style="display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:500;line-height:1.6;background:{{ c.pillBg }};color:{{ c.pillFg }}"><span style="width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.85"></span>{{ c.pill }}</span>
+          </div>
+        </div>
+
+        <div style="flex:1 1 690px;min-width:0">
+          <sc-if value="{{ c.missing }}" hint-placeholder-val="{{ false }}">
+            <div style="padding-bottom:10px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:10px;font-size:13px;color:#6b7280"><i class="fas fa-inbox"></i>No invoice to {{ c.contacts }} is dated in {{ selLabel }}.</div>
+            <p style="margin-top:10px;font-size:11.5px;color:#6b7280">Latest invoice <span style="font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-weight:600;color:#1f2937">{{ c.lastNr }}</span>, dated {{ c.lastDate }}, unpaid. <a href="#bill-open" style="font-weight:600;color:#b2401f" style-hover="text-decoration:underline;color:#b2401f">See Open and unpaid</a></p>
+          </sc-if>
+          <sc-for list="{{ c.invoices }}" as="v" hint-placeholder-count="1">
+            <div style="margin-top:{{ v.top }}">
+              <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid #e5e7eb">
+                <span style="font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-size:13px;font-weight:700;color:{{ v.ink }}">{{ v.nr }}</span>
+                <span style="font-size:13px;font-weight:500;color:#6b7280;min-width:0">{{ v.title }}</span>
+                <span style="flex:1"></span>
+                <span style="align-self:center;display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:500;line-height:1.6;background:{{ v.pillBg }};color:{{ v.pillFg }}"><span style="width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.85"></span>{{ v.statusT }}</span>
+                <span style="font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:16px;font-weight:600;letter-spacing:-.4px;white-space:nowrap;color:{{ v.ink }};text-decoration:{{ v.strike }}">{{ v.totalT }}</span>
+              </div>
+              <sc-if value="{{ v.showLines }}" hint-placeholder-val="{{ true }}">
+                <div style="display:grid;grid-template-columns:minmax(0,1fr) auto auto auto">
+                  <span style="padding:6px 0;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:#6b7280;border-bottom:1px solid #e5e7eb">Text</span>
+                  <span style="padding:6px 0 6px 10px;text-align:right;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:#6b7280;border-bottom:1px solid #e5e7eb">Quantity</span>
+                  <span style="padding:6px 0 6px 10px;text-align:right;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:#6b7280;border-bottom:1px solid #e5e7eb;white-space:nowrap">Unit price</span>
+                  <span style="padding:6px 0 6px 10px;text-align:right;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:#6b7280;border-bottom:1px solid #e5e7eb;white-space:nowrap">Total {{ v.cur }}</span>
+                  <sc-for list="{{ v.lines }}" as="l" hint-placeholder-count="3">
+                    <div style="display:contents">
+                      <span style="padding:6px 0;font-size:12.5px;color:{{ v.ink }};border-bottom:1px solid #f3f4f6">{{ l.text }}</span>
+                      <span title="{{ l.tickTitle }}" style="padding:6px 0 6px 10px;text-align:right;white-space:nowrap;font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:12px;color:{{ v.ink }};border-bottom:1px solid #f3f4f6"><i class="fas fa-check" style="font-size:10px;color:#047857;margin-right:6px;opacity:{{ l.tick }}"></i>{{ l.qtyT }}</span>
+                      <span style="padding:6px 0 6px 10px;text-align:right;white-space:nowrap;font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:12px;color:#6b7280;border-bottom:1px solid #f3f4f6">{{ l.priceT }}</span>
+                      <span style="padding:6px 0 6px 10px;text-align:right;white-space:nowrap;font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:12px;color:{{ v.ink }};border-bottom:1px solid #f3f4f6">{{ l.totalT }}</span>
+                    </div>
+                  </sc-for>
+                  <span style="grid-column:span 3;padding:8px 0 2px;font-size:12px;color:#6b7280">Excl. VAT</span>
+                  <span style="padding:8px 0 2px 10px;text-align:right;white-space:nowrap;font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:12px;color:#6b7280">{{ v.exclT }}</span>
+                  <span style="grid-column:span 3;padding:2px 0;font-size:12px;color:#6b7280">VAT 8.1 %</span>
+                  <span style="padding:2px 0 2px 10px;text-align:right;white-space:nowrap;font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:12px;color:#6b7280">{{ v.vatT }}</span>
+                  <span style="grid-column:span 3;padding:2px 0 6px;font-size:12.5px;font-weight:600;color:{{ v.ink }}">Total</span>
+                  <span style="padding:2px 0 6px 10px;text-align:right;white-space:nowrap;font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;font-weight:600;color:{{ v.ink }}">{{ v.totalNum }}</span>
+                </div>
+              </sc-if>
+              <div style="display:flex;align-items:center;gap:6px 14px;flex-wrap:wrap;margin-top:6px;padding-top:6px;border-top:1px solid #f3f4f6;font-size:11.5px;color:#6b7280">
+                <span style="font-variant-numeric:tabular-nums">{{ v.meta }}</span>
+                <sc-if value="{{ v.hasNote }}" hint-placeholder-val="{{ false }}"><span style="color:{{ v.noteColor }};font-weight:500">{{ v.note }}</span></sc-if>
+                <span style="flex:1"></span>
+                <span style="display:inline-flex;gap:4px">
+                  <sc-if value="{{ v.canToggle }}" hint-placeholder-val="{{ false }}"><button onClick="{{ v.toggle }}" style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:7px;font-size:12px;font-weight:500;border:1px solid transparent;background:transparent;color:#6b7280;cursor:pointer" style-hover="background:#f3f4f6;color:#1f2937"><i class="fas fa-list"></i> {{ v.toggleT }}</button></sc-if>
+                  <a href="#" style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:7px;font-size:12px;font-weight:500;color:#6b7280" style-hover="background:#f3f4f6;color:#1f2937"><i class="fas fa-file-pdf"></i> PDF</a>
+                  <a href="#" style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:7px;font-size:12px;font-weight:500;color:#6b7280" style-hover="background:#f3f4f6;color:#1f2937"><i class="fas fa-arrow-up-right-from-square"></i> Open in Bexio</a>
+                </span>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="flex:1 1 100%;min-width:0;margin-top:6px">
+          <div style="display:flex;align-items:baseline;gap:12px;padding-bottom:6px;border-bottom:1px solid #e5e7eb">
+            <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#6b7280">Sydoc Finance · {{ billedName }}</span>
+            <span style="flex:1"></span>
+            <a href="Sydoc Finance.dc.html" style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;color:#b2401f" style-hover="text-decoration:underline;color:#b2401f">Breakdowns in Sydoc Finance <i class="fas fa-arrow-right" style="font-size:10px"></i></a>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:0 32px">
+            <sc-for list="{{ c.figGroups }}" as="fg" hint-placeholder-count="3">
+              <div style="min-width:0">
+                <sc-if value="{{ fg.hasTitle }}" hint-placeholder-val="{{ false }}"><p style="margin-top:10px;font-size:11px;font-weight:600;color:#6b7280">{{ fg.title }}</p></sc-if>
+                <sc-for list="{{ fg.rows }}" as="r" hint-placeholder-count="1">
+                  <div style="display:flex;align-items:baseline;gap:8px;padding:5px 0;border-bottom:1px solid #f3f4f6;font-size:12.5px">
+                    <span style="flex:1;min-width:0;color:#1f2937;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.label }}</span>
+                    <span style="font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-variant-numeric:tabular-nums;color:#1f2937;white-space:nowrap">{{ r.valueT }}</span>
+                    <span title="{{ r.tickTitle }}" style="width:12px;flex-shrink:0;text-align:right;color:#047857;font-size:10px;opacity:{{ r.tick }}"><i class="fas fa-check"></i></span>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </section>
+    </sc-for>
+  </sc-for>
+
+  <div style="display:flex;align-items:center;gap:12px;margin-top:38px">
+    <h2 style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#6b7280">Other Bexio contacts</h2>
+    <span style="font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-size:11px;font-weight:600;color:#6b7280">4</span>
+    <span style="flex:1;height:1px;background:#e5e7eb"></span>
+  </div>
+  <section id="bill-other" data-screen-label="Other contacts" style="display:flex;flex-wrap:wrap;gap:16px 48px;padding:26px 0;scroll-margin-top:20px">
+    <div style="flex:0 0 260px;min-width:0">
+      <h3 style="font-size:18px;font-weight:700;letter-spacing:-.02em;color:#1f2937">Not linked</h3>
+      <p style="margin-top:2px;font-size:13px;font-weight:500;color:#6b7280">To no Finance client</p>
+      <p style="margin-top:8px;font-size:11px;color:#6b7280">4 invoices dated in {{ selLabel }}</p>
+      <p style="margin-top:12px;font-size:11.5px;line-height:1.5;color:#6b7280;text-wrap:pretty">Bexio also bills customers nexora has no figures for. These invoices are not in the totals above. A contact that belongs to a client is linked in dbo.FinanceBexioContacts, by migration.</p>
+    </div>
+    <div style="flex:1 1 690px;min-width:0;overflow-x:auto">
+      <div style="display:grid;grid-template-columns:minmax(160px,auto) minmax(0,1fr) auto auto auto auto auto;min-width:max-content">
+        <span style="padding:6px 10px 6px 0;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:#6b7280;border-bottom:1px solid #e5e7eb">Contact</span>
+        <span style="padding:6px 10px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:#6b7280;border-bottom:1px solid #e5e7eb">Invoice</span>
+        <span style="padding:6px 10px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:#6b7280;border-bottom:1px solid #e5e7eb">Date</span>
+        <span style="padding:6px 10px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:#6b7280;border-bottom:1px solid #e5e7eb">Status</span>
+        <span style="padding:6px 10px;text-align:right;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:#6b7280;border-bottom:1px solid #e5e7eb;white-space:nowrap">Excl. VAT</span>
+        <span style="padding:6px 10px;text-align:right;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:#6b7280;border-bottom:1px solid #e5e7eb">Total</span>
+        <span style="border-bottom:1px solid #e5e7eb"></span>
+        <sc-for list="{{ others }}" as="o" hint-placeholder-count="4">
+          <div style="display:contents">
+            <span style="padding:7px 10px 7px 0;font-size:12.5px;font-weight:600;color:#1f2937;border-bottom:1px solid #f3f4f6">{{ o.contact }}</span>
+            <span style="padding:7px 10px;font-size:12.5px;white-space:nowrap;border-bottom:1px solid #f3f4f6"><span style="font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-weight:600;margin-right:6px">{{ o.nr }}</span><span style="color:#6b7280">{{ o.title }}</span></span>
+            <span style="padding:7px 10px;font-size:12.5px;color:#6b7280;white-space:nowrap;font-variant-numeric:tabular-nums;border-bottom:1px solid #f3f4f6">{{ o.date }}</span>
+            <span style="padding:7px 10px;border-bottom:1px solid #f3f4f6"><span style="display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:500;line-height:1.6;background:{{ o.pillBg }};color:{{ o.pillFg }}"><span style="width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.85"></span>{{ o.statusT }}</span></span>
+            <span style="padding:7px 10px;text-align:right;white-space:nowrap;font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:12px;border-bottom:1px solid #f3f4f6">{{ o.exclT }}</span>
+            <span style="padding:7px 10px;text-align:right;white-space:nowrap;font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:12px;border-bottom:1px solid #f3f4f6">{{ o.totalT }}</span>
+            <span style="padding:4px 0 4px 10px;text-align:right;white-space:nowrap;border-bottom:1px solid #f3f4f6"><a href="#" style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:7px;font-size:12px;font-weight:500;color:#6b7280" style-hover="background:#f3f4f6;color:#1f2937"><i class="fas fa-file-pdf"></i> PDF</a></span>
+          </div>
+        </sc-for>
+        <span style="padding:8px 10px 6px 0;font-size:12.5px;font-weight:700;color:#1f2937;border-top:1px solid #e5e7eb">Total</span>
+        <span style="grid-column:span 3;border-top:1px solid #e5e7eb"></span>
+        <span style="padding:8px 10px 6px;text-align:right;white-space:nowrap;font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-size:12px;font-weight:700;color:#1f2937;border-top:1px solid #e5e7eb">CHF 10,354.60</span>
+        <span style="padding:8px 10px 6px;text-align:right;white-space:nowrap;font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-size:12px;font-weight:700;color:#1f2937;border-top:1px solid #e5e7eb">CHF 11,193.32</span>
+        <span style="border-top:1px solid #e5e7eb"></span>
+      </div>
+    </div>
+  </section>
+
+  <div style="display:flex;align-items:center;gap:12px;margin-top:38px">
+    <h2 style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#6b7280">Open and unpaid</h2>
+    <span style="font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-size:11px;font-weight:600;color:#6b7280">12</span>
+    <span style="font-size:11px;color:#6b7280">all months, oldest due first</span>
+    <span style="flex:1;height:1px;background:#e5e7eb"></span>
+  </div>
+  <section id="bill-open" data-screen-label="Open and unpaid" style="display:flex;flex-wrap:wrap;gap:16px 48px;padding:26px 0;scroll-margin-top:20px">
+    <div style="flex:0 0 260px;min-width:0">
+      <h3 style="font-size:18px;font-weight:700;letter-spacing:-.02em;color:#1f2937">Outstanding</h3>
+      <p style="margin-top:2px;font-size:13px;font-weight:500;color:#6b7280">Open, partly paid and unpaid</p>
+      <p style="margin-top:8px;font-size:11px;color:#6b7280">Every invoice in Bexio with an amount still open, whatever its month · as of 01.10.2026</p>
+      <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px"><span style="display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:500;line-height:1.6;background:#fee2e2;color:#991b1b"><span style="width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.85"></span>3 overdue</span></div>
+    </div>
+    <div style="flex:1 1 690px;min-width:0">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));border-bottom:1px solid #e5e7eb">
+        <div style="padding:0 24px 14px 0;min-width:0"><p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af">Outstanding</p><p style="margin-top:10px;font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:17px;font-weight:600;letter-spacing:-.5px;line-height:1;color:#1f2937">CHF 53,369.00</p><p style="margin-top:6px;font-size:11px;font-weight:600;color:#9ca3af">10 invoices</p></div>
+        <div style="padding:0 24px 14px;border-left:1px solid #f3f4f6;min-width:0"><p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af">Overdue</p><p style="margin-top:10px;font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:17px;font-weight:600;letter-spacing:-.5px;line-height:1;color:#b91c1c">CHF 12,595.50</p><p style="margin-top:6px;font-size:11px;font-weight:600;color:#9ca3af">2 invoices</p></div>
+        <div style="padding:0 24px 14px;border-left:1px solid #f3f4f6;min-width:0"><p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af">In EUR</p><p style="margin-top:10px;font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:17px;font-weight:600;letter-spacing:-.5px;line-height:1;color:#1f2937">EUR 3,633.81</p><p style="margin-top:6px;font-size:11px;font-weight:600;color:#9ca3af">2 invoices, 1 overdue</p></div>
+      </div>
+      <div style="overflow-x:auto">
+        <div style="display:grid;grid-template-columns:minmax(150px,auto) minmax(0,1fr) auto auto auto auto auto;min-width:max-content">
+          <span style="padding:6px 10px 6px 0;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:#6b7280;border-bottom:1px solid #e5e7eb">Client</span>
+          <span style="padding:6px 10px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:#6b7280;border-bottom:1px solid #e5e7eb">Invoice</span>
+          <span style="padding:6px 10px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:#6b7280;border-bottom:1px solid #e5e7eb">Dated</span>
+          <span style="padding:6px 10px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:#6b7280;border-bottom:1px solid #e5e7eb">Due</span>
+          <span style="padding:6px 10px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:#6b7280;border-bottom:1px solid #e5e7eb">Status</span>
+          <span style="padding:6px 10px;text-align:right;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:#6b7280;border-bottom:1px solid #e5e7eb">Open</span>
+          <span style="padding:6px 10px;text-align:right;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:#6b7280;border-bottom:1px solid #e5e7eb">Total</span>
+          <sc-for list="{{ outstanding }}" as="o" hint-placeholder-count="12">
+            <div style="display:contents">
+              <span style="padding:7px 10px 7px 0;font-size:12.5px;border-bottom:{{ o.bb }}"><span style="font-weight:{{ o.weight }};color:#1f2937">{{ o.who }}</span><span style="display:block;font-size:11px;color:#6b7280">{{ o.sub }}</span></span>
+              <span style="padding:7px 10px;font-size:12.5px;white-space:nowrap;border-bottom:{{ o.bb }}"><span style="font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-weight:600;margin-right:6px">{{ o.nr }}</span><span style="color:#6b7280">{{ o.title }}</span></span>
+              <span style="padding:7px 10px;font-size:12.5px;color:#6b7280;white-space:nowrap;font-variant-numeric:tabular-nums;border-bottom:{{ o.bb }}">{{ o.dated }}</span>
+              <span style="padding:7px 10px;font-size:12.5px;white-space:nowrap;font-variant-numeric:tabular-nums;border-bottom:{{ o.bb }}"><span style="color:#1f2937">{{ o.due }}</span><sc-if value="{{ o.late }}" hint-placeholder-val="{{ false }}"><span style="display:block;font-size:11px;font-weight:600;color:#b91c1c">{{ o.lateT }}</span></sc-if></span>
+              <span style="padding:7px 10px;border-bottom:{{ o.bb }}"><span style="display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:500;line-height:1.6;white-space:nowrap;background:{{ o.pillBg }};color:{{ o.pillFg }}"><span style="width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.85"></span>{{ o.statusT }}</span></span>
+              <span style="padding:7px 10px;text-align:right;white-space:nowrap;font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:12px;font-weight:600;color:#1f2937;border-bottom:{{ o.bb }}">{{ o.openT }}</span>
+              <span style="padding:7px 10px;text-align:right;white-space:nowrap;font-family:ui-monospace,'SF Mono','Roboto Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:12px;color:#6b7280;border-bottom:{{ o.bb }}">{{ o.totalT }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<sc-if value="{{ pickerOpen }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closePicker }}" style="position:fixed;inset:0;z-index:61;background:rgba(17,19,24,.45);display:flex;flex-direction:column;align-items:center;padding:150px 16px 16px">
+    <div onClick="{{ stop }}" role="dialog" aria-label="Choose month" style="background:#ffffff;color:#1f2937;border-radius:14px;box-shadow:0 24px 64px rgba(16,24,40,.28),0 0 0 1px rgba(16,24,40,.06);width:440px;max-width:calc(100vw - 32px);max-height:calc(100vh - 56px);overflow-y:auto">
+      <div style="display:flex;align-items:center;padding:16px 18px 14px;border-bottom:1px solid #f3f4f6">
+        <h2 style="flex:1;font-size:15px;font-weight:700;letter-spacing:-.02em;color:#1f2937">Choose month</h2>
+        <button onClick="{{ closePicker }}" aria-label="Close" style="width:28px;height:28px;border-radius:7px;border:none;background:transparent;color:#9ca3af;cursor:pointer;display:inline-flex;align-items:center;justify-content:center" style-hover="background:#f3f4f6;color:#1f2937"><i class="fas fa-xmark"></i></button>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px 6px">
+        <button onClick="{{ prevYear }}" aria-label="Previous year" style="width:30px;height:30px;border-radius:99px;border:1px solid #e5e7eb;background:#ffffff;color:#6b7280;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:11px;opacity:{{ prevYearOp }}" style-hover="background:#f9fafb;color:#1f2937"><i class="fas fa-chevron-left"></i></button>
+        <span style="font-size:22px;font-weight:600;letter-spacing:-.8px;font-variant-numeric:tabular-nums;color:#1f2937">{{ viewYear }}</span>
+        <button onClick="{{ nextYear }}" aria-label="Next year" style="width:30px;height:30px;border-radius:99px;border:1px solid #e5e7eb;background:#ffffff;color:#6b7280;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:11px;opacity:{{ nextYearOp }}" style-hover="background:#f9fafb;color:#1f2937"><i class="fas fa-chevron-right"></i></button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 18px 0;padding-bottom:16px">
+        <sc-for list="{{ monthCells }}" as="c" hint-placeholder-count="12">
+          <button onClick="{{ c.pick }}" style="height:62px;padding:10px 12px;border-radius:10px;border:1px solid {{ c.border }};background:{{ c.bg }};text-align:left;cursor:{{ c.cursor }};opacity:{{ c.op }};display:flex;flex-direction:column;justify-content:space-between;min-width:0">
+            <span style="font-size:14px;font-weight:600;color:{{ c.fg }}">{{ c.name }}</span>
+            <span style="font-size:11px;color:{{ c.sub }};display:inline-flex;align-items:center;gap:5px;white-space:nowrap;overflow:hidden"><i class="{{ c.icon }}" style="font-size:9px"></i>{{ c.status }}</span>
+          </button>
+        </sc-for>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:14px;padding:12px 18px 16px;font-size:11px;color:#6b7280">
+        <span style="display:inline-flex;align-items:center;gap:5px"><i class="fas fa-check" style="color:#047857"></i> Every client invoiced</span>
+        <span style="display:inline-flex;align-items:center;gap:5px"><i class="fas fa-triangle-exclamation" style="color:#b45309"></i> Clients without an invoice</span>
+        <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:99px;background:#f59e0b;display:inline-block"></span> Still running</span>
+      </div>
+    </div>
+  </div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;sidebar&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;pinned&quot;,&quot;collapsed&quot;],&quot;default&quot;:&quot;pinned&quot;,&quot;tsType&quot;:&quot;'pinned' | 'collapsed'&quot;},&quot;lines&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;expanded&quot;,&quot;collapsed&quot;],&quot;default&quot;:&quot;expanded&quot;,&quot;tsType&quot;:&quot;'expanded' | 'collapsed'&quot;},&quot;ticks&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  state = { hover: false, pinned: null, sydocOpen: true, picker: false, viewYear: null, sel: null, lines: {}, readAt: '08:14' };
+
+  componentDidUpdate(prev) {
+    if (prev.sidebar !== this.props.sidebar && this.state.pinned !== null) this.setState({ pinned: null });
+    if (prev.lines !== this.props.lines) this.setState({ lines: {} });
+  }
+
+  logo() {
+    if (this._logo) return this._logo;
+    const e = React.createElement, A = '#4f46e5';
+    const ab = s => Object.assign({ position: 'absolute' }, s);
+    const spark = (l, t, d) => e('i', { key: l, style: ab({ width: 3, height: 3, borderRadius: '50%', left: l, top: t, background: '#4338ca', boxShadow: `0 0 9px color-mix(in srgb, ${A} 90%, transparent)`, animation: `nx-spiral 10s linear ${d} infinite`, opacity: .85 }) });
+    this._logo = e('div', { style: { position: 'relative', width: 38, height: 38, flexShrink: 0, transform: 'translateZ(0)', zIndex: 1 } },
+      e('div', { style: ab({ inset: -8, borderRadius: '50%', background: 'radial-gradient(55% 55% at 50% 50%, rgba(0,0,0,.08), rgba(0,0,0,0) 70%)', filter: 'blur(8px)', opacity: .7 }) }),
+      e('div', { style: ab({ inset: 0, borderRadius: '50%', background: 'radial-gradient(circle at 50% 50%, #000 0%, #000 35%, rgba(0,0,0,.7) 45%, rgba(67,56,202,0) 60%)', boxShadow: '0 0 20px rgba(0,0,0,.4), inset 0 0 10px rgba(0,0,0,.8), 0 3px 6px rgba(17,24,39,.14), 0 12px 24px rgba(17,24,39,.10)' }) }),
+      e('div', { style: ab({ inset: 0, borderRadius: '50%', background: `radial-gradient(closest-side, transparent calc(50% - 2px), color-mix(in srgb, ${A} 78%, white) calc(50% - 2px), color-mix(in srgb, ${A} 85%, transparent) calc(50% - 1px), color-mix(in srgb, ${A} 55%, transparent) 50%, transparent 52%)`, filter: 'blur(.6px) saturate(130%)', opacity: .95 }) }),
+      e('div', { style: ab({ inset: -3, transform: 'perspective(300px) rotateX(64deg)', animation: 'nx-spin 25s linear infinite', backfaceVisibility: 'hidden' }) },
+        e('div', { style: ab({ inset: 4, borderRadius: '50%', background: `conic-gradient(from 0deg, color-mix(in srgb, ${A} 0%, transparent) 0deg, color-mix(in srgb, ${A} 12%, transparent) 12deg, color-mix(in srgb, ${A} 28%, transparent) 60deg, color-mix(in srgb, #7c3aed 50%, transparent) 110deg, color-mix(in srgb, ${A} 32%, transparent) 180deg, color-mix(in srgb, ${A} 14%, transparent) 300deg, color-mix(in srgb, ${A} 0%, transparent) 360deg)`, WebkitMask: 'radial-gradient(circle at 50% 50%, transparent 30%, black 31%)', mask: 'radial-gradient(circle at 50% 50%, transparent 30%, black 31%)', filter: 'blur(.5px) saturate(120%)', boxShadow: `0 1px 6px rgba(17,24,39,.12), 0 10px 18px rgba(17,24,39,.08), inset 0 0 28px color-mix(in srgb, ${A} 38%, transparent)` }) }),
+        e('div', { style: ab({ inset: -2, borderRadius: '50%', background: `radial-gradient(60% 60% at 50% 50%, color-mix(in srgb, ${A} 18%, transparent), transparent 70%)`, WebkitMask: 'radial-gradient(circle at 50% 50%, transparent 48%, black 60%)', mask: 'radial-gradient(circle at 50% 50%, transparent 48%, black 60%)', filter: 'blur(2.2px)', opacity: .95 }) })),
+      e('div', { style: ab({ inset: 0 }) }, spark('50%', '6%', '-.1s'), spark('12%', '44%', '-.7s')));
+    return this._logo;
+  }
+
+  wordmark(op) {
+    const e = React.createElement;
+    return e('div', { style: { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', opacity: op, transition: 'opacity .18s ease' } },
+      e('span', { style: { fontSize: '1.05rem', fontWeight: 600, letterSpacing: '-.025em', lineHeight: 1.2, background: 'linear-gradient(90deg, #0b0b12, #111827 35%, #4f46e5)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' } }, 'nexora'),
+      e('span', { style: { fontSize: '.6rem', fontWeight: 600, letterSpacing: '-.025em', lineHeight: 1.333, marginTop: 1, color: '#1f2937' } }, 'powered by sydoc'));
+  }
+
+  renderVals() {
+    const st = this.state;
+    const pinned = st.pinned ?? ((this.props.sidebar ?? 'pinned') === 'pinned');
+    const exp = pinned || st.hover;
+    const ticksOn = this.props.ticks ?? true;
+    const linesDefault = (this.props.lines ?? 'expanded') === 'expanded';
+
+    const nf = new Intl.NumberFormat('en');
+    const d2 = new Intl.NumberFormat('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const FIRST = 2023 * 12 + 9, NOW = 2026 * 12 + 9;
+    const sel = st.sel ?? NOW - 1;
+    const sy = Math.floor(sel / 12), sm = sel % 12, bi = sel - 1;
+    const go = i => { if (i >= FIRST && i <= NOW) this.setState({ sel: i, picker: false }); };
+    const viewYear = st.viewYear ?? sy;
+    const billedClosed = bi < NOW - 1;
+
+    const STATUS = { paid: ['#d1fae5', '#065f46', 'Paid'], open: ['#dbeafe', '#1e40af', 'Open'], partial: ['#fef3c7', '#92400e', 'Partly paid'], draft: ['#f3f4f6', '#4b5563', 'Draft'], cancelled: ['#f3f4f6', '#4b5563', 'Cancelled'], unpaid: ['#fee2e2', '#991b1b', 'Unpaid'] };
+    const STATE = { invoiced: ['#d1fae5', '#065f46', 'Invoiced'], draft: ['#f3f4f6', '#4b5563', 'Draft only'], missing: ['#fef3c7', '#92400e', 'No invoice in ' + NAMES[sm]] };
+
+    // q: quantity, u: unit ('Stk' | 'h'), p: unit price, t: line total
+    const CL = [
+      { key: 'em', client: 'Elektro-Material', g: 'internal', contacts: ['Elektro-Material AG'],
+        figs: [[null, [['Documents', 4590], ['Images out', 10870], ['Order positions', 40102], ['Billed hours (BPS)', 21.5, 'h']]]],
+        inv: [{ nr: 'RE-2026-0412', title: 'Dokumentenverarbeitung August 2026', status: 'paid', date: '03.09.2026', due: '03.10.2026', extra: 'paid 29.09.2026', excl: 8875.44, vat: 718.91, total: 9594.35,
+          lines: [['Belege Opex und E-Mail', 4192, 'Stk', 0.95, 3982.40], ['Bilder Ausgang', 10870, 'Stk', 0.05, 543.50], ['Bestellpositionen', 40102, 'Stk', 0.02, 802.04], ['Support und Change', 21.5, 'h', 165, 3547.50]] }] },
+      { key: 'compass', client: 'Compass Group', nav: 'Compass', g: 'internal', contacts: ['Compass Group (Schweiz) AG'],
+        figs: [[null, [['Documents', 1301], ['Billed hours (BPS)', 4.25, 'h']]]],
+        inv: [{ nr: 'RE-2026-0398', title: 'Verarbeitung August 2026', status: 'cancelled', date: '02.09.2026', excl: 2351.25, vat: 190.45, total: 2541.70,
+          lines: [['Verarbeitung Rechnungen', 1375, 'Stk', 1.20, 1650.00], ['Support', 4.25, 'h', 165, 701.25]] },
+          { nr: 'RE-2026-0405', title: 'Verarbeitung August 2026', status: 'open', date: '04.09.2026', due: '04.10.2026', excl: 2262.45, vat: 183.26, total: 2445.71,
+          lines: [['Verarbeitung Rechnungen', 1301, 'Stk', 1.20, 1561.20], ['Support', 4.25, 'h', 165, 701.25]] }] },
+      { key: 'privera', client: 'Privera', g: 'internal', contacts: ['Privera AG'],
+        figs: [['Posteingang', [['Documents', 9015]]], ['Rechnungseingang', [['Documents', 6102], ['E-mail documents', 2011], ['eBill documents', 1790]]], ['Physische Zustellung', [['Deliveries', 905], ['Without TEC', 660]]], ['Neuzugänge', [['Dossiers', 117], ['Registers', 1766], ['Pages', 38804]]], ['Billed hours (BPS)', [['Posteingang', 6.75, 'h'], ['Invoice', 12, 'h'], ['Neuzugänge', 42, 'h']]]],
+        inv: [{ nr: 'RE-2026-0407', title: 'Posteingang und Zustellung August 2026', status: 'open', date: '03.09.2026', due: '03.10.2026', excl: 9212.00, vat: 746.17, total: 9958.17,
+          lines: [['Posteingang Dokumente', 9015, 'Stk', 0.60, 5409.00], ['Physische Zustellung', 905, 'Stk', 2.50, 2262.50], ['Zuschlag ohne TEC', 660, 'Stk', 0.80, 528.00], ['Support Posteingang', 6.75, 'h', 150, 1012.50]] },
+          { nr: 'RE-2026-0408', title: 'Rechnungseingang August 2026', status: 'partial', date: '03.09.2026', due: '03.10.2026', extra: 'CHF 4,000.00 paid, 4,158.09 open', excl: 7546.80, vat: 611.29, total: 8158.09,
+          lines: [['Rechnungen Dokumente', 6102, 'Stk', 0.85, 5186.70], ['Zuschlag E-Mail', 2011, 'Stk', 0.10, 201.10], ['Zuschlag eBill', 1790, 'Stk', 0.10, 179.00], ['Change Request CR-114', 12, 'h', 165, 1980.00]] },
+          { nr: 'RE-2026-0409', title: 'Neuzugänge August 2026', status: 'open', date: '03.09.2026', due: '03.10.2026', excl: 9231.00, vat: 747.71, total: 9978.71,
+          lines: [['Dossiers', 117, 'Stk', 18.00, 2106.00], ['Register', 1766, 'Stk', 0.90, 1589.40], ['Seiten', 38640, 'Stk', 0.04, 1545.60], ['Vorbereitung Akten', 42, 'h', 95, 3990.00]] }] },
+      { key: 'frigemo', client: 'Frigemo', g: 'external', contacts: ['Frigemo AG'], missing: true, lastNr: 'RE-2026-0371', lastDate: '05.08.2026',
+        figs: [[null, [['Imported documents', 2988], ['Exported documents', 2970], ['Imported pages', 8105], ['Exported pages', 8080], ['Invoices', 2655], ['Deleted', 18], ['Billed hours (BPS)', 7.5, 'h']]]], inv: [] },
+      { key: 'aveniq', client: 'Aveniq', g: 'external', contacts: ['Aveniq AG', 'Xpert Consulting AG'],
+        figs: [['Xpert', [['Documents', 5120]]], ['Billed hours (BPS)', [['Xpert', 3.75, 'h']]]],
+        inv: [{ nr: 'RE-2026-0414', title: 'Xpert August 2026', to: 'Xpert Consulting AG', status: 'open', date: '04.09.2026', due: '04.10.2026', excl: 4661.75, vat: 377.60, total: 5039.35,
+          lines: [['Dokumente', 5120, 'Stk', 0.70, 3584.00], ['BFH neue Kreditoren', 41, 'Stk', 4.00, 164.00], ['ZHAW Workitems', 590, 'Stk', 0.50, 295.00], ['Support', 3.75, 'h', 165, 618.75]] }] },
+      { key: 'bucherer', client: 'Bucherer', g: 'external', contacts: ['Bucherer AG'],
+        figs: [['EasyTax', [['Imported', 1392], ['Pages', 2801], ['Exported', 1380]]], ['Billed hours (BPS)', [['EasyTax', 2.5, 'h']]]],
+        inv: [{ nr: 'RE-2026-0416', title: 'EasyTax August 2026', status: 'open', cur: 'EUR', date: '05.09.2026', due: '05.10.2026', excl: 1882.90, vat: 152.51, total: 2035.41,
+          lines: [['Importierte Belege', 1392, 'Stk', 0.90, 1252.80], ['Seiten', 2801, 'Stk', 0.10, 280.10], ['Support', 2.5, 'h', 140, 350.00]] }] },
+      { key: 'mediamarkt', client: 'MediaMarkt', g: 'external', contacts: ['Media Markt Schweiz AG'],
+        figs: [[null, [['Batches', 230], ['Pieces', 19210]]]],
+        inv: [{ nr: 'RE-2026-0419', title: 'Batches August 2026', status: 'draft', date: '30.09.2026', excl: 1957.60, vat: 158.57, total: 2116.17,
+          lines: [['Batches', 230, 'Stk', 3.50, 805.00], ['Stück', 19210, 'Stk', 0.06, 1152.60]] }] },
+    ];
+    const qty = (q, u) => (u === 'h' ? d2.format(q) : nf.format(q)) + ' ' + u;
+    const shapeClient = (c, i, list) => {
+      const figVals = [];
+      c.figs.forEach(([, rows]) => rows.forEach(r => figVals.push({ v: r[1], h: r[2] === 'h', label: r[0] })));
+      const lineQ = [];
+      c.inv.filter(v => v.status !== 'cancelled').forEach(v => v.lines.forEach(l => lineQ.push({ q: l[1], h: l[2] === 'h', text: l[0] })));
+      const counted = c.inv.some(v => !['draft', 'cancelled'].includes(v.status));
+      const state = c.missing ? 'missing' : counted ? 'invoiced' : 'draft';
+      const pill = STATE[state];
+      return {
+        id: 'bill-' + c.key, client: c.client, contacts: c.contacts.join(' · '), border: i === list.length - 1 ? 'none' : '1px solid #e5e7eb',
+        pill: pill[2], pillBg: pill[0], pillFg: pill[1], missing: !!c.missing, lastNr: c.lastNr || '', lastDate: c.lastDate || '',
+        figGroups: c.figs.flatMap(([title, rows]) => title ? [[title, rows]] : rows.map(r => [null, [r]])).map(([title, rows]) => ({ title: title || '', hasTitle: !!title, rows: rows.map(([label, v, u]) => {
+          const m = lineQ.find(l => l.q === v && l.h === (u === 'h'));
+          return { label, valueT: u === 'h' ? d2.format(v) + ' h' : nf.format(v), tick: ticksOn && m ? 1 : 0, tickTitle: m ? 'Billed as: ' + m.text : '' };
+        }) })),
+        invoices: c.inv.map((v, j) => {
+          const cur = v.cur || 'CHF', s = STATUS[v.status], muted = v.status === 'cancelled';
+          const open = st.lines[v.nr] ?? (muted ? false : linesDefault);
+          const notes = { cancelled: ['Cancelled: not in the totals.', '#6b7280'], draft: ['Draft, not issued: not in the totals.', '#6b7280'] };
+          const note = notes[v.status] || (cur !== 'CHF' ? ['In EUR: not added to the CHF totals.', '#92400e'] : null);
+          return {
+            top: j ? '26px' : '0', nr: v.nr, title: v.title, statusT: s[2], pillBg: s[0], pillFg: s[1], cur,
+            ink: muted ? '#6b7280' : '#1f2937', strike: muted ? 'line-through' : 'none',
+            totalT: cur + ' ' + d2.format(v.total), totalNum: d2.format(v.total), exclT: d2.format(v.excl), vatT: d2.format(v.vat),
+            meta: ['Dated ' + v.date, v.due ? 'due ' + v.due : '', v.extra || '', v.to ? 'to ' + v.to : ''].filter(Boolean).join(' · '),
+            hasNote: !!note, note: note ? note[0] : '', noteColor: note ? note[1] : '#6b7280',
+            showLines: open, canToggle: muted || !linesDefault, toggleT: open ? 'Hide lines' : 'Lines',
+            toggle: () => this.setState(s2 => ({ lines: { ...s2.lines, [v.nr]: !open } })),
+            lines: v.lines.map(([text, q, u, p, t]) => {
+              const m = figVals.find(f => f.v === q && f.h === (u === 'h'));
+              return { text, qtyT: qty(q, u), priceT: d2.format(p), totalT: d2.format(t), tick: ticksOn && m && !muted ? 1 : 0, tickTitle: m ? 'Equals the Finance figure ' + m.label : '' };
+            }),
+          };
+        }),
+      };
+    };
+    const internal = CL.filter(c => c.g === 'internal'), external = CL.filter(c => c.g === 'external');
+    const groups = [
+      { label: 'Internal customers', count: internal.length, top: '34px', clients: internal.map(shapeClient) },
+      { label: 'External clients', count: external.length, top: '38px', clients: external.map(shapeClient) },
+    ];
+
+    const TILE = { internal: ['rgba(129,140,248,.2)', '#c7d2fe'], external: ['rgba(96,165,250,.2)', '#bfdbfe'], bexio: ['rgba(52,211,153,.18)', '#a7f3d0'] };
+    const sep = { isItem: false, isSep: true };
+    const it = (c, kind) => {
+      const counted = c.inv.some(v => !['draft', 'cancelled'].includes(v.status));
+      return { isItem: true, isSep: false, href: '#bill-' + c.key, tile: c.client.slice(0, 2), hasIcon: false, icon: '', label: c.nav || c.client, title: c.client, tileBg: TILE[kind][0], tileFg: TILE[kind][1], flag: !counted };
+    };
+    const jump = internal.map(c => it(c, 'internal')).concat([sep]).concat(external.map(c => it(c, 'external'))).concat([sep,
+      { isItem: true, isSep: false, href: '#bill-other', tile: '', hasIcon: true, icon: 'fas fa-address-book', label: 'Not linked', title: 'Other Bexio contacts', tileBg: TILE.bexio[0], tileFg: TILE.bexio[1], flag: false },
+      { isItem: true, isSep: false, href: '#bill-open', tile: '', hasIcon: true, icon: 'fas fa-hourglass-half', label: 'Open and unpaid', title: 'Open and unpaid, all months', tileBg: TILE.bexio[0], tileFg: TILE.bexio[1], flag: false }]);
+
+    const pillOf = k => ({ pillBg: STATUS[k][0], pillFg: STATUS[k][1], statusT: STATUS[k][2] });
+    const others = [
+      ['Stiftung Kunsthalle Bern', 'RE-2026-0410', 'Scanning Archiv', '03.09.2026', 'paid', 1850.00, 1999.85],
+      ['Gemeinde Muri bei Bern', 'RE-2026-0411', 'Digitalisierung Bauakten Etappe 2', '03.09.2026', 'open', 6400.00, 6918.40],
+      ['Elektro-Material Romandie SA', 'RE-2026-0413', 'Traitement des documents août 2026', '03.09.2026', 'open', 1204.60, 1302.17],
+      ['Hotel Schweizerhof Luzern AG', 'RE-2026-0417', 'Lizenz nexora Q3', '08.09.2026', 'open', 900.00, 972.90],
+    ].map(([contact, nr, title, date, s, excl, total]) => Object.assign({ contact, nr, title, date, exclT: 'CHF ' + d2.format(excl), totalT: 'CHF ' + d2.format(total) }, pillOf(s)));
+
+    const OUT = [
+      ['Gemeinde Muri bei Bern', 'not linked', 'RE-2026-0344', 'Digitalisierung Bauakten Etappe 1', '15.07.2026', '14.08.2026', 48, 'unpaid', 'CHF', 7783.20, 7783.20],
+      ['Frigemo', 'Frigemo AG', 'RE-2026-0371', 'Verarbeitung Juli 2026', '05.08.2026', '04.09.2026', 27, 'unpaid', 'CHF', 4812.30, 4812.30],
+      ['Bucherer', 'Bucherer AG', 'RE-2026-0376', 'EasyTax Juli 2026', '06.08.2026', '05.09.2026', 26, 'open', 'EUR', 1598.40, 1598.40],
+      ['Privera', 'Privera AG', 'RE-2026-0407', 'Posteingang und Zustellung August 2026', '03.09.2026', '03.10.2026', 0, 'open', 'CHF', 9958.17, 9958.17],
+      ['Privera', 'Privera AG', 'RE-2026-0408', 'Rechnungseingang August 2026', '03.09.2026', '03.10.2026', 0, 'partial', 'CHF', 4158.09, 8158.09],
+      ['Privera', 'Privera AG', 'RE-2026-0409', 'Neuzugänge August 2026', '03.09.2026', '03.10.2026', 0, 'open', 'CHF', 9978.71, 9978.71],
+      ['Gemeinde Muri bei Bern', 'not linked', 'RE-2026-0411', 'Digitalisierung Bauakten Etappe 2', '03.09.2026', '03.10.2026', 0, 'open', 'CHF', 6918.40, 6918.40],
+      ['Elektro-Material Romandie SA', 'not linked', 'RE-2026-0413', 'Traitement des documents août 2026', '03.09.2026', '03.10.2026', 0, 'open', 'CHF', 1302.17, 1302.17],
+      ['Compass Group', 'Compass Group (Schweiz) AG', 'RE-2026-0405', 'Verarbeitung August 2026', '04.09.2026', '04.10.2026', 0, 'open', 'CHF', 2445.71, 2445.71],
+      ['Aveniq', 'Xpert Consulting AG', 'RE-2026-0414', 'Xpert August 2026', '04.09.2026', '04.10.2026', 0, 'open', 'CHF', 5039.35, 5039.35],
+      ['Bucherer', 'Bucherer AG', 'RE-2026-0416', 'EasyTax August 2026', '05.09.2026', '05.10.2026', 0, 'open', 'EUR', 2035.41, 2035.41],
+      ['Hotel Schweizerhof Luzern AG', 'not linked', 'RE-2026-0417', 'Lizenz nexora Q3', '08.09.2026', '08.10.2026', 0, 'open', 'CHF', 972.90, 972.90],
+    ];
+    const outstanding = OUT.map(([who, sub, nr, title, dated, due, late, s, cur, open, total], i) => Object.assign({
+      who, sub, weight: sub === 'not linked' ? 500 : 600, nr, title, dated, due, late: late > 0, lateT: late + ' days overdue',
+      openT: cur + ' ' + d2.format(open), totalT: cur + ' ' + d2.format(total), bb: i === OUT.length - 1 ? 'none' : '1px solid #f3f4f6',
+    }, pillOf(s)));
+
+    const monthCells = SHORT.map((name, m) => {
+      const i = viewYear * 12 + m, off = i < FIRST || i > NOW, selected = i === sel;
+      const k = off ? 'off' : i === NOW ? 'running' : i === NOW - 1 ? 'missing' : 'all';
+      const meta = { off: ['', '', '#9ca3af'], running: ['fas fa-circle', 'Running', '#b45309'], missing: ['fas fa-triangle-exclamation', '2 missing', '#b45309'], all: ['fas fa-check', 'All invoiced', '#047857'] }[k];
+      return { name, icon: meta[0], status: meta[1], pick: () => { if (!off) go(i); },
+        cursor: off ? 'default' : 'pointer', op: off ? .4 : 1,
+        bg: selected ? '#111318' : '#ffffff', border: selected ? '#111318' : '#e5e7eb', fg: selected ? '#ffffff' : '#1f2937', sub: selected ? '#f08a6c' : meta[2] };
+    });
+
+    return {
+      logo: this.logo(), wordmark: this.wordmark(exp ? 1 : 0),
+      bodyPad: exp ? '220px' : '100px', sbW: exp ? '220px' : '64px', lbl: exp ? 1 : 0,
+      sydocMax: exp && st.sydocOpen ? '200px' : '0px', sydocChev: st.sydocOpen ? 'rotate(90deg)' : 'none',
+      pinColor: pinned ? '#4f46e5' : 'inherit', pinRot: pinned ? 'rotate(-45deg)' : 'none',
+      sbEnter: () => this.setState({ hover: true }), sbLeave: () => this.setState({ hover: false }),
+      togglePin: () => this.setState({ pinned: !pinned }), toggleSydoc: () => this.setState(s => ({ sydocOpen: !s.sydocOpen })),
+      selName: NAMES[sm], selYear: sy, selLabel: NAMES[sm] + ' ' + sy, billedName: NAMES[(bi % 12 + 12) % 12],
+      billedClosed, billedOpen: !billedClosed, billedLabel: NAMES[(bi % 12 + 12) % 12] + ' ' + Math.floor(bi / 12) + (billedClosed ? ', closed' : ', open'),
+      readAt: st.readAt, refresh: () => { const d = new Date(); this.setState({ readAt: String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') }); },
+      ticks: ticksOn,
+      prevMonth: () => go(sel - 1), nextMonth: () => go(sel + 1), prevOp: sel <= FIRST ? .35 : 1, nextOp: sel >= NOW ? .35 : 1,
+      jump, groups, others, outstanding,
+      pickerOpen: st.picker, openPicker: () => this.setState({ picker: true, viewYear: sy }), closePicker: () => this.setState({ picker: false }),
+      stop: e => e.stopPropagation(), viewYear, monthCells,
+      prevYear: () => { if (viewYear > 2023) this.setState({ viewYear: viewYear - 1 }); },
+      nextYear: () => { if (viewYear < 2026) this.setState({ viewYear: viewYear + 1 }); },
+      prevYearOp: viewYear > 2023 ? 1 : .4, nextYearOp: viewYear < 2026 ? 1 : .4,
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,114 @@
+{# #191 shim: only Jinja-rendered data and translated strings live here.
+   Behaviour is in static/js/billing.js, which has no url_for() and no
+   gettext -- it reads both off window.
+
+   Placeholders are {name}, NOT gettext's own %(name)s: Jinja's _() runs
+   `rv % variables` on every call, so a msgid carrying %(n)s with no keyword
+   argument raises KeyError before it ever reaches the browser. billing.js
+   substitutes them itself (NXSydoc.fmt). #}
+<script nonce="{{ csp_nonce() }}">
+  window.NX_BILLING = {
+    month: {{ month|tojson }},
+    monthLabel: {{ month_label|tojson }},
+    billed: {{ billed|tojson }},
+    // The pickable invoice months, newest first.
+    months: {{ months|tojson }},
+    today: {{ today|tojson }},
+    // Finance client -> its section keys, in page order (nx_lib/billing.py).
+    clients: {{ (internal_clients + external_clients)|tojson }},
+    financeUrl: {{ (url_for('finance', month=billed.month) if page_visibility.financePagePerm else None)|tojson }},
+    strings: {
+      loading:        {{ _("Loading…") | tojson }},
+      loadFailed:     {{ _("Could not load this section") | tojson }},
+      retry:          {{ _("Retry") | tojson }},
+      readAt:         {{ _("Bexio, read {time}") | tojson }},
+      notConfigured:  {{ _("Bexio is not configured on this server. Set BEXIO_PAT to show the invoices here.") | tojson }},
+      invoiced:       {{ _("Invoiced") | tojson }},
+      excl:           {{ _("Excl. VAT") | tojson }},
+      vatRate:        {{ _("VAT {rate}") | tojson }},
+      vat:            {{ _("VAT") | tojson }},
+      totalCol:       {{ _("Total") | tojson }},
+      invoices:       {{ _("Invoices") | tojson }},
+      draftsCancelled: {{ _("{n} draft, {m} cancelled") | tojson }},
+      clientsInvoiced: {{ _("Clients invoiced") | tojson }},
+      nOfTotal:       {{ _("{n} of {total}") | tojson }},
+      withoutInvoice: {{ _("{n} without an invoice") | tojson }},
+      otherCurrencies: {{ _("Other currencies") | tojson }},
+      notInTotals:    {{ _("{currency}, not in the totals") | tojson }},
+      notInvoicedDot: {{ _("Not invoiced") | tojson }},
+      // client states
+      stateInvoiced:  {{ _("Invoiced") | tojson }},
+      draftOnly:      {{ _("Draft only") | tojson }},
+      missing:        {{ _("No invoice in {month}") | tojson }},
+      unlinked:       {{ _("No Bexio contact linked") | tojson }},
+      // one invoice
+      text:           {{ _("Text") | tojson }},
+      quantity:       {{ _("Quantity") | tojson }},
+      unitPrice:      {{ _("Unit price") | tojson }},
+      discount:       {{ _("Discount") | tojson }},
+      subtotal:       {{ _("Subtotal") | tojson }},
+      optional:       {{ _("optional") | tojson }},
+      noLines:        {{ _("This invoice has no lines.") | tojson }},
+      linesFailed:    {{ _("Could not load the invoice lines.") | tojson }},
+      lines:          {{ _("Lines") | tojson }},
+      hideLines:      {{ _("Hide lines") | tojson }},
+      pdf:            {{ _("PDF") | tojson }},
+      openInBexio:    {{ _("Open in Bexio") | tojson }},
+      dated:          {{ _("Dated {date}") | tojson }},
+      due:            {{ _("due {date}") | tojson }},
+      to:             {{ _("to {contact}") | tojson }},
+      partPaid:       {{ _("{paid} paid, {open} open") | tojson }},
+      cancelledNote:  {{ _("Cancelled: not in the totals.") | tojson }},
+      draftNote:      {{ _("Draft, not issued: not in the totals.") | tojson }},
+      foreignNote:    {{ _("In {currency}: not added to the CHF totals.") | tojson }},
+      noInvoice:      {{ _("No invoice to {contact} is dated in {month}.") | tojson }},
+      latest:         {{ _("Latest invoice {nr}, dated {date}, {status}.") | tojson }},
+      seeOpen:        {{ _("See Open and unpaid") | tojson }},
+      // the Finance figures
+      financeHead:    {{ _("Sydoc Finance · {month}") | tojson }},
+      breakdowns:     {{ _("Breakdowns in Sydoc Finance") | tojson }},
+      billedHours:    {{ _("Billed hours (BPS)") | tojson }},
+      equals:         {{ _("Equals the Finance figure {label}") | tojson }},
+      billedAs:       {{ _("Billed as: {text}") | tojson }},
+      hoursUnit:      {{ _("{n} h") | tojson }},
+      // other contacts
+      contact:        {{ _("Contact") | tojson }},
+      client:         {{ _("Client") | tojson }},
+      invoice:        {{ _("Invoice") | tojson }},
+      date:           {{ _("Date") | tojson }},
+      statusCol:      {{ _("Status") | tojson }},
+      actions:        {{ _("Actions") | tojson }},
+      othersMeta:     {{ _("{n} invoices dated in {month}") | tojson }},
+      noOthers:       {{ _("Every invoice dated in {month} went to a linked client.") | tojson }},
+      // open and unpaid
+      outstanding:    {{ _("Outstanding") | tojson }},
+      overdue:        {{ _("Overdue") | tojson }},
+      inCurrency:     {{ _("In {currency}") | tojson }},
+      nInvoices:      {{ _("{n} invoices") | tojson }},
+      nOverdue:       {{ _("{n} overdue") | tojson }},
+      nInvoicesOverdue: {{ _("{n} invoices, {m} overdue") | tojson }},
+      daysOverdue:    {{ _("{n} days overdue") | tojson }},
+      notLinked:      {{ _("not linked") | tojson }},
+      datedCol:       {{ _("Dated") | tojson }},
+      dueCol:         {{ _("Due") | tojson }},
+      openCol:        {{ _("Open") | tojson }},
+      asOf:           {{ _("Every invoice in Bexio with an amount still open, whatever its month") | tojson }} + ' · ' + {{ _("as of {date}") | tojson }},
+      nothingOpen:    {{ _("Nothing is open: every invoice in Bexio is paid.") | tojson }},
+      // picker
+      running:        {{ _("Running") | tojson }},
+      allInvoiced:    {{ _("All invoiced") | tojson }},
+      nMissing:       {{ _("{n} missing") | tojson }},
+      status: {
+        draft:        {{ _("Draft") | tojson }},
+        open:         {{ _("Open") | tojson }},
+        paid:         {{ _("Paid") | tojson }},
+        partial:      {{ _("Partly paid") | tojson }},
+        cancelled:    {{ _("Cancelled") | tojson }},
+        unpaid:       {{ _("Unpaid") | tojson }},
+        other:        {{ _("Other") | tojson }}
+      }
+    }
+  };
+</script>
+<script src="{{ static_v('js/nx_sydoc.js') }}" nonce="{{ csp_nonce() }}" defer></script>
+<script src="{{ static_v('js/billing.js') }}" nonce="{{ csp_nonce() }}" defer></script>
