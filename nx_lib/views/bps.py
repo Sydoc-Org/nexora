@@ -4,7 +4,7 @@ The page is a shell with the period in the URL; one summary request returns
 hours and bookings per task / customer / package / person for the period
 (the browser builds the drill-down tree from it, in whichever order the
 reader picks), plus the same rows for the period before it (the drill-down's
-gain/loss column), and each leaf loads its single bookings -- with their
+gain/loss column) and the dates of the oldest and newest booking, and each leaf loads its single bookings -- with their
 comments -- on demand. The data is the registered ``bps_projects`` reporting
 source (0124), read through the same loader and query builder as Reporting
 and the Finance page; nx_lib/bps.py has the rules, this module only runs them.
@@ -108,8 +108,18 @@ def api_bps_summary():
     prev = bps.summary_payload(prev_combos, [], prev_first, prev_last)
     payload["prev"] = {"from": prev["from"], "to": prev["to"], "rows": prev["rows"]}
     payload["source"] = label
+    payload.update(_span(engine, base_object, catalog))
     payload["error"] = None
     return jsonify(payload)
+
+
+def _span(engine, base_object, catalog):
+    # Oldest / newest booking: a nicety, so a failure never fails the summary.
+    try:
+        return bps.span_payload(_execute(engine, *bps.span_query(base_object, catalog)))
+    except Exception as e:
+        current_app.logger.warning(f"bps: span query failed: {e}")
+        return {"first": None, "latest": None}
 
 
 @require_permission("bps.view")

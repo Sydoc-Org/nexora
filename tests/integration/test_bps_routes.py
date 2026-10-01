@@ -44,6 +44,8 @@ def fake_source(monkeypatch):
 
     def execute(engine, sql, params):
         calls.append((sql, params))
+        if "MAX([Datum])" in sql:
+            return [(dt.date(2025, 1, 3), dt.date(2026, 9, 29))]
         if "DATEFROMPARTS" in sql:
             return [(dt.date(2026, 7, 1), Decimal("10")), (dt.date(2026, 8, 1), Decimal("1.5"))]
         if "GROUP BY [Aufgabe], [Kunde], [Projektpaket], [Benutzer]" in sql:
@@ -135,6 +137,7 @@ def test_export_lists_every_booking_uncached(admin_client, fake_source):
 def test_summary_carries_the_previous_period_rows(admin_client, fake_source):
     body = admin_client.get("/api/bps/summary?from=2026-08-01&to=2026-08-31").get_json()
     assert body["prev"]["from"] == "2026-07-01" and body["prev"]["to"] == "2026-07-31"
+    assert body["first"] == "2025-01-03" and body["latest"] == "2026-09-29"
     assert {r["task"] for r in body["prev"]["rows"]} == {"Change", "Vacation"}
     combos = [p for s, p in fake_source if "GROUP BY [Aufgabe], [Kunde]" in s]
     assert [p[:2] for p in combos] == [["2026-08-01", "2026-09-01"], ["2026-07-01", "2026-08-01"]]

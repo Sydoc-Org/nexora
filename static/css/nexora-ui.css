@@ -1275,6 +1275,22 @@ html.dark .nx-sydoc-pill.is-active { border-color: var(--nx-sydoc-soft); }
   .nx-sydoc-period__main, .nx-sydoc-period__year { font-size: 40px; letter-spacing: -1.6px; }
   .nx-sydoc-band__row2 { gap: 20px; }
 }
+/* Print: no app chrome, the band as a light header, the headline small.
+   Here rather than in finance.css / bps.css: _header.html loads this sheet
+   again after the page's own, so equal-specificity page rules would lose. */
+@media print {
+  body.nx-sydoc #nexora-sidebar, body.nx-sydoc .sidebar-toggle-btn, body.nx-sydoc .sidebar-backdrop,
+  body.nx-sydoc .firefly-field, .nx-sydoc-band__actions, .nx-sydoc-nav, .nx-sydoc-period__chev,
+  .nx-sydoc-picker { display: none !important; }
+  body.nx-app.nx-sydoc { padding: 0 !important; background: #fff !important; }
+  body.nx-app.nx-sydoc .nx-main { padding: 0 !important; max-width: none !important; }
+  .nx-sydoc-band { background: #fff !important; border: 1px solid #d1d5db; padding: 14px 18px !important; }
+  .nx-sydoc-band :is(span, h1, p, b, small, div) { color: #111318 !important; }
+  .nx-sydoc-band .nx-sydoc-eyebrow, .nx-sydoc-band .nx-sydoc-stats__k { color: #4b5563 !important; }
+  .nx-sydoc-period__main, .nx-sydoc-period__year { font-size: 20px !important; letter-spacing: 0 !important; }
+  .nx-sydoc-band, .nx-sydoc-band * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+
 @media (max-width: 600px) {
   .nx-sydoc-band, .nx-sydoc-band--flush { padding-left: 18px; padding-right: 18px; }
   .nx-sydoc-period { gap: 6px; }

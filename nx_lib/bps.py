@@ -164,8 +164,9 @@ def previous_range(first, last):
 
 def next_range(first, last, today=None):
     """The period after a range -- as many months (whole months) or days after
-    it, ending today at the latest -- or None when it would start after today.
-    The end is clamped because the picker's date inputs stop at today."""
+    it -- or None when it would start after today. The end is not clamped, so
+    stepping keeps the period's shape (week 39 -> week 40, not 28-30 Sep);
+    the page clamps only the picker's date inputs, which stop at today."""
     today = today or dt.date.today()
     start = last + dt.timedelta(days=1)
     if start > today:
@@ -175,7 +176,7 @@ def next_range(first, last, today=None):
         end = _add_months(start, months) - dt.timedelta(days=1)
     else:
         end = start + dt.timedelta(days=(last - first).days)
-    return start, min(end, today)
+    return start, end
 
 
 def _add_months(first_of_month, n):
@@ -274,6 +275,31 @@ def months_query(base_object, catalog):
     return build_generic_query(
         rd, base_object, catalog, row_cap=MONTHS_ROW_CAP, resolved_metrics=resolved
     )
+
+
+_SPAN = {
+    "first": {"aggregation": "min", "base_field": "Datum", "filter": None},
+    "latest": {"aggregation": "max", "base_field": "Datum", "filter": None},
+}
+
+
+def span_query(base_object, catalog):
+    """The dates of the oldest and the newest booking in the source: where the
+    prev arrow stops, and how fresh the export is."""
+    fields = _require(catalog, ("Datum",))
+    metrics = [{"metric": "first"}, {"metric": "latest"}]
+    resolved = resolve_metrics(metrics, _SPAN, fields)
+    rd = {"columns": [], "filters": [], "metrics": metrics, "sort": []}
+    return build_generic_query(rd, base_object, catalog, row_cap=1, resolved_metrics=resolved)
+
+
+def span_payload(rows):
+    """[(min date, max date)] -> {'first': 'YYYY-MM-DD', 'latest': ...}, None for none."""
+    row = rows[0] if rows else (None, None)
+    return {
+        k: (_day(v) if v is not None else None)
+        for k, v in zip(("first", "latest"), row, strict=False)
+    }
 
 
 def months_payload(rows):

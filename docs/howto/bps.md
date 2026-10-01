@@ -54,14 +54,18 @@ period headline and the period picker are shared with `/finance`.
 
 - **Period**: two dates in the URL (`/bps?from=2026-08-01&to=2026-08-31`),
   default the previous month, at most a year. The headline names it ("August
-  2026", "Week 39", "Jun – Aug", "4 – 19 Aug"); the arrows beside it go to the
-  previous / next month (or the same number of days before / after) and stop
-  when the next period would start after today. Clicking the headline opens the
+  2026", "Week 39", "Jun – Aug", "4 – 19 Aug"); the arrows beside it step by
+  the period's own shape — a month, a week, three months, or the same number of
+  days — so week 39 › week 40 even while week 40 is still running. Next stops
+  when the following period would start after today; prev stops once the period
+  before would end before the oldest booking (January 2025). Clicking the headline opens the
   **picker**: presets (last month, this month, last week, last three months),
   the months of a year with their hours (a month without hours reads "No data";
   loaded lazily from `/api/bps/months`), and a free from/to range.
 - **Band totals**: total hours, service hours, bookings, people with service
-  hours, and a composition bar billable / other service / absence.
+  hours, and a composition bar billable / other service / absence. **Latest
+  booking** shows the date of the newest booking in the source; an amber dot
+  means it is more than four days old (the nightly export may have stopped).
 - **Hours per day**: stacked columns billable / other service / absence,
   weekends shaded. The three hues are the page's `--bps-*` tokens in
   `static/css/bps.css`, checked with the dataviz palette validator against the
@@ -71,12 +75,19 @@ period headline and the period picker are shared with `/finance`.
   row (or tile) to zoom in; the breadcrumb, the back button, Backspace or
   Alt+← go up. Two views: **Table** (default; hours, billable hours, bookings,
   the change against the previous period, and the split of each row) and
-  **Treemap** (squarified, tile size = hours). The view choice is kept per
-  browser (`localStorage` `nx.bps.view`). The third level lists the single
+  **Treemap** (squarified, tile size = hours; groups too small for a readable
+  tile merge into one "+ n more" tile that opens the table). The view choice is
+  kept per browser (`localStorage` `nx.bps.view`). The third level lists the single
   bookings per day with package, hours and comment (five per day, then "Show
   n more"). Filters: billable only, hide absences, a text filter over task /
   customer / package / person; they apply at every level, and changing the
   order or the text filter goes back to the top.
+- **The drill-down is in the URL**: `order` (`customer` / `person`; task-first
+  is the default), one `at` per zoom level, `billable=1`, `absences=1` (shown),
+  `q`. Zooming adds a history entry, so Back goes up a level; reload and shared
+  links land on the same level. The arrows and the picker carry it into the
+  next period, and keys that period lacks are dropped (you land on the deepest
+  level that exists).
 - **Previous period** ("vs. July"): the previous calendar month when the
   period is exactly one month, otherwise as many days just before it
   (`bps.previous_range`).
@@ -84,7 +95,7 @@ period headline and the period picker are shared with `/finance`.
 
 One summary request (`/api/bps/summary`) returns hours per task / customer /
 package / person plus per day, and the same rows for the previous period
-(`prev`); the drill-down is built in the browser from it, so changing the
+(`prev`) and the oldest / newest booking dates (`first`, `latest`); the drill-down is built in the browser from it, so changing the
 order, the view or a filter never goes back to the server. A leaf loads its
 bookings from `/api/bps/entries` (5,000 at most; the CSV has all).
 
