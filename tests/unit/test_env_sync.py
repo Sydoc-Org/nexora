@@ -120,8 +120,31 @@ def test_every_managed_file_has_a_remote_dir(env_sync):
 
 def test_remote_dirs_are_per_environment(env_sync):
     assert r"\nexora\env" in str(env_sync.remote_path("PROD.env"))
-    assert r"\nexora-dev\env" in str(env_sync.remote_path("INT.env"))
+    assert r"\nexora-dev-ben\env" in str(env_sync.remote_path("INT.env"))
     assert r"\nexora-staging\env" in str(env_sync.remote_path("STAGING.env"))
+
+
+def test_int_env_push_reaches_every_dev_host(env_sync, tmp_path):
+    """#431: one dev host per developer, all fed by the same INT.env. A leftover
+    folder of the retired shared `nexora-dev` host is not one of them."""
+    for d in ("nexora", "nexora-dev", "nexora-dev-ben", "nexora-dev-gruoss", "nexora-staging"):
+        (tmp_path / d / "env").mkdir(parents=True)
+    targets = env_sync.push_targets("INT.env", server=tmp_path)
+    assert [t.parent.parent.name for t in targets] == [
+        "nexora-dev-ben",
+        "nexora-dev-gruoss",
+    ]
+    assert all(t.name == "INT.env" for t in targets)
+
+
+def test_int_env_push_falls_back_to_the_report_copy(env_sync, tmp_path):
+    assert env_sync.push_targets("INT.env", server=tmp_path) == [env_sync.remote_path("INT.env")]
+
+
+def test_other_files_push_to_their_single_home(env_sync, tmp_path):
+    (tmp_path / "nexora-dev-ben" / "env").mkdir(parents=True)
+    for name in ("PROD.env", "CONFLUENCE.env", "STAGING.env"):
+        assert env_sync.push_targets(name, server=tmp_path) == [env_sync.remote_path(name)]
 
 
 # --------------------------------------------------------------------------

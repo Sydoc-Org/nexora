@@ -90,3 +90,35 @@ def test_list_storages_reads_the_runtime_and_skips_blank_names(registry):
     assert ds.list_storages("default") == ["Privera_Invoice_Storage", "<Default>"]
     assert ds.list_storages("nope") == []
     conn.close.assert_called_once()
+
+
+def test_list_storages_quotes_identifiers_on_postgres(registry):
+    cur = MagicMock()
+    cur.fetchall.return_value = [("Documentstorage",)]
+    conn = MagicMock()
+    conn.cursor.return_value = cur
+    registry["pg"].raw_connection.return_value = conn
+    assert ds.list_storages("ms02") == ["Documentstorage"]
+    sql = cur.execute.call_args[0][0]
+    assert '"t_DocumentStorages"' in sql and '"Name"' in sql
+    conn.close.assert_called_once()
+
+
+def test_fetch_workitem_tables_binds_the_registry_resolvers(registry, monkeypatch):
+    """The production entry point is the pure fetch with this module's two
+    resolvers injected -- nothing else."""
+    captured = {}
+
+    def fake_fetch(ids_by_client, *, runtime_for, storage_for, logger=None):
+        captured.update(
+            ids=ids_by_client, runtime_for=runtime_for, storage_for=storage_for, logger=logger
+        )
+        return {"sentinel": True}
+
+    monkeypatch.setattr(ds._tables, "fetch_workitem_tables", fake_fetch)
+    log = MagicMock()
+    assert ds.fetch_workitem_tables({"default": [1]}, logger=log) == {"sentinel": True}
+    assert captured["ids"] == {"default": [1]}
+    assert captured["runtime_for"] is ds.runtime_for
+    assert captured["storage_for"] is ds.storage_engine_for
+    assert captured["logger"] is log

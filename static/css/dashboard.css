@@ -68,3 +68,35 @@ body {
   .nx-dash-chart__body { height: 220px; }
   .nx-dash-backlog__body { height: 180px; }
 }
+
+/* The dashboard head and filter row on a phone (#354).
+
+   Both rows end in a block pushed right by `margin-left: auto`: the live clock
+   plus Refresh in the head, the 14/30/90 switch in the filter row. On a wide
+   desktop row that reads correctly. On a phone the row wraps and the pushed
+   block keeps its right alignment on a line of its own, so it sits hard
+   against the right edge with half a row of dead space beside it -- measured,
+   the range switch started 203px into a 355px row and the live clock 47px in,
+   both looking dropped there rather than placed.
+
+   Pointer-gated like the rest of the phone work (#354): a narrow desktop
+   window keeps the desktop rows. */
+@media (max-width: 768px) and (pointer: coarse) {
+    /* The clock reads left, Refresh sits at the right edge, and the row spans
+       the content width instead of hanging off its end. */
+    .nx-dash-head__right {
+        width: 100%;
+        margin-left: 0;
+        justify-content: space-between;
+    }
+
+    /* The range switch takes the row under the process picker and splits it
+       into equal thirds, so it reads as one control the width of the page
+       rather than three buttons parked in a corner. */
+    .nx-dash-filter__spacer { display: none; }
+    .nx-dash-filter > .nx-segmented {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+    .nx-dash-filter .nx-segmented__btn { flex: 1 1 0; }
+}

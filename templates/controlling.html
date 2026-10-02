@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="{{ current_lang }}">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  {% include '_theme_prepaint.html' %}
+  <link rel="stylesheet" href="{{ static_v('css/nexora-ui.css') }}">
+  <title>{{ _("Sydoc Controlling - nexora") }}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous" />
+  {# Finance's sheet carries the shared ledger pieces (group heads, dividers,
+     statement lines, comparison bars, drift note, error box). #}
+  <link rel="stylesheet" href="{{ static_v('css/finance.css') }}">
+  <link rel="stylesheet" href="{{ static_v('css/controlling.css') }}">
+  <link rel="icon" type="image/x-icon" href="{{ static_v('images/favicon.ico') }}">
+</head>
+
+{# Sydoc Controlling (#433): margin per client stream. The band is Jinja;
+   everything below it is filled by static/js/controlling.js from
+   /api/controlling/month and /api/controlling/trend, each part with its own
+   loading and error state. Design: docs/design/design_handoff_sydoc_controlling. #}
+<body class="nx-app nx-sydoc">
+  {% set active_page = 'controlling' %} {% include '_header.html' %}
+  {% import '_sydoc.html' as sydoc with context %}
+
+  {% macro group_head(id, label, count_id, meta_id) -%}
+  <div class="nx-fin-group nx-ctl-group" id="{{ id }}">
+    <h2>{{ label }}</h2>
+    <span class="nx-fin-group__count" id="{{ count_id }}"></span>
+    <span class="nx-fin-group__rule" aria-hidden="true"></span>
+    <span class="nx-ctl-group__meta" id="{{ meta_id }}"></span>
+  </div>
+  {%- endmacro %}
+
+  {% macro skel(n=3) -%}
+  <div class="nx-fin-skel" aria-hidden="true">
+    {% for _i in range(n) %}<div class="nx-fin-skel__line skeleton-shimmer"></div>{% endfor %}
+  </div>
+  {%- endmacro %}
+
+  <main class="nx-main">
+    <section class="nx-sydoc-band nx-sydoc-band--flush nx-rise" data-testid="controlling-band">
+      <div class="nx-sydoc-band__row1">
+        {{ sydoc.brand(_("Controlling")) }}
+        <span class="nx-sydoc-band__spacer"></span>
+        <div class="nx-sydoc-band__actions">
+          <a class="nx-sydoc-btn nx-sydoc-btn--ghost" href="{{ url_for('api_controlling_export', month=month) }}" data-testid="controlling-export">
+            <i class="fas fa-file-excel" aria-hidden="true"></i> {{ _("Excel") }}
+          </a>
+          <button type="button" class="nx-sydoc-btn nx-sydoc-btn--ghost" id="ctl-print" data-testid="controlling-print">
+            <i class="fas fa-print" aria-hidden="true"></i> {{ _("Print") }}
+          </button>
+          {% if can_edit_rates %}
+          <button type="button" class="nx-sydoc-btn nx-sydoc-btn--ghost" id="ctl-rates-open" aria-haspopup="dialog"
+                  aria-controls="ctl-rates" data-testid="controlling-rates-open">
+            <i class="fas fa-coins" aria-hidden="true"></i> {{ _("Rates") }}
+          </button>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="nx-sydoc-band__row2">
+        <div class="nx-sydoc-band__lead">
+          {{ sydoc.headline(_("Sydoc Controlling"), "controlling", month_name, month_year,
+                            url_for('controlling', month=prev_month) if prev_month else None,
+                            url_for('controlling', month=next_month) if next_month else None,
+                            _("Previous month"), _("Next month"), "ctl-picker") }}
+          <p class="nx-sydoc-hint">
+            {% if state == 'running' %}{{ _("This month is still running: hours grow until it ends, and its invoices are dated next month.") }}
+            {% elif state == 'closed' and closed %}{{ _("Figures as frozen at the close. Bexio is read live; where an invoice has changed since, the client says so.") }}
+            {% elif state == 'closed' %}{{ _("Closed in Sydoc Finance, but its Controlling figures could not be frozen at the time: they are shown live.") }}
+            {% else %}{{ _("BPS hours × rate against what was invoiced in Bexio, each compared with the month before.") }}{% endif %}
+          </p>
+        </div>
+        <div class="nx-sydoc-stats">
+          <span class="nx-sydoc-stats__k">{{ _("Status") }}</span>
+          {% if state == 'running' %}
+          <span class="nx-sydoc-stats__v"><span class="nx-sydoc-dot nx-sydoc-dot--running"></span>{{ _("Running") }}</span>
+          {% elif state == 'closed' %}
+          <span class="nx-sydoc-stats__v" data-testid="controlling-closed-badge">
+            <i class="fas fa-lock nx-fin-lock" aria-hidden="true"></i>
+            {% if closed %}{{ _("Closed %(when)s by %(who)s", when=closed.atLabel, who=closed.by) }}{% else %}{{ _("Closed") }}{% endif %}
+          </span>
+          {% else %}
+          <span class="nx-sydoc-stats__v"><span class="nx-sydoc-dot nx-sydoc-dot--live"></span>{{ _("Open · live") }}</span>
+          {% endif %}
+          <span class="nx-sydoc-stats__k">{{ _("Rate") }}</span>
+          <span class="nx-sydoc-stats__v" data-testid="controlling-rate">
+            {% if rate and rate.value is not none %}
+            {{ _("%(rate)s CHF/h", rate=rate.value|int if rate.value == rate.value|int else rate.value) }}
+            <span class="nx-ctl-rate-sub">
+              {% if rate.since %}{{ _("valid since %(month)s", month=rate.since) }}{% endif %}
+              {% if rate.overrides %} · {{ ngettext("%(num)d override", "%(num)d overrides", rate.overrides) }}{% endif %}
+            </span>
+            {% else %}—{% endif %}
+          </span>
+        </div>
+      </div>
+
+      <nav class="nx-fin-jump nx-ctl-jump" aria-label="{{ _('Sections') }}">
+        <a class="nx-fin-jump__item" href="#ctl-summary">{{ _("Summary") }}</a>
+        <a class="nx-fin-jump__item" href="#ctl-clients">{{ _("Clients") }}<span class="nx-ctl-jump__count">{{ streams|length }}</span></a>
+        <a class="nx-fin-jump__item" href="#ctl-tasks">{{ _("Hours by task") }}</a>
+        <a class="nx-fin-jump__item" href="#ctl-volumes">{{ _("Volumes") }}</a>
+        <a class="nx-fin-jump__item" href="#ctl-trend">{{ _("Trend") }}</a>
+      </nav>
+    </section>
+
+    {{ sydoc.picker_open("ctl-picker", _("Choose month"), "controlling-period-picker") }}
+      {{ sydoc.year_switch(_("Previous year"), _("Next year")) }}
+      <div class="nx-sydoc-picker__grid" data-role="months"></div>
+      <div class="nx-sydoc-picker__legend">
+        <span><i class="fas fa-lock" aria-hidden="true"></i> {{ _("Closed, figures frozen") }}</span>
+        <span><span class="nx-sydoc-dot nx-fin-dot--open"></span> {{ _("Open, live") }}</span>
+        <span><span class="nx-sydoc-dot nx-sydoc-dot--running"></span> {{ _("Still running") }}</span>
+      </div>
+    {{ sydoc.picker_close() }}
+
+    {# 2. Month summary #}
+    <section class="nx-ctl-summary nx-rise-2" id="ctl-summary" data-testid="controlling-summary" aria-busy="true">
+      <div class="nx-ctl-summary__grid" data-role="body">
+        {% for label in [_("Total hours"), _("Cost"), _("Invoiced excl. VAT"), _("Margin"), _("Documents")] %}
+        <div class="nx-ctl-summary__cell">
+          <p class="nx-ctl-eyebrow">{{ label }}</p>
+          <div class="nx-ctl-summary__skel skeleton-shimmer" aria-hidden="true"></div>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    {# 3. Margin by client #}
+    {{ group_head("ctl-clients", _("Margin by client"), "ctl-clients-count", "ctl-clients-meta") }}
+    <div class="nx-ctl-clients" data-testid="controlling-margin" aria-busy="true" id="ctl-margin">{{ skel(6) }}</div>
+
+    {# 4. Per-client blocks #}
+    <div class="nx-fin-divider nx-ctl-blocks-head" id="ctl-blocks-head" hidden>
+      <span class="nx-eyebrow">{{ _("Per client") }}</span>
+      <span class="nx-fin-divider__note">{{ _("hours by task, the Bexio lines and the difference") }}</span>
+      <span class="nx-fin-divider__rule" aria-hidden="true"></span>
+      <button type="button" class="nx-fin-more nx-ctl-allbtn" id="ctl-toggle-all" data-testid="controlling-toggle-all">{{ _("Expand all") }}</button>
+    </div>
+    <div class="nx-ctl-blocks" id="ctl-blocks"></div>
+
+    {# 5. Hours by task #}
+    {{ group_head("ctl-tasks", _("Hours by task"), "ctl-tasks-count", "ctl-tasks-meta") }}
+    <div class="nx-ctl-tasks-wrap" id="ctl-matrix" data-testid="controlling-matrix" aria-busy="true">{{ skel(4) }}</div>
+
+    {# 6. Document volumes #}
+    {{ group_head("ctl-volumes", _("Document volumes"), "ctl-volumes-count", "ctl-volumes-meta") }}
+    <div id="ctl-vol" data-testid="controlling-volumes" aria-busy="true">{{ skel(3) }}</div>
+
+    {# 7. Trend #}
+    {{ group_head("ctl-trend", _("Trend"), "ctl-trend-count", "ctl-trend-meta") }}
+    <div id="ctl-trend-body" data-testid="controlling-trend" aria-busy="true">{{ skel(4) }}</div>
+  </main>
+
+  {% if can_edit_rates %}
+  {# 8. Rates drawer #}
+  <div class="nx-ctl-rates" id="ctl-rates" hidden role="dialog" aria-modal="true" aria-labelledby="ctl-rates-title" data-testid="controlling-rates">
+    <div class="nx-ctl-rates__panel">
+      <div class="nx-ctl-rates__head">
+        <div class="nx-ctl-rates__titles">
+          <h2 class="nx-ctl-rates__title" id="ctl-rates-title">{{ _("Rates") }}</h2>
+          <p class="nx-ctl-rates__sub">{{ _("Cost is BPS hours × the rate valid in that month.") }}</p>
+        </div>
+        <button type="button" class="nx-sydoc-picker__close" data-role="rates-close" aria-label="{{ _('Close') }}"><i class="fas fa-xmark" aria-hidden="true"></i></button>
+      </div>
+      <div class="nx-ctl-rates__body" data-role="body"></div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% include 'js/_controlling_js.html' %}
+</body>
+
+</html>

@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<style>
+body{margin:0;background:#eceae5;font-family:'Inter',system-ui,sans-serif}
+a{color:#4f46e5;text-decoration:none}a:hover{color:#4338ca}
+</style>
+</helmet>
+
+<section id="t1" style="padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08)">
+  <div style="display:flex;align-items:baseline;gap:10px;margin:0 0 20px">
+    <a href="#t1" style="font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px">1</a>
+    <span style="font:600 13px system-ui,sans-serif;color:#1a1a1a">Sydoc BPS — redesign: same Sydoc band as Finance, hours as the headline</span>
+  </div>
+  <div id="1a" style="display:flex;flex-direction:column;gap:9px">
+    <div style="display:flex;align-items:baseline;gap:8px;font:400 11px system-ui,sans-serif;color:rgba(0,0,0,.55)">
+      <a href="#1a" style="font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px">1a</a>
+      Period and totals in the ink band, one composition bar instead of six tiles, split bars in the drill-down
+    </div>
+    <div style="width:1440px;background:#f9fafb;border:1px solid rgba(0,0,0,.1);border-radius:10px;overflow:hidden;position:relative;padding-left:100px;box-sizing:border-box">
+      <aside style="position:absolute;left:0;top:0;bottom:0;width:64px;display:flex;flex-direction:column;background:#fff;border-right:1px solid #f3f4f6;box-shadow:2px 0 8px rgba(0,0,0,.04)">
+        <div style="display:flex;align-items:center;height:64px;padding:0 12px;border-bottom:1px solid #f3f4f6;flex-shrink:0">
+          <div style="position:relative;width:38px;height:38px">
+            <div style="position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 50% 50%,#000 0%,#000 35%,rgba(0,0,0,.7) 45%,rgba(67,56,202,0) 60%);box-shadow:0 0 20px rgba(0,0,0,.4),inset 0 0 10px rgba(0,0,0,.8)"></div>
+            <div style="position:absolute;inset:0;border-radius:50%;background:radial-gradient(closest-side,transparent calc(50% - 2px),#7a74ec calc(50% - 2px),rgba(79,70,229,.85) calc(50% - 1px),rgba(79,70,229,.55) 50%,transparent 52%);filter:blur(.6px)"></div>
+          </div>
+        </div>
+        <nav style="flex:1;padding:12px 8px;display:flex;flex-direction:column;gap:2px">
+          <span style="display:flex;padding:10px 8px;color:#57606a"><i class="fas fa-shield-halved" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px"></i></span>
+          <span style="display:flex;padding:10px 8px;color:#57606a"><i class="fas fa-code" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px"></i></span>
+          <span style="display:flex;padding:10px 8px;color:#57606a"><i class="fas fa-gauge-high" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px"></i></span>
+          <span style="display:flex;padding:10px 8px;color:#57606a"><i class="fas fa-chart-column" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px"></i></span>
+          <span style="display:flex;padding:10px 8px;color:#57606a"><i class="fas fa-file-invoice-dollar" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px"></i></span>
+          <span style="position:relative;display:flex;padding:10px 8px;color:#1f2328;background:rgba(0,0,0,.05);border-radius:8px"><span style="position:absolute;left:-8px;top:50%;transform:translateY(-50%);width:3px;height:20px;border-radius:0 2px 2px 0;background:#e3633f"></span><i class="fas fa-user-clock" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px"></i></span>
+          <span style="display:flex;padding:10px 8px;color:#57606a"><i class="fas fa-layer-group" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px"></i></span>
+          <span style="display:flex;padding:10px 8px;color:#57606a"><i class="fas fa-building" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px"></i></span>
+        </nav>
+        <div style="padding:8px;display:flex;flex-direction:column;gap:2px;border-top:1px solid #f3f4f6">
+          <span style="display:flex;padding:10px 8px;color:#57606a"><i class="fas fa-thumbtack" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px"></i></span>
+          <span style="display:flex;padding:10px 8px;color:#57606a"><i class="fas fa-moon" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px"></i></span>
+          <span style="display:flex;padding:10px 8px"><span style="width:32px;height:32px;display:flex;align-items:center;justify-content:center"><img src="assets/default-icon.png" alt="" style="width:28px;height:28px;border-radius:50%;object-fit:cover"></span></span>
+        </div>
+      </aside>
+
+      <main style="padding:36px 40px 40px;color:#1f2937">
+        <sc-if value="{{ pickerOpen }}" hint-placeholder-val="{{ false }}">
+          <div onClick="{{ closePicker }}" style="position:absolute;inset:0;z-index:50;background:rgba(17,19,24,.45);display:flex;justify-content:center;align-items:flex-start;padding-top:150px">
+            <div onClick="{{ stop }}" role="dialog" aria-label="Choose period" style="width:460px;background:#fff;border-radius:14px;box-shadow:0 24px 64px rgba(16,24,40,.28),0 0 0 1px rgba(16,24,40,.06);overflow:hidden">
+              <div style="display:flex;align-items:center;gap:10px;padding:16px 18px 14px;border-bottom:1px solid #f3f4f6">
+                <span style="font-size:15px;font-weight:700;letter-spacing:-.02em;color:#1f2937">Choose period</span>
+                <span style="flex:1"></span>
+                <button onClick="{{ closePicker }}" aria-label="Close" style="width:28px;height:28px;border:none;border-radius:7px;background:transparent;color:#9ca3af;cursor:pointer" style-hover="background:#f3f4f6;color:#1f2937"><i class="fas fa-xmark"></i></button>
+              </div>
+              <div style="padding:14px 18px 0">
+                <p style="margin:0 0 8px;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#9ca3af">Quick</p>
+                <div style="display:flex;flex-wrap:wrap;gap:6px">
+                  <sc-for list="{{ presets }}" as="p" hint-placeholder-count="4">
+                    <button onClick="{{ p.pick }}" style="height:30px;padding:0 12px;border-radius:99px;white-space:nowrap;font:600 12px Inter,sans-serif;cursor:pointer;border:1px solid {{ p.border }};background:{{ p.bg }};color:{{ p.fg }}">{{ p.label }}</button>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="padding:16px 18px 6px">
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                  <button onClick="{{ prevYear }}" style="width:30px;height:30px;border-radius:99px;border:1px solid #e5e7eb;background:#fff;color:#6b7280;cursor:pointer;font-size:11px;opacity:{{ prevYearOpacity }}" style-hover="background:#f9fafb"><i class="fas fa-chevron-left"></i></button>
+                  <span style="font-size:22px;font-weight:600;letter-spacing:-.8px;color:#1f2937;font-variant-numeric:tabular-nums">{{ viewYear }}</span>
+                  <button onClick="{{ nextYear }}" style="width:30px;height:30px;border-radius:99px;border:1px solid #e5e7eb;background:#fff;color:#6b7280;cursor:pointer;font-size:11px;opacity:{{ nextYearOpacity }}" style-hover="background:#f9fafb"><i class="fas fa-chevron-right"></i></button>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:14px">
+                  <sc-for list="{{ monthCells }}" as="c" hint-placeholder-count="12">
+                    <button onClick="{{ c.pick }}" style="display:flex;flex-direction:column;align-items:flex-start;gap:4px;height:58px;padding:9px 12px;border-radius:10px;cursor:{{ c.cursor }};text-align:left;border:1px solid {{ c.border }};background:{{ c.bg }};opacity:{{ c.opacity }};font-family:Inter,sans-serif">
+                      <span style="font-size:14px;font-weight:600;color:{{ c.fg }}">{{ c.name }}</span>
+                      <span style="font-size:11px;color:{{ c.sub }};font-variant-numeric:tabular-nums;white-space:nowrap">{{ c.status }}</span>
+                    </button>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="display:flex;align-items:flex-end;gap:8px;padding:14px 18px 18px;margin-top:8px;border-top:1px solid #f3f4f6">
+                <label style="display:flex;flex-direction:column;gap:4px;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#9ca3af">From<input type="date" value="2026-08-01" style="height:32px;padding:0 8px;border:1px solid #d1d5db;border-radius:7px;font:12.5px Inter,sans-serif;color:#1f2937"></label>
+                <label style="display:flex;flex-direction:column;gap:4px;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#9ca3af">To<input type="date" value="2026-08-31" style="height:32px;padding:0 8px;border:1px solid #d1d5db;border-radius:7px;font:12.5px Inter,sans-serif;color:#1f2937"></label>
+                <span style="flex:1"></span>
+                <button onClick="{{ applyCustom }}" style="height:32px;padding:0 14px;border:none;border-radius:8px;background:#111318;color:#fff;font:600 12.5px Inter,sans-serif;cursor:pointer;white-space:nowrap" style-hover="background:#1f2937">Show range</button>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+        <div style="background:#111318;border-radius:16px;color:#e5e7eb;padding:22px 30px 26px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="width:22px;height:26px;background:url(assets/sydoc-logo.png) no-repeat;background-size:152.5px auto;background-position:-114.4px -14.3px;flex-shrink:0"></span>
+            <span style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#f08a6c">Sydoc internal</span>
+            <span style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#6b7280">BPS</span>
+            <span style="flex:1"></span>
+            <a href="Sydoc Finance.dc.html" style="display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 12px;border-radius:8px;color:#d1d5db;font-size:12.5px;font-weight:600" style-hover="background:rgba(255,255,255,.06);color:#fff"><i class="fas fa-file-invoice-dollar" style="color:#9ca3af"></i>Sydoc Finance</a>
+            <button style="display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 12px;border-radius:8px;border:1px solid rgba(255,255,255,.14);background:transparent;color:#e5e7eb;font:600 12.5px Inter,sans-serif;cursor:pointer" style-hover="background:rgba(255,255,255,.06)"><i class="fas fa-file-csv" style="color:#9ca3af"></i>CSV</button>
+          </div>
+
+          <div style="display:flex;align-items:flex-end;gap:40px;margin-top:22px;flex-wrap:wrap">
+            <div style="flex:1 1 520px;min-width:0">
+              <h1 style="margin:0;font-size:14px;font-weight:600;color:#9ca3af;letter-spacing:-.01em">Sydoc BPS</h1>
+              <div style="display:flex;align-items:center;gap:14px;margin-top:6px">
+                <button onClick="{{ prevPeriod }}" style="width:36px;height:36px;border-radius:99px;border:1px solid rgba(255,255,255,.14);background:transparent;color:#d1d5db;cursor:pointer;font-size:12px;flex-shrink:0;opacity:{{ prevOpacity }}" style-hover="background:rgba(255,255,255,.08)"><i class="fas fa-chevron-left"></i></button>
+                <button onClick="{{ openPicker }}" style="display:inline-flex;align-items:baseline;gap:12px;border:none;background:transparent;padding:0;cursor:pointer;color:#fff;white-space:nowrap" style-hover="color:#f3f4f6">
+                  <span style="font-size:54px;font-weight:600;letter-spacing:-2.2px;line-height:1">{{ headMain }}</span>
+                  <span style="font-size:54px;font-weight:400;letter-spacing:-2.2px;line-height:1;color:#6b7280;font-variant-numeric:tabular-nums">{{ headYear }}</span>
+                  <i class="fas fa-chevron-down" style="font-size:14px;color:#6b7280;align-self:center"></i>
+                </button>
+                <button onClick="{{ nextPeriod }}" style="width:36px;height:36px;border-radius:99px;border:1px solid rgba(255,255,255,.14);background:transparent;color:#d1d5db;cursor:pointer;font-size:12px;flex-shrink:0;opacity:{{ nextOpacity }}" style-hover="background:rgba(255,255,255,.08)"><i class="fas fa-chevron-right"></i></button>
+              </div>
+              <p style="margin:12px 0 0;font-size:12.5px;line-height:1.5;color:#9ca3af;max-width:64ch;text-wrap:pretty">Every hour booked in the BPS timetool, by task, customer and person, down to the single booking.</p>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(2,auto);gap:4px 36px;padding-bottom:4px">
+              <span style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6b7280">Period</span>
+              <span style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6b7280">Source</span>
+              <span style="font-size:14px;font-weight:600;color:#f3f4f6;font-variant-numeric:tabular-nums;white-space:nowrap">{{ rangeText }}</span>
+              <span style="display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:#f3f4f6;font-variant-numeric:tabular-nums;white-space:nowrap"><span style="width:8px;height:8px;border-radius:99px;background:#34d399"></span>2,184 bookings loaded</span>
+            </div>
+          </div>
+          <div style="height:1px;background:rgba(255,255,255,.08);margin:24px -30px 0"></div>
+
+          <div style="display:flex;align-items:flex-end;gap:48px;margin-top:22px;flex-wrap:wrap">
+            <div>
+              <p style="margin:0;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6b7280">Total hours</p>
+              <p style="margin:8px 0 0;display:flex;align-items:baseline;gap:8px;line-height:1"><span style="font-size:40px;font-weight:600;letter-spacing:-1.6px;color:#fff;font-variant-numeric:tabular-nums">1,300.5</span><span style="font-size:18px;font-weight:500;color:#6b7280">h</span></p>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,auto);gap:4px 40px;padding-bottom:6px">
+              <span style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6b7280">Service hours</span>
+              <span style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6b7280">Bookings</span>
+              <span style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6b7280">People</span>
+              <span style="font-size:20px;font-weight:600;letter-spacing:-.6px;color:#f3f4f6;font-variant-numeric:tabular-nums">1,086.5 <span style="font-size:12px;font-weight:500;color:#9ca3af;letter-spacing:0">84% of all hours</span></span>
+              <span style="font-size:20px;font-weight:600;letter-spacing:-.6px;color:#f3f4f6;font-variant-numeric:tabular-nums">2,184</span>
+              <span style="font-size:20px;font-weight:600;letter-spacing:-.6px;color:#f3f4f6;font-variant-numeric:tabular-nums">14 <span style="font-size:12px;font-weight:500;color:#9ca3af;letter-spacing:0">with service hours</span></span>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:3px;height:14px;margin-top:24px;border-radius:7px;overflow:hidden">
+            <span style="width:57.05%;background:#8b5cf6"></span>
+            <span style="width:26.49%;background:#0891b2"></span>
+            <span style="width:16.46%;background:#d97706"></span>
+          </div>
+          <div style="display:grid;grid-template-columns:57.05% 26.49% 16.46%;margin-top:10px">
+            <div style="padding-right:12px">
+              <p style="margin:0;display:flex;align-items:center;gap:7px;font-size:11.5px;color:#d1d5db"><span style="width:10px;height:10px;border-radius:3px;background:#8b5cf6"></span>Billable</p>
+              <p style="margin:4px 0 0;font-size:15px;font-weight:600;color:#fff;font-variant-numeric:tabular-nums">742.0 h <span style="font-size:11.5px;font-weight:500;color:#9ca3af">68% of service hours</span></p>
+            </div>
+            <div style="padding-right:12px">
+              <p style="margin:0;display:flex;align-items:center;gap:7px;font-size:11.5px;color:#d1d5db"><span style="width:10px;height:10px;border-radius:3px;background:#0891b2"></span>Other service</p>
+              <p style="margin:4px 0 0;font-size:15px;font-weight:600;color:#fff;font-variant-numeric:tabular-nums">344.5 h <span style="font-size:11.5px;font-weight:500;color:#9ca3af">26%</span></p>
+            </div>
+            <div>
+              <p style="margin:0;display:flex;align-items:center;gap:7px;font-size:11.5px;color:#d1d5db"><span style="width:10px;height:10px;border-radius:3px;background:#d97706"></span>Absence</p>
+              <p style="margin:4px 0 0;font-size:15px;font-weight:600;color:#fff;font-variant-numeric:tabular-nums">214.0 h <span style="font-size:11.5px;font-weight:500;color:#9ca3af">16%</span></p>
+            </div>
+          </div>
+        </div>
+
+        <section style="margin-top:30px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <h2 style="margin:0;font-size:15px;font-weight:700;letter-spacing:-.02em">Hours per day</h2>
+            <span style="font-size:11px;color:#9ca3af;font-variant-numeric:tabular-nums">31 days · 1,300.5 h · weekends shaded</span>
+          </div>
+          <div style="position:relative;margin-top:16px;height:220px;display:flex;align-items:flex-end;gap:6px;border-bottom:1px solid #e5e7eb">
+            <div style="position:absolute;left:0;right:0;top:0;border-top:1px dashed #f3f4f6"></div>
+            <div style="position:absolute;left:0;right:0;top:50%;border-top:1px dashed #f3f4f6"></div>
+            <sc-for list="{{ days }}" as="d" hint-placeholder-count="31">
+              <div style="position:relative;flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;gap:2px;background:{{ d.shade }};border-radius:4px 4px 0 0">
+                <span style="height:{{ d.hA }};background:#d97706;border-radius:3px 3px 0 0"></span>
+                <span style="height:{{ d.hS }};background:#0891b2"></span>
+                <span style="height:{{ d.hB }};background:#7c3aed"></span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:6px">
+            <sc-for list="{{ days }}" as="d" hint-placeholder-count="31">
+              <span style="flex:1;text-align:center;font-size:10.5px;color:#9ca3af;font-variant-numeric:tabular-nums">{{ d.label }}</span>
+            </sc-for>
+          </div>
+        </section>
+
+        <section style="margin-top:34px">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <h2 style="margin:0;font-size:15px;font-weight:700;letter-spacing:-.02em">Drill-down</h2>
+            <div style="display:inline-flex;align-items:center;gap:2px;padding:3px;border-radius:10px;background:#f3f4f6">
+              <sc-for list="{{ orders }}" as="o" hint-placeholder-count="3">
+                <button onClick="{{ o.pick }}" style="border:none;height:27px;padding:0 11px;white-space:nowrap;flex-shrink:0;border-radius:7px;font:600 11.5px Inter,sans-serif;cursor:pointer;background:{{ o.bg }};color:{{ o.fg }};box-shadow:{{ o.shadow }}">{{ o.label }}</button>
+              </sc-for>
+            </div>
+            <span style="flex:1"></span>
+            <button onClick="{{ toggleBillable }}" style="display:inline-flex;align-items:center;gap:7px;height:31px;padding:0 12px;border-radius:99px;white-space:nowrap;flex-shrink:0;font:600 11.5px Inter,sans-serif;cursor:pointer;border:1px solid {{ billBorder }};background:{{ billBg }};color:{{ billFg }}"><span style="width:8px;height:8px;border-radius:2px;background:#7c3aed"></span>Billable only</button>
+            <button onClick="{{ toggleAbsence }}" style="display:inline-flex;align-items:center;gap:7px;height:31px;padding:0 12px;border-radius:99px;white-space:nowrap;flex-shrink:0;font:600 11.5px Inter,sans-serif;cursor:pointer;border:1px solid {{ absBorder }};background:{{ absBg }};color:{{ absFg }}"><span style="width:8px;height:8px;border-radius:2px;background:#d97706"></span>Hide absences</button>
+            <label style="position:relative;display:inline-flex;align-items:center">
+              <i class="fas fa-magnifying-glass" style="position:absolute;left:11px;font-size:12px;color:#9ca3af"></i>
+              <input type="search" value="{{ query }}" onInput="{{ onQuery }}" placeholder="Filter task, customer, person…" style="height:31px;width:240px;padding:0 12px 0 31px;border:1px solid #d1d5db;border-radius:99px;font:12.5px Inter,sans-serif;color:#1f2937;background:#fff;box-sizing:border-box">
+            </label>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:8px;margin-top:16px;min-height:32px;flex-wrap:wrap">
+            <sc-if value="{{ canBack }}" hint-placeholder-val="{{ false }}">
+              <button onClick="{{ back }}" aria-label="Up one level" style="width:30px;height:30px;border-radius:99px;border:1px solid #e5e7eb;background:#fff;color:#6b7280;cursor:pointer;font-size:11px;flex-shrink:0" style-hover="background:#f3f4f6;color:#1f2937"><i class="fas fa-arrow-left"></i></button>
+            </sc-if>
+            <sc-for list="{{ crumbs }}" as="c" hint-placeholder-count="1">
+              <span style="display:inline-flex;align-items:center;gap:8px">
+                <sc-if value="{{ c.sep }}" hint-placeholder-val="{{ false }}"><i class="fas fa-chevron-right" style="font-size:9px;color:#d1d5db"></i></sc-if>
+                <button onClick="{{ c.go }}" style="border:none;background:transparent;padding:4px 2px;cursor:pointer;font:{{ c.font }};color:{{ c.color }};white-space:nowrap">{{ c.label }}</button>
+              </span>
+            </sc-for>
+            <span style="flex:1"></span>
+            <span style="font-size:11.5px;color:#9ca3af;font-variant-numeric:tabular-nums;white-space:nowrap">{{ levelMeta }}</span>
+            <div style="display:inline-flex;align-items:center;gap:2px;padding:3px;border-radius:10px;background:#f3f4f6">
+              <sc-for list="{{ views }}" as="v" hint-placeholder-count="2">
+                <button onClick="{{ v.pick }}" aria-label="{{ v.label }}" title="{{ v.label }}" style="display:inline-flex;align-items:center;gap:6px;border:none;height:27px;padding:0 10px;border-radius:7px;white-space:nowrap;font:600 11.5px Inter,sans-serif;cursor:pointer;background:{{ v.bg }};color:{{ v.fg }};box-shadow:{{ v.shadow }}"><i class="{{ v.icon }}" style="font-size:11px"></i>{{ v.label }}</button>
+              </sc-for>
+            </div>
+          </div>
+
+          <sc-if value="{{ showMap }}" hint-placeholder-val="{{ true }}">
+            <div style="position:relative;height:440px;margin-top:10px">
+              <sc-for list="{{ tiles }}" as="t" hint-placeholder-count="8">
+                <button onClick="{{ t.zoom }}" title="{{ t.title }}" style="position:absolute;left:{{ t.left }};top:{{ t.top }};width:{{ t.width }};height:{{ t.height }};box-sizing:border-box;border:none;border-radius:10px;padding:0;overflow:hidden;cursor:pointer;text-align:left;background:{{ t.bg }};font-family:Inter,sans-serif;transition:filter .15s" style-hover="filter:brightness(.96)">
+                  <sc-if value="{{ t.showText }}" hint-placeholder-val="{{ true }}">
+                    <span style="position:absolute;left:12px;right:12px;top:11px;display:flex;flex-direction:column;gap:3px">
+                      <span style="font-size:{{ t.nameSize }};font-weight:650;color:{{ t.ink }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.01em">{{ t.name }}</span>
+                      <span style="display:flex;align-items:baseline;gap:6px;white-space:nowrap">
+                        <span style="font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:{{ t.valSize }};font-weight:600;letter-spacing:-.5px;color:{{ t.ink }}">{{ t.hours }}</span>
+                        <span style="font-size:11px;color:{{ t.sub }}">h · {{ t.pct }}</span>
+                      </span>
+                      <sc-if value="{{ t.showDelta }}" hint-placeholder-val="{{ false }}">
+                        <span style="display:inline-flex;align-self:flex-start;align-items:center;gap:5px;margin-top:3px;padding:2px 7px;border-radius:99px;background:rgba(255,255,255,.7);font-size:11px;font-weight:600;color:{{ t.dColor }};white-space:nowrap"><i class="{{ t.dIcon }}" style="font-size:9.5px"></i>{{ t.dT }} vs. July</span>
+                      </sc-if>
+                    </span>
+                  </sc-if>
+                  <span style="position:absolute;left:0;right:0;bottom:0;height:5px;display:flex">
+                    <span style="flex:{{ t.fB }};background:#7c3aed"></span><span style="flex:{{ t.fS }};background:#0891b2"></span><span style="flex:{{ t.fA }};background:#d97706"></span>
+                  </span>
+                </button>
+              </sc-for>
+            </div>
+          </sc-if>
+
+
+          <sc-if value="{{ showTable }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:10px">
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) 100px 100px 90px 120px 220px 28px;gap:0 12px;padding:0 0 8px;border-bottom:1px solid #e5e7eb;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#9ca3af">
+                <span>{{ tableDim }}</span><span style="text-align:right">Hours</span><span style="text-align:right">Billable</span><span style="text-align:right">Bookings</span><span style="text-align:right">vs. July</span><span>Split</span><span></span>
+              </div>
+              <sc-for list="{{ tableRows }}" as="r" hint-placeholder-count="8">
+                <button onClick="{{ r.zoom }}" style="display:grid;width:100%;grid-template-columns:minmax(0,1fr) 100px 100px 90px 120px 220px 28px;gap:0 12px;align-items:center;min-height:46px;padding:0;border:none;border-bottom:1px solid #f3f4f6;background:transparent;cursor:pointer;text-align:left;font-family:Inter,sans-serif" style-hover="background:#f9fafb">
+                  <span style="display:flex;align-items:center;gap:10px;min-width:0">
+                    <span style="width:8px;height:8px;border-radius:2px;flex-shrink:0;background:{{ r.dot }}"></span>
+                    <span style="font-size:13px;font-weight:600;color:#1f2937;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</span>
+                  </span>
+                  <span style="text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:14px;font-weight:600;color:#1f2937">{{ r.hours }}</span>
+                  <span style="text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;color:#6b7280">{{ r.billable }}</span>
+                  <span style="text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;color:#6b7280">{{ r.count }}</span>
+                  <span style="display:flex;flex-direction:column;align-items:flex-end;gap:1px">
+                    <span style="display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:600;color:{{ r.dColor }};font-variant-numeric:tabular-nums;white-space:nowrap"><i class="{{ r.dIcon }}" style="font-size:10px"></i>{{ r.dT }}</span>
+                    <span style="font-size:10.5px;color:#9ca3af;font-variant-numeric:tabular-nums;white-space:nowrap">{{ r.dHT }}</span>
+                  </span>
+                  <span style="display:flex;align-items:center;gap:10px">
+                    <span style="flex:1;height:8px;border-radius:4px;background:#f3f4f6;overflow:hidden;display:flex">
+                      <span style="display:flex;width:{{ r.w }};gap:1px"><span style="flex:{{ r.fB }};background:#7c3aed"></span><span style="flex:{{ r.fS }};background:#0891b2"></span><span style="flex:{{ r.fA }};background:#d97706"></span></span>
+                    </span>
+                    <span style="width:36px;text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:11.5px;color:#6b7280">{{ r.pct }}</span>
+                  </span>
+                  <i class="fas fa-chevron-right" style="font-size:10px;color:#d1d5db;text-align:center"></i>
+                </button>
+              </sc-for>
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) 100px 100px 90px 120px 220px 28px;gap:0 12px;align-items:center;min-height:42px;font-size:12.5px;font-weight:700;color:#1f2937">
+                <span style="padding-left:18px">Total</span>
+                <span style="text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace">{{ totalH }}</span>
+                <span style="text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace">{{ totalB }}</span>
+                <span style="text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace">{{ totalN }}</span>
+                <span style="text-align:right;display:inline-flex;align-items:center;justify-content:flex-end;gap:5px;color:#047857"><i class="fas fa-arrow-trend-up" style="font-size:10px"></i>+4%</span>
+                <span></span><span></span>
+              </div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ showLeaf }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:10px;border-top:1px solid #e5e7eb">
+              <sc-for list="{{ leafDays }}" as="d" hint-placeholder-count="3">
+                <div style="display:grid;grid-template-columns:96px minmax(0,1fr);column-gap:20px;padding:12px 0;border-bottom:1px solid #f3f4f6">
+                  <div style="position:sticky;top:0;align-self:start">
+                    <p style="margin:0;font-size:13px;font-weight:700;color:#1f2937;white-space:nowrap">{{ d.day }} <span style="font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#9ca3af">{{ d.weekday }}</span></p>
+                    <p style="margin:4px 0 0;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:15px;font-weight:600;color:#1f2937">{{ d.totalT }} h</p>
+                    <p style="margin:1px 0 0;font-size:11px;color:#9ca3af">{{ d.countT }} bookings</p>
+                  </div>
+                  <div style="min-width:0">
+                    <sc-for list="{{ d.items }}" as="r" hint-placeholder-count="4">
+                      <div title="{{ r.comment }}" style="display:grid;grid-template-columns:minmax(0,1fr) 180px 64px;gap:14px;align-items:center;height:30px;border-bottom:1px solid #f9fafb">
+                        <span style="font-size:12.5px;color:{{ r.cColor }};font-style:{{ r.cStyle }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.comment }}</span>
+                        <span style="font-size:11.5px;color:#9ca3af;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.pkg }}</span>
+                        <span style="text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;font-weight:600;color:#1f2937">{{ r.hours }}</span>
+                      </div>
+                    </sc-for>
+                    <sc-if value="{{ d.hasMore }}" hint-placeholder-val="{{ false }}">
+                      <button onClick="{{ d.toggle }}" style="margin-top:6px;border:none;background:transparent;padding:0;cursor:pointer;white-space:nowrap;font:600 11.5px Inter,sans-serif;color:#b2401f" style-hover="text-decoration:underline">{{ d.moreLabel }}</button>
+                    </sc-if>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <div style="display:flex;align-items:center;gap:18px;margin-top:12px;font-size:11px;color:#6b7280;flex-wrap:wrap">
+            <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;background:#7c3aed"></span>Billable</span>
+            <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;background:#0891b2"></span>Other service</span>
+            <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;background:#d97706"></span>Absence</span>
+            <span style="color:#9ca3af">{{ legendHint }}</span>
+          </div>
+          <p style="display:flex;align-items:flex-start;gap:8px;margin:14px 0 0;font-size:11px;color:#9ca3af;max-width:90ch"><i class="fas fa-circle-info" style="margin-top:2px"></i><span>Billable: Support (verrechenbar, extern verrechenbar), Change, Change Request, Professional Services and Projektmanagement on customers, plus Vorbereitung Akten on Privera · Tagesgeschäft Neuzugänge — the same rule as the Finance page.</span></p>
+        </section>
+      </main>
+    </div>
+  </div>
+</section>
+
+<section id="t0" style="padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08)">
+  <div style="display:flex;align-items:baseline;gap:10px;margin:0 0 20px">
+    <a href="#t0" style="font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px">0</a>
+    <span style="font:600 13px system-ui,sans-serif;color:#1a1a1a">Sydoc BPS — current page (recreated from bps.html / bps.css / bps.js)</span>
+  </div>
+  <div id="0a" style="display:flex;flex-direction:column;gap:9px">
+    <div style="display:flex;align-items:baseline;gap:8px;font:400 11px system-ui,sans-serif;color:rgba(0,0,0,.55)">
+      <a href="#0a" style="font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px">0a</a>Today
+    </div>
+    <div style="width:1440px;background:#f9fafb;border:1px solid rgba(0,0,0,.1);border-radius:10px;overflow:hidden;position:relative;padding-left:100px;box-sizing:border-box">
+      <aside style="position:absolute;left:0;top:0;bottom:0;width:64px;display:flex;flex-direction:column;background:#fff;border-right:1px solid #f3f4f6;box-shadow:2px 0 8px rgba(0,0,0,.04)">
+        <div style="display:flex;align-items:center;height:64px;padding:0 12px;border-bottom:1px solid #f3f4f6;flex-shrink:0">
+          <div style="position:relative;width:38px;height:38px">
+            <div style="position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 50% 50%,#000 0%,#000 35%,rgba(0,0,0,.7) 45%,rgba(67,56,202,0) 60%);box-shadow:0 0 20px rgba(0,0,0,.4),inset 0 0 10px rgba(0,0,0,.8)"></div>
+            <div style="position:absolute;inset:0;border-radius:50%;background:radial-gradient(closest-side,transparent calc(50% - 2px),#7a74ec calc(50% - 2px),rgba(79,70,229,.85) calc(50% - 1px),rgba(79,70,229,.55) 50%,transparent 52%);filter:blur(.6px)"></div>
+          </div>
+        </div>
+        <nav style="flex:1;padding:12px 8px;display:flex;flex-direction:column;gap:2px">
+          <span style="display:flex;padding:10px 8px;color:#57606a"><i class="fas fa-shield-halved" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px"></i></span>
+          <span style="display:flex;padding:10px 8px;color:#57606a"><i class="fas fa-code" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px"></i></span>
+          <span style="display:flex;padding:10px 8px;color:#57606a"><i class="fas fa-gauge-high" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px"></i></span>
+          <span style="display:flex;padding:10px 8px;color:#57606a"><i class="fas fa-chart-column" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px"></i></span>
+          <span style="display:flex;padding:10px 8px;color:#57606a"><i class="fas fa-file-invoice-dollar" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px"></i></span>
+          <span style="position:relative;display:flex;padding:10px 8px;color:#1f2328;background:rgba(0,0,0,.05);border-radius:8px"><span style="position:absolute;left:-8px;top:50%;transform:translateY(-50%);width:3px;height:20px;border-radius:0 2px 2px 0;background:#4f46e5"></span><i class="fas fa-user-clock" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px"></i></span>
+          <span style="display:flex;padding:10px 8px;color:#57606a"><i class="fas fa-layer-group" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px"></i></span>
+          <span style="display:flex;padding:10px 8px;color:#57606a"><i class="fas fa-building" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px"></i></span>
+        </nav>
+        <div style="padding:8px;display:flex;flex-direction:column;gap:2px;border-top:1px solid #f3f4f6">
+          <span style="display:flex;padding:10px 8px;color:#57606a"><i class="fas fa-thumbtack" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px"></i></span>
+          <span style="display:flex;padding:10px 8px;color:#57606a"><i class="fas fa-moon" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px"></i></span>
+          <span style="display:flex;padding:10px 8px"><span style="width:32px;height:32px;display:flex;align-items:center;justify-content:center"><img src="assets/default-icon.png" alt="" style="width:28px;height:28px;border-radius:50%;object-fit:cover"></span></span>
+        </div>
+      </aside>
+
+      <main style="padding:44px 40px 28px;color:#1f2937">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <span style="width:44px;height:44px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;font-size:18px;color:#fff;background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);box-shadow:0 8px 20px -6px rgba(79,70,229,.55)"><i class="fas fa-user-clock"></i></span>
+          <div>
+            <h1 style="margin:0;font-size:24px;font-weight:600;letter-spacing:-.5px;line-height:1.2">Sydoc BPS</h1>
+            <p style="margin:2px 0 0;font-size:11.5px;color:#9ca3af">Every hour booked in the BPS timetool, by task, customer and person, down to the single booking.</p>
+          </div>
+          <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+            <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:7px;font-size:12px;font-weight:500;color:#6b7280"><i class="fas fa-file-invoice-dollar"></i> Sydoc Finance</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:7px;font-size:12px;font-weight:500;background:#fff;border:1px solid #d1d5db"><i class="fas fa-file-csv"></i> CSV</span>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:10px 12px;flex-wrap:wrap;margin-top:18px;padding-bottom:14px;border-bottom:1px solid #e5e7eb">
+          <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af">Period</span>
+          <div style="display:inline-flex;height:33px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;overflow:hidden">
+            <span style="display:inline-flex;align-items:center;padding:0 10px;font-size:11.5px;font-weight:600;background:#eef2ff;color:#4338ca">Last month</span>
+            <span style="display:inline-flex;align-items:center;padding:0 10px;font-size:11.5px;font-weight:600;color:#9ca3af;border-left:1px solid #e5e7eb">This month</span>
+            <span style="display:inline-flex;align-items:center;padding:0 10px;font-size:11.5px;font-weight:600;color:#9ca3af;border-left:1px solid #e5e7eb">Last week</span>
+            <span style="display:inline-flex;align-items:center;padding:0 10px;font-size:11.5px;font-weight:600;color:#9ca3af;border-left:1px solid #e5e7eb">Last 3 months</span>
+          </div>
+          <span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:#6b7280">From <span style="display:inline-flex;align-items:center;gap:14px;height:33px;padding:0 8px;border:1px solid #d1d5db;border-radius:7px;background:#fff;font-size:12.5px;color:#1f2937;box-sizing:border-box">08/01/2026<i class="far fa-calendar" style="color:#6b7280"></i></span></span>
+          <span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:#6b7280">To <span style="display:inline-flex;align-items:center;gap:14px;height:33px;padding:0 8px;border:1px solid #d1d5db;border-radius:7px;background:#fff;font-size:12.5px;color:#1f2937;box-sizing:border-box">08/31/2026<i class="far fa-calendar" style="color:#6b7280"></i></span></span>
+          <span style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:7px;font-size:12px;font-weight:500;color:#fff;background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);box-shadow:0 2px 8px -2px rgba(79,70,229,.45)">Show</span>
+          <span style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:#9ca3af"><span style="width:7px;height:7px;border-radius:99px;background:#059669"></span>2,184 bookings · 01.08.2026 – 31.08.2026</span>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));margin-top:4px;border-bottom:1px solid #e5e7eb">
+          <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="6">
+            <div style="padding:14px 20px;border-left:{{ k.border }}">
+              <p style="margin:0;display:flex;align-items:center;gap:6px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af"><sc-if value="{{ k.sw }}" hint-placeholder-val="{{ false }}"><span style="width:10px;height:10px;border-radius:3px;background:{{ k.sw }}"></span></sc-if>{{ k.label }}</p>
+              <p style="margin:10px 0 0;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:26px;font-weight:600;letter-spacing:-1px;line-height:1">{{ k.value }}</p>
+              <p style="margin:6px 0 0;font-size:11px;font-weight:600;color:#9ca3af">{{ k.sub }}</p>
+            </div>
+          </sc-for>
+        </div>
+
+        <section style="margin-top:10px;padding:18px 0 8px;border-top:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb">
+          <div style="display:flex;align-items:center;gap:10px">
+            <h2 style="margin:0;font-size:15px;font-weight:700;letter-spacing:-.02em">Hours per day</h2>
+            <span style="font-size:11px;color:#9ca3af">31 days · 1,300.5 h</span>
+            <span style="margin-left:auto;display:flex;gap:12px;font-size:11px;color:#6b7280">
+              <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;background:#7c3aed"></span>Billable</span>
+              <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;background:#0891b2"></span>Other service</span>
+              <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;background:#d97706"></span>Absence</span>
+            </span>
+          </div>
+          <div style="position:relative;height:240px;margin-top:10px;display:flex;gap:10px">
+            <div style="display:flex;flex-direction:column;justify-content:space-between;font-size:11px;color:#9ca3af;padding-bottom:20px;text-align:right;width:34px"><span>70 h</span><span>60 h</span><span>50 h</span><span>40 h</span><span>30 h</span><span>20 h</span><span>10 h</span><span>0 h</span></div>
+            <div style="flex:1;display:flex;flex-direction:column">
+              <div style="flex:1;display:flex;align-items:flex-end;gap:0;border-bottom:1px solid #f3f4f6;background:repeating-linear-gradient(to bottom,#f3f4f6 0,#f3f4f6 1px,transparent 1px,transparent 31.4px)">
+                <sc-for list="{{ days }}" as="d" hint-placeholder-count="31">
+                  <div style="flex:1;display:flex;justify-content:center;height:100%;align-items:flex-end">
+                    <div style="width:22px;display:flex;flex-direction:column;justify-content:flex-end">
+                      <span style="height:{{ d.cA }};background:#d97706;border-top:2px solid #fff;border-radius:4px 4px 0 0"></span>
+                      <span style="height:{{ d.cS }};background:#0891b2;border-top:2px solid #fff"></span>
+                      <span style="height:{{ d.cB }};background:#7c3aed;border-top:2px solid #fff"></span>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="display:flex;height:20px;align-items:flex-end">
+                <sc-for list="{{ days }}" as="d" hint-placeholder-count="31">
+                  <span style="flex:1;text-align:center;font-size:11px;color:#9ca3af">{{ d.tick }}</span>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section style="margin-top:22px">
+          <div style="display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap">
+            <h2 style="margin:0;font-size:15px;font-weight:700;letter-spacing:-.02em">Drill-down</h2>
+            <div style="display:inline-flex;height:29px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;overflow:hidden">
+              <span style="display:inline-flex;align-items:center;padding:0 10px;font-size:11.5px;font-weight:600;background:#eef2ff;color:#4338ca">Task › Customer › Person</span>
+              <span style="display:inline-flex;align-items:center;padding:0 10px;font-size:11.5px;font-weight:600;color:#9ca3af;border-left:1px solid #e5e7eb">Customer › Task › Person</span>
+              <span style="display:inline-flex;align-items:center;padding:0 10px;font-size:11.5px;font-weight:600;color:#9ca3af;border-left:1px solid #e5e7eb">Person › Customer › Task</span>
+            </div>
+            <span style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:#6b7280"><span style="width:15px;height:15px;border:1.5px solid #d1d5db;border-radius:4px;background:#fff;box-sizing:border-box"></span>Billable only</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:#6b7280"><span style="width:15px;height:15px;border-radius:4px;background:#4f46e5;color:#fff;font-size:9px;display:inline-flex;align-items:center;justify-content:center"><i class="fas fa-check"></i></span>Hide absences</span>
+            <span style="position:relative;display:inline-flex;align-items:center"><i class="fas fa-magnifying-glass" style="position:absolute;left:10px;font-size:12px;color:#9ca3af"></i><span style="display:inline-flex;align-items:center;height:33px;width:240px;padding-left:30px;border:1px solid #d1d5db;border-radius:7px;background:#fff;font-size:12.5px;color:#9ca3af;box-sizing:border-box">Filter task, customer, person…</span></span>
+          </div>
+          <div style="margin-top:12px">
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) 100px 100px 100px 130px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:#9ca3af;border-bottom:1px solid #e5e7eb">
+              <span style="padding:8px 10px 8px 0">Task › Customer › Person</span><span style="padding:8px 10px;text-align:right">Hours</span><span style="padding:8px 10px;text-align:right">Billable</span><span style="padding:8px 10px;text-align:right">Bookings</span><span style="padding:8px 10px;text-align:right">Share of total</span>
+            </div>
+            <sc-for list="{{ treeCurrent }}" as="r" hint-placeholder-count="8">
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) 100px 100px 100px 130px;align-items:center;border-bottom:1px solid #f3f4f6;font-size:12.5px;background:{{ r.bgCur }}">
+                <span style="display:flex;align-items:center;padding:7px 10px 7px {{ r.indentCur }}">
+                  <span style="width:24px;height:24px;margin-right:4px;display:inline-flex;align-items:center;justify-content:center;color:#9ca3af"><i class="fas fa-chevron-right" style="font-size:10px;transform:{{ r.rot }}"></i></span>
+                  <span style="font-weight:{{ r.weightCur }};color:{{ r.colorCur }}">{{ r.name }}</span>
+                  <sc-if value="{{ r.tag }}" hint-placeholder-val="{{ false }}"><span style="margin-left:6px;font-size:10.5px;padding:1px 7px;border-radius:99px;background:rgba(124,58,237,.16);color:#1f2937;line-height:1.6">{{ r.tag }}</span></sc-if>
+                </span>
+                <span style="padding:7px 10px;text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:12px">{{ r.hours }}</span>
+                <span style="padding:7px 10px;text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:12px">{{ r.billable }}</span>
+                <span style="padding:7px 10px;text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:12px">{{ r.count }}</span>
+                <span style="padding:7px 10px;display:flex;align-items:center;gap:8px;justify-content:flex-end">
+                  <span style="width:56px;height:4px;border-radius:2px;background:#f3f4f6;overflow:hidden"><span style="display:block;height:100%;width:{{ r.parentShare }};background:#4f46e5;border-radius:2px"></span></span>
+                  <span style="width:36px;text-align:right;font-size:11.5px;color:#6b7280">{{ r.pct }}</span>
+                </span>
+              </div>
+            </sc-for>
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) 100px 100px 100px 130px;font-size:12.5px;font-weight:700;border-top:1px solid #e5e7eb">
+              <span style="padding:9px 10px 9px 0">Total</span><span style="padding:9px 10px;text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace">1,086.5</span><span style="padding:9px 10px;text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace">742.0</span><span style="padding:9px 10px;text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace">1,902</span><span></span>
+            </div>
+          </div>
+          <p style="display:flex;align-items:flex-start;gap:8px;margin:14px 0 0;font-size:11px;color:#9ca3af;max-width:90ch"><i class="fas fa-circle-info"></i><span>Billable: Betrieb, Projektarbeit, Support on customers (not sydoc / sydoc intern), plus Vorbereitung on Privera · Onboarding — the same rule as the Finance page.</span></p>
+        </section>
+      </main>
+    </div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { preset: 'last-month', order: 0, billableOnly: false, hideAbs: true };
+  renderVals() {
+    const st = this.state;
+    const hf = new Intl.NumberFormat('en', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    const nf = new Intl.NumberFormat('en');
+    const NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const LAST = [31,28,31,30,31,30,31,31,30,31,30,31];
+    const idx = (y, m) => y * 12 + m;
+    const NOW = idx(2026, 8), FIRST = idx(2026, 7);
+    const per = st.period ?? { kind: 'month', y: 2026, m: 7 };
+    const viewYear = st.viewYear ?? 2026;
+    const setPer = p => this.setState({ period: p, pickerOpen: false });
+    const presetDefs = [
+      ['last-month', 'Last month', { kind: 'month', y: 2026, m: 7 }],
+      ['this-month', 'This month', { kind: 'month', y: 2026, m: 8 }],
+      ['last-week', 'Last week', { kind: 'week' }],
+      ['quarter', 'Last 3 months', { kind: 'quarter' }],
+    ];
+    const same = (a, b) => a.kind === b.kind && a.y === b.y && a.m === b.m;
+    const presets = presetDefs.map(([k, label, p]) => {
+      const on = same(per, p);
+      return { label, pick: () => setPer(p), border: on ? '#111318' : '#e5e7eb', bg: on ? '#111318' : '#fff', fg: on ? '#fff' : '#374151' };
+    });
+    let headMain, headYear, rangeText;
+    if (per.kind === 'month') { headMain = NAMES[per.m]; headYear = per.y; rangeText = '1 – ' + (per.y * 12 + per.m === NOW ? 30 : LAST[per.m]) + ' ' + SHORT[per.m] + ' ' + per.y; }
+    else if (per.kind === 'week') { headMain = 'Week 39'; headYear = 2026; rangeText = '21 – 27 Sep 2026'; }
+    else if (per.kind === 'quarter') { headMain = 'Jun – Aug'; headYear = 2026; rangeText = '1 Jun – 31 Aug 2026'; }
+    else { headMain = '1 – 31 Aug'; headYear = 2026; rangeText = '1 – 31 Aug 2026 · custom'; }
+    const cur = per.kind === 'month' ? idx(per.y, per.m) : null;
+    const step = d => { if (cur === null) return; const i = cur + d; if (i < FIRST || i > NOW) return; setPer({ kind: 'month', y: Math.floor(i / 12), m: i % 12 }); };
+    const monthCells = SHORT.map((name, m) => {
+      const i = idx(viewYear, m);
+      const off = i < FIRST || i > NOW;
+      const selected = cur === i;
+      const status = i > NOW ? '—' : i < FIRST ? 'No data' : i === NOW ? 'Running · 1,122.0 h' : '1,300.5 h';
+      return {
+        name, status, pick: () => { if (!off) setPer({ kind: 'month', y: viewYear, m }); },
+        cursor: off ? 'default' : 'pointer', opacity: off ? .4 : 1,
+        bg: selected ? '#111318' : '#fff', border: selected ? '#111318' : '#e5e7eb',
+        fg: selected ? '#fff' : '#1f2937', sub: selected ? '#f08a6c' : (i === NOW ? '#b45309' : '#9ca3af'),
+      };
+    });
+    const pickerVals = {
+      headMain, headYear, pickerOpen: !!st.pickerOpen, monthCells, viewYear,
+      openPicker: () => this.setState({ pickerOpen: true, viewYear: per.y ?? 2026 }),
+      closePicker: () => this.setState({ pickerOpen: false }),
+      stop: e => e.stopPropagation(),
+      prevPeriod: () => step(-1), nextPeriod: () => step(1),
+      prevOpacity: cur !== null && cur > FIRST ? 1 : .35, nextOpacity: cur !== null && cur < NOW ? 1 : .35,
+      prevYear: () => { if (viewYear > 2025) this.setState({ viewYear: viewYear - 1 }); },
+      nextYear: () => { if (viewYear < 2026) this.setState({ viewYear: viewYear + 1 }); },
+      prevYearOpacity: viewYear > 2025 ? 1 : .35, nextYearOpacity: viewYear < 2026 ? 1 : .35,
+      applyCustom: () => setPer({ kind: 'custom' }),
+    };
+
+    // days of August 2026 (1 Aug = Saturday)
+    let seed = 7; const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+    const days = [];
+    for (let d = 1; d <= 31; d++) {
+      const wd = (d + 5) % 7; const weekend = wd === 0 || wd === 6;
+      const b = weekend ? 0 : 26 + rnd() * 14, s = weekend ? (rnd() < .3 ? 2 : 0) : 12 + rnd() * 9, a = weekend ? 0 : (rnd() < .5 ? 4 + rnd() * 12 : rnd() * 3);
+      days.push({ b, s, a, weekend, d });
+    }
+    const max = 70;
+    const px = (v, h) => (v / max * h).toFixed(1) + 'px';
+    const dayRows = days.map(x => ({
+      hB: px(x.b, 220), hS: px(x.s, 220), hA: px(x.a, 220),
+      cB: px(x.b, 220), cS: px(x.s, 220), cA: px(x.a, 220),
+      shade: x.weekend ? '#f3f4f6' : 'transparent',
+      label: x.d, tick: (x.d % 2 === 1) ? x.d + ' Aug' : ''
+    }));
+
+    const orders = [['Task', 'Customer', 'Person'], ['Customer', 'Task', 'Person'], ['Person', 'Customer', 'Task']];
+    const orderBtns = orders.map((o, i) => ({ label: o.join(' › '), pick: () => this.setState({ order: i, path: [] }),
+      bg: st.order === i ? '#fff' : 'transparent', fg: st.order === i ? '#1f2937' : '#6b7280',
+      shadow: st.order === i ? '0 1px 2px rgba(16,24,40,.1)' : 'none' }));
+
+    const total = 1086.5;
+    const raw = [
+      [1, 'Projektarbeit', 412.5, 412.5, 688, 'billable', true],
+      [2, 'Privera', 188.0, 188.0, 301, null, true],
+      [3, 'M. Keller', 74.5, 74.5, 118, null, false],
+      [3, 'S. Brunner', 61.0, 61.0, 97, null, false],
+      [3, 'L. Meier', 52.5, 52.5, 86, null, false],
+      [2, 'Elektro-Material', 121.5, 121.5, 204, null, false],
+      [2, 'Frigemo', 103.0, 103.0, 183, null, false],
+      [1, 'Betrieb', 214.0, 196.5, 402, 'partly billable', false],
+      [1, 'Support', 158.5, 133.0, 327, 'partly billable', false],
+      [1, 'Intern', 176.5, 0, 312, null, false],
+      [1, 'Entwicklung', 92.0, 0, 121, null, false],
+      [1, 'Vorbereitung', 33.0, 0, 52, null, false],
+    ];
+    const parentHours = { 1: total, 2: 412.5, 3: 188 };
+    const tree = raw.map(([lvl, name, h, bl, c, tag, open]) => ({
+      name, tag: tag || false, hours: hf.format(h), billable: bl ? hf.format(bl) : '·', count: nf.format(c),
+      rot: open ? 'rotate(90deg)' : 'none',
+      indent: ((lvl - 1) * 22) + 'px', weight: lvl === 1 ? 650 : lvl === 2 ? 500 : 400,
+      bg: lvl > 1 ? 'rgba(249,250,251,.9)' : 'transparent',
+      barW: Math.max(4, (h / total) * 150 * (lvl === 1 ? 1 : 1)).toFixed(0) + 'px',
+      fB: bl, fS: h - bl,
+      pct: Math.round(h / parentHours[lvl] * 100) + '%',
+      indentCur: ((lvl - 1) * 22) + 'px', weightCur: lvl === 1 ? 650 : lvl === 2 ? 500 : 400,
+      colorCur: lvl === 3 ? '#6b7280' : '#1f2937', bgCur: lvl > 1 ? 'rgba(249,250,251,.45)' : 'transparent',
+      parentShare: (h / parentHours[lvl] * 100).toFixed(1) + '%'
+    }));
+
+    const kpis = [
+      { label: 'Total hours', value: '1,300.5', sub: 'in the period', sw: false },
+      { label: 'Service hours', value: '1,086.5', sub: '84% of all hours', sw: false },
+      { label: 'Billable hours', value: '742.0', sub: '68% of service hours', sw: '#7c3aed' },
+      { label: 'Absence hours', value: '214.0', sub: '16% of all hours', sw: '#d97706' },
+      { label: 'Bookings', value: '2,184', sub: 'in the period', sw: false },
+      { label: 'People', value: '14', sub: 'with service hours', sw: false },
+    ].map((k, i) => ({ ...k, border: i ? '1px solid #f3f4f6' : 'none' }));
+
+    // ---- treemap drill-down ----
+    const TASKS_B = ['Professional Services', 'Support (verrechenbar)', 'Change Request', 'Change', 'Projektmanagement', 'Support (extern verrechenbar)'];
+    const TASKS_S = ['Intern', 'Entwicklung', 'Betrieb'];
+    const TASKS_A = ['Ferien', 'Krankheit', 'Kompensation'];
+    const CUST = ['Privera', 'Elektro-Material', 'Frigemo', 'Aveniq', 'Compass Group', 'MediaMarkt', 'Bucherer'];
+    const PEOPLE = ['M. Keller', 'S. Brunner', 'L. Meier', 'T. Graf', 'R. Frei', 'A. Huber', 'N. Weber', 'J. Schmid', 'C. Fischer', 'D. Moser', 'E. Baumann', 'K. Wyss', 'P. Roth', 'Y. Steiner'];
+    if (!this._rows) {
+      let sd = 11; const r = () => (sd = (sd * 9301 + 49297) % 233280) / 233280;
+      const rows = [];
+      const add = (task, customer, person, w, cat) => rows.push({ task, customer, person, w, cat });
+      TASKS_B.forEach((t, ti) => CUST.forEach((c, ci) => { if (r() < .55 - ti * .04) PEOPLE.forEach(p => { if (r() < .22) add(t, c, p, (1 + r() * 3) * (1.6 - ti * .18) * (1.4 - ci * .12), 'billable'); }); }));
+      PEOPLE.slice(0, 5).forEach(p => add('Vorbereitung Akten', 'Privera', p, 2 + r() * 3, 'billable'));
+      TASKS_S.forEach(t => ['sydoc intern', 'sydoc'].forEach(c => PEOPLE.forEach(p => { if (r() < .4) add(t, c, p, 1 + r() * 3, 'service'); })));
+      TASKS_A.forEach((t, ti) => PEOPLE.forEach(p => { if (r() < (ti === 0 ? .6 : .2)) add(t, 'Absences', p, 1 + r() * 3, 'absence'); }));
+      const target = { billable: 742, service: 344.5, absence: 214 };
+      ['billable', 'service', 'absence'].forEach(cat => {
+        const set = rows.filter(x => x.cat === cat); const sum = set.reduce((a, x) => a + x.w, 0);
+        set.forEach(x => { x.h = Math.round(x.w / sum * target[cat] * 4) / 4; x.count = Math.max(1, Math.round(x.h / 0.55)); });
+      });
+      this._rows = rows;
+    }
+    const dimsByOrder = [['task', 'customer', 'person'], ['customer', 'task', 'person'], ['person', 'customer', 'task']];
+    const DIMS = dimsByOrder[st.order];
+    const DIM_LABEL = { task: 'tasks', customer: 'customers', person: 'people' };
+    const path = st.path || [];
+    const q = (st.query || '').trim().toLowerCase();
+    const vis = this._rows.filter(x => (!st.billableOnly || x.cat === 'billable') && (!st.hideAbs || x.cat !== 'absence')
+      && (!q || (x.task + ' ' + x.customer + ' ' + x.person).toLowerCase().includes(q))
+      && path.every((k, i) => x[DIMS[i]] === k));
+    const level = path.length;
+    const levelTotal = vis.reduce((a, x) => a + x.h, 0);
+    const setPath = p => this.setState({ path: p });
+    const crumbs = [{ label: 'All ' + DIM_LABEL[DIMS[0]], go: () => setPath([]), sep: false }].concat(path.map((k, i) => ({ label: k, go: () => setPath(path.slice(0, i + 1)), sep: true })))
+      .map((c, i, arr) => ({ ...c, font: i === arr.length - 1 ? '700 14px Inter,sans-serif' : '500 13px Inter,sans-serif', color: i === arr.length - 1 ? '#1f2937' : '#6b7280' }));
+    let tiles = [], leafDays = [], levelMeta, tableRows = [], tableDim = '';
+    const showLeaf = level >= 3;
+    if (!showLeaf) {
+      const dim = DIMS[level];
+      const groups = new Map();
+      vis.forEach(x => { const g = groups.get(x[dim]) || { key: x[dim], h: 0, b: 0, s: 0, a: 0, n: 0 }; g.h += x.h; g.n += x.count; g[x.cat[0]] += x.h; groups.set(x[dim], g); });
+      const items = [...groups.values()].filter(g => g.h > 0).sort((a, b) => b.h - a.h);
+      const hash = s => { let x = 7; for (const ch of s) x = (x * 31 + ch.charCodeAt(0)) % 10007; return x / 10007; };
+      items.forEach(g => {
+        const r = hash(path.join('/') + '|' + g.key);
+        g.prev = r < .08 ? 0 : g.h / (0.75 + r * 0.5);
+        if (!g.prev) { g.dT = 'New'; g.dDir = 'up'; }
+        else { const d = (g.h - g.prev) / g.prev; const p = Math.round(d * 100); g.dT = p === 0 ? '±0%' : (p > 0 ? '+' : '−') + Math.abs(p) + '%'; g.dDir = p > 0 ? 'up' : p < 0 ? 'down' : 'flat'; g.dH = (g.h - g.prev >= 0 ? '+' : '−') + hf.format(Math.abs(g.h - g.prev)) + ' h'; }
+      });
+      const dCol = dir => dir === 'up' ? '#047857' : dir === 'down' ? '#b91c1c' : '#6b7280';
+      const dIcon = dir => dir === 'up' ? 'fas fa-arrow-trend-up' : dir === 'down' ? 'fas fa-arrow-trend-down' : 'fas fa-minus';
+      items.forEach(g => { g.dColor = dCol(g.dDir); g.dIcon = dIcon(g.dDir); g.dHT = g.dH || 'not booked in July'; });
+      levelMeta = items.length + ' ' + DIM_LABEL[dim] + ' · ' + hf.format(levelTotal) + ' h';
+      const maxH = items.length ? items[0].h : 1;
+      tableRows = items.map(g => ({
+        name: g.key, hours: hf.format(g.h), billable: g.b ? hf.format(g.b) : '·', count: nf.format(g.n),
+        w: (g.h / maxH * 100).toFixed(1) + '%', fB: g.b, fS: g.s, fA: g.a,
+        pct: Math.round(g.h / (levelTotal || 1) * 100) + '%',
+        dT: g.dT, dColor: g.dColor, dIcon: g.dIcon, dHT: g.dHT,
+        dot: g.a / g.h > .5 ? '#d97706' : g.b >= g.h * .999 ? '#7c3aed' : g.b > 0 ? '#a78bfa' : '#0891b2',
+        zoom: () => setPath(path.concat([g.key])),
+      }));
+      tableDim = { task: 'Task', customer: 'Customer', person: 'Person' }[dim];
+      const W = 1260, H = 440, GAP = 4;
+      const total = items.reduce((a, g) => a + g.h, 0) || 1;
+      const scale = W * H / total;
+      const rects = [];
+      let rest = items.map(g => ({ g, a: g.h * scale })), row = [], x = 0, y = 0, w = W, h = H;
+      const worst = (rw, side) => { if (!rw.length) return Infinity; const s = rw.reduce((a, r) => a + r.a, 0); const mx = Math.max(...rw.map(r => r.a)), mn = Math.min(...rw.map(r => r.a)); return Math.max(side * side * mx / (s * s), (s * s) / (side * side * mn)); };
+      const place = rw => { const s = rw.reduce((a, r) => a + r.a, 0); if (w >= h) { const cw = s / h; let cy = y; rw.forEach(r => { const rh = r.a / cw; rects.push({ ...r, x, y: cy, w: cw, h: rh }); cy += rh; }); x += cw; w -= cw; } else { const rh = s / w; let cx = x; rw.forEach(r => { const rw2 = r.a / rh; rects.push({ ...r, x: cx, y, w: rw2, h: rh }); cx += rw2; }); y += rh; h -= rh; } };
+      while (rest.length) { const side = Math.min(w, h); const c = rest[0]; if (!row.length || worst([...row, c], side) <= worst(row, side)) { row.push(c); rest.shift(); } else { place(row); row = []; } }
+      if (row.length) place(row);
+      tiles = rects.map(({ g, x: rx, y: ry, w: rw, h: rh }) => {
+        const tw = rw - GAP, th = rh - GAP;
+        const bShare = g.b / g.h, aShare = g.a / g.h;
+        const tone = aShare > .5 ? ['#fef3c7', '#78350f', '#92400e'] : bShare >= .999 ? ['#ede9fe', '#3b0764', '#6d28d9'] : bShare > 0 ? ['#f1ecfd', '#2e1065', '#6b7280'] : ['#e0f5f9', '#083344', '#0e7490'];
+        const big = tw > 220 && th > 110;
+        return {
+          left: rx.toFixed(1) + 'px', top: ry.toFixed(1) + 'px', width: tw.toFixed(1) + 'px', height: th.toFixed(1) + 'px',
+          bg: tone[0], ink: tone[1], sub: tone[2], name: g.key, hours: hf.format(g.h), pct: Math.round(g.h / total * 100) + '%',
+          title: g.key + ' · ' + hf.format(g.h) + ' h · ' + nf.format(g.n) + ' bookings',
+          showText: tw > 70 && th > 46, nameSize: big ? '15px' : '12.5px', valSize: big ? '22px' : '14px',
+          fB: g.b, fS: g.s, fA: g.a, dT: g.dT, dColor: g.dColor, dIcon: g.dIcon, showDelta: tw > 110 && th > 70,
+          zoom: () => setPath(path.concat([g.key])),
+        };
+      });
+    } else {
+      levelMeta = hf.format(levelTotal) + ' h · ' + nf.format(vis.reduce((a, x) => a + x.count, 0)) + ' bookings';
+      const comments = ['Rückfrage Buchhaltung', 'Exportfehler analysiert und behoben', '', 'Abstimmung mit Kunde', 'Konfiguration angepasst', 'Dossiers vorbereitet', 'Workshop Vorbereitung', ''];
+      const PKGS = ['Tagesgeschäft', 'Rechnungseingang', 'Tagesgeschäft Neuzugänge', 'Posteingang', 'Wartung', 'Projekt Q3'];
+      const more = ['Ticket #4812 bearbeitet', 'Telefon mit Kunde', 'Batch neu gestartet', 'Mapping geprüft', 'Rückfrage intern', 'Dokumentation ergänzt', 'Fehlerlog analysiert', 'Export kontrolliert', 'Abgleich Stammdaten', 'Test in INT'];
+      let sd2 = path[2].length * 97 + path[0].length; const r2 = () => (sd2 = (sd2 * 9301 + 49297) % 233280) / 233280;
+      const openDays = st.openDays || {};
+      const N = Math.max(1, vis.reduce((a, x) => a + x.count, 0));
+      const weekdays = []; for (let d = 3; d <= 31; d++) { const w = new Date(2026, 7, d).getDay(); if (w && w !== 6) weekdays.push(d); }
+      const D = Math.min(weekdays.length, Math.max(1, Math.ceil(N / 6)));
+      const useDays = weekdays.filter((_, i) => i % Math.max(1, Math.floor(weekdays.length / D)) === 0).slice(0, D);
+      const wts = useDays.map(() => 0.4 + r2()); const wsum = wts.reduce((a, b) => a + b, 0);
+      const counts = wts.map(w => Math.max(1, Math.floor(w / wsum * N)));
+      let diff = N - counts.reduce((a, b) => a + b, 0); for (let i = 0; diff > 0; i = (i + 1) % counts.length, diff--) counts[i]++;
+      const raw = [];
+      useDays.forEach((d, di) => { for (let k = 0; k < counts[di]; k++) raw.push({ d, w: 0.25 + r2() * 1.5, k }); });
+      const rawSum = raw.reduce((a, x) => a + x.w, 0);
+      raw.forEach(x => { x.h = Math.max(0.25, Math.round(x.w / rawSum * levelTotal * 4) / 4); });
+      for (const d of useDays) {
+        const dt = new Date(2026, 7, d);
+        const mine = raw.filter(x => x.d === d);
+        const cnt = mine.length;
+        const items = [];
+        for (let k = 0; k < cnt; k++) {
+          const c = r2() < .15 ? '' : (k % 2 ? comments : more)[Math.floor(r2() * 100) % (k % 2 ? comments.length : more.length)];
+          const h = mine[k].h;
+          items.push({ comment: c || 'No comment', cColor: c ? '#1f2937' : '#9ca3af', cStyle: c ? 'normal' : 'italic', pkg: PKGS[Math.floor(r2() * PKGS.length)], hours: h.toFixed(2), h });
+        }
+        const key = 'd' + d; const isOpen = !!openDays[key];
+        const tot = items.reduce((a, x) => a + x.h, 0);
+        leafDays.push({ day: d + ' Aug', weekday: dt.toLocaleDateString('en', { weekday: 'short' }), totalT: hf.format(tot), countT: cnt,
+          items: isOpen ? items : items.slice(0, 5), hasMore: cnt > 5, moreLabel: isOpen ? 'Show fewer' : 'Show ' + (cnt - 5) + ' more',
+          toggle: () => this.setState({ openDays: { ...openDays, [key]: !isOpen } }) });
+      }
+      levelMeta = hf.format(raw.reduce((a, x) => a + x.h, 0)) + ' h · ' + nf.format(raw.length) + ' bookings';
+    }
+    const treeVals = {
+      tiles, leafDays, showLeaf, crumbs, tableRows, tableDim,
+      showMap: !showLeaf && (st.view ?? 'table') === 'map',
+      showTable: !showLeaf && (st.view ?? 'table') === 'table',
+      views: [['map', 'Treemap', 'fas fa-table-cells-large'], ['table', 'Table', 'fas fa-list']].map(([k, label, icon], i) => {
+        const on = (st.view ?? 'table') === k;
+        return { label, icon, pick: () => this.setState({ view: k }), bg: on ? '#fff' : 'transparent', fg: on ? '#1f2937' : '#6b7280', shadow: on ? '0 1px 2px rgba(16,24,40,.1)' : 'none' };
+      }),
+      legendHint: (st.view ?? 'table') === 'map' ? 'Tile size is hours; the strip under each tile is its split. Click a tile to zoom in.' : 'Bar length is hours relative to the largest row; colours are its split. Click a row to zoom in.',
+      totalH: hf.format(levelTotal), totalB: hf.format(vis.filter(x => x.cat === 'billable').reduce((a, x) => a + x.h, 0)), totalN: nf.format(vis.reduce((a, x) => a + x.count, 0)), canBack: level > 0, levelMeta,
+      back: () => setPath(path.slice(0, -1)),
+      query: st.query || '', onQuery: e => this.setState({ query: e.target.value, path: [] }),
+    };
+    const chip = on => on ? ['#c4b5fd', '#f5f3ff', '#5b21b6'] : ['#e5e7eb', '#fff', '#6b7280'];
+    const bc = chip(st.billableOnly), ac = chip(st.hideAbs);
+    return {
+      ...pickerVals, ...treeVals, presets, rangeText, days: dayRows, orders: orderBtns, orderTitle: orders[st.order].join(' › '),
+      tree, treeCurrent: tree, kpis,
+      toggleBillable: () => this.setState({ billableOnly: !st.billableOnly }),
+      toggleAbsence: () => this.setState({ hideAbs: !st.hideAbs }),
+      billBorder: bc[0], billBg: bc[1], billFg: bc[2], absBorder: ac[0], absBg: ac[1], absFg: ac[2],
+    };
+  }
+}
+</script>
+</body>
+</html>

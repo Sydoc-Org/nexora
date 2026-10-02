@@ -183,3 +183,30 @@ html.dark textarea::placeholder {
   color: var(--nx-accent, #4f46e5);
 }
 .auth-theme-toggle:active { transform: scale(0.93); }
+
+/* ============================================================
+   TOUCH TARGETS ON THE LOGIN FORM (#354)
+
+   Keyed on `pointer: coarse`, not on width: how big a control needs to be is
+   a property of the finger, not the screen. Both of these are fine with a
+   mouse at any size and awkward with a thumb at any size.
+
+   44px is the floor Apple and Google both publish. The show-password eye
+   measured 30px wide -- the single control most likely to be tapped on a
+   phone, where typing a password blind is hardest -- and the theme toggle
+   40px.
+
+   This is the first media query in this file; it had none, so the login page
+   had no small-screen rules at all.
+   ============================================================ */
+@media (pointer: coarse) {
+  .auth-theme-toggle { min-width: 44px; min-height: 44px; }
+  .auth-pw-toggle { min-width: 44px; }
+  /* The eye sits inset-y-0 inside the field, so its height is the field's:
+     44px wide but 42 tall until the input itself clears the floor. A 42px
+     field is marginal to tap anyway. */
+  form input:not([type="hidden"]) { min-height: 44px; }
+  /* The input reserves 40px on the right for the eye; widen that to match so
+     a long password never runs under the enlarged button. */
+  div:has(> .auth-pw-toggle) input { padding-right: 46px; }
+}

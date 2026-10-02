@@ -1,0 +1,95 @@
+{#- Phone quick entry for the Generali booking pages (#354).
+
+    One markup for Base Services, Additional Services, Project Management
+    and PDQM; the behaviour is
+    static/js/generali_quick_entry.js, the look `.gq-*` in nexora-ui.css.
+    Rendered hidden: the script shows it only on a touch phone, so desktop
+    never sees it. Always books for the signed-in user -- booking for
+    someone else stays in the page's full form ("More options").
+
+      testid      data-testid prefix, e.g. "generali-base-services"
+      month_url   the page's month report
+      with_subs   nested categories (Additional Services, PDQM): adds the
+                  "recently booked" row and the lower-level lists
+      with_category  false for a page without categories (Project
+                  Management -- every row is "Project Effort")
+      with_comment   adds an optional free-text comment (Project Management)
+      count       a document count instead of hours (PDQM): changes the
+                  amount heading and the -/+ labels; the presets and the
+                  formatting come from the page's mount() call
+-#}
+{% macro quick_entry(testid, month_url, with_subs=false, with_category=true, with_comment=false, count=false) %}
+<section id="gqQuick" class="gq-quick" data-testid="{{ testid }}-quick" hidden>
+  <div class="gq-quick__head">
+    <h2 class="gq-quick__title">{{ _("Enter quantities") if count else _("Book hours") }}</h2>
+    <span class="gq-quick__date" id="gqQuickDateLabel"></span>
+  </div>
+
+  <div class="gq-quick__days" role="group" aria-label="{{ _('Date') }}">
+    <button type="button" class="gq-chip" data-day="0" data-testid="{{ testid }}-quick-today">{{ _("Today") }}</button>
+    <button type="button" class="gq-chip" data-day="1" data-testid="{{ testid }}-quick-yesterday">{{ _("Yesterday") }}</button>
+    <input type="text" id="gqQuickDate" class="gq-chip gq-chip--date" readonly
+           placeholder="{{ _('Other day') }}" aria-label="{{ _('Other day') }}"
+           data-testid="{{ testid }}-quick-date">
+  </div>
+
+  {% if with_subs %}
+  <div id="gqQuickRecentWrap" hidden>
+    <p class="gq-quick__label">{{ _("Recently booked") }}</p>
+    <div class="gq-quick__recent" id="gqQuickRecent" role="group" aria-label="{{ _('Recently booked') }}"
+         data-testid="{{ testid }}-quick-recent"></div>
+  </div>
+  {% endif %}
+
+  {% if with_category %}
+  <p class="gq-quick__label">{{ _("Category") }}</p>
+  <div class="gq-quick__cats" id="gqQuickCats" role="group" aria-label="{{ _('Category') }}"
+       data-testid="{{ testid }}-quick-categories"></div>
+  {% endif %}
+
+  {% if with_subs %}
+  <div id="gqQuickSubsWrap" hidden>
+    <p class="gq-quick__label">{{ _("Sub Category") }}</p>
+    <div class="gq-quick__subs" id="gqQuickSubs" role="group" aria-label="{{ _('Sub Category') }}"
+         data-testid="{{ testid }}-quick-subcategories"></div>
+  </div>
+  {% endif %}
+
+  {% set amount_label = _("Quantity") if count else _("Hours") %}
+  <p class="gq-quick__label">{{ amount_label }}</p>
+  <div class="gq-quick__presets" id="gqQuickPresets" role="group" aria-label="{{ amount_label }}"></div>
+  <div class="gq-quick__stepper">
+    <button type="button" class="gq-step" id="gqQuickMinus" aria-label="{{ _('One less') if count else _('Half an hour less') }}"
+            data-testid="{{ testid }}-quick-minus"><i class="fas fa-minus"></i></button>
+    <output class="gq-quick__hours" id="gqQuickAmount" data-testid="{{ testid }}-quick-amount">–</output>
+    <button type="button" class="gq-step" id="gqQuickPlus" aria-label="{{ _('One more') if count else _('Half an hour more') }}"
+            data-testid="{{ testid }}-quick-plus"><i class="fas fa-plus"></i></button>
+  </div>
+
+  {% if with_comment %}
+  <label class="gq-quick__label" for="gqQuickComment">{{ _("Comment") }} <span class="gq-quick__opt">({{ _("optional") }})</span></label>
+  <textarea id="gqQuickComment" class="nx-input gq-quick__comment" rows="2"
+            placeholder="{{ _('Enter comment…') }}" data-testid="{{ testid }}-quick-comment"></textarea>
+  {% endif %}
+
+  <p class="gq-quick__error" id="gqQuickError" role="alert" hidden></p>
+  <button type="button" class="nx-btn nx-btn--primary gq-quick__save" id="gqQuickSave" disabled
+          data-testid="{{ testid }}-quick-save">{{ _("Save") }}</button>
+  <button type="button" class="gq-quick__more" id="gqQuickMore"
+          data-testid="{{ testid }}-quick-more">{{ _("More options") }}</button>
+
+  <div class="gq-quick__mine" id="gqQuickMine" data-testid="{{ testid }}-quick-mine"></div>
+  <a class="gq-quick__month" id="gqQuickMonth" href="{{ month_url }}"
+     data-testid="{{ testid }}-quick-month" hidden></a>
+</section>
+{% endmacro %}
+
+{#- The "Saved · Undo" pill (static/js/undo_pill.js). Outside <main>, so it
+    can sit fixed above the tab bar. -#}
+{% macro undo_pill(testid) %}
+<div id="gqUndo" class="nx-undo" role="status" data-testid="{{ testid }}-undo" hidden>
+  <span class="nx-undo__text"></span>
+  <button type="button" class="nx-undo__btn" data-testid="{{ testid }}-undo-btn">{{ _("Undo") }}</button>
+  <span class="nx-undo__time" aria-hidden="true"></span>
+</div>
+{% endmacro %}

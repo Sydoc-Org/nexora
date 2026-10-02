@@ -199,6 +199,35 @@
             destroyCharts();
 
             const chartDefaults = { responsive: true, maintainAspectRatio: false };
+            /* Chart.js draws the legend INSIDE the canvas, so a legend on the
+               right takes its width out of the chart. The canvas is 304px on
+               a phone, which left about 150px for labels and chopped them
+               mid-word -- "KORRESPONDENZ S", "ANTRAG / ÄNDERUN" (#365).
+               Underneath, each label gets the full width.
+
+               Same touch gate as the CSS, so a narrow desktop window keeps
+               the legend beside the donut where there is room for it. */
+            const onPhone = window.matchMedia('(max-width: 768px) and (pointer: coarse)').matches;
+            const donutLegendSide = onPhone ? 'bottom' : 'right';
+            // Phone legends: a document type like "ANTRAG / ÄNDERUNGSANTRAG /
+            // GESUNDHEITSFRAGEN / ..." wrapped onto a second legend line with
+            // no colour square, so it could not be matched to its slice. On a
+            // phone each legend entry is cut to one line with "…"; the tooltip
+            // still shows the full name (it reads data.labels, not the legend).
+            const LEGEND_MAX = 28;
+            // A legend entry's text is not always a string (null for an
+            // unnamed slice); treat it as text so one odd label cannot stop
+            // every chart below it from drawing.
+            const shortLegend = t => { const x = t == null ? '' : String(t);
+                return x.length > LEGEND_MAX ? x.slice(0, LEGEND_MAX - 1).trimEnd() + '…' : x; };
+            const phoneLegendLabels = {
+                boxWidth: 12, font: { size: 11 },
+                // Chart.overrides.doughnut, not Chart.defaults: a doughnut's legend lists
+                // its slices, the general default lists datasets (one, unnamed).
+                generateLabels: chart => Chart.overrides.doughnut.plugins.legend.labels.generateLabels(chart).map(l => (
+                    { ...l, text: shortLegend(l.text) }))
+            };
+            const donutLegendLabels = onPhone ? phoneLegendLabels : { boxWidth: 12, font: { size: 11 } };
 
             trendData = data.trend;
             pruneTrendStateToData();
@@ -220,7 +249,7 @@
                         // over the chart in dark mode -- same fault as #326).
                         borderColor: () => token('--nx-card', '#ffffff') }]
                 },
-                options: { ...chartDefaults, cutout: '65%', plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } } } }
+                options: { ...chartDefaults, cutout: '65%', plugins: { legend: { position: donutLegendSide, labels: donutLegendLabels } } }
             });
 
             charts.empfaenger = new Chart(document.getElementById('empfaengerChart'), {
@@ -244,9 +273,22 @@
                     // empty track. Index mode makes the row hoverable.
                     interaction: { mode: 'index', intersect: false },
                     plugins: { legend: { display: false } },
-                    scales: { x: { beginAtZero: true, ticks: { precision: 0 } } }
+                    scales: {
+                        x: { beginAtZero: true, ticks: { precision: 0 } },
+                        y: { ticks: { autoSkip: !onPhone, font: { size: onPhone ? 12 : undefined } } }
+                    }
                 }
             });
+
+            // Phone: every recipient gets its own readable row. The box is
+            // h-48 (192px); with a dozen-plus recipients Chart.js skipped every
+            // other label, so half the bars had no name. Grow the box with the
+            // number of bars (28px each); the chart is responsive and follows
+            // its box, and its y ticks never skip on a phone (autoSkip above).
+            if (onPhone) {
+                charts.empfaenger.canvas.parentElement.style.height =
+                    Math.max(192, data.empfaenger.labels.length * 28 + 40) + 'px';
+            }
 
             // Aggregate NK1 and NK2 counts per status value independently
             const nkStatuses = [...new Set([...data.nk.map(r => r.nk1), ...data.nk.map(r => r.nk2)])];
@@ -310,7 +352,7 @@
                         // over the chart in dark mode -- same fault as #326).
                         borderColor: () => token('--nx-card', '#ffffff') }]
                 },
-                options: { ...chartDefaults, cutout: '65%', plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } } } }
+                options: { ...chartDefaults, cutout: '65%', plugins: { legend: { position: donutLegendSide, labels: donutLegendLabels } } }
             });
 
             charts.channel = new Chart(document.getElementById('channelChart'), {

@@ -1,6 +1,6 @@
 name: Deploy
 # Three hosted environments (#338):
-#   any branch push  -> fast tests -> deploy DEV     (D:\sydoc\nexora-dev,     ENVIRONMENT=INT)
+#   any branch push  -> fast tests -> deploy DEV     (D:\sydoc\nexora-dev-<who>, ENVIRONMENT=INT; the pusher's own host, #431)
 #   push to main     -> fast tests -> deploy STAGING (D:\sydoc\nexora-staging, ENVIRONMENT=STAGING)
 #   v* tag push      -> fast tests -> deploy PROD    (D:\sydoc\nexora,         ENVIRONMENT=PROD)
 # The deploy steps live in deploy-env.yml (reusable); the callers are at the
@@ -40,11 +40,48 @@ jobs:
     # A newer push to the same ref supersedes a still-running test job — cancel it.
     # Never applied to the deploy job: cancelling mid-robocopy would leave
     # PROD half-mirrored.
+    # The group is per event as well as per ref (#419): only a newer run of the
+    # SAME kind may supersede. A scheduled or dispatched run on main must never
+    # cancel a push run -- its deploy-staging needs this job, and the schedule
+    # run does not deploy staging itself (outside 01:30), so a merge would
+    # silently never reach staging. GitHub delays crons by hours under load, so
+    # the 03:00 e2e run can land mid-day, right on top of a merge.
     concurrency:
-      group: test-${{ github.ref }}
+      group: test-${{ github.ref }}-${{ github.event_name }}
       cancel-in-progress: true
+    outputs:
+      dev_slot: ${{ steps.dev_slot.outputs.slot }}
     steps:
       - uses: actions/checkout@v4
+
+      # Which dev host a branch push lands on (#431): one per developer, so two
+      # people pushing at once stop overwriting each other's deploy. Keyed on
+      # the pusher's GitHub login (github.actor stays the original pusher on a
+      # re-run). There is no shared dev host any more: a pusher not listed here
+      # -- a bot, an occasional contributor -- gets tests but no dev deploy
+      # (empty slot; deploy-dev skips). Adding a developer: one line here, then
+      # ops/setup-env.ps1 on SYAPP01 (docs/howto/ngrok.md -> Adding a host).
+      # Resolved here so the map lives in one place: deploy-dev's `with:` and
+      # `concurrency:` can read `needs`, but not env.
+      - name: Resolve dev slot
+        id: dev_slot
+        shell: powershell
+        run: |
+          $slots = @{
+            'benstreich' = 'dev-ben'
+            'GRuoss'     = 'dev-gruoss'
+          }
+          $slot = $slots['${{ github.actor }}']
+          if (-not $slot) {
+            Write-Host "::notice::${{ github.actor }} has no dev host (deploy.yml -> Resolve dev slot) -- skipping the dev deploy."
+            $slot = ''
+          } elseif (-not (Test-Path "D:\sydoc\nexora-$slot")) {
+            # This runner IS SYAPP01, so it can see whether the host exists.
+            Write-Host "::warning::D:\sydoc\nexora-$slot does not exist (run ops/setup-env.ps1) -- skipping the dev deploy."
+            $slot = ''
+          }
+          Write-Host "${{ github.actor }} -> '$slot'"
+          "slot=$slot" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding ascii
 
       - name: Install Python deps
         shell: powershell
@@ -178,18 +215,22 @@ jobs:
   # Deploys queue, never cancel — cancelling mid-robocopy would leave a host
   # half-mirrored. One concurrency group per environment.
 
-  # dev = whatever topic branch was pushed last (#338)
+  # dev = whatever topic branch its pusher pushed last (#338), one host per
+  # developer (#431); the slot comes from the test job's "Resolve dev slot"
+  # step. Each slot queues on its own, so one person's deploy never waits
+  # behind -- or overwrites -- another's. An empty slot (unmapped pusher, or a
+  # host not set up) skips the deploy.
   deploy-dev:
     needs: test
-    if: github.event_name == 'push' && github.ref_type == 'branch' && github.ref != 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref_type == 'branch' && github.ref != 'refs/heads/main' && needs.test.outputs.dev_slot != ''
     concurrency:
-      group: dev-deploy
+      group: ${{ needs.test.outputs.dev_slot }}-deploy
       cancel-in-progress: false
     uses: ./.github/workflows/deploy-env.yml
     with:
       env_name: INT
-      deploy_dir: 'D:\sydoc\nexora-dev'
-      app_pool: nexora-dev
+      deploy_dir: D:\sydoc\nexora-${{ needs.test.outputs.dev_slot }}
+      app_pool: nexora-${{ needs.test.outputs.dev_slot }}
 
   # staging = main, plus the nightly redeploy after the DB refresh. The schedule
   # event checks out the default branch, so it always redeploys main.

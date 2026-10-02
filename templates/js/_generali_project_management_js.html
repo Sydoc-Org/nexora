@@ -345,3 +345,35 @@
     nxUserFilter.init(API_PREFIX + 'api/generali/projectmanagement/filterUsers', applyFiltersSoon);
     crud.loadRecords(1);
 </script>
+{% if can_add %}
+{% include 'js/_generali_quick_entry_i18n.html' %}
+<script src="{{ static_v('js/undo_pill.js') }}"></script>
+<script src="{{ static_v('js/generali_quick_entry.js') }}"></script>
+<script nonce="{{ csp_nonce() }}">
+    // Phone quick entry (#354) -- templates/_generali_quick_entry.html.
+    // No category here: every row is PM_CATEGORY, as in the full form; an
+    // optional comment says what the hours were for.
+    const PM_LABEL = {{ _("Project Management")|tojson }};
+    NX.generaliQuickEntry.mount({
+        api: API_PREFIX + 'api/generali/projectmanagement',
+        userId: {{ userid|tojson }},
+        i18n: window.NX_I18N_QUICK_ENTRY,
+        crud,
+        openAddModal,
+        storageKey: 'nx.generali.projectmanagement.quick',
+        categories: null,
+        buildBody: p => ({
+            forDate: p.date, category: PM_CATEGORY, effortInHours: p.amount, comment: p.comment || null,
+        }),
+        recordPath: () => [],
+        rowLabel: r => r.comment || PM_LABEL,
+        pillLabel: p => p.comment || '',
+        fillFullForm: p => {
+            const dateEl = document.getElementById('addForDate');
+            if (p.date && dateEl._flatpickr) dateEl._flatpickr.setDate(p.date, false);
+            if (p.amount) document.getElementById('addEffortHours').value = String(p.amount);
+            if (p.comment) document.getElementById('addComment').value = p.comment;
+        },
+    });
+</script>
+{% endif %}

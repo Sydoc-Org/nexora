@@ -26,12 +26,14 @@ import datetime as dt
 from dataclasses import dataclass
 from decimal import Decimal
 
+from . import bps
 from .reporting.semantic import resolve_metrics
 from .reporting.table_query import build_generic_query
 
 EARLIEST_YEAR = 2020
 MONTH_OPTIONS = 36
 BREAKDOWN_ROW_CAP = 1000
+BOOKINGS_ROW_CAP = 5000
 
 INTERNAL = "internal"
 EXTERNAL = "external"
@@ -162,11 +164,29 @@ class Breakdown:
 
     `metrics` narrows the columns to a subset of the block's figures (a
     measure that is itself a split of another one is noise as a column).
+    With `across` set it is a matrix instead: one measure (the first of
+    `metrics`, or of the block) grouped by `dim` down and `across` along --
+    the shape the Privera "Versand" sheets bill (register x branch).
+
+    `where` narrows the table to some rows of the source (Reporting filter
+    grammar) -- one client of a shared statistics table. A table with a
+    `where` may show a measure that is not a figure of its block. `then`
+    groups by a second column too (the row key reads "dim · then"), and
+    `keys` orders the list: those (dim, then) pairs first, 0 where the month
+    has none, then whatever else the month holds -- every metric shows, none
+    is filtered away.
     """
 
     dim: str
     label: str
     metrics: tuple[str, ...] = ()
+    across: str | None = None
+    across_label: str | None = None
+    # Tables of one block sharing a `row` sit side by side; a new row starts below.
+    row: int = 0
+    where: tuple[dict, ...] = ()
+    then: str | None = None
+    keys: tuple[tuple[str, str | None], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -176,6 +196,40 @@ class Block:
     period: Period
     figures: tuple[str, ...]
     breakdowns: tuple[Breakdown, ...] = ()
+
+
+@dataclass(frozen=True)
+class Bookings:
+    """Every row of a source that matches one of `rules`, listed singly.
+
+    For services billed per booking (the BPS hours): accounting needs each
+    line with its comment, not a total. `rules` are AND-groups in the
+    Reporting filter grammar, OR-ed by running one query per group -- they
+    must be disjoint (bps.BILLABLE_RULES is). `hours` is the column summed
+    into the figures, `group_by` the column the list is grouped by.
+
+    `customers` maps the BPS customer names (`group_by`) to the page's
+    clients: only bookings on them are listed, so work for a customer the
+    page does not bill (SSD, Generali) stays on the BPS page. `split` names
+    the customers whose export is one sheet per project package, with the
+    packages in sheet order (Privera's Posteingang, Invoice and Neuzugänge
+    are three invoices).
+    """
+
+    period: Period
+    rules: tuple[tuple[dict, ...], ...]
+    columns: tuple[str, ...]
+    hours: str
+    group_by: str
+    sort: tuple[str, ...]
+    labels: tuple[str, ...]
+    customers: tuple[tuple[str, str], ...] = ()
+    split: tuple[tuple[str, tuple[str, ...]], ...] = ()
+
+    def customer_filter(self):
+        if not self.customers:
+            return []
+        return [{"field": self.group_by, "op": "in", "value": [c for c, _ in self.customers]}]
 
 
 @dataclass(frozen=True)
@@ -189,6 +243,10 @@ class Section:
     group: str = INTERNAL
     title: str | None = None
     note: str | None = None
+    bookings: Bookings | None = None
+    link: str | None = None
+    # The short label of the page's jump index; falls back to title, then client.
+    nav: str | None = None
 
 
 SECTIONS = (
@@ -198,9 +256,10 @@ SECTIONS = (
         client="Elektro-Material",
         source="em_invoice",
         note=N_(
-            "Live figures: EM_Invoice is still edited after a month closes, so a "
-            "closed month can return different numbers later. Only the Opex and "
-            "e-mail channels are billed."
+            "EM_Invoice is still edited after a month ends: a re-exported document "
+            "moves to the month of its new export date. Close the month once it is "
+            "invoiced so its figures stay as billed. Only the Opex and e-mail "
+            "channels are billed."
         ),
         blocks=(
             Block(
@@ -213,10 +272,12 @@ SECTIONS = (
     Section(
         key="compass",
         client="Compass Group",
+        nav="Compass",
         source="compass_invoice",
         note=N_(
             "Counted by upload date, whatever the document date: that is the set "
-            "the invoice bills."
+            "the invoice bills. Rows without a workitem that repeat a barcode "
+            "(74 in August 2026) are counted, as the workbook counts them."
         ),
         blocks=(
             Block(
@@ -238,7 +299,17 @@ SECTIONS = (
             Block(
                 period=Period("text_month", "ExportDatetime", basis=N_("by export date")),
                 figures=("privera_posteingang_documents",),
-                breakdowns=(Breakdown("Niederlassung", N_("Branch")),),
+                breakdowns=(
+                    Breakdown("Niederlassung", N_("Branch")),
+                    # Below the per-branch table, which takes the full width.
+                    Breakdown(
+                        "Register",
+                        N_("Register"),
+                        across="Niederlassung",
+                        across_label=N_("Branch"),
+                        row=1,
+                    ),
+                ),
             ),
         ),
     ),
@@ -246,6 +317,7 @@ SECTIONS = (
         key="privera_invoice",
         client="Privera",
         title="Rechnungseingang",
+        nav="Rechnungen",
         source="privera_invoice",
         blocks=(
             Block(
@@ -266,12 +338,23 @@ SECTIONS = (
         key="privera_nachsendungen",
         client="Privera",
         title="Physische Zustellung",
+        nav="Zustellung",
         source="privera_nachsendungen",
         blocks=(
             Block(
                 period=Period("range", "ExportDatetime", basis=N_("by export date")),
                 figures=("privera_nachsendungen_total", "privera_nachsendungen_ohne_tec"),
-                breakdowns=(Breakdown("Niederlassung", N_("Branch")),),
+                breakdowns=(
+                    Breakdown("Niederlassung", N_("Branch")),
+                    Breakdown(
+                        "Nachsendungstyp",
+                        N_("Forwarding type"),
+                        metrics=("privera_nachsendungen_total",),
+                        across="Niederlassung",
+                        across_label=N_("Branch"),
+                        row=1,
+                    ),
+                ),
             ),
         ),
     ),
@@ -280,6 +363,10 @@ SECTIONS = (
         client="Privera",
         title="Neuzugänge",
         source="privera_neuzugaenge",
+        note=N_(
+            "A dossier registered under two branches is counted in both, exactly "
+            "as the workbook counts it."
+        ),
         blocks=(
             Block(
                 period=Period(
@@ -326,15 +413,43 @@ SECTIONS = (
         blocks=(
             Block(
                 period=Period("range", "ExportDate", basis=N_("by date")),
-                figures=(
-                    "xpert_stats_documents",
-                    "xpert_stats_bfh_new_creditors",
-                    "xpert_stats_zhaw_workitems",
-                ),
+                # BFH's and ZHAW's own counts are in their tables below, not figures.
+                figures=("xpert_stats_documents",),
                 breakdowns=(
                     Breakdown("Client", N_("Client"), metrics=("xpert_stats_documents",)),
+                    # The two clients billed per metric: every metric (and for
+                    # ZHAW every dimension) of the month, the known ones first.
                     Breakdown(
-                        "SourceDb", N_("Source database"), metrics=("xpert_stats_documents",)
+                        "Metric",
+                        "BFH",
+                        metrics=("xpert_stats_count",),
+                        row=1,
+                        where=({"field": "Client", "op": "eq", "value": "BFH"},),
+                        then="Dimension",
+                        keys=(
+                            ("Total", None),
+                            ("NeueKreditoren", None),
+                            ("NKReproduzierte", None),
+                            ("Uebrige", None),
+                            ("UEReproduzierte", None),
+                        ),
+                    ),
+                    Breakdown(
+                        "Metric",
+                        "ZHAW",
+                        metrics=("xpert_stats_count",),
+                        row=1,
+                        where=({"field": "Client", "op": "eq", "value": "ZHAW"},),
+                        then="Dimension",
+                        keys=(
+                            ("Total", None),
+                            ("WorkItems", None),
+                            ("WorkItemsByEingang", "MAIL"),
+                            ("WorkItemsByEingang", "Scanner"),
+                            ("WorkItemsByEingang", None),
+                            ("WorkItemsByIsWithOrder", "0"),
+                            ("WorkItemsByIsWithOrder", "1"),
+                        ),
                     ),
                 ),
             ),
@@ -370,31 +485,54 @@ SECTIONS = (
             ),
         ),
     ),
-    # ---- Sydoc's own services: the hours booked in the BPS timetool.
+    # ---- Sydoc's own services: the billable hours booked in the BPS timetool.
     Section(
         key="bps",
         client="Sydoc",
-        title="BPS",
-        source="bps_projects",
+        title=N_("Billable services"),
+        nav=N_("Services"),
+        source=bps.SOURCE,
         group=SERVICES,
+        link="bps",
         note=N_(
-            "Hours booked in the BPS timetool. Service hours are everything except "
-            "the Absences pseudo-customer (vacation, sick leave, compensation), "
-            "which is shown separately. The task names are BPS's own."
+            "Every billable booking of the BPS timetool on the customers of this "
+            "page, singly and with its comment: Support (verrechenbar, extern "
+            "verrechenbar), Change, Change Request, Professional Services and "
+            "Projektmanagement, plus Vorbereitung Akten on Privera · Tagesgeschäft "
+            "Neuzugänge. Each booking is billed rounded up to the quarter hour; "
+            "both the booked and the billed hours are shown. All hours, drilled "
+            "down per task, customer and person, are on the Sydoc BPS page."
         ),
-        blocks=(
-            Block(
-                period=Period("range", "Datum", basis=N_("by booking date")),
-                figures=(
-                    "bps_projects_service_hours",
-                    "bps_projects_absence_hours",
-                    "bps_projects_hours",
-                ),
-                breakdowns=(
-                    Breakdown("Aufgabe", N_("Task"), metrics=("bps_projects_service_hours",)),
-                    Breakdown("Kunde", N_("Customer"), metrics=("bps_projects_service_hours",)),
-                ),
+        blocks=(),
+        bookings=Bookings(
+            period=Period("range", "Datum", basis=N_("by booking date")),
+            rules=bps.BILLABLE_RULES,
+            columns=bps.BOOKING_COLUMNS,
+            hours="Stunden",
+            group_by="Kunde",
+            sort=("Kunde", "Datum", "Benutzer"),
+            labels=(
+                N_("Date"),
+                N_("Customer"),
+                N_("Package"),
+                N_("Task"),
+                N_("Person"),
+                N_("Hours"),
+                N_("Comment"),
             ),
+            # BPS customer name -> the page's client (Aveniq books BFH, ZHAW, ...
+            # as its project packages).
+            customers=(
+                ("Elektro Material", "Elektro-Material"),
+                ("CompassGroup", "Compass Group"),
+                ("Privera", "Privera"),
+                ("Frigemo", "Frigemo"),
+                ("Aveniq", "Aveniq"),
+                ("Bucherer", "Bucherer"),
+                ("MediaMarkt", "MediaMarkt"),
+            ),
+            # Privera bills its three streams on three invoices, in page order.
+            split=(("Privera", ("Posteingang", "Invoice", "Neuzugänge")),),
         ),
     ),
 )
@@ -402,10 +540,31 @@ SECTIONS = (
 SECTIONS_BY_KEY = {s.key: s for s in SECTIONS}
 
 
+def billed_clients():
+    """The Finance clients a Bexio invoice is addressed to, in page order (#423).
+
+    One per distinct Section.client; Sydoc's own BPS services are billed on the
+    customers' invoices, so the SERVICES group names no client of its own.
+    """
+    seen: dict[str, None] = {}
+    for s in SECTIONS:
+        if s.group != SERVICES:
+            seen.setdefault(s.client, None)
+    return list(seen)
+
+
 def section_descriptors():
     """The static shape of the page: what the template renders before any data."""
     return [
-        {"key": s.key, "client": s.client, "title": s.title, "group": s.group, "source": s.source}
+        {
+            "key": s.key,
+            "client": s.client,
+            "title": s.title,
+            "group": s.group,
+            "source": s.source,
+            "link": s.link,
+            "nav": s.nav or s.title or s.client,
+        }
         for s in SECTIONS
     ]
 
@@ -420,7 +579,7 @@ class Query:
     """One SQL statement of a section run, and what its rows mean."""
 
     block: int
-    kind: str  # 'figures' (this month) | 'previous' (the month before) | 'breakdown'
+    kind: str  # figures | previous | breakdown | matrix | bookings | bookings_figures | bookings_previous
     dim: str | None
     metrics: tuple[str, ...]
     sql: str
@@ -429,6 +588,20 @@ class Query:
 
 def _refs(codes):
     return [{"metric": code} for code in codes]
+
+
+def _check_fields(section, catalog_fields, fields, what):
+    for f in fields:
+        if f not in catalog_fields:
+            raise FinanceSpecError(f"{section.key}: {what} {f!r} is not in the catalog")
+
+
+def breakdown_id(br):
+    """What tells a block's breakdowns apart: the dimension, plus the filter
+    when two tables group the same column (Xpert's BFH and ZHAW)."""
+    if not br.where:
+        return br.dim
+    return br.dim + "|" + "&".join(f"{w['field']}={w['value']}" for w in br.where)
 
 
 def build_section_queries(section, base_object, catalog, source_metrics, year, month):
@@ -447,9 +620,7 @@ def build_section_queries(section, base_object, catalog, source_metrics, year, m
     prev_year, prev_month = shift_month(year, month, -1)
     out = []
     for index, block in enumerate(section.blocks):
-        for f in block.period.fields():
-            if f not in catalog_fields:
-                raise FinanceSpecError(f"{section.key}: period field {f!r} is not in the catalog")
+        _check_fields(section, catalog_fields, block.period.fields(), "period field")
         resolved = resolve_metrics(_refs(block.figures), source_metrics, catalog_fields)
         for kind, (y, m) in (("figures", (year, month)), ("previous", (prev_year, prev_month))):
             rd = {
@@ -463,25 +634,92 @@ def build_section_queries(section, base_object, catalog, source_metrics, year, m
             )
             out.append(Query(index, kind, None, block.figures, sql, params))
         for br in block.breakdowns:
-            if br.dim not in catalog_fields:
-                raise FinanceSpecError(f"{section.key}: dimension {br.dim!r} is not in the catalog")
+            _check_fields(section, catalog_fields, (br.dim,), "dimension")
+            _check_fields(
+                section, catalog_fields, [w["field"] for w in br.where], "breakdown filter"
+            )
             codes = br.metrics or block.figures
             for code in codes:
-                if code not in block.figures:
+                if code not in block.figures and not br.where:
                     raise FinanceSpecError(
                         f"{section.key}: breakdown measure {code!r} is not one of the block's figures"
                     )
+            dims = [br.dim]
+            if br.then:
+                _check_fields(section, catalog_fields, (br.then,), "second dimension")
+                dims.append(br.then)
+            if br.across:
+                _check_fields(section, catalog_fields, (br.across,), "matrix dimension")
+                codes = codes[:1]
+                dims.append(br.across)
             resolved_b = resolve_metrics(_refs(codes), source_metrics, catalog_fields)
             rd = {
-                "columns": [{"field": br.dim}],
-                "filters": block.period.filters(year, month),
+                "columns": [{"field": d} for d in dims],
+                "filters": block.period.filters(year, month) + [dict(w) for w in br.where],
                 "metrics": _refs(codes),
                 "sort": [{"field": codes[0], "dir": "desc"}],
             }
             sql, params = build_generic_query(
                 rd, base_object, catalog, row_cap=BREAKDOWN_ROW_CAP, resolved_metrics=resolved_b
             )
-            out.append(Query(index, "breakdown", br.dim, codes, sql, params))
+            kind = "matrix" if br.across else "breakdown"
+            out.append(Query(index, kind, breakdown_id(br), codes, sql, params))
+    if section.bookings is not None:
+        out.extend(_bookings_queries(section, base_object, catalog, catalog_fields, year, month))
+    return out
+
+
+def _bookings_queries(section, base_object, catalog, catalog_fields, year, month):
+    """Per rule: the rows of the month, and the hours/count of this and the previous month.
+
+    The figures are aggregates of their own rather than sums of the listed
+    rows, so a list cut at BOOKINGS_ROW_CAP still totals correctly.
+    """
+    bk = section.bookings
+    _check_fields(section, catalog_fields, bk.period.fields(), "period field")
+    _check_fields(section, catalog_fields, bk.columns, "bookings column")
+    _check_fields(section, catalog_fields, (bk.hours, bk.group_by, *bk.sort), "bookings field")
+    for rule in bk.rules:
+        _check_fields(section, catalog_fields, [c["field"] for c in rule], "bookings rule field")
+    only = bk.customer_filter()
+    totals = {
+        "hours": {"aggregation": "sum", "base_field": bk.hours, "filter": None},
+        "count": {"aggregation": "count", "base_field": None, "filter": None},
+    }
+    resolved = resolve_metrics(_refs(("hours", "count")), totals, catalog_fields)
+    prev_year, prev_month = shift_month(year, month, -1)
+    out = []
+    for index, rule in enumerate(bk.rules):
+        rd = {
+            "columns": [{"field": c} for c in bk.columns],
+            "filters": bk.period.filters(year, month) + [dict(c) for c in rule] + only,
+            "sort": [{"field": f, "dir": "asc"} for f in bk.sort],
+        }
+        sql, params = build_generic_query(rd, base_object, catalog, row_cap=BOOKINGS_ROW_CAP)
+        out.append(Query(index, "bookings", None, (), sql, params))
+        # The previous month's hours booking by booking: a rounded total
+        # (each booking rounded on its own) is no aggregate SQL can give.
+        rd = {
+            "columns": [{"field": bk.hours}],
+            "filters": bk.period.filters(prev_year, prev_month) + [dict(c) for c in rule] + only,
+            "sort": [],
+        }
+        sql, params = build_generic_query(rd, base_object, catalog, row_cap=BOOKINGS_ROW_CAP)
+        out.append(Query(index, "bookings_previous_rows", None, (), sql, params))
+        for kind, (y, m) in (
+            ("bookings_figures", (year, month)),
+            ("bookings_previous", (prev_year, prev_month)),
+        ):
+            rd = {
+                "columns": [],
+                "filters": bk.period.filters(y, m) + [dict(c) for c in rule] + only,
+                "metrics": _refs(("hours", "count")),
+                "sort": [],
+            }
+            sql, params = build_generic_query(
+                rd, base_object, catalog, row_cap=1, resolved_metrics=resolved
+            )
+            out.append(Query(index, kind, None, ("hours", "count"), sql, params))
     return out
 
 
@@ -516,16 +754,177 @@ def _cells(rows, width):
     return [_number(row[i]) if i < len(row) else 0 for i in range(width)]
 
 
-def _breakdown_rows(rows):
-    """Grouped rows -> [{key, values}], dropping groups that counted nothing."""
-    out = []
+def _key(value):
+    return None if value is None else str(value)
+
+
+def _breakdown_rows(rows, width=1, keys=(), blank=None):
+    """Grouped rows -> [{key, values}], dropping groups that counted nothing.
+
+    `width` is the number of key columns at the front of a row; a two-column
+    key reads "first · second" (the second left out when blank, or shown as
+    `blank` when the same first value also has a non-blank second). With
+    `keys` nothing is dropped: those key tuples come first, in that order and
+    0 where the month has none, then every other key found, sorted.
+    """
+    found: dict[tuple, list] = {}
     for row in rows:
-        values = [_number(v) for v in row[1:]]
-        if not any(values):
+        values = [_number(v) for v in row[width:]]
+        key = tuple(_key(v) for v in row[:width])
+        if key in found:
+            found[key] = [_number(a + b) for a, b in zip(found[key], values, strict=True)]
+        else:
+            found[key] = values
+    measures = max((len(v) for v in found.values()), default=1)
+    if keys:
+        order = [tuple(k) + (None,) * (width - len(k)) for k in keys]
+        rest = sorted(
+            (k for k in found if k not in order),
+            key=lambda k: tuple((v is None, (v or "").casefold()) for v in k),
+        )
+        pairs = [(k, found.get(k) or [0] * measures) for k in order + rest]
+    else:
+        pairs = [(k, v) for k, v in found.items() if any(v)]
+    split = {k[0] for k, _ in pairs if len(k) > 1 and k[1] not in (None, "")}
+    return [{"key": _label(k, blank if k[0] in split else None), "values": v} for k, v in pairs]
+
+
+def _label(key, blank=None):
+    parts = [k for k in key if k not in (None, "")]
+    if blank and len(key) > 1 and key[1] in (None, ""):
+        parts.append(blank)
+    if not parts:
+        return None
+    return " · ".join(parts)
+
+
+def _sorted_keys(totals):
+    """Keys alphabetically, the blank group last -- the order of the workbooks' pivots."""
+    return sorted(totals, key=lambda k: (k is None, (k or "").casefold()))
+
+
+def _matrix(rows):
+    """(dim, across, value) rows -> a dense pivot with row and column totals."""
+    cells: dict[tuple, int | float] = {}
+    row_tot: dict[str | None, int | float] = {}
+    col_tot: dict[str | None, int | float] = {}
+    for row in rows:
+        value = _number(row[2]) if len(row) > 2 else 0
+        if not value:
             continue
-        key = row[0]
-        out.append({"key": None if key is None else str(key), "values": values})
-    return out
+        r, c = _key(row[0]), _key(row[1])
+        cells[(r, c)] = _number(cells.get((r, c), 0) + value)
+        row_tot[r] = _number(row_tot.get(r, 0) + value)
+        col_tot[c] = _number(col_tot.get(c, 0) + value)
+    row_keys, col_keys = _sorted_keys(row_tot), _sorted_keys(col_tot)
+    return {
+        "row_keys": row_keys,
+        "col_keys": col_keys,
+        "cells": [[cells.get((r, c), 0) for c in col_keys] for r in row_keys],
+        "row_totals": [row_tot[r] for r in row_keys],
+        "col_totals": [col_tot[c] for c in col_keys],
+        "total": _number(sum(row_tot.values())),
+    }
+
+
+def _cell_value(value):
+    """A row-level cell as JSON: dates as ISO, numbers as numbers, text cleaned."""
+    if value is None:
+        return None
+    if isinstance(value, dt.datetime):
+        return value.date().isoformat()
+    if isinstance(value, dt.date):
+        return value.isoformat()
+    if isinstance(value, int | float | Decimal) and not isinstance(value, bool):
+        return _number(value)
+    return bps.clean_text(value)
+
+
+#: The column of a booking row that holds its billed (rounded) hours.
+BILLED_FIELD = "billed"
+
+
+def _assemble_bookings(section, by_key, translate):
+    bk = section.bookings
+    cols = list(bk.columns)
+    hours_i, group_i = cols.index(bk.hours), cols.index(bk.group_by)
+    name_i = cols.index("Benutzer") if "Benutzer" in cols else None
+    task_i = cols.index("Aufgabe") if "Aufgabe" in cols else None
+    rows, truncated = [], False
+    current, previous = [0, 0], [0, 0]
+    billed_prev = Decimal(0)
+    for index in range(len(bk.rules)):
+        raw = by_key.get((index, "bookings", None), [])
+        truncated = truncated or len(raw) >= BOOKINGS_ROW_CAP
+        for r in raw:
+            cells = [_cell_value(v) for v in r]
+            if name_i is not None:
+                cells[name_i] = bps.clean_name(cells[name_i])
+            # The billed hours ride along as one more column after the row's own.
+            cells.append(bps.billed_hours(cells[hours_i]))
+            rows.append(cells)
+        for r in by_key.get((index, "bookings_previous_rows", None), []):
+            billed_prev += Decimal(str(bps.billed_hours(r[0] if r else None)))
+        for acc, kind in ((current, "bookings_figures"), (previous, "bookings_previous")):
+            h, n = _cells(by_key.get((index, kind, None), []), 2)
+            acc[0] = _number(acc[0] + h)
+            acc[1] = _number(acc[1] + n)
+    sort_i = [cols.index(f) for f in bk.sort]
+    rows.sort(key=lambda r: tuple("" if r[i] is None else str(r[i]).casefold() for i in sort_i))
+    groups: dict = {}
+    order: list = []
+    by_task: dict = {}
+    billed_i = len(cols)
+    for r in rows:
+        key = r[group_i]
+        if key not in groups:
+            groups[key] = {"key": key, "hours": 0, "billed": 0, "count": 0, "rows": []}
+            order.append(key)
+        g = groups[key]
+        g["hours"] = _number(g["hours"] + (r[hours_i] or 0))
+        g["billed"] = _number(g["billed"] + r[billed_i])
+        g["count"] += 1
+        g["rows"].append(r)
+        if task_i is not None:
+            t = by_task.setdefault(
+                r[task_i], {"key": r[task_i], "hours": 0, "billed": 0, "count": 0}
+            )
+            t["hours"] = _number(t["hours"] + (r[hours_i] or 0))
+            t["billed"] = _number(t["billed"] + r[billed_i])
+            t["count"] += 1
+    billed = _number(sum((Decimal(str(r[billed_i])) for r in rows), Decimal(0)))
+    return {
+        "basis": translate(bk.period.basis),
+        "figures": [
+            {
+                "code": "billable_hours",
+                "label": translate(N_("Billable hours")),
+                "value": current[0],
+                "prev": previous[0],
+            },
+            {
+                "code": "billed_hours",
+                "label": translate(N_("Billed hours (rounded up to ¼ h)")),
+                "value": billed,
+                "prev": _number(billed_prev),
+            },
+            {
+                "code": "billable_bookings",
+                "label": translate(N_("Billable bookings")),
+                "value": current[1],
+                "prev": previous[1],
+            },
+        ],
+        "columns": [
+            {"field": f, "label": translate(label), "numeric": f == bk.hours}
+            for f, label in zip(bk.columns, bk.labels, strict=True)
+        ]
+        + [{"field": BILLED_FIELD, "label": translate(N_("Billed")), "numeric": True}],
+        "group_by": bk.group_by,
+        "groups": [groups[k] for k in order],
+        "by_task": sorted(by_task.values(), key=lambda t: (-t["hours"], t["key"] or "")),
+        "truncated": truncated,
+    }
 
 
 def assemble_section(section, queries, rows_by_query, *, source_label, metric_label, translate):
@@ -550,11 +949,38 @@ def assemble_section(section, queries, rows_by_query, *, source_label, metric_la
         breakdowns = []
         for br in block.breakdowns:
             codes = br.metrics or block.figures
-            rows = _breakdown_rows(by_key.get((index, "breakdown", br.dim), []))
-            totals = [_number(sum(r["values"][i] for r in rows)) for i in range(len(codes))]
+            if br.across:
+                code = codes[0]
+                breakdowns.append(
+                    {
+                        "kind": "matrix",
+                        "row": br.row,
+                        "dim": br.dim,
+                        "across": br.across,
+                        "label": translate(br.label),
+                        "across_label": translate(br.across_label or br.across),
+                        "measure": {"code": code, "label": metric_label(code)},
+                        **_matrix(by_key.get((index, "matrix", breakdown_id(br)), [])),
+                    }
+                )
+                continue
+            rows = _breakdown_rows(
+                by_key.get((index, "breakdown", breakdown_id(br)), []),
+                width=2 if br.then else 1,
+                keys=br.keys,
+                blank=translate(N_("(blank)")),
+            )
+            # A fixed list is items of one total, not parts that add up.
+            totals = (
+                None
+                if br.keys
+                else [_number(sum(r["values"][i] for r in rows)) for i in range(len(codes))]
+            )
             breakdowns.append(
                 {
-                    "dim": br.dim,
+                    "kind": "table",
+                    "row": br.row,
+                    "dim": breakdown_id(br),
                     "label": translate(br.label),
                     "columns": [{"code": c, "label": metric_label(c)} for c in codes],
                     "rows": rows,
@@ -567,71 +993,171 @@ def assemble_section(section, queries, rows_by_query, *, source_label, metric_la
     return {
         "key": section.key,
         "client": section.client,
-        "title": section.title,
+        "title": translate(section.title) if section.title else None,
         "group": section.group,
         "source": {"code": section.source, "label": source_label},
         "note": translate(section.note) if section.note else None,
         "blocks": blocks,
+        "bookings": _assemble_bookings(section, by_key, translate) if section.bookings else None,
         "error": None,
     }
 
 
-def error_section(section, message, *, detail=None, source_label=None):
+def error_section(section, message, *, detail=None, source_label=None, translate=None):
     """The payload of a section that could not be read -- the page shows it in place."""
+    title = section.title
+    if title and translate:
+        title = translate(title)
     return {
         "key": section.key,
         "client": section.client,
-        "title": section.title,
+        "title": title,
         "group": section.group,
         "source": {"code": section.source, "label": source_label},
         "note": None,
         "blocks": [],
+        "bookings": None,
         "error": message,
         "detail": detail,
     }
 
 
-def export_rows(payload):
-    """A section payload as flat CSV rows: one per figure and per breakdown cell.
+# --------------------------------------------------------------------------
+# Month close
+# --------------------------------------------------------------------------
 
-    Column order matches export_columns(): client, section, month basis, kind,
-    dimension, group, measure, value, previous month.
+
+def payload_figures(payload):
+    """{(block, code): (label, value)} of every figure a payload shows, bookings included."""
+    out: dict[tuple, tuple] = {}
+    for index, block in enumerate(payload.get("blocks") or []):
+        for f in block.get("figures") or []:
+            out[(index, f["code"])] = (f["label"], f["value"])
+    for f in (payload.get("bookings") or {}).get("figures") or []:
+        out[("bookings", f["code"])] = (f["label"], f["value"])
+    return out
+
+
+def diff_payload(closed, live):
+    """Where the live figures of a closed month moved away from its snapshot.
+
+    [{label, closed, live}] in the snapshot's order; empty when nothing moved.
+    A figure that exists on only one side is reported with 0 on the other.
+    """
+    a, b = payload_figures(closed), payload_figures(live)
+    out = []
+    for key in list(a) + [k for k in b if k not in a]:
+        label = (a.get(key) or b.get(key))[0]
+        va = a[key][1] if key in a else 0
+        vb = b[key][1] if key in b else 0
+        if va != vb:
+            out.append({"label": label, "closed": va, "live": vb})
+    return out
+
+
+# --------------------------------------------------------------------------
+# Export
+# --------------------------------------------------------------------------
+
+EXPORT_WIDTH = 10
+
+
+def _export_line(
+    client, section, basis, kind, dim="", group="", measure="", value="", prev="", detail=""
+):
+    return [client, section, basis, kind, dim, group, measure, value, prev, detail]
+
+
+def export_rows(payload):
+    """A section payload as flat CSV rows: one per figure, breakdown cell and booking.
+
+    Column order matches the export's header: client, section, month basis,
+    kind, dimension, group, measure, value, previous month, detail. A matrix
+    cell's group is "row / column"; a booking's group is its customer, its
+    measure the task, its value the hours, and date, package, person and
+    comment follow in `detail`.
     """
     section = payload.get("title") or ""
-    out = []
+    client = payload["client"]
     if payload.get("error"):
-        out.append([payload["client"], section, "", "error", "", "", payload["error"], "", ""])
-        return out
+        return [_export_line(client, section, "", "error", measure=payload["error"])]
+    out: list[list] = []
     for block in payload["blocks"]:
+        basis = block["basis"]
         out.extend(
-            [
-                payload["client"],
+            _export_line(
+                client,
                 section,
-                block["basis"],
+                basis,
                 "figure",
-                "",
-                "",
-                f["label"],
-                f["value"],
-                f["prev"],
-            ]
+                measure=f["label"],
+                value=f["value"],
+                prev=f["prev"],
+            )
             for f in block["figures"]
         )
         for br in block["breakdowns"]:
+            if br.get("kind") == "matrix":
+                dim = f"{br['label']} x {br['across_label']}"
+                for r, rk in enumerate(br["row_keys"]):
+                    for c, ck in enumerate(br["col_keys"]):
+                        if br["cells"][r][c]:
+                            out.append(
+                                _export_line(
+                                    client,
+                                    section,
+                                    basis,
+                                    "matrix",
+                                    dim,
+                                    f"{rk or ''} / {ck or ''}",
+                                    br["measure"]["label"],
+                                    br["cells"][r][c],
+                                )
+                            )
+                continue
             for row in br["rows"]:
                 group = "" if row["key"] is None else row["key"]
                 out.extend(
-                    [
-                        payload["client"],
-                        section,
-                        block["basis"],
-                        "breakdown",
-                        br["label"],
-                        group,
-                        col["label"],
-                        value,
-                        "",
-                    ]
+                    _export_line(
+                        client, section, basis, "breakdown", br["label"], group, col["label"], value
+                    )
                     for col, value in zip(br["columns"], row["values"], strict=True)
+                )
+    bk = payload.get("bookings")
+    if bk:
+        basis = bk["basis"]
+        out.extend(
+            _export_line(
+                client,
+                section,
+                basis,
+                "figure",
+                measure=f["label"],
+                value=f["value"],
+                prev=f["prev"],
+            )
+            for f in bk["figures"]
+        )
+        idx = {c["field"]: i for i, c in enumerate(bk["columns"])}
+        skip = {bk["group_by"], "Aufgabe", "Stunden"}
+        detail_fields = [f for f in idx if f not in skip]
+        for g in bk["groups"]:
+            for row in g["rows"]:
+                detail = " · ".join(
+                    str(row[idx[f]]) for f in detail_fields if row[idx[f]] not in (None, "")
+                )
+                out.append(
+                    _export_line(
+                        client,
+                        section,
+                        basis,
+                        "booking",
+                        bk["group_by"],
+                        "" if g["key"] is None else g["key"],
+                        row[idx["Aufgabe"]] if "Aufgabe" in idx else "",
+                        row[idx["Stunden"]] if "Stunden" in idx else "",
+                        "",
+                        detail,
+                    )
                 )
     return out

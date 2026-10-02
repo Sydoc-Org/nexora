@@ -297,3 +297,97 @@ def test_fetch_skips_empty_id_lists_without_touching_the_db():
     )
     assert out == {}
     runtime.raw_connection.assert_not_called()
+
+
+# ------------------------------------------------------------- edge legs --- #
+
+
+def test_parse_keeps_a_valued_cell_without_a_column_name():
+    """A cell with a value but no ``ColumnName`` element still counts as a
+    cell (column ``None``) and must not be listed under ``columns``."""
+    xml = (
+        "<ModelObjectList><Item><STGTable>"
+        "<TableName>T</TableName><internalRows><item><internalCells>"
+        "<item><CellValue><Text>x</Text></CellValue></item>"
+        "<item><CellValue><Text>y</Text></CellValue><ColumnName>Col</ColumnName></item>"
+        "</internalCells></item></internalRows>"
+        "</STGTable></Item></ModelObjectList>"
+    )
+    out = parse_table_list(xml)
+    assert out == [
+        {
+            "title": "T",
+            "columns": ["Col"],
+            "rows": [[{"column": None, "value": "x"}, {"column": "Col", "value": "y"}]],
+        }
+    ]
+
+
+def test_fetch_skips_a_workitem_without_a_root_document():
+    """A located workitem whose ``RootDocumentID`` is NULL has nothing to
+    read: it is absent from the result and no storage is opened for it."""
+    runtime = _runtime([(1, None, "EM_Storage"), (2, "DOC-2", "EM_Storage")])
+    store = _FakeEngine([("FROM t_Documents", []), ("FROM t_DocumentMedia", [])])
+    out = fetch_workitem_tables(
+        {"default": [1, 2]},
+        runtime_for=lambda c: (runtime, "tsql"),
+        storage_for=lambda c, n: store,
+    )
+    assert set(out) == {("default", 2)}
+    media_calls = [p for sql, p in store.executed if "FROM t_DocumentMedia" in sql]
+    assert media_calls[0][1:] == ["doc-2"]
+
+
+def test_fetch_tolerates_document_cycles_and_null_child_ids():
+    """A child that points back at an ancestor (or a NULL id row) must not
+    loop the level walk forever nor be visited twice."""
+    runtime = _runtime([(9, "ROOT", "S")])
+
+    def documents(params):
+        # root -> kid; kid -> root (cycle) plus a NULL id row
+        if params == ["root"]:
+            return [("kid", "root")]
+        if params == ["kid"]:
+            return [("root", "kid"), (None, "kid")]
+        return []
+
+    store = _FakeEngine([("FROM t_Documents", documents), ("FROM t_DocumentMedia", [])])
+    out = fetch_workitem_tables(
+        {"default": [9]},
+        runtime_for=lambda c: (runtime, "tsql"),
+        storage_for=lambda c, n: store,
+    )
+    assert out == {("default", 9): []}
+    doc_calls = [p for sql, p in store.executed if "FROM t_Documents" in sql]
+    assert doc_calls == [["root"], ["kid"]]  # the cycle stops the walk
+
+
+def test_fetch_ignores_null_media_blobs_and_logs_a_summary():
+    """A ``Data`` column that is NULL is not a stream; with a logger the
+    fetch reports one debug line per storage pass."""
+    runtime = _runtime([(1, "d-1", "S"), (2, "d-2", "S")])
+    store = _FakeEngine(
+        [
+            ("FROM t_Documents", []),
+            ("FROM t_DocumentMedia", [("d-1", None), ("d-2", XML_TABLES.encode())]),
+        ]
+    )
+    logger = MagicMock()
+    out = fetch_workitem_tables(
+        {"default": [1, 2]},
+        runtime_for=lambda c: (runtime, "tsql"),
+        storage_for=lambda c, n: store,
+        logger=logger,
+    )
+    assert out[("default", 1)] == []
+    assert [t["title"] for t in out[("default", 2)]] == ["TabVat"]
+    logger.debug.assert_called_once()
+    assert "default/S: 2 workitems, 1 table streams" in logger.debug.call_args[0][0]
+
+
+def test_table_streams_with_no_documents_never_opens_a_connection():
+    from nx_lib.workitems.tables import _table_streams
+
+    engine = MagicMock()
+    assert _table_streams(engine, "tsql", []) == {}
+    engine.raw_connection.assert_not_called()

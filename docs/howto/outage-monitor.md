@@ -65,9 +65,11 @@ itself when its credentials are not configured for the environment, the same
 way the MS02 engines do.
 
 There used to be a `bexio:api` probe. It went with the archived invoices page
-(#177): nothing in the app calls Bexio any more, so an alert on it would have
-woken someone for a vendor no page depends on. Migration `0057` deletes its
-`dbo.StatusComponents` row so it also stops rendering on the admin status page.
+(#177), and migration `0057` deleted its `dbo.StatusComponents` row. Since #423
+the Finance page reads invoices from Bexio again, but only in its own panel,
+which reports a Bexio failure in place while every other section still renders;
+an internal accounting view is no reason to page support, so the probe stays
+retired. `scripts/bexio-probe.py` checks the token by hand.
 
 The log-storm probe is the one that would have caught the `0042` incident. It
 reads the tail of `var/logs/system/app.log`, normalizes each message into a
@@ -244,7 +246,7 @@ it needs the same `GRAPH_*` credentials the scheduled reports already use.
 minutes, matching the hysteresis defaults), and **`deploy-env.yml` registers it on
 every PROD deploy (a `v*` tag push)** — the "Register scheduled tasks" step, which
 also registers the session prune; dev/staging deploys skip it. Nothing to import by
-hand. The monitor probes the PROD hostname only; add `dev-nexora` / `staging-nexora`
+hand. The monitor probes the PROD hostname only; add dev-host / `staging-nexora`
 probes if those hosts ever need watching (not done in #338).
 
 That step exists because mirroring an XML is not the same as having a task:

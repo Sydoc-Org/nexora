@@ -15,7 +15,7 @@ from pathlib import Path
 
 import pytest
 
-from nx_lib import finance
+from nx_lib import bps, finance
 from nx_lib.finance import (
     SECTIONS,
     SECTIONS_BY_KEY,
@@ -45,6 +45,13 @@ _METRIC_RE = re.compile(
 )
 _REPOINT_RE = re.compile(r"SET BaseObject = '([^']+)',\s*ColumnsJSON = N'(\[.*?\])'", re.S)
 _REBASE_RE = re.compile(r"\('([a-z0-9_]+)',\s*'([A-Za-z0-9_]+)'\)")
+_APPEND_COL_RE = re.compile(
+    r"JSON_QUERY\(N'(\{\"field\".*?\})'\)\)\s*WHERE Code = '([a-z0-9_]+)'", re.S
+)
+_REFILTER_RE = re.compile(
+    r"UPDATE dbo\.ReportingMetrics\s+SET FilterJson = N'(\[.*?\])',.*?WHERE Code = '([a-z0-9_]+)'",
+    re.S,
+)
 
 
 def _registry():
@@ -69,6 +76,14 @@ def _registry():
             sources["frigemo"] = (m.group(1), json.loads(m.group(2)))
             for code, base in _REBASE_RE.findall(sql.split("JOIN (VALUES", 1)[1]):
                 metrics[code]["base_field"] = base
+        if path.name.startswith("0139_"):
+            appended = _APPEND_COL_RE.findall(sql)
+            refiltered = _REFILTER_RE.findall(sql)
+            assert appended and refiltered, "0139 no longer patches the registry"
+            for column, code in appended:
+                sources[code][1].append(json.loads(column))
+            for filt, code in refiltered:
+                metrics[code]["filter"] = json.loads(filt)
     out = {}
     for code, (base_object, columns) in sources.items():
         source_metrics = {c: m for c, m in metrics.items() if m["source"] == code}
@@ -148,7 +163,10 @@ def test_every_section_matches_its_registered_source(section):
             ), f"{section.key}: measure {code!r} not on {section.source}"
         for br in block.breakdowns:
             assert br.dim in fields, f"{section.key}: dimension {br.dim!r} not in catalog"
-            assert set(br.metrics) <= set(block.figures)
+            for code in br.metrics:
+                assert code in source_metrics, f"{section.key}: {code!r} not on {section.source}"
+            if not br.where:
+                assert set(br.metrics) <= set(block.figures)
 
 
 @pytest.mark.parametrize("section", SECTIONS, ids=[s.key for s in SECTIONS])
@@ -157,9 +175,12 @@ def test_every_section_builds_its_queries(section):
     kinds = [(q.block, q.kind) for q in queries]
     for i, block in enumerate(section.blocks):
         assert (i, "figures") in kinds and (i, "previous") in kinds
-        assert sum(1 for q in queries if q.block == i and q.kind == "breakdown") == len(
-            block.breakdowns
-        )
+        n = sum(1 for q in queries if q.block == i and q.kind in ("breakdown", "matrix"))
+        assert n == len(block.breakdowns)
+    if section.bookings:
+        rules = len(section.bookings.rules)
+        assert sum(1 for q in queries if q.kind == "bookings") == rules
+        assert sum(1 for q in queries if q.kind.startswith("bookings_")) == 3 * rules
     for q in queries:
         assert q.sql.startswith("SELECT TOP (")
         assert "?" * q.sql.count("?") == "?" * len(q.params)
@@ -255,54 +276,192 @@ def test_breakdown_can_narrow_its_columns():
     assert "privera_mail_documents" not in q.sql
 
 
-def test_xpert_breaks_documents_down_per_client_and_source_database():
+def test_xpert_breaks_documents_down_per_client_then_bfh_and_zhaw():
     dims = {q.dim for q in _queries("xpert") if q.kind == "breakdown"}
-    assert dims == {"Client", "SourceDb"}
+    assert dims == {"Client", "Metric|Client=BFH", "Metric|Client=ZHAW"}
     q = _first("xpert", "breakdown", "Client")
     assert "SUM(CASE WHEN [Metric] = ? THEN [Cnt] END) AS [xpert_stats_documents]" in q.sql
     assert q.params[0] == "Total"
 
 
-def test_bps_service_hours_exclude_absences_and_break_down_per_task_and_customer():
-    """The timetool overview: hours on real work, per BPS task and per customer,
-    with absences counted separately -- the 0138 measure, inverted 0124."""
-    q = _first("bps", "figures")
-    assert "SUM(CASE WHEN [Kunde] <> ? THEN [Stunden] END) AS [bps_projects_service_hours]" in q.sql
-    assert "SUM(CASE WHEN [Kunde] = ? THEN [Stunden] END) AS [bps_projects_absence_hours]" in q.sql
-    assert q.params[:2] == ["Absences", "Absences"]
-    assert "[Datum] >= ? AND [Datum] < ?" in q.sql
-    dims = {q.dim: q.metrics for q in _queries("bps") if q.kind == "breakdown"}
-    assert dims == {
-        "Aufgabe": ("bps_projects_service_hours",),
-        "Kunde": ("bps_projects_service_hours",),
-    }
-    assert SECTIONS_BY_KEY["bps"].group == finance.SERVICES
+def test_xpert_lists_bfh_and_zhaw_per_metric():
+    """BFH and ZHAW are billed per metric; one table each, grouped by Metric
+    and Dimension, narrowed to the client."""
+    q = _first("xpert", "breakdown", "Metric|Client=ZHAW")
+    assert "SELECT TOP (1000) [Metric], [Dimension], SUM([Cnt]) AS [xpert_stats_count]" in q.sql
+    assert "[Client] = ?" in q.sql and q.params[-1] == "ZHAW"
+    assert "GROUP BY [Metric], [Dimension]" in q.sql
 
 
-def test_hours_keep_their_fraction_and_totals_do_not_carry_float_noise():
-    section = SECTIONS_BY_KEY["bps"]
-    queries = _queries("bps")
-    rows = _rows_for(
-        queries,
-        figures=(Decimal("655.8011"), Decimal("1146.9332"), Decimal("1802.7343")),
-        previous=(Decimal("700"), Decimal("0"), Decimal("700")),
-        breakdown=[
-            ("Validierung", Decimal("0.1")),
-            ("Support", Decimal("0.2")),
-            ("Absences", None),
-        ],
-    )
+def test_xpert_lists_every_metric_known_ones_first():
+    section = SECTIONS_BY_KEY["xpert"]
+    queries = _queries("xpert")
+    zhaw = [
+        ["WorkItemsByIsWithOrder", "1", 44],
+        ["WorkItems", None, 203],
+        ["WorkItemsByEingang", "MAIL", 3674],
+        ["WorkItemsByEingang", None, 302],
+        ["WorkItemsByEingang", "Fax", 1],
+        ["Total", None, 205],
+    ]
+    bfh = [["Total", None, 82], ["NKReproduzierte", None, 21], ["Neu", None, 0]]
+    rows = [
+        zhaw if q.dim == "Metric|Client=ZHAW" else bfh if q.dim == "Metric|Client=BFH" else []
+        for q in queries
+    ]
     payload = assemble_section(
         section, queries, rows, source_label=None, metric_label=str, translate=str
     )
-    figures = payload["blocks"][0]["figures"]
-    assert figures[0]["value"] == 655.8011 and figures[0]["prev"] == 700
-    br = payload["blocks"][0]["breakdowns"][0]
-    assert br["rows"] == [
-        {"key": "Validierung", "values": [0.1]},
-        {"key": "Support", "values": [0.2]},
+    tables = {b["dim"]: b for b in payload["blocks"][0]["breakdowns"]}
+    z = tables["Metric|Client=ZHAW"]
+    # Every metric and dimension shows: the known ones first (0 when absent),
+    # then the rest; a blank intake reads "(blank)" next to MAIL and Scanner.
+    assert [(r["key"], r["values"]) for r in z["rows"]] == [
+        ("Total", [205]),
+        ("WorkItems", [203]),
+        ("WorkItemsByEingang · MAIL", [3674]),
+        ("WorkItemsByEingang · Scanner", [0]),
+        ("WorkItemsByEingang · (blank)", [302]),
+        ("WorkItemsByIsWithOrder · 0", [0]),
+        ("WorkItemsByIsWithOrder · 1", [44]),
+        ("WorkItemsByEingang · Fax", [1]),
     ]
-    assert br["totals"] == [0.3]
+    assert z["totals"] is None and z["label"] == "ZHAW"
+    # Per client on its own row, BFH and ZHAW side by side below it.
+    assert [b["row"] for b in payload["blocks"][0]["breakdowns"]] == [0, 1, 1]
+    b = tables["Metric|Client=BFH"]
+    assert [r["key"] for r in b["rows"]] == [
+        "Total",
+        "NeueKreditoren",
+        "NKReproduzierte",
+        "Uebrige",
+        "UEReproduzierte",
+        "Neu",
+    ]
+    assert [r["values"][0] for r in b["rows"]] == [82, 0, 21, 0, 0, 0]
+
+
+def test_privera_mail_follows_the_workbooks_file_name_rule():
+    """0139: the Mail pivot drops MAIL rows without a file name; so does the measure."""
+    q = _first("privera_invoice", "figures")
+    mail = next(part for part in q.sql.split(", ") if "[privera_mail_documents]" in part)
+    assert "[DocSource] = ?" in mail and "[FileName] IS NOT NULL" in mail
+
+
+def test_mediamarkt_batches_skip_placeholder_rows():
+    """0139: a pre-typed batch number without pieces is not a batch."""
+    q = _first("mediamarkt", "figures")
+    batches = next(part for part in q.sql.split(", ") if "[mediamarkt_batches]" in part)
+    assert "[Pieces] IS NOT NULL" in batches
+
+
+def test_privera_matrices_pivot_register_and_forwarding_type_by_branch():
+    """The billed "PRIVERA" sheets: one measure, rows down, branches along."""
+    post = _first("privera_posteingang", "matrix", "Register")
+    assert post.sql.startswith("SELECT TOP (1000) [Register], [Niederlassung], COUNT(*)")
+    assert "GROUP BY [Register], [Niederlassung]" in post.sql
+    zust = _first("privera_nachsendungen", "matrix", "Nachsendungstyp")
+    assert zust.metrics == ("privera_nachsendungen_total",)
+    assert "GROUP BY [Nachsendungstyp], [Niederlassung]" in zust.sql
+
+
+def test_bps_lists_billable_bookings_one_query_per_rule():
+    """The generic grammar only ANDs: each billable rule is its own row query,
+    plus an aggregate for this and the previous month."""
+    queries = _queries("bps")
+    rows = [q for q in queries if q.kind == "bookings"]
+    assert len(rows) == 2
+    assert rows[0].sql.startswith(
+        "SELECT TOP (5000) [Datum], [Kunde], [Projektpaket], [Aufgabe], [Benutzer], [Stunden],"
+    )
+    assert "[Aufgabe] IN (?,?,?,?,?,?) AND [Kunde] NOT IN (?,?)" in rows[0].sql
+    assert rows[0].params[:2] == ["2026-09-01", "2026-10-01"]
+    customers = [c for c, _ in SECTIONS_BY_KEY["bps"].bookings.customers]
+    assert rows[0].params[2:] == [*bps.BILLABLE_TASKS, *bps.INTERNAL_CUSTOMERS, *customers]
+    # Only customers the page bills: SSD's or Generali's hours stay on the BPS page.
+    assert "AND [Kunde] IN (" in rows[0].sql and "AND [Kunde] IN (" in rows[1].sql
+    assert "SSD_digital" not in customers and "Generali" not in customers
+    assert "[Aufgabe] = ? AND [Kunde] = ? AND [Projektpaket] = ?" in rows[1].sql
+    assert rows[1].params[2:] == [*bps.PREPARATION, *customers]
+    prev = next(q for q in queries if q.kind == "bookings_previous" and q.block == 1)
+    assert prev.params[:2] == ["2026-08-01", "2026-09-01"]
+    assert "SUM([Stunden])" in prev.sql and "COUNT(*)" in prev.sql
+    assert SECTIONS_BY_KEY["bps"].group == finance.SERVICES
+
+
+def test_bps_bookings_merge_group_per_customer_and_total_from_the_aggregates():
+    section = SECTIONS_BY_KEY["bps"]
+    queries = _queries("bps")
+    day = dt.date(2026, 8, 4)
+    by_kind = {
+        (0, "bookings"): [
+            [
+                day,
+                "ISS",
+                "Hypotheken",
+                "Change",
+                "Anna  Muster",
+                Decimal("1.3333"),
+                "CR &amp; Test ",
+            ],
+            [day, "Bucherer", "EasyTax", "Change", "Ben Beispiel", Decimal("0.75"), "ITHD-3805"],
+        ],
+        (1, "bookings"): [
+            [
+                day,
+                "Privera",
+                "Tagesgeschäft Neuzugänge",
+                "Vorbereitung Akten",
+                "Cem",
+                Decimal("2"),
+                "x",
+            ]
+        ],
+        (0, "bookings_figures"): [[Decimal("2.0833"), 2]],
+        (1, "bookings_figures"): [[Decimal("2"), 1]],
+        (0, "bookings_previous"): [[Decimal("5"), 4]],
+        (1, "bookings_previous"): [[None, 0]],
+        (0, "bookings_previous_rows"): [
+            [Decimal("0.1")],
+            [Decimal("1.9")],
+            [Decimal("2.5")],
+            [Decimal("0.5")],
+        ],
+    }
+    rows = [by_kind.get((q.block, q.kind), []) for q in queries]
+    payload = assemble_section(
+        section, queries, rows, source_label=None, metric_label=str, translate=str
+    )
+    bk = payload["bookings"]
+    assert payload["blocks"] == []
+    # Booked, billed (each booking up to the quarter: 1.3333 -> 1.5, 0.75, 2), count.
+    assert [f["code"] for f in bk["figures"]] == [
+        "billable_hours",
+        "billed_hours",
+        "billable_bookings",
+    ]
+    assert [f["value"] for f in bk["figures"]] == [4.0833, 4.25, 3]
+    assert [f["prev"] for f in bk["figures"]] == [5, 5.25, 4]
+    assert [g["key"] for g in bk["groups"]] == ["Bucherer", "ISS", "Privera"]
+    iss = bk["groups"][1]
+    assert iss["hours"] == 1.3333 and iss["billed"] == 1.5 and iss["count"] == 1
+    # Entities decoded, blanks trimmed, the doubled blank in a name collapsed.
+    assert iss["rows"][0] == [
+        "2026-08-04",
+        "ISS",
+        "Hypotheken",
+        "Change",
+        "Anna Muster",
+        1.3333,
+        "CR & Test",
+        1.5,
+    ]
+    assert bk["columns"][-1]["field"] == "billed"
+    assert {t["key"]: t["hours"] for t in bk["by_task"]} == {
+        "Change": 2.0833,
+        "Vorbereitung Akten": 2,
+    }
+    assert bk["truncated"] is False
 
 
 def test_a_dimension_missing_from_the_catalog_fails_loudly():
@@ -329,13 +488,15 @@ def test_a_missing_period_field_fails_loudly():
 # --------------------------------------------------------------------------
 
 
-def _rows_for(queries, figures, previous, breakdown):
+def _rows_for(queries, figures, previous, breakdown, matrix=()):
     out = []
     for q in queries:
         if q.kind == "figures":
             out.append([figures])
         elif q.kind == "previous":
             out.append([previous])
+        elif q.kind == "matrix":
+            out.append(list(matrix))
         else:
             out.append(breakdown)
     return out
@@ -349,6 +510,12 @@ def test_assemble_section_folds_rows_into_figures_and_breakdowns():
         figures=(Decimal("1667"), 1042),
         previous=(1500, None),
         breakdown=[("Zürich", 900, 600), ("TEC", 610, 0), ("Leer", 0, None), (None, 157, 442)],
+        matrix=[
+            ("Inkasso", "Zürich", 500),
+            ("Depot", "Zürich", 400),
+            ("Inkasso", "TEC", 3),
+            (None, "Bern", 0),
+        ],
     )
     payload = assemble_section(
         section,
@@ -382,7 +549,8 @@ def test_assemble_section_folds_rows_into_figures_and_breakdowns():
     ]
     br = block["breakdowns"][0]
     assert br["dim"] == "Niederlassung" and br["label"] == "t:Branch"
-    assert [c["code"] for c in br["columns"]] == list(queries[-1].metrics)
+    branch_q = next(q for q in queries if q.kind == "breakdown")
+    assert [c["code"] for c in br["columns"]] == list(branch_q.metrics)
     # The all-zero group is dropped, NULL becomes a None key, Decimal a plain int.
     assert br["rows"] == [
         {"key": "Zürich", "values": [900, 600]},
@@ -391,6 +559,14 @@ def test_assemble_section_folds_rows_into_figures_and_breakdowns():
     ]
     assert br["totals"] == [1667, 1042]
     assert isinstance(block["figures"][0]["value"], int)
+    # The matrix: alphabetical like the workbook pivots, zero cells and all-zero keys dropped.
+    mx = block["breakdowns"][1]
+    assert mx["kind"] == "matrix" and mx["label"] == "t:Forwarding type"
+    assert mx["across_label"] == "t:Branch"
+    assert mx["row_keys"] == ["Depot", "Inkasso"] and mx["col_keys"] == ["TEC", "Zürich"]
+    assert mx["cells"] == [[0, 400], [3, 500]]
+    assert mx["row_totals"] == [400, 503] and mx["col_totals"] == [3, 900]
+    assert mx["total"] == 903
 
 
 def test_assemble_section_with_no_rows_is_all_zeros_not_an_error():
@@ -440,7 +616,7 @@ def test_export_rows_flatten_figures_and_breakdown_cells():
     }
     rows = export_rows(payload)
     assert rows == [
-        ["Privera", "Rechnungseingang", "by export date", "figure", "", "", "Documents", 10, 8],
+        ["Privera", "Rechnungseingang", "by export date", "figure", "", "", "Documents", 10, 8, ""],
         [
             "Privera",
             "Rechnungseingang",
@@ -450,6 +626,7 @@ def test_export_rows_flatten_figures_and_breakdown_cells():
             "M1",
             "Documents",
             7,
+            "",
             "",
         ],
         [
@@ -462,10 +639,93 @@ def test_export_rows_flatten_figures_and_breakdown_cells():
             "Documents",
             3,
             "",
+            "",
         ],
     ]
 
 
 def test_export_rows_carry_a_failed_section_as_one_line():
     rows = export_rows({"client": "Privera", "title": "Neuzugänge", "error": "boom", "blocks": []})
-    assert rows == [["Privera", "Neuzugänge", "", "error", "", "", "boom", "", ""]]
+    assert rows == [["Privera", "Neuzugänge", "", "error", "", "", "boom", "", "", ""]]
+
+
+def test_export_rows_list_every_booking_with_its_detail():
+    payload = {
+        "client": "Sydoc",
+        "title": "Billable services",
+        "error": None,
+        "blocks": [],
+        "bookings": {
+            "basis": "by booking date",
+            "figures": [
+                {"code": "billable_hours", "label": "Billable hours", "value": 1.5, "prev": 2}
+            ],
+            "columns": [{"field": f, "label": f} for f in bps.BOOKING_COLUMNS],
+            "group_by": "Kunde",
+            "groups": [
+                {
+                    "key": "ISS",
+                    "hours": 1.5,
+                    "count": 1,
+                    "rows": [["2026-08-04", "ISS", "Hypotheken", "Change", "Anna", 1.5, "CR"]],
+                }
+            ],
+        },
+    }
+    rows = export_rows(payload)
+    assert rows[0][3:9] == ["figure", "", "", "Billable hours", 1.5, 2]
+    assert rows[1] == [
+        "Sydoc",
+        "Billable services",
+        "by booking date",
+        "booking",
+        "Kunde",
+        "ISS",
+        "Change",
+        1.5,
+        "",
+        "2026-08-04 · Hypotheken · Anna · CR",
+    ]
+
+
+# --------------------------------------------------------------------------
+# Month close
+# --------------------------------------------------------------------------
+
+
+def _fig(code, label, value):
+    return {"code": code, "label": label, "value": value}
+
+
+def test_diff_payload_reports_only_figures_that_moved():
+    closed = {
+        "blocks": [{"figures": [_fig("a", "Docs", 12188), _fig("b", "Img", 5)]}],
+        "bookings": {"figures": [_fig("billable_hours", "Hours", 3)]},
+    }
+    live = {
+        "blocks": [{"figures": [_fig("a", "Docs", 12186), _fig("b", "Img", 5)]}],
+        "bookings": {"figures": [_fig("billable_hours", "Hours", 3)]},
+    }
+    assert finance.diff_payload(closed, live) == [{"label": "Docs", "closed": 12188, "live": 12186}]
+    assert finance.diff_payload(closed, closed) == []
+
+
+def test_diff_payload_counts_a_figure_missing_on_one_side_as_zero():
+    closed = {"blocks": [{"figures": [_fig("a", "Docs", 4)]}]}
+    live = {"blocks": [{"figures": [_fig("z", "New", 1)]}]}
+    assert finance.diff_payload(closed, live) == [
+        {"label": "Docs", "closed": 4, "live": 0},
+        {"label": "New", "closed": 0, "live": 1},
+    ]
+
+
+def test_every_section_has_a_short_nav_label():
+    labels = {d["key"]: d["nav"] for d in finance.section_descriptors()}
+    assert labels["privera_invoice"] == "Rechnungen"
+    assert labels["privera_nachsendungen"] == "Zustellung"
+    assert labels["compass"] == "Compass"
+    assert labels["xpert"] == "Xpert"
+    assert labels["bucherer"] == "EasyTax"
+    assert labels["frigemo"] == "Frigemo"  # no title: falls back to the client
+    assert labels["bps"] == "Services"  # translated by the view, like the title
+    assert all(labels.values())

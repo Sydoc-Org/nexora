@@ -32,11 +32,20 @@ def _pages_loading_flatpickr():
 
 
 def _flatpickr_rule_lines(path: Path):
-    """Selector lines mentioning flatpickr, excluding comments."""
+    """Selector lines mentioning flatpickr, with comments removed first.
+
+    Comments are stripped as blocks rather than per line. Checking whether a
+    line *starts* with a comment marker does not work here: this codebase
+    indents the continuation lines of a /* ... */ block as plain prose, so a
+    sentence mentioning flatpickr that happened to end in a comma read as a
+    selector list and failed the load-order test below. Explaining in a
+    comment which fields flatpickr renders should not look like a rule.
+    """
+    text = re.sub(r"/\*.*?\*/", "", path.read_text(encoding="utf-8"), flags=re.S)
     out = []
-    for line in path.read_text(encoding="utf-8").splitlines():
+    for line in text.splitlines():
         s = line.strip()
-        if "flatpickr" not in s or s.startswith(("/*", "*", "//")):
+        if "flatpickr" not in s:
             continue
         if "{" in s or s.endswith(","):
             out.append(s)

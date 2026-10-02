@@ -2,7 +2,7 @@
 <html lang="{{ current_lang }}">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
   {% include '_theme_prepaint.html' %}
   <link rel="stylesheet" href="{{ static_v('css/nexora-ui.css') }}">
   <title>{{ _("Generali additional services - nexora") }}</title>
@@ -17,6 +17,7 @@
 </head>
 <body class="nx-app">
   {% set active_page = 'generali_additionalservices' %}
+  {% import '_generali_quick_entry.html' as gq with context %}
   {% include '_header.html' %}
 
   <main class="nx-main">
@@ -53,6 +54,12 @@
         </a>
       </div>
     </div>
+
+    {% if can_add %}
+    {# Phone only: book your own hours in a few taps (#354). See
+       templates/_generali_quick_entry.html. #}
+    {{ gq.quick_entry('generali-additional-services', url_for('generali_additionalservices_monthreport'), with_subs=true) }}
+    {% endif %}
 
     <!-- Filter Bar -->
     <div class="nx-filter mb-6 nx-rise-2">
@@ -351,6 +358,8 @@
       </div>
     </div>
   </div>
+
+  {% if can_add %}{{ gq.undo_pill('generali-additional-services') }}{% endif %}
 
   {% include 'js/_generali_user_filter_js.html' %}
   {% include 'js/_generali_additional_services_js.html' %}

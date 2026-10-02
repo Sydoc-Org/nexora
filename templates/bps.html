@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="{{ current_lang }}">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
+  {% include '_theme_prepaint.html' %}
+  <link rel="stylesheet" href="{{ static_v('css/nexora-ui.css') }}">
+  <title>{{ _("Sydoc BPS - nexora") }}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="{{ static_v('css/bps.css') }}">
+  <link rel="icon" type="image/x-icon" href="{{ static_v('images/favicon.ico') }}">
+</head>
+
+<body class="nx-app nx-sydoc">
+  {% set active_page = 'bps' %} {% include '_header.html' %}
+  {% import '_sydoc.html' as sydoc with context %}
+
+  <main class="nx-main">
+    {# The ink band: brand, period headline, status. #}
+    <section class="nx-sydoc-band nx-rise" data-testid="bps-band">
+      <div class="nx-sydoc-band__row1">
+        {{ sydoc.brand(_("BPS")) }}
+        <span class="nx-sydoc-band__spacer"></span>
+        <div class="nx-sydoc-band__actions">
+          {% if can_finance %}
+          <a class="nx-sydoc-btn nx-sydoc-btn--link" href="{{ url_for('finance') }}" data-testid="bps-finance-link">
+            <i class="fas fa-file-invoice-dollar" aria-hidden="true"></i> {{ _("Sydoc Finance") }}
+          </a>
+          {% endif %}
+          <a class="nx-sydoc-btn nx-sydoc-btn--ghost" id="bps-export"
+             href="{{ url_for('api_bps_export', **{'from': range_from, 'to': range_to}) }}" data-testid="bps-export-csv">
+            <i class="fas fa-file-csv" aria-hidden="true"></i> {{ _("CSV") }}
+          </a>
+        </div>
+      </div>
+
+      <div class="nx-sydoc-band__row2">
+        <div class="nx-sydoc-band__lead">
+          {{ sydoc.headline(_("Sydoc BPS"), "bps", range_from ~ " – " ~ range_to, "", prev_href, next_href, _("Previous period"), _("Next period"), "bps-picker") }}
+          <p class="nx-sydoc-hint">{{ _("Every hour booked in the BPS timetool, by task, customer and person, down to the single booking.") }}</p>
+        </div>
+        <div class="nx-sydoc-stats">
+          <span class="nx-sydoc-stats__k">{{ _("Period") }}</span>
+          <span class="nx-sydoc-stats__v" data-role="range-text">{{ range_from }} – {{ range_to }}</span>
+          <span class="nx-sydoc-stats__k">{{ _("Source") }}</span>
+          <span class="nx-sydoc-stats__v" id="bps-status" role="status" data-testid="bps-status">
+            <span class="nx-sydoc-dot nx-sydoc-dot--running" data-role="dot"></span><span id="bps-status-text">{{ _("Loading…") }}</span>
+          </span>
+          <span class="nx-sydoc-stats__k">{{ _("Latest booking") }}</span>
+          <span class="nx-sydoc-stats__v" id="bps-latest" data-testid="bps-latest">–</span>
+        </div>
+      </div>
+    </section>
+
+    {# Totals and composition, on the page surface below the band. #}
+    <section class="nx-bps-summary nx-rise" aria-label="{{ _('Total hours') }}">
+      <div class="nx-bps-totals" id="bps-kpis" data-testid="bps-kpis" aria-busy="true">
+        <div class="nx-skel nx-bps-skel"></div>
+      </div>
+      <div class="nx-bps-comp" id="bps-comp" aria-hidden="true"></div>
+      <div class="nx-bps-comp__labels" id="bps-comp-labels"></div>
+    </section>
+
+    <div id="bps-error" class="nx-bps-error" role="alert" hidden data-testid="bps-error"></div>
+
+    {# Period picker: quick presets, the months with their hours, a free range.
+       The GET form is the truth; the URL carries from/to as before. #}
+    {{ sydoc.picker_open("bps-picker", _("Choose period"), "bps-period-picker", wide=True) }}
+      <div class="nx-sydoc-picker__section">
+        <p class="nx-sydoc-picker__eyebrow">{{ _("Quick") }}</p>
+        <div class="nx-sydoc-picker__pills">
+          <button type="button" class="nx-sydoc-pill" data-preset="last-month">{{ _("Last month") }}</button>
+          <button type="button" class="nx-sydoc-pill" data-preset="this-month">{{ _("This month") }}</button>
+          <button type="button" class="nx-sydoc-pill" data-preset="last-week">{{ _("Last week") }}</button>
+          <button type="button" class="nx-sydoc-pill" data-preset="quarter">{{ _("Last 3 months") }}</button>
+        </div>
+      </div>
+      {{ sydoc.year_switch(_("Previous year"), _("Next year")) }}
+      <div class="nx-sydoc-picker__grid nx-sydoc-picker__grid--compact" data-role="months"></div>
+      <form class="nx-sydoc-picker__foot" id="bps-period" method="get" action="{{ url_for('bps') }}" data-testid="bps-period">
+        <label class="nx-sydoc-picker__field">
+          <span>{{ _("From") }}</span>
+          <input type="date" name="from" id="bps-from" value="{{ [range_from, today]|min }}" max="{{ today }}" required data-testid="bps-from">
+        </label>
+        <label class="nx-sydoc-picker__field">
+          <span>{{ _("To") }}</span>
+          <input type="date" name="to" id="bps-to" value="{{ [range_to, today]|min }}" max="{{ today }}" required data-testid="bps-to">
+        </label>
+        <span hidden data-role="drill-params"></span>
+        <button type="submit" class="nx-sydoc-btn nx-sydoc-btn--ink">{{ _("Show range") }}</button>
+      </form>
+    {{ sydoc.picker_close() }}
+
+    {# Hours per day #}
+    <section class="nx-bps-chart nx-rise-2" aria-labelledby="bps-chart-title">
+      <div class="nx-bps-head">
+        <h2 class="nx-bps-head__title" id="bps-chart-title">{{ _("Hours per day") }}</h2>
+        <span class="nx-bps-head__meta" id="bps-chart-meta"></span>
+      </div>
+      <div class="nx-bps-chart__canvas"><canvas id="bps-chart" role="img" aria-label="{{ _('Hours per day by billable, other service and absence; the table below lists the same hours.') }}"></canvas></div>
+    </section>
+
+    {# The drill-down: one level at a time, as a table or a treemap. #}
+    <section class="nx-bps-explorer nx-rise-3" data-testid="bps-tree" id="bps-tree" aria-labelledby="bps-tree-title">
+      <div class="nx-bps-toolbar">
+        <h2 class="nx-bps-head__title" id="bps-tree-title">{{ _("Drill-down") }}</h2>
+        <div class="nx-track" role="group" aria-label="{{ _('Order') }}" id="bps-order" data-testid="bps-order">
+          <button type="button" class="nx-track__btn" aria-pressed="true" data-order="Aufgabe,Kunde,Benutzer">{{ _("Task › Customer › Person") }}</button>
+          <button type="button" class="nx-track__btn" aria-pressed="false" data-order="Kunde,Aufgabe,Benutzer">{{ _("Customer › Task › Person") }}</button>
+          <button type="button" class="nx-track__btn" aria-pressed="false" data-order="Benutzer,Kunde,Aufgabe">{{ _("Person › Customer › Task") }}</button>
+        </div>
+        <span class="nx-bps-toolbar__spacer"></span>
+        <button type="button" class="nx-bps-chip nx-bps-chip--billable" id="bps-billable-only" aria-pressed="false" data-testid="bps-billable-only">{{ _("Billable only") }}</button>
+        <button type="button" class="nx-bps-chip nx-bps-chip--absence" id="bps-hide-absences" aria-pressed="true" data-testid="bps-hide-absences">{{ _("Hide absences") }}</button>
+        <label class="nx-bps-search">
+          <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+          <input type="search" id="bps-search" aria-label="{{ _('Filter task, customer, person') }}" placeholder="{{ _('Filter task, customer, person…') }}" autocomplete="off" data-testid="bps-search">
+        </label>
+      </div>
+      <div class="nx-bps-crumbs">
+        <button type="button" id="bps-back" class="nx-bps-back" hidden aria-label="{{ _('Up one level') }}" data-testid="bps-back"><i class="fas fa-arrow-left" aria-hidden="true"></i></button>
+        <nav id="bps-crumbs" class="nx-bps-crumbs__path" aria-label="{{ _('Drill-down path') }}"></nav>
+        <span class="nx-bps-toolbar__spacer"></span>
+        <span class="nx-bps-crumbs__meta" id="bps-level-meta"></span>
+        <div class="nx-track" role="group" aria-label="{{ _('View') }}" id="bps-view" data-testid="bps-view">
+          <button type="button" class="nx-track__btn" aria-pressed="true" data-view="table"><i class="fas fa-list" aria-hidden="true"></i> {{ _("Table") }}</button>
+          <button type="button" class="nx-track__btn" aria-pressed="false" data-view="map"><i class="fas fa-table-cells-large" aria-hidden="true"></i> {{ _("Treemap") }}</button>
+        </div>
+      </div>
+      <div id="bps-drill" class="nx-bps-drill" aria-live="polite" data-testid="bps-drill"></div>
+      <div class="nx-bps-legend" id="bps-legend">
+        <span class="nx-bps-legend__item"><span class="nx-bps-swatch nx-bps-swatch--billable"></span>{{ _("Billable") }}</span>
+        <span class="nx-bps-legend__item"><span class="nx-bps-swatch nx-bps-swatch--service"></span>{{ _("Other service") }}</span>
+        <span class="nx-bps-legend__item"><span class="nx-bps-swatch nx-bps-swatch--absence"></span>{{ _("Absence") }}</span>
+        <span class="nx-bps-legend__hint" id="bps-legend-hint"></span>
+      </div>
+      <p class="nx-bps-rule">
+        <i class="fas fa-circle-info" aria-hidden="true"></i>
+        <span>{{ _("Billable: %(tasks)s on customers (not sydoc / sydoc intern), plus %(prep)s on %(customer)s · %(package)s — the same rule as the Finance page.", tasks=billable_tasks|join(', '), prep=preparation[0], customer=preparation[1], package=preparation[2]) }}</span>
+      </p>
+    </section>
+  </main>
+
+  {% include 'js/_bps_js.html' %}
+</body>
+
+</html>

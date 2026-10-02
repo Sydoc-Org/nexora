@@ -4,7 +4,7 @@ name = "nexora"
 # removed or made `dynamic`: uv refuses a [project] table without a static
 # version unless a build backend supplies one, and nexora is a virtual project
 # (never built or installed). tests/unit/test_version.py enforces the sync.
-version = "3.3.0"
+version = "3.4.0"
 description = "Sydoc internal portal: workitems, reporting, admin"
 requires-python = ">=3.13"
 readme = "README.md"
@@ -44,6 +44,7 @@ dependencies = [
     "matplotlib==3.10.5",       # nx_lib/reporting/chart_render.py
     "pypdfium2==4.30.0",        # nx_lib/octo.py
     "markdown-it-py==4.2.0",    # nx_lib/views/reporting.py
+    "fpdf2==2.8.9",             # nx_lib/finance_export.py
     "waitress==3.0.2",
 ]
 
@@ -121,6 +122,7 @@ module = [
     "nx_lib.clients",
     "nx_lib.config",
     "nx_lib.db",
+    "nx_lib.finance_export",
     "nx_lib.mapping_config",
     "nx_lib.reporting",
     "nx_lib.ui_prefs",

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="{{ current_lang }}">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  {% include '_theme_prepaint.html' %}
+  <link rel="stylesheet" href="{{ static_v('css/nexora-ui.css') }}">
+  <title>{{ _("Sydoc Billing - nexora") }}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous" />
+  {# The ledger rows, group heads, jump index and tables are Finance's (#408);
+     billing.css adds only what Billing has on top. #}
+  <link rel="stylesheet" href="{{ static_v('css/finance.css') }}">
+  <link rel="stylesheet" href="{{ static_v('css/billing.css') }}">
+  <link rel="icon" type="image/x-icon" href="{{ static_v('images/favicon.ico') }}">
+</head>
+
+<body class="nx-app nx-sydoc">
+  {% set active_page = 'billing' %} {% include '_header.html' %}
+  {% import '_sydoc.html' as sydoc with context %}
+
+  {% macro skeleton() -%}
+  <div class="nx-fin-skel" aria-hidden="true">
+    <div class="nx-fin-skel__line skeleton-shimmer"></div>
+    <div class="nx-fin-skel__line skeleton-shimmer"></div>
+    <div class="nx-fin-skel__line skeleton-shimmer"></div>
+  </div>
+  {%- endmacro %}
+
+  {# One ledger row per Finance client; static from the server, filled by
+     billing.js once both its Bexio invoices and the Finance figures of the
+     billed month are in. Identity left, invoices right, figures below. #}
+  {% macro client_shell(c) -%}
+  <section class="nx-fin-section nx-bill-client" id="bill-{{ c.key }}" data-client="{{ c.client }}"
+           data-testid="billing-client-{{ c.key }}" aria-busy="true">
+    <div class="nx-fin-id">
+      <h3 class="nx-fin-id__client">{{ c.client }}</h3>
+      <p class="nx-fin-id__title" data-role="contacts"></p>
+      <div class="nx-fin-id__state" data-role="state"></div>
+    </div>
+    <div class="nx-bill-invoices" data-role="invoices">{{ skeleton() }}</div>
+    <div class="nx-bill-figures" data-role="figures" hidden></div>
+  </section>
+  {%- endmacro %}
+
+  {% macro group_head(label, count=None, note=None, role=None) -%}
+  <div class="nx-fin-group nx-rise-3">
+    <h2>{{ label }}</h2>
+    <span class="nx-fin-group__count"{% if role %} data-role="{{ role }}"{% endif %}>{{ count if count is not none else '' }}</span>
+    {% if note %}<span class="nx-bill-group__note">{{ note }}</span>{% endif %}
+    <span class="nx-fin-group__rule" aria-hidden="true"></span>
+  </div>
+  {%- endmacro %}
+
+  {% macro jump_items(clients) -%}
+  {% for c in clients %}
+  <a class="nx-fin-jump__item nx-fin-jump__item--{{ c.group }}" href="#bill-{{ c.key }}" title="{{ c.client }}"
+     data-jump="{{ c.key }}">
+    <span class="nx-fin-jump__tile" aria-hidden="true">{{ c.tile }}</span><span class="nx-fin-jump__label">{{ c.nav }}</span>
+  </a>
+  {% endfor %}
+  {%- endmacro %}
+
+  <main class="nx-main">
+    <section class="nx-sydoc-band nx-sydoc-band--flush nx-rise" data-testid="billing-band">
+      <div class="nx-sydoc-band__row1">
+        {{ sydoc.brand(_("Billing")) }}
+        <span class="nx-sydoc-band__spacer"></span>
+        <div class="nx-sydoc-band__actions">
+          {% if page_visibility.financePagePerm %}
+          <a class="nx-sydoc-btn nx-sydoc-btn--link" href="{{ url_for('finance', month=billed.month) }}"
+             data-testid="billing-finance-link">
+            <i class="fas fa-file-invoice-dollar" aria-hidden="true"></i> {{ _("Sydoc Finance") }}
+          </a>
+          {% endif %}
+          <button type="button" class="nx-sydoc-btn nx-sydoc-btn--ghost" id="bill-refresh" data-testid="billing-refresh">
+            <i class="fas fa-rotate" aria-hidden="true"></i> {{ _("Refresh") }}
+          </button>
+        </div>
+      </div>
+
+      <div class="nx-sydoc-band__row2">
+        <div class="nx-sydoc-band__lead">
+          {{ sydoc.headline(_("Sydoc Billing"), "billing", month_name, month_year,
+                            url_for('billing', month=prev_month) if prev_month else None,
+                            url_for('billing', month=next_month) if next_month else None,
+                            _("Previous month"), _("Next month"), "bill-picker") }}
+          <p class="nx-sydoc-hint">
+            {{ _("Invoices dated in %(month)s, read live from Bexio, each next to the %(billed)s figures from Sydoc Finance that it bills.", month=month_name, billed=billed.name) }}
+            <span class="nx-bill-hint-tick"><i class="fas fa-check" aria-hidden="true"></i> {{ _("marks a quantity that equals one of those figures.") }}</span>
+          </p>
+        </div>
+        <div class="nx-sydoc-stats">
+          <span class="nx-sydoc-stats__k">{{ _("Bills") }}</span>
+          <span class="nx-sydoc-stats__v" data-testid="billing-billed">
+            {% if billed.closed %}<i class="fas fa-lock nx-fin-lock" aria-hidden="true"></i>{{ _("%(month)s, closed", month=billed.label) }}
+            {% else %}<span class="nx-sydoc-dot nx-sydoc-dot--live"></span>{{ _("%(month)s, open", month=billed.label) }}{% endif %}
+          </span>
+          <span class="nx-sydoc-stats__k">{{ _("Source") }}</span>
+          <span class="nx-sydoc-stats__v" id="bill-status" role="status" data-testid="billing-status">
+            <span class="nx-sydoc-dot nx-sydoc-dot--running" data-role="dot"></span><span data-role="text">{{ _("Loading…") }}</span>
+          </span>
+        </div>
+      </div>
+
+      <hr class="nx-bill-band__rule">
+      <div class="nx-bill-totals" id="bill-totals" data-testid="billing-totals" aria-busy="true">
+        <div class="nx-skel nx-bill-skel" aria-hidden="true"></div>
+      </div>
+
+      <nav class="nx-fin-jump" aria-label="{{ _('Clients') }}">
+        {{ jump_items(internal_clients) }}
+        <span class="nx-fin-jump__sep" aria-hidden="true"></span>
+        {{ jump_items(external_clients) }}
+        <span class="nx-fin-jump__sep" aria-hidden="true"></span>
+        <a class="nx-fin-jump__item nx-fin-jump__item--bexio" href="#bill-other" title="{{ _('Other Bexio contacts') }}">
+          <span class="nx-fin-jump__tile" aria-hidden="true"><i class="fas fa-address-book"></i></span><span class="nx-fin-jump__label">{{ _("Not linked") }}</span>
+        </a>
+        <a class="nx-fin-jump__item nx-fin-jump__item--bexio" href="#bill-open" title="{{ _('Open and unpaid') }}">
+          <span class="nx-fin-jump__tile" aria-hidden="true"><i class="fas fa-hourglass-half"></i></span><span class="nx-fin-jump__label">{{ _("Open and unpaid") }}</span>
+        </a>
+      </nav>
+    </section>
+
+    {# A pick is a navigation to ?month=; the URL stays the truth. Each month's
+       status comes from one Bexio search over the viewed year (billing.js). #}
+    {{ sydoc.picker_open("bill-picker", _("Choose month"), "billing-period-picker") }}
+      {{ sydoc.year_switch(_("Previous year"), _("Next year")) }}
+      <div class="nx-sydoc-picker__grid" data-role="months"></div>
+      <div class="nx-sydoc-picker__legend">
+        <span class="nx-bill-legend--all"><i class="fas fa-check" aria-hidden="true"></i> {{ _("Every client invoiced") }}</span>
+        <span class="nx-bill-legend--missing"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i> {{ _("Clients without an invoice") }}</span>
+        <span><span class="nx-sydoc-dot nx-sydoc-dot--running"></span> {{ _("Still running") }}</span>
+      </div>
+    {{ sydoc.picker_close() }}
+
+    {# Bexio could not be read: said once, under the band. #}
+    <div class="nx-bill-error" id="bill-error" hidden data-testid="billing-error"></div>
+
+    {{ group_head(_("Internal customers"), internal_clients|length) }}
+    {% for c in internal_clients %}{{ client_shell(c) }}{% endfor %}
+
+    {{ group_head(_("External clients"), external_clients|length) }}
+    {% for c in external_clients %}{{ client_shell(c) }}{% endfor %}
+
+    {{ group_head(_("Other Bexio contacts"), role="other-count") }}
+    <section class="nx-fin-section nx-bill-other" id="bill-other" aria-busy="true" data-testid="billing-other">
+      <div class="nx-fin-id">
+        <h3 class="nx-fin-id__client">{{ _("Not linked") }}</h3>
+        <p class="nx-fin-id__title">{{ _("To no Finance client") }}</p>
+        <p class="nx-fin-id__meta" data-role="meta">{{ _("Loading…") }}</p>
+        <p class="nx-fin-id__note">{{ _("Bexio also bills customers nexora has no figures for. These invoices are not in the totals above. A contact that belongs to a client is linked in dbo.FinanceBexioContacts, by migration.") }}</p>
+      </div>
+      <div class="nx-fin-lines" data-role="body">{{ skeleton() }}</div>
+    </section>
+
+    {{ group_head(_("Open and unpaid"), note=_("all months, oldest due first"), role="open-count") }}
+    <section class="nx-fin-section nx-bill-open" id="bill-open" aria-busy="true" data-testid="billing-open">
+      <div class="nx-fin-id">
+        <h3 class="nx-fin-id__client">{{ _("Outstanding") }}</h3>
+        <p class="nx-fin-id__title">{{ _("Open, partly paid and unpaid") }}</p>
+        <p class="nx-fin-id__meta" data-role="meta">{{ _("Every invoice in Bexio with an amount still open, whatever its month") }}</p>
+        <div class="nx-fin-id__state" data-role="state"></div>
+      </div>
+      <div class="nx-fin-lines" data-role="body">{{ skeleton() }}</div>
+    </section>
+  </main>
+
+  {% include 'js/_billing_js.html' %}
+</body>
+
+</html>

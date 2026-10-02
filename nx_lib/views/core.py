@@ -3,6 +3,8 @@ public maintenance view, session liveness probe, API documentation page,
 org-branding logo serve, terms of service and privacy policy."""
 
 import os
+from collections.abc import Callable
+from typing import cast
 
 from flask import (
     abort,
@@ -24,12 +26,88 @@ from ..config import PATHS
 from ..db import engine_nexora_db
 from ..maintenance import _get_blocking_maintenance, _maintenance_iso
 from ..security import page_visibility, require_permission, startpage_redirect_to
+from ..version import BUILD_STAMP
 
 
 def index():
     if "username" in session:
         return redirect(url_for(startpage_redirect_to(page_visibility())))
     return render_template("hero.html")
+
+
+def web_app_manifest():
+    """The web app manifest, so nexora installs as an app (#354).
+
+    A route rather than a file under static/, because two of its fields cannot
+    be written down ahead of time:
+
+    * ``start_url``/``scope`` must carry the URL prefix, and PROD and STAGING
+      serve under ``/nexora`` while INT does not (``PrefixMiddleware``). A
+      static file would hard-code one of them and send the other environment's
+      installed app to a 404 -- and a wrong ``scope`` is worse than a wrong
+      start_url, because navigating outside it silently kicks the user back
+      into a browser tab.
+    * ``name`` carries the environment. All three hosts are installable and
+      look identical once they are an icon on a home screen; without this
+      somebody installs dev, reads INT data and believes it is production.
+      Only PROD gets the bare "nexora".
+
+    No service worker, deliberately. Chrome dropped that requirement for
+    installation (108 mobile / 112 desktop), and a service worker is a
+    programmable cache in front of the app -- the failure mode is every
+    installed user pinned to an old version with no way to push them forward.
+    Nothing here needs offline: every page is live database data.
+    """
+    env = os.environ.get("ENVIRONMENT", "INT")
+    suffix = {"PROD": "", "STAGING": " (staging)", "INT": " (dev)"}.get(env, f" ({env.lower()})")
+    start = url_for("index")
+    # Same mtime cache-buster every template asset tag uses (#191). Reusing the
+    # registered helper rather than rebuilding url_for('static', ...) here keeps
+    # one implementation: /static carries a year-long Cache-Control, so an icon
+    # URL without ?v= would pin a replaced icon on every device that ever
+    # fetched it.
+    static_v = cast(Callable[[str], str], current_app.jinja_env.globals["static_v"])
+    return (
+        jsonify(
+            {
+                "name": f"nexora{suffix}",
+                "short_name": f"nexora{suffix}",
+                "description": "Sydoc internal portal",
+                "start_url": start,
+                "scope": start,
+                "display": "standalone",
+                "orientation": "any",
+                # Matches the chrome the app actually paints, so the Android
+                # status bar and the splash screen do not flash white first.
+                "background_color": "#0f172a",
+                "theme_color": "#0f172a",
+                "icons": [
+                    {
+                        "src": static_v("images/icon-192.png"),
+                        "sizes": "192x192",
+                        "type": "image/png",
+                        "purpose": "any",
+                    },
+                    {
+                        "src": static_v("images/icon-512.png"),
+                        "sizes": "512x512",
+                        "type": "image/png",
+                        "purpose": "any",
+                    },
+                    {
+                        # Android crops icons to the launcher's own shape, so
+                        # this one keeps the mark inside the middle 80%.
+                        "src": static_v("images/icon-maskable-512.png"),
+                        "sizes": "512x512",
+                        "type": "image/png",
+                        "purpose": "maskable",
+                    },
+                ],
+            }
+        ),
+        200,
+        {"Content-Type": "application/manifest+json"},
+    )
 
 
 # The legal texts exist in all four UI languages, but only the German is
@@ -259,8 +337,23 @@ def session_heartbeat():
     return jsonify({"ok": True})
 
 
+def build_info():
+    """The deployed build stamp, for the installed app's self-update check
+    (nx_core.js). An iPhone home-screen app resumes the page it last showed
+    instead of reloading it, so after a deploy it kept running the old page
+    until someone knew to reload. Public: the same stamp is in every footer,
+    the login page's included. "" locally, where there is no deploy."""
+    resp = jsonify({"build": BUILD_STAMP})
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
+
+
 def register_routes(app):
     app.add_url_rule("/", endpoint="index", view_func=index)
+    app.add_url_rule(
+        "/manifest.webmanifest", endpoint="web_app_manifest", view_func=web_app_manifest
+    )
+    app.add_url_rule("/build.json", endpoint="build_info", view_func=build_info)
     app.add_url_rule("/jdvance", endpoint="jdvance", view_func=jdvance)
     app.add_url_rule("/api-docs", endpoint="api_docs", view_func=api_docs)
     app.add_url_rule("/terms", endpoint="legal_terms", view_func=legal_terms)

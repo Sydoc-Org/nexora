@@ -2,7 +2,7 @@
 <html lang="{{ current_lang }}">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
   {% include '_theme_prepaint.html' %}
   <link rel="stylesheet" href="{{ static_v('css/nexora-ui.css') }}">
   <title>{{ _("Generali Project Management - nexora") }}</title>
@@ -17,6 +17,7 @@
 </head>
 <body class="nx-app">
   {% set active_page = 'generali_projectmanagement' %}
+  {% import '_generali_quick_entry.html' as gq with context %}
   {% include '_header.html' %}
 
   <main class="nx-main">
@@ -53,6 +54,13 @@
         </a>
       </div>
     </div>
+
+    {% if can_add %}
+    {# Phone only: book your own project hours in a few taps (#354; survey
+       29.09: "die Stunden in das Projekt Generali eingeben"). See
+       templates/_generali_quick_entry.html. #}
+    {{ gq.quick_entry('generali-project-management', url_for('generali_projectmanagement_monthreport'), with_category=false, with_comment=true) }}
+    {% endif %}
 
     <!-- Filter Bar -->
     <div class="nx-filter nx-rise-2">
@@ -286,6 +294,8 @@
       </div>
     </div>
   </div>
+
+  {% if can_add %}{{ gq.undo_pill('generali-project-management') }}{% endif %}
 
   {% include 'js/_generali_user_filter_js.html' %}
   {% include 'js/_generali_project_management_js.html' %}

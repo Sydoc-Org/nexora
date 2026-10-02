@@ -9,7 +9,7 @@ on:
         required: true
         type: string
       deploy_dir:
-        description: 'Folder on SYAPP01 the mirror lands in, e.g. D:\sydoc\nexora-dev'
+        description: 'Folder on SYAPP01 the mirror lands in, e.g. D:\sydoc\nexora-dev-ben'
         required: true
         type: string
       app_pool:

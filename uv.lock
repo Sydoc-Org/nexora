@@ -459,6 +459,20 @@ wheels = [
 ]
 
 [[package]]
+name = "fpdf2"
+version = "2.8.9"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "defusedxml" },
+    { name = "fonttools" },
+    { name = "pillow" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/12/23/84dbe637708c2690972eff5df233a7c9f8d4bde809f714839dc1b08f5e5e/fpdf2-2.8.9.tar.gz", hash = "sha256:5b0b3786f5236a2b3cc83c1fee567df17ddd314f8c4e13d820d8f09b617ab4f0", size = 380865, upload-time = "2026-09-29T13:11:54.506Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/41/16/42cc18bba1561692a235fd232b38947e54f059150065d43d631b57a0085a/fpdf2-2.8.9-py3-none-any.whl", hash = "sha256:6e1d94af6d6311950a23dec7fb5fc84b000203eb59aee8e76c1e701b12a14976", size = 341268, upload-time = "2026-09-29T13:11:52.796Z" },
+]
+
+[[package]]
 name = "gitlint-core"
 version = "0.19.1"
 source = { registry = "https://pypi.org/simple" }
@@ -806,7 +820,7 @@ wheels = [
 
 [[package]]
 name = "nexora"
-version = "3.3.0"
+version = "3.4.0"
 source = { virtual = "." }
 dependencies = [
     { name = "bcrypt" },
@@ -817,6 +831,7 @@ dependencies = [
     { name = "flask-session" },
     { name = "flask-talisman" },
     { name = "flask-wtf" },
+    { name = "fpdf2" },
     { name = "itsdangerous" },
     { name = "markdown-it-py" },
     { name = "matplotlib" },
@@ -865,6 +880,7 @@ requires-dist = [
     { name = "flask-session", specifier = "==0.8.0" },
     { name = "flask-talisman", specifier = "==1.1.0" },
     { name = "flask-wtf", specifier = "==1.2.2" },
+    { name = "fpdf2", specifier = "==2.8.9" },
     { name = "itsdangerous", specifier = "==2.2.0" },
     { name = "markdown-it-py", specifier = "==4.2.0" },
     { name = "matplotlib", specifier = "==3.10.5" },

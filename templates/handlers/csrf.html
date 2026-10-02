@@ -1,0 +1,20 @@
+{# CSRF failure (#354 follow-up). Previously this fell through to Werkzeug's
+   raw "Bad Request" page: a white screen reading "The CSRF session token is
+   missing", with no explanation and nothing to click.
+
+   It is not a broken site and it is not the user's fault. The form's token is
+   tied to their session, and the session outlives neither a 24-hour timeout
+   nor a page that sat in a cache. Someone who opened nexora, got called away
+   and came back the next day meets this every time -- so the page says so,
+   and its primary action reloads the form they were trying to submit rather
+   than sending them to the landing page. #}
+{% set error_code = '400' %}
+{% set error_chip = _('Page out of date') %}
+{% set error_title = _('This page expired') %}
+{% set error_subtitle = _('This page had been open too long, so nexora could not verify the form you sent. Nothing went wrong and nothing was saved — load the page again and your next try will work.') %}
+{% set error_primary_url = retry_url %}
+{% set error_primary_text = _('Try again') %}
+{% set error_doc_url = 'https://developer.mozilla.org/en-US/docs/Web/Security/Attacks/CSRF' %}
+{% set error_doc_text = _('Why does a page expire?') %}
+{% set error_chat_text = _('Report a problem') %}
+{% include 'handlers/_error_base.html' %}
