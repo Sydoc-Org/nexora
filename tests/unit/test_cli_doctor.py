@@ -196,6 +196,35 @@ def test_check_tooling_uses_shutil_which():
     assert all(r.status in ("ok", "warn", "fail", "skip") for r in results)
 
 
+def test_check_tooling_finds_tools_in_the_running_venv():
+    """A tool installed in the venv (pybabel) is ok even when the venv is not
+    on PATH -- nx.ps1 runs the doctor with .venv's python, unactivated (#452)."""
+
+    def which(name, path=None):
+        return "/venv/bin/pybabel" if path is not None and name == "pybabel" else None
+
+    with patch.object(doctor.shutil, "which", side_effect=which):
+        by_name = {r.name: r for r in doctor._check_tooling()}
+    assert by_name["pybabel"].status == "ok"
+    assert by_name["pybabel"].detail == "in the venv"
+    assert by_name["git"].status == "warn"
+
+
+def test_install_command_prefers_uv_sync():
+    """requirements.txt is generated for the IIS deploy; locally uv owns the venv."""
+    with patch.object(doctor.shutil, "which", return_value="/usr/bin/uv"):
+        cmd, label = doctor._install_command()
+    assert cmd == ["/usr/bin/uv", "sync"]
+    assert label == "uv sync"
+
+
+def test_install_command_falls_back_to_pip_without_uv():
+    with patch.object(doctor.shutil, "which", return_value=None):
+        cmd, label = doctor._install_command()
+    assert cmd[1:4] == ["-m", "pip", "install"]
+    assert label.startswith("pip install -r ")
+
+
 # ---------- _check_git_hooks ----------
 
 

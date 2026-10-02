@@ -341,6 +341,12 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   ran bare `python`, so committing without an activated venv (lazygit, a
   fresh terminal) used a global interpreter and the SQL hooks crashed on
   `No module named 'dotenv'`. They now run `uv run --no-sync python`.
+- **`nx --doctor` points at `uv sync`, and finds tools in the venv** (#452).
+  A missing package suggested (and `--fix` ran) `pip install -r
+  requirements.txt`, but those files are generated for the IIS deploy --
+  locally uv owns the venv. Hint and fix are now `uv sync` (pip only without
+  uv). `pybabel` no longer warns "not on PATH" when it sits in the
+  unactivated `.venv` the doctor runs in.
 
 ### Added — phone view
 - **`scripts/phone-sweep.py` — the phone layout, measured instead of eyeballed.**
