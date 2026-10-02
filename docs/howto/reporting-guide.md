@@ -586,7 +586,12 @@ it; the **back arrow** returns to the overview, and from there to the Library.
 - **Add a panel** — the result's side cards as tiles: **Eddard insight**,
   **Ask Eddard**, **Anomalies** and **Query**. A definition owns the whole
   result: whatever you do not place as a panel is not shown when a report
-  renders through it.
+  renders through it. In the editor, **Anomalies** previews for real on the
+  report picked under *Preview with*; the other panels describe what they
+  will show, and fill in when a report runs (the Eddard insight is written
+  fresh for each run). **Anomalies needs a report grouped by one column**,
+  such as a date — on a report grouped by more, the tile says so instead of
+  showing results, and it says *Nothing stands out* when no value moved enough.
 - **Drag** tiles to arrange them and **resize** by their corner grip, the same
   way a dashboard card works.
 - **Preview with** a saved report to see real numbers while you build. The

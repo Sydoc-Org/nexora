@@ -293,8 +293,21 @@
       columns: state.preview ? state.preview.data.columns : [],
       rows: state.preview ? state.preview.data.rows : [],
       derived: state.preview ? (state.preview.data.derived || {}) : {},
-      i18n: I18N
+      i18n: I18N,
+      panelPreview: panelPreview
     });
+  }
+  // Panel tiles borrow the report page's side column, which the editor does
+  // not have (#323). Anomalies is plain arithmetic on the rows, so it runs for
+  // real on the preview report; the caption is a paid model call and the
+  // others need a live result, so they describe what they will show.
+  function panelPreview(panel) {
+    var RS = window.RS;
+    if (panel === 'anomalies' && state.preview && RS && RS.findAnomalies) {
+      var found = RS.findAnomalies(state.preview.def, state.preview.data.columns || [], state.preview.data.rows || []);
+      return found.items.length ? RS.anomaliesHtml(found.items) : RS.anomaliesEmptyHtml(found.reason);
+    }
+    return '<div class="rl-placeholder">' + esc((I18N.panelHint || {})[panel] || I18N.panel[panel] || panel) + '</div>';
   }
 
   // ---- render ----------------------------------------------------------------

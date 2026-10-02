@@ -243,9 +243,24 @@
     RS.state.askEddardReport = report;
   }
 
+  // No caption (empty answer or a failed call). The side column simply drops
+  // the card; inside a report definition's tile the card is the tile, so it
+  // says so rather than leaving a blank box (#323).
+  function captionGone(box) {
+    box.classList.remove('rp-caption--loading');
+    if (box.closest('[data-tile-body]')) {
+      box.hidden = false;
+      box.textContent = RS.I18N.captionNone;
+      box.classList.add('rp-caption--empty');
+    } else {
+      box.hidden = true;
+    }
+  }
+
   function fireCaption(boxId, columns, rows, title, dateLabel, notes, levelFields) {
     var box = RS.el(boxId);
     if (!box) return;
+    box.classList.remove('rp-caption--empty');
     var seq = ++captionSeq;
     box.hidden = false;
     box.classList.add('rp-caption--loading');
@@ -266,7 +281,7 @@
       return res.json();
     }).then(function (data) {
       if (seq !== captionSeq) return;   // a newer run superseded this one
-      if (!data || !data.caption) { box.hidden = true; box.classList.remove('rp-caption--loading'); return; }
+      if (!data || !data.caption) { captionGone(box); return; }
       box.classList.remove('rp-caption--loading');
       var chip = document.createElement('span');
       chip.className = 'rp-caption-chip';
@@ -275,8 +290,7 @@
       box.appendChild(document.createTextNode(' ' + data.caption));
     }).catch(function () {
       if (seq !== captionSeq) return;
-      box.hidden = true;
-      box.classList.remove('rp-caption--loading');
+      captionGone(box);
     });
   }
 
@@ -506,6 +520,10 @@
       window.ReportingLayoutView.render(lgrid, { layout: res.data.layout, def: def, columns: columns, rows: rows,
         derived: res.data.derived || {}, i18n: window.NX_I18N_REPORTING_LAYOUTS, live: true });
       RS.renderAnomalies(def, columns, rows);   // fills the Anomalies card if a panel tile adopted it
+      // Same for the insight tile, which adopts #rsCaptionCard: this branch
+      // returns before the fireCaption() at the end, so it never got one (#323).
+      fireCaption('rsCaption', columns, rows, cur.name || cur.def.title || '', resolvedTxt,
+        captionNotes(def, rows), captionLevelFields(def));
       toggleSideColumn(true);
       RS.el('rsKpiBand').hidden = true;   // the band host renderKpiBand writes into
       RS.el('rsChartCard').hidden = true;
