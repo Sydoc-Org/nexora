@@ -1109,6 +1109,23 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   against the May-August 2026 workbooks: every Privera figure and matrix cell
   exact; Elektro-Material and Compass definitions exact, their live data drifts
   after the refresh (hence the month close).
+- **Privacy policy contact** (`/privacy`, #260): data-protection questions now
+  go to the helpdesk mailbox `support.helpdesk@sydoc.ch`, the same one feedback
+  goes to, instead of a separate `privacy@sydoc.ch` that was never created.
+- **Privacy policy, Anthropic** (`/privacy`, #260): the "to be confirmed" note
+  on Anthropic's data-processing agreement is gone -- the production key sits
+  in Sydoc's own organisation, whose Commercial Terms carry the DPA. "Stand"
+  moves to 30.09.2026.
+- **Terms of use** (`/terms`, #260): eight clauses a user-facing terms page is
+  expected to carry, in German and English -- rights to nexora, prohibited use
+  (malware, overload, bypassing security, unlawful uploads), automated access
+  with confidential, revocable keys, the reporting assistant's results may be
+  wrong, logging with a link to the privacy policy, access ends with the
+  account or contract, a severability clause, and the helpdesk as contact.
+- **Legal pages in French and Italian** (`/terms`, `/privacy`, #260): courtesy
+  versions next to German and English, picked by the UI language or
+  `?lang=fr|it`. Each says in its own language that only the German is
+  binding, and the switch now links all four languages.
 
 - **Generated tenant pages (`/t/<tenant>/<page>`) moved onto the slim design
   system** — the look the Dashboard and the admin redesign already carry, and

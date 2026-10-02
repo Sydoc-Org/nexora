@@ -110,19 +110,22 @@ def web_app_manifest():
     )
 
 
-# The legal texts exist in German (authoritative, written in German) and in
-# English (a courtesy version) only -- not in all four UI languages (#260,
-# decided 2026-09-24). German for a German UI, English for everyone else;
-# ?lang=de|en is the switch on the page itself.
-LEGAL_TEXT_DATE = "2026-09-29"
+# The legal texts exist in all four UI languages, but only the German is
+# authoritative (written in German); English, French and Italian are courtesy
+# versions and say so on the page (#260; fr/it added 2026-10-01). The text
+# follows the UI language, English for anything else; ?lang=de|en|fr|it is the
+# switch on the page itself.
+LEGAL_TEXT_DATE = "2026-09-30"
+LEGAL_TEXT_LANGS = ("de", "en", "fr", "it")
 
 
 def _legal_text_lang():
     asked = request.args.get("lang", "")
-    if asked in ("de", "en"):
+    if asked in LEGAL_TEXT_LANGS:
         lang = asked
     else:
-        lang = "de" if str(get_locale() or "").startswith("de") else "en"
+        ui = str(get_locale() or "")[:2]
+        lang = ui if ui in LEGAL_TEXT_LANGS else "en"
     return {"text_lang": lang, "text_date": LEGAL_TEXT_DATE}
 
 

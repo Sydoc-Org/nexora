@@ -63,7 +63,7 @@ def test_privacy_retention_matches_what_the_code_deletes(client):
 
 
 def test_legal_text_is_german_or_english_and_says_which_is_authoritative(client):
-    """German (authoritative) and English only, decided 2026-09-24."""
+    """German is authoritative; English is the courtesy version (2026-09-24)."""
     de = client.get("/terms?lang=de").get_data(as_text=True)
     en = client.get("/terms?lang=en").get_data(as_text=True)
     assert "Massgebend ist diese deutsche Fassung" in de and "Geltungsbereich" in de
@@ -77,14 +77,44 @@ def test_legal_text_follows_the_ui_language_by_default(client):
     assert "Massgebend ist diese deutsche Fassung" in client.get("/privacy").get_data(as_text=True)
     with client.session_transaction() as sess:
         sess["locale"] = "fr"
-    assert "The German version is authoritative" in client.get("/privacy").get_data(as_text=True)
+    assert "Seule la version allemande fait foi" in client.get("/privacy").get_data(as_text=True)
+    with client.session_transaction() as sess:
+        sess["locale"] = "it"
+    assert "Fa fede unicamente la versione tedesca" in client.get("/privacy").get_data(as_text=True)
+
+
+def test_french_and_italian_are_courtesy_versions_of_the_german(client):
+    """Added 2026-10-01: fr/it texts exist, each says the German is binding,
+    links the other three languages, and carries the same facts as the
+    German -- controller, contact, retention, recipients, the FDPIC."""
+    for path in ("/terms", "/privacy"):
+        for lang, binding in (
+            ("fr", "Seule la version allemande fait foi"),
+            ("it", "Fa fede unicamente la versione tedesca"),
+        ):
+            body = client.get(f"{path}?lang={lang}").get_data(as_text=True)
+            assert binding in body, (path, lang)
+            assert "Sydoc AG" in body and "support.helpdesk@sydoc.ch" in body, (path, lang)
+            for other in {"de", "en", "fr", "it"} - {lang}:
+                assert f'data-testid="legal-switch-{other}"' in body, (path, lang, other)
+            assert f'lang="{lang}"' in body, (path, lang)
+    fr = client.get("/privacy?lang=fr").get_data(as_text=True)
+    it = client.get("/privacy?lang=it").get_data(as_text=True)
+    for body, needles in (
+        (fr, ("CHE-112.467.492", "180 jours", "8 jours", "Anthropic", "PFPDT", "30 jours")),
+        (it, ("CHE-112.467.492", "180 giorni", "8 giorni", "Anthropic", "IFPDT", "30 giorni")),
+    ):
+        for needle in needles:
+            assert needle in body, needle
+    assert "Zoug" in client.get("/terms?lang=fr").get_data(as_text=True)
+    assert "Zugo" in client.get("/terms?lang=it").get_data(as_text=True)
 
 
 def test_privacy_names_the_controller_and_the_contact(client):
     for lang in ("de", "en"):
         body = client.get(f"/privacy?lang={lang}").get_data(as_text=True)
         assert "Sydoc AG" in body and "CHE-112.467.492" in body and "6340 Baar" in body, lang
-        assert "privacy@sydoc.ch" in body, lang
+        assert "support.helpdesk@sydoc.ch" in body, lang
         # revDSG: a request for information is answered within 30 days.
         assert "30" in body, lang
 
@@ -213,6 +243,10 @@ def test_privacy_names_the_ai_provider_and_the_transfer_bases(client):
         assert "Swiss-U.S. Data Privacy Framework" in body
     assert "eigenen Servern von Sydoc in der Schweiz" in de
     assert "Sydoc's own servers in Switzerland" in en
+    # Checked 2026-09-30: the API key sits in Sydoc's own Anthropic
+    # organisation, whose Commercial Terms carry the DPA -- no longer open.
+    assert "Auftragsbearbeitung von Anthropic abgeschlossen" not in de
+    assert "concluded Anthropic's data-processing agreement" not in en
 
 
 def test_legal_text_keeps_paragraph_spacing_and_bullets(client):
@@ -235,3 +269,35 @@ def test_terms_name_the_court_of_the_seat(client):
     """Baar has no court of its own; jurisdiction is Zug."""
     assert "Gerichtsstand ist Zug" in client.get("/terms?lang=de").get_data(as_text=True)
     assert "jurisdiction is Zug" in client.get("/terms?lang=en").get_data(as_text=True)
+
+
+def test_terms_cover_the_usual_user_rules(client):
+    """Added 2026-09-30: the clauses a user-facing terms page is expected to
+    carry even though the client contract covers the commercial terms --
+    rights to the software, prohibited use, API keys, the AI caveat, logging
+    with a link to the privacy policy, end of access, severability, contact."""
+    de = client.get("/terms?lang=de").get_data(as_text=True)
+    en = client.get("/terms?lang=en").get_data(as_text=True)
+    for needle in (
+        "Rechte an nexora",
+        "Schadsoftware",
+        "Automatisierter Zugriff",
+        "Berichts-Assistent",
+        "Datenschutzerklärung</a>",
+        "endet auch Ihr Zugang",
+        "Schlussbestimmung",
+        "support.helpdesk@sydoc.ch",
+    ):
+        assert needle in de, needle
+    for needle in (
+        "Rights to nexora",
+        "malicious software",
+        "Automated access",
+        "Reporting assistant",
+        "privacy policy</a>",
+        "your access to nexora ends",
+        "Severability",
+        "support.helpdesk@sydoc.ch",
+    ):
+        assert needle in en, needle
+    assert 'href="/privacy"' in de and 'href="/privacy"' in en
