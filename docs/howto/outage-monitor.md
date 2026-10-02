@@ -246,7 +246,7 @@ it needs the same `GRAPH_*` credentials the scheduled reports already use.
 minutes, matching the hysteresis defaults), and **`deploy-env.yml` registers it on
 every PROD deploy (a `v*` tag push)** — the "Register scheduled tasks" step, which
 also registers the session prune; dev/staging deploys skip it. Nothing to import by
-hand. The monitor probes the PROD hostname only; add `dev-nexora` / `staging-nexora`
+hand. The monitor probes the PROD hostname only; add dev-host / `staging-nexora`
 probes if those hosts ever need watching (not done in #338).
 
 That step exists because mirroring an XML is not the same as having a task:

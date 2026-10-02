@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<style>
+body{margin:0;background:#eceae5;font-family:'Inter',system-ui,sans-serif}
+a{color:#b2401f;text-decoration:none}a:hover{color:#8f3318}
+@keyframes ctl-shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
+</style>
+</helmet>
+
+<section id="t1" style="padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08)">
+  <div style="display:flex;align-items:baseline;gap:10px;margin:0 0 20px">
+    <a href="#t1" style="font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px">1</a>
+    <span style="font:600 13px system-ui,sans-serif;color:#1a1a1a">Sydoc Controlling — third page of the Sydoc family, on the band, picker and ledger of Finance and BPS</span>
+  </div>
+  <div id="1a" style="display:flex;flex-direction:column;gap:9px">
+    <div style="display:flex;align-items:baseline;gap:8px;font:400 11px system-ui,sans-serif;color:rgba(0,0,0,.55)">
+      <a href="#1a" style="font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px">1a</a>
+      Margin per client stream: BPS hours × rate against the Bexio invoice. Dark mode, phone width and the loading / failed / empty states are in Tweaks.
+    </div>
+
+    <div ref="{{ rootRef }}" style="width:{{ frameW }};background:var(--nx-page,#f9fafb);border:1px solid rgba(0,0,0,.1);border-radius:10px;overflow:hidden;position:relative;padding-left:{{ shellPad }};box-sizing:border-box;font-family:Inter,system-ui,sans-serif;color:var(--nx-text,#1f2937)">
+
+      <sc-if value="{{ showSidebar }}" hint-placeholder-val="{{ true }}">
+        <aside style="position:absolute;left:0;top:0;bottom:0;width:64px;display:flex;flex-direction:column;background:var(--nx-card,#fff);border-right:1px solid var(--nx-divider,#f3f4f6);box-shadow:2px 0 8px rgba(0,0,0,.04)">
+          <div style="display:flex;align-items:center;height:64px;padding:0 12px;border-bottom:1px solid var(--nx-divider,#f3f4f6);flex-shrink:0">
+            <div style="position:relative;width:38px;height:38px">
+              <div style="position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 50% 50%,#000 0%,#000 35%,rgba(0,0,0,.7) 45%,rgba(67,56,202,0) 60%);box-shadow:0 0 20px rgba(0,0,0,.4),inset 0 0 10px rgba(0,0,0,.8)"></div>
+              <div style="position:absolute;inset:0;border-radius:50%;background:radial-gradient(closest-side,transparent calc(50% - 2px),#7a74ec calc(50% - 2px),rgba(79,70,229,.85) calc(50% - 1px),rgba(79,70,229,.55) 50%,transparent 52%);filter:blur(.6px)"></div>
+            </div>
+          </div>
+          <nav style="flex:1;padding:12px 8px;display:flex;flex-direction:column;gap:2px">
+            <span style="display:flex;padding:10px 8px;color:var(--nx-side-icon,#57606a)"><i class="fas fa-shield-halved" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px"></i></span>
+            <span style="display:flex;padding:10px 8px;color:var(--nx-side-icon,#57606a)"><i class="fas fa-code" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px"></i></span>
+            <span style="display:flex;padding:10px 8px;color:var(--nx-side-icon,#57606a)"><i class="fas fa-gauge-high" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px"></i></span>
+            <span style="display:flex;padding:10px 8px;color:var(--nx-side-icon,#57606a)"><i class="fas fa-chart-column" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px"></i></span>
+            <span style="display:flex;padding:10px 8px;color:var(--nx-side-icon,#57606a)"><i class="fas fa-layer-group" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px"></i></span>
+            <span style="display:flex;padding:10px 8px;color:var(--nx-side-icon,#57606a)"><i class="fas fa-file-invoice-dollar" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px"></i></span>
+            <span style="display:flex;padding:10px 8px;color:var(--nx-side-icon,#57606a)"><i class="fas fa-user-clock" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px"></i></span>
+            <span title="Sydoc Controlling" style="position:relative;display:flex;padding:10px 8px;color:var(--nx-side-icon-active,#1f2328);background:var(--nx-side-active,rgba(0,0,0,.05));border-radius:8px"><span style="position:absolute;left:-8px;top:50%;transform:translateY(-50%);width:3px;height:20px;border-radius:0 2px 2px 0;background:#e3633f"></span><i class="fas fa-scale-balanced" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px"></i></span>
+            <span style="display:flex;padding:10px 8px;color:var(--nx-side-icon,#57606a)"><i class="fas fa-building" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px"></i></span>
+          </nav>
+          <div style="padding:8px;display:flex;flex-direction:column;gap:2px;border-top:1px solid var(--nx-divider,#f3f4f6)">
+            <span style="display:flex;padding:10px 8px;color:var(--nx-side-icon,#57606a)"><i class="fas fa-thumbtack" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px"></i></span>
+            <span style="display:flex;padding:10px 8px;color:var(--nx-side-icon,#57606a)"><i class="fas fa-moon" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px"></i></span>
+            <span style="display:flex;padding:10px 8px"><span style="width:32px;height:32px;display:flex;align-items:center;justify-content:center"><img src="assets/default-icon.png" alt="" style="width:28px;height:28px;border-radius:50%;object-fit:cover"></span></span>
+          </div>
+        </aside>
+      </sc-if>
+
+      <main style="padding:{{ mainPad }};container-type:inline-size;min-width:0">
+
+        <sc-if value="{{ pickerOpen }}" hint-placeholder-val="{{ false }}">
+          <div onClick="{{ closePicker }}" style="position:absolute;inset:0;z-index:50;background:rgba(17,19,24,.45);display:flex;justify-content:center;align-items:flex-start;padding-top:150px">
+            <div onClick="{{ stop }}" role="dialog" aria-label="Choose month" style="width:min(440px,calc(100% - 32px));background:var(--nx-card,#fff);color:var(--nx-text,#1f2937);border-radius:14px;box-shadow:0 24px 64px rgba(16,24,40,.28),0 0 0 1px rgba(16,24,40,.06);overflow:hidden">
+              <div style="display:flex;align-items:center;gap:10px;padding:16px 18px 14px;border-bottom:1px solid var(--nx-divider,#f3f4f6)">
+                <span style="font-size:15px;font-weight:700;letter-spacing:-.02em">Choose month</span>
+                <span style="flex:1"></span>
+                <button onClick="{{ closePicker }}" aria-label="Close" style="width:28px;height:28px;border:none;border-radius:7px;background:transparent;color:var(--nx-text-meta,#9ca3af);cursor:pointer" style-hover="background:var(--nx-divider,#f3f4f6);color:var(--nx-text,#1f2937)"><i class="fas fa-xmark"></i></button>
+              </div>
+              <div style="padding:16px 18px 6px">
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                  <button onClick="{{ prevYear }}" aria-label="Previous year" style="width:30px;height:30px;border-radius:99px;border:1px solid var(--nx-border,#e5e7eb);background:var(--nx-card,#fff);color:var(--nx-text-sec,#6b7280);cursor:pointer;font-size:11px;opacity:{{ prevYearOpacity }}" style-hover="background:var(--nx-alt,#f9fafb)"><i class="fas fa-chevron-left"></i></button>
+                  <span style="font-size:22px;font-weight:600;letter-spacing:-.8px;font-variant-numeric:tabular-nums">{{ viewYear }}</span>
+                  <button onClick="{{ nextYear }}" aria-label="Next year" style="width:30px;height:30px;border-radius:99px;border:1px solid var(--nx-border,#e5e7eb);background:var(--nx-card,#fff);color:var(--nx-text-sec,#6b7280);cursor:pointer;font-size:11px;opacity:{{ nextYearOpacity }}" style-hover="background:var(--nx-alt,#f9fafb)"><i class="fas fa-chevron-right"></i></button>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:16px">
+                  <sc-for list="{{ monthCells }}" as="c" hint-placeholder-count="12">
+                    <button onClick="{{ c.pick }}" style="display:flex;flex-direction:column;align-items:flex-start;gap:4px;height:62px;padding:10px 12px;border-radius:10px;cursor:{{ c.cursor }};text-align:left;border:1px solid {{ c.border }};background:{{ c.bg }};opacity:{{ c.opacity }};font-family:Inter,sans-serif">
+                      <span style="font-size:14px;font-weight:600;color:{{ c.fg }}">{{ c.name }}</span>
+                      <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:{{ c.sub }}"><i class="{{ c.icon }}" style="font-size:7px"></i>{{ c.status }}</span>
+                    </button>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding:12px 18px 16px;font-size:11px;color:var(--nx-text-sec,#6b7280)">
+                <span style="display:inline-flex;align-items:center;gap:5px"><i class="fas fa-lock" style="font-size:9.5px;color:#9ca3af"></i>Closed, figures frozen</span>
+                <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:99px;background:#047857"></span>Open, live</span>
+                <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:99px;background:#f59e0b"></span>Still running</span>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ ratesOpen }}" hint-placeholder-val="{{ false }}">
+          <div onClick="{{ closeRates }}" style="position:absolute;inset:0;z-index:60;background:rgba(17,19,24,.45)">
+            <div onClick="{{ stop }}" role="dialog" aria-label="Rates" style="position:absolute;top:0;right:0;bottom:0;width:min(560px,100%);background:var(--nx-card,#fff);color:var(--nx-text,#1f2937);box-shadow:-24px 0 64px rgba(16,24,40,.22),0 0 0 1px rgba(16,24,40,.06)">
+              <div style="display:flex;align-items:center;gap:10px;padding:18px 22px 14px;border-bottom:1px solid var(--nx-divider,#f3f4f6)">
+                <div style="flex:1;min-width:0">
+                  <p style="margin:0;font-size:15px;font-weight:700;letter-spacing:-.02em">Rates</p>
+                  <p style="margin:3px 0 0;font-size:12px;color:var(--nx-sydoc-quiet,#6b7280)">Cost is BPS hours × the rate valid in that month.</p>
+                </div>
+                <button onClick="{{ closeRates }}" aria-label="Close" style="width:28px;height:28px;border:none;border-radius:7px;background:transparent;color:var(--nx-text-meta,#9ca3af);cursor:pointer;flex-shrink:0" style-hover="background:var(--nx-divider,#f3f4f6);color:var(--nx-text,#1f2937)"><i class="fas fa-xmark"></i></button>
+              </div>
+              <div style="padding:18px 22px 28px">
+                <div style="display:flex;align-items:center;gap:10px">
+                  <span style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--nx-sydoc-quiet,#6b7280)">Default rate</span>
+                  <span style="flex:1;border-top:1px solid var(--nx-border,#e5e7eb)"></span>
+                  <button onClick="{{ addDefault }}" style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border:none;border-radius:7px;background:transparent;color:var(--nx-text-sec,#6b7280);font:500 12px Inter,sans-serif;cursor:pointer" style-hover="background:var(--nx-alt,#f9fafb);color:var(--nx-text,#1f2937)"><i class="fas fa-plus" style="font-size:10px"></i>Add rate</button>
+                </div>
+                <div style="display:grid;grid-template-columns:76px 82px 82px minmax(0,1fr) 28px;column-gap:10px;margin-top:10px;padding-bottom:6px;border-bottom:1px solid var(--nx-border,#e5e7eb);font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--nx-sydoc-quiet,#6b7280)">
+                  <span style="text-align:right">CHF/h</span><span>From</span><span>To</span><span>Changed</span><span></span>
+                </div>
+                <sc-if value="{{ formDefault }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:grid;grid-template-columns:76px 82px 82px minmax(0,1fr);column-gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--nx-divider,#f3f4f6)">
+                    <input value="{{ formV.rate }}" onInput="{{ onRate }}" inputmode="decimal" aria-label="Rate" style="height:32px;width:100%;box-sizing:border-box;padding:0 8px;border:1px solid var(--nx-border-strong,#d1d5db);border-radius:7px;font:12.5px Inter,sans-serif;text-align:right;background:var(--nx-card,#fff);color:var(--nx-text,#1f2937)">
+                    <input type="month" value="{{ formV.from }}" onInput="{{ onFrom }}" aria-label="Valid from" style="height:32px;width:100%;box-sizing:border-box;padding:0 4px;border:1px solid var(--nx-border-strong,#d1d5db);border-radius:7px;font:12px Inter,sans-serif;background:var(--nx-card,#fff);color:var(--nx-text,#1f2937)">
+                    <input type="month" value="{{ formV.to }}" onInput="{{ onTo }}" aria-label="Valid to" style="height:32px;width:100%;box-sizing:border-box;padding:0 4px;border:1px solid var(--nx-border-strong,#d1d5db);border-radius:7px;font:12px Inter,sans-serif;background:var(--nx-card,#fff);color:var(--nx-text,#1f2937)">
+                    <span style="display:flex;gap:6px;justify-content:flex-end">
+                      <button onClick="{{ cancelForm }}" style="height:32px;padding:0 10px;border:none;border-radius:8px;background:transparent;color:var(--nx-text-sec,#6b7280);font:500 12px Inter,sans-serif;cursor:pointer" style-hover="background:var(--nx-alt,#f9fafb)">Cancel</button>
+                      <button onClick="{{ saveForm }}" style="height:32px;padding:0 14px;border:none;border-radius:8px;background:#111318;color:#fff;font:600 12.5px Inter,sans-serif;cursor:pointer" style-hover="background:#1f2937">Save</button>
+                    </span>
+                  </div>
+                </sc-if>
+                <sc-for list="{{ rateRows }}" as="r" hint-placeholder-count="2">
+                  <div style="display:grid;grid-template-columns:76px 82px 82px minmax(0,1fr) 28px;column-gap:10px;align-items:center;min-height:42px;border-bottom:1px solid var(--nx-divider,#f3f4f6);font-size:12.5px">
+                    <span style="text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:13.5px;font-weight:600">{{ r.rate }}</span>
+                    <span style="font-variant-numeric:tabular-nums">{{ r.from }}</span>
+                    <span style="font-variant-numeric:tabular-nums;color:{{ r.toColor }}">{{ r.to }}</span>
+                    <span style="font-size:11.5px;color:var(--nx-sydoc-quiet,#6b7280);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.by }}</span>
+                    <button onClick="{{ r.edit }}" aria-label="Edit" style="width:28px;height:28px;border:none;border-radius:7px;background:transparent;color:var(--nx-text-meta,#9ca3af);cursor:pointer;font-size:11px" style-hover="background:var(--nx-divider,#f3f4f6);color:var(--nx-text,#1f2937)"><i class="fas fa-pen"></i></button>
+                  </div>
+                </sc-for>
+
+                <div style="display:flex;align-items:center;gap:10px;margin-top:28px">
+                  <span style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--nx-sydoc-quiet,#6b7280)">Per-stream overrides</span>
+                  <span style="flex:1;border-top:1px solid var(--nx-border,#e5e7eb)"></span>
+                  <button onClick="{{ addOverride }}" style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border:none;border-radius:7px;background:transparent;color:var(--nx-text-sec,#6b7280);font:500 12px Inter,sans-serif;cursor:pointer" style-hover="background:var(--nx-alt,#f9fafb);color:var(--nx-text,#1f2937)"><i class="fas fa-plus" style="font-size:10px"></i>Add override</button>
+                </div>
+                <div style="display:grid;grid-template-columns:minmax(0,1fr) 64px 72px 72px 28px;column-gap:10px;margin-top:10px;padding-bottom:6px;border-bottom:1px solid var(--nx-border,#e5e7eb);font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--nx-sydoc-quiet,#6b7280)">
+                  <span>Stream</span><span style="text-align:right">CHF/h</span><span>From</span><span>To</span><span></span>
+                </div>
+                <sc-if value="{{ formOverride }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid var(--nx-divider,#f3f4f6)">
+                    <select value="{{ formV.applies }}" onChange="{{ onApplies }}" aria-label="Stream" style="flex:1 1 170px;height:32px;padding:0 6px;border:1px solid var(--nx-border-strong,#d1d5db);border-radius:7px;font:12.5px Inter,sans-serif;background:var(--nx-card,#fff);color:var(--nx-text,#1f2937)">
+                      <sc-for list="{{ streamOpts }}" as="o" hint-placeholder-count="10"><option value="{{ o.v }}">{{ o.v }}</option></sc-for>
+                    </select>
+                    <input value="{{ formV.rate }}" onInput="{{ onRate }}" inputmode="decimal" aria-label="Rate" style="width:70px;height:32px;box-sizing:border-box;padding:0 8px;border:1px solid var(--nx-border-strong,#d1d5db);border-radius:7px;font:12.5px Inter,sans-serif;text-align:right;background:var(--nx-card,#fff);color:var(--nx-text,#1f2937)">
+                    <input type="month" value="{{ formV.from }}" onInput="{{ onFrom }}" aria-label="Valid from" style="width:128px;height:32px;box-sizing:border-box;padding:0 4px;border:1px solid var(--nx-border-strong,#d1d5db);border-radius:7px;font:12px Inter,sans-serif;background:var(--nx-card,#fff);color:var(--nx-text,#1f2937)">
+                    <input type="month" value="{{ formV.to }}" onInput="{{ onTo }}" aria-label="Valid to" style="width:128px;height:32px;box-sizing:border-box;padding:0 4px;border:1px solid var(--nx-border-strong,#d1d5db);border-radius:7px;font:12px Inter,sans-serif;background:var(--nx-card,#fff);color:var(--nx-text,#1f2937)">
+                    <span style="display:flex;gap:6px;margin-left:auto">
+                      <button onClick="{{ cancelForm }}" style="height:32px;padding:0 10px;border:none;border-radius:8px;background:transparent;color:var(--nx-text-sec,#6b7280);font:500 12px Inter,sans-serif;cursor:pointer" style-hover="background:var(--nx-alt,#f9fafb)">Cancel</button>
+                      <button onClick="{{ saveForm }}" style="height:32px;padding:0 14px;border:none;border-radius:8px;background:#111318;color:#fff;font:600 12.5px Inter,sans-serif;cursor:pointer" style-hover="background:#1f2937">Save</button>
+                    </span>
+                  </div>
+                </sc-if>
+                <sc-for list="{{ overrideRows }}" as="r" hint-placeholder-count="1">
+                  <div style="display:grid;grid-template-columns:minmax(0,1fr) 64px 72px 72px 28px;column-gap:10px;align-items:center;min-height:46px;border-bottom:1px solid var(--nx-divider,#f3f4f6);font-size:12.5px">
+                    <span style="min-width:0"><span style="display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.applies }}</span><span style="display:block;font-size:11px;color:var(--nx-sydoc-quiet,#6b7280);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.by }}</span></span>
+                    <span style="text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:13.5px;font-weight:600">{{ r.rate }}</span>
+                    <span style="font-variant-numeric:tabular-nums">{{ r.from }}</span>
+                    <span style="font-variant-numeric:tabular-nums;color:{{ r.toColor }}">{{ r.to }}</span>
+                    <button onClick="{{ r.edit }}" aria-label="Edit" style="width:28px;height:28px;border:none;border-radius:7px;background:transparent;color:var(--nx-text-meta,#9ca3af);cursor:pointer;font-size:11px" style-hover="background:var(--nx-divider,#f3f4f6);color:var(--nx-text,#1f2937)"><i class="fas fa-pen"></i></button>
+                  </div>
+                </sc-for>
+                <p style="display:flex;align-items:flex-start;gap:8px;margin:22px 0 0;font-size:11.5px;line-height:1.5;color:var(--nx-sydoc-quiet,#6b7280)"><i class="fas fa-circle-info" style="margin-top:2px"></i><span>A change applies to open and running months straight away. Closed months keep the rate they were closed with. An override replaces the default rate for its stream and period.</span></p>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <div style="background:var(--nx-sydoc-band,#111318);border-radius:16px;color:#e5e7eb;overflow:hidden">
+          <div style="padding:22px clamp(18px,2.4cqi,30px) 0">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+              <span style="width:22px;height:26px;flex-shrink:0;background:url(assets/sydoc-mark.png) center/contain no-repeat"></span>
+              <span style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#f08a6c;white-space:nowrap">Sydoc internal</span>
+              <span style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#7c8492;white-space:nowrap">Controlling</span>
+              <span style="flex:1"></span>
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                <button style="display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 12px;border-radius:8px;border:1px solid rgba(255,255,255,.14);background:transparent;color:#e5e7eb;font:600 12.5px Inter,sans-serif;cursor:pointer;white-space:nowrap" style-hover="background:rgba(255,255,255,.06)"><i class="fas fa-file-excel" style="color:#9ca3af"></i>Excel</button>
+                <button style="display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 12px;border-radius:8px;border:1px solid rgba(255,255,255,.14);background:transparent;color:#e5e7eb;font:600 12.5px Inter,sans-serif;cursor:pointer;white-space:nowrap" style-hover="background:rgba(255,255,255,.06)"><i class="fas fa-print" style="color:#9ca3af"></i>Print</button>
+                <sc-if value="{{ canRates }}" hint-placeholder-val="{{ true }}">
+                  <button onClick="{{ openRates }}" aria-haspopup="dialog" style="display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 12px;border-radius:8px;border:1px solid rgba(255,255,255,.14);background:transparent;color:#e5e7eb;font:600 12.5px Inter,sans-serif;cursor:pointer;white-space:nowrap" style-hover="background:rgba(255,255,255,.06)"><i class="fas fa-coins" style="color:#9ca3af"></i>Rates</button>
+                </sc-if>
+              </div>
+            </div>
+
+            <div style="display:flex;align-items:flex-end;gap:20px 40px;margin-top:22px;flex-wrap:wrap">
+              <div style="flex:1 1 520px;min-width:0">
+                <h1 style="margin:0;font-size:14px;font-weight:600;color:#9ca3af;letter-spacing:-.01em">Sydoc Controlling</h1>
+                <div style="display:flex;align-items:center;gap:clamp(8px,1.1cqi,14px);margin-top:6px">
+                  <button onClick="{{ prevMonth }}" aria-label="Previous month" style="width:36px;height:36px;border-radius:99px;border:1px solid rgba(255,255,255,.14);background:transparent;color:#d1d5db;cursor:pointer;font-size:12px;flex-shrink:0;opacity:{{ prevOpacity }}" style-hover="background:rgba(255,255,255,.08);color:#fff"><i class="fas fa-chevron-left"></i></button>
+                  <button onClick="{{ openPicker }}" aria-haspopup="dialog" style="display:inline-flex;align-items:baseline;gap:clamp(6px,1cqi,12px);border:none;background:transparent;padding:0;cursor:pointer;color:#fff;white-space:nowrap;min-width:0;font-family:Inter,sans-serif">
+                    <span style="font-size:clamp(28px,4.3cqi,54px);font-weight:600;letter-spacing:-.04em;line-height:1">{{ selName }}</span>
+                    <span style="font-size:clamp(28px,4.3cqi,54px);font-weight:400;letter-spacing:-.04em;line-height:1;color:#6b7280;font-variant-numeric:tabular-nums">{{ selYear }}</span>
+                    <i class="fas fa-chevron-down" style="font-size:14px;color:#6b7280;align-self:center"></i>
+                  </button>
+                  <button onClick="{{ nextMonth }}" aria-label="Next month" style="width:36px;height:36px;border-radius:99px;border:1px solid rgba(255,255,255,.14);background:transparent;color:#d1d5db;cursor:pointer;font-size:12px;flex-shrink:0;opacity:{{ nextOpacity }}" style-hover="background:rgba(255,255,255,.08);color:#fff"><i class="fas fa-chevron-right"></i></button>
+                </div>
+                <p style="margin:12px 0 0;font-size:12.5px;line-height:1.5;color:#9ca3af;max-width:64ch;text-wrap:pretty">{{ hint }}</p>
+              </div>
+              <div style="display:grid;grid-template-rows:auto auto;grid-auto-flow:column;gap:4px 36px;padding-bottom:4px">
+                <span style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#7c8492;white-space:nowrap">Status</span>
+                <span style="display:inline-flex;align-items:center;gap:7px;font-size:14px;font-weight:600;color:#f3f4f6;white-space:nowrap;font-variant-numeric:tabular-nums">
+                  <sc-if value="{{ stLock }}" hint-placeholder-val="{{ true }}"><i class="fas fa-lock" style="font-size:11px;color:#9ca3af"></i></sc-if>
+                  <sc-if value="{{ stDot }}" hint-placeholder-val="{{ false }}"><span style="width:8px;height:8px;border-radius:99px;background:{{ stDotColor }}"></span></sc-if>
+                  {{ statusText }}
+                </span>
+                <span style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#7c8492;white-space:nowrap">Rate</span>
+                <span style="font-size:14px;font-weight:600;color:#f3f4f6;white-space:nowrap;font-variant-numeric:tabular-nums">85 CHF/h <span style="font-size:12px;font-weight:500;color:#9ca3af;margin-left:4px">{{ rateSub }}</span></span>
+              </div>
+            </div>
+          </div>
+          <nav aria-label="Sections" style="display:flex;flex-wrap:nowrap;align-items:center;overflow-x:auto;margin-top:22px;padding:0 16px;border-top:1px solid rgba(255,255,255,.08);scrollbar-width:none">
+            <sc-for list="{{ jump }}" as="j" hint-placeholder-count="5">
+              <a href="#{{ j.id }}" style="flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;height:44px;padding:0 9px;color:#d1d5db;font-size:12px;font-weight:500;white-space:nowrap;border-bottom:2px solid transparent;margin-bottom:-1px" style-hover="color:#fff;border-bottom-color:#e3633f">{{ j.label }}<span style="font:600 11px ui-monospace,Menlo,monospace;color:#7c8492">{{ j.count }}</span></a>
+            </sc-for>
+          </nav>
+        </div>
+
+        <section id="ctl-summary" style="margin-top:24px;overflow:hidden;border-top:1px solid var(--nx-border,#e5e7eb);border-bottom:1px solid var(--nx-border,#e5e7eb);scroll-margin-top:20px">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,196px),1fr));margin-left:-21px">
+            <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="5">
+              <div style="padding:16px 12px 16px 20px;border-left:1px solid var(--nx-divider,#f3f4f6);min-width:0">
+                <p style="margin:0;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--nx-sydoc-quiet,#6b7280)">{{ k.label }}</p>
+                <sc-if value="{{ k.skel }}" hint-placeholder-val="{{ false }}"><div style="margin-top:10px">{{ k.sk }}</div></sc-if>
+                <sc-if value="{{ k.ready }}" hint-placeholder-val="{{ true }}">
+                  <p style="margin:9px 0 0;display:flex;align-items:baseline;gap:5px;line-height:1;white-space:nowrap;font-variant-numeric:tabular-nums">
+                    <span style="font-size:11.5px;font-weight:600;color:var(--nx-sydoc-quiet,#6b7280)">{{ k.pre }}</span>
+                    <span style="font-size:26px;font-weight:600;letter-spacing:-.9px;color:{{ k.color }}">{{ k.main }}<span style="font-size:15px;letter-spacing:-.3px;color:var(--nx-sydoc-quiet,#6b7280)">{{ k.suf }}</span></span>
+                    <span style="font-size:14px;font-weight:600;color:{{ k.color }};margin-left:4px">{{ k.after }}</span>
+                  </p>
+                  <p style="margin:9px 0 0;display:flex;align-items:center;gap:4px 7px;flex-wrap:wrap;font-size:11.5px;color:var(--nx-sydoc-quiet,#6b7280);font-variant-numeric:tabular-nums">
+                    <span style="display:inline-flex;align-items:center;gap:4px;font-weight:600;color:{{ k.dColor }};white-space:nowrap"><i class="{{ k.dIcon }}" style="font-size:10px"></i>{{ k.dT }}</span>
+                    <span>{{ k.dSub }}</span>
+                  </p>
+                  <sc-if value="{{ k.cap }}" hint-placeholder-val="{{ false }}"><p style="margin:3px 0 0;font-size:11px;color:var(--nx-sydoc-quiet,#6b7280);text-wrap:pretty">{{ k.cap }}</p></sc-if>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+
+        <div id="ctl-clients" style="display:flex;align-items:center;gap:12px;margin:36px 0 0;scroll-margin-top:20px;flex-wrap:wrap">
+          <h2 style="margin:0;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--nx-sydoc-quiet,#6b7280)">Margin by client</h2>
+          <span style="font:600 11px ui-monospace,Menlo,monospace;color:var(--nx-sydoc-quiet,#6b7280)">10</span>
+          <span style="flex:1 1 40px;border-top:1px solid var(--nx-border,#e5e7eb)"></span>
+          <span style="font-size:11px;color:var(--nx-sydoc-quiet,#6b7280)">{{ heroMeta }}</span>
+        </div>
+
+        <sc-if value="{{ heroErr }}" hint-placeholder-val="{{ false }}">
+          <div role="alert" style="margin-top:14px;padding:12px 14px;border-radius:7px;background:var(--nx-l-red,#fee2e2);color:var(--nx-l-red-fg,#991b1b);font-size:13px;display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap">
+            <i class="fas fa-triangle-exclamation" style="margin-top:2px"></i>
+            <span style="flex:1 1 300px">{{ heroErrText }}</span>
+            <button style="margin-left:auto;padding:5px 10px;border-radius:7px;border:1px solid var(--nx-border-strong,#d1d5db);background:var(--nx-card,#fff);color:var(--nx-text,#1f2937);font:500 12px Inter,sans-serif;cursor:pointer">Retry</button>
+            <span style="flex-basis:100%;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:11.5px;opacity:.85;word-break:break-word">{{ heroErrDetail }}</span>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ empty }}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top:16px;padding:26px 0;border-top:1px solid var(--nx-border,#e5e7eb);border-bottom:1px solid var(--nx-border,#e5e7eb);display:flex;align-items:center;gap:14px;font-size:13px;color:var(--nx-sydoc-quiet,#6b7280)">
+            <i class="fas fa-inbox" style="font-size:16px;color:var(--nx-text-meta,#9ca3af)"></i>
+            <span style="text-wrap:pretty">{{ emptyText }}</span>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ showHero }}" hint-placeholder-val="{{ true }}">
+          <div style="margin-top:14px;overflow-x:auto">
+            <div style="min-width:1080px">
+              <div style="display:grid;grid-template-columns:minmax(190px,1fr) 84px 112px 124px 112px 210px 70px 118px 14px;column-gap:12px;align-items:end;padding-bottom:8px;border-bottom:1px solid var(--nx-border,#e5e7eb);font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--nx-sydoc-quiet,#6b7280)">
+                <span>Stream</span><span style="text-align:right">Hours</span><span style="text-align:right">Cost</span><span style="text-align:right">Invoiced excl. VAT</span><span style="text-align:right">incl. VAT</span><span style="text-align:right">Margin CHF</span><span style="text-align:right">Margin %</span><span style="text-align:right">vs. {{ prevShort }}</span><span></span>
+              </div>
+              <sc-if value="{{ loading }}" hint-placeholder-val="{{ false }}">
+                <sc-for list="{{ heroSkel }}" as="s" hint-placeholder-count="8">
+                  <div style="display:grid;grid-template-columns:minmax(190px,1fr) 84px 112px 124px 112px 210px 70px 118px 14px;column-gap:12px;align-items:center;min-height:50px;border-bottom:1px solid var(--nx-divider,#f3f4f6)">
+                    <span>{{ s.a }}</span><span>{{ s.b }}</span><span>{{ s.b }}</span><span>{{ s.c }}</span><span>{{ s.b }}</span><span>{{ s.c }}</span><span>{{ s.b }}</span><span>{{ s.b }}</span><span></span>
+                  </div>
+                </sc-for>
+              </sc-if>
+              <sc-if value="{{ heroReady }}" hint-placeholder-val="{{ true }}">
+                <sc-for list="{{ heroRows }}" as="r" hint-placeholder-count="10">
+                  <a href="#{{ r.anchor }}" onClick="{{ r.go }}" style="display:grid;grid-template-columns:minmax(190px,1fr) 84px 112px 124px 112px 210px 70px 118px 14px;column-gap:12px;align-items:center;min-height:52px;border-bottom:1px solid var(--nx-divider,#f3f4f6);color:var(--nx-text,#1f2937);text-decoration:none" style-hover="background:var(--nx-alt,#f9fafb);color:var(--nx-text,#1f2937)">
+                    <span style="display:flex;flex-direction:column;min-width:0;padding-left:2px">
+                      <span style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</span>
+                      <span style="margin-top:1px;font-size:11px;color:var(--nx-sydoc-quiet,#6b7280);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.sub }}</span>
+                    </span>
+                    <span style="display:flex;align-items:center;justify-content:flex-end;gap:6px;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:13px;font-weight:600">
+                      <sc-if value="{{ r.inc }}" hint-placeholder-val="{{ false }}"><span title="BPS has fewer hours than the controlling workbook for this month" style="width:7px;height:7px;border-radius:99px;border:1.5px solid var(--nx-warning,#d97706);box-sizing:border-box;flex-shrink:0"></span></sc-if>{{ r.hoursT }}
+                    </span>
+                    <span style="display:flex;flex-direction:column;align-items:flex-end;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:13px">
+                      <span>{{ r.costT }}</span>
+                      <sc-if value="{{ r.hasRateNote }}" hint-placeholder-val="{{ false }}"><span style="font-family:Inter,sans-serif;font-size:10.5px;color:var(--nx-sydoc-quiet,#6b7280)">{{ r.rateNote }}</span></sc-if>
+                    </span>
+                    <span style="display:flex;align-items:center;justify-content:flex-end;gap:6px;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:13px;color:{{ r.invColor }};white-space:nowrap">
+                      <sc-if value="{{ r.drift }}" hint-placeholder-val="{{ false }}"><i class="fas fa-code-compare" title="Live data moved: Bexio now differs from the close" style="font-size:10px;color:var(--nx-warning,#d97706)"></i></sc-if>{{ r.invT }}
+                    </span>
+                    <span style="text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;color:{{ r.inclColor }};white-space:nowrap">{{ r.inclT }}</span>
+                    <sc-if value="{{ r.hasMargin }}" hint-placeholder-val="{{ true }}">
+                      <span style="display:flex;align-items:center;justify-content:flex-end;gap:10px">
+                        <span style="position:relative;width:96px;height:8px;border-radius:2px;background:var(--nx-divider,#f3f4f6);flex-shrink:0">
+                          <span style="position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:var(--nx-border-strong,#d1d5db)"></span>
+                          <span style="position:absolute;top:0;bottom:0;left:{{ r.barL }};width:{{ r.barW }};background:{{ r.mColor }};border-radius:2px"></span>
+                        </span>
+                        <span style="min-width:84px;text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:14px;font-weight:600;color:{{ r.mColor }}">{{ r.marginT }}</span>
+                      </span>
+                      <span style="text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;font-weight:600;color:{{ r.mColor }}">{{ r.pctT }}</span>
+                      <span style="display:flex;flex-direction:column;align-items:flex-end;gap:1px">
+                        <span style="display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:600;color:{{ r.dColor }};white-space:nowrap;font-variant-numeric:tabular-nums"><i class="{{ r.dIcon }}" style="font-size:10px"></i>{{ r.dT }}</span>
+                        <span style="font-size:10.5px;color:var(--nx-sydoc-quiet,#6b7280);white-space:nowrap;font-variant-numeric:tabular-nums">{{ r.dSub }}</span>
+                      </span>
+                    </sc-if>
+                    <sc-if value="{{ r.flagged }}" hint-placeholder-val="{{ false }}">
+                      <span style="grid-column:span 3;display:flex;align-items:center;justify-content:flex-end;gap:10px;min-width:0">
+                        <span style="font-size:11.5px;color:{{ r.flagColor }};font-weight:{{ r.flagWeight }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums">{{ r.flagText }}</span>
+                        <span style="display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:99px;background:{{ r.flag.bg }};color:{{ r.flag.fg }};font-size:11.5px;font-weight:500;line-height:1.6;white-space:nowrap;flex-shrink:0"><sc-if value="{{ r.flag.dot }}" hint-placeholder-val="{{ false }}"><span style="width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.85"></span></sc-if>{{ r.flag.label }}</span>
+                      </span>
+                    </sc-if>
+                    <i class="fas fa-chevron-down" style="font-size:9px;color:var(--nx-border-strong,#d1d5db);text-align:center"></i>
+                  </a>
+                </sc-for>
+                <div style="display:grid;grid-template-columns:minmax(190px,1fr) 84px 112px 124px 112px 210px 70px 118px 14px;column-gap:12px;align-items:center;min-height:54px;border-top:1px solid var(--nx-border-strong,#d1d5db);margin-top:-1px">
+                  <span style="display:flex;flex-direction:column;padding-left:2px"><span style="font-size:13px;font-weight:700">Total</span><span style="font-size:11px;color:var(--nx-sydoc-quiet,#6b7280)">{{ tot.note }}</span></span>
+                  <span style="text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:13px;font-weight:700">{{ tot.hoursT }}</span>
+                  <span style="text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:13px;font-weight:700">{{ tot.costT }}</span>
+                  <span style="text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:13px;font-weight:700">{{ tot.invT }}</span>
+                  <span style="text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;font-weight:600;color:var(--nx-sydoc-quiet,#6b7280)">{{ tot.inclT }}</span>
+                  <span style="text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:15px;font-weight:700;letter-spacing:-.3px;color:{{ tot.mColor }}">{{ tot.marginT }}</span>
+                  <span style="text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;font-weight:700;color:{{ tot.mColor }}">{{ tot.pctT }}</span>
+                  <span style="display:flex;flex-direction:column;align-items:flex-end;gap:1px">
+                    <span style="display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;color:{{ tot.dColor }};white-space:nowrap;font-variant-numeric:tabular-nums"><i class="{{ tot.dIcon }}" style="font-size:10px"></i>{{ tot.dT }}</span>
+                    <span style="font-size:10.5px;color:var(--nx-sydoc-quiet,#6b7280);white-space:nowrap;font-variant-numeric:tabular-nums">{{ tot.dSub }}</span>
+                  </span>
+                  <span></span>
+                </div>
+              </sc-if>
+              <sc-for list="{{ unassigned }}" as="u" hint-placeholder-count="0">
+                <div style="display:grid;grid-template-columns:minmax(190px,1fr) 84px 112px 124px 112px 210px 70px 118px 14px;column-gap:12px;align-items:center;min-height:48px;margin-top:10px;border:1px dashed var(--nx-border-strong,#d1d5db);border-radius:8px">
+                  <span style="grid-column:span 3;display:flex;align-items:center;gap:10px;padding-left:12px;min-width:0">
+                    <i class="fas fa-triangle-exclamation" style="font-size:12px;color:var(--nx-warning,#d97706)"></i>
+                    <span style="display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:99px;background:var(--nx-l-amber,#fef3c7);color:var(--nx-l-amber-fg,#92400e);font-size:11.5px;font-weight:500;line-height:1.6;white-space:nowrap"><span style="width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.85"></span>Unassigned</span>
+                    <span style="font-size:12.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ u.title }}"><span style="font-family:ui-monospace,'SF Mono',Consolas,monospace;font-weight:600">{{ u.nr }}</span> · {{ u.text }}</span>
+                  </span>
+                  <span style="text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:13px">{{ u.exclT }}</span>
+                  <span style="text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--nx-sydoc-quiet,#6b7280)">{{ u.inclT }}</span>
+                  <span style="grid-column:span 4;text-align:right;padding-right:12px;font-size:11.5px;color:var(--nx-sydoc-quiet,#6b7280)">Not in the totals · <a href="#" style="font-weight:600;color:var(--nx-sydoc-ink-text,#b2401f)">Map the Bexio project to a stream</a></span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;margin-top:12px;font-size:11px;color:var(--nx-sydoc-quiet,#6b7280)">
+            <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:7px;height:7px;border-radius:99px;border:1.5px solid var(--nx-warning,#d97706);box-sizing:border-box"></span>BPS has fewer hours than the controlling workbook for this month</span>
+            <span style="display:inline-flex;align-items:center;gap:6px"><i class="fas fa-code-compare" style="font-size:10px;color:var(--nx-warning,#d97706)"></i>live data moved since the close</span>
+            <span>Cost = BPS hours × rate. Totals count issued CHF invoices only; drafts, EUR and unlinked streams stay out.</span>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ showBlocks }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;align-items:baseline;gap:12px;margin-top:38px;flex-wrap:wrap">
+            <span style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--nx-sydoc-quiet,#6b7280)">Per client</span>
+            <span style="font-size:11px;color:var(--nx-sydoc-quiet,#6b7280)">hours by task, the Bexio lines and the difference</span>
+            <span style="flex:1 1 40px;border-top:1px solid var(--nx-border,#e5e7eb);align-self:center"></span>
+            <button onClick="{{ toggleAll }}" style="border:none;background:transparent;padding:0;cursor:pointer;white-space:nowrap;font:600 11.5px Inter,sans-serif;color:var(--nx-sydoc-ink-text,#b2401f)" style-hover="text-decoration:underline">{{ allLabel }}</button>
+          </div>
+          <div style="margin-top:4px">
+            <sc-for list="{{ blocks }}" as="b" hint-placeholder-count="10">
+              <section id="{{ b.anchor }}" style="border-bottom:1px solid var(--nx-border,#e5e7eb);scroll-margin-top:20px">
+                <button onClick="{{ b.toggle }}" aria-expanded="{{ b.expanded }}" style="width:100%;display:flex;flex-wrap:wrap;align-items:center;column-gap:48px;row-gap:10px;padding:18px 0;border:none;background:transparent;cursor:pointer;text-align:left;font-family:Inter,sans-serif;color:var(--nx-text,#1f2937)" style-hover="background:var(--nx-alt,#f9fafb)">
+                  <span style="flex:1 1 260px;max-width:max(260px,calc((900px - 100%) * 999));min-width:0;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">
+                    <span style="font-size:18px;font-weight:700;letter-spacing:-.02em">{{ b.client }}</span>
+                    <span style="font-size:13px;font-weight:500;color:var(--nx-sydoc-quiet,#6b7280)">{{ b.title }}</span>
+                  </span>
+                  <span style="flex:999 1 560px;min-width:0;display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px 22px">
+                    <span style="flex:1 1 auto;display:flex;flex-wrap:wrap;gap:6px;min-width:0">
+                      <sc-for list="{{ b.chips }}" as="p" hint-placeholder-count="0">
+                        <span style="display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:99px;background:{{ p.bg }};color:{{ p.fg }};font-size:11.5px;font-weight:500;line-height:1.6;white-space:nowrap"><sc-if value="{{ p.dot }}" hint-placeholder-val="{{ false }}"><span style="width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.85"></span></sc-if><sc-if value="{{ p.icon }}" hint-placeholder-val="{{ false }}"><i class="{{ p.icon }}" style="font-size:10px"></i></sc-if><sc-if value="{{ p.ring }}" hint-placeholder-val="{{ false }}"><span style="width:7px;height:7px;border-radius:99px;border:1.5px solid currentColor;box-sizing:border-box"></span></sc-if>{{ p.label }}</span>
+                      </sc-for>
+                    </span>
+                    <sc-if value="{{ loading }}" hint-placeholder-val="{{ false }}"><span style="width:280px;max-width:100%">{{ b.sk }}</span></sc-if>
+                    <sc-if value="{{ b.ready }}" hint-placeholder-val="{{ true }}">
+                      <span style="width:84px;text-align:right">
+                        <span style="display:block;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--nx-sydoc-quiet,#6b7280)">Hours</span>
+                        <span style="display:block;margin-top:3px;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:14px;font-weight:600">{{ b.hoursT }}</span>
+                      </span>
+                      <span style="width:158px;text-align:right">
+                        <span style="display:block;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--nx-sydoc-quiet,#6b7280)">Margin CHF</span>
+                        <span style="display:block;margin-top:3px;white-space:nowrap;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:14px;font-weight:600;color:{{ b.mColor }}">{{ b.marginT }}<span style="margin-left:8px;font-size:12px;color:{{ b.pctColor }}">{{ b.pctT }}</span></span>
+                      </span>
+                      <span style="width:104px;text-align:right">
+                        <span style="display:block;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--nx-sydoc-quiet,#6b7280)">vs. {{ prevShort }}</span>
+                        <span style="display:inline-flex;align-items:center;gap:5px;margin-top:3px;font-size:12.5px;font-weight:600;color:{{ b.dColor }};white-space:nowrap;font-variant-numeric:tabular-nums"><i class="{{ b.dIcon }}" style="font-size:10px"></i>{{ b.dT }}</span>
+                      </span>
+                    </sc-if>
+                    <i class="fas fa-chevron-down" style="font-size:11px;color:var(--nx-text-meta,#9ca3af);transform:{{ b.rot }};transition:transform .15s"></i>
+                  </span>
+                </button>
+
+                <sc-if value="{{ b.open }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;flex-wrap:wrap;column-gap:48px;row-gap:18px;padding:2px 0 30px">
+                    <div style="flex:1 1 260px;max-width:max(260px,calc((900px - 100%) * 999));min-width:0">
+                      <p style="margin:0;font-size:11px;color:var(--nx-sydoc-quiet,#6b7280)">{{ b.meta1 }}</p>
+                      <p style="margin:3px 0 0;font-size:11px;color:var(--nx-sydoc-quiet,#6b7280)">{{ b.meta2 }}</p>
+                      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">
+                        <sc-for list="{{ b.pills }}" as="p" hint-placeholder-count="1">
+                          <span style="display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:99px;background:{{ p.bg }};color:{{ p.fg }};font-size:11.5px;font-weight:500;line-height:1.6;white-space:nowrap"><sc-if value="{{ p.dot }}" hint-placeholder-val="{{ false }}"><span style="width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.85"></span></sc-if><sc-if value="{{ p.icon }}" hint-placeholder-val="{{ false }}"><i class="{{ p.icon }}" style="font-size:10px"></i></sc-if><sc-if value="{{ p.ring }}" hint-placeholder-val="{{ false }}"><span style="width:7px;height:7px;border-radius:99px;border:1.5px solid currentColor;box-sizing:border-box"></span></sc-if>{{ p.label }}</span>
+                        </sc-for>
+                      </div>
+                      <div style="display:grid;grid-template-columns:auto auto;justify-content:start;gap:4px 24px;margin-top:16px">
+                        <span style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--nx-sydoc-quiet,#6b7280)">Rate</span>
+                        <span style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--nx-sydoc-quiet,#6b7280)">Volume</span>
+                        <span style="font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap">{{ b.rateT }}</span>
+                        <span style="font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap">{{ b.docsT }}</span>
+                      </div>
+                      <sc-if value="{{ b.note }}" hint-placeholder-val="{{ false }}">
+                        <p style="margin:14px 0 0;font-size:11.5px;line-height:1.5;color:var(--nx-sydoc-quiet,#6b7280);text-wrap:pretty">{{ b.note }}</p>
+                      </sc-if>
+                      <sc-if value="{{ b.linkHint }}" hint-placeholder-val="{{ false }}">
+                        <a href="#" style="display:inline-flex;align-items:center;gap:7px;margin-top:14px;height:30px;padding:0 12px;border-radius:8px;background:#111318;color:#fff;font-size:12px;font-weight:600" style-hover="background:#1f2937;color:#fff">Link the Bexio contact<i class="fas fa-arrow-right" style="font-size:11px;color:#f08a6c"></i></a>
+                      </sc-if>
+                    </div>
+
+                    <div style="flex:999 1 560px;min-width:0">
+                      <div style="display:flex;align-items:baseline;gap:12px">
+                        <span style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--nx-sydoc-quiet,#6b7280);white-space:nowrap">Aufwendungen nach Tätigkeit</span>
+                        <span style="font-size:11px;color:var(--nx-sydoc-quiet,#6b7280);white-space:nowrap">{{ b.rateLine }}</span>
+                        <span style="flex:1;border-top:1px solid var(--nx-border,#e5e7eb);align-self:center"></span>
+                      </div>
+                      <sc-if value="{{ b.tasksOk }}" hint-placeholder-val="{{ true }}">
+                        <div style="overflow-x:auto;margin-top:10px">
+                          <div style="min-width:540px">
+                            <div style="display:grid;grid-template-columns:minmax(0,1fr) 84px 112px 84px 150px;column-gap:12px;padding-bottom:8px;border-bottom:1px solid var(--nx-border,#e5e7eb);font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--nx-sydoc-quiet,#6b7280)">
+                              <span>Tätigkeit</span><span style="text-align:right">Hours</span><span style="text-align:right">CHF</span><span style="text-align:right">{{ prevShort }} h</span><span style="text-align:right">Change</span>
+                            </div>
+                            <sc-for list="{{ b.tasks }}" as="t" hint-placeholder-count="5">
+                              <div style="display:grid;grid-template-columns:minmax(0,1fr) 84px 112px 84px 150px;column-gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--nx-divider,#f3f4f6)">
+                                <span style="font-size:13px;font-weight:500">{{ t.name }}</span>
+                                <span style="text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:14px;font-weight:600">{{ t.hT }}</span>
+                                <span style="text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:13px">{{ t.chfT }}</span>
+                                <span style="text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--nx-sydoc-quiet,#6b7280)">{{ t.prevT }}</span>
+                                <span style="display:flex;align-items:center;justify-content:flex-end;gap:10px">
+                                  <span style="position:relative;width:56px;height:6px;border-radius:3px;background:var(--nx-divider,#f3f4f6)"><span style="position:absolute;left:0;top:0;bottom:0;width:{{ t.barW }};border-radius:3px;background:var(--nx-text,#1f2937)"></span><span style="position:absolute;top:-3px;bottom:-3px;left:{{ t.prevW }};width:2px;background:#e3633f;border-radius:1px"></span></span>
+                                  <span style="min-width:52px;text-align:right;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap">{{ t.deltaT }}</span>
+                                </span>
+                              </div>
+                            </sc-for>
+                            <div style="display:grid;grid-template-columns:minmax(0,1fr) 84px 112px 84px 150px;column-gap:12px;align-items:center;padding:10px 0 4px">
+                              <span style="font-size:13px;font-weight:700">Total Aufwendungen</span>
+                              <span style="text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:14px;font-weight:700">{{ b.hoursT }}</span>
+                              <span style="text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:13px;font-weight:700">{{ b.costT }}</span>
+                              <span style="text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--nx-sydoc-quiet,#6b7280)">{{ b.prevHoursT }}</span>
+                              <span style="text-align:right;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums">{{ b.hoursDeltaT }}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </sc-if>
+                      <sc-if value="{{ b.tasksErr }}" hint-placeholder-val="{{ false }}">
+                        <div role="alert" style="margin-top:10px;padding:12px 14px;border-radius:7px;background:var(--nx-l-red,#fee2e2);color:var(--nx-l-red-fg,#991b1b);font-size:13px;display:flex;align-items:center;gap:10px"><i class="fas fa-triangle-exclamation"></i>Could not read the BPS hours for this stream.</div>
+                      </sc-if>
+
+                      <div style="display:flex;align-items:baseline;gap:12px;margin-top:30px">
+                        <span style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--nx-sydoc-quiet,#6b7280);white-space:nowrap">Debitor-Positionen</span>
+                        <span style="font-size:11px;color:var(--nx-sydoc-quiet,#6b7280);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ b.invNote }}</span>
+                        <span style="flex:1;border-top:1px solid var(--nx-border,#e5e7eb);align-self:center"></span>
+                      </div>
+                      <sc-if value="{{ b.invOk }}" hint-placeholder-val="{{ true }}">
+                        <sc-for list="{{ b.invoices }}" as="v" hint-placeholder-count="1">
+                          <div style="margin-top:14px">
+                            <div style="display:flex;align-items:center;gap:6px 10px;flex-wrap:wrap;padding-bottom:8px;border-bottom:1px solid var(--nx-border,#e5e7eb)">
+                              <span style="font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:13px;font-weight:600">{{ v.nr }}</span>
+                              <span style="font-size:13px;color:var(--nx-text-sec,#6b7280)">{{ v.title }}</span>
+                              <span style="font-size:12px;color:var(--nx-sydoc-quiet,#6b7280);font-variant-numeric:tabular-nums">{{ v.date }}</span>
+                              <span style="display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:99px;background:{{ v.st.bg }};color:{{ v.st.fg }};font-size:11.5px;font-weight:500;line-height:1.6;white-space:nowrap"><span style="width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.85"></span>{{ v.st.label }}</span>
+                              <span style="flex:1"></span>
+                              <a href="#" style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:7px;font-size:12px;font-weight:500;color:var(--nx-text-sec,#6b7280)" style-hover="background:var(--nx-alt,#f9fafb);color:var(--nx-text,#1f2937)"><i class="fas fa-file-pdf"></i>PDF</a>
+                            </div>
+                            <div style="overflow-x:auto">
+                              <div style="min-width:500px;color:{{ v.ink }}">
+                                <div style="display:grid;grid-template-columns:minmax(0,1fr) 92px 92px 112px;column-gap:12px;padding:8px 0 6px;border-bottom:1px solid var(--nx-divider,#f3f4f6);font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--nx-sydoc-quiet,#6b7280)">
+                                  <span>Text</span><span style="text-align:right">Quantity</span><span style="text-align:right">Unit price</span><span style="text-align:right">Total {{ v.cur }}</span>
+                                </div>
+                                <sc-for list="{{ v.lines }}" as="l" hint-placeholder-count="3">
+                                  <div style="display:grid;grid-template-columns:minmax(0,1fr) 92px 92px 112px;column-gap:12px;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--nx-divider,#f3f4f6);font-size:12.5px">
+                                    <span style="line-height:1.45;text-wrap:pretty">{{ l.text }}</span>
+                                    <span style="text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums">{{ l.qtyT }}</span>
+                                    <span style="text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums">{{ l.priceT }}</span>
+                                    <span style="text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-weight:600">{{ l.totalT }}</span>
+                                  </div>
+                                </sc-for>
+                                <div style="display:grid;grid-template-columns:minmax(0,1fr) 112px;column-gap:12px;padding:8px 0 2px;font-size:12.5px">
+                                  <span style="text-align:right;font-weight:600">Total excl. VAT</span><span style="text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-weight:700">{{ v.exclT }}</span>
+                                  <span style="text-align:right;color:var(--nx-sydoc-quiet,#6b7280);padding-top:3px">VAT 8.1%</span><span style="text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;color:var(--nx-sydoc-quiet,#6b7280);padding-top:3px">{{ v.vatT }}</span>
+                                  <span style="text-align:right;color:var(--nx-sydoc-quiet,#6b7280);padding-top:3px">Total incl. VAT</span><span style="text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;color:var(--nx-sydoc-quiet,#6b7280);padding-top:3px">{{ v.inclT }}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </sc-for>
+                        <sc-if value="{{ b.drift }}" hint-placeholder-val="{{ false }}">
+                          <details style="margin-top:16px;border:1px solid var(--nx-border,#e5e7eb);border-radius:7px;background:var(--nx-alt,#f9fafb)">
+                            <summary style="cursor:pointer;padding:9px 12px;font-size:11.5px;font-weight:600;list-style-position:inside"><i class="fas fa-code-compare" style="color:var(--nx-warning,#d97706);margin:0 4px 0 2px"></i> The live data has moved since the close: 1 figure differs</summary>
+                            <div style="padding:0 12px 10px">
+                              <div style="display:grid;grid-template-columns:minmax(0,1fr) 100px 100px 90px;column-gap:10px;padding:6px 0;border-bottom:1px solid var(--nx-border,#e5e7eb);font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--nx-sydoc-quiet,#6b7280)"><span>Figure</span><span style="text-align:right">At close</span><span style="text-align:right">Live now</span><span style="text-align:right">Difference</span></div>
+                              <div style="display:grid;grid-template-columns:minmax(0,1fr) 100px 100px 90px;column-gap:10px;padding:7px 0;font-size:12.5px;font-variant-numeric:tabular-nums"><span>{{ b.driftLabel }}</span><span style="text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace">{{ b.driftAt }}</span><span style="text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace">{{ b.driftLive }}</span><span style="text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-weight:600">{{ b.driftDiff }}</span></div>
+                              <p style="margin:6px 0 0;font-size:11px;color:var(--nx-sydoc-quiet,#6b7280)">The margin uses the invoice as it was at the close. The lines above are live: the invoice was corrected in Bexio afterwards.</p>
+                            </div>
+                          </details>
+                        </sc-if>
+                      </sc-if>
+                      <sc-if value="{{ b.invMsg }}" hint-placeholder-val="{{ false }}">
+                        <div style="margin-top:12px;padding:12px 0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--nx-sydoc-quiet,#6b7280)">
+                          <span style="display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:99px;background:{{ b.invChip.bg }};color:{{ b.invChip.fg }};font-size:11.5px;font-weight:500;line-height:1.6;white-space:nowrap"><sc-if value="{{ b.invChip.dot }}" hint-placeholder-val="{{ false }}"><span style="width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.85"></span></sc-if>{{ b.invChip.label }}</span>
+                          <span style="text-wrap:pretty">{{ b.invMsgText }}</span>
+                        </div>
+                      </sc-if>
+                      <sc-if value="{{ b.invErr }}" hint-placeholder-val="{{ false }}">
+                        <div role="alert" style="margin-top:12px;padding:12px 14px;border-radius:7px;background:var(--nx-l-red,#fee2e2);color:var(--nx-l-red-fg,#991b1b);font-size:13px;display:flex;align-items:center;gap:10px"><i class="fas fa-triangle-exclamation"></i>Could not read Bexio. The invoice lines show again once it answers.</div>
+                      </sc-if>
+
+                      <div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 18px;margin-top:24px;padding-top:12px;border-top:1px solid var(--nx-text,#1f2937)">
+                        <span style="font-size:13px;font-weight:700">Differenz</span>
+                        <span style="font-size:11.5px;color:var(--nx-sydoc-quiet,#6b7280);font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums">{{ b.diffFormula }}</span>
+                        <span style="flex:1"></span>
+                        <sc-if value="{{ b.diffOk }}" hint-placeholder-val="{{ true }}">
+                          <span style="font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:22px;font-weight:600;letter-spacing:-.6px;color:{{ b.mColor }}">{{ b.marginT }}</span>
+                          <span style="font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:13px;font-weight:600;color:{{ b.mColor }}">{{ b.pctT }}</span>
+                          <span style="display:inline-flex;align-items:baseline;gap:6px;white-space:nowrap"><span style="display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:600;color:{{ b.dColor }};font-variant-numeric:tabular-nums"><i class="{{ b.dIcon }}" style="font-size:10px"></i>{{ b.dT }}</span><span style="font-size:11px;color:var(--nx-sydoc-quiet,#6b7280);font-variant-numeric:tabular-nums">{{ b.dSub }}</span></span>
+                        </sc-if>
+                        <sc-if value="{{ b.diffMsg }}" hint-placeholder-val="{{ false }}">
+                          <span style="font-size:12.5px;color:var(--nx-sydoc-quiet,#6b7280);text-wrap:pretty;max-width:60ch;text-align:right">{{ b.diffMsg }}</span>
+                        </sc-if>
+                      </div>
+
+                      <div style="display:flex;align-items:baseline;gap:12px;margin-top:30px">
+                        <span style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--nx-sydoc-quiet,#6b7280);white-space:nowrap">Unit figures</span>
+                        <span style="font-size:11px;color:var(--nx-sydoc-quiet,#6b7280)">{{ b.unitNote }}</span>
+                        <span style="flex:1;border-top:1px solid var(--nx-border,#e5e7eb);align-self:center"></span>
+                      </div>
+                      <div style="overflow-x:auto;margin-top:10px">
+                        <div style="min-width:540px">
+                          <div style="display:grid;grid-template-columns:minmax(0,1fr) 150px 110px 170px;column-gap:12px;padding-bottom:8px;border-bottom:1px solid var(--nx-border,#e5e7eb);font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--nx-sydoc-quiet,#6b7280)">
+                            <span>Figure</span><span style="text-align:right">{{ selName }}</span><span style="text-align:right">{{ prevName }}</span><span style="text-align:right">Change</span>
+                          </div>
+                          <sc-for list="{{ b.ukpis }}" as="f" hint-placeholder-count="3">
+                            <div style="display:grid;grid-template-columns:minmax(0,1fr) 150px 110px 170px;column-gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--nx-divider,#f3f4f6)">
+                              <span style="font-size:13px;font-weight:500">{{ f.label }}</span>
+                              <span style="text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:17px;font-weight:600;letter-spacing:-.5px;line-height:1">{{ f.valueT }}</span>
+                              <span style="text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:13px;color:var(--nx-sydoc-quiet,#6b7280)">{{ f.prevT }}</span>
+                              <span style="display:flex;align-items:center;justify-content:flex-end;gap:10px">
+                                <span style="position:relative;width:64px;height:6px;border-radius:3px;background:var(--nx-divider,#f3f4f6)"><span style="position:absolute;left:0;top:0;bottom:0;width:{{ f.barW }};border-radius:3px;background:var(--nx-text,#1f2937)"></span><span style="position:absolute;top:-3px;bottom:-3px;left:{{ f.prevW }};width:2px;background:#e3633f;border-radius:1px"></span></span>
+                                <span style="min-width:48px;text-align:right;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap">{{ f.deltaT }}</span>
+                              </span>
+                            </div>
+                          </sc-for>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </sc-if>
+              </section>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <div id="ctl-tasks" style="display:flex;align-items:center;gap:12px;margin:42px 0 0;scroll-margin-top:20px;flex-wrap:wrap">
+          <h2 style="margin:0;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--nx-sydoc-quiet,#6b7280)">Hours by task</h2>
+          <span style="font:600 11px ui-monospace,Menlo,monospace;color:var(--nx-sydoc-quiet,#6b7280)">{{ mxCount }}</span>
+          <span style="flex:1 1 40px;border-top:1px solid var(--nx-border,#e5e7eb)"></span>
+          <span style="font-size:11px;color:var(--nx-sydoc-quiet,#6b7280)">all clients · FTE = hours ÷ 176 h</span>
+        </div>
+        <sc-if value="{{ mxErr }}" hint-placeholder-val="{{ false }}">
+          <div role="alert" style="margin-top:14px;padding:12px 14px;border-radius:7px;background:var(--nx-l-red,#fee2e2);color:var(--nx-l-red-fg,#991b1b);font-size:13px;display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap"><i class="fas fa-triangle-exclamation" style="margin-top:2px"></i><span style="flex:1 1 300px">Could not read the BPS hours.</span><button style="margin-left:auto;padding:5px 10px;border-radius:7px;border:1px solid var(--nx-border-strong,#d1d5db);background:var(--nx-card,#fff);color:var(--nx-text,#1f2937);font:500 12px Inter,sans-serif;cursor:pointer">Retry</button></div>
+        </sc-if>
+        <sc-if value="{{ mxEmpty }}" hint-placeholder-val="{{ false }}">
+          <p style="margin:14px 0 0;padding:14px 0;font-size:13px;color:var(--nx-sydoc-quiet,#6b7280)">No hours booked in {{ selName }} {{ selYear }}.</p>
+        </sc-if>
+        <sc-if value="{{ loading }}" hint-placeholder-val="{{ false }}">
+          <div style="display:grid;gap:12px;margin-top:16px">{{ skA }}{{ skB }}{{ skA }}{{ skB }}</div>
+        </sc-if>
+        <sc-if value="{{ mxOk }}" hint-placeholder-val="{{ true }}">
+          <div style="position:relative;margin-top:14px;overflow-x:auto">
+            <div style="min-width:1060px">
+              <div style="display:grid;grid-template-columns:150px repeat(10,minmax(72px,1fr)) 84px;align-items:end;border-bottom:1px solid var(--nx-border,#e5e7eb);font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--nx-sydoc-quiet,#6b7280)">
+                <span style="position:sticky;left:0;z-index:1;background:var(--nx-page,#f9fafb);padding:0 12px 8px 0">Tätigkeit</span>
+                <sc-for list="{{ mxCols }}" as="c" hint-placeholder-count="10">
+                  <span title="{{ c.title }}" style="padding:0 8px 8px;text-align:right;line-height:1.3;overflow-wrap:anywhere">{{ c.label }}</span>
+                </sc-for>
+                <span style="padding:0 8px 8px;text-align:right;border-left:1px solid var(--nx-border,#e5e7eb)">Total</span>
+              </div>
+              <sc-for list="{{ mxRows }}" as="r" hint-placeholder-count="9">
+                <div style="display:grid;grid-template-columns:150px repeat(10,minmax(72px,1fr)) 84px;align-items:stretch;border-bottom:1px solid var(--nx-divider,#f3f4f6)">
+                  <span style="position:sticky;left:0;z-index:1;background:var(--nx-page,#f9fafb);padding:8px 12px 8px 0;font-size:12.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.task }}</span>
+                  <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="10">
+                    <span title="{{ c.title }}" style="padding:8px;text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:12px;background:{{ c.bg }};color:{{ c.color }};box-shadow:inset 0 0 0 1px var(--nx-page,#f9fafb)">{{ c.vT }}</span>
+                  </sc-for>
+                  <span style="padding:8px;text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:12px;font-weight:700;border-left:1px solid var(--nx-border,#e5e7eb)">{{ r.totT }}</span>
+                </div>
+              </sc-for>
+              <div style="display:grid;grid-template-columns:150px repeat(10,minmax(72px,1fr)) 84px;border-top:1px solid var(--nx-border,#e5e7eb);margin-top:-1px;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:12px;font-weight:700">
+                <span style="position:sticky;left:0;z-index:1;background:var(--nx-page,#f9fafb);padding:9px 12px 9px 0;font-family:Inter,sans-serif;font-size:12.5px">Total</span>
+                <sc-for list="{{ mxTot }}" as="c" hint-placeholder-count="10"><span style="padding:9px 8px;text-align:right">{{ c.v }}</span></sc-for>
+                <span style="padding:9px 8px;text-align:right;border-left:1px solid var(--nx-border,#e5e7eb)">{{ mxGrand }}</span>
+              </div>
+              <div style="display:grid;grid-template-columns:150px repeat(10,minmax(72px,1fr)) 84px;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:12px;color:var(--nx-sydoc-quiet,#6b7280)">
+                <span style="position:sticky;left:0;z-index:1;background:var(--nx-page,#f9fafb);padding:3px 12px 3px 0;font-family:Inter,sans-serif;font-size:12px">FTE</span>
+                <sc-for list="{{ mxFte }}" as="c" hint-placeholder-count="10"><span style="padding:3px 8px;text-align:right">{{ c.v }}</span></sc-for>
+                <span style="padding:3px 8px;text-align:right;border-left:1px solid var(--nx-border,#e5e7eb);font-weight:700;color:var(--nx-text,#1f2937)">{{ mxFteGrand }}</span>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin-top:12px;font-size:11px;color:var(--nx-sydoc-quiet,#6b7280)">
+            <span style="display:inline-flex;align-items:center;gap:2px"><span style="width:14px;height:10px;background:rgba(227,99,63,.08)"></span><span style="width:14px;height:10px;background:rgba(227,99,63,.22)"></span><span style="width:14px;height:10px;background:rgba(227,99,63,.38)"></span><span style="width:14px;height:10px;background:rgba(227,99,63,.56)"></span></span>
+            <span>Tint is hours relative to the largest cell · “·” no hours booked · hover a cell for its exact hours</span>
+          </div>
+        </sc-if>
+
+        <div id="ctl-volumes" style="display:flex;align-items:center;gap:12px;margin:42px 0 0;scroll-margin-top:20px;flex-wrap:wrap">
+          <h2 style="margin:0;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--nx-sydoc-quiet,#6b7280)">Document volumes</h2>
+          <span style="font:600 11px ui-monospace,Menlo,monospace;color:var(--nx-sydoc-quiet,#6b7280)">{{ volTotalShort }}</span>
+          <span style="flex:1 1 40px;border-top:1px solid var(--nx-border,#e5e7eb)"></span>
+          <span style="font-size:11px;color:var(--nx-sydoc-quiet,#6b7280)">from the Sydoc Finance figures</span>
+        </div>
+        <sc-if value="{{ mxEmpty }}" hint-placeholder-val="{{ false }}">
+          <p style="margin:14px 0 0;padding:14px 0;font-size:13px;color:var(--nx-sydoc-quiet,#6b7280)">No documents recorded in {{ selName }} {{ selYear }}.</p>
+        </sc-if>
+        <sc-if value="{{ loading }}" hint-placeholder-val="{{ false }}">
+          <div style="display:grid;gap:12px;margin-top:16px">{{ skB }}{{ skA }}{{ skB }}</div>
+        </sc-if>
+        <sc-if value="{{ volOk }}" hint-placeholder-val="{{ true }}">
+          <div style="overflow-x:auto;margin-top:14px">
+            <div style="min-width:620px">
+              <div style="display:grid;grid-template-columns:minmax(150px,230px) minmax(0,1fr) 96px 78px 96px 90px;column-gap:12px;padding-bottom:8px;border-bottom:1px solid var(--nx-border,#e5e7eb);font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--nx-sydoc-quiet,#6b7280)">
+                <span>Stream</span><span>Share</span><span style="text-align:right">{{ selName }}</span><span>Unit</span><span style="text-align:right">{{ prevName }}</span><span style="text-align:right">Change</span>
+              </div>
+              <sc-for list="{{ volRows }}" as="v" hint-placeholder-count="10">
+                <div style="display:grid;grid-template-columns:minmax(150px,230px) minmax(0,1fr) 96px 78px 96px 90px;column-gap:12px;align-items:center;min-height:36px;border-bottom:1px solid var(--nx-divider,#f3f4f6);font-size:12.5px">
+                  <span style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ v.name }}</span>
+                  <span style="display:flex;align-items:center;gap:10px"><span style="flex:1;height:6px;border-radius:3px;background:var(--nx-divider,#f3f4f6);overflow:hidden"><span style="display:block;height:100%;width:{{ v.w }};background:#e3633f;border-radius:3px"></span></span><span style="width:40px;text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:11.5px;color:var(--nx-sydoc-quiet,#6b7280)">{{ v.pct }}</span></span>
+                  <span style="text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:13px;font-weight:600">{{ v.docsT }}</span>
+                  <span style="font-size:11.5px;color:var(--nx-sydoc-quiet,#6b7280)">{{ v.unit }}</span>
+                  <span style="text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--nx-sydoc-quiet,#6b7280)">{{ v.prevT }}</span>
+                  <span style="text-align:right;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap">{{ v.deltaT }}</span>
+                </div>
+              </sc-for>
+              <div style="display:grid;grid-template-columns:minmax(150px,230px) minmax(0,1fr) 96px 78px 96px 90px;column-gap:12px;align-items:center;min-height:42px;font-size:12.5px;font-weight:700">
+                <span>Total</span><span style="font-size:11px;font-weight:500;color:var(--nx-sydoc-quiet,#6b7280)">units differ per stream, summed as in the workbook</span>
+                <span style="text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:13px">{{ volTotal.docsT }}</span><span></span>
+                <span style="text-align:right;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;color:var(--nx-sydoc-quiet,#6b7280)">{{ volTotal.prevT }}</span>
+                <span style="text-align:right;font-size:12px;font-variant-numeric:tabular-nums">{{ volTotal.deltaT }}</span>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <div id="ctl-trend" style="display:flex;align-items:center;gap:12px;margin:42px 0 0;scroll-margin-top:20px;flex-wrap:wrap">
+          <h2 style="margin:0;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--nx-sydoc-quiet,#6b7280)">Trend</h2>
+          <span style="font:600 11px ui-monospace,Menlo,monospace;color:var(--nx-sydoc-quiet,#6b7280)">22</span>
+          <span style="flex:1 1 40px;border-top:1px solid var(--nx-border,#e5e7eb)"></span>
+          <span style="font-size:11px;color:var(--nx-sydoc-quiet,#6b7280)">Jan 2025 – Oct 2026 · hover a month for its values, click to open it</span>
+        </div>
+        <sc-if value="{{ loading }}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top:16px">{{ skChart }}</div>
+        </sc-if>
+        <sc-if value="{{ trendOk }}" hint-placeholder-val="{{ true }}">
+          <div onMouseLeave="{{ clearHover }}" style="margin-top:18px">
+            <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
+              <span style="font-size:15px;font-weight:700;letter-spacing:-.02em">Total margin</span>
+              <span style="font-size:11px;color:var(--nx-sydoc-quiet,#6b7280)">streams with an issued CHF invoice · bars below zero in red</span>
+            </div>
+            <div style="position:relative;margin-top:14px">
+              <div style="display:flex;align-items:flex-end;gap:10px">
+              <span style="width:72px;flex-shrink:0;padding-bottom:4px;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--nx-sydoc-quiet,#6b7280)">Margin</span>
+              <div style="position:relative;flex:1;min-width:0;height:170px;display:flex;gap:4px">
+                <span style="position:absolute;left:0;right:0;bottom:{{ tZero }};border-top:1px solid var(--nx-border-strong,#d1d5db)"></span>
+                <span style="position:absolute;left:0;right:0;top:0;border-top:1px dashed var(--nx-divider,#f3f4f6)"></span>
+                <sc-for list="{{ trendCols }}" as="c" hint-placeholder-count="22">
+                  <span onMouseEnter="{{ c.enter }}" onClick="{{ c.pick }}" style="position:relative;flex:1;height:100%;border-radius:4px 4px 0 0;background:{{ c.colBg }};cursor:pointer">
+                    <span style="position:absolute;left:18%;right:18%;bottom:{{ c.bBottom }};height:{{ c.bH }};background:{{ c.bBg }};border-radius:2px;box-shadow:{{ c.bRing }}"></span>
+                    <sc-if value="{{ c.pending }}" hint-placeholder-val="{{ false }}"><span title="Running month, not invoiced yet" style="position:absolute;left:18%;right:18%;bottom:{{ tZero }};height:22px;border:1px dashed var(--nx-border-strong,#d1d5db);border-bottom:none;border-radius:2px 2px 0 0;box-sizing:border-box"></span></sc-if>
+                  </span>
+                </sc-for>
+              <sc-if value="{{ tip.show }}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute;top:6px;left:{{ tip.left }};transform:{{ tip.tx }};z-index:5;min-width:210px;padding:10px 12px;border-radius:10px;background:#111318;color:#e5e7eb;box-shadow:0 12px 32px rgba(16,24,40,.28);pointer-events:none">
+                  <p style="margin:0 0 6px;font-size:12px;font-weight:700;color:#fff">{{ tip.title }}</p>
+                  <sc-for list="{{ tip.rows }}" as="t" hint-placeholder-count="5">
+                    <div style="display:flex;justify-content:space-between;gap:16px;padding:2px 0;font-size:11.5px"><span style="color:#9ca3af">{{ t.k }}</span><span style="font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-weight:600;color:{{ t.c }}">{{ t.v }}</span></div>
+                  </sc-for>
+                  <sc-if value="{{ tip.note }}" hint-placeholder-val="{{ false }}"><p style="display:flex;align-items:center;gap:6px;margin:7px 0 0;padding-top:7px;border-top:1px solid rgba(255,255,255,.1);font-size:11px;color:#f6b19c">{{ tip.note }}</p></sc-if>
+                </div>
+              </sc-if>
+              </div>
+              </div>
+              <div style="display:flex;align-items:flex-end;gap:10px;margin-top:10px">
+                <span style="width:72px;flex-shrink:0;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--nx-sydoc-quiet,#6b7280)">Hours</span>
+                <span style="flex:1;display:flex;gap:4px;height:34px;align-items:flex-end;border-bottom:1px solid var(--nx-border,#e5e7eb)">
+                  <sc-for list="{{ trendCols }}" as="c" hint-placeholder-count="22"><span onMouseEnter="{{ c.enter }}" style="flex:1;height:100%;display:flex;align-items:flex-end;justify-content:center;background:{{ c.colBg }}"><span style="width:64%;height:{{ c.hH }};background:{{ c.sBg }};border-radius:2px 2px 0 0"></span></span></sc-for>
+                </span>
+              </div>
+              <div style="display:flex;align-items:flex-end;gap:10px;margin-top:6px">
+                <span style="width:72px;flex-shrink:0;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--nx-sydoc-quiet,#6b7280)">Documents</span>
+                <span style="flex:1;display:flex;gap:4px;height:34px;align-items:flex-end;border-bottom:1px solid var(--nx-border,#e5e7eb)">
+                  <sc-for list="{{ trendCols }}" as="c" hint-placeholder-count="22"><span onMouseEnter="{{ c.enter }}" style="flex:1;height:100%;display:flex;align-items:flex-end;justify-content:center;background:{{ c.colBg }}"><span style="width:64%;height:{{ c.dH }};background:{{ c.sBg }};border-radius:2px 2px 0 0"></span></span></sc-for>
+                </span>
+              </div>
+              <div style="display:flex;gap:10px;margin-top:6px">
+                <span style="width:72px;flex-shrink:0"></span>
+                <span style="flex:1;display:flex;gap:4px">
+                  <sc-for list="{{ trendCols }}" as="c" hint-placeholder-count="22">
+                    <span style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10.5px;font-variant-numeric:tabular-nums">
+                      <span style="color:{{ c.lblColor }};font-weight:{{ c.lblWeight }}">{{ c.mLabel }}</span>
+                      <span style="height:7px;display:flex;align-items:center"><sc-if value="{{ c.inc }}" hint-placeholder-val="{{ false }}"><span title="Privera: BPS has fewer hours than the controlling workbook" style="width:6px;height:6px;border-radius:99px;border:1.5px solid var(--nx-warning,#d97706);box-sizing:border-box"></span></sc-if></span>
+                      <span style="font-size:10px;font-weight:600;color:var(--nx-sydoc-quiet,#6b7280)">{{ c.yLabel }}</span>
+                    </span>
+                  </sc-for>
+                </span>
+              </div>
+            </div>
+
+            <div style="display:flex;align-items:baseline;gap:12px;margin-top:30px;flex-wrap:wrap">
+              <span style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--nx-sydoc-quiet,#6b7280)">Margin per stream</span>
+              <span style="font-size:11px;color:var(--nx-sydoc-quiet,#6b7280)">each tile on its own scale · outlined: BPS incomplete · gap: no comparable invoice</span>
+              <span style="flex:1 1 40px;border-top:1px solid var(--nx-border,#e5e7eb);align-self:center"></span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,218px),1fr));gap:24px 28px;margin-top:16px">
+              <sc-for list="{{ tiles }}" as="t" hint-placeholder-count="10">
+                <div style="min-width:0">
+                  <div style="display:flex;align-items:baseline;gap:8px;min-width:0">
+                    <span style="font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.name }}</span>
+                    <span style="flex:1"></span>
+                    <span style="font-size:10.5px;color:var(--nx-sydoc-quiet,#6b7280);white-space:nowrap">{{ t.curLabel }}</span>
+                    <span style="font-family:ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;font-weight:600;color:{{ t.valColor }};white-space:nowrap">{{ t.valT }}</span>
+                  </div>
+                  <div style="position:relative;height:58px;margin-top:8px;display:flex;gap:2px">
+                    <span style="position:absolute;left:0;right:0;bottom:{{ t.zero }};border-top:1px solid var(--nx-border-strong,#d1d5db)"></span>
+                    <sc-for list="{{ t.bars }}" as="b" hint-placeholder-count="22">
+                      <span onMouseEnter="{{ b.enter }}" style="position:relative;flex:1;height:100%;background:{{ b.colBg }}">
+                        <span style="position:absolute;left:0;right:0;bottom:{{ b.bottom }};height:{{ b.h }};background:{{ b.bg }};border:{{ b.ring }};box-sizing:border-box;border-radius:1px"></span>
+                        <sc-if value="{{ b.dot }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;left:50%;bottom:{{ t.zero }};width:3px;height:3px;margin:0 0 -1.5px -1.5px;border-radius:99px;background:var(--nx-text-meta,#9ca3af)"></span></sc-if>
+                      </span>
+                    </sc-for>
+                    <sc-if value="{{ t.unlinked }}" hint-placeholder-val="{{ false }}">
+                      <span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--nx-sydoc-quiet,#6b7280);background:var(--nx-page,#f9fafb)">Margin unknown: Bexio contact not linked</span>
+                    </sc-if>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;margin-top:5px;font-size:10px;color:var(--nx-sydoc-quiet,#6b7280);font-variant-numeric:tabular-nums"><span>Jan 25</span><span>{{ t.scaleT }}</span><span>Oct 26</span></div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+      </main>
+    </div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;'light'|'dark'&quot;,&quot;section&quot;:&quot;View&quot;},&quot;frame&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;desktop&quot;,&quot;phone&quot;],&quot;default&quot;:&quot;desktop&quot;,&quot;tsType&quot;:&quot;'desktop'|'phone'&quot;,&quot;section&quot;:&quot;View&quot;},&quot;scenario&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;live&quot;,&quot;loading&quot;,&quot;bexio failed&quot;,&quot;bps failed&quot;,&quot;empty month&quot;],&quot;default&quot;:&quot;live&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;States&quot;},&quot;blocks&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;one open at a time&quot;,&quot;independent&quot;],&quot;default&quot;:&quot;one open at a time&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Behaviour&quot;},&quot;rateEditor&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Behaviour&quot;}}">
+class Component extends DCLogic {
+  state = { sel: 8, pickerOpen: false, viewYear: 2025, open: { pri_post: true }, ratesOpen: false, hoverM: null, form: null, rates: null, overrides: null };
+  rootRef = React.createRef();
+
+  componentDidMount() { this.applyTheme(); }
+  componentDidUpdate() { this.applyTheme(); }
+  applyTheme() {
+    const el = this.rootRef.current; if (!el) return;
+    const D = {
+      '--nx-page': '#0f172a', '--nx-card': '#1e293b', '--nx-alt': '#273449', '--nx-sunken': '#273449',
+      '--nx-border': '#334155', '--nx-border-strong': '#475569', '--nx-divider': '#273449',
+      '--nx-text': '#e2e8f0', '--nx-text-sec': '#94a3b8', '--nx-text-meta': '#64748b', '--nx-sydoc-quiet': '#94a3b8',
+      '--nx-sydoc-band': '#0b0d12', '--nx-sydoc-ink-text': '#f08a6c', '--nx-gain': '#34d399', '--nx-loss': '#f87171', '--nx-warning': '#fbbf24',
+      '--nx-l-green': '#064e3b', '--nx-l-green-fg': '#6ee7b7', '--nx-l-amber': '#78350f', '--nx-l-amber-fg': '#fcd34d',
+      '--nx-l-red': '#7f1d1d', '--nx-l-red-fg': '#fca5a5', '--nx-l-gray': '#334155', '--nx-l-gray-fg': '#cbd5e1',
+      '--nx-l-blue': '#1e3a8a', '--nx-l-blue-fg': '#bfdbfe', '--nx-l-indigo': '#312e81', '--nx-l-indigo-fg': '#c7d2fe',
+      '--nx-side-icon': '#94a3b8', '--nx-side-active': 'rgba(255,255,255,.06)', '--nx-side-icon-active': '#e2e8f0',
+    };
+    const dark = (this.props.theme ?? 'light') === 'dark';
+    Object.keys(D).forEach(k => dark ? el.style.setProperty(k, D[k]) : el.style.removeProperty(k));
+  }
+
+  build() {
+    if (this._D) return this._D;
+    const hash = s => { let x = 2166136261; for (let i = 0; i < s.length; i++) { x ^= s.charCodeAt(i); x = Math.imul(x, 16777619); } return ((x >>> 0) % 10007) / 10007; };
+    const nz = (s, a) => 1 + (hash(s) - .5) * 2 * a;
+    const r2 = v => Math.round(v * 100) / 100;
+    const SEL = 8, N = 22, OPEN = 20, RUN = 21;
+    const MN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const seas = [1.04, 1, 1.02, .99, 1.01, .97, .9, .88, 1, 1.02, 1.03, .86];
+    const STREAMS = [
+      { key: 'em', name: 'Elektro-Material', client: 'Elektro-Material', title: '', nav: 'Elektro-Material', bexio: 'Elektro-Material AG', project: 'Dokumentenverarbeitung', bps: 'Elektro Material', unit: 'documents', docs: 4392,
+        tasks: [['Validierung', 310.25], ['Support', 14.5], ['Change Requests', 12], ['Qualitätsmanagement', 9.75], ['Support intern', 6]],
+        inv: [{ title: 'Dokumentenverarbeitung', lines: [['Validierung Kreditorenrechnungen Opex-Kanal', 2904, 6.9], ['Validierung Kreditorenrechnungen E-Mail-Kanal', 1488, 6.9], ['Abgleich Bestellpositionen', 38915, 0.08], ['Monatspauschale Data-Center, Lizenzen, Monitoring', 1, 650, true]] }] },
+      { key: 'compass', name: 'Compass Group', client: 'Compass Group', title: '', nav: 'Compass', bexio: 'Compass Group (Schweiz) AG', project: 'Kreditoren', bps: 'CompassGroup', unit: 'documents', docs: 1236,
+        tasks: [['Validierung', 58.25], ['Scanning', 22.5], ['Logistik', 6], ['Support', 4.75]],
+        inv: [{ title: 'Rechnungsverarbeitung', lines: [['Verarbeitung Kreditorenrechnungen', 1236, 6.8], ['Monatspauschale Lizenzen', 1, 400, true]] }] },
+      { key: 'pri_post', name: 'Privera Posteingang', client: 'Privera', title: 'Posteingang', nav: 'Posteingang', bexio: 'Privera AG', project: 'Posteingang', showProject: true, bps: 'Privera › Posteingang', unit: 'documents', docs: 16362, privera: true,
+        tasks: [['Scanning', 98.65], ['Validierung', 90.62], ['Zupfen', 74.81], ['Support', 19.01], ['Vorbereitung Akten', 18.62], ['Support intern', 3.17]],
+        inv: [{ title: 'Posteingang', lines: [['Phys. Posteingang/AVOR/Scanning/Klassierung mit Abgleich Dokumentenklassen', 10044, 0.9], ['Elektr. Posteingang/Klassierung mit Abgleich Dokumentenklassen', 6318, 0.55], ['Validierung Metadaten Posteingang', 10044, 1.25], ['Zupfen und Vorbereitung Akten', 1204, 1.8], ['Monatspauschale Data-Center, Lizenzen, Monitoring, S3', 1, 800, true]] }] },
+      { key: 'pri_re', name: 'Privera Rechnungseingang', client: 'Privera', title: 'Rechnungseingang', nav: 'Rechnungen', bexio: 'Privera AG', project: 'Rechnungseingang', showProject: true, bps: 'Privera › Rechnungseingang', unit: 'documents', docs: 15318, privera: true,
+        tasks: [['Validierung', 142.4], ['Scanning', 31.2], ['Support', 9.85], ['Qualitätsmanagement', 6.3]],
+        inv: [{ title: 'Rechnungseingang', lines: [['1111 - Elektr. Dokumente/Validierung/Abgleich Stammdaten', 11301, 1.25], ['1112 - Phys. Dokumente/Scanning/Validierung/Abgleich Stammdaten', 2140, 1.45], ['1113 - eBill/Abgleich Stammdaten', 1877, 0.35], ['Monatspauschale Data-Center, Lizenzen, Monitoring', 1, 450, true]] }] },
+      { key: 'pri_neu', name: 'Privera Neuzugänge', client: 'Privera', title: 'Neuzugänge', nav: 'Neuzugänge', bexio: 'Privera AG', project: 'Neuzugänge', showProject: true, bps: 'Privera › Neuzugänge', unit: 'dossiers', docs: 128, privera: true,
+        tasks: [['Vorbereitung Akten', 14.25], ['Scanning', 4.5], ['Validierung', 2.4]],
+        inv: [{ title: 'Neuzugänge', lines: [['Verarbeitung Dossier', 128, 9.5], ['Verarbeitung Seiten inkl. Deckblätter', 41230, 0.04]] }] },
+      { key: 'frigemo', name: 'Frigemo', client: 'Frigemo', title: '', nav: 'Frigemo', bexio: 'Frigemo AG', project: 'Kreditoren', bps: 'Frigemo', unit: 'documents', docs: 3094,
+        tasks: [['Validierung', 64.5], ['Support', 22.75], ['Change Requests', 18], ['Scanning', 8.25]],
+        inv: [{ title: 'Kreditorenverarbeitung', lines: [['Verarbeitung Kreditorenrechnungen', 3094, 2.4], ['Monatspauschale Lizenzen und Betrieb', 1, 650, true]] }] },
+      { key: 'zhaw', name: 'ZHAW', client: 'ZHAW', title: 'via Xpert', nav: 'ZHAW', bexio: 'Xpert Consulting AG', project: 'ZHAW', showProject: true, bps: 'Aveniq › ZHAW', unit: 'documents', docs: 4719,
+        tasks: [['Validierung', 38.4], ['Support', 3.25]],
+        inv: [{ title: 'ZHAW Rechnungsverarbeitung', lines: [['Validierung der Rechnung Kopf- und Fussdaten', 2942, 1.35], ['Mandant HSLU', 1777, 0.6]] }],
+        support: { title: 'Support ZHAW', every: 3, at: 2, qty: 2.5, price: 150 } },
+      { key: 'bfh', name: 'BFH', client: 'BFH', title: 'via Xpert', nav: 'BFH', bexio: 'Xpert Consulting AG', project: 'BFH', showProject: true, bps: 'Aveniq › BFH', unit: 'documents', docs: 2204,
+        tasks: [['Validierung', 26.1], ['Support', 2]],
+        inv: [{ title: 'BFH Rechnungsverarbeitung', lines: [['Validierung der Rechnung Kopf- und Fussdaten', 2204, 1.35], ['Neue Kreditoren BFH', 38, 4.5]] }],
+        support: { title: 'Support BFH', every: 4, at: 1, qty: 1.5, price: 150 } },
+      { key: 'bucherer', name: 'Bucherer', client: 'Bucherer', title: 'EasyTax', nav: 'Bucherer', bexio: 'Bucherer AG', project: 'EasyTax', bps: 'Bucherer', unit: 'documents', docs: 1480,
+        tasks: [['Validierung', 14.25], ['Scanning', 6.5], ['Support', 1.75]],
+        inv: [{ title: 'EasyTax', lines: [['EasyTax Verarbeitung Belege', 1480, 1.65], ['EasyTax Seiten', 2960, 0.12]] }] },
+      { key: 'mediamarkt', name: 'MediaMarkt', client: 'MediaMarkt', title: '', nav: 'MediaMarkt', bexio: '', project: '', bps: 'MediaMarkt', unit: 'batches', docs: 214,
+        tasks: [['Support', 1.5], ['Validierung', 0.75]], inv: [] },
+    ];
+    const months = [];
+    for (let i = 0; i < N; i++) {
+      const y = 2025 + Math.floor(i / 12), m = i % 12;
+      const ny = m === 11 ? y + 1 : y, nm = (m + 1) % 12;
+      const closed = i < OPEN, open = i === OPEN, running = i === RUN, at = i === SEL;
+      const streams = STREAMS.map((s, k) => {
+        let f = at ? 1 : (seas[m] / seas[8]) * (1 + .008 * (i - SEL)) * nz(s.key + 'f' + i, .07);
+        if (running) f *= .05;
+        let hf = f;
+        if (s.privera && i >= 10) hf *= 1.08;
+        if (s.key === 'frigemo' && !at) hf *= .78 + .3 * hash('fr' + i);
+        const tasks = s.tasks.map(([t, h]) => [t, at ? h : r2(h * hf * nz(s.key + t + i, .1))]).filter(t => t[1] >= .1).sort((a, b) => b[1] - a[1]);
+        const hours = r2(tasks.reduce((a, t) => a + t[1], 0));
+        const rate = s.key === 'pri_neu' && i >= 12 ? 72 : 85;
+        const cost = r2(hours * rate);
+        const docF = at ? 1 : f * nz(s.key + 'd' + i, .05);
+        const docs = Math.max(0, Math.round(s.docs * docF));
+        const priceF = i >= 12 ? 1.03 : 1;
+        let state = 'ok';
+        if (!s.bexio) state = 'unlinked';
+        else if (running) state = 'pending';
+        else if (open) state = s.key === 'em' ? 'ok' : (s.key === 'pri_post' || s.key === 'pri_re') ? 'draft' : 'none';
+        else if (at && s.key === 'compass') state = 'none';
+        else if (at && s.key === 'bfh') state = 'draft';
+        else if (s.key === 'bucherer' && i % 4 === 0) state = 'fx';
+        const invoices = [];
+        if (state === 'ok' || state === 'draft' || state === 'fx') {
+          const base = 26776 + (i - SEL) * 24 + k * 2;
+          const day = 2 + Math.floor(hash(s.key + 'day' + i) * 6);
+          const date = String(day).padStart(2, '0') + '.' + String(nm + 1).padStart(2, '0') + '.' + ny;
+          const status = state === 'draft' ? 'draft' : i >= 19 ? 'open' : (i === 18 && k % 3 === 0) ? 'open' : (at && s.key === 'pri_re') ? 'partial' : 'paid';
+          const mk = (title, lines, n) => {
+            const L = lines.map(([text, q, p, fix]) => { const qty = fix || at ? q : Math.round(q * docF); const price = at ? p : r2(p * priceF); return { text, qty, price, total: r2(qty * price) }; });
+            const excl = r2(L.reduce((a, l) => a + l.total, 0));
+            return { nr: 'RE-' + n, title, date, status, currency: state === 'fx' ? 'EUR' : 'CHF', lines: L, excl, incl: r2(excl * 1.081) };
+          };
+          s.inv.forEach((iv, j) => invoices.push(mk(iv.title, iv.lines, base + j)));
+          if (s.support && i % s.support.every === s.support.at) invoices.push(mk(s.support.title, [[s.support.title + ' ' + MN[m] + ' ' + y, s.support.qty, s.support.price, true]], base + 1));
+        }
+        const excl = r2(invoices.reduce((a, v) => a + v.excl, 0));
+        const incl = r2(invoices.reduce((a, v) => a + v.incl, 0));
+        const ok = state === 'ok';
+        let drift = null;
+        if (at && s.key === 'em') {
+          const v = invoices[0];
+          const L = v.lines.map(l => l.text === 'Abgleich Bestellpositionen' ? { ...l, qty: 36115, total: r2(36115 * l.price) } : l);
+          const lx = r2(L.reduce((a, l) => a + l.total, 0));
+          drift = { nr: v.nr, at: v.excl, live: lx, inv: { ...v, lines: L, excl: lx, incl: r2(lx * 1.081) } };
+        }
+        return { ...s, k, tasks, hours, rate, cost, docs, state, invoices, excl, incl, margin: ok ? r2(excl - cost) : null, pct: ok && excl ? (excl - cost) / excl : null, incomplete: !!s.privera && i <= 9, drift };
+      });
+      const ok = streams.filter(s => s.state === 'ok');
+      const sum = (arr, fn) => r2(arr.reduce((a, s) => a + fn(s), 0));
+      const totals = { hours: sum(streams, s => s.hours), cost: sum(streams, s => s.cost), docs: streams.reduce((a, s) => a + s.docs, 0), invoiced: sum(ok, s => s.excl), incl: sum(ok, s => s.incl), okCost: sum(ok, s => s.cost), n: ok.length };
+      totals.margin = ok.length ? r2(totals.invoiced - totals.okCost) : null;
+      totals.pct = ok.length && totals.invoiced ? totals.margin / totals.invoiced : null;
+      const who = ['M. Keller', 'R. Frei', 'S. Brunner'][i % 3];
+      months.push({ i, y, m, ny, nm, closed, open, running, streams, totals,
+        closedInfo: closed ? (at ? { when: '08.10.2025', who: 'M. Keller' } : { when: String(6 + i % 4).padStart(2, '0') + '.' + String(nm + 1).padStart(2, '0') + '.' + ny, who }) : null,
+        unassigned: at ? [{ nr: 'RE-26797', contact: 'Privera AG', project: 'Archivdigitalisierung Q3', excl: 4860 }] : [] });
+    }
+    this._D = { months, STREAMS };
+    return this._D;
+  }
+
+  renderVals() {
+    const D = this.build();
+    const st = this.state, P = this.props;
+    const frame = P.frame ?? 'desktop', scen = P.scenario ?? 'live';
+    const oneOpen = (P.blocks ?? 'one open at a time') !== 'independent';
+    const canRates = P.rateEditor ?? true;
+    const phone = frame === 'phone';
+    const loading = scen === 'loading', bexioErr = scen === 'bexio failed', bpsErr = scen === 'bps failed', empty = scen === 'empty month';
+    const MN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const MS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const grp = s => s.replace(/\B(?=(\d{3})+(?!\d))/g, "'");
+    const num = (v, d = 2) => { const neg = v < 0 && Math.abs(v) >= Math.pow(10, -d) / 2; const [a, b] = Math.abs(v).toFixed(d).split('.'); return (neg ? '−' : '') + grp(a) + (b ? '.' + b : ''); };
+    const sgn = (v, d = 2) => (v >= Math.pow(10, -d) / 2 ? '+' : '') + num(v, d);
+    const pc = v => (v < 0 ? '−' : '') + Math.abs(v * 100).toFixed(1) + '%';
+    const Q = 'var(--nx-sydoc-quiet,#6b7280)', INK = 'var(--nx-text,#1f2937)', GAIN = 'var(--nx-gain,#047857)', LOSS = 'var(--nx-loss,#b91c1c)', MUTED = 'var(--nx-text-meta,#9ca3af)', ORANGE_INK = 'var(--nx-sydoc-ink-text,#b2401f)';
+    const TONE = { amber: ['var(--nx-l-amber,#fef3c7)', 'var(--nx-l-amber-fg,#92400e)'], gray: ['var(--nx-l-gray,#f3f4f6)', 'var(--nx-l-gray-fg,#4b5563)'], blue: ['var(--nx-l-blue,#dbeafe)', 'var(--nx-l-blue-fg,#1e40af)'], red: ['var(--nx-l-red,#fee2e2)', 'var(--nx-l-red-fg,#991b1b)'], green: ['var(--nx-l-green,#d1fae5)', 'var(--nx-l-green-fg,#065f46)'], indigo: ['var(--nx-l-indigo,#eef2ff)', 'var(--nx-l-indigo-fg,#4338ca)'] };
+    const chip = (tone, label, o = {}) => ({ label, bg: TONE[tone][0], fg: TONE[tone][1], dot: !!o.dot, icon: o.icon || false, ring: !!o.ring });
+    const sk = (w, h = 14) => React.createElement('span', { style: { display: 'block', width: w, maxWidth: '100%', height: h, borderRadius: 6, background: 'linear-gradient(90deg, rgba(127,127,127,.13) 25%, rgba(227,99,63,.18) 50%, rgba(127,127,127,.13) 75%)', backgroundSize: '200% 100%', animation: 'ctl-shimmer 1.6s ease-in-out infinite' } });
+    const sel = st.sel, M = D.months[sel], PV = sel > 0 ? D.months[sel - 1] : null;
+    const prevShort = PV ? MS[PV.m] : '—', prevName = PV ? MN[PV.m] : '—';
+    const invMonth = MN[M.nm] + ' ' + M.ny;
+    const setSel = i => { if (i < 0 || i > 21) return; this.setState({ sel: i, viewYear: D.months[i].y, pickerOpen: false, hoverM: null }); };
+    const dIco = d => d > 0.004 ? 'fas fa-arrow-trend-up' : d < -0.004 ? 'fas fa-arrow-trend-down' : 'fas fa-minus';
+    const dCol = (d, upGood) => d > 0.004 ? (upGood ? GAIN : LOSS) : d < -0.004 ? (upGood ? LOSS : GAIN) : Q;
+    const finDelta = (v, p) => { if (v == null || p == null) return '—'; if (Math.abs(v - p) < 1e-9) return 'Unchanged'; if (!p) return '▲ New'; const r = Math.round((v - p) / Math.abs(p) * 100); return r === 0 ? (v > p ? '▲ +0%' : '▼ −0%') : (r > 0 ? '▲ +' : '▼ −') + Math.abs(r) + '%'; };
+    const cmp = (v, p) => { if (v == null || p == null) return { barW: '0%', prevW: '-10px' }; const mx = Math.max(v, p) || 1; return { barW: (v / mx * 100).toFixed(1) + '%', prevW: 'calc(' + (p / mx * 100).toFixed(1) + '% - 1px)' }; };
+    const T = M.totals, TP = PV ? PV.totals : null;
+    const money = v => { const [a, b] = num(Math.abs(v)).split('.'); return { main: (v < 0 ? '−' : '') + a, suf: '.' + b }; };
+
+    // ---- summary strip ----
+    const kpi = o => ({ skel: loading, ready: !loading, sk: sk('72%', 26), pre: '', suf: '', after: '', color: INK, dColor: Q, dIcon: '', dT: '', dSub: '', cap: '', ...o });
+    const rel = (v, p, upGood, f) => { if (p == null || v == null) return { dT: '—', dSub: 'nothing to compare in ' + prevShort, dColor: Q, dIcon: 'fas fa-minus' }; const d = v - p; const r = p ? d / Math.abs(p) : 0; return { dT: (d > 0 ? '+' : d < 0 ? '−' : '±') + Math.abs(r * 100).toFixed(1) + '%', dSub: 'vs. ' + prevShort + ' ' + f(p), dColor: dCol(d, upGood), dIcon: dIco(d) }; };
+    const excluded = [];
+    const cnt = st2 => M.streams.filter(s => s.state === st2).length;
+    if (cnt('none')) excluded.push(cnt('none') + ' without invoice');
+    if (cnt('draft')) excluded.push(cnt('draft') + ' draft');
+    if (cnt('fx')) excluded.push(cnt('fx') + ' EUR');
+    if (cnt('unlinked')) excluded.push(cnt('unlinked') + ' not linked');
+    if (M.unassigned.length) excluded.push(M.unassigned.length + ' unassigned');
+    let kpis;
+    if (empty) {
+      kpis = [['Total hours', 'nothing booked in ' + MN[M.m]], ['Cost', 'nothing booked in ' + MN[M.m]], ['Invoiced excl. VAT', 'nothing dated ' + invMonth], ['Margin', 'nothing to compare'], ['Documents', 'nothing recorded']].map(([label, dSub]) => kpi({ label, main: '—', color: Q, dSub }));
+    } else {
+      const cm = money(T.cost), im = money(T.invoiced);
+      const hoursK = bpsErr ? kpi({ label: 'Total hours', main: '—', color: Q, dIcon: 'fas fa-triangle-exclamation', dColor: LOSS, dT: 'BPS unavailable' }) : kpi({ label: 'Total hours', main: num(T.hours, 1), suf: ' h', ...rel(T.hours, TP && TP.hours, false, v => num(v, 1) + ' h') });
+      const costK = bpsErr ? kpi({ label: 'Cost', main: '—', color: Q, dIcon: 'fas fa-triangle-exclamation', dColor: LOSS, dT: 'BPS unavailable' }) : kpi({ label: 'Cost', pre: 'CHF', main: cm.main, suf: cm.suf, ...rel(T.cost, TP && TP.cost, false, v => num(v, 0)), cap: M.streams.some(s => s.rate !== 85) ? 'one stream at an override rate' : '' });
+      let invK, marK;
+      if (bexioErr) {
+        invK = kpi({ label: 'Invoiced excl. VAT', main: '—', color: Q, dIcon: 'fas fa-triangle-exclamation', dColor: LOSS, dT: 'Bexio unavailable' });
+        marK = kpi({ label: 'Margin', main: '—', color: Q, dIcon: 'fas fa-triangle-exclamation', dColor: LOSS, dT: 'needs Bexio' });
+      } else if (M.running) {
+        invK = kpi({ label: 'Invoiced excl. VAT', main: '—', color: Q, dSub: 'invoices are dated in ' + invMonth });
+        marK = kpi({ label: 'Margin', main: '—', color: Q, dSub: 'open until ' + MN[M.m] + ' is invoiced' });
+      } else {
+        invK = kpi({ label: 'Invoiced excl. VAT', pre: 'CHF', main: im.main, suf: im.suf, ...rel(T.invoiced, TP && TP.invoiced, true, v => num(v, 0)), cap: excluded.length ? 'not counted: ' + excluded.join(', ') : '' });
+        if (T.margin == null || bpsErr) marK = kpi({ label: 'Margin', main: '—', color: Q, dSub: bpsErr ? 'needs the BPS hours' : 'no stream with an issued invoice yet' });
+        else {
+          const mm = money(T.margin), d = TP && TP.margin != null ? T.margin - TP.margin : null;
+          marK = kpi({ label: 'Margin', pre: 'CHF', main: (T.margin > 0 ? '+' : '') + mm.main, suf: mm.suf, after: pc(T.pct), color: T.margin < 0 ? LOSS : INK,
+            dT: d == null ? '—' : sgn(d, 0), dIcon: d == null ? 'fas fa-minus' : dIco(d), dColor: d == null ? Q : dCol(d, true), dSub: d == null ? '' : 'vs. ' + prevShort + ' ' + sgn(TP.margin, 0), cap: T.n + ' of 10 streams' });
+        }
+      }
+      const docK = kpi({ label: 'Documents', main: grp(String(T.docs)), ...rel(T.docs, TP && TP.docs, true, v => grp(String(v))) });
+      kpis = [hoursK, costK, invK, marK, docK];
+    }
+
+    // ---- hero table ----
+    const heroRows = M.streams.map((s, k) => {
+      const p = PV ? PV.streams[k] : null;
+      let flag = null, flagText = '', flagLink = false, invT = num(s.excl), inclT = num(s.incl), invColor = INK, inclColor = Q;
+      if (bexioErr) { flag = chip('red', 'Bexio unavailable'); invT = '—'; inclT = '—'; flagText = 'invoiced and margin need Bexio'; }
+      else if (s.state === 'none') { flag = chip('amber', 'No invoice', { dot: true }); flagText = 'nothing dated ' + invMonth; invT = '—'; inclT = '—'; }
+      else if (s.state === 'draft') { flag = chip('gray', 'Draft', { dot: true }); invColor = MUTED; inclColor = MUTED; flagText = bpsErr ? '' : sgn(s.excl - s.cost) + ' if issued as drafted'; }
+      else if (s.state === 'fx') { flag = chip('blue', 'EUR', { dot: true }); invT = 'EUR ' + num(s.excl); inclT = 'EUR ' + num(s.incl); invColor = MUTED; inclColor = MUTED; flagText = 'not converted, not in totals'; }
+      else if (s.state === 'unlinked') { flag = chip('gray', 'Not linked'); flagText = 'Link the Bexio contact'; flagLink = true; invT = '—'; inclT = '—'; }
+      else if (s.state === 'pending') { flag = chip('gray', 'Not invoiced yet'); flagText = 'dated in ' + invMonth; invT = '—'; inclT = '—'; }
+      else if (bpsErr) { flag = chip('red', 'BPS unavailable'); flagText = 'the margin needs the hours'; }
+      const hasM = !flag && s.margin != null;
+      const pm = p && p.margin != null ? p.margin : null;
+      const d = hasM && pm != null ? s.margin - pm : null;
+      return { key: s.key, anchor: 'ctl-c-' + s.key, name: s.name, mv: hasM ? s.margin : 0,
+        sub: s.bexio ? s.bexio + (s.showProject ? ' · ' + s.project : '') : 'no Bexio contact linked',
+        hoursT: bpsErr ? '—' : num(s.hours, 1), inc: s.incomplete && !bpsErr,
+        costT: bpsErr ? '—' : num(s.cost), hasRateNote: s.rate !== 85 && !bpsErr, rateNote: 'at ' + s.rate + ' CHF/h',
+        invT, inclT, invColor, inclColor, drift: !!s.drift && M.closed && !bexioErr,
+        hasMargin: hasM, flagged: !!flag, flag: flag || chip('gray', ''), flagText, flagLink,
+        flagColor: flagLink ? ORANGE_INK : Q, flagWeight: flagLink ? '600' : '400',
+        marginT: hasM ? sgn(s.margin) : '—', mColor: hasM && s.margin < 0 ? LOSS : INK, pctT: hasM ? pc(s.pct) : '',
+        dT: d == null ? '—' : sgn(d), dColor: d == null ? Q : dCol(d, true), dIcon: d == null ? 'fas fa-minus' : dIco(d),
+        dSub: pm == null ? 'no margin in ' + prevShort : prevShort + ' ' + sgn(pm),
+        go: () => this.setState(prev => ({ open: oneOpen ? { [s.key]: true } : { ...(prev.open || {}), [s.key]: true } })) };
+    });
+    const maxAbs = Math.max(1, ...heroRows.map(r => Math.abs(r.mv)));
+    heroRows.forEach(r => { const w = Math.abs(r.mv) / maxAbs * 50; r.barW = w.toFixed(2) + '%'; r.barL = (r.mv >= 0 ? 50 : 50 - w).toFixed(2) + '%'; });
+    const marginOk = T.margin != null && !bexioErr && !bpsErr && !M.running;
+    const td = marginOk && TP && TP.margin != null ? T.margin - TP.margin : null;
+    const tot = { note: M.running ? 'running month, not invoiced yet' : T.n + ' of 10 streams in the margin', hoursT: bpsErr ? '—' : num(T.hours, 1), costT: bpsErr ? '—' : num(T.cost),
+      invT: bexioErr || M.running ? '—' : num(T.invoiced), inclT: bexioErr || M.running ? '—' : num(T.incl),
+      marginT: marginOk ? sgn(T.margin) : '—', mColor: marginOk && T.margin < 0 ? LOSS : INK, pctT: marginOk ? pc(T.pct) : '',
+      dT: td == null ? '—' : sgn(td), dColor: td == null ? Q : dCol(td, true), dIcon: td == null ? 'fas fa-minus' : dIco(td), dSub: td == null ? '' : prevShort + ' ' + sgn(TP.margin) };
+    const unassigned = bexioErr || empty ? [] : M.unassigned.map(u => ({ nr: u.nr, text: u.contact + ' · Bexio project “' + u.project + '” is not mapped to a stream', title: u.nr + ' · ' + u.contact + ' · ' + u.project, exclT: num(u.excl), inclT: num(u.excl * 1.081) }));
+
+    // ---- client blocks ----
+    const unitSing = { documents: 'document', dossiers: 'dossier', batches: 'batch' };
+    const unitCap = { documents: 'Documents', dossiers: 'Dossiers', batches: 'Batches' };
+    const notes = {
+      zhaw: 'Invoiced to Xpert Consulting AG together with BFH; matched to this stream by the Bexio project.',
+      bfh: 'Invoiced to Xpert Consulting AG together with ZHAW; matched to this stream by the Bexio project.',
+      bucherer: 'Sometimes invoiced in EUR. Those months stay out of the totals: Bexio sends no exchange rate.',
+      mediamarkt: 'No Bexio contact is linked to MediaMarkt, so its invoices cannot be matched to these hours.',
+    };
+    const STAT = { draft: ['gray', 'Draft'], open: ['blue', 'Open'], paid: ['green', 'Paid'], partial: ['amber', 'Partly paid'], cancelled: ['gray', 'Cancelled'], unpaid: ['red', 'Unpaid'] };
+    const openMap = st.open || {};
+    const blocks = M.streams.map((s, k) => {
+      const p = PV ? PV.streams[k] : null, hr = heroRows[k];
+      const isOpen = !!openMap[s.key] && !loading;
+      const chips = [];
+      if (s.incomplete && !bpsErr) chips.push(chip('amber', 'BPS incomplete', { ring: true }));
+      if (hr.flagged) chips.push(hr.flag);
+      if (hr.drift) chips.push(chip('amber', 'live data moved', { icon: 'fas fa-code-compare' }));
+      const b = { key: s.key, anchor: hr.anchor, client: s.client, title: s.title, chips, open: isOpen, expanded: isOpen ? 'true' : 'false', rot: isOpen ? 'rotate(180deg)' : 'none',
+        sk: sk('100%', 16), ready: !loading, hoursT: hr.hoursT, costT: hr.costT, mColor: hr.mColor,
+        marginT: hr.hasMargin ? hr.marginT : '—', pctT: hr.hasMargin ? hr.pctT : (hr.flagged ? hr.flag.label.toLowerCase() : ''), pctColor: hr.hasMargin ? hr.mColor : Q,
+        dT: hr.dT, dColor: hr.dColor, dIcon: hr.dIcon, dSub: hr.dSub,
+        toggle: () => this.setState(prev => { const o = prev.open || {}; const now = !o[s.key]; return { open: oneOpen ? (now ? { [s.key]: true } : {}) : { ...o, [s.key]: now } }; }) };
+      if (!isOpen) return b;
+      const pills = [];
+      if (M.closed) pills.push(chip('indigo', 'Closed', { icon: 'fas fa-lock' }));
+      else if (M.running) pills.push(chip('amber', 'Running', { dot: true }));
+      else pills.push(chip('green', 'Live', { dot: true }));
+      if (hr.drift) pills.push(chip('amber', 'live data moved', { dot: true }));
+      if (s.incomplete) pills.push(chip('amber', 'BPS incomplete', { ring: true }));
+      const pt = new Map((p ? p.tasks : []).map(t => [t[0], t[1]]));
+      b.pills = pills;
+      b.meta1 = 'BPS · ' + s.bps;
+      b.meta2 = s.bexio ? 'Bexio · ' + s.bexio + (s.project ? ' · project ' + s.project : '') : 'Bexio · no contact linked';
+      b.rateT = s.rate + ' CHF/h' + (s.rate !== 85 ? ' · override' : '');
+      b.docsT = grp(String(s.docs)) + ' ' + s.unit;
+      b.note = s.incomplete ? 'BPS has fewer hours than the controlling workbook for this month: the cost is understated and the margin overstated.' : (notes[s.key] || '');
+      b.linkHint = s.state === 'unlinked';
+      b.rateLine = 'BPS hours × ' + s.rate + ' CHF/h';
+      b.tasksOk = !bpsErr; b.tasksErr = bpsErr;
+      b.tasks = s.tasks.map(([t, h]) => { const ph = pt.has(t) ? pt.get(t) : 0; return { name: t, hT: num(h), chfT: num(h * s.rate), prevT: ph ? num(ph) : '·', ...cmp(h, ph), deltaT: finDelta(h, ph) }; });
+      b.prevHoursT = p ? num(p.hours) : '—'; b.hoursDeltaT = finDelta(s.hours, p ? p.hours : null); b.hoursT = num(s.hours); b.costT = num(s.cost);
+      b.invNote = 'Bexio · invoices dated in ' + invMonth;
+      const showInv = !bexioErr && (s.state === 'ok' || s.state === 'draft' || s.state === 'fx');
+      b.invOk = showInv; b.invErr = bexioErr;
+      const list = s.drift && M.closed ? [s.drift.inv].concat(s.invoices.slice(1)) : s.invoices;
+      b.invoices = list.map(v => { const t = STAT[v.status] || ['gray', v.status]; const pre = v.currency === 'EUR' ? 'EUR ' : ''; return { nr: v.nr, title: v.title, date: v.date, st: chip(t[0], t[1]), cur: v.currency, ink: v.status === 'draft' ? MUTED : INK,
+        lines: v.lines.map((l, li) => ({ key: li, text: l.text, qtyT: Number.isInteger(l.qty) ? grp(String(l.qty)) : num(l.qty), priceT: num(l.price), totalT: num(l.total) })), exclT: pre + num(v.excl), vatT: pre + num(v.incl - v.excl), inclT: pre + num(v.incl) }; });
+      b.drift = !!s.drift && M.closed && !bexioErr;
+      if (b.drift) { b.driftLabel = s.drift.nr + ' · total excl. VAT'; b.driftAt = num(s.drift.at); b.driftLive = num(s.drift.live); b.driftDiff = sgn(s.drift.live - s.drift.at); }
+      const msgs = { none: [chip('amber', 'No invoice', { dot: true }), 'No invoice to ' + s.bexio + (s.project ? ' (project ' + s.project + ')' : '') + ' is dated in ' + invMonth + '.'],
+        unlinked: [chip('gray', 'Not linked'), 'No Bexio contact is linked to ' + s.name + ', so its invoices cannot be matched.'],
+        pending: [chip('gray', 'Not invoiced yet'), MN[M.m] + ' is still running; its invoices are dated in ' + invMonth + '.'] };
+      b.invMsg = !bexioErr && !!msgs[s.state];
+      b.invChip = msgs[s.state] ? msgs[s.state][0] : chip('gray', '');
+      b.invMsgText = msgs[s.state] ? msgs[s.state][1] : '';
+      b.diffOk = hr.hasMargin;
+      b.diffFormula = hr.hasMargin ? num(s.excl) + ' − ' + num(s.cost) : '';
+      b.diffMsg = hr.hasMargin ? '' : bexioErr ? 'Needs Bexio.' : bpsErr ? 'Needs the BPS hours.' : ({
+        none: 'No invoice yet: CHF ' + num(s.cost) + ' of cost is not covered.',
+        draft: 'Draft only: ' + sgn(s.excl - s.cost) + ' if issued as drafted. Counted once it is issued.',
+        fx: 'Invoiced in EUR (EUR ' + num(s.excl) + '). Not converted, so the difference stays open.',
+        unlinked: 'Unknown until the Bexio contact is linked.',
+        pending: 'Open until ' + MN[M.m] + ' is invoiced.' })[s.state] || '';
+      const us = unitSing[s.unit];
+      const spd = x => x && x.docs && x.hours ? x.hours * 3600 / x.docs : null;
+      const dph = x => x && x.hours ? x.docs / x.hours : null;
+      const cpd = x => x && x.state === 'ok' && x.docs ? x.excl / x.docs : null;
+      const uk = (label, fn, d) => { const v = bpsErr && fn !== cpd ? null : fn(s), pv = fn(p); return { label, valueT: v == null ? '—' : num(v, d), prevT: pv == null ? '—' : num(pv, d), ...cmp(v, pv), deltaT: finDelta(v, pv) }; };
+      b.ukpis = [uk('Seconds per ' + us, spd, 1), uk(unitCap[s.unit] + ' per hour', dph, 1), uk('Invoiced CHF per ' + us, cpd, 2)];
+      b.unitNote = grp(String(s.docs)) + ' ' + s.unit + ' in ' + MN[M.m];
+      return b;
+    });
+    const allOpen = M.streams.every(s => openMap[s.key]);
+
+    // ---- hours by task ----
+    const taskNames = [];
+    M.streams.forEach(s => s.tasks.forEach(([t]) => { if (!taskNames.includes(t)) taskNames.push(t); }));
+    const rowsRaw = taskNames.map(t => { const vals = M.streams.map(s => { const f = s.tasks.find(x => x[0] === t); return f ? f[1] : 0; }); return { t, vals, tot: vals.reduce((a, b2) => a + b2, 0) }; }).sort((a, b2) => b2.tot - a.tot);
+    const mxMax = Math.max(1, ...rowsRaw.flatMap(r => r.vals));
+    const mxRows = rowsRaw.map(r => ({ task: r.t, totT: num(r.tot, 1), cells: r.vals.map((v, k) => ({ key: k, vT: v ? num(v, 1) : '·', bg: v ? 'rgba(227,99,63,' + (0.06 + 0.5 * Math.sqrt(v / mxMax)).toFixed(3) + ')' : 'transparent', color: v ? INK : MUTED, title: M.streams[k].name + ' · ' + r.t + ' · ' + num(v, 2) + ' h' })) }));
+
+    // ---- volumes ----
+    const vMax = Math.max(1, ...M.streams.map(s => s.docs));
+    const volRows = M.streams.map((s, k) => { const pd = PV ? PV.streams[k].docs : null; return { key: s.key, name: s.name, unit: s.unit, docsT: grp(String(s.docs)), w: (s.docs / vMax * 100).toFixed(1) + '%', pct: Math.round(s.docs / Math.max(1, T.docs) * 100) + '%', prevT: pd == null ? '—' : grp(String(pd)), deltaT: finDelta(s.docs, pd) }; });
+
+    // ---- trend ----
+    const hov = st.hoverM;
+    const tm = D.months.map(mo => mo.running || mo.totals.margin == null ? null : mo.totals.margin);
+    const fin = tm.filter(v => v != null);
+    const tmax = Math.max(0, ...fin), tmin = Math.min(0, ...fin), trg = (tmax - tmin) || 1, z = -tmin / trg * 100;
+    const hMax = Math.max(...D.months.map(mo => mo.totals.hours)), dMax = Math.max(...D.months.map(mo => mo.totals.docs));
+    const trendCols = D.months.map((mo, i) => {
+      const v = tm[i], h = v == null ? 0 : Math.abs(v) / trg * 100;
+      return { key: 'm' + i, bBottom: (v != null && v < 0 ? z - h : z).toFixed(2) + '%', bH: h.toFixed(2) + '%', bBg: v == null ? 'transparent' : v < 0 ? LOSS : i === sel ? '#e3633f' : INK,
+        bRing: 'none', pending: v == null,
+        colBg: hov === i ? 'var(--nx-divider,#f3f4f6)' : 'transparent',
+        hH: (mo.totals.hours / hMax * 100).toFixed(1) + '%', dH: (mo.totals.docs / dMax * 100).toFixed(1) + '%',
+        sBg: i === sel ? '#e3633f' : 'var(--nx-border-strong,#d1d5db)',
+        mLabel: MS[mo.m].slice(0, 1), yLabel: mo.m === 0 ? String(mo.y) : '', lblColor: i === sel ? ORANGE_INK : Q, lblWeight: i === sel ? '700' : '500', inc: i <= 9,
+        enter: () => { if (this.state.hoverM !== i) this.setState({ hoverM: i }); }, pick: () => setSel(i) };
+    });
+    const hm = hov != null ? D.months[hov] : null;
+    const tip = hm ? { show: true, left: ((hov + .5) / 22 * 100).toFixed(2) + '%', tx: hov > 13 ? 'translateX(calc(-100% - 14px))' : 'translateX(14px)',
+      title: MN[hm.m] + ' ' + hm.y + (hm.running ? ' · running' : hm.open ? ' · open' : ''),
+      rows: [['Margin', hm.running || hm.totals.margin == null ? 'not invoiced yet' : sgn(hm.totals.margin) + ' · ' + pc(hm.totals.pct), hm.totals.margin != null && hm.totals.margin < 0 && !hm.running ? '#f87171' : '#fff'],
+        ['Invoiced', hm.running ? '—' : num(hm.totals.invoiced), '#e5e7eb'], ['Cost', num(hm.totals.cost), '#e5e7eb'], ['Hours', num(hm.totals.hours, 1), '#e5e7eb'], ['Documents', grp(String(hm.totals.docs)), '#e5e7eb']].map(([k, v, c]) => ({ k, v, c })),
+      note: hm.i <= 9 ? 'Privera: BPS has fewer hours than the workbook' : !hm.running && hm.totals.n < 10 ? (10 - hm.totals.n) + ' streams not in the margin' : '' }
+      : { show: false, left: '0', tx: 'none', title: '', rows: [], note: '' };
+    const short = { none: 'no invoice', draft: 'draft', fx: 'EUR', pending: 'running', unlinked: 'not linked' };
+    const tiles = D.STREAMS.map((s0, k) => {
+      const vals = D.months.map(mo => mo.streams[k].margin);
+      const f2 = vals.filter(v => v != null);
+      const mx = Math.max(0, ...f2), mn = Math.min(0, ...f2), rg = (mx - mn) || 1, zz = -mn / rg * 100;
+      const cur = hov != null ? hov : sel, cs = D.months[cur].streams[k];
+      const abs = Math.max(Math.abs(mx), Math.abs(mn));
+      return { key: s0.key, name: s0.name, curLabel: MS[D.months[cur].m] + ' ' + String(D.months[cur].y).slice(2),
+        valT: cs.margin != null ? sgn(cs.margin, 0) : short[cs.state], valColor: cs.margin == null ? Q : cs.margin < 0 ? LOSS : INK,
+        unlinked: s0.key === 'mediamarkt', scaleT: f2.length ? 'max ±' + (abs >= 1000 ? (abs / 1000).toFixed(1) + 'k' : Math.round(abs)) : '', zero: zz.toFixed(1) + '%',
+        bars: D.months.map((mo, i) => { const x = mo.streams[k], v = x.margin; const h = v == null ? 0 : Math.abs(v) / rg * 100; const col = v != null && v < 0 ? LOSS : INK;
+          return { key: 'b' + i, bottom: (v != null && v < 0 ? zz - h : zz).toFixed(1) + '%', h: h.toFixed(1) + '%',
+            bg: v == null || x.incomplete ? 'transparent' : col,
+            ring: x.incomplete && v != null ? '1px dashed var(--nx-text-meta,#9ca3af)' : 'none',
+            dot: v == null && x.state !== 'unlinked' && !mo.running,
+            colBg: i === hov ? 'var(--nx-divider,#f3f4f6)' : i === sel ? 'rgba(227,99,63,.12)' : 'transparent', enter: trendCols[i].enter }; }) };
+    });
+
+    // ---- picker ----
+    const viewYear = st.viewYear;
+    const monthCells = MS.map((name, m) => {
+      const i = (viewYear - 2025) * 12 + m, off = i < 0 || i > 21, selected = i === sel, mo = off ? null : D.months[i];
+      return { name, status: off ? '—' : mo.running ? 'Running' : mo.open ? 'Open' : 'Closed', icon: off ? '' : mo.closed ? 'fas fa-lock' : 'fas fa-circle',
+        pick: () => { if (!off) setSel(i); }, cursor: off ? 'default' : 'pointer', opacity: off ? .4 : 1,
+        bg: selected ? '#111318' : 'var(--nx-card,#fff)', border: selected ? '#111318' : 'var(--nx-border,#e5e7eb)', fg: selected ? '#fff' : INK,
+        sub: selected ? '#f08a6c' : off ? MUTED : mo.running ? '#b45309' : mo.open ? '#047857' : '#9ca3af' };
+    });
+
+    // ---- rates drawer ----
+    const rates = st.rates || [{ rate: '85.00', from: 'Jan 2025', to: 'open', by: 'M. Keller · 06.01.2025' }, { rate: '80.00', from: 'Jan 2024', to: 'Dec 2024', by: 'M. Keller · 04.01.2024' }];
+    const overrides = st.overrides || [{ applies: 'Privera Neuzugänge', rate: '72.00', from: 'Jan 2026', to: 'open', by: 'R. Frei · 19.12.2025' }];
+    const toIso = lbl => { if (!lbl || lbl === 'open') return ''; const [mm, yy] = lbl.split(' '); return yy + '-' + String(MS.indexOf(mm) + 1).padStart(2, '0'); };
+    const toLbl = iso => { if (!iso) return 'open'; const [yy, mm] = iso.split('-'); return MS[+mm - 1] + ' ' + yy; };
+    const rateRows = rates.map((r, idx) => ({ ...r, toColor: r.to === 'open' ? GAIN : INK, edit: () => this.setState({ form: { kind: 'default', idx, applies: 'All streams', rate: r.rate, from: toIso(r.from), to: toIso(r.to) } }) }));
+    const overrideRows = overrides.map((r, idx) => ({ ...r, toColor: r.to === 'open' ? GAIN : INK, edit: () => this.setState({ form: { kind: 'override', idx, applies: r.applies, rate: r.rate, from: toIso(r.from), to: toIso(r.to) } }) }));
+    const form = st.form;
+    const setForm = (k, v) => this.setState(prev => ({ form: { ...prev.form, [k]: v } }));
+    const saveForm = () => {
+      const f = this.state.form; if (!f) return;
+      const row = { applies: f.applies, rate: (Number(String(f.rate).replace(',', '.')) || 0).toFixed(2), from: toLbl(f.from), to: toLbl(f.to), by: 'You · 01.10.2026' };
+      const key = f.kind === 'default' ? 'rates' : 'overrides';
+      const listR = (this.state[key] || (f.kind === 'default' ? rates : overrides)).slice();
+      if (f.idx >= 0) listR[f.idx] = row; else listR.unshift(row);
+      this.setState({ [key]: listR, form: null });
+    };
+
+    const statusText = M.closed ? 'Closed ' + M.closedInfo.when + ' by ' + M.closedInfo.who : M.running ? 'Running' : 'Open · live';
+    const hint = M.closed ? 'Figures as frozen at the close. Bexio is read live; where an invoice has changed since, the client says so.'
+      : M.running ? 'This month is still running: hours grow until it ends, and its invoices are dated next month.'
+      : 'BPS hours × rate against what was invoiced in Bexio, each compared with the month before.';
+    const sh = (w, h) => React.createElement('span', { style: { display: 'block', width: w, height: h, borderRadius: 8, background: 'linear-gradient(90deg, rgba(127,127,127,.10) 25%, rgba(227,99,63,.14) 50%, rgba(127,127,127,.10) 75%)', backgroundSize: '200% 100%', animation: 'ctl-shimmer 1.6s ease-in-out infinite' } });
+
+    return {
+      rootRef: this.rootRef,
+      frameW: phone ? '390px' : '1440px', shellPad: phone ? '0px' : '100px', showSidebar: !phone, mainPad: phone ? '16px 16px 32px' : '36px 40px 40px',
+      selName: MN[M.m], selYear: M.y, prevName, prevShort, hint, statusText,
+      stLock: M.closed, stDot: !M.closed, stDotColor: M.running ? '#f59e0b' : '#34d399',
+      rateSub: 'valid since Jan 2025' + (M.i >= 12 ? ' · 1 override' : ''),
+      prevMonth: () => setSel(sel - 1), nextMonth: () => setSel(sel + 1),
+      prevOpacity: sel > 0 ? 1 : .35, nextOpacity: sel < 21 ? 1 : .35,
+      pickerOpen: !!st.pickerOpen, openPicker: () => this.setState({ pickerOpen: true, viewYear: M.y }), closePicker: () => this.setState({ pickerOpen: false }),
+      stop: e => e.stopPropagation(), viewYear, monthCells,
+      prevYear: () => { if (viewYear > 2025) this.setState({ viewYear: viewYear - 1 }); }, nextYear: () => { if (viewYear < 2026) this.setState({ viewYear: viewYear + 1 }); },
+      prevYearOpacity: viewYear > 2025 ? 1 : .35, nextYearOpacity: viewYear < 2026 ? 1 : .35,
+      canRates, ratesOpen: !!st.ratesOpen, openRates: () => this.setState({ ratesOpen: true }), closeRates: () => this.setState({ ratesOpen: false, form: null }),
+      rateRows, overrideRows, formDefault: !!form && form.kind === 'default', formOverride: !!form && form.kind === 'override',
+      formV: form || { rate: '', from: '', to: '', applies: '' },
+      onRate: e => setForm('rate', e.target.value), onFrom: e => setForm('from', e.target.value), onTo: e => setForm('to', e.target.value), onApplies: e => setForm('applies', e.target.value),
+      addDefault: () => this.setState({ form: { kind: 'default', idx: -1, applies: 'All streams', rate: '90.00', from: '2027-01', to: '' } }),
+      addOverride: () => this.setState({ form: { kind: 'override', idx: -1, applies: 'Frigemo', rate: '80.00', from: '2026-11', to: '' } }),
+      cancelForm: () => this.setState({ form: null }), saveForm,
+      streamOpts: D.STREAMS.map(s => ({ v: s.name })),
+      jump: [['Summary', 'ctl-summary', ''], ['Clients', 'ctl-clients', '10'], ['Hours by task', 'ctl-tasks', ''], ['Volumes', 'ctl-volumes', ''], ['Trend', 'ctl-trend', '']].map(([label, id, count]) => ({ label, id, count })),
+      kpis, loading, empty,
+      emptyText: 'Nothing recorded for ' + MN[M.m] + ' ' + M.y + ': no BPS hours are booked and no Bexio invoice is dated in ' + invMonth + '.',
+      heroMeta: 'Bexio invoices dated in ' + invMonth + ' · 85 CHF/h',
+      heroErr: bexioErr || bpsErr,
+      heroErrText: bexioErr ? 'Could not read Bexio. Hours and cost are shown; invoiced and margin need Bexio.' : 'Could not read the BPS hours. Invoices are shown; cost and margin need the hours.',
+      heroErrDetail: bexioErr ? 'GET /2.0/kb_invoice/search → 503 Service Unavailable' : 'bps_projects: [Microsoft][ODBC SQL Server Driver] Query timeout expired (HYT00)',
+      showHero: !empty, heroReady: !loading && !empty, heroSkel: [1, 2, 3, 4, 5, 6, 7, 8].map(i => ({ key: i, a: sk('62%'), b: sk('80%'), c: sk('70%') })),
+      heroRows, tot, unassigned,
+      showBlocks: !empty, blocks, allLabel: allOpen ? 'Collapse all' : 'Expand all',
+      toggleAll: () => this.setState({ open: allOpen ? {} : Object.fromEntries(M.streams.map(s => [s.key, true])) }),
+      mxCount: taskNames.length + ' tasks', mxErr: bpsErr, mxEmpty: empty, mxOk: !loading && !empty && !bpsErr,
+      mxCols: M.streams.map(s => ({ label: s.nav, title: s.name })), mxRows,
+      mxTot: M.streams.map(s => ({ v: num(s.hours, 1) })), mxGrand: num(T.hours, 1),
+      mxFte: M.streams.map(s => ({ v: (s.hours / 176).toFixed(2) })), mxFteGrand: (T.hours / 176).toFixed(2),
+      skA: sh('100%', 22), skB: sh('82%', 22), skChart: sh('100%', 240),
+      volOk: !loading && !empty, volRows, volTotalShort: empty ? '' : grp(String(T.docs)),
+      volTotal: { docsT: grp(String(T.docs)), prevT: TP ? grp(String(TP.docs)) : '—', deltaT: finDelta(T.docs, TP ? TP.docs : null) },
+      trendOk: !loading, trendCols, tZero: z.toFixed(2) + '%', tip, tiles,
+      clearHover: () => { if (this.state.hoverM != null) this.setState({ hoverM: null }); },
+    };
+  }
+}
+</script>
+</body>
+</html>

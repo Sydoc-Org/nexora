@@ -211,8 +211,6 @@
                 {'perm': page_visibility.dashboardPagePerm,  'key': 'dashboard', 'url': url_for('dashboard', tenant=''), 'icon': 'fa-gauge-high',          'label': _('Global Dashboard'), 'short': _('Dashboard'),            'active': active_page == 'dashboard'},
                 {'perm': page_visibility.reportingPagePerm, 'key': 'reporting', 'url': url_for('reporting'),           'icon': 'fa-chart-column',        'label': _('Global Reporting'), 'short': _('Reporting'),      'active': active_page == 'reporting', 'always': true},
                 {'perm': page_visibility.workitemsPagePerm, 'key': 'workitems', 'url': url_for('workitems_overview', tenant=''), 'icon': 'fa-layer-group',         'label': _('Global Workitems'), 'short': _('Workitems'),            'active': active_page == 'workitems_overview'},
-                {'perm': page_visibility.financePagePerm,   'key': 'finance',   'url': url_for('finance'),             'icon': 'fa-file-invoice-dollar', 'label': _('Sydoc Finance'),          'active': active_page == 'finance',   'always': true},
-                {'perm': page_visibility.bpsPagePerm,       'key': 'bps',       'url': url_for('bps'),                 'icon': 'fa-user-clock',          'label': _('Sydoc BPS'),              'active': active_page == 'bps',       'always': true},
             ] %}
 
             {# A user inside exactly ONE tenant reaches Dashboard/Workitems through
@@ -230,6 +228,38 @@
             </a>
             {% endif %}
             {% endfor %}
+
+            {# Sydoc's own books (#436): one collapsible group, shown for
+               single-tenant users too (like the flat entries it replaced).
+               Sub-item labels are short -- the group header says "Sydoc internal"
+               (not plain "Sydoc": that is also a tenant group on INT).
+               Open/closed persists through the generic data-nx-nav-group
+               wiring in static/js/header.js (nexora-nav-sydocNavGroup). #}
+            {% set sydoc_items = [
+                {'perm': page_visibility.financePagePerm,     'url': url_for('finance'),     'icon': 'fa-file-invoice-dollar', 'label': _('Finance'),     'key': 'finance'},
+                {'perm': page_visibility.bpsPagePerm,         'url': url_for('bps'),         'icon': 'fa-user-clock',          'label': _('BPS'),         'key': 'bps'},
+                {'perm': page_visibility.billingPagePerm,     'url': url_for('billing'),     'icon': 'fa-receipt',             'label': _('Billing'),     'key': 'billing'},
+                {'perm': page_visibility.controllingPagePerm, 'url': url_for('controlling'), 'icon': 'fa-scale-balanced',      'label': _('Controlling'), 'key': 'controlling'},
+            ] %}
+            {% if sydoc_items|selectattr('perm')|list %}
+            {% set sydoc_active = active_page in sydoc_items|map(attribute='key')|list %}
+            <div class="sidebar-nav-group" id="sydocNavGroup" data-active="{{ 'true' if sydoc_active else 'false' }}" data-nx-nav-group="sydoc">
+                <button class="sidebar-nav-item sidebar-nav-group-header {{ 'sidebar-nav-item--active' if sydoc_active else '' }}" type="button" data-nx-nav-group="sydoc" data-testid="header-nav-sydoc-toggle">
+                    <i class="fas fa-book sidebar-nav-icon"></i>
+                    <span class="sidebar-label [flex:1]!">{{ _('Sydoc internal') }}</span>
+                    <i class="fas fa-chevron-right sidebar-label sidebar-generali-chevron"></i>
+                </button>
+                <div class="sidebar-nav-subitems">
+                    {% for item in sydoc_items if item.perm %}
+                    <a href="{{ item.url }}"
+                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == item.key else '' }}" data-testid="header-nav-sydoc-{{ item.key }}">
+                        <i class="fas {{ item.icon }} sidebar-nav-icon sidebar-subitem-icon"></i>
+                        <span class="sidebar-label">{{ item.label }}</span>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
 
             {# The Generali sidebar group used to be hardcoded here. Since #257
                (migration 0091) Generali is a tenant, and its pages come from the

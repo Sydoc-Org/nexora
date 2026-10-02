@@ -112,6 +112,8 @@
   --nx-sydoc-band-ctl:  rgba(255,255,255,.14);
   /* Small muted text on ink: the design's #6b7280 is 3.8:1 there, this is 4.9:1. */
   --nx-sydoc-ink-muted: #7c8492;
+  /* Quiet text below the band on Sydoc's pages (Controlling, #433); 4.8:1 on the page. */
+  --nx-sydoc-quiet:     #6b7280;
   --nx-gain:            #047857;
   --nx-loss:            #b91c1c;
   --nx-card-hover-border: color-mix(in srgb, var(--nx-accent) 40%, white);
@@ -149,6 +151,7 @@ html.dark {
   --nx-page:        #0f172a;
   --nx-sydoc-band:      #0b0d12;
   --nx-sydoc-ink-text:  #f08a6c;
+  --nx-sydoc-quiet:     #94a3b8;
   --nx-gain:            #34d399;
   --nx-loss:            #f87171;
   --nx-card:        #1e293b;
@@ -1406,6 +1409,10 @@ html.dark .nx-sydoc-pill.is-active { border-color: var(--nx-sydoc-soft); }
   .nx-sydoc-nav { width: 32px; height: 32px; }
   .nx-sydoc-stats { gap: 4px 20px; }
   .nx-sydoc-stats__v { white-space: normal; }
+}
+/* "September 2025" at 28px is wider than a 390px phone's band: step down. */
+@media (max-width: 420px) {
+  .nx-sydoc-period__main, .nx-sydoc-period__year { font-size: 24px; letter-spacing: -.6px; }
 }
 
 /* ============================================================

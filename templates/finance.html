@@ -122,11 +122,6 @@
       </div>
 
       <nav class="nx-fin-jump" aria-label="{{ _('Sections') }}">
-        {# In page order: the Bexio panel comes first. #}
-        <a class="nx-fin-jump__item nx-fin-jump__item--bexio" href="#fin-bexio" title="{{ _('Bexio') }} · {{ _('Invoices') }}">
-          <span class="nx-fin-jump__tile" aria-hidden="true">Bx</span><span class="nx-fin-jump__label">{{ _("Bexio") }}</span>
-        </a>
-        <span class="nx-fin-jump__sep" aria-hidden="true"></span>
         {{ jump_items(internal_sections) }}
         <span class="nx-fin-jump__sep" aria-hidden="true"></span>
         {{ jump_items(external_sections) }}
@@ -172,27 +167,6 @@
         <span><span class="nx-sydoc-dot nx-sydoc-dot--running"></span> {{ _("Still running") }}</span>
       </div>
     {{ sydoc.picker_close() }}
-
-    {# What was invoiced in Bexio for this month (#423), read live and
-       read-only; filled by finance_bexio.js from /api/finance/bexio. #}
-    {{ group_head(_("Invoiced in Bexio")) }}
-    <section class="nx-fin-section nx-fin-bexio" id="fin-bexio" aria-busy="true" data-testid="finance-bexio">
-      <div class="nx-fin-id">
-        <h3 class="nx-fin-id__client">{{ _("Bexio") }}</h3>
-        <p class="nx-fin-id__title">{{ _("Invoices") }}</p>
-        <p class="nx-fin-id__meta" data-role="meta">{{ _("Loading…") }}</p>
-        <button type="button" class="nx-btn nx-btn--ghost nx-btn--sm nx-fin-bexio__refresh" id="fin-bexio-refresh" data-testid="finance-bexio-refresh">
-          <i class="fas fa-rotate" aria-hidden="true"></i> {{ _("Refresh") }}
-        </button>
-      </div>
-      <div class="nx-fin-lines" data-role="body">
-        <div class="nx-fin-skel" aria-hidden="true">
-          <div class="nx-fin-skel__line skeleton-shimmer"></div>
-          <div class="nx-fin-skel__line skeleton-shimmer"></div>
-          <div class="nx-fin-skel__line skeleton-shimmer"></div>
-        </div>
-      </div>
-    </section>
 
     {{ group_head(_("Internal customers"), internal_sections|length) }}
     {% for s in internal_sections %}{{ section_shell(s) }}{% endfor %}

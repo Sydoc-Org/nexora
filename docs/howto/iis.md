@@ -36,7 +36,6 @@ request per process.)
 |---|---|---|---|---|
 | Default Web Site | `DefaultAppPool` | `*:80` | `D:\sydoc\nexora` | `PROD` |
 | `nexora-staging` | `nexora-staging` | `127.0.0.1:8082` | `D:\sydoc\nexora-staging` | `STAGING` |
-| `nexora-dev` | `nexora-dev` | `127.0.0.1:8081` | `D:\sydoc\nexora-dev` | `INT` |
 | `nexora-dev-ben` | `nexora-dev-ben` | `127.0.0.1:8083` | `D:\sydoc\nexora-dev-ben` | `INT` |
 | `nexora-dev-gruoss` | `nexora-dev-gruoss` | `127.0.0.1:8084` | `D:\sydoc\nexora-dev-gruoss` | `INT` |
 

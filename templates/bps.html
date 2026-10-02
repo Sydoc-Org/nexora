@@ -19,7 +19,7 @@
   {% import '_sydoc.html' as sydoc with context %}
 
   <main class="nx-main">
-    {# The ink band: brand, period headline, status, totals and composition. #}
+    {# The ink band: brand, period headline, status. #}
     <section class="nx-sydoc-band nx-rise" data-testid="bps-band">
       <div class="nx-sydoc-band__row1">
         {{ sydoc.brand(_("BPS")) }}
@@ -53,8 +53,10 @@
           <span class="nx-sydoc-stats__v" id="bps-latest" data-testid="bps-latest">–</span>
         </div>
       </div>
+    </section>
 
-      <hr class="nx-bps-band__rule">
+    {# Totals and composition, on the page surface below the band. #}
+    <section class="nx-bps-summary nx-rise" aria-label="{{ _('Total hours') }}">
       <div class="nx-bps-totals" id="bps-kpis" data-testid="bps-kpis" aria-busy="true">
         <div class="nx-skel nx-bps-skel"></div>
       </div>

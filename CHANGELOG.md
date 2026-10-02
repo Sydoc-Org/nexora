@@ -6,8 +6,29 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Sydoc Billing** (`/billing?month=YYYY-MM`, permission `billing.view`, #436):
+  what was invoiced in Bexio, per Finance client, keyed by the **invoice
+  month** (September's invoices bill August). Each invoice shows its lines
+  inline, next to the Finance figures of the billed month (snapshot once
+  closed), including the billed BPS hours. A ✓ marks a line quantity that
+  exactly equals a figure. Also listed: invoices to Bexio contacts linked to no
+  client, which stay out of the totals, and every open, partly paid or unpaid
+  invoice across all months, oldest due first, with CHF outstanding and
+  overdue. The month picker marks each month *All invoiced* or *n missing*.
+  APIs: `/api/billing/month`, `/figures/<key>`, `/outstanding`, `/months`,
+  `/invoice/<id>[/pdf]`. Migration `0148` grants `billing.view` wherever
+  `finance.view` is held. `docs/howto/billing.md`.
+
 ### Changed
 
+- **BPS: totals and the composition bar sit below the ink band** (#415): the
+  KPI row and the billable / other service / absence bar moved out of the dark
+  header onto the page surface, themed with the page tokens.
+- **Sidebar: one *Sydoc internal* group** (#436) holds Finance, BPS, Billing
+  and Controlling. It replaces the flat *Sydoc Finance* / *Sydoc BPS* / *Sydoc
+  Controlling* entries.
 - **Finance: Xpert shows every BFH and ZHAW metric** (#408): BFH lists all its
   metrics (NKReproduzierte included), ZHAW every metric and dimension (intake
   Scanner and blank included), side by side under the per-client table. The
@@ -21,13 +42,22 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Posteingang and Physische Zustellung the matrix moves below the per-branch
   table.
 - **One dev host per developer** (#431): a branch push now deploys to the
-  pusher's own dev host (`stop-taking-my-gitrunner-nexora.sydoc.ch`, `prod-but-not-really-nexora.sydoc.ch`)
-  instead of the single shared `dev-nexora.sydoc.ch`, so two people pushing at
-  the same time stop overwriting each other. The slot is mapped from the GitHub
-  login in `deploy.yml`; unmapped pushers, and a developer whose host is not set
-  up yet, still land on the shared host. `ops/setup-env.ps1` accepts
+  pusher's own dev host (`stop-taking-my-gitrunner-nexora.sydoc.ch`,
+  `prod-but-not-really-nexora.sydoc.ch`) instead of the single shared
+  `dev-nexora.sydoc.ch`, so two people pushing at the same time stop
+  overwriting each other. The slot is mapped from the GitHub login in
+  `deploy.yml`; an unmapped pusher, or a developer whose host is not set up
+  yet, gets the tests but no dev deploy. `ops/setup-env.ps1` takes
   `-Name dev-<who>`, and `scripts/env-sync.py --push INT.env` writes every dev
-  host's folder.
+  host's folder (its drift report reads `nexora-dev-ben`).
+
+### Removed
+
+- **The shared dev host `dev-nexora.sydoc.ch`** (#431), superseded by the
+  per-developer hosts.
+- **The Bexio panel on Sydoc Finance** (#423 → #436), with its routes
+  `/api/finance/bexio`, `/api/finance/bexio/invoice/<id>[/pdf]` and
+  `static/js/finance_bexio.js`. It moved to Sydoc Billing.
 
 <!-- Everything below, down to the next release heading, is the phone view from
      feat/354-phone-tabbar. It is NOT on main: fold it in only when that branch merges. -->
@@ -956,6 +986,21 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Sydoc Controlling** (#433): `/controlling`, the margin per client stream
+  (BPS hours × rate + external costs against Bexio invoices excl. VAT),
+  replacing `Projektcontrolling_Betriebskosten.xlsx`. Third Sydoc-branded page
+  (design `docs/design/design_handoff_sydoc_controlling`): month summary,
+  margin table with diverging bars and flags, per-client blocks with hours by
+  task, the Bexio invoice lines and the Differenz, a task × stream heat matrix
+  with FTE, document volumes, a trend since Jan 2025 and a rates drawer.
+  Invoices map to streams by Bexio project (per-invoice overrides possible);
+  invoices in EUR are shown, not converted and not summed; supplier bills
+  (Digi-Texx) feed external costs. Closing a month in Sydoc Finance freezes
+  its Controlling figures too (`scripts/controlling-freeze-months.py` freezes
+  the months closed before). Permissions `controlling.view` and
+  `controlling.rates.edit` (Global Admin); migrations `0145`–`0147`.
+  `nx_lib/bexio.py`: invoices carry `projectId`/`currencyId`; new
+  `purchase_bills`, `project_name`. `docs/howto/controlling.md`.
 - **Finance: BPS hours as Excel and PDF** (#408): `GET /api/finance/bps-export`
   and an *Export hours* box in the Billable services section. One sheet per
   invoice (per customer; Privera split into Posteingang, Invoice and

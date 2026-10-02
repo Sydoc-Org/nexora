@@ -219,6 +219,8 @@ def startpage_redirect_to(page_v):
         "workitemsPagePerm": "workitems_overview",
         "financePagePerm": "finance",
         "bpsPagePerm": "bps",
+        "billingPagePerm": "billing",
+        "controllingPagePerm": "controlling",
         "generaliPagePerm": "generali_evaluation",
         "generaliDocumentsPerm": "generali_documents",
         "generaliReportingPerm": "generali_reporting",
@@ -242,6 +244,8 @@ def page_visibility():
         "reportingPagePerm": has_permission("reporting.view"),
         "financePagePerm": has_permission("finance.view"),
         "bpsPagePerm": has_permission("bps.view"),
+        "billingPagePerm": has_permission("billing.view"),
+        "controllingPagePerm": has_permission("controlling.view"),
         "workitemsPagePerm": has_permission("workitems.view"),
         "preparedDocsPagePerm": has_permission("workitems.prepared.view"),
         # invoicesPagePerm removed with the archived invoices page (#177).
