@@ -1744,13 +1744,15 @@ body.reporting-console .rdb-pick-host .rs-kpi-total-card .rdb-pick-btn,
 body.reporting-console .rdb-pick-host .reporting-ledger-kpi .rdb-pick-btn { top: auto; bottom: 6px; }
 
 /* ============================================================
-   Full-bleed dashboard. While the dashboard view is open (body.rdb-fullbleed,
-   toggled by the Simple pane's setView) the workspace rail steps aside and
-   every width cap on the way down -- shell, body grid, the dashboard's own
-   1240px -- lets go, so the 12-column grid spans the viewport.
+   Full-bleed dashboard. While the dashboard or report-definitions view is
+   open (body.rdb-fullbleed, toggled by the Simple pane's setView) the
+   workspace rail steps aside and every width cap *inside* the shell -- body
+   grid, the dashboard's own 1240px -- lets go, so the 12-column grid spans
+   the whole shell. The shell itself keeps the page cap and inset every other
+   screen has: lifting it glued the page to the sidebar on a wide viewport
+   (2000px+ at 70% browser zoom) and made the masthead jump left on every
+   switch from Library (#446).
    ============================================================ */
-body.reporting-console.rdb-fullbleed .rc-shell,
-body.reporting-console.rdb-fullbleed .reporting-shell { max-width: none; padding-inline: 28px; }
 body.reporting-console.rdb-fullbleed .rc-body { grid-template-columns: minmax(0, 1fr); }
 body.reporting-console.rdb-fullbleed .rc-rail { display: none; }
 body.reporting-console.rdb-fullbleed .reporting-simple { max-width: none; padding-inline: 0; }
@@ -2155,8 +2157,8 @@ body.reporting-console.rdb-fullbleed .reporting-layouts { max-width: none; paddi
         justify-content: center;
     }
 
-    /* The dashboard builder runs full-bleed, and its shell keeps a 28px
-       desktop inset -- 56px of a 390px phone. That is what pushed the Eddard
+    /* The dashboard builder runs full-bleed, and its shell used to keep a
+       28px desktop inset -- 56px of a 390px phone. That is what pushed the Eddard
        button off the title row by 14px, and it left the card grid narrower
        than every other screen. 16px matches .nx-main everywhere else. */
     body.reporting-console.rdb-fullbleed .rc-shell,

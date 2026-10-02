@@ -324,6 +324,18 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   grouped by one column, or nothing moved enough) instead of showing a blank
   box. In the editor, *Anomalies* previews for real on the *Preview with*
   report and the other panels describe what they will show.
+- **The sidebar no longer covers the page at the small font size** (#446).
+  The font scale zooms `body` (0.9 / 1.1) and counter-zooms the sidebar to
+  its true width, but the room `body` reserves for it was zoomed along with
+  the page -- so at *small* a pinned sidebar overlapped every page by 22px
+  (Reporting's *Dashboards* and *Report definitions* sat 3px from it), and at
+  *large* left a 22px extra gap. The reserved padding is now divided by the
+  same factor (`--nx-zoom`), so both gutters match at every font size.
+  Separately, *Dashboards* and *Report definitions* lifted the page's width
+  cap along with the rail, so on a wide viewport (a zoomed-out window) they
+  ran edge to edge from the sidebar while every other screen stays centred,
+  and the masthead jumped left when switching from *Library*. The shell now
+  keeps the same cap and inset; only the rail steps aside.
 
 ### Added — phone view
 - **`scripts/phone-sweep.py` — the phone layout, measured instead of eyeballed.**
