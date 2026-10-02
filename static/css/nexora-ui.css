@@ -977,6 +977,12 @@ html[data-radius="round"] { --nx-radius-scale: 1.6; }
 /* Font scale — zoom scales px-based layouts too (Chromium + FF 126+). */
 html[data-fontscale="sm"] body { zoom: 0.9; }
 html[data-fontscale="lg"] body { zoom: 1.1; }
+/* The same factor as a token, for the room body reserves for the sidebar
+   (_header.css): that padding sits inside the zoomed body, but the sidebar
+   below is counter-zoomed to its true width, so the padding must be divided
+   by the zoom or the sidebar covers 22px of every page at "sm" (#446). */
+html[data-fontscale="sm"] { --nx-zoom: 0.9; }
+html[data-fontscale="lg"] { --nx-zoom: 1.1; }
 
 /* #nexora-sidebar is position:fixed with height:100vh. body's zoom still
    scales it (Chromium applies zoom to fixed descendants too), but 100vh
@@ -999,6 +1005,7 @@ html[data-fontscale="lg"] #nexora-sidebar { zoom: 0.9091; }
 @media (max-width: 768px) and (pointer: coarse) {
   html[data-fontscale] body,
   html[data-fontscale] #nexora-sidebar { zoom: 1; }
+  html[data-fontscale] { --nx-zoom: 1; }
 
   /* Small links the phone sweep (scripts/phone-sweep.py) measured under the
      44px tap minimum: the Generali pages' brand mark and data-transfer links,
