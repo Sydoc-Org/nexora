@@ -670,3 +670,280 @@ img.nx-wi-card__sheet { object-fit: cover; object-position: top; display: block;
     .input span .date { font-size: 11px; margin-top: 32px; }
     .input span .time { font-size: 10px; }
 }
+
+/* ============================================================
+   PHONE (#354). The page already had a ≤768px block; these are the things
+   that still broke at 375px once it was driven on a real touch viewport.
+   ============================================================ */
+
+@media (max-width: 768px) {
+    /* Three rows overflowed the viewport and made the whole page scroll
+       sideways. Each for the same underlying reason -- a flex row of controls
+       sized for a desktop that was never allowed to shrink or wrap. */
+
+    /* The export / import / prepared-documents cluster. Its shared component
+       carries flex-shrink: 0 (nexora-ui.css) so it kept its desktop width and
+       pushed 8px off the left edge and 8px off the right. */
+    .nx-wi-actions {
+        flex-wrap: wrap;
+        min-width: 0;
+        align-self: stretch;
+    }
+
+    /* The list header's children would not shrink inside the wrap. */
+    .nx-wi-listhead { min-width: 0; }
+    .nx-wi-listhead > * { min-width: 0; }
+
+    /* The status tab strip (All / In progress / Done / …) is wider than any
+       phone and cannot usefully wrap -- a half-row of tabs reads as broken.
+       Let it scroll on its own axis instead, which keeps every tab reachable
+       and keeps the strip's width off the page. min-width: 0 on the strip is
+       what actually stops it forcing the page wider. */
+    /* These missed fitting by SIX pixels -- 364px of tabs in a 358px row --
+       which is not worth a scrolling strip, and a strip here costs the same
+       left-right gesture the views want (#368). Tightened instead: a smaller
+       gap and a little less padding per tab closes six pixels several times
+       over, and if a future status name pushes it past the row again it wraps
+       evenly rather than hiding a tab off-screen. */
+    .nx-wi-statustabs,
+    [data-testid="workitems-status-tabs"] {
+        min-width: 0;
+        overflow-x: visible;
+        flex-wrap: wrap;
+        row-gap: 6px;
+        column-gap: 4px;
+    }
+    [data-testid="workitems-status-tabs"] .nx-tab {
+        flex: 0 0 auto;
+        padding-inline: 7px;
+    }
+
+    /* Each row is a card here, and every cell is one flex line:
+       `[data-label] [value]`, spread by `space-between`. The Workitem cell
+       holds two values though -- the id and the stage indicator -- so all
+       three items shared one 355px line and came out as
+       "WORKITEM  18995  - - -  Validation", with the ticks and the stage name
+       crushed against the right edge (#363, measured at 131px for the pair).
+
+       The stage gets its own line under the id, still right-aligned so it
+       lines up with the values in the cells above and below it. */
+    .nx-wi-table td[data-label] { flex-wrap: wrap; }
+    .nx-wi-table td .nx-wi-cell-stage {
+        flex: 1 0 100%;
+        justify-content: flex-end;
+        margin-top: 6px;
+    }
+    /* 3px reads as a hairline rather than progress once it is the only thing
+       telling you which stage a workitem is at. */
+    .nx-wi-tick { height: 4px; }
+    .nx-wi-cell-stage > span:last-child { font-size: 12px; }
+}
+
+/* The floating bulk-action bar sat at bottom: 12px, which is exactly where
+   the phone tab bar now is -- selecting rows put the actions underneath the
+   navigation. Lifted clear of it, and only under the same touch gate that
+   draws the tab bar: a narrow DESKTOP window has no tab bar, so it keeps the
+   12px it has today. */
+@media (max-width: 768px) and (pointer: coarse) {
+    /* `--nx-tabbar-h`, not a literal: this was written as 56px when the bar
+       was that tall, and the bar is 64px now, so the actions had crept back
+       to 8px of overlap with the navigation. The variable exists precisely so
+       the bar's height is stated in one place. */
+    #bulk-action-bar {
+        bottom: calc(var(--nx-tabbar-h) + var(--nx-sa-bottom) + 12px) !important;
+    }
+}
+
+/* Touch targets (#354). Pointer-keyed, like the rest: size follows the
+   finger, not the screen. The toolbar controls were 32-33px and the
+   per-row controls far smaller -- the details chevron measured 21x9. */
+@media (pointer: coarse) {
+    /* The `.nx-wi-filter` prefix is not decoration: the filter row already
+       sets `.nx-wi-filter .nx-scope-btn { min-height: var(--ctl-h) }` at
+       specificity (0,2,0), which beats a bare attribute selector (0,1,0) and
+       held the process picker at 29px. Matching the specificity beats it on
+       source order without reaching for !important. */
+    .nx-wi-filter [data-testid="workitems-process-filter-btn"],
+    .nx-wi-filter [data-testid="workitems-search"],
+    .nx-wi-filter [data-testid="workitems-stage-filter"],
+    .nx-wi-filter [data-testid="workitems-save-view"],
+    .nx-wi-filter [data-testid="workitems-toggle-advanced"],
+    .nx-wi-filter [data-testid="workitems-reset"],
+    [data-testid="workitems-export-csv"],
+    [data-testid="workitems-import"],
+    [data-testid="prepared-docs-link"],
+    [data-testid="workitems-process-filter-btn"],
+    [data-testid="workitems-search"],
+    [data-testid="workitems-stage-filter"],
+    [data-testid="workitems-save-view"],
+    [data-testid="workitems-toggle-advanced"],
+    [data-testid="workitems-reset"] {
+        min-height: 44px;
+    }
+
+    /* The status tabs (All / Ready / In progress / …) were 27px. They live in
+       the strip that scrolls horizontally above, so height is free to grow. */
+    [data-testid="workitems-status-tabs"] .nx-tab { min-height: 44px; }
+
+    /* "Reset" is a short word, so it cleared 44 tall but only 33 wide.
+       "Advanced" was missed by the same rule and landed at 43 -- one pixel
+       short, which no amount of looking would ever have caught. */
+    [data-testid="workitems-reset"],
+    [data-testid="workitems-toggle-advanced"] {
+        min-width: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* The list/grid view switch -- two icon-only buttons, 35x30 each. */
+    [data-testid="workitems-view-toggle"] > * { min-width: 44px; min-height: 44px; }
+
+    /* Pagination. 30x30 page numbers sitting flush against each other is the
+       worst mis-tap shape on the page -- you aim for 3 and land on 4. */
+    .pagination-link { min-width: 44px; min-height: 44px; }
+    [data-testid="workitems-per-page"] { min-height: 44px; }
+
+    /* The bulk bar's own actions, which appear once rows are selected. */
+    #bulk-action-bar .nx-btn,
+    [data-testid="workitems-bulk-export"],
+    [data-testid="workitems-bulk-deselect"] { min-height: 44px; }
+
+    /* Per-row controls, at the full 44px.
+
+       #354 capped these at 24px and 32px on the reasoning that stretching
+       them would "set the height of every row and halve how many fit on
+       screen". That holds for a compact list, but the phone layout does not
+       render one: each row is a **289px card**, with 281px of clear space
+       between one row's checkbox and the next, so the cost is nothing like
+       halving.
+
+       Measured, both engines, seven devices: the row goes 289px -> 321px, so
+       about 11% fewer rows on a screen, and nothing moves past the right
+       edge. That is the real trade and it is worth naming rather than
+       implying it is free -- 40 rows of 24px checkboxes is the single worst
+       mis-tap surface on the page, and 11% is not the halving the cap was
+       guarding against. Revert by putting 24px/32px back here if the density
+       turns out to matter more. */
+    [data-testid^="workitems-row-checkbox"] {
+        width: 44px;
+        height: 44px;
+    }
+    [data-testid^="workitems-details-toggle"] {
+        min-width: 44px;
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+}
+
+/* Phone layout for the toolbars (#354 follow-up).
+
+   Wrapping stopped the page scrolling sideways, but a row built for a desktop
+   does not become a phone layout just because it wraps -- it becomes ragged.
+   "Advanced" and "Reset" ended up stranded on their own lines, the search box
+   was a different width from the process picker above it, and the three action
+   buttons broke 2 + 1 with a gap.
+
+   Stacked full-width instead, which is what the Generali documents filter
+   panel already does and is the one filter UI on a phone that reads well.
+   Touch-gated: a narrow desktop window keeps the wrapped row, which is the
+   right shape when a pointer is doing the work. */
+@media (max-width: 768px) and (pointer: coarse) {
+    /* Was a single stacked column: six full-width rows of filters, which with
+       the action buttons above put ~640px of chrome before the first workitem
+       on an 844px screen (#364). Two of those rows hold controls narrow enough
+       to share one, and one row was only a label.
+
+       Back to a wrapping row, with the pieces placed deliberately:
+         search on a row of its own, first, because it is the control people
+         actually reach for; the process picker and the stage filter side by
+         side; then the three text-ish controls together. */
+    .nx-wi-filter {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+    }
+    /* `order: -1` rather than moving it in the template: the form's field
+       order is what the serializer and the saved-view code read. */
+    .nx-wi-filter > .nx-wi-search {
+        order: -1;
+        flex: 1 0 100%;
+        width: auto;
+    }
+    .nx-wi-filter > .nx-scope,
+    .nx-wi-filter > [data-testid="workitems-stage-filter"] {
+        flex: 1 1 calc(50% - 4px);
+        min-width: 0;
+        width: auto;
+    }
+    .nx-wi-filter .nx-scope-btn { width: 100%; }
+    /* A flex spacer would take the whole remainder of a wrapping row and
+       push everything after it onto a line of its own. */
+    .nx-wi-filter__spacer { display: none; }
+    /* "Process" names a picker whose own label already reads "All Processes",
+       so on a phone it was a row spent saying nothing. */
+    .nx-wi-filter > .nx-eyebrow { display: none; }
+
+    /* "Advanced" and "Reset" are text links, not buttons. Stretched to full
+       width they became centred captions floating between the real controls.
+       Left at their natural width they read as what they are. */
+    .nx-wi-filter [data-testid="workitems-toggle-advanced"],
+    .nx-wi-filter [data-testid="workitems-reset"] {
+        width: auto;
+        flex: 0 0 auto;
+        justify-content: flex-start;
+    }
+    .nx-wi-filter > [data-testid="workitems-save-view"] {
+        flex: 0 0 auto;
+        width: auto;
+    }
+
+    /* Export CSV / Import / Prepared documents broke 2 + 1, so the third sat
+       alone on a full-width row and the group read as a stack of blocks
+       rather than a toolbar. Their labels are too long to fit three across a
+       355px row without truncating, so they get one line that scrolls -- the
+       same shape as the reporting console's screen rail. */
+    /* Three equal columns, wrapping labels -- the same answer the reporting
+       rail got, and for the same reason: a side-scrolling strip claims the
+       left-right gesture that belongs to switching views (#368).
+
+       It fit at 390px and was draggable by 13px at 375 (an SE or an 8), which
+       is exactly the kind of thing one test width hides. A grid cannot
+       overflow: the columns divide whatever width there is, and a long label
+       like "Prepared documents" wraps inside its own button instead of
+       widening the row or being cut off. */
+    .nx-wi-actions {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        overflow-x: visible;
+    }
+    .nx-wi-actions > .nx-btn,
+    .nx-wi-actions > .inline-block,
+    .nx-wi-actions > .inline-block > .nx-btn {
+        width: 100%;
+        min-width: 0;
+        white-space: normal;
+        justify-content: center;
+        text-align: center;
+        line-height: 1.25;
+    }
+}
+
+/* The search field must clear iOS's 16px zoom threshold (#369).
+
+   `.nx-wi-filter .nx-input` sets `font-size: var(--fs-control)` (12.5px) at
+   specificity (0,2,0), which beats the shared `.nx-input` rule in
+   nexora-ui.css, so the filter row stayed under the threshold after that one
+   was raised. Matching the specificity beats it on source order without
+   reaching for !important.
+
+   Pointer-keyed with no width clause, like the shared rule: the zoom is a
+   touch-keyboard behaviour, so a coarse-pointer tablet needs it too. */
+@media (pointer: coarse) {
+    .nx-wi-filter .nx-input,
+    .nx-wi-filter .nx-select { font-size: 16px; }
+}

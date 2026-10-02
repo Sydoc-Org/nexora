@@ -135,6 +135,8 @@ PDQM = CrudTable(
     user_lookup_label="PDQM",
     monthreport_url="/generali/pdqm/monthreport",
     monthreport_endpoint="generali_pdqm_monthreport",
+    # The phone quick entry offers "Undo" for a few seconds after saving.
+    undo=True,
     monthreport=CrudMonthReport(
         section="pdqm",
         section_title="Generali PDQM",
@@ -202,6 +204,7 @@ api_generali_pdqm_list = PDQM.views["list"]
 api_generali_pdqm_add = PDQM.views["add"]
 api_generali_pdqm_edit = PDQM.views["edit"]
 api_generali_pdqm_delete = PDQM.views["delete"]
+api_generali_pdqm_undo = PDQM.views["undo"]
 generali_pdqm_monthreport = PDQM.views["monthreport"]
 
 for _name, _fn in (
@@ -212,6 +215,7 @@ for _name, _fn in (
     ("api_generali_pdqm_add", api_generali_pdqm_add),
     ("api_generali_pdqm_edit", api_generali_pdqm_edit),
     ("api_generali_pdqm_delete", api_generali_pdqm_delete),
+    ("api_generali_pdqm_undo", api_generali_pdqm_undo),
     ("generali_pdqm_monthreport", generali_pdqm_monthreport),
 ):
     _fn.__name__ = _name

@@ -102,7 +102,7 @@
     }
 
     function loadCategories() {
-        fetch(API_PREFIX + 'api/generali/pdqm/categories?locale={{ current_lang }}', { headers: { 'X-CSRFToken': csrfToken } })
+        return fetch(API_PREFIX + 'api/generali/pdqm/categories?locale={{ current_lang }}', { headers: { 'X-CSRFToken': csrfToken } })
             .then(r => r.json())
             .then(data => {
                 if (!data.success) return;
@@ -587,8 +587,78 @@
     });
 
     // ----------------------------- init ----------------------------- //
-    loadCategories();
+    // Kept: the phone quick entry below waits on the same request.
+    const categoriesLoaded = loadCategories();
     loadOrganizations();
     nxUserFilter.init(API_PREFIX + 'api/generali/pdqm/filterUsers', applyFiltersSoon);
     crud.loadRecords(1);
 </script>
+{% if can_add %}
+{% include 'js/_generali_quick_entry_i18n.html' %}
+<script src="{{ static_v('js/undo_pill.js') }}"></script>
+<script src="{{ static_v('js/generali_quick_entry.js') }}"></script>
+<script nonce="{{ csp_nonce() }}">
+    // Phone quick entry (#354) -- templates/_generali_quick_entry.html.
+    // PDQM counts documents, and its catalogue is up to three levels deep:
+    // parent -> source (ParentSubCategory) -> reason (SubCategory). An ""
+    // source key means "no source level" (e.g. Adressverifikation -> QSTAT 4
+    // directly), so its reasons hang off the parent itself.
+    const tr = v => translationsMap[v] || v;
+    function pdqmTree() {
+        return Object.keys(categoriesData).sort().map(parent => {
+            const groups = categoriesData[parent] || {};
+            const leaf = (sub, parentSub) => ({
+                value: sub, label: tr(sub), fields: { parentSubCategory: parentSub, subCategory: sub },
+            });
+            const children = [
+                ...(groups[''] || []).map(sub => leaf(sub, '')),
+                ...Object.keys(groups).filter(k => k !== '').sort().map(ps => ({
+                    value: ps, label: tr(ps), fields: { parentSubCategory: ps },
+                    children: (groups[ps] || []).map(sub => leaf(sub, ps)),
+                })),
+            ];
+            return {
+                value: parent, label: tr(parent),
+                fields: { parentCategory: parent, parentSubCategory: '' },
+                children,
+            };
+        });
+    }
+    NX.generaliQuickEntry.mount({
+        api: API_PREFIX + 'api/generali/pdqm',
+        userId: {{ userid|tojson }},
+        i18n: window.NX_I18N_QUICK_ENTRY,
+        crud,
+        openAddModal,
+        storageKey: 'nx.generali.pdqm.quick',
+        categories: categoriesLoaded.then(pdqmTree),
+        amount: {
+            presets: [1, 2, 5, 10, 20], step: 1, min: 1, max: 9999,
+            recordField: 'quantity', totalField: 'totalQuantity',
+            format: n => window.NX_I18N_QUICK_ENTRY.pieces.replace('{count}', String(n)),
+            // "10 Stk." wrapped in a fifth of 360px; the heading already says "Quantity".
+            chip: n => String(n),
+        },
+        buildBody: p => ({
+            forDate: p.date,
+            parentCategory: p.fields.parentCategory,
+            parentSubCategory: p.fields.parentSubCategory || '',
+            subCategory: p.fields.subCategory || null,
+            quantity: p.amount,
+        }),
+        recordPath: r => [r.parentCategory, r.parentSubCategory, r.subCategory].filter(Boolean),
+        fillFullForm: p => {
+            const dateEl = document.getElementById('addForDate');
+            if (p.date && dateEl._flatpickr) dateEl._flatpickr.setDate(p.date, false);
+            const parent = p.fields.parentCategory;
+            if (parent) {
+                const ps = p.fields.parentSubCategory ? p.fields.parentSubCategory : NULL_SENTINEL;
+                document.getElementById('addParentCategory').value = parent;
+                populateParentSubSelect(document.getElementById('addParentSubCategory'), parent, ps);
+                populateSubSelect(document.getElementById('addSubCategory'), parent, ps, p.fields.subCategory || '');
+            }
+            if (p.amount) document.getElementById('addQuantity').value = String(p.amount);
+        },
+    });
+</script>
+{% endif %}

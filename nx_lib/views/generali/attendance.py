@@ -131,6 +131,8 @@ ATTENDANCE = CrudTable(
     monthreport_url="/generali/additionalServices/monthreport",
     monthreport_endpoint="generali_additionalservices_monthreport",
     monthreport_label="Generali Additional Services",
+    # The phone quick entry offers "Undo" for a few seconds after saving.
+    undo=True,
     monthreport=CrudMonthReport(
         section="additionalservices",
         section_title="Generali Additional Services",
@@ -196,6 +198,7 @@ api_generali_attendance_list = ATTENDANCE.views["list"]
 api_generali_attendance_add = ATTENDANCE.views["add"]
 api_generali_attendance_edit = ATTENDANCE.views["edit"]
 api_generali_attendance_delete = ATTENDANCE.views["delete"]
+api_generali_attendance_undo = ATTENDANCE.views["undo"]
 generali_additionalservices_monthreport = ATTENDANCE.views["monthreport"]
 
 for _name, _fn in (
@@ -206,6 +209,7 @@ for _name, _fn in (
     ("api_generali_attendance_add", api_generali_attendance_add),
     ("api_generali_attendance_edit", api_generali_attendance_edit),
     ("api_generali_attendance_delete", api_generali_attendance_delete),
+    ("api_generali_attendance_undo", api_generali_attendance_undo),
     ("generali_additionalservices_monthreport", generali_additionalservices_monthreport),
 ):
     _fn.__name__ = _name

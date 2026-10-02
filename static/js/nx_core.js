@@ -215,4 +215,181 @@
         formatHours: formatHours,
         csrfToken: csrfToken
     };
+
+    // ---- flatpickr: the same picker on a phone as on desktop -----------------
+    // By default flatpickr swaps its input for a native <input type="date">
+    // on a mobile user agent. On an iPhone that field ignores nexora's input
+    // styling, shows no "yyyy-mm-dd" hint while empty and formats the date its
+    // own way, so the Generali From/To pair looked unlike every field around
+    // it. disableMobile keeps flatpickr's own input and calendar everywhere.
+    // Set here, once, rather than in ~35 flatpickr() calls: pages load
+    // flatpickr in <head>, before this file runs from <body>; the
+    // DOMContentLoaded pass covers a page that loads it later.
+    function flatpickrDefaults() {
+        if (window.flatpickr && typeof window.flatpickr.setDefaults === 'function') {
+            window.flatpickr.setDefaults({ disableMobile: true });
+        }
+    }
+    flatpickrDefaults();
+    document.addEventListener('DOMContentLoaded', flatpickrDefaults);
+
+    // ---- filters folded away on a phone ----------------------------------------
+    // Every list page opens with a filter block (dates, category, organisation,
+    // user, status...), and on a phone that block filled the whole first screen:
+    // the entries people came for started below it. On a touch phone each
+    // .nx-filter now starts folded behind one "Filters" button, which says how
+    // many filters are set, so nothing is hidden silently. Desktop untouched.
+    var PHONE_MQ = '(max-width: 768px) and (pointer: coarse)';
+    function activeFilterCount(box) {
+        var n = 0;
+        box.querySelectorAll('input, select').forEach(function (el) {
+            if (el.type === 'hidden' || el.type === 'button' || el.type === 'submit') return;
+            if (el.tagName === 'SELECT') { if (el.selectedIndex > 0) n++; }
+            else if (el.type === 'checkbox' || el.type === 'radio') { if (el.checked) n++; }
+            else if ((el.value || '').trim()) n++;
+        });
+        return n;
+    }
+    function foldFilters() {
+        if (!window.matchMedia(PHONE_MQ).matches) return;
+        var L = window.NX_I18N_CORE || {};
+        document.querySelectorAll('.nx-filter').forEach(function (box) {
+            if (box.dataset.nxFold) return;
+            box.dataset.nxFold = '1';
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'nx-btn nx-btn--secondary nx-filter-toggle';
+            btn.setAttribute('aria-expanded', 'false');
+            btn.setAttribute('data-testid', 'nx-filter-toggle');
+            function paint() {
+                var open = !box.classList.contains('nx-filter--folded');
+                var n = activeFilterCount(box);
+                btn.setAttribute('aria-expanded', String(open));
+                btn.setAttribute('aria-label', open ? (L.hideFilters || 'Hide filters') : (L.showFilters || 'Show filters'));
+                btn.innerHTML = '<i class="fas fa-sliders" aria-hidden="true"></i><span>' + esc(L.filters || 'Filters') + '</span>' +
+                    (n ? '<span class="nx-filter-toggle__n">' + n + '</span>' : '') +
+                    '<i class="fas fa-chevron-' + (open ? 'up' : 'down') + ' nx-filter-toggle__chev" aria-hidden="true"></i>';
+            }
+            box.classList.add('nx-filter--folded');
+            box.parentNode.insertBefore(btn, box);
+            btn.addEventListener('click', function () { box.classList.toggle('nx-filter--folded'); paint(); });
+            box.addEventListener('change', paint);
+            box.addEventListener('input', paint);
+            paint();
+            // Pages fill some filters from script after load (default dates,
+            // organisation lists); recount once they have had the chance.
+            setTimeout(paint, 1500);
+        });
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', foldFilters);
+    } else {
+        foldFilters();
+    }
+
+    // ---- phone start page by role --------------------------------------------
+    // Right after signing in on a touch phone, someone who reports post
+    // (window.NX_PHONE_START, set in _header.html) goes straight to Reporting
+    // instead of the desktop start page. Only on the first page after the
+    // sign-in (the referrer is the login or 2FA page), so the dashboard link
+    // in the menu still works. Desktop keeps startpage_redirect_to().
+    function phoneStart() {
+        var url = window.NX_PHONE_START;
+        if (!url || !window.matchMedia(PHONE_MQ).matches) return;
+        var ref;
+        try { ref = new URL(document.referrer).pathname; } catch (e) { return; }
+        if (!/\/(login|verify_2fa|init_2FA)$/.test(ref)) return;
+        if (window.location.pathname === new URL(url, window.location.href).pathname) return;
+        window.location.replace(url);
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', phoneStart);
+    } else {
+        phoneStart();
+    }
+
+    // ---- installed app: reload when a new version is live ------------------
+    // An iPhone home-screen app does not reload when it is opened again: it
+    // shows the page it had in memory, however old. After a deploy that kept
+    // the old, broken layout on screen while Safari already had the fix. So
+    // when the installed app comes back to the front, ask the server which
+    // build is live and reload once if it is not this page's build. Skipped
+    // while something is being typed or a dialog is open, so nobody loses a
+    // half-filled form. Not in a browser tab, where reload is one tap away.
+    function isInstalledApp() {
+        return window.navigator.standalone === true ||
+            (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+    }
+    function busy() {
+        var a = document.activeElement;
+        if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return true;
+        // Only dialogs actually on screen: the command palette's panels carry
+        // aria-modal even while closed.
+        return Array.prototype.some.call(
+            document.querySelectorAll('[aria-modal="true"], .fixed.inset-0.flex'),
+            function (el) { return el.getClientRects().length > 0; });
+    }
+    var checkingBuild = false;
+    function checkBuild() {
+        var mine = window.NX_BUILD;
+        if (!mine || checkingBuild || document.visibilityState !== 'visible' || !isInstalledApp()) return;
+        checkingBuild = true;
+        window.fetch(API_PREFIX + 'build.json', { cache: 'no-store', credentials: 'same-origin' })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (d) {
+                if (d && d.build && d.build !== mine && !busy()) window.location.reload();
+            })
+            .catch(function () { /* offline or restarting: try again next time */ })
+            .then(function () { checkingBuild = false; });
+    }
+    document.addEventListener('visibilitychange', checkBuild);
+    window.addEventListener('pageshow', function (e) { if (e.persisted) checkBuild(); });
+
+    // ---- stat-card icons: all or none per row -------------------------------
+    // .nx-stat wraps its icon chip under the number when the two do not fit
+    // side by side. On a phone that gave a row of KPI cards an extra line in
+    // some cards and not others -- uneven boxes for a decorative icon. So if
+    // ANY card in a group has to wrap its chip, hide the chips of the whole
+    // group (.nx-stats--no-chips); where they all fit, they stay. Desktop cards
+    // never wrap, so nothing changes there. Re-checked when a number loads
+    // (the KPIs arrive by fetch, "—" first) and on resize.
+    function chipWrapped(stat) {
+        var chip = stat.querySelector(':scope > .nx-stat__chip');
+        if (!chip) return false;
+        var text = stat.firstElementChild === chip ? chip.nextElementSibling : stat.firstElementChild;
+        if (!text) return false;
+        return chip.getBoundingClientRect().top >= text.getBoundingClientRect().bottom - 1;
+    }
+    function fitStatChips() {
+        var groups = [];
+        document.querySelectorAll('.nx-stat').forEach(function (s) {
+            if (s.parentElement && groups.indexOf(s.parentElement) < 0) groups.push(s.parentElement);
+        });
+        groups.forEach(function (g) {
+            g.classList.remove('nx-stats--no-chips');
+            var stats = Array.prototype.filter.call(g.children, function (c) { return c.classList.contains('nx-stat'); });
+            if (stats.some(chipWrapped)) g.classList.add('nx-stats--no-chips');
+        });
+    }
+    var fitQueued = false;
+    function queueFit() {
+        if (fitQueued) return;
+        fitQueued = true;
+        window.requestAnimationFrame(function () { fitQueued = false; fitStatChips(); });
+    }
+    function watchStats() {
+        queueFit();
+        // Text and child changes only -- toggling the class is an attribute
+        // change, so the observer cannot feed itself.
+        var mo = new MutationObserver(queueFit);
+        document.querySelectorAll('.nx-stat').forEach(function (s) {
+            mo.observe(s, { childList: true, characterData: true, subtree: true });
+        });
+        window.addEventListener('resize', queueFit);
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', watchStats);
+    } else {
+        watchStats();
+    }
 })(window, document);

@@ -296,6 +296,11 @@ html.nx-motion-reduced .src-pulse { animation: none; }
 /* 12rem basis: on a phone the sort select and layout toggle wrap under the
    search box instead of squeezing it down to its icon (#381). */
 body.reporting-console .rs-search-wrap { position: relative; flex: 1 1 12rem; display: block; }
+/* Sort wrapper: `contents` means the select is still the row's own flex child
+   here, so the desktop filter row lays out exactly as it did before the
+   wrapper existed. The phone block below turns it into a real box. */
+body.reporting-console .rs-sort-wrap { display: contents; }
+body.reporting-console .rs-sort-ico { display: none; }
 body.reporting-console .rs-search-wrap > i {
   position: absolute;
   left: 10px;
@@ -586,6 +591,11 @@ body.reporting-console .rs-card-avatar {
   cursor: pointer;
 }
 .rs-card-kebab:hover { background: var(--nx-sunken); color: var(--nx-text); }
+/* Phone tap target (#394): the card's "…" menu was a 22px square in the
+   corner. 44px on touch, anchored in the corner (the icon moves 3px). */
+@media (max-width: 768px) and (pointer: coarse) {
+  .rs-card-kebab { width: 44px; height: 44px; top: 0; right: 0; }
+}
 .rs-card-menu {
   position: absolute;
   top: 34px;
@@ -1411,15 +1421,24 @@ body.reporting-console .reporting-share-add .reporting-input {
 
 /* ---------- Responsive ---------- */
 @media (max-width: 900px) {
-  /* minmax(0, …), not 1fr: a bare 1fr track never shrinks below its
-     content's min-content, so the rail's nav buttons pushed the whole
-     console ~120px past a phone's right edge (#381). */
+  /* `minmax(0, 1fr)`, not `1fr`. A bare `1fr` track has an automatic MINIMUM,
+     so the column grows to its content's min-content width instead of
+     clamping to the container -- here that was a 507px column inside a 302px
+     shell, dragging the whole page 212px sideways at 375px. The desktop rule
+     above and the rdb-fullbleed override below both already spell it
+     `minmax(0, 1fr)`; this one override was the odd one out. */
   .rc-body { grid-template-columns: minmax(0, 1fr); }
+  /* Grid and flex children default to `min-width: auto`, which refuses to
+     shrink below content. Without these the track clamp above just moves the
+     overflow down a level. */
+  .rc-rail, .rc-content { min-width: 0; }
   .rc-rail { position: static; flex-direction: row; flex-wrap: wrap; }
   .rc-rail-label--sources, .rc-sources { display: none; }
-  .rs-result-main { grid-template-columns: 1fr; }
+  /* Same dropped minmax as .rc-body above -- these are the other two tracks
+     in this block, and their desktop rules both spell it minmax(0, ...). */
+  .rs-result-main { grid-template-columns: minmax(0, 1fr); }
   body.reporting-console .reporting-simple-grid.is-cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  body.reporting-console .rs-wizard-grid { grid-template-columns: 1fr; }
+  body.reporting-console .rs-wizard-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* ---------- Source visualizer ----------
@@ -1754,3 +1773,507 @@ body.reporting-console.rdb-fullbleed .reporting-layouts { max-width: none; paddi
 .reporting-dashboard:fullscreen .rdb-add-tile { display: none; }
 .reporting-dashboard:fullscreen #rdbPresent i::before { content: "\f066"; }  /* fa-compress */
 .reporting-dashboard:fullscreen .rdb-grid { --rdb-row: 132px; }
+
+/* ============================================================
+   PHONE (#354)
+
+   The console's own toolbars are single-line flex rows built for a wide
+   screen. They do not overflow their own box -- they push their buttons past
+   the viewport, which is why the page scrolled sideways with no single
+   too-wide element to blame.
+   ============================================================ */
+@media (max-width: 768px) {
+  .rc-topbar,
+  .rc-screen-head,
+  .rc-filter-row,
+  .rc-group-head {
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+  /* Children of those rows keep the grid/flex default of min-width: auto,
+     which refuses to shrink below content and re-creates the overflow one
+     level down. */
+  .rc-topbar > *,
+  .rc-screen-head > *,
+  .rc-filter-row > * { min-width: 0; }
+}
+
+/* Touch targets on the reporting pages (#354). Pointer-keyed like the rest of
+   this work, so a desktop is untouched at any width.
+
+   Reporting has its own component set (rc-*, rs-*, reporting-*) rather than
+   the shared .nx-btn / .nx-input, which is why the shared sizing fixed twelve
+   of thirteen Generali pages and all twelve admin ones but left this family
+   at 36-37px. */
+@media (pointer: coarse) {
+  .rc-btn,
+  .rc-nav { min-height: 44px; }
+  /* The icon-only ones (help, chat) are 42px wide. */
+  .rc-btn { min-width: 44px; }
+
+  /* The library toolbar and the layout switcher. */
+  [data-testid="rs-search"],
+  [data-testid="rs-sort"],
+  [data-testid="rs-layout-2"],
+  [data-testid="rs-layout-4"] { min-width: 44px; min-height: 44px; }
+
+
+  /* Edit / Delete in the registry tables were 26px and 43px wide, sitting
+     next to each other -- the one adjacency on these pages where a mis-tap
+     deletes something. Widened and separated rather than stretched to a full
+     44px tall, which would set the height of every table row. */
+  .reporting-link {
+    min-width: 44px;
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  td .reporting-link + .reporting-link { margin-left: 6px; }
+}
+
+/* ============================================================
+   PHONE: the console's own navigation (#354 follow-up)
+
+   Making the page FIT a phone is not the same as designing it for one. After
+   the overflow work this page still spent 572px of an 844px screen on chrome
+   before the first report: a 117px topbar, then the rail at 161px wrapped
+   across FOUR ragged rows, then a 91px screen head and a 48px filter row.
+
+   The rail is a left column on a desktop. Wrapping it into a grid is what
+   makes it a wall -- six buttons at four different vertical positions, none
+   aligned, reading as spilled rather than laid out. A single horizontally
+   scrolling strip is the phone-native shape for switching between screens
+   inside a page, and it costs one row instead of four. Every screen stays
+   reachable; the partially-visible next button is the affordance that says so.
+   ============================================================ */
+@media (max-width: 768px) and (pointer: coarse) {
+    /* A three-column grid, not a side-scrolling strip.
+
+       It was a strip because six labelled buttons need 756px and the row is
+       358px. Scrolling solved the width and created a worse problem: a
+       left-right drag on the rail is the same gesture as switching view, so
+       the two fight each other -- and the owner's call is that on a phone,
+       left and right belong to the views.
+
+       A grid is the third option: no scrolling AND no ragged wrap. Six items
+       land as an even 3 x 2 with every label readable, which is the thing
+       that made the original wrap look broken -- four buttons at four
+       different vertical positions with dangling connector lines, not the
+       wrapping itself. `minmax(0, 1fr)` so a long label shrinks its column
+       rather than widening the grid; `white-space: normal` so "Report
+       definitions" wraps inside its own button instead of truncating. */
+    .rc-rail {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 6px;
+        overflow-x: visible;
+        /* .rc-body already supplies the gap above; a margin here stacked two
+           spacings into a visible dead band. */
+        margin-top: 0;
+    }
+
+    /* "WORKSPACE" is a column heading for a column that no longer exists, and
+       it was taking a slot in the strip. The strip needs no title. */
+    .rc-rail > .rc-rail-label { display: none; }
+
+    /* The opposite of what the strip needed: in a grid the column decides the
+       width, so the button fills it and lets its label wrap. Centred, because
+       a grid cell wider than its text looks accidental left-aligned. */
+    .rc-rail .rc-nav {
+        width: 100%;
+        min-width: 0;
+        white-space: normal;
+        justify-content: center;
+        text-align: center;
+        line-height: 1.25;
+    }
+
+    /* The topbar was 117px because a flex spacer sat between the title and the
+       Help/Eddard buttons: in a wrapping row a spacer takes the whole
+       remainder and pushes whatever follows onto its own line. Dropping it
+       lets the two icon buttons sit on the title row, and a slightly smaller
+       title leaves room for them. */
+    .rc-topbar-spacer { display: none; }
+    .rc-apptitle { font-size: 1.35rem; }
+    /* column-gap 10 rather than the desktop 15: with the chip gone the row
+       was SIX pixels short of fitting Eddard beside Help, and four gaps at
+       5px less finds far more than six. */
+    .rc-topbar { row-gap: 6px; column-gap: 10px; }
+
+    /* The whole row is kept, icon included.
+
+       It was hidden for a while on the argument that the row told you where
+       you are three times over -- the tab bar highlights Reporting, the <h1>
+       below the rail names the screen, so a 48px icon looked like spent
+       width. That was a density judgement, not a fit problem, and the owner
+       asked for the icon back: without it the page read as though something
+       had failed to load.
+
+       It fits with room to spare. Measured at the narrowest phone, 375px, in
+       both Chromium and WebKit: icon 16-60, title 70-168, beta 178-221, Help
+       261-305, Eddard 315-359 -- a single 44px row, both actions inside the
+       viewport with 16px left over, nothing wrapped and nothing clipped. The
+       flex spacer between the chip and the actions absorbs the difference,
+       which is why it is restored here; the <=768px block above hides it, and
+       without it the buttons would sit against the chip instead of the row's
+       right edge.
+
+       "Reporting BETA" stays for its own reason: reporting is not generally
+       available yet, and that has to be visible on a phone as much as
+       anywhere. */
+    body.reporting-console .rc-appicon { display: inline-flex; }
+    body.reporting-console .rc-topbar-spacer { display: block; flex: 1; }
+    body.reporting-console .rc-topbar { padding-top: 0; }
+
+    /* The "N sources" chip counts the Sources rail cards -- which the ≤900px
+       block above already hides, so on a phone it reports on something you
+       cannot reach. It was also the 74px that stopped Help and Eddard fitting
+       on the title row. */
+    .rc-sync { display: none !important; }
+}
+/* Library screen toolbar on a phone (#354 follow-up).
+
+   The search box had collapsed to roughly the width of its own magnifier: it
+   shared a row with the sort dropdown and the layout toggle, and those two have
+   intrinsic widths while a text input shrinks to nothing. The one control you
+   actually type into was the smallest thing on the row.
+
+   Laid out as bands instead, in the order you reach for them: the two primary
+   actions side by side, then search on a row of its own, then sort and the
+   layout toggle sharing the row beneath it. */
+@media (max-width: 768px) and (pointer: coarse) {
+    .rc-screen-head { flex-wrap: wrap; row-gap: 0; }
+    /* The spacer's only job here is to end the title's line so the two actions
+       start a fresh one -- `flex-basis: 100%` is the flexbox line break. That
+       line is empty and 0px tall, so the gap under the title comes from the
+       buttons' own margin; `row-gap` would also apply to the empty line and
+       pay for the break twice. */
+    .rc-screen-head > .rc-screen-spacer { flex: 1 0 100%; height: 0; }
+    /* Equal halves rather than each sized to its label, which left "New
+       dashboard" half again as wide as "New report". Icon buttons are
+       excluded: the wizard head reuses .rc-screen-head, and its close button
+       was being stretched into a full-width bar with a lone x in the middle. */
+    .rc-screen-head > .rc-btn:not(.rc-btn--icon) {
+        flex: 1 1 0;
+        justify-content: center;
+        margin-top: 10px;
+    }
+
+    /* One row: the search takes everything the filter button does not.
+       `body.reporting-console` is needed to outrank the `flex: 1` set on the
+       same element further up. The wrapper stays `display: block` and
+       positioned -- the magnifier inside it is absolute against it. */
+    .rc-filter-row { flex-wrap: nowrap; }
+    body.reporting-console .rc-filter-row > .rs-search-wrap { flex: 1 1 auto; min-width: 0; }
+
+    /* The 2-vs-4-per-row toggle does nothing on a phone: the ≤900px block
+       above already collapses `.is-cols-4` to two columns, so both settings
+       render the same grid. A control with no effect is not worth the width
+       the search needs. */
+    .rc-filter-row > .rc-layout-toggle { display: none; }
+
+    /* Sort becomes the filter button beside the search. The select covers the
+       box at opacity 0 rather than being restyled: a tap anywhere on the box
+       opens the platform's own picker, and the options stay real <option>s,
+       so nothing here has to reimplement a menu, keep it in sync, or handle
+       its own dismissal. */
+    body.reporting-console .rs-sort-wrap {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        width: 48px;
+        min-height: 44px;
+        border: 1px solid var(--nx-border);
+        border-radius: calc(var(--nx-radius-scale, 1) * 8px);
+        background: var(--nx-card);
+        /* The select inside is 48px wide but its longest <option> is ~132px,
+           and a <select> reports that intrinsic text width as scroll overflow
+           even while invisible and absolutely positioned. Safari propagates
+           that overflow up to the document and Chromium does not, so the
+           whole reporting page could be dragged 53px sideways on an iPhone
+           and measured perfectly clean in every desktop browser we tested.
+           Clipping here costs nothing visually -- the select is opacity 0,
+           and the native picker it opens is drawn by the platform, not
+           inside this box. */
+        overflow: hidden;
+    }
+    body.reporting-console .rs-sort-ico {
+        display: block;
+        font-size: 15px;
+        color: var(--nx-text-sec);
+    }
+    body.reporting-console .rs-sort-wrap > .rc-select {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        min-height: 0;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        opacity: 0;
+        /* Invisible, but iOS still reads the font size and zooms the page in
+           below 16px when the picker opens. */
+        font-size: 16px;
+    }
+
+    /* 16px is the threshold below which iOS zooms the page in when a field
+       takes focus, which then leaves the layout scrolled sideways after the
+       keyboard closes. The console's inputs are 12.5px by design on a desktop,
+       so raise them only where a keyboard can actually open. */
+    body.reporting-console .rc-input,
+    body.reporting-console .rc-select,
+    body.reporting-console .rc-textarea { font-size: 16px; }
+
+    /* Giving search and the actions a row each cost about 100px of the screen,
+       so pay it back out of the insets, which were sized for a desktop window.
+       44px of page padding matches .nx-main -- and .nx-main is already 16px on
+       a phone, so the console was the odd one out. */
+    body.reporting-console .rc-shell { padding-top: 16px; padding-bottom: 16px; }
+    .rc-body { gap: 12px; margin-top: 14px; }
+    .reporting-simple { padding-block: 8px 24px; }
+
+    /* The wizard head reuses .rc-screen-head but is a title bar, not a pair of
+       actions: the line break that puts New dashboard / New report on their
+       own row leaves the close button stranded on one. */
+    .rs-wizard-head > .rc-screen-spacer { flex: 1 1 auto; height: 0; }
+    .rs-wizard-head > .rc-btn { margin-top: 0; }
+    /* Needs the body class to outrank `body.reporting-console .rc-h1`, which
+       the title also carries -- at the desktop size it filled the row on its
+       own and pushed the close button onto a line of its own. */
+    body.reporting-console .rs-wizard-title { font-size: 1.3rem; }
+    /* "Step 1 of 4" repeats what the rail directly below it already shows,
+       with the current step highlighted. On a phone that row is the scarcest
+       space on the screen. */
+    body.reporting-console .rs-wizard-stepno { display: none; }
+
+    /* Help and Eddard are icon-only on a phone -- their labels are hidden
+       below the sm breakpoint -- and a bordered box around a single glyph
+       reads as two little empty cards sitting in the header. Drop the box and
+       keep the glyph; the 44px tap target comes from the touch block above
+       and is unaffected. */
+    #rpHelpToggle,
+    #rpChatToggle {
+        background: transparent;
+        border-color: transparent;
+        padding: 0;
+        justify-content: center;
+    }
+
+    /* The card preview is a row on a desktop: facts on the left, chart on the
+       right. On a phone the card is ~150px wide, and the row's fixed parts --
+       facts at 34%, a 28px gap, and a thumb that refuses to go below 90px --
+       add up to more than that. The thumb could not shrink, so it ran past
+       the card's right edge and `overflow: hidden` cut the chart in half
+       (measured: a 153px card with its thumbnail ending 39px outside it).
+       Stacked instead, so the chart gets the card's full width and sits
+       centred under the facts. */
+    body.reporting-console .rs-card-preview {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
+        /* reporting.css pins this box to a hard `height: 78px` from the older
+           card design, and the console rule only ever raised `min-height`, so
+           the height stood. Stacked content is ~93px, and the box clips, which
+           is what cut the bottom third off every chart (measured: the donut
+           lost 31px, the line 51px). */
+        height: auto;
+    }
+    /* A <button> centres its content vertically when it is taller than that
+       content, and the grid stretches every card in a row to the tallest one.
+       That was invisible while every preview was a fixed 78px (identical
+       content heights); now that previews size to their facts, a card with
+       fewer facts had its badge and title sitting 24px lower than its
+       neighbour's. Making the button an explicit flex column puts its
+       content back at the top; `align-content: flex-start` does not reach a
+       button's anonymous box in Chromium (tried, measured, no change). */
+    body.reporting-console .rs-card {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: flex-start;
+    }
+    body.reporting-console .rs-card-facts { flex: 0 0 auto; }
+    body.reporting-console .rs-card-thumb {
+        flex: 0 0 auto;
+        min-width: 0;
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* The new-report wizard on a phone (#354).
+
+   Measured before this: the step card was a 232px box floating in the middle
+   of a 320px column with 44px of dead gutter either side, and the choices
+   inside it were 186px of a 390px screen. That is the "small box" -- it comes
+   from `.rs-wizard-grid`'s `padding: 0 40px 40px`, written for a 1120px
+   centred layout and never re-stated for the console. */
+@media (max-width: 768px) and (pointer: coarse) {
+    body.reporting-console .rs-wizard-grid {
+        padding: 0 0 20px;
+        gap: 10px;
+        margin-top: 10px;
+    }
+    body.reporting-console .rs-wizard-stepcard { padding: 14px; }
+
+    /* The four step chips need about 495px fully labelled; the row is 320px,
+       so they broke onto two lines with the connector lines left dangling
+       between them -- four pills stacked two-by-two rather than a progress
+       row. Only the step you are on keeps its label now; the others are their
+       number, or a tick once done. That is how a phone stepper usually reads,
+       it fits one row, and nothing has to scroll to be seen. */
+    body.reporting-console .rs-wizard-rail { flex-wrap: nowrap; }
+    body.reporting-console .rs-rail-step { flex: 0 0 auto; }
+    body.reporting-console .rs-rail-step:not(.is-active) .rs-rail-title { display: none; }
+    body.reporting-console .rs-rail-step:not(.is-active) { padding: 6px 9px; }
+    /* The one labelled chip takes the slack and ellipsises rather than
+       pushing the later steps off the row. */
+    body.reporting-console .rs-rail-step.is-active { flex: 0 1 auto; min-width: 0; }
+    body.reporting-console .rs-rail-step.is-active .rs-rail-title {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    /* Connectors shrink to spread the chips across the row instead of holding
+       a fixed 22px each. */
+    body.reporting-console .rs-rail-line { flex: 1 1 auto; width: auto; min-width: 8px; }
+
+    /* A 44px bordered box holding one small glyph reads as a button looking
+       for a job. Same treatment as Help and Eddard: drop the box, keep the
+       44px target from the touch block. */
+    body.reporting-console #rsWizardClose {
+        background: transparent;
+        border-color: transparent;
+        padding: 0;
+        justify-content: center;
+    }
+
+    /* The dashboard builder runs full-bleed, and its shell keeps a 28px
+       desktop inset -- 56px of a 390px phone. That is what pushed the Eddard
+       button off the title row by 14px, and it left the card grid narrower
+       than every other screen. 16px matches .nx-main everywhere else. */
+    body.reporting-console.rdb-fullbleed .rc-shell,
+    body.reporting-console.rdb-fullbleed .reporting-shell { padding-inline: 16px; }
+
+    /* The builder head wrapped into four ragged rows: Back alone, the title,
+       then five controls at three different heights -- a 31px pill, a 36px
+       "Add card", 48px buttons -- breaking two-and-two and leaving a 170px
+       hole after Done. That gap is the "weird space on the side".
+
+       The title takes its own row, and the actions pair up two to a row at
+       equal widths so the row always ends flush. A lone third action (the
+       view-mode set is Present / Export / Edit) grows to the full width
+       rather than sitting in a corner.
+
+       `:not(.rl-head)` because the Report definitions list reuses the same
+       class for its own head -- these rules are about the builder's controls,
+       and that screen has a different set. */
+    body.reporting-console .rdb-head:not(.rl-head) { row-gap: 10px; column-gap: 8px; }
+    body.reporting-console .rdb-head:not(.rl-head) > .rdb-spacer { display: none; }
+    body.reporting-console .rdb-head:not(.rl-head) > .rdb-titleblock { flex: 1 0 100%; }
+    body.reporting-console .rdb-head:not(.rl-head) > .nx-btn:not(#rdbBack),
+    body.reporting-console .rdb-head:not(.rl-head) > .rdb-addcard-btn {
+        flex: 1 1 calc(50% - 8px);
+        justify-content: center;
+        min-height: 44px;
+    }
+    /* The pill only appears while editing, which is precisely when the primary
+       button reads "Done" -- the same fact twice, and a phone row cannot
+       afford to say anything twice. */
+    body.reporting-console #rdbEditingPill { display: none; }
+    /* Back keeps its own row, so as a bordered button it read as one button
+       marooned in 254px of empty space. Stripped to a plain crumb -- the same
+       shape the wizard uses one screen earlier -- that row reads as a header
+       line instead, and the space beside it stops looking like a gap. */
+    body.reporting-console #rdbBack {
+        background: transparent;
+        border-color: transparent;
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    /* The "So far" panel sits below a step list that runs into the thousands
+       of pixels, so on a phone it is never where you are looking. The rail
+       chips and the footer's picked-count already carry the same information
+       where you can see them. */
+    body.reporting-console .rs-wizard-summary { display: none; }
+
+    /* Choices were pills sized to their own text, so they packed two to a row
+       at ragged widths and a long measure name wrapped inside a 183px pill.
+       One full-width row each: easier to hit, and the name reads on one line.
+       Left-aligned because a column of centred labels has no edge to scan. */
+    body.reporting-console .reporting-simple-choices {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 8px;
+    }
+    body.reporting-console .reporting-simple-choice {
+        width: 100%;
+        text-align: left;
+        border-radius: 10px;
+        padding: 11px 14px;
+        min-height: 44px;
+        font-size: 14px;
+    }
+
+    /* The measure step alone is ~4,600px of choices, which put Continue that
+       far below the thing you just tapped -- you had to scroll past every
+       remaining option to move on. Sticky pins it to the bottom of the screen
+       instead, clearing the tab bar and the home indicator. */
+    body.reporting-console .rs-wizard-footer {
+        position: sticky;
+        /* Flush against the tab bar, with no gap: an 8px one let a strip of
+           the choices scroll visibly between the two bars, which read as the
+           footer having come loose. */
+        bottom: calc(var(--nx-tabbar-h) + var(--nx-sa-bottom));
+        z-index: 2;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 16px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+        /* Same colour as the card it sits in, so the choices scrolling behind
+           it are covered rather than showing through. */
+        background: var(--nx-card);
+    }
+    /* The tab bar hides while a field holds focus (the date range, a filter
+       value), so the footer has to drop with it or it hangs in mid-air. */
+    html.nx-typing body.reporting-console .rs-wizard-footer {
+        bottom: var(--nx-sa-bottom);
+    }
+    body.reporting-console .rs-wizard-footer .nx-btn--primary {
+        flex: 1 1 auto;
+        justify-content: center;
+    }
+
+    /* Thumb-sized targets for the wizard's own controls, which are plain
+       labels and links rather than the rc- and rs- components the touch block
+       above covers. Measured at 30px (process rows), 33px (granularity),
+       35px (add filter) and 20px (the Library crumb). */
+    body.reporting-console .reporting-simple-scopestep label {
+        display: flex;
+        align-items: center;
+        min-height: 44px;
+    }
+    /* Deliberately smaller than 44px: the box itself only has to be visible,
+       because the label around it is the target and that is now 44px tall and
+       the full width of the card. Do not "fix" this one. */
+    body.reporting-console .reporting-simple-scopestep input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+    }
+    body.reporting-console #rsGrain,
+    body.reporting-console #rsTimeField { min-height: 44px; }
+    body.reporting-console #rsAddFilter { min-height: 44px; }
+    /* Padding rather than a taller line: the crumb keeps its text size and
+       just gets a box you can actually hit. */
+    body.reporting-console .rs-wizard-head .rc-crumb-link {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+    }
+}

@@ -30,6 +30,7 @@ from .attendance import (
     api_generali_attendance_list,
     api_generali_attendance_org_users,
     api_generali_attendance_organizations,
+    api_generali_attendance_undo,
     generali_additional_services,
     generali_additionalservices_monthreport,
 )
@@ -42,6 +43,7 @@ from .baseservices import (
     api_generali_baseservices_list,
     api_generali_baseservices_org_users,
     api_generali_baseservices_organizations,
+    api_generali_baseservices_undo,
     generali_base_services,
     generali_baseservices_monthreport,
 )
@@ -63,6 +65,7 @@ from .pdqm import (
     api_generali_pdqm_list,
     api_generali_pdqm_org_users,
     api_generali_pdqm_organizations,
+    api_generali_pdqm_undo,
     generali_pdqm,
     generali_pdqm_monthreport,
 )
@@ -74,6 +77,7 @@ from .projectmanagement import (
     api_generali_projectmanagement_list,
     api_generali_projectmanagement_org_users,
     api_generali_projectmanagement_organizations,
+    api_generali_projectmanagement_undo,
     generali_project_management,
     generali_projectmanagement_monthreport,
 )
@@ -108,8 +112,10 @@ __all__ = [
     "api_generali_attendance_list",
     "api_generali_attendance_org_users",
     "api_generali_attendance_organizations",
+    "api_generali_attendance_undo",
     "api_generali_baseservices_add",
     "api_generali_baseservices_delete",
+    "api_generali_baseservices_undo",
     "api_generali_baseservices_edit",
     "api_generali_baseservices_filter_users",
     "api_generali_baseservices_list",
@@ -127,6 +133,7 @@ __all__ = [
     "api_generali_pdqm_list",
     "api_generali_pdqm_org_users",
     "api_generali_pdqm_organizations",
+    "api_generali_pdqm_undo",
     "api_generali_projectmanagement_add",
     "api_generali_projectmanagement_delete",
     "api_generali_projectmanagement_edit",
@@ -134,6 +141,7 @@ __all__ = [
     "api_generali_projectmanagement_list",
     "api_generali_projectmanagement_org_users",
     "api_generali_projectmanagement_organizations",
+    "api_generali_projectmanagement_undo",
     "api_generali_reporting_add",
     "api_generali_reporting_delete",
     "api_generali_reporting_edit",

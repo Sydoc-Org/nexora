@@ -169,6 +169,10 @@ class CrudTable:
     organizations: bool = True  # generate api_organizations
     organizations_restrict: bool = True  # ...with the own-records restriction
     filter_users: bool = True
+    # Generate POST {api_base}/<id>/undo -- the phone "Undo" pill after a
+    # quick entry. Opt-in, because Reporting has its own hand-written undo on
+    # the same URL and a generated one would collide with it.
+    undo: bool = False
     views: dict = field(default_factory=dict, init=False, repr=False)
 
     def __post_init__(self):
@@ -705,14 +709,17 @@ def _make_add(d):
                 f"""
             INSERT INTO {d.table}
                 ({", ".join(columns)})
+            OUTPUT INSERTED.ID
             VALUES ({", ".join(placeholders)})
         """,
                 params,
             )
+            # The new id comes back so the phone quick entry can offer "Undo".
+            new_row = cursor.fetchone()
             conn.commit()
             cursor.close()
 
-            return jsonify({"success": True})
+            return jsonify({"success": True, "id": new_row[0] if new_row else None})
         except Exception as e:
             current_app.logger.error(f"{d.label} Add Error: {e}")
             return _fail()
@@ -790,6 +797,61 @@ def _make_delete(d):
     return api_delete
 
 
+# How long after saving an entry its author may still take it back through
+# the phone "Undo" pill. Same figure and the same reasoning as Reporting's
+# UNDO_WINDOW_SECONDS: this is "I tapped the wrong button", not a delete right
+# -- most Generali users hold .add but no .delete, and that stays so.
+UNDO_WINDOW_SECONDS = 600
+
+
+def _make_undo(d):
+    @require_permission(f"{d.perm_prefix}.add")
+    def api_undo(record_id):
+        conn = None
+        try:
+            from . import engine_generali_db
+
+            user_id = session.get("userid")
+            conn = engine_generali_db.raw_connection()
+            cursor = conn.cursor()
+            cursor.execute(
+                f"SELECT {d.user_column}, DATEDIFF(second, RecordDateTime, GETDATE()) "
+                f"FROM {d.table} WHERE ID = ?",
+                [record_id],
+            )
+            row = cursor.fetchone()
+            if not row:
+                return jsonify({"success": False, "error": _("Entry not found.")}), 404
+            owner, age = row
+            if str(owner) != str(user_id):
+                return jsonify(
+                    {"success": False, "error": _("You can only undo your own entry.")}
+                ), 403
+            if age is None or age > UNDO_WINDOW_SECONDS:
+                return jsonify(
+                    {
+                        "success": False,
+                        "error": _("Too late to undo. Ask your supervisor to correct it."),
+                    }
+                ), 409
+            # Scoped to the caller in the DELETE too, not only in the check above.
+            cursor.execute(
+                f"DELETE FROM {d.table} WHERE ID = ? AND {d.user_column} = ?",
+                [record_id, user_id],
+            )
+            conn.commit()
+            cursor.close()
+            return jsonify({"success": True})
+        except Exception as e:
+            current_app.logger.error(f"{d.label} Undo Error: {e}")
+            return _fail()
+        finally:
+            if conn:
+                conn.close()
+
+    return api_undo
+
+
 def _build_views(d):
     views = {}
     if d.monthreport:
@@ -807,6 +869,8 @@ def _build_views(d):
         views["edit"] = _make_edit(d)
     if d.has_delete:
         views["delete"] = _make_delete(d)
+    if d.undo:
+        views["undo"] = _make_undo(d)
     return views
 
 
@@ -823,6 +887,7 @@ _ROUTES = [
     ("add", "", "add", ["POST"]),
     ("edit", "/<int:record_id>", "edit", ["PUT"]),
     ("delete", "/<int:record_id>", "delete", ["DELETE"]),
+    ("undo", "/<int:record_id>/undo", "undo", ["POST"]),
 ]
 
 

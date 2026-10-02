@@ -394,3 +394,28 @@
     nxUserFilter.init(API_PREFIX + 'api/generali/baseservices/filterUsers', applyFiltersSoon);
     crud.loadRecords(1);
 </script>
+{% if can_add %}
+{% include 'js/_generali_quick_entry_i18n.html' %}
+<script src="{{ static_v('js/undo_pill.js') }}"></script>
+<script src="{{ static_v('js/generali_quick_entry.js') }}"></script>
+<script nonce="{{ csp_nonce() }}">
+    // Phone quick entry (#354) -- templates/_generali_quick_entry.html.
+    NX.generaliQuickEntry.mount({
+        api: API_PREFIX + 'api/generali/baseservices',
+        userId: {{ userid|tojson }},
+        i18n: window.NX_I18N_QUICK_ENTRY,
+        crud,
+        openAddModal,
+        storageKey: 'nx.generali.baseservices.quick',
+        categories: BASE_CATEGORIES.map(c => ({ value: c, label: c, fields: { category: c } })),
+        buildBody: p => ({ forDate: p.date, ...p.fields, effortInHours: p.amount }),
+        recordPath: r => (r.category ? [r.category] : []),
+        fillFullForm: p => {
+            const dateEl = document.getElementById('addForDate');
+            if (p.date && dateEl._flatpickr) dateEl._flatpickr.setDate(p.date, false);
+            if (p.fields.category) document.getElementById('addCategory').value = p.fields.category;
+            if (p.amount) document.getElementById('addEffortHours').value = String(p.amount);
+        },
+    });
+</script>
+{% endif %}

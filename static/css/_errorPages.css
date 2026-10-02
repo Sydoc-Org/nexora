@@ -624,3 +624,18 @@ body.error-page footer p {
     animation: none !important;
   }
 }
+
+/* Error pages wobbled sideways by 5-7px on a phone (found while checking the
+   Generali pages: a mistyped URL is how you meet this page).
+
+   The decorative `.starfield` / `.nebula` layers are `position: fixed;
+   inset: 0`, so they are as wide as the initial containing block and simply
+   reported whatever width the document had -- they are the symptom, not the
+   cause. Rather than hunt a 5px contributor through a page built entirely
+   from stacked full-bleed gradients, clip the axis: this page has no
+   horizontal content, so there is nothing a reader could lose, and a 404
+   should not rock under your thumb. */
+html:has(> body.error-page),
+body.error-page {
+  overflow-x: hidden;
+}
