@@ -58,7 +58,9 @@ they can be published.
 >    whether a DPA exists. Ask Ben; marked open on the page.
 > 5. **ngrok = data outside Switzerland** — named on the page; confirm the ngrok
 >    contract includes data-processing terms.
-> 6. **fr/it users get the English text** — confirm that is acceptable.
+> 6. ~~fr/it users get the English text~~ **Closed 2026-10-01:** French and
+>    Italian courtesy versions exist (`templates/legal/{terms,privacy}_{fr,it}.html`);
+>    each states that only the German is binding.
 > 7. Management review and sign-off → then remove the draft banner
 >    (`test_both_pages_carry_the_draft_notice` pins it) and merge.
 >

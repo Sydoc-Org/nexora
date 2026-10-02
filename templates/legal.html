@@ -108,12 +108,18 @@
         {# The texts themselves live in legal/<doc>_<lang>.html, German (the
            authoritative version) and English only -- see _legal_text_lang() in
            nx_lib/views/core.py. The chrome around them stays translated. #}
+        {# Each courtesy version says, in its own language, that only the German
+           is binding. The switch links every other language by its own name. #}
+        {% set d = text_date[8:10] ~ '.' ~ text_date[5:7] ~ '.' ~ text_date[:4] %}
         <p class="legal-meta" data-testid="legal-text-lang">
-            {% if text_lang == 'de' %}Stand: {{ text_date[8:10] }}.{{ text_date[5:7] }}.{{ text_date[:4] }} · Massgebend ist diese deutsche Fassung.
-            · <a href="?lang=en" class="legal-switch" data-testid="legal-switch-en">English version</a>
+            {% if text_lang == 'de' %}Stand: {{ d }} · Massgebend ist diese deutsche Fassung.
+            {% elif text_lang == 'fr' %}Mise à jour : {{ d }} · Seule la version allemande fait foi ; ce texte français est fourni à titre d'information.
+            {% elif text_lang == 'it' %}Aggiornamento: {{ d }} · Fa fede unicamente la versione tedesca; questo testo italiano è fornito a titolo informativo.
             {% else %}Last updated: {{ text_date }} · The German version is authoritative; this English text is provided for convenience.
-            · <a href="?lang=de" class="legal-switch" data-testid="legal-switch-de">Deutsche Fassung</a>
             {% endif %}
+            {% for code, name in [('de', 'Deutsche Fassung'), ('en', 'English version'), ('fr', 'Version française'), ('it', 'Versione italiana')] if code != text_lang %}
+            · <a href="?lang={{ code }}" class="legal-switch" data-testid="legal-switch-{{ code }}" lang="{{ code }}">{{ name }}</a>
+            {% endfor %}
         </p>
         <div class="legal-text" lang="{{ text_lang }}">
             {% include 'legal/' ~ doc ~ '_' ~ text_lang ~ '.html' %}
