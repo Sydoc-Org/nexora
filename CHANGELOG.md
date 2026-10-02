@@ -314,6 +314,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   289px → 321px, about 11% fewer rows, not a halving. Also `Advanced` in the
   filter bar, which cleared 44 tall but sat at 43 wide — the `min-width` rule
   that fixed `Reset` for the same reason had missed it.
+- **Dashboard charts no longer replay their animation every 30 seconds**
+  (#406): the auto-refresh redraws the three charts in place
+  (`update('none')`); only the first draw animates.
 
 ### Added — phone view
 - **`scripts/phone-sweep.py` — the phone layout, measured instead of eyeballed.**
