@@ -239,7 +239,7 @@
             if (processedChart) {
                 processedChart.data.labels = data.labels;
                 processedChart.data.datasets[0].data = values;
-                processedChart.update();
+                processedChart.update('none');
                 return;
             }
 
@@ -366,7 +366,7 @@
             if (hourlyChart) {
                 hourlyChart.data.labels = labels;
                 hourlyChart.data.datasets[0].data = chartData;
-                hourlyChart.update();
+                hourlyChart.update('none');
                 return;
             }
 
@@ -488,7 +488,7 @@
             if (backlogChart) {
                 backlogChart.data.labels = labels;
                 backlogChart.data.datasets = datasets;
-                backlogChart.update();
+                backlogChart.update('none');
                 return;
             }
 
