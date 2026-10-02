@@ -336,6 +336,12 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   ran edge to edge from the sidebar while every other screen stays centred,
   and the masthead jumped left when switching from *Library*. The shell now
   keeps the same cap and inset; only the rail steps aside.
+- **`nx --doctor` points at `uv sync`, and finds tools in the venv** (#452).
+  A missing package suggested (and `--fix` ran) `pip install -r
+  requirements.txt`, but those files are generated for the IIS deploy --
+  locally uv owns the venv. Hint and fix are now `uv sync` (pip only without
+  uv). `pybabel` no longer warns "not on PATH" when it sits in the
+  unactivated `.venv` the doctor runs in.
 
 ### Added — phone view
 - **`scripts/phone-sweep.py` — the phone layout, measured instead of eyeballed.**

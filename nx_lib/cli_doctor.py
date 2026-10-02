@@ -111,6 +111,22 @@ def _parse_requirements() -> list[tuple[str, str | None]]:
     return pkgs
 
 
+def _install_command() -> tuple[list[str], str]:
+    """The command that brings the venv in line, and how to spell it as a hint."""
+    uv = shutil.which("uv")
+    if uv:
+        return [uv, "sync"], "uv sync"
+    name = REQUIREMENTS_FILE.name
+    return [
+        sys.executable,
+        "-m",
+        "pip",
+        "install",
+        "-r",
+        str(REQUIREMENTS_FILE),
+    ], f"pip install -r {name}"
+
+
 def _check_packages() -> list[CheckResult]:
     from importlib.metadata import PackageNotFoundError, version
 
@@ -129,20 +145,25 @@ def _check_packages() -> list[CheckResult]:
         if expected and actual != expected:
             mismatched.append((name, expected, actual))
 
-    def _fix_pip() -> CheckResult:
-        cmd = [sys.executable, "-m", "pip", "install", "-r", str(REQUIREMENTS_FILE)]
+    # requirements.txt is generated from uv.lock for the IIS deploy; a local
+    # checkout's venv is uv's to manage (#452). pip only where uv is absent.
+    cmd, label = _install_command()
+
+    def _fix_install() -> CheckResult:
         try:
-            subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=300)
+            subprocess.run(
+                cmd, check=True, capture_output=True, text=True, timeout=300, cwd=APP_DIR
+            )
             return CheckResult("packages", "ok", "all required packages installed")
         except subprocess.CalledProcessError as exc:
             tail = (exc.stderr or exc.stdout or "").strip().splitlines()
             return CheckResult(
                 "packages",
                 "fail",
-                tail[-1][:140] if tail else "pip install failed",
+                tail[-1][:140] if tail else f"{label} failed",
             )
         except subprocess.TimeoutExpired:
-            return CheckResult("packages", "fail", "pip install timed out")
+            return CheckResult("packages", "fail", f"{label} timed out")
 
     if missing:
         preview = ", ".join(missing[:5]) + ("..." if len(missing) > 5 else "")
@@ -151,8 +172,8 @@ def _check_packages() -> list[CheckResult]:
                 "packages",
                 "fail",
                 f"{len(missing)} missing: {preview}",
-                hint=f"pip install -r {REQUIREMENTS_FILE.name}",
-                fix=_fix_pip,
+                hint=label,
+                fix=_fix_install,
             )
         ]
     if mismatched:
@@ -163,7 +184,7 @@ def _check_packages() -> list[CheckResult]:
                 "packages",
                 "warn",
                 f"{len(mismatched)} version drift: {preview}{more}",
-                hint=f"pip install -r {REQUIREMENTS_FILE.name} --upgrade",
+                hint=label,
             )
         ]
     return [CheckResult("packages", "ok", f"{len(pkgs)} packages match requirements")]
@@ -721,16 +742,22 @@ _TOOL_HINTS = {
     "sqlcmd": "Install SQL Server Command Line Utilities (ships with SSMS).",
     "mssql-scripter": "pip install -r sql/requirements.txt",
     "git": "Install Git for Windows.",
-    "pybabel": "Reinstall requirements (flask-babel installs pybabel).",
+    "pybabel": "uv sync (flask-babel installs pybabel).",
     "powershell": "Already shipped with Windows — check PATH.",
 }
 
 
 def _check_tooling() -> list[CheckResult]:
+    # nx.ps1 runs the doctor with .venv's python without activating the venv,
+    # so venv-installed tools (pybabel) are in this interpreter's Scripts/bin
+    # dir but not on PATH (#452).
+    venv_bin = str(Path(sys.executable).parent)
     results: list[CheckResult] = []
     for tool in ("sqlcmd", "mssql-scripter", "git", "pybabel", "powershell"):
         if shutil.which(tool) or shutil.which(tool + ".exe"):
             results.append(CheckResult(tool, "ok", "on PATH"))
+        elif shutil.which(tool, path=venv_bin):
+            results.append(CheckResult(tool, "ok", "in the venv"))
         else:
             results.append(
                 CheckResult(
