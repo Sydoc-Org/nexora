@@ -336,6 +336,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   ran edge to edge from the sidebar while every other screen stays centred,
   and the masthead jumped left when switching from *Library*. The shell now
   keeps the same cap and inset; only the rail steps aside.
+- **Local pre-commit hooks find the project venv on their own** (#450). The
+  `mypy`, `sql-migrate-int`, `sql-sync-check` and `reporting-help-sync` hooks
+  ran bare `python`, so committing without an activated venv (lazygit, a
+  fresh terminal) used a global interpreter and the SQL hooks crashed on
+  `No module named 'dotenv'`. They now run `uv run --no-sync python`.
 
 ### Added — phone view
 - **`scripts/phone-sweep.py` — the phone layout, measured instead of eyeballed.**
