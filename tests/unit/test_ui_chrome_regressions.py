@@ -181,11 +181,21 @@ def test_hidden_switch_inputs_opt_out_of_the_floor():
 # --------------------------------------------------------------------------
 
 
+def _unzoomed(value):
+    """`calc(<len> / var(--nx-zoom, 1))` -> `<len>`; anything else unchanged.
+
+    body's padding sits inside the font-scale zoom while the sidebar is
+    counter-zoomed to its true width, so the reserved room is written divided
+    by the zoom (#446) -- it still reserves exactly <len> on screen."""
+    match = re.fullmatch(r"calc\(\s*(\S+)\s*/\s*var\(--nx-zoom,\s*1\)\s*\)", value or "")
+    return match.group(1) if match else value
+
+
 def test_sidebar_hover_reserves_the_expanded_width():
     """Unpinned, the rail is 64px and `body` reserves 100px for it. Hovering
     expands it to 220px -- which used to paint straight over the page, because
-    only the *pinned* state widened body's padding. The hover rule has to
-    reserve the same width the sidebar expands to."""
+    only the *pinned* state widened body's padding. The hover rule (and the
+    pinned one) has to reserve the same width the sidebar expands to."""
     text = (CSS / "_header.css").read_text(encoding="utf-8")
 
     expanded = _declaration(_rule_body(text, "html.sidebar-pinned #nexora-sidebar"), "width")
@@ -194,11 +204,28 @@ def test_sidebar_hover_reserves_the_expanded_width():
         "body:has(#nexora-sidebar:hover) is gone; an unpinned sidebar paints "
         "over the page again when hovered"
     )
-    reserved = _declaration(hover_block, "padding-left")
-    assert reserved == expanded, (
-        f"hover reserves {reserved} but the sidebar expands to {expanded}; "
-        f"the difference is page content the sidebar covers"
-    )
+    for name, block in (
+        ("hover", hover_block),
+        ("pinned", _rule_body(text, "html.sidebar-pinned body")),
+    ):
+        reserved = _unzoomed(_declaration(block, "padding-left"))
+        assert reserved == expanded, (
+            f"{name} reserves {reserved} but the sidebar expands to {expanded}; "
+            f"the difference is page content the sidebar covers"
+        )
+
+
+def test_zoom_token_matches_the_font_scale_zoom():
+    """The reserved sidebar room is divided by --nx-zoom because body is zoomed
+    and the sidebar is not (#446). The token must equal body's zoom at every
+    font scale, or the sidebar covers (sm) or overshoots (lg) the page again."""
+    text = (CSS / "nexora-ui.css").read_text(encoding="utf-8")
+    for scale in ("sm", "lg"):
+        zoom = _declaration(_rule_body(text, f'html[data-fontscale="{scale}"] body'), "zoom")
+        token = _declaration(_rule_body(text, f'html[data-fontscale="{scale}"]'), "--nx-zoom")
+        assert (
+            zoom is not None and token == zoom
+        ), f'font scale "{scale}": body zoom is {zoom} but --nx-zoom is {token}'
 
 
 def test_mobile_still_drops_the_sidebar_padding():
