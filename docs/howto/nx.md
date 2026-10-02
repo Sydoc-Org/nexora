@@ -186,6 +186,8 @@ layer the app depends on:
   `set ENVIRONMENT=PROD` then `D:\sydoc\tools\py\python.exe -m nx_lib.cli doctor --fast`.
 - **Schema dump** — drift between the per-object SQL files and INT
 - **Tooling** — `sqlcmd`, `mssql-scripter`, `git`, `pybabel`, `powershell` on PATH
+  or in the running interpreter's venv (`pybabel` lives in `.venv`, which `nx`
+  runs without activating)
 - **Git hooks** — `pre-commit`, `commit-msg`, `pre-push` installed
 - **Port** — whether 8000 is in use
 - **External services** — Microsoft Graph, Octo token/auth checks
@@ -194,9 +196,10 @@ Failed checks print a `→ hint` line. Modifiers:
 
 - `--fast` skips the schema-drift dump and the external-service calls — good when
   offline or you only need a local sanity check.
-- `--fix` runs safe auto-repairs after the report (e.g. `pip install -r
-  requirements.txt`, create missing dirs, install git hooks), then tells you to
-  re-run to confirm.
+- `--fix` runs safe auto-repairs after the report (e.g. `uv sync` for missing
+  packages -- `pip install -r requirements.txt` only where uv is absent, such as
+  the server's bare interpreter -- create missing dirs, install git hooks), then
+  tells you to re-run to confirm.
 
 Exit codes: **0** when there are no failures (warnings are fine), **1** when at
 least one check fails — so `nx --doctor` is usable as a CI/pre-flight gate.
