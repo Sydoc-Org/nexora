@@ -465,14 +465,15 @@
   // each series' peak bucket. Only for a single-dimension result (one clean
   // axis). ponytail: ±15% swing heuristic; a real detector belongs
   // server-side if this ever needs to be smarter.
-  function renderAnomalies(def, columns, rows) {
-    var card = RS.el('rsAnomCard');
-    if (!card) return;
-    card.hidden = true;
-    RS.el('rsAnomRows').innerHTML = '';
+  //
+  // Pure half, shared with the report-definition editor's preview (#323):
+  // {items} when something stands out, else {items: [], reason} -- 'shape'
+  // when the result is not one grouping with enough buckets to compare,
+  // 'none' when it is but nothing moved enough.
+  function findAnomalies(def, columns, rows) {
     var dims = (def.columns || []).length;
     var hasMetrics = Array.isArray(def.metrics) && def.metrics.length > 0;
-    if (!hasMetrics || dims !== 1 || !rows || rows.length < 3) return;
+    if (!hasMetrics || dims !== 1 || !rows || rows.length < 3) return { items: [], reason: 'shape' };
     var grain = def.columns[0].grain || null;
     var body = rows.slice();
     // Ignore a trailing partial bucket — comparing it against a full one
@@ -481,7 +482,7 @@
         String(body[body.length - 1][0] || '').slice(0, 10) >= RS.currentBucketStart(grain)) {
       body = body.slice(0, -1);
     }
-    if (body.length < 3) return;
+    if (body.length < 3) return { items: [], reason: 'shape' };
     var out = [];
     var mlabels = metricLabelsFor(def);
     for (var mi = dims; mi < columns.length; mi++) {
@@ -513,14 +514,34 @@
       }
     }
     out = out.slice(0, 3);
-    if (!out.length) return;
-    RS.el('rsAnomRows').innerHTML = out.map(function (a) {
+    return out.length ? { items: out } : { items: [], reason: 'none' };
+  }
+  function anomaliesHtml(items) {
+    return items.map(function (a) {
       return '<div class="rs-anom-row"><span class="rs-anom-dot ' + a.cls + '"></span>' +
         '<span class="rs-anom-text">' + RS.esc(a.text) + '</span>' +
         '<span class="rs-anom-val">' + RS.esc(a.value) + '</span></div>';
     }).join('');
-    card.hidden = false;
   }
+  function anomaliesEmptyHtml(reason) {
+    return '<div class="rs-anom-empty">' +
+      RS.esc(reason === 'shape' ? RS.I18N.anomNeedsOneDim : RS.I18N.anomNothing) + '</div>';
+  }
+  function renderAnomalies(def, columns, rows) {
+    var card = RS.el('rsAnomCard');
+    if (!card) return;
+    var found = findAnomalies(def, columns, rows);
+    // In the side column a quiet result needs no card at all. Adopted into a
+    // report definition's tile the card IS the tile, so it says why it is
+    // empty instead of leaving a blank box (#323).
+    var inTile = !!card.closest('[data-tile-body]');
+    RS.el('rsAnomRows').innerHTML = found.items.length ? anomaliesHtml(found.items)
+      : (inTile ? anomaliesEmptyHtml(found.reason) : '');
+    card.hidden = !found.items.length && !inTile;
+  }
+  RS.findAnomalies = findAnomalies;
+  RS.anomaliesHtml = anomaliesHtml;
+  RS.anomaliesEmptyHtml = anomaliesEmptyHtml;
   RS.renderAnomalies = renderAnomalies;
 
   function metricLabelsFor(def) {

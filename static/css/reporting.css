@@ -1346,6 +1346,8 @@ body.nx-app {
 @media (prefers-reduced-motion: reduce) {
   .rp-caption--loading { animation: none; }
 }
+/* No caption came back, shown only inside a report-definition tile (#323). */
+.rp-caption--empty { color: var(--nx-text-meta); font-size: 12px; }
 .rp-caption-chip {
   flex: none;
   display: inline-flex;
@@ -2709,7 +2711,9 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 .rl-table { overflow: auto; font-size: 12.5px; }
 .rl-table table { width: 100%; border-collapse: collapse; }
 .rl-table th, .rl-table td { padding: 4px 8px; border-bottom: 1px solid var(--nx-border); text-align: left; white-space: nowrap; }
-.rl-placeholder { flex: 1; display: grid; place-items: center; color: var(--nx-text-meta); font-size: 12px; }
+.rl-placeholder { flex: 1; display: grid; place-items: center; color: var(--nx-text-meta); font-size: 12px;
+  /* the panel hints (#323) are a sentence, not one word */
+  text-align: center; padding-inline: 12px; text-wrap: balance; }
 .rl-kpi--up .rl-kpi-value { color: var(--nx-success, #15803d); }
 .rl-kpi--down .rl-kpi-value { color: var(--nx-danger, #b91c1c); }
 .rl-tile[data-type="panel"] .rdb-card-body > * { width: 100%; }

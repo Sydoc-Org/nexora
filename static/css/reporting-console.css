@@ -1091,6 +1091,9 @@ body.reporting-console #rsForecastToggle:disabled { opacity: 0.45; }
   border-bottom: 1px solid var(--nx-divider);
 }
 .rs-anom-row:last-child { border-bottom: none; }
+/* Why a report-definition tile has no anomalies (#323) -- the side column
+   just hides the card instead. */
+.rs-anom-empty { padding: 12px 14px; font-size: 12px; color: var(--nx-text-meta); }
 .rs-anom-dot {
   width: 7px;
   height: 7px;

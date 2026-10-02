@@ -317,6 +317,13 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Dashboard charts no longer replay their animation every 30 seconds**
   (#406): the auto-refresh redraws the three charts in place
   (`update('none')`); only the first draw animates.
+- **Eddard tiles in report definitions** (#323): the *Eddard insight* tile was
+  always empty on a real report -- a report rendering through a definition
+  never asked for the caption. It does now, and says so when Eddard has
+  nothing to add. *Anomalies* explains an empty tile (it needs a report
+  grouped by one column, or nothing moved enough) instead of showing a blank
+  box. In the editor, *Anomalies* previews for real on the *Preview with*
+  report and the other panels describe what they will show.
 
 ### Added — phone view
 - **`scripts/phone-sweep.py` — the phone layout, measured instead of eyeballed.**

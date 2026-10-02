@@ -161,6 +161,8 @@
       if (tile.type === 'panel') {
         var live = ctx.live && document.getElementById(PANEL_IDS[tile.panel]);
         if (live) { adopt(live, body); if (tile.panel === 'sql') live.hidden = !live.querySelector('pre').textContent; }
+        // No live side column (the editor): its own preview if it has one (#323).
+        else if (ctx.panelPreview) body.innerHTML = ctx.panelPreview(tile.panel);
         else body.innerHTML = '<div class="rl-placeholder">' + esc((ctx.i18n.panel || {})[tile.panel] || tile.panel) + '</div>';
         return;
       }

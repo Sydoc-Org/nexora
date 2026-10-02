@@ -32,6 +32,14 @@
       anomalies: {{ _("Anomalies")|tojson }},
       sql: {{ _("Query")|tojson }}
     },
+    // What a panel tile shows on a real report -- the editor has no live
+    // side column to borrow from, so it describes the tile instead (#323).
+    panelHint: {
+      caption: {{ _("Eddard writes a short summary of the result here when the report runs.")|tojson }},
+      ask: {{ _("A button that opens Eddard with this report attached.")|tojson }},
+      anomalies: {{ _("Notable jumps and peaks appear here when the report runs.")|tojson }},
+      sql: {{ _("The report's query appears here.")|tojson }}
+    },
     op: {
       current: {{ _("Current value")|tojson }},
       total: {{ _("Total")|tojson }},
