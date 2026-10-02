@@ -331,6 +331,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (Reporting's *Dashboards* and *Report definitions* sat 3px from it), and at
   *large* left a 22px extra gap. The reserved padding is now divided by the
   same factor (`--nx-zoom`), so both gutters match at every font size.
+  Separately, *Dashboards* and *Report definitions* lifted the page's width
+  cap along with the rail, so on a wide viewport (a zoomed-out window) they
+  ran edge to edge from the sidebar while every other screen stays centred,
+  and the masthead jumped left when switching from *Library*. The shell now
+  keeps the same cap and inset; only the rail steps aside.
 
 ### Added — phone view
 - **`scripts/phone-sweep.py` — the phone layout, measured instead of eyeballed.**

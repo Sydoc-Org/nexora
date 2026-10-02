@@ -578,8 +578,9 @@ render a "remove and add the piece again" notice and never run.
   jumping; no re-render, Chart.js canvases survive the drag.
 - **Full-bleed + Present** — `setView('dashboard')` toggles `body.rdb-fullbleed`;
   `reporting-console.css` then hides `.rc-rail`, collapses the body grid to one
-  column and lifts the shell's and the dashboard's own max-width, so the
-  12-column grid spans the viewport. **Present** (`#rdbPresent`) calls
+  column and lifts the dashboard's own max-width, so the 12-column grid spans
+  the shell. The shell keeps the page cap and inset of every other screen, so
+  a wide viewport does not glue the grid to the sidebar (#446). **Present** (`#rdbPresent`) calls
   `requestFullscreen()` on `#rsDashboard` (edit mode ends and autosaves first);
   `:fullscreen` styles hide the app-only chrome. Hidden when the browser has no
   Fullscreen API.
