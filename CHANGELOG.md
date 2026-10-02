@@ -336,6 +336,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   ran edge to edge from the sidebar while every other screen stays centred,
   and the masthead jumped left when switching from *Library*. The shell now
   keeps the same cap and inset; only the rail steps aside.
+- **Local pre-commit hooks find the project venv on their own** (#450). The
+  `mypy`, `sql-migrate-int`, `sql-sync-check` and `reporting-help-sync` hooks
+  ran bare `python`, so committing without an activated venv (lazygit, a
+  fresh terminal) used a global interpreter and the SQL hooks crashed on
+  `No module named 'dotenv'`. They now run `uv run --no-sync python`.
 - **`nx --doctor` points at `uv sync`, and finds tools in the venv** (#452).
   A missing package suggested (and `--fix` ran) `pip install -r
   requirements.txt`, but those files are generated for the IIS deploy --

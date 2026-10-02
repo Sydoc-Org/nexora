@@ -48,11 +48,15 @@ repos:
       - id: gitlint
         stages: [commit-msg]
 
+  # `uv run --no-sync python`, not bare `python`: language: system runs
+  # whatever is first on PATH, which without an activated venv (lazygit, a
+  # fresh terminal) is a global interpreter missing the project's packages.
+  # uv resolves the repo's .venv on any OS; --no-sync never touches it (#450).
   - repo: local
     hooks:
       - id: mypy
         name: mypy type check
-        entry: python -m mypy nx_lib nx_main.py
+        entry: uv run --no-sync python -m mypy nx_lib nx_main.py
         language: system
         pass_filenames: false
         files: '^(nx_lib/|nx_main\.py|pyproject\.toml)'
@@ -60,21 +64,21 @@ repos:
 
       - id: sql-migrate-int
         name: Apply pending SQL migrations to INT
-        entry: python scripts/db-migrate.py --env INT
+        entry: uv run --no-sync python scripts/db-migrate.py --env INT
         language: system
         pass_filenames: false
         stages: [pre-commit]
 
       - id: sql-sync-check
         name: Verify per-object SQL DDL matches INT
-        entry: python sql/sync-from-db.py --check
+        entry: uv run --no-sync python sql/sync-from-db.py --check
         language: system
         pass_filenames: false
         stages: [pre-commit]
 
       - id: reporting-help-sync
         name: Reporting help/docs sync nudge (non-blocking)
-        entry: python scripts/check-reporting-help-sync.py
+        entry: uv run --no-sync python scripts/check-reporting-help-sync.py
         language: system
         pass_filenames: false
         files: '^(templates/(reporting\.html|_reporting_simple\.html|reporting_metrics\.html|reporting_sources\.html|js/_reporting_)|static/js/reporting_|nx_lib/views/reporting/.*\.py)'
